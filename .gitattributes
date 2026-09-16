@@ -1,0 +1,5 @@
+# 워킹트리 줄바꿈을 LF로 고정한다. prettier가 endOfLine:"lf"이고 저장소 blob도
+# 전부 LF인데, Windows의 core.autocrlf=true가 체크아웃 때 CRLF로 바꾼다.
+# 그러면 llms 문서 생성기처럼 '\n'을 리터럴로 찾는 도구가 Windows 클론에서만
+# 깨진다(`## Design Tokens\n`을 못 찾음).
+* text=auto eol=lf
