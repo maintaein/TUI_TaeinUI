@@ -116,6 +116,23 @@ describe('발행 문서와 소스 일치 검사', () => {
     expect(Number(heading?.[2])).toBe(exportedComponentNames().length);
   });
 
+  it('새로 만든 토큰(overlay.focusHalo·errorHalo·text.inverse)이 발행 문서에 나타난다', () => {
+    // S1·S4가 만든 토큰이 발행 문서에 안 나타나던 문제(overlay.scrim)가
+    // 여기서 같이 닫힌다. 참조가 생긴 scrim도 함께 확인한다.
+    // llms.txt(요약)는 토큰 경로를 spelling하지 않으므로(surface.track 등
+    // 기존 토큰도 마찬가지다) 두 문서를 합쳐서 한 번이라도 나타나는지 본다.
+    const names = [
+      'overlay.scrim',
+      'overlay.focusHalo',
+      'overlay.errorHalo',
+      'text.inverse',
+    ];
+    const combined = Object.values(FILES).map(read).join('\n');
+    for (const token of names) {
+      expect(combined, `발행 문서에 '${token}'이 없다`).toContain(token);
+    }
+  });
+
   it('삭제된 API를 쓰도록 안내하거나 없는 토큰 경로를 적지 않는다', () => {
     // v0.1.0 문서가 실제로 안내하던, 지금은 undefined를 반환하는 경로들.
     // `border.strong`은 이 목록에 있었으나 실제 토큰으로 추가되면서 빠졌다.

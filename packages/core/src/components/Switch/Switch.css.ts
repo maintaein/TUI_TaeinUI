@@ -136,7 +136,7 @@ export const error = style({
   selectors: {
     'input:focus ~ &': {
       borderColor: `${themeContract.color.error.main} !important`,
-      boxShadow: '0 0 0 3px rgba(211, 47, 47, 0.1) !important',
+      boxShadow: `0 0 0 3px ${themeContract.color.overlay.errorHalo} !important`,
     },
   },
 });

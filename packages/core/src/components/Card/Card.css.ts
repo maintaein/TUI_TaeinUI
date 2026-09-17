@@ -95,8 +95,8 @@ export const cardImageOverlay = style({
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'center',
-  backgroundColor: 'rgba(0, 0, 0, 0.4)',
-  color: '#fff',
+  backgroundColor: themeContract.color.overlay.scrim,
+  color: themeContract.color.text.inverse,
 });
 
 export const cardHeader = style({

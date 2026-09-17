@@ -20,14 +20,7 @@ export interface TextProps {
   /** HTML 태그 (variant보다 우선) */
   as?: ElementType;
   /** 텍스트 색상 */
-  color?:
-    | 'primary'
-    | 'secondary'
-    | 'success'
-    | 'warning'
-    | 'error'
-    | 'info'
-    | 'disabled';
+  color?: 'primary' | 'secondary' | 'success' | 'warning' | 'error' | 'info';
   /** 폰트 굵기 */
   weight?: 'regular' | 'medium' | 'semibold' | 'bold';
   /** 텍스트 정렬 */

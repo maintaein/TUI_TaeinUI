@@ -81,7 +81,7 @@ export const button = recipe({
       variants: { buttonStyle: 'fill', variant: 'primary' },
       style: {
         backgroundColor: themeContract.color.primary.main,
-        color: '#FFFFFF',
+        color: themeContract.color.primary.contrast,
         selectors: {
           '&:hover:not(:disabled)': {
             backgroundColor: themeContract.palette.primary[800],
@@ -97,7 +97,7 @@ export const button = recipe({
       variants: { buttonStyle: 'fill', variant: 'dark' },
       style: {
         backgroundColor: themeContract.palette.gray[700],
-        color: '#FFFFFF',
+        color: themeContract.color.text.inverse,
         selectors: {
           '&:hover:not(:disabled)': {
             backgroundColor: themeContract.palette.gray[800],
@@ -113,7 +113,7 @@ export const button = recipe({
       variants: { buttonStyle: 'fill', variant: 'danger' },
       style: {
         backgroundColor: themeContract.color.error.main,
-        color: '#FFFFFF',
+        color: themeContract.color.error.contrast,
         selectors: {
           '&:hover:not(:disabled)': {
             backgroundColor: themeContract.palette.error[800],
@@ -125,7 +125,7 @@ export const button = recipe({
     {
       variants: { buttonStyle: 'fill', variant: 'light' },
       style: {
-        backgroundColor: '#FFFFFF',
+        backgroundColor: themeContract.color.background.default,
         color: themeContract.color.primary.main,
         border: `2px solid ${themeContract.color.primary.main}`,
         selectors: {
@@ -240,7 +240,7 @@ export const customVariant = style({
 });
 
 export const customOutlineVariant = style({
-  backgroundColor: '#FFFFFF',
+  backgroundColor: themeContract.color.background.default,
   color: 'var(--btn-color)',
   border: '2px solid var(--btn-color)',
 

@@ -46,7 +46,7 @@ export const input = style({
     },
     '&:focus-visible': {
       borderColor: themeContract.color.border.focus,
-      boxShadow: '0 0 0 3px rgba(25, 118, 210, 0.16)',
+      boxShadow: `0 0 0 3px ${themeContract.color.overlay.focusHalo}`,
       ...focusRing(),
     },
     '&:disabled': {
@@ -73,7 +73,7 @@ export const error = style({
   selectors: {
     '&:focus': {
       borderColor: `${themeContract.color.error.main} !important`,
-      boxShadow: '0 0 0 3px rgba(240, 68, 82, 0.1)',
+      boxShadow: `0 0 0 3px ${themeContract.color.overlay.errorHalo}`,
     },
   },
 });

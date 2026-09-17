@@ -12,47 +12,47 @@ export const base = style({
 // variant 스타일
 export const variant = styleVariants({
   h1: {
-    fontSize: '2.5rem', // 40px
+    fontSize: themeContract.font.size['4xl'], // 36px
     fontWeight: 700,
     lineHeight: 1.2,
   },
   h2: {
-    fontSize: '2rem', // 32px
+    fontSize: themeContract.font.size['3xl'], // 30px
     fontWeight: 700,
     lineHeight: 1.3,
   },
   h3: {
-    fontSize: '1.75rem', // 28px
+    fontSize: themeContract.font.size['2xl'], // 24px
     fontWeight: 600,
     lineHeight: 1.3,
   },
   h4: {
-    fontSize: '1.5rem', // 24px
+    fontSize: themeContract.font.size.xl, // 20px
     fontWeight: 600,
     lineHeight: 1.4,
   },
   h5: {
-    fontSize: '1.25rem', // 20px
+    fontSize: themeContract.font.size.lg, // 18px
     fontWeight: 600,
     lineHeight: 1.4,
   },
   h6: {
-    fontSize: '1rem', // 16px
+    fontSize: themeContract.font.size.base, // 16px
     fontWeight: 600,
     lineHeight: 1.5,
   },
   body1: {
-    fontSize: '1rem', // 16px
+    fontSize: themeContract.font.size.base, // 16px
     fontWeight: 400,
     lineHeight: 1.5,
   },
   body2: {
-    fontSize: '0.875rem', // 14px
+    fontSize: themeContract.font.size.sm, // 14px
     fontWeight: 400,
     lineHeight: 1.5,
   },
   body3: {
-    fontSize: '0.75rem', // 12px
+    fontSize: themeContract.font.size.xs, // 12px
     fontWeight: 400,
     lineHeight: 1.5,
   },
@@ -83,9 +83,9 @@ export const color = styleVariants({
   info: {
     color: themeContract.color.info.dark,
   },
-  disabled: {
-    color: themeContract.color.text.disabled,
-  },
+  // disabled는 없다. text.disabled(1.88:1)는 비활성 컨트롤 전용 값이라
+  // WCAG 1.4.3의 inactive UI component 면제를 받는다 — 아무 본문에나 쓸 수
+  // 있는 범용 색으로 노출하면 그 면제 조건 밖에서도 쓰이게 된다.
 });
 
 // 고정폭 숫자.

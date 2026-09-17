@@ -32,6 +32,9 @@ export const themeTokens = {
       primary: gray[900],
       secondary: gray[600],
       disabled: gray[400],
+      // 어두운 면 위에 얹는 글자. semantic 4슬롯의 contrast로는 못 덮는 자리가 있다
+      // — gray[700~900] 배경(Button·IconButton의 dark 변형)과 스크림 위 텍스트다.
+      inverse: '#FFFFFF',
     },
     background: {
       default: '#FFFFFF',
@@ -55,12 +58,16 @@ export const themeTokens = {
       strong: gray[550],
       focus: primary[700],
     },
+    // 반투명 합성색. 밑에 깔리는 배경에 따라 결과색이 달라져 단일 대비값을
+    // 정의할 수 없으므로 대비비 검사 대상이 아니다.
     overlay: {
       // Modal·BottomSheet·SideSheet 백드롭. 세 컴포넌트가 각자 리터럴로 적던
-      // rgba(0, 0, 0, 0.5)와 동일한 값이다 — 렌더 결과를 바꾸지 않는다.
-      // 알파가 있는 색이라 대비비 검사 대상이 아니다(반투명은 밑에 깔리는
-      // 배경에 따라 합성색이 달라져 단일 대비값을 정의할 수 없다).
+      // 값과 동일하다 — 렌더 결과를 바꾸지 않는다.
       scrim: 'rgba(0, 0, 0, 0.5)',
+      // 포커스·에러 halo. 대비 1.1~1.2:1이라 이것만으로는 포커스 표시가 못 된다 —
+      // 실제 표시는 focusRing 유틸의 outline이 맡는다(S6). 이건 장식이다.
+      focusHalo: 'rgba(25, 118, 210, 0.16)', // primary[700] @16%
+      errorHalo: 'rgba(211, 47, 47, 0.16)', // error[700] @16%
     },
     // semantic 4슬롯의 역할 구분:
     // - main    글자(contrast)를 얹는 면. 판정 기준은 페이지 배경이 아니라

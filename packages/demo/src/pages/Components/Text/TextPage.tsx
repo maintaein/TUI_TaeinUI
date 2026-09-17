@@ -169,7 +169,7 @@ export function TextPage() {
           <h3 className={styles.exampleTitle}>Color Variants</h3>
           <LivePreview
             title="텍스트 색상"
-            description="7가지 의미론적 색상을 제공합니다. semantic 색(success/warning/error/info)은 계약의 dark 슬롯을 써서 흰 배경과 paper 배경 모두에서 AA(4.5:1)를 만족합니다. main 슬롯은 UI 요소용이라 본문 텍스트로는 대비가 부족합니다."
+            description="6가지 의미론적 색상을 제공합니다. semantic 색(success/warning/error/info)은 계약의 dark 슬롯을 써서 흰 배경과 paper 배경 모두에서 AA(4.5:1)를 만족합니다. main 슬롯은 UI 요소용이라 본문 텍스트로는 대비가 부족합니다."
             editable
             code={`<div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
   <Text color="primary">Primary - 주요 텍스트 (text.primary)</Text>
@@ -178,7 +178,6 @@ export function TextPage() {
   <Text color="warning">Warning - 주의 상태 (warning.dark)</Text>
   <Text color="error">Error - 에러 상태 (error.dark)</Text>
   <Text color="info">Info - 정보 안내 (info.dark)</Text>
-  <Text color="disabled">Disabled - 비활성화 (text.disabled)</Text>
 </div>`}
           />
         </div>
@@ -345,7 +344,7 @@ export function TextPage() {
     <Text color="error" weight="semibold">필수 항목을 입력해주세요.</Text>
   </div>
   <div style={{ padding: '0.75rem 1rem', backgroundColor: '#FAFAFA', borderRadius: '0.5rem', borderLeft: '3px solid #BDBDBD' }}>
-    <Text color="disabled">이 기능은 현재 사용할 수 없습니다.</Text>
+    <Text>이 기능은 현재 사용할 수 없습니다.</Text>
   </div>
 </div>`}
           />

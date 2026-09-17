@@ -83,7 +83,7 @@ export const input = style({
     },
     '&:focus': {
       borderColor: themeContract.color.primary.main,
-      boxShadow: `0 0 0 3px rgba(30, 136, 229, 0.1)`,
+      boxShadow: `0 0 0 3px ${themeContract.color.overlay.focusHalo}`,
       ...focusRing(),
     },
     '&::-webkit-outer-spin-button': {
@@ -170,7 +170,7 @@ export const error = style({
   selectors: {
     '&:focus-within': {
       borderColor: `${themeContract.color.error.main} !important`,
-      boxShadow: '0 0 0 3px rgba(240, 68, 82, 0.1)',
+      boxShadow: `0 0 0 3px ${themeContract.color.overlay.errorHalo}`,
     },
   },
 });

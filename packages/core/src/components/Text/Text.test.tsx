@@ -1,7 +1,10 @@
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { Text } from './Text';
+import { themeTokens } from '../../tokens/contract';
 
 describe('Text', () => {
   describe('렌더링 테스트', () => {
@@ -130,12 +133,6 @@ describe('Text', () => {
       const element = screen.getByText('Info 텍스트');
       expect(element.className).toContain('color_info');
     });
-
-    it('disabled color를 적용한다', () => {
-      render(<Text color="disabled">Disabled 텍스트</Text>);
-      const element = screen.getByText('Disabled 텍스트');
-      expect(element.className).toContain('color_disabled');
-    });
   });
 
   describe('tabularNums prop 테스트', () => {
@@ -257,6 +254,30 @@ describe('Text', () => {
       const element = screen.getByText('여러 클래스');
       expect(element).toHaveClass('custom-class');
       expect(element.className).toContain('color_primary');
+    });
+  });
+
+  describe('타이포 스케일 테스트', () => {
+    it('variant의 fontSize가 모두 font.size 토큰 스케일 안에 있다', () => {
+      // vanilla-extract가 스타일을 클래스로 직렬화해서 jsdom에서 계산값을
+      // 못 읽는다. Text.css.ts 소스 텍스트에서 variant의 fontSize가 참조하는
+      // 토큰 키를 뽑아 font.size 스케일에 실제로 존재하는지 대조한다 — 리터럴
+      // rem 값(스케일 이중화)이 다시 섞이는 걸 막는 유일한 잠금이다.
+      const cssSource = readFileSync(
+        resolve(__dirname, './Text.css.ts'),
+        'utf-8'
+      );
+      const fontSizeLines = [
+        ...cssSource.matchAll(
+          /fontSize: themeContract\.font\.size(\.\w+|\['[^']+'\])/g
+        ),
+      ].map((m) => m[1].replace(/^\.|^\['|'\]$/g, ''));
+      const scaleKeys = new Set(Object.keys(themeTokens.font.size));
+
+      expect(fontSizeLines.length).toBe(9);
+      for (const key of fontSizeLines) {
+        expect(scaleKeys.has(key), `"${key}"는 스케일에 없는 키다`).toBe(true);
+      }
     });
   });
 });

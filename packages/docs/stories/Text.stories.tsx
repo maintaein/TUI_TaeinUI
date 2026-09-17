@@ -84,7 +84,6 @@ export const Colors: Story = {
       <Text color="secondary">Secondary 텍스트 (회색)</Text>
       <Text color="success">Success 텍스트 (초록)</Text>
       <Text color="error">Error 텍스트 (빨강)</Text>
-      <Text color="disabled">Disabled 텍스트 (연회색)</Text>
     </div>
   ),
 };
@@ -195,9 +194,7 @@ export const Combination: Story = {
       <Text variant="body2" color="error">
         ✗ 오류가 발생했습니다
       </Text>
-      <Text variant="body3" color="disabled">
-        마지막 업데이트: 2024년 1월 1일
-      </Text>
+      <Text variant="body3">마지막 업데이트: 2024년 1월 1일</Text>
     </div>
   ),
 };

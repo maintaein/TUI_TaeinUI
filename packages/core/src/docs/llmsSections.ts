@@ -173,6 +173,11 @@ export function renderTokenReference(): string {
         '(`disabled`/`aria-disabled`를 함께 쓴다)'
     ),
     plainLine(
+      'themeContract.color.text.inverse',
+      color.text.inverse,
+      '어두운 면 위 글자색 (Button·IconButton의 dark 변형, 스크림 위 텍스트)'
+    ),
+    plainLine(
       'themeContract.color.background.default',
       color.background.default,
       '페이지 배경'
@@ -233,6 +238,21 @@ export function renderTokenReference(): string {
       'themeContract.color.border.focus',
       color.border.focus,
       '포커스 링 색'
+    ),
+    plainLine(
+      'themeContract.color.overlay.scrim',
+      color.overlay.scrim,
+      'Modal·BottomSheet·SideSheet 백드롭. 반투명 합성색이라 단일 대비값이 없다'
+    ),
+    plainLine(
+      'themeContract.color.overlay.focusHalo',
+      color.overlay.focusHalo,
+      '포커스 halo(장식). 실제 포커스 표시는 focusRing 유틸의 outline이 맡는다'
+    ),
+    plainLine(
+      'themeContract.color.overlay.errorHalo',
+      color.overlay.errorHalo,
+      '에러 halo(장식). 위와 같은 이유로 포커스 표시를 겸하지 않는다'
     ),
     '',
     '### Color — Semantic',

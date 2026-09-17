@@ -71,7 +71,7 @@ export const iconButton = recipe({
         // primary[600]은 흰 배경 대비 3.68:1로 Button의 동일 조합(4.60)보다
         // 낮다. 세 상태를 한 단계씩 올려 4.60/5.74/8.63으로 맞춘다.
         backgroundColor: themeContract.color.primary.main,
-        color: '#FFFFFF',
+        color: themeContract.color.primary.contrast,
         selectors: {
           '&:hover:not(:disabled)': {
             backgroundColor: themeContract.palette.primary[800],
@@ -87,7 +87,7 @@ export const iconButton = recipe({
       variants: { buttonStyle: 'fill', variant: 'dark' },
       style: {
         backgroundColor: themeContract.palette.gray[700],
-        color: '#FFFFFF',
+        color: themeContract.color.text.inverse,
         selectors: {
           '&:hover:not(:disabled)': {
             backgroundColor: themeContract.palette.gray[800],
@@ -103,7 +103,7 @@ export const iconButton = recipe({
       variants: { buttonStyle: 'fill', variant: 'danger' },
       style: {
         backgroundColor: themeContract.palette.error[500],
-        color: '#FFFFFF',
+        color: themeContract.color.error.contrast,
         selectors: {
           '&:hover:not(:disabled)': {
             backgroundColor: themeContract.palette.error[700],
@@ -115,7 +115,7 @@ export const iconButton = recipe({
     {
       variants: { buttonStyle: 'fill', variant: 'light' },
       style: {
-        backgroundColor: '#FFFFFF',
+        backgroundColor: themeContract.color.background.default,
         color: themeContract.palette.primary[600],
         border: `2px solid ${themeContract.palette.primary[600]}`,
         selectors: {

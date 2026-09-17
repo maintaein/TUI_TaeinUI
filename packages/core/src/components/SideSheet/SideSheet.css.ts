@@ -64,7 +64,7 @@ export const backdrop = style({
   left: 0,
   right: 0,
   bottom: 0,
-  backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  backgroundColor: themeContract.color.overlay.scrim,
   zIndex: -1,
 });
 

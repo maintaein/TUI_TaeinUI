@@ -375,19 +375,16 @@ variant는 기본 태그와 크기를 함께 정한다. `as`로 태그만 바꿀
 
 | variant | 기본 태그 | font-size | font-weight | line-height | font.size 토큰 |
 |---------|----------|-----------|-------------|-------------|----------------|
-| h1 | `h1` | 2.5rem (40px) | 700 | 1.2 | — (스케일 밖) |
-| h2 | `h2` | 2rem (32px) | 700 | 1.3 | — (스케일 밖) |
-| h3 | `h3` | 1.75rem (28px) | 600 | 1.3 | — (스케일 밖) |
-| h4 | `h4` | 1.5rem (24px) | 600 | 1.4 | `2xl` |
-| h5 | `h5` | 1.25rem (20px) | 600 | 1.4 | `xl` |
+| h1 | `h1` | 2.25rem (36px) | 700 | 1.2 | `4xl` |
+| h2 | `h2` | 1.875rem (30px) | 700 | 1.3 | `3xl` |
+| h3 | `h3` | 1.5rem (24px) | 600 | 1.3 | `2xl` |
+| h4 | `h4` | 1.25rem (20px) | 600 | 1.4 | `xl` |
+| h5 | `h5` | 1.125rem (18px) | 600 | 1.4 | `lg` |
 | h6 | `h6` | 1rem (16px) | 600 | 1.5 | `base` |
 | body1 | `p` | 1rem (16px) | 400 | 1.5 | `base` |
 | body2 | `p` | 0.875rem (14px) | 400 | 1.5 | `sm` |
 | body3 | `p` | 0.75rem (12px) | 400 | 1.5 | `xs` |
 
-주의: h1~h3의 40/32/28px은 `font.size` 스케일(최대 `4xl` = 36px)에 없는 값이다.
-Text는 제목용 램프를 자체적으로 들고 있고, 이 세 단계는 토큰으로 재현할 수
-없다. 토큰과 정렬하는 것은 크기가 바뀌는 파괴적 변경이라 다음 메이저로 미뤘다.
 `weight` prop을 주면 표의 font-weight를 덮어쓴다.
 
 ### Props
@@ -396,7 +393,7 @@ Text는 제목용 램프를 자체적으로 들고 있고, 이 세 단계는 토
 | children | ReactNode | — | Text content |
 | variant | 'h1' \| 'h2' \| 'h3' \| 'h4' \| 'h5' \| 'h6' \| 'body1' \| 'body2' \| 'body3' | 'body1' | Text style |
 | as | ElementType | — | Custom HTML element |
-| color | 'primary' \| 'secondary' \| 'success' \| 'warning' \| 'error' \| 'info' \| 'disabled' | — | Text color |
+| color | 'primary' \| 'secondary' \| 'success' \| 'warning' \| 'error' \| 'info' | — | Text color |
 | weight | 'regular' \| 'medium' \| 'semibold' \| 'bold' | — | Font weight |
 | align | 'left' \| 'center' \| 'right' | — | Text alignment |
 | truncate | 1 \| 2 \| 3 | — | Line clamp |
@@ -1086,6 +1083,7 @@ TDS uses `themeContract` for type-safe, theme-aware styling. 테마는 라이트
 - `themeContract.color.text.primary` — #212121 — 16.10:1 on white / 15.42:1 on paper — AA text
 - `themeContract.color.text.secondary` — #717171 — 4.88:1 on white / 4.67:1 on paper — AA text
 - `themeContract.color.text.disabled` — #BDBDBD — 비활성 표시용. 대비가 낮으므로 색만으로 상태를 전달하지 않는다 (`disabled`/`aria-disabled`를 함께 쓴다)
+- `themeContract.color.text.inverse` — #FFFFFF — 어두운 면 위 글자색 (Button·IconButton의 dark 변형, 스크림 위 텍스트)
 - `themeContract.color.background.default` — #FFFFFF — 페이지 배경
 - `themeContract.color.background.paper` — #FAFAFA — 카드·패널 배경. 대비 판정의 기준 배경이다
 - `themeContract.color.surface.default` — #FFFFFF — 표면 기본
@@ -1095,6 +1093,9 @@ TDS uses `themeContract` for type-safe, theme-aware styling. 테마는 라이트
 - `themeContract.color.border.default` — #E0E0E0 — 흰 배경 대비 1.32:1 — UI 요소 기준 3:1 미달이므로 구분선·비활성 테두리처럼 정보를 전달하지 않는 자리에만 쓴다. 경계가 정보를 전달하면 `border.strong`
 - `themeContract.color.border.strong` — #878787 — 흰 배경 대비 3.59:1 — 1.4.11의 3:1을 넘긴다. 폼 컨트롤·카드 경계처럼 있고 없고가 의미를 바꾸는 자리에 쓴다
 - `themeContract.color.border.focus` — #1976D2 — 포커스 링 색
+- `themeContract.color.overlay.scrim` — rgba(0, 0, 0, 0.5) — Modal·BottomSheet·SideSheet 백드롭. 반투명 합성색이라 단일 대비값이 없다
+- `themeContract.color.overlay.focusHalo` — rgba(25, 118, 210, 0.16) — 포커스 halo(장식). 실제 포커스 표시는 focusRing 유틸의 outline이 맡는다
+- `themeContract.color.overlay.errorHalo` — rgba(211, 47, 47, 0.16) — 에러 halo(장식). 위와 같은 이유로 포커스 표시를 겸하지 않는다
 
 ### Color — Semantic
 
