@@ -478,6 +478,35 @@ describe('BottomSheet', () => {
         const title = screen.getByText('제목');
         expect(title.tagName).toBe('H2');
       });
+
+      it('BottomSheet.Title이 dialog의 accessible name이 된다 (compound 경로)', () => {
+        render(
+          <BottomSheet {...defaultProps}>
+            <BottomSheet.Header>
+              <BottomSheet.Title>제목입니다</BottomSheet.Title>
+            </BottomSheet.Header>
+            <BottomSheet.Content>Content</BottomSheet.Content>
+          </BottomSheet>
+        );
+        expect(
+          screen.getByRole('dialog', { name: '제목입니다' })
+        ).toBeInTheDocument();
+      });
+
+      it('aria-labelledby를 직접 주면 BottomSheet.Title이 있어도 그 값이 우선한다', () => {
+        render(
+          <BottomSheet {...defaultProps} aria-labelledby="external-label">
+            <span id="external-label">외부 레이블</span>
+            <BottomSheet.Header>
+              <BottomSheet.Title>내부 제목</BottomSheet.Title>
+            </BottomSheet.Header>
+            <BottomSheet.Content>Content</BottomSheet.Content>
+          </BottomSheet>
+        );
+        expect(
+          screen.getByRole('dialog', { name: '외부 레이블' })
+        ).toBeInTheDocument();
+      });
     });
 
     describe('BottomSheet.Content', () => {

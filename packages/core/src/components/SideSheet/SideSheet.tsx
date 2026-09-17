@@ -33,6 +33,7 @@ import { createOverlayContext } from '../../_internal/createOverlayContext';
 
 interface SideSheetContextValue {
   onClose: () => void;
+  titleId: string;
 }
 
 const [SideSheetContext, useSideSheetContext] =
@@ -98,7 +99,10 @@ const SideSheetRoot = ({
     }
   };
 
-  const contextValue = useMemo(() => ({ onClose }), [onClose]);
+  const contextValue = useMemo(
+    () => ({ onClose, titleId }),
+    [onClose, titleId]
+  );
 
   if (!shouldRender) return null;
 
@@ -116,7 +120,9 @@ const SideSheetRoot = ({
   };
 
   const flatTitleId = title ? titleId : undefined;
-  const labelledby = ariaLabelledby ?? flatTitleId;
+  // compound 경로(SideSheet.Title)는 title prop이 없어 flatTitleId가 undefined다.
+  // titleId로 최종 폴백해 SideSheet.Title이 같은 id를 받아 접근 가능 이름을 갖게 한다.
+  const labelledby = ariaLabelledby ?? flatTitleId ?? titleId;
 
   const sheetContent = (
     <SideSheetContext.Provider value={contextValue}>
@@ -227,8 +233,15 @@ export const SideSheetTitle = forwardRef<
   HTMLHeadingElement,
   SideSheetTitleProps
 >(({ children, className, ...props }, ref) => {
+  const context = useSideSheetContext();
+
   return (
-    <h2 ref={ref} className={clsx(titleStyle, className)} {...props}>
+    <h2
+      ref={ref}
+      id={context?.titleId}
+      className={clsx(titleStyle, className)}
+      {...props}
+    >
       {children}
     </h2>
   );

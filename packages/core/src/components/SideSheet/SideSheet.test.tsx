@@ -405,6 +405,35 @@ describe('SideSheet', () => {
         const title = screen.getByText('제목');
         expect(title.tagName).toBe('H2');
       });
+
+      it('SideSheet.Title이 dialog의 accessible name이 된다 (compound 경로)', () => {
+        render(
+          <SideSheet {...defaultProps}>
+            <SideSheet.Header>
+              <SideSheet.Title>제목입니다</SideSheet.Title>
+            </SideSheet.Header>
+            <SideSheet.Content>Content</SideSheet.Content>
+          </SideSheet>
+        );
+        expect(
+          screen.getByRole('dialog', { name: '제목입니다' })
+        ).toBeInTheDocument();
+      });
+
+      it('aria-labelledby를 직접 주면 SideSheet.Title이 있어도 그 값이 우선한다', () => {
+        render(
+          <SideSheet {...defaultProps} aria-labelledby="external-label">
+            <span id="external-label">외부 레이블</span>
+            <SideSheet.Header>
+              <SideSheet.Title>내부 제목</SideSheet.Title>
+            </SideSheet.Header>
+            <SideSheet.Content>Content</SideSheet.Content>
+          </SideSheet>
+        );
+        expect(
+          screen.getByRole('dialog', { name: '외부 레이블' })
+        ).toBeInTheDocument();
+      });
     });
 
     describe('SideSheet.Content', () => {

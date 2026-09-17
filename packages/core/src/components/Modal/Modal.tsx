@@ -24,9 +24,10 @@ import {
 import { useFocusTrap } from '../../_internal/useFocusTrap';
 import { createOverlayContext } from '../../_internal/createOverlayContext';
 
-// Context로 onClose 전달 (Header의 닫기 버튼에서 사용)
+// Context로 onClose·titleId 전달 (Header의 닫기 버튼, Title의 id 연결에서 사용)
 interface ModalContextValue {
   onClose: () => void;
+  titleId: string;
 }
 
 const [ModalContext, useModalContext] =
@@ -89,7 +90,10 @@ const ModalRoot = ({
 
   useFocusTrap({ open, onClose, closeOnEscape, containerRef: dialogRef });
 
-  const contextValue = useMemo(() => ({ onClose }), [onClose]);
+  const contextValue = useMemo(
+    () => ({ onClose, titleId }),
+    [onClose, titleId]
+  );
 
   if (!open) return null;
 
@@ -101,7 +105,9 @@ const ModalRoot = ({
 
   const isFlat = !!(title || footer);
   const flatTitleId = title ? titleId : undefined;
-  const labelledby = ariaLabelledby ?? flatTitleId;
+  // compound 경로(Modal.Title)는 title prop이 없어 flatTitleId가 undefined다.
+  // titleId로 최종 폴백해 Modal.Title이 같은 id를 받아 접근 가능 이름을 갖게 한다.
+  const labelledby = ariaLabelledby ?? flatTitleId ?? titleId;
 
   const content = isFlat ? (
     <>
@@ -250,9 +256,12 @@ export interface ModalTitleProps extends HTMLAttributes<HTMLHeadingElement> {
 
 export const ModalTitle = forwardRef<HTMLHeadingElement, ModalTitleProps>(
   ({ children, as: Component = 'h2', className, ...props }, ref) => {
+    const context = useModalContext();
+
     return (
       <Component
         ref={ref}
+        id={context?.titleId}
         className={clsx(modalTitleStyle, className)}
         {...props}
       >

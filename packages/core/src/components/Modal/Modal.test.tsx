@@ -376,6 +376,33 @@ describe('Modal Compound API', () => {
       );
       expect(screen.getByRole('heading', { level: 3 })).toBeInTheDocument();
     });
+
+    it('Modal.Title이 dialog의 accessible name이 된다 (compound 경로)', () => {
+      render(
+        <Modal {...defaultProps}>
+          <Modal.Header>
+            <Modal.Title>탈퇴 확인</Modal.Title>
+          </Modal.Header>
+        </Modal>
+      );
+      expect(
+        screen.getByRole('dialog', { name: '탈퇴 확인' })
+      ).toBeInTheDocument();
+    });
+
+    it('aria-labelledby를 직접 주면 Modal.Title이 있어도 그 값이 우선한다', () => {
+      render(
+        <Modal {...defaultProps} aria-labelledby="external-label">
+          <span id="external-label">외부 레이블</span>
+          <Modal.Header>
+            <Modal.Title>내부 제목</Modal.Title>
+          </Modal.Header>
+        </Modal>
+      );
+      expect(
+        screen.getByRole('dialog', { name: '외부 레이블' })
+      ).toBeInTheDocument();
+    });
   });
 
   describe('Modal.Content', () => {
