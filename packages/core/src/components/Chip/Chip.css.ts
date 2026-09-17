@@ -30,6 +30,9 @@ export const chip = recipe({
         padding: `${themeContract.spacing[1]} ${themeContract.spacing[3]}`,
         fontSize: themeContract.font.size.sm,
         gap: themeContract.spacing[1],
+        // 명시적 높이가 없으면 padding 4px*2 + font 14px = 22px로 계산돼
+        // 24px 터치 타깃(WCAG 2.5.8) 이하로 떨어진다.
+        minHeight: '24px',
       },
       lg: {
         padding: `${themeContract.spacing[2]} ${themeContract.spacing[4]}`,
@@ -140,12 +143,15 @@ export const chip = recipe({
 export const clickable = style({
   cursor: 'pointer',
 
+  // 불투명도로 hover/active를 표현하면 대비가 같이 떨어진다(4.60→3.47:1).
+  // 색을 건드리지 않는 채널(그림자·스케일)로 바꾼다.
   ':hover': {
-    opacity: 0.9,
+    boxShadow: themeContract.shadow.sm,
   },
 
   ':active': {
-    opacity: 0.8,
+    boxShadow: 'none',
+    transform: 'scale(0.97)',
   },
 
   ':focus-visible': {
@@ -177,6 +183,7 @@ export const deleteButton = style({
   display: 'inline-flex',
   alignItems: 'center',
   justifyContent: 'center',
+  position: 'relative',
   padding: 0,
   margin: 0,
   border: 'none',
@@ -196,9 +203,24 @@ export const deleteButton = style({
     borderRadius: '50%',
   },
 
-  ':disabled': {
-    cursor: 'not-allowed',
-    opacity: 0.4,
+  selectors: {
+    // 시각 크기(16px)는 그대로 두고 히트 영역만 24px(WCAG 2.5.8)로 넓힌다.
+    // min-width/height로 상자 자체를 키우면 칩 세로 패딩과 충돌해 넘친다.
+    '&::after': {
+      content: '""',
+      position: 'absolute',
+      top: '50%',
+      left: '50%',
+      width: '24px',
+      height: '24px',
+      transform: 'translate(-50%, -50%)',
+    },
+    // 이 요소는 <span>이라 :disabled가 절대 매칭되지 않는다.
+    // useClickable이 주는 aria-disabled로 옮긴다.
+    '&[aria-disabled="true"]': {
+      cursor: 'not-allowed',
+      opacity: 0.4,
+    },
   },
 });
 

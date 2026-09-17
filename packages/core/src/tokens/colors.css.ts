@@ -59,4 +59,8 @@ export const error = {
   500: '#F44336',
   700: '#D32F2F',
   800: '#C62828',
+  // weak+danger 버튼의 글자색. error[800]은 error[100] 위에서 3.99:1로
+  // AA(4.5:1)에 못 미쳐 hover 라벨이 기준을 밑돈다. #B71C1C은 같은 자리에서
+  // 4.66:1이라 통과한다. primary·gray에는 900이 있는데 error만 없었다.
+  900: '#B71C1C',
 } as const;

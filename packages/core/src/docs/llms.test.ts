@@ -178,4 +178,28 @@ describe('문서가 약속한 대비를 실제 토큰이 지키는지', () => {
       contrastRatio(color.border.strong, color.background.paper)
     ).toBeGreaterThanOrEqual(AA_UI);
   });
+
+  it('weak 버튼(primary/danger/light)의 rest·hover·active 글자 대비가 AA를 만족한다', () => {
+    // Button.css.ts의 weak 변형 3종은 배경이 아니라 글자를 어둡게 해 AA를
+    // 맞춘다(weak dark는 이미 전부 통과해 대상에서 뺐다). error[900]가
+    // error[100] 위에서 AA를 만족하는지도 여기서 같이 잡힌다.
+    const { palette, color } = themeTokens;
+    const pairs: Record<string, [string, string]> = {
+      'weak primary rest': [palette.primary[900], palette.primary[50]],
+      'weak primary hover': [palette.primary[900], palette.primary[100]],
+      'weak primary active': [palette.primary[900], palette.primary[200]],
+      'weak danger rest': [palette.error[900], palette.error[50]],
+      'weak danger hover': [palette.error[900], palette.error[100]],
+      'weak danger active': [palette.error[900], palette.error[100]],
+      'weak light rest': [color.text.primary, palette.primary[100]],
+      'weak light hover': [color.text.primary, palette.primary[200]],
+      'weak light active': [color.text.primary, palette.primary[300]],
+    };
+    for (const [name, [fg, bg]] of Object.entries(pairs)) {
+      expect(
+        contrastRatio(fg, bg),
+        `${name} (${fg} on ${bg})`
+      ).toBeGreaterThanOrEqual(AA_TEXT);
+    }
+  });
 });

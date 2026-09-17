@@ -143,7 +143,9 @@ export const button = recipe({
       variants: { buttonStyle: 'weak', variant: 'primary' },
       style: {
         backgroundColor: themeContract.palette.primary[50],
-        color: themeContract.palette.primary[800],
+        // primary[800]은 hover(4.09)·active(3.28)에서 AA(4.5:1)를 깬다.
+        // 배경은 그대로 두고 글자를 한 단계 더 어둡게 한다.
+        color: themeContract.palette.primary[900],
         selectors: {
           '&:hover:not(:disabled)': {
             backgroundColor: themeContract.palette.primary[100],
@@ -175,13 +177,18 @@ export const button = recipe({
       variants: { buttonStyle: 'weak', variant: 'danger' },
       style: {
         backgroundColor: themeContract.palette.error[50],
-        color: themeContract.palette.error[800],
+        // error[800]은 hover·active(3.99)에서 AA(4.5:1)를 깬다. error에는
+        // error[100]보다 어두운 배경 단계가 없어(200 없음) 글자를 어둡게 한다.
+        color: themeContract.palette.error[900],
         selectors: {
           '&:hover:not(:disabled)': {
             backgroundColor: themeContract.palette.error[100],
           },
           '&:active:not(:disabled)': {
+            // hover와 배경이 같아 색으로는 상태를 구분할 수 없다. 눌린 느낌의
+            // 안쪽 그림자로 두 번째 채널을 준다.
             backgroundColor: themeContract.palette.error[100],
+            boxShadow: themeContract.shadow.inner,
             transform: 'scale(0.98)',
           },
         },
@@ -191,7 +198,9 @@ export const button = recipe({
       variants: { buttonStyle: 'weak', variant: 'light' },
       style: {
         backgroundColor: themeContract.palette.primary[100],
-        color: themeContract.palette.primary[900],
+        // primary[900]은 active(3.90)에서 AA(4.5:1)를 깬다. text.primary로
+        // 바꾸면 rest/hover/active 전부 여유 있게 통과한다.
+        color: themeContract.color.text.primary,
         selectors: {
           '&:hover:not(:disabled)': {
             backgroundColor: themeContract.palette.primary[200],

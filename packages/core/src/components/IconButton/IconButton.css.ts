@@ -68,14 +68,16 @@ export const iconButton = recipe({
     {
       variants: { buttonStyle: 'fill', variant: 'primary' },
       style: {
-        backgroundColor: themeContract.palette.primary[600],
+        // primary[600]은 흰 배경 대비 3.68:1로 Button의 동일 조합(4.60)보다
+        // 낮다. 세 상태를 한 단계씩 올려 4.60/5.74/8.63으로 맞춘다.
+        backgroundColor: themeContract.color.primary.main,
         color: '#FFFFFF',
         selectors: {
           '&:hover:not(:disabled)': {
-            backgroundColor: themeContract.palette.primary[700],
+            backgroundColor: themeContract.palette.primary[800],
           },
           '&:active:not(:disabled)': {
-            backgroundColor: themeContract.palette.primary[800],
+            backgroundColor: themeContract.palette.primary[900],
             transform: 'scale(0.95)',
           },
         },
