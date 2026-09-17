@@ -1,5 +1,6 @@
 import { style, styleVariants } from '@vanilla-extract/css';
 import { themeContract } from '../../tokens/theme.css';
+import { focusRing } from '../../tokens/focusRing.css';
 
 // textarea container 스타일
 export const textareaContainer = style({
@@ -47,6 +48,7 @@ export const textarea = style({
     '&:focus-visible': {
       borderColor: themeContract.color.border.focus,
       boxShadow: '0 0 0 3px rgba(25, 118, 210, 0.16)',
+      ...focusRing(),
     },
     '&:disabled': {
       backgroundColor: themeContract.color.surface.default,

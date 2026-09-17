@@ -1,5 +1,6 @@
 import { style, styleVariants } from '@vanilla-extract/css';
 import { themeContract } from '../../tokens/theme.css';
+import { focusRing } from '../../tokens/focusRing.css';
 
 // Wrapper
 export const wrapper = style({
@@ -80,8 +81,7 @@ export const size = styleVariants(baseSizeContainer, (baseStyle) => [
       },
 
       [`&:has(input:focus-visible)`]: {
-        outline: `2px solid ${themeContract.color.border.focus}`,
-        outlineOffset: '2px',
+        ...focusRing(),
       },
 
       [`&:has(input:disabled)`]: {

@@ -1,5 +1,6 @@
 import { style, styleVariants } from '@vanilla-extract/css';
 import { themeContract } from '../../tokens/theme.css';
+import { focusRing } from '../../tokens/focusRing.css';
 
 export const cardRoot = style({
   position: 'relative',
@@ -56,8 +57,7 @@ export const clickable = style({
   },
 
   ':focus-visible': {
-    outline: `3px solid ${themeContract.color.border.focus}`,
-    outlineOffset: '2px',
+    ...focusRing(),
   },
 });
 

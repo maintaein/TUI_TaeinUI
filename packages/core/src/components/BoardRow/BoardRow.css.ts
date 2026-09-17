@@ -1,5 +1,6 @@
 import { style, styleVariants } from '@vanilla-extract/css';
 import { themeContract } from '../../tokens/theme.css';
+import { focusRing } from '../../tokens/focusRing.css';
 
 // 아코디언 아이템 컨테이너
 export const boardRow = style({
@@ -43,8 +44,8 @@ export const header = style({
   },
 
   ':focus-visible': {
-    outline: `3px solid ${themeContract.color.border.focus}`,
-    outlineOffset: '-3px',
+    ...focusRing(),
+    outlineOffset: '-2px',
   },
 
   ':disabled': {

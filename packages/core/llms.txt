@@ -116,7 +116,7 @@ TDS uses a theme contract (`themeContract`) for consistent styling. 라이트 �
 - Semantic HTML elements (button, input, dialog)
 - ARIA attributes (aria-label, aria-describedby, aria-invalid, aria-busy, aria-modal)
 - Keyboard navigation (Tab, Enter, Space, Escape, Arrow keys)
-- Focus indicators (3px outline, 3:1 contrast)
+- Focus indicators (2px outline, 2px offset, 4.6:1 contrast)
 - Focus traps in overlays (Modal, BottomSheet, SideSheet)
 - Color contrast 4.5:1 (text), 3:1 (UI elements) — 값과 실측 대비비는 Design Tokens 절 참고
 - Target size: WCAG 2.2 AA(2.5.8)의 최소 요구치는 **24x24 CSS px**이고

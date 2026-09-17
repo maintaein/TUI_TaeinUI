@@ -1,5 +1,6 @@
 import { style, styleVariants, keyframes } from '@vanilla-extract/css';
 import { themeContract } from '../../tokens/theme.css';
+import { focusRing } from '../../tokens/focusRing.css';
 
 const fadeIn = keyframes({
   '0%': { opacity: 0 },
@@ -153,8 +154,7 @@ export const closeButton = style({
   },
 
   ':focus-visible': {
-    outline: `2px solid ${themeContract.color.primary.light}`,
-    outlineOffset: '2px',
+    ...focusRing(),
   },
 });
 

@@ -202,4 +202,31 @@ describe('문서가 약속한 대비를 실제 토큰이 지키는지', () => {
       ).toBeGreaterThanOrEqual(AA_TEXT);
     }
   });
+
+  it('border.focus는 흰 배경에서 UI 요소 대비(3:1)를 넘는다', () => {
+    // focusRing() 유틸의 대비 계약을 잠근다(실측 4.60:1).
+    const { color } = themeTokens;
+    expect(
+      contrastRatio(color.border.focus, color.background.default)
+    ).toBeGreaterThanOrEqual(AA_UI);
+  });
+
+  it('발행 문서가 약속한 포커스 링 폭이 유틸의 실제 폭과 일치한다', () => {
+    // 문서가 다시 거짓말을 못 하게 막는 테스트. focusRing.css.ts를 모듈로
+    // import하면 vanilla-extract가 함수 export를 직렬화하지 못해 빌드가
+    // 깨진다(recipe()류만 __recipe__ 마커로 예외 처리된다) — 그래서 소스
+    // 텍스트에서 폭을 뽑아 llms.txt·llms-full.txt의 Focus indicators 줄과
+    // 대조한다.
+    const focusRingSource = read(resolve(ROOT, 'src/tokens/focusRing.css.ts'));
+    const width = focusRingSource.match(/outline: `(\d+px) solid/)?.[1];
+    expect(
+      width,
+      'focusRing.css.ts에서 outline 폭을 찾지 못했다'
+    ).toBeDefined();
+    for (const [name, path] of Object.entries(FILES)) {
+      const line = read(path).match(/^- Focus indicators \(.+\)$/m)?.[0];
+      expect(line, `${name}에 Focus indicators 줄이 없다`).toBeDefined();
+      expect(line, `${name}: "${line}"`).toContain(`${width} outline`);
+    }
+  });
 });

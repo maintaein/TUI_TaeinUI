@@ -1,5 +1,6 @@
 import { style, styleVariants } from '@vanilla-extract/css';
 import { themeContract } from '../../tokens/theme.css';
+import { focusRing } from '../../tokens/focusRing.css';
 
 // Container 스타일
 export const container = style({
@@ -76,8 +77,7 @@ export const button = style({
     },
 
     '&:focus-visible': {
-      outline: `2px solid ${themeContract.color.border.focus}`,
-      outlineOffset: '2px',
+      ...focusRing(),
     },
 
     // ✅ 중첩 대신 조합형 selector로 표현

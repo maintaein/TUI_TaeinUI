@@ -1,5 +1,6 @@
 import { keyframes, style, styleVariants } from '@vanilla-extract/css';
 import { themeContract } from '../../tokens/theme.css';
+import { focusRing } from '../../tokens/focusRing.css';
 
 // input container 스타일
 export const inputContainer = style({
@@ -83,6 +84,7 @@ export const input = style({
     '&:focus': {
       borderColor: themeContract.color.primary.main,
       boxShadow: `0 0 0 3px rgba(30, 136, 229, 0.1)`,
+      ...focusRing(),
     },
     '&::-webkit-outer-spin-button': {
       appearance: 'none',
@@ -138,8 +140,7 @@ export const button = style({
       cursor: 'not-allowed',
     },
     '&:focus-visible': {
-      outline: `2px solid ${themeContract.color.primary.main}`,
-      outlineOffset: '2px',
+      ...focusRing(),
     },
   },
 });

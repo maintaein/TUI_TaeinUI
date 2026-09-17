@@ -1,5 +1,6 @@
 import { style, styleVariants } from '@vanilla-extract/css';
 import { themeContract } from '../../tokens/theme.css';
+import { focusRing } from '../../tokens/focusRing.css';
 
 // input container 스타일
 export const inputContainer = style({
@@ -46,6 +47,7 @@ export const input = style({
     '&:focus-visible': {
       borderColor: themeContract.color.border.focus,
       boxShadow: '0 0 0 3px rgba(25, 118, 210, 0.16)',
+      ...focusRing(),
     },
     '&:disabled': {
       backgroundColor: themeContract.color.surface.default,

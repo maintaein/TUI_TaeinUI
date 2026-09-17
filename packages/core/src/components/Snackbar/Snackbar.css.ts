@@ -1,5 +1,6 @@
 import { style, styleVariants, keyframes } from '@vanilla-extract/css';
 import { themeContract } from '../../tokens/theme.css';
+import { focusRing } from '../../tokens/focusRing.css';
 
 // 애니메이션 정의
 const slideInFromTop = keyframes({
@@ -167,9 +168,9 @@ export const closeButton = style({
   },
 
   ':focus-visible': {
-    outline: '2px solid currentColor',
-    outlineOffset: '2px',
+    ...focusRing('currentColor'),
     borderRadius: themeContract.borderRadius.sm,
+    opacity: 1,
   },
 });
 

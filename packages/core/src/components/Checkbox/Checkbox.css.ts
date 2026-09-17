@@ -1,5 +1,6 @@
 import { style, styleVariants } from '@vanilla-extract/css';
 import { themeContract } from '../../tokens/theme.css';
+import { focusRing } from '../../tokens/focusRing.css';
 
 export const wrapper = style({
   display: 'inline-flex',
@@ -79,8 +80,7 @@ export const checkmark = style({
     },
 
     'input:focus-visible + &': {
-      outline: `2px solid ${themeContract.color.border.focus}`,
-      outlineOffset: '2px',
+      ...focusRing(),
     },
 
     'input:checked + &': {

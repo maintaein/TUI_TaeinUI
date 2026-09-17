@@ -1,6 +1,7 @@
 import { style, styleVariants } from '@vanilla-extract/css';
 import { recipe } from '@vanilla-extract/recipes';
 import { themeContract } from '../../tokens/theme.css';
+import { focusRing } from '../../tokens/focusRing.css';
 
 export const iconButton = recipe({
   base: {
@@ -22,8 +23,7 @@ export const iconButton = recipe({
     },
 
     ':focus-visible': {
-      outline: `2px solid ${themeContract.color.border.focus}`,
-      outlineOffset: '2px',
+      ...focusRing(),
     },
   },
 
@@ -243,8 +243,7 @@ export const ghostBase = style({
   },
 
   ':focus-visible': {
-    outline: `2px solid ${themeContract.color.border.focus}`,
-    outlineOffset: '2px',
+    ...focusRing(),
   },
 });
 

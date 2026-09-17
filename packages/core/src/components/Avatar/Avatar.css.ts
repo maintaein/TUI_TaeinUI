@@ -1,5 +1,6 @@
 import { style, styleVariants } from '@vanilla-extract/css';
 import { themeContract } from '../../tokens/theme.css';
+import { focusRing } from '../../tokens/focusRing.css';
 
 export const avatar = style({
   position: 'relative',
@@ -92,7 +93,7 @@ export const statusAway = style({
   backgroundColor: themeContract.color.warning.main,
 });
 
-// 클릭 가능 Avatar 
+// 클릭 가능 Avatar
 export const clickable = style({
   cursor: 'pointer',
   border: 'none',
@@ -112,8 +113,7 @@ export const clickable = style({
   },
 
   ':focus-visible': {
-    outline: `3px solid ${themeContract.color.border.focus}`,
-    outlineOffset: '2px',
+    ...focusRing(),
   },
 });
 

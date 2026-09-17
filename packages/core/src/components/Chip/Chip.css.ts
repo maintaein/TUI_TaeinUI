@@ -1,6 +1,7 @@
 import { style } from '@vanilla-extract/css';
 import { recipe } from '@vanilla-extract/recipes';
 import { themeContract } from '../../tokens/theme.css';
+import { focusRing } from '../../tokens/focusRing.css';
 
 export const chip = recipe({
   base: {
@@ -155,8 +156,7 @@ export const clickable = style({
   },
 
   ':focus-visible': {
-    outline: `2px solid ${themeContract.color.border.focus}`,
-    outlineOffset: '0px',
+    ...focusRing(),
   },
 });
 
@@ -199,8 +199,9 @@ export const deleteButton = style({
   },
 
   ':focus-visible': {
-    outline: `2px solid currentColor`,
+    ...focusRing('currentColor'),
     borderRadius: '50%',
+    opacity: 1,
   },
 
   selectors: {
