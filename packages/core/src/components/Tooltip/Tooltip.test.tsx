@@ -516,6 +516,36 @@ describe('Tooltip', () => {
       expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
     });
 
+    it('Escape로 닫힌 뒤 leave 없이 다시 mouseEnter가 와도 열리지 않는다', () => {
+      render(
+        <Tooltip content="툴팁 내용">
+          <button>호버하세요</button>
+        </Tooltip>
+      );
+
+      const button = screen.getByRole('button');
+      fireEvent.mouseEnter(button);
+
+      act(() => {
+        vi.advanceTimersByTime(200);
+      });
+
+      expect(screen.getByRole('tooltip')).toBeInTheDocument();
+
+      fireEvent.keyDown(document, { key: 'Escape' });
+
+      expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
+
+      // 포인터가 트리거를 벗어나지 않은 채로 다시 mouseEnter가 온다 — 가드가 없으면 재개방된다
+      fireEvent.mouseEnter(button);
+
+      act(() => {
+        vi.advanceTimersByTime(200);
+      });
+
+      expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
+    });
+
     it('Escape로 닫힌 뒤 포인터가 벗어났다 돌아오면 다시 열린다', () => {
       render(
         <Tooltip content="툴팁 내용">
@@ -604,6 +634,107 @@ describe('Tooltip', () => {
       });
 
       expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
+    });
+  });
+
+  describe('타이머 정리(클린업) 테스트', () => {
+    it('hide 유예 중 언마운트되면 타이머가 정리되어 이후 onOpenChange가 호출되지 않는다', () => {
+      const handleOpenChange = vi.fn();
+      const { unmount } = render(
+        <Tooltip content="툴팁 내용" onOpenChange={handleOpenChange}>
+          <button>호버하세요</button>
+        </Tooltip>
+      );
+
+      const button = screen.getByRole('button');
+      fireEvent.mouseEnter(button);
+
+      act(() => {
+        vi.advanceTimersByTime(200);
+      });
+
+      expect(handleOpenChange).toHaveBeenCalledWith(true);
+
+      fireEvent.mouseLeave(button); // hide 유예 타이머 예약
+      handleOpenChange.mockClear();
+
+      unmount();
+
+      act(() => {
+        vi.advanceTimersByTime(1000);
+      });
+
+      expect(handleOpenChange).not.toHaveBeenCalled();
+    });
+
+    it('hide 유예 중 Escape를 누르면 잔여 hide 타이머가 중복으로 닫기를 호출하지 않는다', () => {
+      const handleOpenChange = vi.fn();
+      render(
+        <Tooltip content="툴팁 내용" onOpenChange={handleOpenChange}>
+          <button>호버하세요</button>
+        </Tooltip>
+      );
+
+      const button = screen.getByRole('button');
+      fireEvent.mouseEnter(button);
+
+      act(() => {
+        vi.advanceTimersByTime(200);
+      });
+
+      expect(screen.getByRole('tooltip')).toBeInTheDocument();
+
+      fireEvent.mouseLeave(button); // hide 유예 시작
+      handleOpenChange.mockClear();
+
+      fireEvent.keyDown(document, { key: 'Escape' }); // 유예가 끝나기 전에 Escape
+
+      expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
+      expect(handleOpenChange).toHaveBeenCalledTimes(1);
+
+      handleOpenChange.mockClear();
+
+      // 잔여 hide 타이머가 남아있었다면 여기서 다시 닫기를 호출한다
+      act(() => {
+        vi.advanceTimersByTime(1000);
+      });
+
+      expect(handleOpenChange).not.toHaveBeenCalled();
+    });
+
+    it('hide 유예 중 블러가 발생하면 즉시 닫히고 잔여 hide 타이머가 이후 문제를 일으키지 않는다', () => {
+      const handleOpenChange = vi.fn();
+      render(
+        <Tooltip content="툴팁 내용" onOpenChange={handleOpenChange}>
+          <button>호버하세요</button>
+        </Tooltip>
+      );
+
+      const button = screen.getByRole('button');
+      fireEvent.mouseEnter(button);
+
+      act(() => {
+        vi.advanceTimersByTime(200);
+      });
+
+      expect(screen.getByRole('tooltip')).toBeInTheDocument();
+
+      fireEvent.mouseLeave(button); // hide 유예 시작
+      handleOpenChange.mockClear();
+
+      fireEvent.blur(button); // 유예가 끝나기 전에 블러 → 즉시 닫힘
+
+      expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
+      expect(handleOpenChange).toHaveBeenCalledTimes(1);
+
+      handleOpenChange.mockClear();
+
+      // 잔여 hide 타이머가 남아있었다면 여기서 다시 닫기를 호출한다
+      act(() => {
+        vi.advanceTimersByTime(1000);
+      });
+
+      expect(handleOpenChange).not.toHaveBeenCalled();
     });
   });
 });
