@@ -15,6 +15,7 @@ import {
   componentHeadings,
   contrastRatio,
   AA_TEXT,
+  AA_UI,
 } from './llmsSections';
 import * as core from '../index';
 import { themeTokens } from '../tokens/contract';
@@ -157,5 +158,14 @@ describe('문서가 약속한 대비를 실제 토큰이 지키는지', () => {
         `${name}(${hex})`
       ).toBeGreaterThanOrEqual(AA_TEXT);
     }
+  });
+
+  it('surface.track은 흰 배경에서 UI 요소 대비(3:1)를 만족한다', () => {
+    // 흰 트랙 위에 흰 트랙(surface.default)을 얹으면 대비가 아예 없다.
+    // 트랙은 컨트롤을 식별시키는 면이라 1.4.11의 3:1이 걸린다.
+    const { color } = themeTokens;
+    expect(
+      contrastRatio(color.surface.track, color.background.default)
+    ).toBeGreaterThanOrEqual(AA_UI);
   });
 });

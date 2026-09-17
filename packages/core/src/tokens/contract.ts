@@ -41,6 +41,12 @@ export const themeTokens = {
       default: '#FFFFFF',
       hover: gray[100],
       active: gray[200],
+      // 컨트롤을 식별시키는 면. 흰 배경 위에 흰 트랙(surface.default)을 얹으면
+      // 대비가 아예 없다(예: disabled Switch 실측 1.00:1). gray[550]은 흰 배경
+      // 대비 3.59:1로 1.4.11의 3:1을 넘긴다. border.strong과 값은 같지만 트랙은
+      // 경계선이 아니라 면이라 별도 토큰으로 둔다 — border.strong을 조정해도
+      // 트랙이 딸려 움직이면 안 된다.
+      track: gray[550],
     },
     border: {
       default: gray[300],
@@ -48,6 +54,13 @@ export const themeTokens = {
       // 못 미친다. 폼 컨트롤·카드 경계처럼 있고 없고가 의미를 바꾸는 자리에 쓴다.
       strong: gray[550],
       focus: primary[700],
+    },
+    overlay: {
+      // Modal·BottomSheet·SideSheet 백드롭. 세 컴포넌트가 각자 리터럴로 적던
+      // rgba(0, 0, 0, 0.5)와 동일한 값이다 — 렌더 결과를 바꾸지 않는다.
+      // 알파가 있는 색이라 대비비 검사 대상이 아니다(반투명은 밑에 깔리는
+      // 배경에 따라 합성색이 달라져 단일 대비값을 정의할 수 없다).
+      scrim: 'rgba(0, 0, 0, 0.5)',
     },
     // semantic 4슬롯의 역할 구분:
     // - main    글자(contrast)를 얹는 면. 판정 기준은 페이지 배경이 아니라
