@@ -16,7 +16,9 @@ describe('Snackbar', () => {
   describe('렌더링 테스트', () => {
     it('open=true일 때 렌더링된다', () => {
       render(<Snackbar open message="테스트 메시지" />);
-      expect(screen.getByText('테스트 메시지')).toBeInTheDocument();
+      expect(
+        screen.getByText('테스트 메시지', { selector: 'span' })
+      ).toBeInTheDocument();
     });
 
     it('open=false일 때 렌더링되지 않는다', () => {
@@ -26,7 +28,9 @@ describe('Snackbar', () => {
 
     it('message를 표시한다', () => {
       render(<Snackbar open message="알림 메시지" />);
-      expect(screen.getByText('알림 메시지')).toBeInTheDocument();
+      expect(
+        screen.getByText('알림 메시지', { selector: 'span' })
+      ).toBeInTheDocument();
     });
   });
 
@@ -35,7 +39,8 @@ describe('Snackbar', () => {
       const { container } = render(
         <Snackbar open message="성공" severity="success" />
       );
-      const snackbar = container.querySelector('[role="alert"]') as HTMLElement;
+      const snackbar = container.querySelector('[class*="content"]')
+        ?.parentElement as HTMLElement;
       expect(snackbar.className).toContain('success');
     });
 
@@ -43,7 +48,8 @@ describe('Snackbar', () => {
       const { container } = render(
         <Snackbar open message="에러" severity="error" />
       );
-      const snackbar = container.querySelector('[role="alert"]') as HTMLElement;
+      const snackbar = container.querySelector('[class*="content"]')
+        ?.parentElement as HTMLElement;
       expect(snackbar.className).toContain('error');
     });
 
@@ -51,7 +57,8 @@ describe('Snackbar', () => {
       const { container } = render(
         <Snackbar open message="경고" severity="warning" />
       );
-      const snackbar = container.querySelector('[role="alert"]') as HTMLElement;
+      const snackbar = container.querySelector('[class*="content"]')
+        ?.parentElement as HTMLElement;
       expect(snackbar.className).toContain('warning');
     });
 
@@ -59,13 +66,15 @@ describe('Snackbar', () => {
       const { container } = render(
         <Snackbar open message="정보" severity="info" />
       );
-      const snackbar = container.querySelector('[role="alert"]') as HTMLElement;
+      const snackbar = container.querySelector('[class*="content"]')
+        ?.parentElement as HTMLElement;
       expect(snackbar.className).toContain('info');
     });
 
     it('기본 severity는 info이다', () => {
       const { container } = render(<Snackbar open message="기본" />);
-      const snackbar = container.querySelector('[role="alert"]') as HTMLElement;
+      const snackbar = container.querySelector('[class*="content"]')
+        ?.parentElement as HTMLElement;
       expect(snackbar.className).toContain('info');
     });
   });
@@ -75,7 +84,8 @@ describe('Snackbar', () => {
       const { container } = render(
         <Snackbar open message="메시지" position="top-left" />
       );
-      const snackbar = container.querySelector('[role="alert"]') as HTMLElement;
+      const snackbar = container.querySelector('[class*="content"]')
+        ?.parentElement as HTMLElement;
       expect(snackbar.className).toContain('top-left');
     });
 
@@ -83,7 +93,8 @@ describe('Snackbar', () => {
       const { container } = render(
         <Snackbar open message="메시지" position="top-center" />
       );
-      const snackbar = container.querySelector('[role="alert"]') as HTMLElement;
+      const snackbar = container.querySelector('[class*="content"]')
+        ?.parentElement as HTMLElement;
       expect(snackbar.className).toContain('top-center');
     });
 
@@ -91,7 +102,8 @@ describe('Snackbar', () => {
       const { container } = render(
         <Snackbar open message="메시지" position="top-right" />
       );
-      const snackbar = container.querySelector('[role="alert"]') as HTMLElement;
+      const snackbar = container.querySelector('[class*="content"]')
+        ?.parentElement as HTMLElement;
       expect(snackbar.className).toContain('top-right');
     });
 
@@ -99,7 +111,8 @@ describe('Snackbar', () => {
       const { container } = render(
         <Snackbar open message="메시지" position="bottom-left" />
       );
-      const snackbar = container.querySelector('[role="alert"]') as HTMLElement;
+      const snackbar = container.querySelector('[class*="content"]')
+        ?.parentElement as HTMLElement;
       expect(snackbar.className).toContain('bottom-left');
     });
 
@@ -107,7 +120,8 @@ describe('Snackbar', () => {
       const { container } = render(
         <Snackbar open message="메시지" position="bottom-center" />
       );
-      const snackbar = container.querySelector('[role="alert"]') as HTMLElement;
+      const snackbar = container.querySelector('[class*="content"]')
+        ?.parentElement as HTMLElement;
       expect(snackbar.className).toContain('bottom-center');
     });
 
@@ -115,13 +129,15 @@ describe('Snackbar', () => {
       const { container } = render(
         <Snackbar open message="메시지" position="bottom-right" />
       );
-      const snackbar = container.querySelector('[role="alert"]') as HTMLElement;
+      const snackbar = container.querySelector('[class*="content"]')
+        ?.parentElement as HTMLElement;
       expect(snackbar.className).toContain('bottom-right');
     });
 
     it('기본 위치는 bottom-center이다', () => {
       const { container } = render(<Snackbar open message="메시지" />);
-      const snackbar = container.querySelector('[role="alert"]') as HTMLElement;
+      const snackbar = container.querySelector('[class*="content"]')
+        ?.parentElement as HTMLElement;
       expect(snackbar.className).toContain('bottom-center');
     });
   });
@@ -240,15 +256,23 @@ describe('Snackbar', () => {
   });
 
   describe('접근성 테스트', () => {
-    it('role="alert"를 가진다', () => {
-      render(<Snackbar open message="메시지" />);
-      expect(screen.getByRole('alert')).toBeInTheDocument();
+    it('시각 상자는 role과 aria-live를 갖지 않는다', () => {
+      const { container } = render(<Snackbar open message="메시지" />);
+      const snackbar = container.querySelector(
+        '[class*="Snackbar_snackbar__"]'
+      ) as HTMLElement;
+      expect(snackbar).not.toHaveAttribute('role');
+      expect(snackbar).not.toHaveAttribute('aria-live');
     });
 
-    it('aria-live="polite"를 가진다', () => {
-      render(<Snackbar open message="메시지" />);
-      const snackbar = screen.getByRole('alert');
-      expect(snackbar).toHaveAttribute('aria-live', 'polite');
+    it('role="status" 리전이 시각 상자와 별도로 존재한다', () => {
+      const { container } = render(<Snackbar open message="메시지" />);
+      const snackbar = container.querySelector(
+        '[class*="Snackbar_snackbar__"]'
+      ) as HTMLElement;
+      const region = screen.getByRole('status');
+      expect(region).toBeInTheDocument();
+      expect(region).not.toBe(snackbar);
     });
 
     it('닫기 버튼에 aria-label이 있다', () => {
@@ -258,12 +282,81 @@ describe('Snackbar', () => {
     });
   });
 
+  describe('라이브 리전 테스트', () => {
+    it('open=false여도 role="status" 리전이 DOM에 존재하고 비어 있다', () => {
+      render(<Snackbar open={false} message="테스트 메시지" />);
+      const region = screen.getByRole('status');
+      expect(region).toBeInTheDocument();
+      expect(region).toBeEmptyDOMElement();
+    });
+
+    it('처음부터 open된 채 마운트해도 리전에 메시지가 채워진다', () => {
+      render(<Snackbar open message="처음부터 열림" />);
+      const region = screen.getByRole('status');
+      expect(region).toHaveTextContent('처음부터 열림');
+    });
+
+    it('open이 false가 되면 리전이 비워진다', () => {
+      const { rerender } = render(<Snackbar open message="닫히는 메시지" />);
+      const region = screen.getByRole('status');
+      expect(region).toHaveTextContent('닫히는 메시지');
+
+      rerender(<Snackbar open={false} message="닫히는 메시지" />);
+      expect(region).toBeEmptyDOMElement();
+    });
+  });
+
+  describe('severity 아이콘 테스트', () => {
+    it('success severity는 check-circle 아이콘을 렌더링한다', () => {
+      const { container } = render(
+        <Snackbar open message="성공" severity="success" />
+      );
+      expect(
+        container.querySelector('[data-icon="check-circle"]')
+      ).toBeInTheDocument();
+    });
+
+    it('error severity는 alert-circle 아이콘을 렌더링한다', () => {
+      const { container } = render(
+        <Snackbar open message="에러" severity="error" />
+      );
+      expect(
+        container.querySelector('[data-icon="alert-circle"]')
+      ).toBeInTheDocument();
+    });
+
+    it('warning severity는 alert-triangle 아이콘을 렌더링한다', () => {
+      const { container } = render(
+        <Snackbar open message="경고" severity="warning" />
+      );
+      expect(
+        container.querySelector('[data-icon="alert-triangle"]')
+      ).toBeInTheDocument();
+    });
+
+    it('info severity는 info 아이콘을 렌더링한다', () => {
+      const { container } = render(
+        <Snackbar open message="정보" severity="info" />
+      );
+      expect(container.querySelector('[data-icon="info"]')).toBeInTheDocument();
+    });
+
+    it('severity 아이콘은 접근성 트리에서 숨겨진다', () => {
+      const { container } = render(
+        <Snackbar open message="메시지" severity="success" />
+      );
+      const icon = container.querySelector('[data-icon="check-circle"]');
+      expect(icon).toHaveAttribute('aria-hidden', 'true');
+    });
+  });
+
   describe('className prop 테스트', () => {
     it('커스텀 className을 적용한다', () => {
       const { container } = render(
         <Snackbar open message="메시지" className="custom-snackbar" />
       );
-      const snackbar = container.querySelector('[role="alert"]');
+      const snackbar =
+        container.querySelector('[class*="content"]')?.parentElement;
       expect(snackbar).toHaveClass('custom-snackbar');
     });
   });
@@ -276,9 +369,13 @@ describe('Snackbar', () => {
           <Snackbar open message="두 번째" position="bottom-center" />
         </>
       );
-      expect(screen.getByText('첫 번째')).toBeInTheDocument();
-      expect(screen.getByText('두 번째')).toBeInTheDocument();
-      const snackbars = container.querySelectorAll('[role="alert"]');
+      expect(
+        screen.getByText('첫 번째', { selector: 'span' })
+      ).toBeInTheDocument();
+      expect(
+        screen.getByText('두 번째', { selector: 'span' })
+      ).toBeInTheDocument();
+      const snackbars = container.querySelectorAll('[class*="content"]');
       expect(snackbars).toHaveLength(2);
     });
   });

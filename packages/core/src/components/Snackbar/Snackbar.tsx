@@ -1,4 +1,10 @@
-import { useEffect, useRef, type ReactNode, type HTMLAttributes } from 'react';
+import {
+  useEffect,
+  useRef,
+  useState,
+  type ReactNode,
+  type HTMLAttributes,
+} from 'react';
 import clsx from 'clsx';
 import {
   snackbar,
@@ -8,9 +14,10 @@ import {
   message as messageClass,
   actions,
   closeButton,
+  visuallyHidden,
 } from './Snackbar.css';
 import { IconButton } from '../IconButton';
-import { Icon } from '../Icon';
+import { Icon, type IconName } from '../Icon';
 
 /** 화면 모서리에 일시적으로 표시되는 알림 컴포넌트 */
 export interface SnackbarProps extends Omit<
@@ -31,7 +38,7 @@ export interface SnackbarProps extends Omit<
     | 'bottom-left'
     | 'bottom-center'
     | 'bottom-right';
-  /** 자동 닫힘 시간(ms). null이면 자동 닫힘 비활성화 @default 5000 */
+  /** 자동 닫힘 시간(ms). null이면 자동 닫힘 비활성화 @default 6000 */
   autoHideDuration?: number | null;
   /** 닫기 콜백 */
   onClose?: () => void;
@@ -40,6 +47,16 @@ export interface SnackbarProps extends Omit<
   /** 추가 CSS 클래스 */
   className?: string;
 }
+
+const SEVERITY_ICONS: Record<
+  NonNullable<SnackbarProps['severity']>,
+  IconName
+> = {
+  success: 'check-circle',
+  error: 'alert-circle',
+  warning: 'alert-triangle',
+  info: 'info',
+};
 
 export const Snackbar = ({
   open,
@@ -53,6 +70,15 @@ export const Snackbar = ({
   ...props
 }: SnackbarProps) => {
   const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const [liveMessage, setLiveMessage] = useState<ReactNode>(null);
+
+  useEffect(() => {
+    // 렌더 중에 바로 채우면 리전 노드와 내용이 동시에 생겨 스크린 리더가 못 읽는 경우가
+    // 생긴다(처음부터 open인 채 마운트하는 경로). 한 틱 늦게 채우는 것이 목적이라 의도적으로
+    // effect에서 setState한다.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setLiveMessage(open ? message : null);
+  }, [open, message]);
 
   useEffect(() => {
     if (!open) {
@@ -76,10 +102,6 @@ export const Snackbar = ({
     }
   }, [open, autoHideDuration, onClose]);
 
-  if (!open) {
-    return null;
-  }
-
   const handleClose = () => {
     if (onClose) {
       onClose();
@@ -87,34 +109,40 @@ export const Snackbar = ({
   };
 
   return (
-    <div
-      role="alert"
-      aria-live="polite"
-      className={clsx(
-        snackbar,
-        severityStyles[severity],
-        positionStyles[position],
-        className
-      )}
-      {...props}
-    >
-      <div className={content}>
-        <span className={messageClass}>{message}</span>
-        <div className={actions}>
-          {action}
-          <IconButton
-            variant="dark"
-            buttonStyle="weak"
-            size="sm"
-            onClick={handleClose}
-            aria-label="닫기"
-            className={closeButton}
-          >
-            <Icon name="close" size="sm" />
-          </IconButton>
-        </div>
+    <>
+      <div role="status" className={visuallyHidden}>
+        {liveMessage}
       </div>
-    </div>
+      {open && (
+        <div
+          className={clsx(
+            snackbar,
+            severityStyles[severity],
+            positionStyles[position],
+            className
+          )}
+          {...props}
+        >
+          <div className={content}>
+            <Icon name={SEVERITY_ICONS[severity]} size="sm" />
+            <span className={messageClass}>{message}</span>
+            <div className={actions}>
+              {action}
+              <IconButton
+                variant="dark"
+                buttonStyle="weak"
+                size="sm"
+                onClick={handleClose}
+                aria-label="닫기"
+                className={closeButton}
+              >
+                <Icon name="close" size="sm" />
+              </IconButton>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 };
 

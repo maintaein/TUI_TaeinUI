@@ -73,6 +73,7 @@ export const severityStyles = styleVariants({
   },
   error: {
     backgroundColor: themeContract.color.error.main,
+    color: themeContract.color.error.contrast,
   },
   warning: {
     backgroundColor: themeContract.color.warning.main,
@@ -170,4 +171,18 @@ export const closeButton = style({
     outlineOffset: '2px',
     borderRadius: themeContract.borderRadius.sm,
   },
+});
+
+// 시각적으로만 숨기는 라이브 리전. SegmentedButtons.css.ts의 radioInput과 같은
+// 모양이다 — display: none·visibility: hidden은 접근성 트리에서도 지워져 쓸 수 없다.
+export const visuallyHidden = style({
+  position: 'absolute',
+  width: '1px',
+  height: '1px',
+  padding: 0,
+  margin: '-1px',
+  overflow: 'hidden',
+  clip: 'rect(0, 0, 0, 0)',
+  whiteSpace: 'nowrap',
+  border: 0,
 });

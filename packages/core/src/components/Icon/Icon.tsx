@@ -7,7 +7,11 @@ export type IconName =
   | 'plus'
   | 'minus'
   | 'chevron-down'
-  | 'chevron-up';
+  | 'chevron-up'
+  | 'check-circle'
+  | 'alert-circle'
+  | 'alert-triangle'
+  | 'info';
 
 /** SVG 아이콘 컴포넌트. 내장 아이콘 세트 제공 */
 export interface IconProps extends Omit<SVGAttributes<SVGSVGElement>, 'color'> {
@@ -39,6 +43,11 @@ const ICON_PATHS: Record<IconName, string> = {
   minus: 'M5 12h14',
   'chevron-down': 'M6 9l6 6 6-6',
   'chevron-up': 'M18 15l-6-6-6 6',
+  'check-circle': 'M22 11.08V12a10 10 0 1 1-5.93-9.14M22 4L12 14.01l-3-3',
+  'alert-circle': 'M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20M12 8v4M12 16h.01',
+  'alert-triangle':
+    'M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0zM12 9v4M12 17h.01',
+  info: 'M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20M12 16v-4M12 8h.01',
 };
 
 export const Icon = ({
