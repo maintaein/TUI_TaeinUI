@@ -30,7 +30,6 @@ export const tooltip = style({
   borderRadius: themeContract.borderRadius.sm,
   whiteSpace: 'nowrap',
   animation: `${fadeIn} 0.15s ${themeContract.animation.easing.easeOut}`,
-  pointerEvents: 'none',
 });
 
 // Position 스타일

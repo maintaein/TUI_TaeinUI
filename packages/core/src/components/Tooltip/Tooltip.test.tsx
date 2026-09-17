@@ -73,6 +73,11 @@ describe('Tooltip', () => {
 
       fireEvent.mouseLeave(button);
 
+      // Hoverable/Persistent 유예 시간이 지나야 결국 사라진다
+      act(() => {
+        vi.advanceTimersByTime(1000);
+      });
+
       expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
     });
   });
@@ -362,6 +367,11 @@ describe('Tooltip', () => {
 
       fireEvent.mouseLeave(button);
 
+      // Hoverable/Persistent 유예 시간이 지나야 결국 onOpenChange(false)가 호출된다
+      act(() => {
+        vi.advanceTimersByTime(1000);
+      });
+
       expect(handleOpenChange).toHaveBeenCalledWith(false);
     });
   });
@@ -388,7 +398,11 @@ describe('Tooltip', () => {
     it('호버 시 onOpenChange가 호출되지만 내부 상태는 변하지 않음', () => {
       const handleOpenChange = vi.fn();
       render(
-        <Tooltip content="툴팁 내용" open={false} onOpenChange={handleOpenChange}>
+        <Tooltip
+          content="툴팁 내용"
+          open={false}
+          onOpenChange={handleOpenChange}
+        >
           <button>호버하세요</button>
         </Tooltip>
       );
@@ -410,7 +424,12 @@ describe('Tooltip', () => {
     it('제어 모드에서 disabled는 onOpenChange 호출을 막는다', () => {
       const handleOpenChange = vi.fn();
       render(
-        <Tooltip content="툴팁 내용" open={false} onOpenChange={handleOpenChange} disabled>
+        <Tooltip
+          content="툴팁 내용"
+          open={false}
+          onOpenChange={handleOpenChange}
+          disabled
+        >
           <button>호버하세요</button>
         </Tooltip>
       );
@@ -426,4 +445,165 @@ describe('Tooltip', () => {
     });
   });
 
+  describe('Dismissible (Escape) 테스트', () => {
+    it('포커스로 열린 뒤 Escape를 누르면 사라진다', () => {
+      render(
+        <Tooltip content="툴팁 내용">
+          <button>포커스하세요</button>
+        </Tooltip>
+      );
+
+      const button = screen.getByRole('button');
+      fireEvent.focus(button);
+
+      act(() => {
+        vi.advanceTimersByTime(200);
+      });
+
+      expect(screen.getByRole('tooltip')).toBeInTheDocument();
+
+      fireEvent.keyDown(button, { key: 'Escape' });
+
+      expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
+    });
+
+    it('호버로 열린 뒤(포커스 없이) document에서 Escape를 누르면 사라진다', () => {
+      render(
+        <Tooltip content="툴팁 내용">
+          <button>호버하세요</button>
+        </Tooltip>
+      );
+
+      const button = screen.getByRole('button');
+      fireEvent.mouseEnter(button);
+
+      act(() => {
+        vi.advanceTimersByTime(200);
+      });
+
+      expect(screen.getByRole('tooltip')).toBeInTheDocument();
+
+      fireEvent.keyDown(document, { key: 'Escape' });
+
+      expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
+    });
+
+    it('Escape로 닫힌 뒤 포인터가 트리거에 그대로 있어도 다시 열리지 않는다', () => {
+      render(
+        <Tooltip content="툴팁 내용">
+          <button>호버하세요</button>
+        </Tooltip>
+      );
+
+      const button = screen.getByRole('button');
+      fireEvent.mouseEnter(button);
+
+      act(() => {
+        vi.advanceTimersByTime(200);
+      });
+
+      expect(screen.getByRole('tooltip')).toBeInTheDocument();
+
+      fireEvent.keyDown(document, { key: 'Escape' });
+
+      expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
+
+      // 포인터는 트리거를 벗어나지 않았다 — 남아있는 타이머가 있어도 다시 열리면 안 된다
+      act(() => {
+        vi.advanceTimersByTime(2000);
+      });
+
+      expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
+    });
+
+    it('Escape로 닫힌 뒤 포인터가 벗어났다 돌아오면 다시 열린다', () => {
+      render(
+        <Tooltip content="툴팁 내용">
+          <button>호버하세요</button>
+        </Tooltip>
+      );
+
+      const button = screen.getByRole('button');
+      fireEvent.mouseEnter(button);
+
+      act(() => {
+        vi.advanceTimersByTime(200);
+      });
+
+      expect(screen.getByRole('tooltip')).toBeInTheDocument();
+
+      fireEvent.keyDown(document, { key: 'Escape' });
+
+      expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
+
+      fireEvent.mouseLeave(button);
+      fireEvent.mouseEnter(button);
+
+      act(() => {
+        vi.advanceTimersByTime(200);
+      });
+
+      expect(screen.getByRole('tooltip')).toBeInTheDocument();
+    });
+  });
+
+  describe('Hoverable + Persistent (유예) 테스트', () => {
+    it('트리거에서 마우스가 나가도 유예 중엔 남아있고, 툴팁으로 들어오면 계속 남아있다', () => {
+      render(
+        <Tooltip content="툴팁 내용">
+          <button>호버하세요</button>
+        </Tooltip>
+      );
+
+      const button = screen.getByRole('button');
+      fireEvent.mouseEnter(button);
+
+      act(() => {
+        vi.advanceTimersByTime(200);
+      });
+
+      const tooltipEl = screen.getByRole('tooltip');
+      expect(tooltipEl).toBeInTheDocument();
+
+      fireEvent.mouseLeave(button);
+      // 유예 중엔 아직 있다
+      expect(screen.getByRole('tooltip')).toBeInTheDocument();
+
+      fireEvent.mouseEnter(tooltipEl);
+
+      // 유예가 다 지나도 닫기가 취소되어 여전히 남아있다
+      act(() => {
+        vi.advanceTimersByTime(2000);
+      });
+
+      expect(screen.getByRole('tooltip')).toBeInTheDocument();
+    });
+
+    it('트리거에서 나간 뒤 아무 데도 들어가지 않으면 유예 뒤 닫힌다', () => {
+      render(
+        <Tooltip content="툴팁 내용">
+          <button>호버하세요</button>
+        </Tooltip>
+      );
+
+      const button = screen.getByRole('button');
+      fireEvent.mouseEnter(button);
+
+      act(() => {
+        vi.advanceTimersByTime(200);
+      });
+
+      expect(screen.getByRole('tooltip')).toBeInTheDocument();
+
+      fireEvent.mouseLeave(button);
+      // 유예 중엔 아직 있다
+      expect(screen.getByRole('tooltip')).toBeInTheDocument();
+
+      act(() => {
+        vi.advanceTimersByTime(1000);
+      });
+
+      expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
+    });
+  });
 });
