@@ -55,7 +55,7 @@ export const sliderTrack = style({
   left: 0,
   right: 0,
   height: '6px',
-  backgroundColor: themeContract.color.surface.default,
+  backgroundColor: themeContract.color.surface.track,
   borderRadius: '3px',
   transform: 'translateY(-50%)',
   pointerEvents: 'none',

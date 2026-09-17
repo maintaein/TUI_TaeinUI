@@ -168,4 +168,14 @@ describe('문서가 약속한 대비를 실제 토큰이 지키는지', () => {
       contrastRatio(color.surface.track, color.background.default)
     ).toBeGreaterThanOrEqual(AA_UI);
   });
+
+  it('border.strong은 background.paper 위에서도 UI 요소 대비(3:1)를 만족한다', () => {
+    // SegmentedButtons·NumericSpinner가 이번에 background.paper 면 위에
+    // border.strong 경계를 얹는다. 기존 검사는 흰 배경만 보므로 이 조합이
+    // 이 커밋에서 처음 하중을 받는다.
+    const { color } = themeTokens;
+    expect(
+      contrastRatio(color.border.strong, color.background.paper)
+    ).toBeGreaterThanOrEqual(AA_UI);
+  });
 });

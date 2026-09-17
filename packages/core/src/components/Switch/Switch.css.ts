@@ -85,7 +85,7 @@ export const size = styleVariants(baseSizeContainer, (baseStyle) => [
       },
 
       [`&:has(input:disabled)`]: {
-        backgroundColor: themeContract.color.surface.default,
+        backgroundColor: themeContract.color.surface.track,
         cursor: 'not-allowed',
       },
 

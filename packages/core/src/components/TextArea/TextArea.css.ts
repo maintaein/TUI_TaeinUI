@@ -57,9 +57,9 @@ export const textarea = style({
     '&:disabled::placeholder': {
       color: themeContract.color.text.disabled,
     },
-    '&:read-only': {
+    '&:read-only:not(:disabled)': {
       backgroundColor: themeContract.color.surface.default,
-      borderColor: themeContract.color.border.default,
+      borderColor: themeContract.color.border.strong,
       cursor: 'default',
     },
   },

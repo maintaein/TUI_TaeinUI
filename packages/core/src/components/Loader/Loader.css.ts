@@ -107,7 +107,7 @@ export const dotDelay = styleVariants({
 export const bar = style({
   position: 'relative',
   height: '4px',
-  backgroundColor: themeContract.color.surface.default,
+  backgroundColor: themeContract.color.surface.track,
   borderRadius: '2px',
   overflow: 'hidden',
 });

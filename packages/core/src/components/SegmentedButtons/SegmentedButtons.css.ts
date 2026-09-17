@@ -5,7 +5,8 @@ import { themeContract } from '../../tokens/theme.css';
 export const container = style({
   display: 'inline-flex',
   alignItems: 'center',
-  backgroundColor: themeContract.color.surface.default,
+  backgroundColor: themeContract.color.background.paper,
+  boxShadow: `inset 0 0 0 1px ${themeContract.color.border.strong}`,
   borderRadius: themeContract.borderRadius.lg,
   padding: '1px',
   gap: '4px',
