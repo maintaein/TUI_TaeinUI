@@ -56,4 +56,10 @@ playwright-report/
 # Misc
 *.pem
 
-.claude
+.claude/
+CLAUDE.md
+DESIGN.md
+_workspace/
+graphify-out/
+PRODUCT.md
+.superpowers/
