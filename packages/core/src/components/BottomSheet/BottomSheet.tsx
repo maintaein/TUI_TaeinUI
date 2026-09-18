@@ -360,7 +360,13 @@ export const BottomSheetHeader = forwardRef<
 
 BottomSheetHeader.displayName = 'BottomSheetHeader';
 
-/** BottomSheet 제목. Compound 패턴에서 사용 */
+/**
+ * BottomSheet.Title — 시트 제목. Compound 패턴에서 사용
+ *
+ * `id`는 컴포넌트가 소유한다 — 루트의 `aria-labelledby`가 이 id를 가리키므로
+ * 소비자 `id`가 이기면 다이얼로그의 접근 가능 이름이 조용히 사라진다. 제목
+ * 요소를 직접 참조해야 하면 루트에 `aria-labelledby`를 줘라.
+ */
 export interface BottomSheetTitleProps extends HTMLAttributes<HTMLHeadingElement> {
   /** 제목 텍스트 */
   children: ReactNode;
@@ -377,9 +383,9 @@ export const BottomSheetTitle = forwardRef<
   return (
     <h2
       ref={ref}
-      id={context?.titleId}
       className={clsx(titleStyle, className)}
       {...props}
+      id={context?.titleId}
     >
       {children}
     </h2>

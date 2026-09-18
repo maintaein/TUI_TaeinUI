@@ -403,6 +403,34 @@ describe('Modal Compound API', () => {
         screen.getByRole('dialog', { name: '외부 레이블' })
       ).toBeInTheDocument();
     });
+
+    it('Title에 소비자 id를 줘도 dialog의 접근 가능 이름이 유지된다', () => {
+      // Title의 id는 컴포넌트가 소유한다. 소비자 id가 이기면 루트의
+      // aria-labelledby가 허공을 가리켜 접근 가능 이름이 조용히 사라진다.
+      render(
+        <Modal {...defaultProps}>
+          <Modal.Header>
+            <Modal.Title id="my-heading">탈퇴 확인</Modal.Title>
+          </Modal.Header>
+        </Modal>
+      );
+      expect(screen.getByRole('dialog')).toHaveAccessibleName('탈퇴 확인');
+    });
+
+    it('Title이 없으면 dangling IDREF가 되지만 이름 계산이 깨지지 않는다', () => {
+      // compound 경로의 루트는 항상 생성 titleId를 가리킨다. 그 id를 가진
+      // 요소가 없으면 accname 1.2는 그 단계를 건너뛴다 — 이름은 빈 문자열이고
+      // id 문자열이 이름으로 새어 나오지 않는다. 라이브러리가 이 동작을 바꾸는
+      // 날 여기서 잡힌다.
+      render(
+        <Modal {...defaultProps}>
+          <Modal.Content>제목 없는 본문</Modal.Content>
+        </Modal>
+      );
+      const dialog = screen.getByRole('dialog');
+      expect(dialog).toHaveAttribute('aria-labelledby');
+      expect(dialog).toHaveAccessibleName('');
+    });
   });
 
   describe('Modal.Content', () => {
