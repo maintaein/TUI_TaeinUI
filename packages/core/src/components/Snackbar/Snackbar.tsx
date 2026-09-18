@@ -58,6 +58,20 @@ const SEVERITY_ICONS: Record<
   info: 'info',
 };
 
+/**
+ * 라이브 리전이 함께 읽어 줄 severity 접두사. 시각 채널은 아이콘이 닫지만
+ * 아이콘이 aria-hidden이라 소리 채널에는 severity가 실리지 않는다.
+ */
+const SEVERITY_LABELS: Record<
+  NonNullable<SnackbarProps['severity']>,
+  string
+> = {
+  success: '성공',
+  error: '오류',
+  warning: '경고',
+  info: '알림',
+};
+
 export const Snackbar = ({
   open,
   message,
@@ -77,8 +91,14 @@ export const Snackbar = ({
     // 생긴다(처음부터 open인 채 마운트하는 경로). 한 틱 늦게 채우는 것이 목적이라 의도적으로
     // effect에서 setState한다.
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    setLiveMessage(open ? message : null);
-  }, [open, message]);
+    setLiveMessage(
+      open ? (
+        <>
+          {SEVERITY_LABELS[severity]}: {message}
+        </>
+      ) : null
+    );
+  }, [open, message, severity]);
 
   useEffect(() => {
     if (!open) {

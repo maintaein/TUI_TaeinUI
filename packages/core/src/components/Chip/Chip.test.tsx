@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -351,5 +353,32 @@ describe('Chip', () => {
         styles.chip({ size: 'lg', variant: 'outlined', color: 'primary' })
       );
     });
+  });
+});
+
+describe('Chip 소스 잠금', () => {
+  // vanilla-extract가 스타일을 클래스로 직렬화해서 jsdom에서 계산값을 못
+  // 읽는다. Chip.css.ts 소스 텍스트에서 직접 확인한다(Card·HeaderBar 관례).
+  const cssSource = readFileSync(resolve(__dirname, './Chip.css.ts'), 'utf-8');
+
+  it('clickable hover가 지각되는 채널을 쓴다', () => {
+    // shadow.sm은 5% 알파 2px 블러라 색 있는 칩 위에서 지각 한계 아래다.
+    // hover는 "누를 수 있다"를 알리는 가장 기본 어포던스다.
+    const hover = cssSource.match(/':hover': \{([\s\S]*?)\n {2}\},/)?.[1];
+    expect(hover, ':hover 블록을 찾지 못했다').toBeDefined();
+    expect(hover).toContain("transform: 'translateY(-1px)'");
+    expect(hover).toContain('themeContract.shadow.base');
+  });
+
+  it('탭 가능한 size 변형이 24px 최소 높이를 갖는다 (WCAG 2.5.8)', () => {
+    // lg는 padding 8×2 + 16px 글자로 이미 32px라 명시가 필요 없다.
+    const sizeGroup = cssSource.match(/\n {4}size: \{([\s\S]*?)\n {4}\},/)?.[1];
+    expect(sizeGroup, 'size 변형 그룹을 찾지 못했다').toBeDefined();
+    const withMinHeight = [
+      ...(sizeGroup as string).matchAll(/\n {6}(\w+): \{([\s\S]*?)\n {6}\},/g),
+    ]
+      .filter((m) => m[2].includes("minHeight: '24px'"))
+      .map((m) => m[1]);
+    expect(withMinHeight).toEqual(['sm', 'md']);
   });
 });

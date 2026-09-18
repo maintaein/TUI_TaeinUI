@@ -186,8 +186,9 @@ export const button = recipe({
             backgroundColor: themeContract.palette.error[100],
           },
           '&:active:not(:disabled)': {
-            // hover와 배경이 같아 색으로는 상태를 구분할 수 없다. 눌린 느낌의
-            // 안쪽 그림자로 두 번째 채널을 준다.
+            // hover와 배경이 같아 색으로는 상태를 구분할 수 없다. 실제로
+            // 상태를 가르는 건 아래의 scale(0.98)이고, shadow.inner(6% 알파)는
+            // error[100] 위에서 거의 안 보이는 보조 신호다.
             backgroundColor: themeContract.palette.error[100],
             boxShadow: themeContract.shadow.inner,
             transform: 'scale(0.98)',

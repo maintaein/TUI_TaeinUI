@@ -27,6 +27,9 @@ describe('탭 대상 touch-action 잠금', () => {
     // pan-x pan-y pinch-zoom과 같은 뜻이라 <input type="range"> 썸을 가로로
     // 끄는 동작을 브라우저가 가로 패닝으로 가져갈 여지를 남긴다 — 드래그는
     // 브라우저가 처리하게 둔다.
+    // 한계: 짝이 아니라 파일 단위 개수만 센다. cursor: 'pointer' 3개와
+    // touchAction 3개가 서로 다른 스타일에 흩어져 있어도 통과한다 — "같은
+    // 스타일에 붙어 있다"까지는 보증하지 않는다.
     const cssFiles = findCssFiles(__dirname).filter(
       (path) => basename(dirname(path)) !== 'Slider'
     );

@@ -87,6 +87,12 @@ export const size = styleVariants(baseSizeContainer, (baseStyle) => [
         ...focusRing(),
       },
 
+      // disabled 트랙의 기준은 1.4.11의 3:1이 아니다(disabled는 면제 대상이다).
+      // 기준은 "컨트롤이 아예 안 보이면 고친다" 하나다 — unchecked+disabled는
+      // 흰 배경 위 흰 면(1.00:1)이라 존재 자체가 사라져서 surface.track
+      // (3.59:1)으로 올렸고, checked+disabled의 primary.light는 2.64:1로 3:1에는
+      // 못 미쳐도 지각되므로 그대로 둔다. 여기를 더 진하게 올리면 enabled와
+      // 구별이 사라져 어포던스가 오히려 나빠진다.
       [`&:has(input:disabled)`]: {
         backgroundColor: themeContract.color.surface.track,
         cursor: 'not-allowed',

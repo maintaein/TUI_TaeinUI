@@ -84,7 +84,7 @@ All components follow consistent patterns:
 TDS uses a theme contract (`themeContract`) for consistent styling. 라이트 단일
 테마이며 `:root`의 전역 CSS 변수로 선언된다 (`ThemeProvider`·다크 테마 없음).
 
-- **Color** — primary, text (primary/secondary/disabled/inverse), background, surface, border, semantic (success/warning/error/info)
+- **Color** — primary, text (primary/secondary/disabled/inverse), background, surface, border, overlay, semantic (success/warning/error/info)
   semantic은 main(면, contrast와 4.5:1) / light(배경) / dark(본문 텍스트·단독 도형, 4.5:1) / contrast 4슬롯
 - **Spacing** — 8pt grid, 12단계 (0.25rem = 4px ~ 5rem = 80px). 중간 번호는 비어 있음
 - **Typography** — sizes 9단계 (2xs ~ 4xl), weights, line heights, variantNumeric(tabular-nums)

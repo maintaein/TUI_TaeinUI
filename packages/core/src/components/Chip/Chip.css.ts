@@ -26,6 +26,9 @@ export const chip = recipe({
         padding: `${themeContract.spacing[1]} ${themeContract.spacing[2]}`,
         fontSize: themeContract.font.size.xs,
         gap: themeContract.spacing[1],
+        // padding 4px*2 + font 12px + lineHeight 1 = 20px로 md와 같은 이유로
+        // 24px 터치 타깃(WCAG 2.5.8) 이하로 떨어진다.
+        minHeight: '24px',
       },
       md: {
         padding: `${themeContract.spacing[1]} ${themeContract.spacing[3]}`,
@@ -146,9 +149,12 @@ export const clickable = style({
   touchAction: 'manipulation',
 
   // 불투명도로 hover/active를 표현하면 대비가 같이 떨어진다(4.60→3.47:1).
-  // 색을 건드리지 않는 채널(그림자·스케일)로 바꾼다.
+  // 색을 건드리지 않는 채널(이동·그림자·스케일)로 바꾼다. shadow.sm(5% 알파
+  // 2px 블러)만으로는 색 있는 칩 위에서 지각 한계 아래라, :active의 scale과
+  // 같은 축인 1px 들어올림을 주 채널로 쓴다.
   ':hover': {
-    boxShadow: themeContract.shadow.sm,
+    transform: 'translateY(-1px)',
+    boxShadow: themeContract.shadow.base,
   },
 
   ':active': {

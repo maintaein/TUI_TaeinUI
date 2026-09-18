@@ -296,6 +296,37 @@ describe('Snackbar', () => {
       expect(region).toHaveTextContent('처음부터 열림');
     });
 
+    it('리전이 severity를 접두사로 함께 읽어 준다', () => {
+      // 아이콘은 aria-hidden이라 스크린 리더는 메시지 텍스트만 듣는다.
+      // 화면에서 빨간 상자 + 경고 아이콘인 것이 소리로는 그냥 문장이 된다.
+      render(<Snackbar open message="저장에 실패했습니다" severity="error" />);
+      expect(screen.getByRole('status')).toHaveTextContent(
+        '오류: 저장에 실패했습니다'
+      );
+    });
+
+    it('severity마다 접두사가 다르다', () => {
+      const labels = {
+        success: '성공',
+        error: '오류',
+        warning: '경고',
+        info: '알림',
+      } as const;
+      for (const [severity, label] of Object.entries(labels)) {
+        const { unmount } = render(
+          <Snackbar
+            open
+            message="메시지"
+            severity={severity as keyof typeof labels}
+          />
+        );
+        expect(screen.getByRole('status')).toHaveTextContent(
+          `${label}: 메시지`
+        );
+        unmount();
+      }
+    });
+
     it('open이 false가 되면 리전이 비워진다', () => {
       const { rerender } = render(<Snackbar open message="닫히는 메시지" />);
       const region = screen.getByRole('status');

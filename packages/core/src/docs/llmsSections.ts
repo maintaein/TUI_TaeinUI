@@ -330,7 +330,7 @@ export function renderTokenSummary(): string {
     'TDS uses a theme contract (`themeContract`) for consistent styling. 라이트 단일',
     '테마이며 `:root`의 전역 CSS 변수로 선언된다 (`ThemeProvider`·다크 테마 없음).',
     '',
-    `- **Color** — primary, text (${Object.keys(color.text).join('/')}), background, surface, border, semantic (${SEMANTIC_NAMES.join('/')})`,
+    `- **Color** — primary, text (${Object.keys(color.text).join('/')}), background, surface, border, overlay, semantic (${SEMANTIC_NAMES.join('/')})`,
     '  semantic은 main(면, contrast와 4.5:1) / light(배경) / dark(본문 텍스트·단독 도형, 4.5:1) / contrast 4슬롯',
     `- **Spacing** — 8pt grid, 12단계 (${spacing[1]} = 4px ~ ${spacing[20]} = 80px). 중간 번호는 비어 있음`,
     `- **Typography** — sizes ${sizeKeys.length}단계 (${sizeKeys[0]} ~ ${sizeKeys[sizeKeys.length - 1]}), weights, line heights, variantNumeric(tabular-nums)`,

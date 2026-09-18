@@ -300,3 +300,33 @@ describe('Text', () => {
     });
   });
 });
+
+describe('헤딩 굵기 스케일', () => {
+  it('variant가 참조하는 fontWeight가 기대 매핑과 일치한다', () => {
+    // h4~h6는 20/18/16px로 단계차가 2px까지 좁아져 크기만으로는 구분이 안 된다.
+    // 굵기가 두 번째 구분 축이라 크기 잠금과 함께 굵기도 잠근다(14e1db2의
+    // 잠금 테스트는 fontSize만 본다).
+    const cssSource = readFileSync(
+      resolve(__dirname, './Text.css.ts'),
+      'utf-8'
+    );
+    const weightByVariant: Record<string, number> = {};
+    for (const m of cssSource.matchAll(
+      /(\w+): \{\s*fontSize: themeContract\.font\.size(?:\.\w+|\['[^']+'\]),[^\n]*\n\s*fontWeight: (\d+),/g
+    )) {
+      weightByVariant[m[1]] = Number(m[2]);
+    }
+
+    expect(weightByVariant).toEqual({
+      h1: 700,
+      h2: 700,
+      h3: 600,
+      h4: 700,
+      h5: 600,
+      h6: 600,
+      body1: 400,
+      body2: 400,
+      body3: 400,
+    });
+  });
+});
