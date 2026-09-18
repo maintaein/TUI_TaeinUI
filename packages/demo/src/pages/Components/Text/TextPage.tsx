@@ -117,14 +117,14 @@ export function TextPage() {
           <h3 className={styles.exampleTitle}>Headings (h1 ~ h6)</h3>
           <LivePreview
             title="Heading Variants"
-            description="h1(40px)부터 h6(16px)까지 6단계의 heading을 제공합니다. 각 variant는 대응하는 HTML 태그를 자동 사용합니다."
+            description="h1(36px)부터 h6(16px)까지 6단계의 heading을 제공합니다. 각 variant는 대응하는 HTML 태그를 자동 사용합니다."
             editable
             code={`<div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-  <Text variant="h1">h1 - 페이지 제목 (2.5rem)</Text>
-  <Text variant="h2">h2 - 섹션 제목 (2rem)</Text>
-  <Text variant="h3">h3 - 하위 섹션 (1.75rem)</Text>
-  <Text variant="h4">h4 - 카드 제목 (1.5rem)</Text>
-  <Text variant="h5">h5 - 소제목 (1.25rem)</Text>
+  <Text variant="h1">h1 - 페이지 제목 (2.25rem)</Text>
+  <Text variant="h2">h2 - 섹션 제목 (1.875rem)</Text>
+  <Text variant="h3">h3 - 하위 섹션 (1.5rem)</Text>
+  <Text variant="h4">h4 - 카드 제목 (1.25rem)</Text>
+  <Text variant="h5">h5 - 소제목 (1.125rem)</Text>
   <Text variant="h6">h6 - 캡션 제목 (1rem)</Text>
 </div>`}
           />
