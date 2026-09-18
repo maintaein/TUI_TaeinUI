@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -295,6 +297,32 @@ describe('Card (Compound API)', () => {
   });
 });
 
+describe('이미지 기준 박스 테스트', () => {
+  it('cardImageWrapper가 aspectRatio 16:9 기준 박스를 가진다', () => {
+    // vanilla-extract가 스타일을 클래스로 직렬화해서 jsdom에서 계산값을 못
+    // 읽는다. Card.css.ts 소스 텍스트에서 직접 확인한다(S7이 Text에 쓴 관례).
+    const cssSource = readFileSync(
+      resolve(__dirname, './Card.css.ts'),
+      'utf-8'
+    );
+    const wrapperBlock = cssSource.match(
+      /export const cardImageWrapper = style\(\{([\s\S]*?)\}\);/
+    )?.[1];
+    expect(wrapperBlock).toContain("aspectRatio: '16 / 9'");
+  });
+
+  it('cardImage가 높이를 100%로 채워 objectFit: cover가 실제로 동작한다', () => {
+    const cssSource = readFileSync(
+      resolve(__dirname, './Card.css.ts'),
+      'utf-8'
+    );
+    const imageBlock = cssSource.match(
+      /export const cardImage = style\(\{([\s\S]*?)\}\);/
+    )?.[1];
+    expect(imageBlock).toContain("height: '100%'");
+  });
+});
+
 describe('Card (Flat API)', () => {
   describe('렌더링 테스트', () => {
     it('title prop으로 기본 카드가 렌더링된다', () => {
@@ -371,19 +399,31 @@ describe('Card (Flat API)', () => {
 
   describe('variant prop 테스트', () => {
     it('variant="outlined"일 때 적절한 클래스가 적용된다', () => {
-      const { container } = render(<Card title="제목" variant="outlined">내용</Card>);
+      const { container } = render(
+        <Card title="제목" variant="outlined">
+          내용
+        </Card>
+      );
 
       expect(container.firstChild).toHaveClass(/variantStyles_outlined/);
     });
 
     it('variant="elevated"일 때 적절한 클래스가 적용된다', () => {
-      const { container } = render(<Card title="제목" variant="elevated">내용</Card>);
+      const { container } = render(
+        <Card title="제목" variant="elevated">
+          내용
+        </Card>
+      );
 
       expect(container.firstChild).toHaveClass(/variantStyles_elevated/);
     });
 
     it('variant="filled"일 때 적절한 클래스가 적용된다', () => {
-      const { container } = render(<Card title="제목" variant="filled">내용</Card>);
+      const { container } = render(
+        <Card title="제목" variant="filled">
+          내용
+        </Card>
+      );
 
       expect(container.firstChild).toHaveClass(/variantStyles_filled/);
     });
@@ -399,7 +439,11 @@ describe('Card (Flat API)', () => {
     it('onClick이 제공되면 클릭할 수 있다', async () => {
       const user = userEvent.setup();
       const handleClick = vi.fn();
-      render(<Card title="제목" onClick={handleClick}>카드 내용</Card>);
+      render(
+        <Card title="제목" onClick={handleClick}>
+          카드 내용
+        </Card>
+      );
 
       const card = screen.getByRole('button');
       await user.click(card);
@@ -414,7 +458,11 @@ describe('Card (Flat API)', () => {
     });
 
     it('onClick이 있으면 호버 스타일이 적용된다', () => {
-      const { container } = render(<Card title="제목" onClick={() => {}}>내용</Card>);
+      const { container } = render(
+        <Card title="제목" onClick={() => {}}>
+          내용
+        </Card>
+      );
 
       expect(container.firstChild).toHaveClass(/clickable/);
     });
@@ -422,7 +470,11 @@ describe('Card (Flat API)', () => {
 
   describe('padding prop 테스트', () => {
     it('padding="none"일 때 적절한 클래스가 적용된다', () => {
-      const { container } = render(<Card title="제목" padding="none">내용</Card>);
+      const { container } = render(
+        <Card title="제목" padding="none">
+          내용
+        </Card>
+      );
 
       const card = container.firstChild as HTMLElement;
       const content = card.querySelector('[class*="cardBody"]');
@@ -430,7 +482,11 @@ describe('Card (Flat API)', () => {
     });
 
     it('padding="sm"일 때 적절한 클래스가 적용된다', () => {
-      const { container } = render(<Card title="제목" padding="sm">내용</Card>);
+      const { container } = render(
+        <Card title="제목" padding="sm">
+          내용
+        </Card>
+      );
 
       const card = container.firstChild as HTMLElement;
       const content = card.querySelector('[class*="cardBody"]');
@@ -438,7 +494,11 @@ describe('Card (Flat API)', () => {
     });
 
     it('padding="md"일 때 적절한 클래스가 적용된다', () => {
-      const { container } = render(<Card title="제목" padding="md">내용</Card>);
+      const { container } = render(
+        <Card title="제목" padding="md">
+          내용
+        </Card>
+      );
 
       const card = container.firstChild as HTMLElement;
       const content = card.querySelector('[class*="cardBody"]');
@@ -446,7 +506,11 @@ describe('Card (Flat API)', () => {
     });
 
     it('padding="lg"일 때 적절한 클래스가 적용된다', () => {
-      const { container } = render(<Card title="제목" padding="lg">내용</Card>);
+      const { container } = render(
+        <Card title="제목" padding="lg">
+          내용
+        </Card>
+      );
 
       const card = container.firstChild as HTMLElement;
       const content = card.querySelector('[class*="cardBody"]');
@@ -464,7 +528,11 @@ describe('Card (Flat API)', () => {
 
   describe('disabled 상태 테스트', () => {
     it('disabled가 true이면 비활성화 스타일이 적용된다', () => {
-      const { container } = render(<Card title="제목" disabled onClick={() => {}}>내용</Card>);
+      const { container } = render(
+        <Card title="제목" disabled onClick={() => {}}>
+          내용
+        </Card>
+      );
 
       expect(container.firstChild).toHaveClass(/disabled/);
     });
@@ -487,7 +555,11 @@ describe('Card (Flat API)', () => {
 
   describe('className prop 테스트', () => {
     it('커스텀 className이 적용된다', () => {
-      const { container } = render(<Card title="제목" className="custom-class">내용</Card>);
+      const { container } = render(
+        <Card title="제목" className="custom-class">
+          내용
+        </Card>
+      );
 
       expect(container.firstChild).toHaveClass('custom-class');
     });
@@ -495,7 +567,11 @@ describe('Card (Flat API)', () => {
 
   describe('접근성 테스트', () => {
     it('onClick이 있을 때 role="button"이 있다', () => {
-      render(<Card title="제목" onClick={() => {}}>내용</Card>);
+      render(
+        <Card title="제목" onClick={() => {}}>
+          내용
+        </Card>
+      );
 
       expect(screen.getByRole('button')).toBeInTheDocument();
     });
@@ -523,7 +599,11 @@ describe('Card (Flat API)', () => {
     it('Enter 키로 클릭할 수 있다', async () => {
       const user = userEvent.setup();
       const handleClick = vi.fn();
-      render(<Card title="제목" onClick={handleClick}>내용</Card>);
+      render(
+        <Card title="제목" onClick={handleClick}>
+          내용
+        </Card>
+      );
 
       const card = screen.getByRole('button');
       card.focus();
@@ -535,7 +615,11 @@ describe('Card (Flat API)', () => {
     it('Space 키로 클릭할 수 있다', async () => {
       const user = userEvent.setup();
       const handleClick = vi.fn();
-      render(<Card title="제목" onClick={handleClick}>내용</Card>);
+      render(
+        <Card title="제목" onClick={handleClick}>
+          내용
+        </Card>
+      );
 
       const card = screen.getByRole('button');
       card.focus();
@@ -584,7 +668,12 @@ describe('Card (Flat API)', () => {
       const user = userEvent.setup();
       const handleClick = vi.fn();
       const { container } = render(
-        <Card title="제목" onClick={handleClick} variant="outlined" padding="lg">
+        <Card
+          title="제목"
+          onClick={handleClick}
+          variant="outlined"
+          padding="lg"
+        >
           내용
         </Card>
       );

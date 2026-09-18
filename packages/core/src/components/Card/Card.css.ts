@@ -75,13 +75,14 @@ export const disabled = style({
 export const cardImageWrapper = style({
   position: 'relative',
   width: '100%',
+  aspectRatio: '16 / 9',
   overflow: 'hidden',
   flexShrink: 0,
 });
 
 export const cardImage = style({
   width: '100%',
-  height: 'auto',
+  height: '100%',
   display: 'block',
   objectFit: 'cover',
 });

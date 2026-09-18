@@ -16,12 +16,13 @@ import {
   paddingStyles,
 } from './Card.css';
 
-
 // ─── Card Root ───────────────────────────────────────────────────────
 
 /** 콘텐츠를 그룹화하는 카드 컴포넌트. Compound 패턴(Card.Header/Body/Footer) 또는 Flat 패턴(title/footer prop) 지원 */
-export interface CardProps
-  extends Omit<HTMLAttributes<HTMLElement>, 'onClick'> {
+export interface CardProps extends Omit<
+  HTMLAttributes<HTMLElement>,
+  'onClick'
+> {
   /** 카드 콘텐츠 */
   children: ReactNode;
   /** 카드 시각적 스타일. interactive는 호버/클릭 효과 포함 @default 'elevated' */
@@ -128,7 +129,12 @@ const CardRoot = forwardRef<HTMLElement, CardProps>(
     }
 
     return (
-      <article ref={ref as React.Ref<HTMLElement>} className={rootClasses} style={rootStyle} {...props}>
+      <article
+        ref={ref as React.Ref<HTMLElement>}
+        className={rootClasses}
+        style={rootStyle}
+        {...props}
+      >
         {content}
       </article>
     );
@@ -137,10 +143,9 @@ const CardRoot = forwardRef<HTMLElement, CardProps>(
 
 CardRoot.displayName = 'Card';
 
-
 // ─── Compound 서브 컴포넌트 ──────────────────────────────────────────
 
-/** Card.Image — 카드 이미지 영역 */
+/** Card.Image — 카드 이미지 영역. 기본 비율은 16:9이며, `style={{ aspectRatio: '1' }}`로 덮어쓸 수 있다 */
 export interface CardImageProps extends HTMLAttributes<HTMLDivElement> {
   /** 이미지 URL */
   src: string;
@@ -169,15 +174,16 @@ export interface CardImageOverlayProps extends HTMLAttributes<HTMLDivElement> {
   children: ReactNode;
 }
 
-export const CardImageOverlay = forwardRef<HTMLDivElement, CardImageOverlayProps>(
-  ({ children, className, ...props }, ref) => {
-    return (
-      <div ref={ref} className={clsx(cardImageOverlay, className)} {...props}>
-        {children}
-      </div>
-    );
-  }
-);
+export const CardImageOverlay = forwardRef<
+  HTMLDivElement,
+  CardImageOverlayProps
+>(({ children, className, ...props }, ref) => {
+  return (
+    <div ref={ref} className={clsx(cardImageOverlay, className)} {...props}>
+      {children}
+    </div>
+  );
+});
 
 CardImageOverlay.displayName = 'Card.ImageOverlay';
 
@@ -260,7 +266,6 @@ export const CardFooter = forwardRef<HTMLDivElement, CardFooterProps>(
 );
 
 CardFooter.displayName = 'Card.Footer';
-
 
 // ─── Card = CardRoot + Compound 서브 컴포넌트 ────────────────────────
 
