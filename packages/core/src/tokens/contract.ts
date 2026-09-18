@@ -44,11 +44,15 @@ export const themeTokens = {
       default: '#FFFFFF',
       hover: gray[100],
       active: gray[200],
-      // 컨트롤을 식별시키는 면. 흰 배경 위에 흰 트랙(surface.default)을 얹으면
-      // 대비가 아예 없다(예: disabled Switch 실측 1.00:1). gray[550]은 흰 배경
-      // 대비 3.59:1로 1.4.11의 3:1을 넘긴다. border.strong과 값은 같지만 트랙은
-      // 경계선이 아니라 면이라 별도 토큰으로 둔다 — border.strong을 조정해도
-      // 트랙이 딸려 움직이면 안 된다.
+      // 밝은 것이 올라타는 트랙의 면. 흰 배경 위에 흰 트랙(surface.default)을
+      // 얹으면 대비가 아예 없다(예: disabled Switch 실측 1.00:1). gray[550]은 흰
+      // 배경 대비 3.59:1로 1.4.11의 3:1을 넘긴다.
+      // 트랙의 임무는 그 위에 올라타는 것과 대비되는 것이다. 밝은 rider(Switch
+      // 썸·Loader color="white" fill)에만 이 어두운 면을 쓴다 — 어두운 rider
+      // (Slider fill·Loader primary/secondary fill)에는 쓰지 마라. 거기서는 면을
+      // background.paper로 두고 border.strong 경계선이 식별을 맡는다.
+      // border.strong과 값은 같지만 트랙은 경계선이 아니라 면이라 별도 토큰으로
+      // 둔다 — border.strong을 조정해도 트랙이 딸려 움직이면 안 된다.
       track: gray[550],
     },
     border: {

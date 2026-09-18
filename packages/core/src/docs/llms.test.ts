@@ -249,3 +249,202 @@ describe('문서가 약속한 대비를 실제 토큰이 지키는지', () => {
     }
   });
 });
+
+describe('컴포넌트가 실제로 합성하는 색 쌍', () => {
+  // 토큰 쌍만 재는 검사(`surface.track` vs 페이지 배경)는 트랙이 어두울수록 더
+  // 잘 통과하고 화면은 더 안 보인다 — 결함 방향을 보상한다. 여기서는 .css.ts
+  // 소스가 실제로 참조하는 토큰 경로를 뽑아 컴포넌트가 화면에서 합성하는 쌍을
+  // 잰다(Text·Card·HeaderBar가 쓰는 소스 텍스트 대조 관례를 색에 적용).
+  const SLIDER_CSS = read(resolve(ROOT, 'src/components/Slider/Slider.css.ts'));
+  const LOADER_CSS = read(resolve(ROOT, 'src/components/Loader/Loader.css.ts'));
+
+  /** `export const <name> = ...;` 선언 하나를 소스 텍스트에서 잘라낸다. */
+  function declBlock(source: string, name: string): string {
+    const start = source.indexOf(`export const ${name} = `);
+    expect(start, `${name} 선언을 찾지 못했다`).toBeGreaterThan(-1);
+    const end = source.indexOf('\n});', start);
+    expect(end, `${name} 선언의 끝을 찾지 못했다`).toBeGreaterThan(start);
+    return source.slice(start, end);
+  }
+
+  /** `color.primary.main`·`palette.error[900]` 참조를 실제 색값으로 바꾼다. */
+  function tokenValue(ref: string): string {
+    const value = ref
+      .replace(/\[(\w+)\]/g, '.$1')
+      .split('.')
+      .reduce<unknown>(
+        (node, key) => (node as Record<string, unknown>)[key],
+        themeTokens as unknown
+      );
+    expect(typeof value, `themeContract.${ref}가 토큰에 없다`).toBe('string');
+    return value as string;
+  }
+
+  /** 블록 안에서 처음 나오는 backgroundColor의 토큰 참조 */
+  function firstBackground(block: string, label: string): string {
+    const ref = block.match(/backgroundColor: themeContract\.([\w.[\]]+)/)?.[1];
+    expect(
+      ref,
+      `${label}의 backgroundColor가 토큰 참조가 아니다`
+    ).toBeDefined();
+    return ref as string;
+  }
+
+  it('Slider의 fill과 썸 테두리가 트랙 대비 3:1을 지킨다', () => {
+    const track = firstBackground(
+      declBlock(SLIDER_CSS, 'sliderTrack'),
+      'sliderTrack'
+    );
+    const fill = firstBackground(
+      declBlock(SLIDER_CSS, 'sliderFillTrack'),
+      'sliderFillTrack'
+    );
+    expect(
+      contrastRatio(tokenValue(fill), tokenValue(track)),
+      `fill(${fill}) on track(${track})`
+    ).toBeGreaterThanOrEqual(AA_UI);
+
+    // 썸의 면은 트랙과 같은 색일 수 있다 — 썸을 식별시키는 건 테두리다.
+    const thumbBorder = declBlock(SLIDER_CSS, 'slider').match(
+      /border: `2px solid \$\{themeContract\.([\w.[\]]+)\}`/
+    )?.[1];
+    expect(thumbBorder, '썸 테두리 색을 찾지 못했다').toBeDefined();
+    expect(
+      contrastRatio(tokenValue(thumbBorder as string), tokenValue(track)),
+      `thumb border(${thumbBorder}) on track(${track})`
+    ).toBeGreaterThanOrEqual(AA_UI);
+  });
+
+  it('Loader bar의 세 색 변형이 각자의 트랙 대비 3:1을 지킨다', () => {
+    const barBlock = declBlock(LOADER_CSS, 'bar');
+    // white 변형은 어두운 면 위에서 쓰는 것이라 밝은 fill이 올라탄다 —
+    // 이 변형만 트랙이 어두워야 해서 분기가 있어야 한다.
+    const whiteAt = barBlock.indexOf('data-color="white"');
+    expect(whiteAt, 'bar에 white 변형 트랙 분기가 없다').toBeGreaterThan(-1);
+    const defaultTrack = firstBackground(
+      barBlock.slice(0, whiteAt),
+      'bar 기본 트랙'
+    );
+    const whiteTrack = firstBackground(
+      barBlock.slice(whiteAt),
+      'bar white 트랙'
+    );
+
+    const fillRefs = Object.fromEntries(
+      [
+        ...declBlock(LOADER_CSS, 'colorStyles').matchAll(
+          /(\w+): \{\s*vars: \{\s*'--loader-color': themeContract\.([\w.[\]]+)/g
+        ),
+      ].map((m) => [m[1], m[2]])
+    );
+    expect(Object.keys(fillRefs).sort()).toEqual([
+      'primary',
+      'secondary',
+      'white',
+    ]);
+
+    for (const [variant, fill] of Object.entries(fillRefs)) {
+      const track = variant === 'white' ? whiteTrack : defaultTrack;
+      expect(
+        contrastRatio(tokenValue(fill), tokenValue(track)),
+        `color="${variant}" fill(${fill}) on track(${track})`
+      ).toBeGreaterThanOrEqual(AA_UI);
+    }
+  });
+
+  it('연한 트랙 면은 border.strong 경계선이 식별을 맡는다', () => {
+    // 트랙 면을 background.paper로 내리면 면 자체는 흰 페이지 대비 1.02:1이라
+    // 안 보인다 — 1.4.11의 3:1을 넘기는 건 inset 경계선 쪽이다.
+    const blocks: Record<string, string> = {
+      'Slider sliderTrack': declBlock(SLIDER_CSS, 'sliderTrack'),
+      'Loader bar': declBlock(LOADER_CSS, 'bar'),
+    };
+    for (const [label, block] of Object.entries(blocks)) {
+      const ring = block.match(
+        /boxShadow: `inset 0 0 0 1px \$\{themeContract\.([\w.]+)\}`/
+      )?.[1];
+      expect(ring, `${label}에 inset 경계선이 없다`).toBe(
+        'color.border.strong'
+      );
+      expect(
+        contrastRatio(
+          tokenValue(ring as string),
+          tokenValue(firstBackground(block, label))
+        ),
+        `${label}: 경계선 vs 트랙 면`
+      ).toBeGreaterThanOrEqual(AA_UI);
+      expect(
+        contrastRatio(
+          tokenValue(ring as string),
+          themeTokens.color.background.default
+        ),
+        `${label}: 경계선 vs 페이지 배경`
+      ).toBeGreaterThanOrEqual(AA_UI);
+    }
+  });
+
+  it('Button weak 변형이 참조하는 색 토큰이 기대 매핑·AA 대비와 일치한다', () => {
+    // 쌍을 테스트 안에 다시 적으면 Button.css.ts가 되돌아가도 통과한다.
+    // 소스가 실제로 참조하는 키를 뽑아 매핑을 대조하고, 그 키의 실제 값으로
+    // 대비까지 잰다.
+    const source = read(resolve(ROOT, 'src/components/Button/Button.css.ts'));
+    const start = source.indexOf('compoundVariants: [');
+    const compound = source.slice(start, source.indexOf('\n  ],', start));
+    const weak: Record<string, { color: string; backgrounds: string[] }> = {};
+    for (const chunk of compound.split('variants: { buttonStyle: ').slice(1)) {
+      const head = chunk.match(/^'(\w+)', variant: '(\w+)' \}/);
+      if (head?.[1] !== 'weak') continue;
+      weak[head[2]] = {
+        color: chunk.match(/\n\s+color: themeContract\.([\w.[\]]+)/)?.[1] ?? '',
+        backgrounds: [
+          ...chunk.matchAll(/backgroundColor: themeContract\.([\w.[\]]+)/g),
+        ].map((m) => m[1]),
+      };
+    }
+
+    // 순서는 rest → hover → active다.
+    expect(weak).toEqual({
+      primary: {
+        color: 'palette.primary[900]',
+        backgrounds: [
+          'palette.primary[50]',
+          'palette.primary[100]',
+          'palette.primary[200]',
+        ],
+      },
+      dark: {
+        color: 'palette.gray[800]',
+        backgrounds: [
+          'palette.gray[200]',
+          'palette.gray[300]',
+          'palette.gray[400]',
+        ],
+      },
+      danger: {
+        color: 'palette.error[900]',
+        backgrounds: [
+          'palette.error[50]',
+          'palette.error[100]',
+          'palette.error[100]',
+        ],
+      },
+      light: {
+        color: 'color.text.primary',
+        backgrounds: [
+          'palette.primary[100]',
+          'palette.primary[200]',
+          'palette.primary[300]',
+        ],
+      },
+    });
+
+    for (const [variant, { color, backgrounds }] of Object.entries(weak)) {
+      for (const bg of backgrounds) {
+        expect(
+          contrastRatio(tokenValue(color), tokenValue(bg)),
+          `weak ${variant}: ${color} on ${bg}`
+        ).toBeGreaterThanOrEqual(AA_TEXT);
+      }
+    }
+  });
+});

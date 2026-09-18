@@ -107,9 +107,22 @@ export const dotDelay = styleVariants({
 export const bar = style({
   position: 'relative',
   height: '4px',
-  backgroundColor: themeContract.color.surface.track,
+  // 움직이는 fill이 이 컴포넌트의 유일한 신호다. fill이 어두우니 면은 연하게
+  // 두고 식별성은 border.strong 경계선이 맡는다.
+  backgroundColor: themeContract.color.background.paper,
+  boxShadow: `inset 0 0 0 1px ${themeContract.color.border.strong}`,
   borderRadius: '2px',
   overflow: 'hidden',
+
+  selectors: {
+    // white 변형은 어두운 면 위에서 쓰는 것이라 밝은 fill이 올라탄다 —
+    // 이 경우에만 트랙이 어두워야 한다. data-color는 Loader.tsx가 바깥
+    // 래퍼에 이미 달아 둔 속성이라 새로 붙일 것이 없다.
+    '[data-color="white"] &': {
+      backgroundColor: themeContract.color.surface.track,
+      boxShadow: 'none',
+    },
+  },
 });
 
 export const barFill = style({

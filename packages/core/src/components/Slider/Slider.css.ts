@@ -56,7 +56,11 @@ export const sliderTrack = style({
   left: 0,
   right: 0,
   height: '6px',
-  backgroundColor: themeContract.color.surface.track,
+  // 트랙의 임무는 그 위에 올라타는 것과 대비되는 것이다. fill(primary.main)과
+  // 썸 테두리가 어두우니 면은 연하게 두고, 식별성은 border.strong 경계선이
+  // 맡는다(SegmentedButtons·NumericSpinner 컨테이너와 같은 전략).
+  backgroundColor: themeContract.color.background.paper,
+  boxShadow: `inset 0 0 0 1px ${themeContract.color.border.strong}`,
   borderRadius: '3px',
   transform: 'translateY(-50%)',
   pointerEvents: 'none',
