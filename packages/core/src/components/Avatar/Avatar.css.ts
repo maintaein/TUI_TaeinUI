@@ -96,6 +96,7 @@ export const statusAway = style({
 // 클릭 가능 Avatar
 export const clickable = style({
   cursor: 'pointer',
+  touchAction: 'manipulation',
   border: 'none',
   padding: 0,
   background: 'none',

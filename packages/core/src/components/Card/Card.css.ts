@@ -45,6 +45,7 @@ export const variantStyles = styleVariants({
 
 export const clickable = style({
   cursor: 'pointer',
+  touchAction: 'manipulation',
 
   ':hover': {
     transform: 'translateY(-2px)',

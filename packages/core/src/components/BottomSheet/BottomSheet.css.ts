@@ -142,6 +142,7 @@ export const closeButton = style({
   backgroundColor: 'transparent',
   border: 'none',
   cursor: 'pointer',
+  touchAction: 'manipulation',
   borderRadius: themeContract.borderRadius.md,
   color: themeContract.color.text.secondary,
   display: 'flex',

@@ -15,6 +15,7 @@ export const checkboxLabel = style({
   minWidth: '44px',
   minHeight: '44px',
   cursor: 'pointer',
+  touchAction: 'manipulation',
   userSelect: 'none',
 
   selectors: {
@@ -54,6 +55,7 @@ export const checkbox = style({
   height: 0,
   opacity: 0,
   cursor: 'pointer',
+  touchAction: 'manipulation',
 
   selectors: {
     '&:disabled': {

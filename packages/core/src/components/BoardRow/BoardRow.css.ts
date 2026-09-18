@@ -37,6 +37,7 @@ export const header = style({
   color: themeContract.color.text.primary,
   textAlign: 'left',
   cursor: 'pointer',
+  touchAction: 'manipulation',
   transition: 'background-color 0.2s ease',
 
   ':hover': {

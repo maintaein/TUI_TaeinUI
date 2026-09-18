@@ -63,6 +63,7 @@ export const button = style({
   fontWeight: themeContract.font.weight.medium,
   fontFamily: themeContract.font.family.sans,
   cursor: 'pointer',
+  touchAction: 'manipulation',
   position: 'relative',
   zIndex: 1,
   borderRadius: themeContract.borderRadius.md,

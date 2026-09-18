@@ -120,6 +120,7 @@ export const modalCloseButton = style({
   backgroundColor: 'transparent',
   color: themeContract.color.text.secondary,
   cursor: 'pointer',
+  touchAction: 'manipulation',
   flexShrink: 0,
   transition: `all ${themeContract.animation.duration.fast} ${themeContract.animation.easing.easeOut}`,
 

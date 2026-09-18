@@ -160,6 +160,7 @@ export const closeButton = style({
   fontSize: themeContract.font.size.base,
   lineHeight: 1,
   cursor: 'pointer',
+  touchAction: 'manipulation',
   opacity: 0.8,
   transition: `opacity ${themeContract.animation.duration.base} ${themeContract.animation.easing.easeInOut}`,
 

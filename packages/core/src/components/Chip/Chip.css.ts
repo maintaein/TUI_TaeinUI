@@ -143,6 +143,7 @@ export const chip = recipe({
 
 export const clickable = style({
   cursor: 'pointer',
+  touchAction: 'manipulation',
 
   // 불투명도로 hover/active를 표현하면 대비가 같이 떨어진다(4.60→3.47:1).
   // 색을 건드리지 않는 채널(그림자·스케일)로 바꾼다.
@@ -189,6 +190,7 @@ export const deleteButton = style({
   border: 'none',
   background: 'none',
   cursor: 'pointer',
+  touchAction: 'manipulation',
   color: 'inherit',
   opacity: 0.7,
   transition: 'opacity 0.2s ease',

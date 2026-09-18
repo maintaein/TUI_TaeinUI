@@ -18,6 +18,7 @@ export const switchLabel = style({
   minWidth: '44px',
   minHeight: '44px',
   cursor: 'pointer',
+  touchAction: 'manipulation',
   userSelect: 'none',
 });
 
@@ -49,6 +50,7 @@ export const switchInput = style({
   height: 0,
   opacity: 0,
   cursor: 'pointer',
+  touchAction: 'manipulation',
 
   selectors: {
     '&:disabled': {
@@ -74,6 +76,7 @@ export const size = styleVariants(baseSizeContainer, (baseStyle) => [
     display: 'inline-block',
     flexShrink: 0,
     cursor: 'pointer',
+    touchAction: 'manipulation',
 
     selectors: {
       [`&:has(input:checked)`]: {

@@ -119,6 +119,7 @@ export const button = style({
   backgroundColor: 'transparent',
   color: themeContract.color.text.primary,
   cursor: 'pointer',
+  touchAction: 'manipulation',
   transition: 'all 150ms ease-in-out',
   flexShrink: 0,
   minWidth: '44px',

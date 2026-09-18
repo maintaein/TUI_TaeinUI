@@ -13,6 +13,7 @@ export const button = recipe({
     fontWeight: themeContract.font.weight.semibold,
     border: 'none',
     cursor: 'pointer',
+    touchAction: 'manipulation',
     transition: `all ${themeContract.animation.duration.base} ${themeContract.animation.easing.easeInOut}`,
     userSelect: 'none',
     textDecoration: 'none',
