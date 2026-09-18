@@ -58,7 +58,7 @@ export const Headings: Story = {
       <Text variant="h1">Heading 1 - 2.25rem (36px) / 700</Text>
       <Text variant="h2">Heading 2 - 1.875rem (30px) / 700</Text>
       <Text variant="h3">Heading 3 - 1.5rem (24px) / 600</Text>
-      <Text variant="h4">Heading 4 - 1.25rem (20px) / 700</Text>
+      <Text variant="h4">Heading 4 - 1.25rem (20px) / 600</Text>
       <Text variant="h5">Heading 5 - 1.125rem (18px) / 600</Text>
       <Text variant="h6">Heading 6 - 1rem (16px) / 600</Text>
     </div>

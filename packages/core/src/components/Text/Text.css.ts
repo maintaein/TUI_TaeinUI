@@ -26,11 +26,12 @@ export const variant = styleVariants({
     fontWeight: 600,
     lineHeight: 1.3,
   },
-  // h4~h6는 20/18/16px로 단계차가 2px까지 좁아졌다. 크기 축이 포화돼서
-  // 굵기를 두 번째 구분 축으로 쓴다.
+  // h4~h6는 20/18/16px로 단계차가 2px까지 좁아졌다. 그래도 굵기로 벌리지
+  // 않는다 — h4를 700으로 올리면 부모인 h3(600)보다 굵어 위계가 뒤집힌다.
+  // 굵기는 h1~h2(700)와 h3~h6(600)만 가른다.
   h4: {
     fontSize: themeContract.font.size.xl, // 20px
-    fontWeight: 700,
+    fontWeight: 600,
     lineHeight: 1.4,
   },
   h5: {
