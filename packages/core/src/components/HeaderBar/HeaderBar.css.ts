@@ -72,7 +72,8 @@ export const leftSection = style({
   display: 'flex',
   alignItems: 'center',
   gap: themeContract.spacing[3],
-  flexShrink: 0,
+  flexShrink: 1,
+  minWidth: 0,
 });
 
 export const logo = style({
@@ -94,6 +95,10 @@ export const title = style({
   fontWeight: themeContract.font.weight.semibold,
   lineHeight: themeContract.font.lineHeight.tight,
   margin: 0,
+  overflow: 'hidden',
+  textOverflow: 'ellipsis',
+  whiteSpace: 'nowrap',
+  minWidth: 0,
 
   '@media': {
     [mediaQuery.down.md]: {
@@ -107,6 +112,7 @@ export const centerSection = style({
   alignItems: 'center',
   gap: themeContract.spacing[4],
   flex: 1,
+  minWidth: 0,
   justifyContent: 'center',
 
   '@media': {

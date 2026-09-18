@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { HeaderBar } from './HeaderBar';
@@ -242,6 +244,47 @@ describe('HeaderBar', () => {
       // 우측 영역 (actions)
       const rightSection = header?.querySelector('[class*="right"]');
       expect(rightSection).toBeInTheDocument();
+    });
+  });
+
+  describe('좁은 화면 넘침 방지 테스트', () => {
+    it('title이 넘치지 않고 한 줄로 말줄임된다', () => {
+      // vanilla-extract가 스타일을 클래스로 직렬화해서 jsdom에서 계산값을 못
+      // 읽는다. HeaderBar.css.ts 소스 텍스트에서 직접 확인한다.
+      const cssSource = readFileSync(
+        resolve(__dirname, './HeaderBar.css.ts'),
+        'utf-8'
+      );
+      const titleBlock = cssSource.match(
+        /export const title = style\(\{([\s\S]*?)\n\}\);/
+      )?.[1];
+      expect(titleBlock).toContain("overflow: 'hidden'");
+      expect(titleBlock).toContain("textOverflow: 'ellipsis'");
+      expect(titleBlock).toContain("whiteSpace: 'nowrap'");
+      expect(titleBlock).toContain('minWidth: 0');
+    });
+
+    it('leftSection이 줄어들 수 있어 title이 헤더를 밀어내지 않는다', () => {
+      const cssSource = readFileSync(
+        resolve(__dirname, './HeaderBar.css.ts'),
+        'utf-8'
+      );
+      const leftSectionBlock = cssSource.match(
+        /export const leftSection = style\(\{([\s\S]*?)\}\);/
+      )?.[1];
+      expect(leftSectionBlock).toContain('flexShrink: 1');
+      expect(leftSectionBlock).toContain('minWidth: 0');
+    });
+
+    it('centerSection이 minWidth: 0으로 flex 기본 넘침을 막는다', () => {
+      const cssSource = readFileSync(
+        resolve(__dirname, './HeaderBar.css.ts'),
+        'utf-8'
+      );
+      const centerSectionBlock = cssSource.match(
+        /export const centerSection = style\(\{([\s\S]*?)\n\}\);/
+      )?.[1];
+      expect(centerSectionBlock).toContain('minWidth: 0');
     });
   });
 

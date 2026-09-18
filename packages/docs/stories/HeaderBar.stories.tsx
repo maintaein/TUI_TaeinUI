@@ -39,13 +39,34 @@ export const Default: Story = {
     <div style={{ height: '200vh', background: '#f5f5f5' }}>
       <HeaderBar {...args}>
         <nav style={{ display: 'flex', gap: '1.5rem' }}>
-          <a href="#" style={{ textDecoration: 'none', color: 'inherit' }}>
+          <a
+            href="#"
+            style={{
+              textDecoration: 'none',
+              color: 'inherit',
+              padding: '0.5rem',
+            }}
+          >
             Home
           </a>
-          <a href="#" style={{ textDecoration: 'none', color: 'inherit' }}>
+          <a
+            href="#"
+            style={{
+              textDecoration: 'none',
+              color: 'inherit',
+              padding: '0.5rem',
+            }}
+          >
             About
           </a>
-          <a href="#" style={{ textDecoration: 'none', color: 'inherit' }}>
+          <a
+            href="#"
+            style={{
+              textDecoration: 'none',
+              color: 'inherit',
+              padding: '0.5rem',
+            }}
+          >
             Products
           </a>
         </nav>
@@ -70,10 +91,24 @@ export const WithLogo: Story = {
       title="My Brand"
     >
       <nav style={{ display: 'flex', gap: '1.5rem' }}>
-        <a href="#" style={{ textDecoration: 'none', color: 'inherit' }}>
+        <a
+          href="#"
+          style={{
+            textDecoration: 'none',
+            color: 'inherit',
+            padding: '0.5rem',
+          }}
+        >
           Features
         </a>
-        <a href="#" style={{ textDecoration: 'none', color: 'inherit' }}>
+        <a
+          href="#"
+          style={{
+            textDecoration: 'none',
+            color: 'inherit',
+            padding: '0.5rem',
+          }}
+        >
           Pricing
         </a>
       </nav>
@@ -86,10 +121,24 @@ export const WithActions: Story = {
   render: () => (
     <HeaderBar title="Dashboard">
       <nav style={{ display: 'flex', gap: '1.5rem' }}>
-        <a href="#" style={{ textDecoration: 'none', color: 'inherit' }}>
+        <a
+          href="#"
+          style={{
+            textDecoration: 'none',
+            color: 'inherit',
+            padding: '0.5rem',
+          }}
+        >
           Overview
         </a>
-        <a href="#" style={{ textDecoration: 'none', color: 'inherit' }}>
+        <a
+          href="#"
+          style={{
+            textDecoration: 'none',
+            color: 'inherit',
+            padding: '0.5rem',
+          }}
+        >
           Analytics
         </a>
       </nav>
@@ -130,13 +179,34 @@ export const Sticky: Story = {
     <div style={{ height: '200vh', background: '#f5f5f5' }}>
       <HeaderBar title="Sticky Header" sticky>
         <nav style={{ display: 'flex', gap: '1.5rem' }}>
-          <a href="#" style={{ textDecoration: 'none', color: 'inherit' }}>
+          <a
+            href="#"
+            style={{
+              textDecoration: 'none',
+              color: 'inherit',
+              padding: '0.5rem',
+            }}
+          >
             Home
           </a>
-          <a href="#" style={{ textDecoration: 'none', color: 'inherit' }}>
+          <a
+            href="#"
+            style={{
+              textDecoration: 'none',
+              color: 'inherit',
+              padding: '0.5rem',
+            }}
+          >
             About
           </a>
-          <a href="#" style={{ textDecoration: 'none', color: 'inherit' }}>
+          <a
+            href="#"
+            style={{
+              textDecoration: 'none',
+              color: 'inherit',
+              padding: '0.5rem',
+            }}
+          >
             Contact
           </a>
         </nav>
@@ -173,10 +243,24 @@ export const DarkVariant: Story = {
       }
     >
       <nav style={{ display: 'flex', gap: '1.5rem' }}>
-        <a href="#" style={{ textDecoration: 'none', color: 'inherit' }}>
+        <a
+          href="#"
+          style={{
+            textDecoration: 'none',
+            color: 'inherit',
+            padding: '0.5rem',
+          }}
+        >
           Explore
         </a>
-        <a href="#" style={{ textDecoration: 'none', color: 'inherit' }}>
+        <a
+          href="#"
+          style={{
+            textDecoration: 'none',
+            color: 'inherit',
+            padding: '0.5rem',
+          }}
+        >
           Collections
         </a>
       </nav>
@@ -212,10 +296,24 @@ export const TransparentVariant: Story = {
     >
       <HeaderBar variant="transparent" title="Transparent Header">
         <nav style={{ display: 'flex', gap: '1.5rem' }}>
-          <a href="#" style={{ textDecoration: 'none', color: 'inherit' }}>
+          <a
+            href="#"
+            style={{
+              textDecoration: 'none',
+              color: 'inherit',
+              padding: '0.5rem',
+            }}
+          >
             Home
           </a>
-          <a href="#" style={{ textDecoration: 'none', color: 'inherit' }}>
+          <a
+            href="#"
+            style={{
+              textDecoration: 'none',
+              color: 'inherit',
+              padding: '0.5rem',
+            }}
+          >
             Features
           </a>
         </nav>
@@ -235,10 +333,24 @@ export const WithElevation: Story = {
   render: () => (
     <HeaderBar title="Header with Shadow" elevation>
       <nav style={{ display: 'flex', gap: '1.5rem' }}>
-        <a href="#" style={{ textDecoration: 'none', color: 'inherit' }}>
+        <a
+          href="#"
+          style={{
+            textDecoration: 'none',
+            color: 'inherit',
+            padding: '0.5rem',
+          }}
+        >
           Products
         </a>
-        <a href="#" style={{ textDecoration: 'none', color: 'inherit' }}>
+        <a
+          href="#"
+          style={{
+            textDecoration: 'none',
+            color: 'inherit',
+            padding: '0.5rem',
+          }}
+        >
           Services
         </a>
       </nav>
@@ -251,10 +363,24 @@ export const NoBorder: Story = {
   render: () => (
     <HeaderBar title="No Border Header" border={false}>
       <nav style={{ display: 'flex', gap: '1.5rem' }}>
-        <a href="#" style={{ textDecoration: 'none', color: 'inherit' }}>
+        <a
+          href="#"
+          style={{
+            textDecoration: 'none',
+            color: 'inherit',
+            padding: '0.5rem',
+          }}
+        >
           Minimal
         </a>
-        <a href="#" style={{ textDecoration: 'none', color: 'inherit' }}>
+        <a
+          href="#"
+          style={{
+            textDecoration: 'none',
+            color: 'inherit',
+            padding: '0.5rem',
+          }}
+        >
           Clean
         </a>
       </nav>
@@ -284,6 +410,7 @@ export const CompleteExample: Story = {
               textDecoration: 'none',
               color: 'inherit',
               fontWeight: 500,
+              padding: '0.5rem',
             }}
           >
             문서
@@ -294,6 +421,7 @@ export const CompleteExample: Story = {
               textDecoration: 'none',
               color: 'inherit',
               fontWeight: 500,
+              padding: '0.5rem',
             }}
           >
             컴포넌트
@@ -304,6 +432,7 @@ export const CompleteExample: Story = {
               textDecoration: 'none',
               color: 'inherit',
               fontWeight: 500,
+              padding: '0.5rem',
             }}
           >
             가이드
@@ -398,13 +527,34 @@ export const Interactive: Story = {
     <div style={{ height: '150vh', background: '#f5f5f5' }}>
       <HeaderBar {...args}>
         <nav style={{ display: 'flex', gap: '1.5rem' }}>
-          <a href="#" style={{ textDecoration: 'none', color: 'inherit' }}>
+          <a
+            href="#"
+            style={{
+              textDecoration: 'none',
+              color: 'inherit',
+              padding: '0.5rem',
+            }}
+          >
             Link 1
           </a>
-          <a href="#" style={{ textDecoration: 'none', color: 'inherit' }}>
+          <a
+            href="#"
+            style={{
+              textDecoration: 'none',
+              color: 'inherit',
+              padding: '0.5rem',
+            }}
+          >
             Link 2
           </a>
-          <a href="#" style={{ textDecoration: 'none', color: 'inherit' }}>
+          <a
+            href="#"
+            style={{
+              textDecoration: 'none',
+              color: 'inherit',
+              padding: '0.5rem',
+            }}
+          >
             Link 3
           </a>
         </nav>

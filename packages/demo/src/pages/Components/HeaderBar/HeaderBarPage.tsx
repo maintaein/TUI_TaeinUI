@@ -1,8 +1,4 @@
-import {
-  Card,
-  List,
-  ListItem,
-} from '@taein-designsystem/core';
+import { Card, List, ListItem } from '@taein-designsystem/core';
 import { LivePreview } from '../../../components/LivePreview';
 import { CodeBlock } from '../../../components/CodeBlock';
 import { PropsTable } from '../../../components/PropsTable';
@@ -11,7 +7,6 @@ import { AccessibilitySection } from '../../../components/AccessibilitySection';
 import * as styles from './HeaderBarPage.css';
 
 export function HeaderBarPage() {
-
   const propsData: PropDefinition[] = [
     {
       name: 'logo',
@@ -75,7 +70,8 @@ export function HeaderBarPage() {
       <header className={styles.header}>
         <h1 className={styles.title}>HeaderBar</h1>
         <p className={styles.description}>
-          HeaderBar 컴포넌트는 페이지 상단에 로고, 제목, 액션 버튼 등을 배치할 때 사용합니다. 스크롤 시 상단에 고정할 수도 있습니다.
+          HeaderBar 컴포넌트는 페이지 상단에 로고, 제목, 액션 버튼 등을 배치할
+          때 사용합니다. 스크롤 시 상단에 고정할 수도 있습니다.
         </p>
       </header>
 
@@ -151,9 +147,9 @@ export function HeaderBarPage() {
   actions={<IconButton ghost aria-label="메뉴" size="sm">☰</IconButton>}
 >
   <div style={{ display: 'flex', gap: '1.5rem', fontSize: '0.875rem' }}>
-    <a href="#" style={{ fontWeight: 600, color: 'inherit', textDecoration: 'none' }}>Components</a>
-    <a href="#" style={{ color: '#6b7280', textDecoration: 'none' }}>Tokens</a>
-    <a href="#" style={{ color: '#6b7280', textDecoration: 'none' }}>Guidelines</a>
+    <a href="#" style={{ fontWeight: 600, color: 'inherit', textDecoration: 'none', padding: '0.5rem' }}>Components</a>
+    <a href="#" style={{ color: '#6b7280', textDecoration: 'none', padding: '0.5rem' }}>Tokens</a>
+    <a href="#" style={{ color: '#6b7280', textDecoration: 'none', padding: '0.5rem' }}>Guidelines</a>
   </div>
 </HeaderBar>`}
           />
@@ -247,9 +243,9 @@ export function HeaderBarPage() {
   }
 >
   <div style={{ display: 'flex', gap: '1.5rem', fontSize: '0.875rem' }}>
-    <a href="#" style={{ fontWeight: 600, color: 'inherit', textDecoration: 'none' }}>상품</a>
-    <a href="#" style={{ color: '#6b7280', textDecoration: 'none' }}>카테고리</a>
-    <a href="#" style={{ color: '#6b7280', textDecoration: 'none' }}>이벤트</a>
+    <a href="#" style={{ fontWeight: 600, color: 'inherit', textDecoration: 'none', padding: '0.5rem' }}>상품</a>
+    <a href="#" style={{ color: '#6b7280', textDecoration: 'none', padding: '0.5rem' }}>카테고리</a>
+    <a href="#" style={{ color: '#6b7280', textDecoration: 'none', padding: '0.5rem' }}>이벤트</a>
   </div>
 </HeaderBar>`}
           />
@@ -276,9 +272,9 @@ export function HeaderBarPage() {
     }
   >
     <div style={{ display: 'flex', gap: '1.5rem', fontSize: '0.875rem' }}>
-      <a href="#" style={{ fontWeight: 600, color: 'inherit', textDecoration: 'none' }}>상품</a>
-      <a href="#" style={{ color: '#6b7280', textDecoration: 'none' }}>카테고리</a>
-      <a href="#" style={{ color: '#6b7280', textDecoration: 'none' }}>이벤트</a>
+      <a href="#" style={{ fontWeight: 600, color: 'inherit', textDecoration: 'none', padding: '0.5rem' }}>상품</a>
+      <a href="#" style={{ color: '#6b7280', textDecoration: 'none', padding: '0.5rem' }}>카테고리</a>
+      <a href="#" style={{ color: '#6b7280', textDecoration: 'none', padding: '0.5rem' }}>이벤트</a>
     </div>
   </HeaderBar>
   {/* 관리자 대시보드 헤더 */}
@@ -303,7 +299,8 @@ export function HeaderBarPage() {
         <div className={styles.sectionHeader}>
           <h2 className={styles.sectionTitle}>Props API</h2>
           <p className={styles.sectionDescription}>
-            HeaderBar 컴포넌트의 모든 Props와 타입 정보입니다. HTML header 속성도 모두 사용 가능합니다.
+            HeaderBar 컴포넌트의 모든 Props와 타입 정보입니다. HTML header
+            속성도 모두 사용 가능합니다.
           </p>
         </div>
         <div className={styles.propsTableWrapper}>
@@ -319,27 +316,32 @@ export function HeaderBarPage() {
           {
             attribute: '<header> 요소',
             effect: '스크린 리더에서 "배너"로 인식합니다.',
-            description: '네이티브 header 요소를 사용하여 role="banner"를 자동으로 전달합니다.',
+            description:
+              '네이티브 header 요소를 사용하여 role="banner"를 자동으로 전달합니다.',
           },
           {
             attribute: 'role="banner"',
             effect: '페이지의 주요 헤더 영역을 명시합니다.',
-            description: 'landmark role로 스크린 리더 사용자가 헤더 영역으로 빠르게 이동할 수 있습니다.',
+            description:
+              'landmark role로 스크린 리더 사용자가 헤더 영역으로 빠르게 이동할 수 있습니다.',
           },
           {
             attribute: 'aria-label',
             effect: '헤더의 목적을 설명합니다.',
-            description: 'aria-label prop으로 헤더의 역할을 명시할 수 있습니다.',
+            description:
+              'aria-label prop으로 헤더의 역할을 명시할 수 있습니다.',
           },
           {
             attribute: '<h1> 제목',
             effect: '페이지 제목 구조를 전달합니다.',
-            description: 'title prop은 h1 요소로 렌더링되어 문서 구조를 올바르게 전달합니다.',
+            description:
+              'title prop은 h1 요소로 렌더링되어 문서 구조를 올바르게 전달합니다.',
           },
           {
             attribute: '3단 레이아웃',
             effect: '논리적 순서로 콘텐츠가 배치됩니다.',
-            description: '좌측(로고/제목) → 중앙(네비게이션) → 우측(액션) 순서로 DOM이 구성됩니다.',
+            description:
+              '좌측(로고/제목) → 중앙(네비게이션) → 우측(액션) 순서로 DOM이 구성됩니다.',
           },
         ]}
         additionalGuidance={[
@@ -356,13 +358,15 @@ export function HeaderBarPage() {
 // Bad - 여러 HeaderBar 사용
 <HeaderBar title="Top" />
 <HeaderBar title="Sub" />`,
-                explanation: '한 페이지에 role="banner"가 여러 개이면 스크린 리더 사용자가 혼란을 겪을 수 있습니다.',
+                explanation:
+                  '한 페이지에 role="banner"가 여러 개이면 스크린 리더 사용자가 혼란을 겪을 수 있습니다.',
               },
             ],
           },
           {
             title: '네비게이션에 nav 요소 사용',
-            description: 'children에 네비게이션을 배치할 때는 nav 요소와 aria-label을 함께 사용하세요.',
+            description:
+              'children에 네비게이션을 배치할 때는 nav 요소와 aria-label을 함께 사용하세요.',
             examples: [
               {
                 code: `// Good
@@ -380,7 +384,8 @@ export function HeaderBarPage() {
     <a href="/about">소개</a>
   </div>
 </HeaderBar>`,
-                explanation: 'nav 요소를 사용하면 스크린 리더가 네비게이션 영역을 인식할 수 있습니다.',
+                explanation:
+                  'nav 요소를 사용하면 스크린 리더가 네비게이션 영역을 인식할 수 있습니다.',
               },
             ],
           },
@@ -422,9 +427,13 @@ export function HeaderBarPage() {
               </div>
               <List spacing="sm" className={styles.practiceList}>
                 <ListItem>한 페이지에 여러 HeaderBar 사용하지 않기</ListItem>
-                <ListItem>actions에 너무 많은 요소 넣지 않기 (3개 이하 권장)</ListItem>
+                <ListItem>
+                  actions에 너무 많은 요소 넣지 않기 (3개 이하 권장)
+                </ListItem>
                 <ListItem>sticky 사용 시 z-index 충돌 주의</ListItem>
-                <ListItem>transparent 배경에 어두운 텍스트 사용하지 않기</ListItem>
+                <ListItem>
+                  transparent 배경에 어두운 텍스트 사용하지 않기
+                </ListItem>
                 <ListItem>title 없이 네비게이션만 배치하지 않기</ListItem>
               </List>
             </Card.Body>
