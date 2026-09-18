@@ -258,26 +258,45 @@ describe('Text', () => {
   });
 
   describe('타이포 스케일 테스트', () => {
-    it('variant의 fontSize가 모두 font.size 토큰 스케일 안에 있다', () => {
+    it('variant가 참조하는 토큰 키와 그 값이 헤딩 스케일과 정확히 일치한다', () => {
       // vanilla-extract가 스타일을 클래스로 직렬화해서 jsdom에서 계산값을
-      // 못 읽는다. Text.css.ts 소스 텍스트에서 variant의 fontSize가 참조하는
-      // 토큰 키를 뽑아 font.size 스케일에 실제로 존재하는지 대조한다 — 리터럴
-      // rem 값(스케일 이중화)이 다시 섞이는 걸 막는 유일한 잠금이다.
+      // 못 읽는다. Text.css.ts 소스 텍스트에서 variant 이름과 그 fontSize가
+      // 참조하는 토큰 키를 짝지어 뽑아 기대 매핑과 대조하고(variant끼리 키가
+      // 뒤바뀌는 걸 막는다), 그 키가 font.size 스케일에서 실제로 갖는 값까지
+      // 픽셀로 환산해 대조한다(리터럴 rem 값이 스케일 밖으로 되돌아가는 걸
+      // 막는다).
       const cssSource = readFileSync(
         resolve(__dirname, './Text.css.ts'),
         'utf-8'
       );
-      const fontSizeLines = [
-        ...cssSource.matchAll(
-          /fontSize: themeContract\.font\.size(\.\w+|\['[^']+'\])/g
-        ),
-      ].map((m) => m[1].replace(/^\.|^\['|'\]$/g, ''));
-      const scaleKeys = new Set(Object.keys(themeTokens.font.size));
-
-      expect(fontSizeLines.length).toBe(9);
-      for (const key of fontSizeLines) {
-        expect(scaleKeys.has(key), `"${key}"는 스케일에 없는 키다`).toBe(true);
+      const keyByVariant: Record<string, string> = {};
+      for (const m of cssSource.matchAll(
+        /(\w+): \{\s*fontSize: themeContract\.font\.size(\.\w+|\['[^']+'\]),/g
+      )) {
+        keyByVariant[m[1]] = m[2].replace(/^\.|^\['|'\]$/g, '');
       }
+
+      expect(keyByVariant).toEqual({
+        h1: '4xl',
+        h2: '3xl',
+        h3: '2xl',
+        h4: 'xl',
+        h5: 'lg',
+        h6: 'base',
+        body1: 'base',
+        body2: 'sm',
+        body3: 'xs',
+      });
+
+      const px = (rem: string) => parseFloat(rem) * 16;
+      expect(px(themeTokens.font.size['4xl']), 'font.size.4xl').toBe(36);
+      expect(px(themeTokens.font.size['3xl']), 'font.size.3xl').toBe(30);
+      expect(px(themeTokens.font.size['2xl']), 'font.size.2xl').toBe(24);
+      expect(px(themeTokens.font.size.xl), 'font.size.xl').toBe(20);
+      expect(px(themeTokens.font.size.lg), 'font.size.lg').toBe(18);
+      expect(px(themeTokens.font.size.base), 'font.size.base').toBe(16);
+      expect(px(themeTokens.font.size.sm), 'font.size.sm').toBe(14);
+      expect(px(themeTokens.font.size.xs), 'font.size.xs').toBe(12);
     });
   });
 });
