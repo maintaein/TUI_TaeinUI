@@ -79,8 +79,8 @@ export const contentWrapper = style({
   gridTemplateRows: '0fr',
   // grid-template-rows는 transform·opacity가 아니라 레이아웃 속성이라 매 프레임
   // 리플로우가 난다. 그래도 여기서만 쓰는 이유는 아코디언이 펼칠 콘텐츠의 높이를
-  // 미리 알 수 없어서다 — 0fr→1fr은 높이를 모르고도 자연 높이까지 여는 유일한
-  // 방법이고, max-height 근사(점프하거나 늦게 끝난다)를 대체한다.
+  // 미리 알 수 없어서다 — max-height 근사는 점프하거나 늦게 끝나고, 높이를
+  // 모르고도 자연 높이까지 여는 방법은 grid-template-rows의 0fr→1fr뿐이다.
   transition: `grid-template-rows ${themeContract.animation.duration.slow} ease-in-out`,
 });
 

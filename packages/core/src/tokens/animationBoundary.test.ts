@@ -88,6 +88,13 @@ const INLINE_FILES = findFiles(
 const MOTION_DECLARATION =
   /(?<![\w.'"])(transition|animation)(Delay|Duration|Property|TimingFunction)?\s*:\s*(.*)$/;
 
+/**
+ * 모션 선언의 **머리만** 찾는다. 값을 읽지 않으므로 한 줄에 몇 개가 있는지
+ * 세는 데 쓴다 — `MOTION_DECLARATION`은 `(.*)$`로 줄 끝까지 삼켜 개수를 못 센다.
+ */
+const MOTION_KEYWORD =
+  /(?<![\w.'"])(?:transition|animation)(?:Delay|Duration|Property|TimingFunction)?\s*:/g;
+
 /** `.tsx`/`.ts`가 인라인 스타일로 거는 모션 대입 (R39). */
 const INLINE_ASSIGNMENT =
   /\.style\.(transition|animation)(Delay|Duration|Property|TimingFunction)?\s*=\s*(['"`])([^'"`]*)\3/g;
@@ -283,6 +290,22 @@ function inlineDeclarationsOf(file: string): MotionDecl[] {
   });
   return decls;
 }
+
+/**
+ * 한 줄에 모션 선언이 둘 이상인 자리. `declarationsOf`는 줄마다 `exec`를 한 번만
+ * 불러 **둘째를 통째로 놓친다** — prettier가 한 줄로 유지하는
+ * `style({ transition: 'opacity 1s ease', animationDelay: '1s' })`가 그 모양이다.
+ * 값 파싱 경계가 복잡해 `matchAll`로 바꾸는 대신 그런 줄 자체를 막는다.
+ */
+const CROWDED_LINES = CSS_FILES.flatMap((file) =>
+  readFileSync(file, 'utf-8')
+    .split(/\r?\n/)
+    .flatMap((line, index) =>
+      [...line.matchAll(MOTION_KEYWORD)].length >= 2
+        ? [`${rel(file)}:${index + 1}`]
+        : []
+    )
+);
 
 const SCANNED = CSS_FILES.map(declarationsOf);
 const CSS_DECLS = SCANNED.flatMap((scan) => scan.decls);
@@ -643,6 +666,12 @@ describe('전이 목록 잠금 (T3)', () => {
     expect(OPAQUE_DECLS).toEqual([]);
   });
 
+  it('한 줄에 모션 선언이 둘 이상인 자리가 없다', () => {
+    // 스캐너가 줄마다 첫 선언만 읽어 둘째가 검사에서 통째로 빠진다. 걸리면
+    // 스캐너를 고치는 게 아니라 선언을 여러 줄로 나눈다.
+    expect(CROWDED_LINES).toEqual([]);
+  });
+
   it("transition의 속성에 'all'이 없다", () => {
     // T3이 18군데를 속성 목록으로 좁혔다. 오늘 이미 0건이라 빈손이 정상이다.
     const found = ALL_DECLS.filter((d) => listsProperties(d.property)).flatMap(
@@ -654,7 +683,10 @@ describe('전이 목록 잠금 (T3)', () => {
     expect(found).toEqual([]);
   });
 
-  it('화이트리스트 밖 속성을 전이하면 직전 줄에 근거 주석이 있다', () => {
+  it('화이트리스트 밖 속성을 전이하면 직전 줄에 그 속성의 근거 주석이 있다', () => {
+    // 주석이 있기만 하면 통과시키면 `// 크기 변형` 같은 무관한 주석이 우연히 그
+    // 자리에 있는 것만으로 면제가 된다. 주석이 **그 속성 이름을 포함**할 것을
+    // 요구한다 — 여러 줄 근거 주석이면 속성 이름이 선언 바로 윗줄에 있어야 한다.
     const missing: string[] = [];
     for (const decl of ALL_DECLS) {
       if (!listsProperties(decl.property)) continue;
@@ -665,7 +697,8 @@ describe('전이 목록 잠금 (T3)', () => {
       for (const segment of decl.segments) {
         if (segment.property === '' || segment.property === 'none') continue;
         if (TRANSITION_WHITELIST.has(segment.property)) continue;
-        if (previous.startsWith('//')) continue;
+        if (previous.startsWith('//') && previous.includes(segment.property))
+          continue;
         missing.push(`${decl.file}:${segment.line} (${segment.property})`);
       }
     }

@@ -26,7 +26,7 @@ export const activeIndicator = style({
   // width는 레이아웃 속성이라 매 프레임 재계산이 난다. 그래도 쓰는 이유는
   // 인디케이터가 폭이 제각각인 세그먼트 사이를 옮겨 다녀서다 — scaleX로 대신하면
   // borderRadius와 boxShadow가 같이 늘어나 모서리가 찌그러진다. 절대 위치라
-  // 리플로우 범위가 이 엘리먼트 하나로 막힌다.
+  // 리플로우 범위가 이 엘리먼트 하나로 막혀, width 전이를 여기서는 감수한다.
   transition: `
     transform ${themeContract.animation.duration.slow} cubic-bezier(0.25, 1, 0.5, 1),
     width ${themeContract.animation.duration.slow} cubic-bezier(0.25, 1, 0.5, 1),
