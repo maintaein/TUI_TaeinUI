@@ -1266,10 +1266,13 @@ All components follow WCAG 2.2 AA standards:
 ### Reduced motion
 
 - `prefers-reduced-motion: reduce`에서 두 겹으로 처리된다.
-  1. `animation.duration` 네 값이 `0.01ms`로 덮어써진다. duration 토큰을 쓰는
-     컴포넌트와, 그 토큰을 참조하는 소비자 스타일이 함께 따라온다.
-  2. 전역 규칙이 `*, *::before, *::after`의 `animation-duration` ·
-     `transition-duration`을 `0.01ms`로, `animation-iteration-count`를 `1`로
-     내린다. 토큰을 안 쓰고 초를 리터럴로 박은 애니메이션도 여기서 멈춘다.
+  1. `animation`의 duration 넷과 loop 둘, 여섯 개 변수가 모두 `0.01ms`로
+     덮어써진다. 토큰을 쓰는 컴포넌트와, 그 토큰을 참조하는 소비자 스타일이
+     함께 따라온다.
+  2. 전역 규칙이 `*, *::before, *::after`에 여섯 줄을 `!important`로 건다 —
+     `animation-duration` · `animation-delay` · `transition-duration` ·
+     `transition-delay`를 `0.01ms`로, `animation-iteration-count`를 `1`로,
+     `scroll-behavior`를 `auto`로 내린다. 토큰을 안 쓰고 초를 리터럴로 박은
+     애니메이션도 여기서 멈춘다.
 - 2번이 필요한 이유는 무한 반복 애니메이션이다. `Skeleton`의 wave/pulse는
   `infinite`라 duration만 줄이면 더 빨리 깜빡일 뿐 멈추지 않는다.
