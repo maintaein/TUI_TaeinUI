@@ -8,8 +8,10 @@
  *   node scripts/build-easing.mjs
  */
 import { writeFileSync } from 'node:fs';
+import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import gsap from 'gsap';
+import prettier from 'prettier';
 
 /** 토큰 이름 → GSAP 이징 소스. 이름과 매핑은 모션 명제(M1 T2)가 확정했다. */
 const EASE_SOURCES = {
@@ -27,12 +29,26 @@ function sample(name, steps = 24) {
   ).join(',')})`;
 }
 
-export function generateAnimationSource() {
+// `new URL(rel, import.meta.url)`는 Vite가 정적으로 가로채 에셋 URL로
+// 바꿔치기한다(vitest가 이 파일을 import할 때 파일 경로 대신
+// `http://localhost:3000/...`를 반환해 fileURLToPath가 던진다). 그 패턴을
+// 피해 현재 파일 경로에서 직접 디렉터리를 구한다.
+const OUT_PATH = resolve(
+  dirname(fileURLToPath(import.meta.url)),
+  '../src/tokens/animation.css.ts'
+);
+
+/**
+ * 커밋되는 산출물은 lint-staged의 `prettier --write`를 거친 상태와
+ * 같아야 한다(그래야 생성기가 진짜로 멱등이다). 여기서 같은 포매터를
+ * 같은 설정으로 미리 적용해 둔다.
+ */
+export async function generateAnimationSource() {
   const easingLines = Object.entries(EASE_SOURCES)
     .map(([token, source]) => `  ${token}: '${sample(source)}', // ${source}`)
     .join('\n');
 
-  return `// 애니메이션 토큰 정의
+  const raw = `// 애니메이션 토큰 정의
 
 export const duration = {
   fast: '150ms',
@@ -46,15 +62,15 @@ export const easing = {
 ${easingLines}
 } as const;
 `;
+
+  const config = await prettier.resolveConfig(OUT_PATH);
+  return prettier.format(raw, { ...config, filepath: OUT_PATH });
 }
 
 const isMain =
   process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1];
 
 if (isMain) {
-  const outPath = fileURLToPath(
-    new URL('../src/tokens/animation.css.ts', import.meta.url)
-  );
-  writeFileSync(outPath, generateAnimationSource(), 'utf-8');
-  console.log(`generated ${outPath}`);
+  writeFileSync(OUT_PATH, await generateAnimationSource(), 'utf-8');
+  console.log(`generated ${OUT_PATH}`);
 }

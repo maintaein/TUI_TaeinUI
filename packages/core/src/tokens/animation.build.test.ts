@@ -11,8 +11,10 @@ import { describe, it, expect } from 'vitest';
 import { generateAnimationSource } from '../../scripts/build-easing.mjs';
 
 describe('animation.css.ts와 build-easing.mjs 일치 검사', () => {
-  it('커밋된 animation.css.ts가 GSAP 이징 생성기의 출력과 같다', () => {
+  it('커밋된 animation.css.ts가 GSAP 이징 생성기의 출력과 같다', async () => {
     const filePath = resolve(__dirname, 'animation.css.ts');
-    expect(readFileSync(filePath, 'utf-8')).toBe(generateAnimationSource());
+    expect(readFileSync(filePath, 'utf-8')).toBe(
+      await generateAnimationSource()
+    );
   });
 });
