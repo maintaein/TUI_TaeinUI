@@ -57,6 +57,13 @@ export const duration = {
   slower: '500ms',
 } as const;
 
+// 무한 반복 주기. 전이(A→B)가 아니라 한 바퀴의 길이라 duration 스케일과 다른
+// 양이다. 같은 스케일에 끼우면 전이를 느리게 만드는 압력이 된다.
+export const loop = {
+  fast: '800ms',
+  base: '1500ms',
+} as const;
+
 // scripts/build-easing.mjs가 GSAP 이징을 샘플링해 생성한다. 직접 고치지 말 것.
 export const easing = {
 ${easingLines}

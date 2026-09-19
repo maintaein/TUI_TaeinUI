@@ -33,6 +33,8 @@ globalStyle(':root', {
         [themeContract.animation.duration.base]: '0.01ms',
         [themeContract.animation.duration.slow]: '0.01ms',
         [themeContract.animation.duration.slower]: '0.01ms',
+        [themeContract.animation.loop.fast]: '0.01ms',
+        [themeContract.animation.loop.base]: '0.01ms',
       },
     },
   },

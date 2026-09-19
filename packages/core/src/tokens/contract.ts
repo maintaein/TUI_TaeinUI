@@ -9,7 +9,7 @@ import {
 } from './typography.css';
 import { spacing, borderRadius } from './spacing.css';
 import { shadows } from './shadows.css';
-import { duration, easing } from './animation.css';
+import { duration, loop, easing } from './animation.css';
 import { zIndex } from './zIndex.css';
 
 /**
@@ -134,6 +134,7 @@ export const themeTokens = {
   },
   animation: {
     duration,
+    loop,
     easing,
   },
   zIndex,
