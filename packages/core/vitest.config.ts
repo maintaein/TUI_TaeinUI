@@ -8,6 +8,10 @@ export default defineConfig({
     globals: true,
     environment: 'jsdom',
     setupFiles: './src/test/setup.ts',
+    // 기본값은 CSS를 빈 문자열로 목킹한다. Slider의 썸 :hover·:active
+    // transform 크기 순서를 jsdom에 주입된 실제 생성 CSS로 검증해야 해서
+    // Slider.css.ts만 범위를 좁혀 처리한다(다른 컴포넌트는 그대로 목킹됨).
+    css: { include: [/Slider\.css/] },
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],
