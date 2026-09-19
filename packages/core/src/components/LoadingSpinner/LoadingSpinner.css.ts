@@ -44,7 +44,7 @@ export const dot = style({
   height: '100%',
   backgroundColor: 'var(--spinner-color)',
   borderRadius: '50%',
-  animation: `${fadeInOut} ${themeContract.animation.loop.base} infinite ease-in-out both`,
+  animation: `${fadeInOut} ${themeContract.animation.loop.base} infinite ease-in-out backwards`,
 });
 
 export const sizeStyles = styleVariants({

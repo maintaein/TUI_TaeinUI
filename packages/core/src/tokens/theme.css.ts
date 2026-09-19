@@ -12,8 +12,10 @@ globalStyle('*, *::before, *::after', {
   '@media': {
     '(prefers-reduced-motion: reduce)': {
       animationDuration: '0.01ms !important',
+      animationDelay: '0.01ms !important',
       animationIterationCount: '1 !important',
       transitionDuration: '0.01ms !important',
+      transitionDelay: '0.01ms !important',
       // 앵커 이동·scrollIntoView의 부드러운 스크롤도 전정 장애 유발 요인이다.
       // 소비자가 html에 scroll-behavior:smooth를 걸면 그쪽 특정도(0,0,1)가 이
       // 규칙(0,0,0)을 이기므로 !important가 있어야 실제로 덮인다. csstype의
