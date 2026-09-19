@@ -1,4 +1,5 @@
 import {
+  useEffect,
   useRef,
   useState,
   useMemo,
@@ -38,6 +39,12 @@ interface SideSheetContextValue {
 
 const [SideSheetContext, useSideSheetContext] =
   createOverlayContext<SideSheetContextValue>('SideSheet');
+
+// 퇴장 전이(exit CSS transition, duration.base)와 맞춘다 — 등장(slow, 300ms)의
+// 66.7%로, 모션 명세 조항 3의 "퇴장은 등장의 60~70%" 범위를 만족한다.
+// `themeContract.animation.duration.base`와 같은 값이다 — 한쪽을 바꾸면 다른
+// 쪽도 바꿔야 CSS 퇴장이 끝나기 전에 DOM이 사라지거나 그 반대가 된다.
+const EXIT_DURATION_MS = 200;
 
 /** 화면 좌/우에서 슬라이드되는 시트 컴포넌트. Compound 패턴(SideSheet.Header/Content) 또는 Flat 패턴(title prop) 지원 */
 export interface SideSheetProps extends Omit<
@@ -90,14 +97,18 @@ const SideSheetRoot = ({
 
   useFocusTrap({ open, onClose, closeOnEscape, containerRef: sheetRef });
 
-  // 애니메이션 종료 처리
-  const handleAnimationEnd = (e: React.AnimationEvent) => {
-    if (e.target !== e.currentTarget) return;
+  // open이 꺼져도 DOM을 즉시 지우지 않고 퇴장 전이가 재생될 자리를 남겨 둔다.
+  // 애니메이션 종료 이벤트가 아니라 타이머로 배선해, animationcancel로
+  // animationend가 오지 않으면 시트가 영영 안 닫히던 경로를 없앤다.
+  useEffect(() => {
+    if (open || !shouldRender) return;
 
-    if (!open) {
+    const timer = setTimeout(() => {
       setShouldRender(false);
-    }
-  };
+    }, EXIT_DURATION_MS);
+
+    return () => clearTimeout(timer);
+  }, [open, shouldRender]);
 
   const contextValue = useMemo(
     () => ({ onClose, titleId }),
@@ -139,7 +150,9 @@ const SideSheetRoot = ({
           role="dialog"
           aria-modal="true"
           aria-labelledby={labelledby}
-          onAnimationEnd={handleAnimationEnd}
+          // 퇴장 중(open=false, shouldRender=true)엔 DOM이 200ms 더 남아있어도
+          // 포커스가 그 안으로 들어가거나 클릭될 수 없게 inert로 막는다.
+          inert={!open}
           className={clsx(
             sideSheetStyle,
             positionStyles[position],

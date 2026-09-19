@@ -1,5 +1,13 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import {
+  render,
+  screen,
+  fireEvent,
+  waitFor,
+  act,
+} from '@testing-library/react';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { SideSheet } from './SideSheet';
 
 describe('SideSheet', () => {
@@ -94,9 +102,6 @@ describe('SideSheet', () => {
 
       fireEvent.click(backdrop!);
 
-      const sheet = screen.getByRole('dialog');
-      fireEvent.animationEnd(sheet);
-
       await waitFor(() => {
         expect(defaultProps.onClose).toHaveBeenCalledTimes(1);
       });
@@ -121,9 +126,6 @@ describe('SideSheet', () => {
     it('closeOnEscape이 true일 때 ESC 키로 닫힌다', async () => {
       render(<SideSheet {...defaultProps} closeOnEscape />);
       fireEvent.keyDown(document, { key: 'Escape' });
-
-      const sheet = screen.getByRole('dialog');
-      fireEvent.animationEnd(sheet);
 
       await waitFor(() => {
         expect(defaultProps.onClose).toHaveBeenCalledTimes(1);
@@ -195,9 +197,6 @@ describe('SideSheet', () => {
       const closeButton = screen.getByRole('button', { name: /닫기/i });
       fireEvent.click(closeButton);
 
-      const sheet = screen.getByRole('dialog');
-      fireEvent.animationEnd(sheet);
-
       await waitFor(() => {
         expect(defaultProps.onClose).toHaveBeenCalledTimes(1);
       });
@@ -235,9 +234,6 @@ describe('SideSheet', () => {
       const { rerender } = render(<SideSheet {...defaultProps} />);
 
       rerender(<SideSheet {...defaultProps} open={false} />);
-
-      const sheet = screen.getByRole('dialog');
-      fireEvent.animationEnd(sheet);
 
       await waitFor(() => {
         expect(document.activeElement).toBe(button);
@@ -323,12 +319,90 @@ describe('SideSheet', () => {
 
       rerender(<SideSheet {...defaultProps} open={false} />);
 
-      const sheet = screen.getByRole('dialog');
-      fireEvent.animationEnd(sheet);
-
       await waitFor(() => {
         expect(document.body.style.overflow).toBe('');
       });
+    });
+  });
+
+  describe('언마운트 지연 테스트', () => {
+    beforeEach(() => {
+      vi.useFakeTimers();
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it('open이 false가 돼도 즉시 DOM에서 제거되지 않는다', () => {
+      const { rerender } = render(<SideSheet {...defaultProps} />);
+      rerender(<SideSheet {...defaultProps} open={false} />);
+
+      expect(screen.getByRole('dialog')).toBeInTheDocument();
+    });
+
+    it('animationend 없이 타이머만으로 DOM에서 제거된다', () => {
+      const { rerender } = render(<SideSheet {...defaultProps} />);
+      rerender(<SideSheet {...defaultProps} open={false} />);
+
+      act(() => {
+        vi.advanceTimersByTime(200);
+      });
+
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    });
+
+    it('닫히는 도중 다시 열리면 언마운트가 취소된다', () => {
+      const { rerender } = render(<SideSheet {...defaultProps} />);
+      rerender(<SideSheet {...defaultProps} open={false} />);
+
+      act(() => {
+        vi.advanceTimersByTime(100);
+      });
+      rerender(<SideSheet {...defaultProps} open />);
+      act(() => {
+        vi.advanceTimersByTime(300);
+      });
+
+      expect(screen.getByRole('dialog')).toBeInTheDocument();
+    });
+
+    it('퇴장 중(open=false)엔 시트가 inert해 포커스·클릭이 들어가지 않는다', () => {
+      const { rerender } = render(<SideSheet {...defaultProps} />);
+      expect(screen.getByRole('dialog')).not.toHaveAttribute('inert');
+
+      rerender(<SideSheet {...defaultProps} open={false} />);
+
+      expect(screen.getByRole('dialog')).toHaveAttribute('inert');
+    });
+  });
+
+  describe('퇴장 메커니즘 잠금', () => {
+    // jsdom은 애니메이션을 돌리지도 계산값을 주지도 않아 소스 텍스트를 읽는다
+    // (tokens/animationBoundary.test.ts와 같은 방식).
+    it('퇴장 스타일이 일회성 키프레임이 아니라 전이다 (명제 조항 1)', () => {
+      const source = readFileSync(
+        resolve(__dirname, 'SideSheet.css.ts'),
+        'utf-8'
+      );
+      const exits = [
+        ...source.matchAll(
+          /export const (\w*Exit\w*) = style\(\{([\s\S]*?)\}\);/g
+        ),
+      ];
+
+      expect(exits.map((m) => m[1])).toEqual([
+        'backdropExit',
+        'sideSheetExitRight',
+        'sideSheetExitLeft',
+      ]);
+      for (const [, name, body] of exits) {
+        expect(body, `${name}에 퇴장 전이가 없다`).toMatch(/transition:/);
+        expect(
+          body,
+          `${name}이 아직 되돌릴 수 없는 일회성 키프레임이다`
+        ).not.toMatch(/animation:/);
+      }
     });
   });
 
