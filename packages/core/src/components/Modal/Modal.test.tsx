@@ -288,6 +288,19 @@ describe('Modal', () => {
       const backdrop = document.querySelector('[data-backdrop="true"]');
       expect(backdrop).toBeInTheDocument();
     });
+
+    it('닫히는 동안 backdrop에도 퇴장 클래스가 붙는다', () => {
+      const { rerender } = render(<Modal {...defaultProps} open={true} />);
+      expect(
+        document.querySelector('[data-backdrop="true"]')?.className
+      ).not.toMatch(/modalBackdropExit/);
+
+      rerender(<Modal {...defaultProps} open={false} />);
+
+      expect(
+        document.querySelector('[data-backdrop="true"]')?.className
+      ).toMatch(/modalBackdropExit/);
+    });
   });
 
   describe('언마운트 지연 테스트', () => {

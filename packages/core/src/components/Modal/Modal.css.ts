@@ -47,6 +47,14 @@ export const backdrop = style({
   zIndex: -1,
 });
 
+// 등장(duration.base)의 65% — 조항 3의 60~70% 창 안. 65%에 맞는 duration 토큰이
+// 없어(fast=75%·base=100%) calc()로 표현한다 — 리터럴과 달리 :root의
+// reduced-motion 오버라이드가 duration.base를 줄이면 이 값도 같이 줄어든다.
+export const modalBackdropExit = style({
+  opacity: 0,
+  transition: `opacity calc(${themeContract.animation.duration.base} * 0.65) ${themeContract.animation.easing.exit}`,
+});
+
 export const modalDialog = style({
   position: 'relative',
   backgroundColor: themeContract.color.background.default,

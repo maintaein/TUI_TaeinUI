@@ -12,6 +12,7 @@ import clsx from 'clsx';
 import { createPortal } from 'react-dom';
 import {
   backdrop,
+  modalBackdropExit,
   modalContainer,
   modalDialog,
   modalDialogExit,
@@ -189,7 +190,7 @@ const ModalRoot = ({
       <div className={modalContainer}>
         <div
           role="presentation"
-          className={backdrop}
+          className={clsx(backdrop, !open && modalBackdropExit)}
           onClick={handleBackdropClick}
           data-backdrop="true"
           aria-hidden="true"
