@@ -2,21 +2,6 @@ import { style, styleVariants, keyframes } from '@vanilla-extract/css';
 import { themeContract } from '../../tokens/theme.css';
 
 // 애니메이션 정의
-const spin = keyframes({
-  '0%': { transform: 'rotate(0deg)' },
-  '100%': { transform: 'rotate(360deg)' },
-});
-
-const fadeInOut = keyframes({
-  '0%, 100%': {
-    opacity: 0.2,
-    transform: 'translateY(0)',
-  },
-  '50%': {
-    opacity: 1,
-  },
-});
-
 const progress = keyframes({
   '0%': {
     transform: 'translateX(-100%)',
@@ -56,54 +41,6 @@ export const overlayStyles = style({
   zIndex: 10,
 });
 
-export const loader = style({
-  display: 'inline-flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-});
-
-export const typeStyles = styleVariants({
-  spinner: {},
-  dots: {},
-  bar: {},
-});
-
-export const spinner = style({
-  border: '3px solid',
-  borderColor: themeContract.color.border.default,
-  borderTopColor: 'var(--loader-color)',
-  borderRadius: '50%',
-  animation: `${spin} 0.8s linear infinite`,
-  boxSizing: 'border-box',
-});
-
-export const dotsContainer = style({
-  display: 'flex',
-  alignItems: 'center',
-  gap: '0.5rem',
-});
-
-export const dot = style({
-  width: '100%',
-  height: '100%',
-  backgroundColor: 'var(--loader-color)',
-  borderRadius: '50%',
-  animation: `${fadeInOut} 1.4s infinite ease-in-out both`,
-});
-
-export const dotSize = styleVariants({
-  sm: { width: '4px', height: '4px' },
-  md: { width: '8px', height: '8px' },
-  lg: { width: '10px', height: '10px' },
-  xl: { width: '12px', height: '12px' },
-});
-
-export const dotDelay = styleVariants({
-  first: { animationDelay: '0s' },
-  second: { animationDelay: '0.2s' },
-  third: { animationDelay: '0.4s' },
-});
-
 export const bar = style({
   position: 'relative',
   height: '4px',
@@ -133,26 +70,7 @@ export const barFill = style({
   width: '25%',
   borderRadius: '2px',
   backgroundColor: 'var(--loader-color)',
-  animation: `${progress} 1.5s cubic-bezier(0.4, 0, 0.2, 1) infinite`,
-});
-
-export const sizeStyles = styleVariants({
-  sm: {
-    width: '16px',
-    height: '16px',
-  },
-  md: {
-    width: '24px',
-    height: '24px',
-  },
-  lg: {
-    width: '32px',
-    height: '32px',
-  },
-  xl: {
-    width: '48px',
-    height: '48px',
-  },
+  animation: `${progress} ${themeContract.animation.loop.base} cubic-bezier(0.4, 0, 0.2, 1) infinite`,
 });
 
 export const barSizeStyles = styleVariants({
@@ -160,11 +78,6 @@ export const barSizeStyles = styleVariants({
   md: { width: '200px' },
   lg: { width: '300px' },
   xl: { width: '400px' },
-});
-
-export const barReset = style({
-  width: 'auto !important',
-  height: 'auto !important',
 });
 
 export const colorStyles = styleVariants({
