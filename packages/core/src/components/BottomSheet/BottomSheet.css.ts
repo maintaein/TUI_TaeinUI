@@ -7,26 +7,12 @@ const fadeIn = keyframes({
   '100%': { opacity: 1 },
 });
 
-const fadeOut = keyframes({
-  '0%': { opacity: 1 },
-  '100%': { opacity: 0 },
-});
-
 const slideUp = keyframes({
   '0%': {
     transform: 'translateY(100%)',
   },
   '100%': {
     transform: 'translateY(0)',
-  },
-});
-
-const slideDown = keyframes({
-  '0%': {
-    transform: 'translateY(0)',
-  },
-  '100%': {
-    transform: 'translateY(100%)',
   },
 });
 
@@ -59,8 +45,11 @@ export const backdropEnter = style({
 // 등장(duration.base)의 65% — 조항 3의 60~70% 창 안. 65%에 맞는 duration 토큰이
 // 없어(fast=75%·base=100%) calc()로 표현한다 — 리터럴과 달리 :root의
 // reduced-motion 오버라이드가 duration.base를 줄이면 이 값도 같이 줄어든다.
+// 일회성 키프레임이 아니라 전이다 — 명제 조항 1이 요구하는 "도중에 멈추고 멈춘
+// 자리에서 되돌아가는" 퇴장은 `@keyframes ... forwards`로는 안 된다.
 export const backdropExit = style({
-  animation: `${fadeOut} calc(${themeContract.animation.duration.base} * 0.65) ${themeContract.animation.easing.exit} forwards`,
+  opacity: 0,
+  transition: `opacity calc(${themeContract.animation.duration.base} * 0.65) ${themeContract.animation.easing.exit}`,
 });
 
 export const bottomSheet = style({
@@ -86,9 +75,10 @@ export const bottomSheetEnter = style({
 });
 
 // 등장(duration.slow, 300ms)의 66.7% — duration.base(200ms)가 이미 창 안이라
-// calc 없이 토큰만 교체.
+// calc 없이 토큰만 쓴다. 종료 상태는 slideDown 키프레임이 100%에 두던 값 그대로다.
 export const bottomSheetExit = style({
-  animation: `${slideDown} ${themeContract.animation.duration.base} ${themeContract.animation.easing.exit} forwards`,
+  transform: 'translateY(100%)',
+  transition: `transform ${themeContract.animation.duration.base} ${themeContract.animation.easing.exit}`,
 });
 
 export const heightStyles = styleVariants({

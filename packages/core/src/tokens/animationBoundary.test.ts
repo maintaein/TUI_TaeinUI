@@ -484,14 +484,14 @@ const LITERAL_EASING_EXCEPTIONS: Exception[] = [
     reason: 'fill 추종 곡선. Task 4가 :83-85에 근거 주석을 남겼다',
   },
   {
-    at: 'components/BottomSheet/BottomSheet.tsx:138',
+    at: 'components/BottomSheet/BottomSheet.tsx:158',
     values: ['ease-out'],
     owner: 'M2',
     reason:
       '드래그 놓음 복귀 모션. 곡선·길이를 정하는 건 컴포넌트별 모션 설계라 M2 소관이다 (R39)',
   },
   {
-    at: 'components/BottomSheet/BottomSheet.tsx:165',
+    at: 'components/BottomSheet/BottomSheet.tsx:185',
     values: ['ease-out'],
     owner: 'M2',
     reason:
@@ -509,13 +509,13 @@ const LITERAL_DURATION_EXCEPTIONS: Exception[] = [
       '드래그 중 fill이 thumb를 프레임 단위로 따라붙게 하는 의도된 값이다. 가장 짧은 duration 토큰(fast 150ms)도 세 프레임 늦는다',
   },
   {
-    at: 'components/BottomSheet/BottomSheet.tsx:138',
+    at: 'components/BottomSheet/BottomSheet.tsx:158',
     values: ['0.2s'],
     owner: 'M2',
     reason: '드래그 놓음 복귀 길이. duration.base(200ms)와 같은 값이다 (R39)',
   },
   {
-    at: 'components/BottomSheet/BottomSheet.tsx:165',
+    at: 'components/BottomSheet/BottomSheet.tsx:185',
     values: ['0.2s'],
     owner: 'M2',
     reason: '드래그 닫힘 길이. duration.base(200ms)와 같은 값이다 (R39)',
@@ -817,8 +817,8 @@ describe('리터럴 이징 잠금 (T8 · R32)', () => {
 
   it('.tsx 인라인 모션 대입까지 읽는다 (R39)', () => {
     expect(inlineEasings.map((e) => `${e.file}:${e.line}`)).toEqual([
-      'components/BottomSheet/BottomSheet.tsx:138',
-      'components/BottomSheet/BottomSheet.tsx:165',
+      'components/BottomSheet/BottomSheet.tsx:158',
+      'components/BottomSheet/BottomSheet.tsx:185',
     ]);
   });
 

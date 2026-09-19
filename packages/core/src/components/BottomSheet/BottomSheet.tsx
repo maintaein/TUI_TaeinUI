@@ -38,6 +38,12 @@ interface BottomSheetContextValue {
 const [BottomSheetContext, useBottomSheetContext] =
   createOverlayContext<BottomSheetContextValue>('BottomSheet');
 
+// 퇴장 전이(exit CSS transition, duration.base)와 맞춘다 — 등장(slow, 300ms)의
+// 66.7%로, 모션 명세 조항 3의 "퇴장은 등장의 60~70%" 범위를 만족한다.
+// `themeContract.animation.duration.base`와 같은 값이다 — 한쪽을 바꾸면 다른
+// 쪽도 바꿔야 CSS 퇴장이 끝나기 전에 DOM이 사라지거나 그 반대가 된다.
+const EXIT_DURATION_MS = 200;
+
 /** 화면 하단에서 올라오는 시트 컴포넌트. Compound 패턴(BottomSheet.Header/Content) 또는 Flat 패턴(title prop) 지원 */
 export interface BottomSheetProps extends Omit<
   HTMLAttributes<HTMLDivElement>,
@@ -110,8 +116,8 @@ const BottomSheetRoot = ({
     }
   }, [open]);
 
-  // 접근성(포커스 트랩 + ESC) 및 스크롤 제어 — 애니메이션 종료 후 포커스를
-  // 복원해야 하므로 restoreFocusOnClose는 false로 두고, handleAnimationEnd에서
+  // 접근성(포커스 트랩 + ESC) 및 스크롤 제어 — 퇴장 전이가 끝난 뒤 포커스를
+  // 복원해야 하므로 restoreFocusOnClose는 false로 두고, 아래 언마운트 타이머에서
   // previousActiveElementRef를 직접 사용해 복원한다(기존 타이밍 그대로 유지).
   const { previousActiveElementRef } = useFocusTrap({
     open,
@@ -120,6 +126,20 @@ const BottomSheetRoot = ({
     containerRef: sheetRef,
     restoreFocusOnClose: false,
   });
+
+  // open이 꺼져도 DOM을 즉시 지우지 않고 퇴장 전이가 재생될 자리를 남겨 둔다.
+  // 애니메이션 종료 이벤트가 아니라 타이머로 배선해, animationcancel로
+  // animationend가 오지 않으면 시트가 영영 안 닫히던 경로를 없앤다.
+  useEffect(() => {
+    if (open || !shouldRender) return;
+
+    const timer = setTimeout(() => {
+      setShouldRender(false);
+      previousActiveElementRef.current?.focus();
+    }, EXIT_DURATION_MS);
+
+    return () => clearTimeout(timer);
+  }, [open, shouldRender, previousActiveElementRef]);
 
   //드래그 제어 로직
   useEffect(() => {
@@ -250,19 +270,6 @@ const BottomSheetRoot = ({
     };
   }, [enableDrag, open, onClose]);
 
-  const handleAnimationEnd = (e: React.AnimationEvent) => {
-    if (e.target !== e.currentTarget) return;
-
-    if (!open) {
-      setShouldRender(false);
-      if (sheetRef.current) {
-        sheetRef.current.style.transform = '';
-      }
-      isClosingViaDragRef.current = false;
-      previousActiveElementRef.current?.focus();
-    }
-  };
-
   const contextValue = useMemo(
     () => ({ onClose, titleId }),
     [onClose, titleId]
@@ -296,7 +303,9 @@ const BottomSheetRoot = ({
           role="dialog"
           aria-modal="true"
           aria-labelledby={labelledby}
-          onAnimationEnd={handleAnimationEnd}
+          // 퇴장 중(open=false, shouldRender=true)엔 DOM이 200ms 더 남아있어도
+          // 포커스가 그 안으로 들어가거나 클릭될 수 없게 inert로 막는다.
+          inert={!open}
           className={clsx(
             bottomSheetStyle,
             heightStyles[height],
