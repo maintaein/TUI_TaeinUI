@@ -1,5 +1,11 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import {
+  render,
+  screen,
+  fireEvent,
+  waitFor,
+  act,
+} from '@testing-library/react';
 import { BottomSheet } from './BottomSheet';
 
 describe('BottomSheet', () => {
@@ -423,7 +429,9 @@ describe('BottomSheet', () => {
       fireEvent.touchEnd(sheet, { changedTouches: [{ clientY: 300 }] });
 
       // transitionend를 일부러 발생시키지 않는다 — 드래그가 중단된 상황을 흉내 낸다.
-      vi.advanceTimersByTime(200);
+      act(() => {
+        vi.advanceTimersByTime(300);
+      });
 
       expect(defaultProps.onClose).toHaveBeenCalledTimes(1);
     });
@@ -437,7 +445,9 @@ describe('BottomSheet', () => {
       fireEvent.touchEnd(sheet, { changedTouches: [{ clientY: 300 }] });
 
       fireEvent.transitionEnd(sheet);
-      vi.advanceTimersByTime(200);
+      act(() => {
+        vi.advanceTimersByTime(300);
+      });
 
       expect(defaultProps.onClose).toHaveBeenCalledTimes(1);
     });

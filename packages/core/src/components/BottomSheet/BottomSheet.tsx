@@ -157,8 +157,9 @@ const BottomSheetRoot = ({
         sheet.addEventListener('transitionend', handleTransitionEnd);
 
         // transitionend 폴백: 드래그가 중단돼 transition이 시작되지 않으면
-        // 시트가 영영 안 닫히는 것을 막는다. 위 transition(0.2s)과 지속시간을 맞춘다.
-        dragCloseFallbackRef.current = setTimeout(settle, 200);
+        // 시트가 영영 안 닫히는 것을 막는다. 위 transition(0.2s)보다 여유를 둬
+        // 정상 케이스에선 transitionend가 먼저 오게 한다.
+        dragCloseFallbackRef.current = setTimeout(settle, 300);
       } else {
         // 원위치로 복구
         sheet.style.transition = 'transform 0.2s ease-out';
