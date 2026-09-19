@@ -159,6 +159,9 @@ export const Snackbar = ({
       </div>
       {shouldRender && (
         <div
+          // 퇴장 중(open=false, shouldRender=true)엔 DOM이 200ms 더 남아있어도
+          // action·닫기 버튼이 포커스되거나 클릭될 수 없게 inert로 막는다.
+          inert={!open}
           className={clsx(
             snackbar,
             severityStyles[severity],

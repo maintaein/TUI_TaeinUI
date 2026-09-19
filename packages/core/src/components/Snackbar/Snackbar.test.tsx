@@ -210,7 +210,11 @@ describe('Snackbar', () => {
         />
       );
 
-      vi.advanceTimersByTime(3000);
+      // open=false가 shouldRender 지연-언마운트 타이머(EXIT_DURATION_MS)도
+      // 같이 예약시키므로, 그 setState가 act() 밖에서 플러시되지 않게 감싼다.
+      act(() => {
+        vi.advanceTimersByTime(3000);
+      });
 
       expect(handleClose).not.toHaveBeenCalled();
     });
@@ -463,6 +467,21 @@ describe('Snackbar', () => {
 
       expect(errorSpy).not.toHaveBeenCalled();
       errorSpy.mockRestore();
+    });
+
+    it('퇴장 중(open=false)엔 스낵바가 inert해 포커스·클릭이 들어가지 않는다', () => {
+      const { container, rerender } = render(
+        <Snackbar open message="메시지" />
+      );
+      expect(
+        container.querySelector('[class*="content"]')?.parentElement
+      ).not.toHaveAttribute('inert');
+
+      rerender(<Snackbar open={false} message="메시지" />);
+
+      expect(
+        container.querySelector('[class*="content"]')?.parentElement
+      ).toHaveAttribute('inert');
     });
   });
 });
