@@ -61,7 +61,7 @@ export const input = style({
   padding: '0.5rem 0',
   margin: '0 8px',
   borderRadius: '6px',
-  transition: `transform ${themeContract.animation.duration.slow} cubic-bezier(0.25, 0.8, 0.5, 1), background-color ${themeContract.animation.duration.base} ease, color ${themeContract.animation.duration.base} ease`,
+  transition: `transform ${themeContract.animation.duration.slow} cubic-bezier(0.25, 0.8, 0.5, 1), background-color ${themeContract.animation.duration.base} ease, color ${themeContract.animation.duration.base} ease, box-shadow ${themeContract.animation.duration.fast} ${themeContract.animation.easing.settle}`,
 
   selectors: {
     [`${inputContainer}:has(button:active:not(:disabled)) &`]: {
