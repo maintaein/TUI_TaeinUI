@@ -29,7 +29,7 @@ export const spinner = style({
   borderColor: themeContract.color.border.default,
   borderTopColor: 'var(--spinner-color)',
   borderRadius: '50%',
-  animation: `${spin} 0.8s linear infinite`,
+  animation: `${spin} ${themeContract.animation.loop.fast} linear infinite`,
   boxSizing: 'border-box',
 });
 
@@ -44,7 +44,7 @@ export const dot = style({
   height: '100%',
   backgroundColor: 'var(--spinner-color)',
   borderRadius: '50%',
-  animation: `${fadeInOut} 1.4s infinite ease-in-out both`,
+  animation: `${fadeInOut} ${themeContract.animation.loop.base} infinite ease-in-out both`,
 });
 
 export const sizeStyles = styleVariants({

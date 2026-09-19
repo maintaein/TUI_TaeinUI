@@ -29,7 +29,7 @@ export const tooltip = style({
   lineHeight: themeContract.font.lineHeight.normal,
   borderRadius: themeContract.borderRadius.sm,
   whiteSpace: 'nowrap',
-  animation: `${fadeIn} 0.15s ${themeContract.animation.easing.settle}`,
+  animation: `${fadeIn} ${themeContract.animation.duration.fast} ${themeContract.animation.easing.settle}`,
 });
 
 // Position 스타일

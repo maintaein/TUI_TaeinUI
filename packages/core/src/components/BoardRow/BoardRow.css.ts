@@ -38,7 +38,7 @@ export const header = style({
   textAlign: 'left',
   cursor: 'pointer',
   touchAction: 'manipulation',
-  transition: 'background-color 0.2s ease',
+  transition: `background-color ${themeContract.animation.duration.base} ease`,
 
   ':hover': {
     backgroundColor: themeContract.color.background.paper,
@@ -67,7 +67,7 @@ export const iconContainer = style({
   width: '24px',
   height: '24px',
   flexShrink: 0,
-  transition: 'transform 0.2s ease',
+  transition: `transform ${themeContract.animation.duration.base} ease`,
 });
 
 export const iconExpanded = style({
@@ -77,7 +77,11 @@ export const iconExpanded = style({
 export const contentWrapper = style({
   display: 'grid',
   gridTemplateRows: '0fr',
-  transition: 'grid-template-rows 0.3s ease-in-out',
+  // grid-template-rows는 transform·opacity가 아니라 레이아웃 속성이라 매 프레임
+  // 리플로우가 난다. 그래도 여기서만 쓰는 이유는 아코디언이 펼칠 콘텐츠의 높이를
+  // 미리 알 수 없어서다 — 0fr→1fr은 높이를 모르고도 자연 높이까지 여는 유일한
+  // 방법이고, max-height 근사(점프하거나 늦게 끝난다)를 대체한다.
+  transition: `grid-template-rows ${themeContract.animation.duration.slow} ease-in-out`,
 });
 
 export const wrapperExpanded = style({

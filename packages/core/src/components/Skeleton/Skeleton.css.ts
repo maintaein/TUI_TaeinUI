@@ -77,11 +77,11 @@ export const animationStyles = styleVariants({
           rgba(255, 255, 255, 0.3),
           transparent
         )`,
-        animation: `${wave} 1.6s linear 0.5s infinite`,
+        animation: `${wave} ${themeContract.animation.loop.base} linear 0.5s infinite`,
       },
     },
   },
   pulse: {
-    animation: `${pulse} 1.5s ease-in-out 0.5s infinite`,
+    animation: `${pulse} ${themeContract.animation.loop.base} ease-in-out 0.5s infinite`,
   },
 });

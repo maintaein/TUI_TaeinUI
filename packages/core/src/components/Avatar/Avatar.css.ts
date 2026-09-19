@@ -103,7 +103,7 @@ export const clickable = style({
   textDecoration: 'none',
   color: 'inherit',
   font: 'inherit',
-  transition: 'filter 0.2s ease, transform 0.1s ease',
+  transition: `filter ${themeContract.animation.duration.base} ease, transform ${themeContract.animation.duration.fast} ease`,
 
   ':hover': {
     filter: 'brightness(0.9)',
