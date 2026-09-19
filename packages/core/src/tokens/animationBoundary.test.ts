@@ -86,11 +86,33 @@ const INLINE_FILES = findFiles(
  * `themeContract.animation.duration`류 참조와 문자열 안을 걸러낸다.
  */
 const MOTION_DECLARATION =
-  /(?<![\w.'"])(transition|animation)(Delay|Duration|TimingFunction)?\s*:\s*(.*)$/;
+  /(?<![\w.'"])(transition|animation)(Delay|Duration|Property|TimingFunction)?\s*:\s*(.*)$/;
 
 /** `.tsx`/`.ts`가 인라인 스타일로 거는 모션 대입 (R39). */
 const INLINE_ASSIGNMENT =
-  /\.style\.(transition|animation)(Delay|Duration|TimingFunction)?\s*=\s*(['"`])([^'"`]*)\3/g;
+  /\.style\.(transition|animation)(Delay|Duration|Property|TimingFunction)?\s*=\s*(['"`])([^'"`]*)\3/g;
+
+/**
+ * 전이 **속성 목록**을 담는 선언. `transition` 단축뿐 아니라 `transitionProperty`
+ * 롱핸드도 목록 그 자체라 같은 검사를 받아야 한다 — 롱핸드를 빼면
+ * `transitionProperty: 'all'`이 'all' 금지와 화이트리스트를 둘 다 우회한다.
+ */
+function listsProperties(property: string): boolean {
+  return property === 'transition' || property === 'transitionProperty';
+}
+
+/**
+ * 값이 리터럴이 아니면 스캐너가 눈이 머는 선언.
+ *
+ * 단축과 속성 목록은 값을 못 읽으면 검사가 통째로 빈손이 된다. 반면
+ * `transitionDuration: themeContract.animation.duration.base` 같은 시간·이징
+ * 롱핸드는 리터럴이 아닌 게 **정답**이다 — 값을 숨긴 게 아니라 읽을 리터럴이
+ * 없는 것이다. `DesignTokens.mdx`가 권하는 모양이 정확히 이것이라, 이걸
+ * 불투명으로 세면 규칙을 지킨 코드가 빨개진다.
+ */
+function needsLiteral(property: string): boolean {
+  return listsProperties(property) || property === 'animation';
+}
 
 interface Slot {
   /** `literal` = 리터럴 시간, `token` = duration·loop 토큰 참조 */
@@ -234,13 +256,14 @@ function declarationsOf(file: string): {
   lines.forEach((line, index) => {
     const match = MOTION_DECLARATION.exec(line);
     if (!match) return;
+    const property = `${match[1]}${match[2] ?? ''}`;
     const value = readLiteral(match[3], lines, index);
     if (value === null) {
-      opaque.push(`${rel(file)}:${index + 1}`);
+      if (needsLiteral(property)) opaque.push(`${rel(file)}:${index + 1}`);
       return;
     }
     if (value === '' || value === 'none') return;
-    decls.push(analyze(file, `${match[1]}${match[2] ?? ''}`, index + 1, value));
+    decls.push(analyze(file, property, index + 1, value));
   });
   return { decls, opaque };
 }
@@ -569,6 +592,38 @@ const TRANSITION_WHITELIST = new Set([
 /** 상태 선택자 키(`':hover'` · `'&:focus-visible'` · `'&[data-x]'`). */
 const STATE_SELECTOR = /'&?[:[][^']*'\s*:\s*\{/g;
 
+/**
+ * 파일을 최상위 선언 단위로 자른다. `export const x = style({...})` 하나가 한 덩이,
+ * 최상위 `globalStyle(...)`도 한 덩이다.
+ *
+ * **판정 단위가 파일이면 안 된다.** 같은 파일의 다른 블록은 대개 다른 요소라,
+ * 파일 단위로 보면 무관한 블록의 box-shadow 전이 하나가 진짜 회귀를 덮는다.
+ */
+function blocksOf(source: string): {
+  name: string;
+  start: number;
+  end: number;
+  text: string;
+}[] {
+  const lines = source.split(/\r?\n/);
+  const heads: { name: string; index: number }[] = [];
+  lines.forEach((line, index) => {
+    const match = /^(?:export\s+)?const\s+(\w+)\s*=|^(globalStyle)\(/.exec(
+      line
+    );
+    if (match) heads.push({ name: match[1] ?? match[2], index });
+  });
+  return heads.map((head, i) => {
+    const end = i + 1 < heads.length ? heads[i + 1].index : lines.length;
+    return {
+      name: head.name,
+      start: head.index + 1,
+      end,
+      text: lines.slice(head.index, end).join('\n'),
+    };
+  });
+}
+
 function balancedFrom(text: string, openIndex: number): string {
   let depth = 0;
   for (let i = openIndex; i < text.length; i += 1) {
@@ -590,7 +645,7 @@ describe('전이 목록 잠금 (T3)', () => {
 
   it("transition의 속성에 'all'이 없다", () => {
     // T3이 18군데를 속성 목록으로 좁혔다. 오늘 이미 0건이라 빈손이 정상이다.
-    const found = ALL_DECLS.filter((d) => d.property === 'transition').flatMap(
+    const found = ALL_DECLS.filter((d) => listsProperties(d.property)).flatMap(
       (d) =>
         d.segments
           .filter((s) => s.property === 'all')
@@ -602,7 +657,7 @@ describe('전이 목록 잠금 (T3)', () => {
   it('화이트리스트 밖 속성을 전이하면 직전 줄에 근거 주석이 있다', () => {
     const missing: string[] = [];
     for (const decl of ALL_DECLS) {
-      if (decl.property !== 'transition') continue;
+      if (!listsProperties(decl.property)) continue;
       const source = readFileSync(resolve(SRC, decl.file), 'utf-8').split(
         /\r?\n/
       );
@@ -617,30 +672,45 @@ describe('전이 목록 잠금 (T3)', () => {
     expect(missing).toEqual([]);
   });
 
-  it('상태 선택자가 boxShadow를 바꾸면 그 전이 목록에 box-shadow가 있다', () => {
-    // T3이 TextField:38에, T4가 NumericSpinner:13에 box-shadow를 넣은 이유다.
+  it('자기 전이를 가진 블록이 상태에서 boxShadow를 바꾸면 그 목록에 box-shadow가 있다', () => {
+    // T3이 TextField:38에, T4가 NumericSpinner:64에 box-shadow를 넣은 이유다.
     // 빠지면 focus·error halo가 페이드 없이 툭 튄다.
-    // 한계: box-shadow만 본다. 상태가 바꾸는 다른 속성이 목록에서 빠지는
-    // 경우까지는 보증하지 않는다(전이 목록 전체 대조는 변형마다 속성이 갈려
-    // 오탐이 쏟아진다).
+    //
+    // 자기 전이가 없는 블록은 판정에서 뺀다. vanilla-extract는 별개 `style()`
+    // 블록을 같은 요소에 합성하므로(`TextField.css.ts`의 `error`가 `input` 위에
+    // 얹힌다), 그런 블록의 전이는 소스의 다른 어딘가에 있고 어느 블록인지
+    // 텍스트만으로는 못 가린다. 판정하면 규칙을 지킨 코드가 빨개진다.
+    //
+    // 한계 둘: (1) box-shadow만 본다 — 상태가 바꾸는 다른 속성이 목록에서
+    // 빠지는 경우는 보증하지 않는다(전이 목록 전체 대조는 변형마다 속성이
+    // 갈려 오탐이 쏟아진다). (2) 합성으로만 전이를 받는 블록은 위 이유로
+    // 사각이다.
     const missing: string[] = [];
     for (const file of CSS_FILES) {
       const source = readFileSync(file, 'utf-8');
-      const decls = declarationsOf(file).decls.filter(
-        (d) => d.property === 'transition'
-      );
-      if (decls.length === 0) continue;
-      const stateSetsShadow = [...source.matchAll(STATE_SELECTOR)].some(
-        (match) =>
-          /\bboxShadow\s*:/.test(
-            balancedFrom(source, (match.index ?? 0) + match[0].length - 1)
-          )
-      );
-      if (!stateSetsShadow) continue;
-      const listsShadow = decls.some((d) =>
-        d.segments.some((s) => s.property === 'box-shadow')
-      );
-      if (!listsShadow) missing.push(rel(file));
+      const decls = declarationsOf(file).decls;
+      for (const block of blocksOf(source)) {
+        const own = decls.filter(
+          (d) =>
+            d.line >= block.start &&
+            d.line <= block.end &&
+            listsProperties(d.property)
+        );
+        if (own.length === 0) continue;
+        const stateSetsShadow = [...block.text.matchAll(STATE_SELECTOR)].some(
+          (match) =>
+            /\bboxShadow\s*:/.test(
+              balancedFrom(block.text, (match.index ?? 0) + match[0].length - 1)
+            )
+        );
+        if (!stateSetsShadow) continue;
+        const listsShadow = own.some((d) =>
+          d.segments.some((s) => s.property === 'box-shadow')
+        );
+        if (!listsShadow) {
+          missing.push(`${rel(file)}:${block.start} (${block.name})`);
+        }
+      }
     }
     expect(missing).toEqual([]);
   });
@@ -848,7 +918,7 @@ describe('easing 토큰 소유자 (R5)', () => {
     }
   });
 
-  it('공개 모션 API는 저장소 소비자가 0이어도 발행 표면으로 통과한다 (R30)', () => {
+  it('Task 5 모션 API가 배럴을 타고 공개 표면까지 실제로 이어져 있다 (R30)', () => {
     // 규칙은 "소비자 0이면 실패"가 아니라 "저장소 안 소비자가 0인데
     // src/index.ts로도 안 나가고 허용 목록에도 없으면 실패"다. 이 구분이
     // 빠지면 검사가 정상적인 발행 API(Task 5 산출물)를 결함으로 신고한다.
