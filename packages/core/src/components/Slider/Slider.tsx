@@ -117,10 +117,16 @@ export const Slider = forwardRef<HTMLInputElement, SliderProps>(
           <div className={sliderTrack} />
           <div
             className={sliderFillTrack}
-            style={{
-              width: `${fillPercent}%`,
-              ...(trackColor ? { backgroundColor: trackColor } : {}),
-            }}
+            style={
+              {
+                // Slider.css.ts의 transform: scaleX(var(--slider-fill-scale))가
+                // translateY(-50%)와 합성한다 — 여기서 transform 문자열을 직접
+                // 조립하면 세로 정렬이 두 곳에 흩어진다. 비율(0~1)로 한 번만
+                // 나눠서 넘긴다(fillPercent는 0~100).
+                '--slider-fill-scale': fillPercent / 100,
+                ...(trackColor ? { backgroundColor: trackColor } : {}),
+              } as React.CSSProperties
+            }
           />
           <input
             ref={ref}

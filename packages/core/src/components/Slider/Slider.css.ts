@@ -71,12 +71,19 @@ export const sliderFillTrack = style({
   position: 'absolute',
   top: '50%',
   left: 0,
+  width: '100%',
   height: '6px',
   backgroundColor: themeContract.color.primary.main,
   borderRadius: '3px',
-  transform: 'translateY(-50%)',
+  // translateY(-50%)는 세로 중앙 정렬, scaleX(var(...))는 JS가 매 프레임 쓰는
+  // 채움 비율이다 — 한쪽이 다른 쪽을 덮어쓰지 않도록 하나의 transform으로 합성한다.
+  transform: 'translateY(-50%) scaleX(var(--slider-fill-scale, 0))',
+  transformOrigin: 'left center',
   pointerEvents: 'none',
-  transition: 'width 0.05s ease-out',
+  // width가 아닌 transform을 전이하므로 컴포지터에서 처리되어 레이아웃 재계산이
+  // 없다. 0.05s는 드래그 중 fill이 thumb를 프레임 단위로 따라붙게 하려는 의도된
+  // 값이라 duration 토큰으로 올리지 않는다(T8 하드코딩 duration 검사의 의도된 예외).
+  transition: 'transform 0.05s ease-out',
 });
 
 // Slider Input

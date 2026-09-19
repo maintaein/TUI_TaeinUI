@@ -417,7 +417,7 @@ describe('Slider', () => {
 
       const fillTrack = container.querySelector('[class*="sliderFillTrack"]');
       expect(fillTrack).toBeInTheDocument();
-      expect(fillTrack).toHaveStyle({ width: '50%' });
+      expect(fillTrack).toHaveStyle({ '--slider-fill-scale': '0.5' });
     });
 
     it('trackColor로 fill 트랙 색상을 변경할 수 있다', () => {
@@ -434,7 +434,7 @@ describe('Slider', () => {
       expect(fillTrack).toHaveStyle({ backgroundColor: '#ff0000' });
     });
 
-    it('value가 min일 때 fill 너비가 0%이다', () => {
+    it('value가 min일 때 fill 채움 비율이 0이다', () => {
       const { container } = render(
         <Slider
           label="슬라이더"
@@ -446,10 +446,10 @@ describe('Slider', () => {
       );
 
       const fillTrack = container.querySelector('[class*="sliderFillTrack"]');
-      expect(fillTrack).toHaveStyle({ width: '0%' });
+      expect(fillTrack).toHaveStyle({ '--slider-fill-scale': '0' });
     });
 
-    it('value가 max일 때 fill 너비가 100%이다', () => {
+    it('value가 max일 때 fill 채움 비율이 1이다', () => {
       const { container } = render(
         <Slider
           label="슬라이더"
@@ -461,7 +461,7 @@ describe('Slider', () => {
       );
 
       const fillTrack = container.querySelector('[class*="sliderFillTrack"]');
-      expect(fillTrack).toHaveStyle({ width: '100%' });
+      expect(fillTrack).toHaveStyle({ '--slider-fill-scale': '1' });
     });
   });
 
