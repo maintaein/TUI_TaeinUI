@@ -57,7 +57,7 @@ export const backdropEnter = style({
 });
 
 export const backdropExit = style({
-  animation: `${fadeOut} ${themeContract.animation.duration.base} ${themeContract.animation.easing.settle} forwards`,
+  animation: `${fadeOut} ${themeContract.animation.duration.base} ${themeContract.animation.easing.exit} forwards`,
 });
 
 export const bottomSheet = style({
@@ -83,7 +83,7 @@ export const bottomSheetEnter = style({
 });
 
 export const bottomSheetExit = style({
-  animation: `${slideDown} ${themeContract.animation.duration.slow} ${themeContract.animation.easing.settle} forwards`,
+  animation: `${slideDown} ${themeContract.animation.duration.slow} ${themeContract.animation.easing.exit} forwards`,
 });
 
 export const heightStyles = styleVariants({

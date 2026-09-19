@@ -88,6 +88,9 @@ const BottomSheetRoot = ({
   const startYRef = useRef<number>(0);
   const isDraggingRef = useRef(false);
   const isClosingViaDragRef = useRef(false);
+  const dragCloseFallbackRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null
+  );
 
   const [shouldRender, setShouldRender] = useState(open);
 
@@ -135,14 +138,27 @@ const BottomSheetRoot = ({
         sheet.style.transition = 'transform 0.2s ease-out';
         sheet.style.transform = 'translateY(100%)';
 
-        const handleTransitionEnd = () => {
+        let settled = false;
+        const settle = () => {
+          if (settled) return;
+          settled = true;
+
           sheet.removeEventListener('transitionend', handleTransitionEnd);
+          if (dragCloseFallbackRef.current) {
+            clearTimeout(dragCloseFallbackRef.current);
+            dragCloseFallbackRef.current = null;
+          }
 
           setShouldRender(false);
           onClose();
         };
 
+        const handleTransitionEnd = () => settle();
         sheet.addEventListener('transitionend', handleTransitionEnd);
+
+        // transitionend 폴백: 드래그가 중단돼 transition이 시작되지 않으면
+        // 시트가 영영 안 닫히는 것을 막는다. 위 transition(0.2s)과 지속시간을 맞춘다.
+        dragCloseFallbackRef.current = setTimeout(settle, 200);
       } else {
         // 원위치로 복구
         sheet.style.transition = 'transform 0.2s ease-out';
@@ -225,6 +241,11 @@ const BottomSheetRoot = ({
       sheet.removeEventListener('mousedown', handleMouseDown);
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleMouseUp);
+
+      if (dragCloseFallbackRef.current) {
+        clearTimeout(dragCloseFallbackRef.current);
+        dragCloseFallbackRef.current = null;
+      }
     };
   }, [enableDrag, open, onClose]);
 

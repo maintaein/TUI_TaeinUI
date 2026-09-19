@@ -405,6 +405,44 @@ describe('BottomSheet', () => {
     });
   });
 
+  describe('드래그 닫기 폴백 타이머', () => {
+    beforeEach(() => {
+      vi.useFakeTimers();
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it('transitionend가 오지 않아도 폴백 타이머로 닫힌다', () => {
+      render(<BottomSheet {...defaultProps} enableDrag />);
+      const sheet = screen.getByRole('dialog');
+
+      fireEvent.touchStart(sheet, { touches: [{ clientY: 100 }] });
+      fireEvent.touchMove(sheet, { touches: [{ clientY: 300 }] });
+      fireEvent.touchEnd(sheet, { changedTouches: [{ clientY: 300 }] });
+
+      // transitionend를 일부러 발생시키지 않는다 — 드래그가 중단된 상황을 흉내 낸다.
+      vi.advanceTimersByTime(200);
+
+      expect(defaultProps.onClose).toHaveBeenCalledTimes(1);
+    });
+
+    it('transitionend가 먼저 오면 폴백 타이머가 중복 호출하지 않는다', () => {
+      render(<BottomSheet {...defaultProps} enableDrag />);
+      const sheet = screen.getByRole('dialog');
+
+      fireEvent.touchStart(sheet, { touches: [{ clientY: 100 }] });
+      fireEvent.touchMove(sheet, { touches: [{ clientY: 300 }] });
+      fireEvent.touchEnd(sheet, { changedTouches: [{ clientY: 300 }] });
+
+      fireEvent.transitionEnd(sheet);
+      vi.advanceTimersByTime(200);
+
+      expect(defaultProps.onClose).toHaveBeenCalledTimes(1);
+    });
+  });
+
   describe('className 테스트', () => {
     it('커스텀 className이 적용된다', () => {
       render(<BottomSheet {...defaultProps} className="custom-class" />);
