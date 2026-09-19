@@ -10,7 +10,7 @@ export const inputContainer = style({
   backgroundColor: themeContract.color.background.paper,
   border: `1px solid ${themeContract.color.border.strong}`,
   borderRadius: '8px',
-  transition: `background-color ${themeContract.animation.duration.fast} ease-in-out, border-color ${themeContract.animation.duration.fast} ease-in-out`,
+  transition: `background-color ${themeContract.animation.duration.fast} ease-in-out, border-color ${themeContract.animation.duration.fast} ease-in-out, box-shadow ${themeContract.animation.duration.fast} ease-in-out`,
   width: 'fit-content',
 
   selectors: {
