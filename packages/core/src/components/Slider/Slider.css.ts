@@ -121,7 +121,10 @@ export const slider = style({
     '&:active::-webkit-slider-thumb': {
       borderColor: themeContract.color.primary.dark,
       boxShadow: '0 1px 3px rgba(0, 0, 0, 0.2)',
-      transform: 'scale(1)',
+      // hover(1.1)보다 커야 한다 — 드래그 중엔 :hover와 :active가 동시에
+      // 매칭되고 소스 순서상 :active가 이기므로, 여기서 hover보다 작은 값을
+      // 쓰면 "잡고 있는 동안 썸이 rest 크기로 보인다".
+      transform: 'scale(1.15)',
     },
     '&:focus-visible::-webkit-slider-thumb': {
       ...focusRing(),
@@ -151,7 +154,8 @@ export const slider = style({
     '&:active::-moz-range-thumb': {
       borderColor: themeContract.color.primary.dark,
       boxShadow: '0 1px 3px rgba(0, 0, 0, 0.2)',
-      transform: 'scale(1)',
+      // webkit과 같은 이유로 hover(1.1)보다 크게 둔다.
+      transform: 'scale(1.15)',
     },
     '&:focus-visible::-moz-range-thumb': {
       ...focusRing(),
