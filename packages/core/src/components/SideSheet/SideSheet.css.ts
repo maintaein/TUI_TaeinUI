@@ -72,8 +72,10 @@ export const backdropEnter = style({
   animation: `${fadeIn} 0.2s ${themeContract.animation.easing.settle}`,
 });
 
+// 등장(0.2s, 안 건드림)의 65%로 압축 — 조항 3의 60~70% 창 안. duration.base(200ms)로는
+// 100%(대칭)가 돼 창을 벗어나 리터럴로 남긴다(패널 exit처럼 딱 맞는 토큰이 없음).
 export const backdropExit = style({
-  animation: `${fadeOut} ${themeContract.animation.duration.base} ${themeContract.animation.easing.exit} forwards`,
+  animation: `${fadeOut} 0.13s ${themeContract.animation.easing.exit} forwards`,
 });
 
 export const sideSheet = style({
