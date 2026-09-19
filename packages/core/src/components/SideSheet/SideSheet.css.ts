@@ -69,13 +69,14 @@ export const backdrop = style({
 });
 
 export const backdropEnter = style({
-  animation: `${fadeIn} 0.2s ${themeContract.animation.easing.settle}`,
+  animation: `${fadeIn} ${themeContract.animation.duration.base} ${themeContract.animation.easing.settle}`,
 });
 
-// 등장(0.2s, 안 건드림)의 65%로 압축 — 조항 3의 60~70% 창 안. duration.base(200ms)로는
-// 100%(대칭)가 돼 창을 벗어나 리터럴로 남긴다(패널 exit처럼 딱 맞는 토큰이 없음).
+// 등장(duration.base)의 65% — 조항 3의 60~70% 창 안. 65%에 맞는 duration 토큰이
+// 없어(fast=75%·base=100%) calc()로 표현한다 — 리터럴과 달리 :root의
+// reduced-motion 오버라이드가 duration.base를 줄이면 이 값도 같이 줄어든다.
 export const backdropExit = style({
-  animation: `${fadeOut} 0.13s ${themeContract.animation.easing.exit} forwards`,
+  animation: `${fadeOut} calc(${themeContract.animation.duration.base} * 0.65) ${themeContract.animation.easing.exit} forwards`,
 });
 
 export const sideSheet = style({
@@ -103,7 +104,7 @@ export const positionStyles = styleVariants({
 });
 
 export const sideSheetEnterRight = style({
-  animation: `${slideInRight} 0.3s ${themeContract.animation.easing.settle}`,
+  animation: `${slideInRight} ${themeContract.animation.duration.slow} ${themeContract.animation.easing.settle}`,
 });
 
 export const sideSheetExitRight = style({
@@ -111,7 +112,7 @@ export const sideSheetExitRight = style({
 });
 
 export const sideSheetEnterLeft = style({
-  animation: `${slideInLeft} 0.3s ${themeContract.animation.easing.settle}`,
+  animation: `${slideInLeft} ${themeContract.animation.duration.slow} ${themeContract.animation.easing.settle}`,
 });
 
 export const sideSheetExitLeft = style({
