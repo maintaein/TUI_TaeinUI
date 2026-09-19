@@ -501,10 +501,10 @@ const LITERAL_EASING_EXCEPTIONS: Exception[] = [
     reason: 'pulse 왕복 곡선',
   },
   {
-    at: 'components/Slider/Slider.css.ts:86',
+    at: 'components/Slider/Slider.css.ts:90',
     values: ['ease-out'],
     owner: 'M2',
-    reason: 'fill 추종 곡선. Task 4가 :83-85에 근거 주석을 남겼다',
+    reason: 'fill 추종 곡선. Task 4가 :87-89에 근거 주석을 남겼다',
   },
   {
     at: 'components/BottomSheet/BottomSheet.tsx:158',
@@ -525,7 +525,7 @@ const LITERAL_EASING_EXCEPTIONS: Exception[] = [
 /** 리터럴 **duration**. 지연은 아래 목록이 따로 맡는다. */
 const LITERAL_DURATION_EXCEPTIONS: Exception[] = [
   {
-    at: 'components/Slider/Slider.css.ts:86',
+    at: 'components/Slider/Slider.css.ts:90',
     values: ['0.05s'],
     owner: '-',
     reason:
@@ -706,7 +706,8 @@ describe('전이 목록 잠금 (T3)', () => {
   });
 
   it('자기 전이를 가진 블록이 상태에서 boxShadow를 바꾸면 그 목록에 box-shadow가 있다', () => {
-    // T3이 TextField:38에, T4가 NumericSpinner:64에 box-shadow를 넣은 이유다.
+    // TextField.css.ts:38(T3), NumericSpinner.css.ts:13 컨테이너(d03c209),
+    // NumericSpinner.css.ts:64 input(63a2b53)에 box-shadow를 넣은 이유다.
     // 빠지면 focus·error halo가 페이드 없이 툭 튄다.
     //
     // 자기 전이가 없는 블록은 판정에서 뺀다. vanilla-extract는 별개 `style()`

@@ -74,6 +74,10 @@ export const sliderFillTrack = style({
   width: '100%',
   height: '6px',
   backgroundColor: themeContract.color.primary.main,
+  // 3px 캡은 scaleX에 같이 눌린다. SegmentedButtons(:26-29)가 바로 그 이유로
+  // width 전이를 유지한 것과 모순은 아니다 — fill은 반지름이 트랙 높이의 절반뿐이고
+  // 같이 늘어날 boxShadow도 없다. 캡을 지우면 100% 채움에서 둥근 끝이 사라져 시각
+  // 퇴행이라 유지한다. 진짜 교정은 Slider 모션을 소유하는 M2 소관이다.
   borderRadius: '3px',
   // translateY(-50%)는 세로 중앙 정렬, scaleX(var(...))는 JS가 매 프레임 쓰는
   // 채움 비율이다 — 한쪽이 다른 쪽을 덮어쓰지 않도록 하나의 transform으로 합성한다.

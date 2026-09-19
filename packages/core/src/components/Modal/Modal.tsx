@@ -30,6 +30,8 @@ import { createOverlayContext } from '../../_internal/createOverlayContext';
 
 // 퇴장 전이(exit CSS transition, duration.base)와 맞춘다 — 등장(slow, 300ms)의
 // 66.7%로, 모션 명세 조항 3의 "퇴장은 등장의 60~70%" 범위를 만족한다.
+// `themeContract.animation.duration.base`와 같은 값이다 — 한쪽을 바꾸면 다른
+// 쪽도 바꿔야 CSS 퇴장이 끝나기 전에 DOM이 사라지거나 그 반대가 된다.
 const EXIT_DURATION_MS = 200;
 
 // Context로 onClose·titleId 전달 (Header의 닫기 버튼, Title의 id 연결에서 사용)
