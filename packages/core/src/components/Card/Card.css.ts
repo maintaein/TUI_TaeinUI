@@ -9,7 +9,7 @@ export const cardRoot = style({
   backgroundColor: themeContract.color.background.paper,
   borderRadius: themeContract.borderRadius.lg,
   overflow: 'hidden',
-  transition: 'all 0.2s ease',
+  transition: `transform ${themeContract.animation.duration.base} ease, box-shadow ${themeContract.animation.duration.base} ease, opacity ${themeContract.animation.duration.base} ease`,
   border: 'none',
   textAlign: 'left',
   width: '100%',
@@ -32,7 +32,7 @@ export const variantStyles = styleVariants({
   interactive: {
     border: `2px solid ${themeContract.color.border.default}`,
     boxShadow: 'none',
-    transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
+    transition: `transform ${themeContract.animation.duration.slow} cubic-bezier(0.4, 0, 0.2, 1), box-shadow ${themeContract.animation.duration.slow} cubic-bezier(0.4, 0, 0.2, 1), opacity ${themeContract.animation.duration.slow} cubic-bezier(0.4, 0, 0.2, 1)`,
 
     selectors: {
       '&:hover': {

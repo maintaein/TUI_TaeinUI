@@ -34,7 +34,7 @@ export const textarea = style({
   color: themeContract.color.text.primary,
   fontFamily: 'inherit',
   outline: 'none',
-  transition: `all ${themeContract.animation.duration.fast} ${themeContract.animation.easing.settle}`,
+  transition: `background-color ${themeContract.animation.duration.fast} ${themeContract.animation.easing.settle}, border-color ${themeContract.animation.duration.fast} ${themeContract.animation.easing.settle}, box-shadow ${themeContract.animation.duration.fast} ${themeContract.animation.easing.settle}, color ${themeContract.animation.duration.fast} ${themeContract.animation.easing.settle}`,
   lineHeight: 1.5,
   resize: 'none',
 

@@ -15,7 +15,7 @@ export const chip = recipe({
     fontSize: themeContract.font.size.sm,
     lineHeight: 1,
     userSelect: 'none',
-    transition: 'all 0.2s ease',
+    transition: `transform ${themeContract.animation.duration.base} ease, box-shadow ${themeContract.animation.duration.base} ease, opacity ${themeContract.animation.duration.base} ease`,
     cursor: 'default',
     whiteSpace: 'nowrap',
   },
@@ -199,7 +199,7 @@ export const deleteButton = style({
   touchAction: 'manipulation',
   color: 'inherit',
   opacity: 0.7,
-  transition: 'opacity 0.2s ease',
+  transition: `opacity ${themeContract.animation.duration.base} ease`,
   flexShrink: 0,
 
   ':hover': {

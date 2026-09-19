@@ -10,7 +10,7 @@ export const inputContainer = style({
   backgroundColor: themeContract.color.background.paper,
   border: `1px solid ${themeContract.color.border.strong}`,
   borderRadius: '8px',
-  transition: 'all 150ms ease-in-out',
+  transition: `background-color ${themeContract.animation.duration.fast} ease-in-out, border-color ${themeContract.animation.duration.fast} ease-in-out`,
   width: 'fit-content',
 
   selectors: {
@@ -61,12 +61,11 @@ export const input = style({
   padding: '0.5rem 0',
   margin: '0 8px',
   borderRadius: '6px',
-  transition:
-    'transform 0.6s cubic-bezier(0.25, 0.8, 0.5, 1), background-color 0.2s ease, color 0.2s ease',
+  transition: `transform ${themeContract.animation.duration.slow} cubic-bezier(0.25, 0.8, 0.5, 1), background-color ${themeContract.animation.duration.base} ease, color ${themeContract.animation.duration.base} ease`,
 
   selectors: {
     [`${inputContainer}:has(button:active:not(:disabled)) &`]: {
-      animation: `${clickPulse} 0.7s cubic-bezier(0.25, 0.8, 0.25, 1) forwards`,
+      animation: `${clickPulse} ${themeContract.animation.duration.slower} cubic-bezier(0.25, 0.8, 0.25, 1) forwards`,
       color: themeContract.color.primary.main,
       transition: 'none',
     },
@@ -120,7 +119,7 @@ export const button = style({
   color: themeContract.color.text.primary,
   cursor: 'pointer',
   touchAction: 'manipulation',
-  transition: 'all 150ms ease-in-out',
+  transition: `background-color ${themeContract.animation.duration.fast} ease-in-out, color ${themeContract.animation.duration.fast} ease-in-out, transform ${themeContract.animation.duration.fast} ease-in-out`,
   flexShrink: 0,
   minWidth: '44px',
   minHeight: '44px',
