@@ -90,7 +90,9 @@ TDS uses a theme contract (`themeContract`) for consistent styling. 라이트 �
 - **Typography** — sizes 9단계 (2xs ~ 4xl), weights, line heights, variantNumeric(tabular-nums)
 - **Border Radius** — none, sm, base, md, lg, xl, full
 - **Shadow** — none, sm, base, md, lg, xl, 2xl, inner
-- **Animation** — durations (fast/base/slow/slower), easings
+- **Animation** — durations (fast/base/slow/slower), loops (fast/base), easings (settle/snap/spring/exit/linear)
+  공유하는 의미만 토큰이다. 컴포넌트 고유 연출의 delay도 duration·loop의 배수로
+  적고, 오버슈트 이징(snap/spring)은 transform 전용이며 `transition: all`은 안 쓴다
 - **Z-Index** — base < dropdown < sticky < overlay < modal < popover < toast < tooltip
 - **Breakpoints** — sm 360px, md 768px, lg 1024px, xl 1280px (계약 밖의 빌드 타임 상수)
 

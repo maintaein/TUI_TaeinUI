@@ -486,14 +486,25 @@ mono: "SF Mono", Monaco, "Cascadia Code", "Roboto Mono", Consolas, "Courier New"
   <div style={{ fontSize: '0.875rem', marginBottom: '0.5rem' }}>slower - 500ms (매우 느린 전환)</div>
 </div>
 
-### Easing (이징 함수)
+### Loop (반복 주기)
 
 <div style={{ marginTop: '1rem' }}>
-  <div style={{ fontSize: '0.875rem', marginBottom: '0.5rem' }}>ease - ease (기본)</div>
-  <div style={{ fontSize: '0.875rem', marginBottom: '0.5rem' }}>easeIn - ease-in (점점 빠르게)</div>
-  <div style={{ fontSize: '0.875rem', marginBottom: '0.5rem' }}>easeOut - ease-out (점점 느리게)</div>
-  <div style={{ fontSize: '0.875rem', marginBottom: '0.5rem' }}>easeInOut - ease-in-out (부드러운 시작과 끝)</div>
-  <div style={{ fontSize: '0.875rem', marginBottom: '0.5rem' }}>linear - linear (일정한 속도)</div>
+  <div style={{ fontSize: '0.875rem', marginBottom: '0.5rem' }}>fast - 800ms (짧은 한 바퀴 · LoadingSpinner 회전)</div>
+  <div style={{ fontSize: '0.875rem', marginBottom: '0.5rem' }}>base - 1500ms (기본 한 바퀴 · Skeleton wave·pulse, Loader 진행 바)</div>
+</div>
+
+전이(A→B)가 아니라 무한 반복 한 바퀴의 길이라 duration 스케일과 따로 둡니다.
+
+### Easing (이징 함수)
+
+GSAP 이징을 빌드 타임에 샘플링해 CSS `linear()` 곡선으로 굽습니다. 괄호 안은 원본 GSAP 이징입니다.
+
+<div style={{ marginTop: '1rem' }}>
+  <div style={{ fontSize: '0.875rem', marginBottom: '0.5rem' }}>settle - power3.out (감속해 자리를 잡는다 · 상태 전이 기본)</div>
+  <div style={{ fontSize: '0.875rem', marginBottom: '0.5rem' }}>snap - back.out(1.7) (지나쳤다 돌아온다 · 피크 1.0998이라 transform 전용)</div>
+  <div style={{ fontSize: '0.875rem', marginBottom: '0.5rem' }}>spring - elastic.out(1, 0.5) (출렁이다 멈춘다 · 피크 1.2044라 transform 전용)</div>
+  <div style={{ fontSize: '0.875rem', marginBottom: '0.5rem' }}>exit - power2.in (가속하며 빠져나간다 · 퇴장 전용)</div>
+  <div style={{ fontSize: '0.875rem', marginBottom: '0.5rem' }}>linear - none (일정한 속도 · 무한 반복용)</div>
 </div>
 
 ---
@@ -518,7 +529,10 @@ const buttonStyle = {
   padding: `${spacing[3]} ${spacing[6]}`,
   borderRadius: borderRadius.base,
   boxShadow: shadows.md,
-  transition: `all ${duration.base} ${easing.easeInOut}`,
+  // 전이할 속성을 명시한다 — `all`은 레이아웃까지 함께 전이시켜 프레임을 떨군다.
+  transitionProperty: 'transform, box-shadow',
+  transitionDuration: duration.base,
+  transitionTimingFunction: easing.settle,
 };
 ```
 
