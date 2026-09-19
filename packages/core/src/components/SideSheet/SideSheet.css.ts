@@ -73,7 +73,7 @@ export const backdropEnter = style({
 });
 
 export const backdropExit = style({
-  animation: `${fadeOut} 0.2s ${themeContract.animation.easing.settle} forwards`,
+  animation: `${fadeOut} ${themeContract.animation.duration.base} ${themeContract.animation.easing.exit} forwards`,
 });
 
 export const sideSheet = style({
@@ -105,7 +105,7 @@ export const sideSheetEnterRight = style({
 });
 
 export const sideSheetExitRight = style({
-  animation: `${slideOutRight} 0.3s ${themeContract.animation.easing.settle} forwards`,
+  animation: `${slideOutRight} ${themeContract.animation.duration.base} ${themeContract.animation.easing.exit} forwards`,
 });
 
 export const sideSheetEnterLeft = style({
@@ -113,7 +113,7 @@ export const sideSheetEnterLeft = style({
 });
 
 export const sideSheetExitLeft = style({
-  animation: `${slideOutLeft} 0.3s ${themeContract.animation.easing.settle} forwards`,
+  animation: `${slideOutLeft} ${themeContract.animation.duration.base} ${themeContract.animation.easing.exit} forwards`,
 });
 
 export const widthStyles = styleVariants({
