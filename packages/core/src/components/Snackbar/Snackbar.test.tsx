@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { Snackbar } from './Snackbar';
 
@@ -408,6 +408,61 @@ describe('Snackbar', () => {
       ).toBeInTheDocument();
       const snackbars = container.querySelectorAll('[class*="content"]');
       expect(snackbars).toHaveLength(2);
+    });
+  });
+
+  describe('언마운트 지연 테스트', () => {
+    it('open이 false가 돼도 즉시 DOM에서 제거되지 않는다', () => {
+      const { container, rerender } = render(
+        <Snackbar open message="메시지" />
+      );
+      rerender(<Snackbar open={false} message="메시지" />);
+
+      expect(container.querySelector('[class*="content"]')).toBeInTheDocument();
+    });
+
+    it('일정 시간 후 DOM에서 제거된다', () => {
+      const { container, rerender } = render(
+        <Snackbar open message="메시지" />
+      );
+      rerender(<Snackbar open={false} message="메시지" />);
+
+      act(() => {
+        vi.advanceTimersByTime(200);
+      });
+
+      expect(container.querySelector('[class*="content"]')).toBeNull();
+    });
+
+    it('닫히는 도중 다시 열리면 언마운트가 취소된다', () => {
+      const { container, rerender } = render(
+        <Snackbar open message="메시지" />
+      );
+      rerender(<Snackbar open={false} message="메시지" />);
+
+      act(() => {
+        vi.advanceTimersByTime(100);
+      });
+      rerender(<Snackbar open message="메시지" />);
+      act(() => {
+        vi.advanceTimersByTime(300);
+      });
+
+      expect(container.querySelector('[class*="content"]')).toBeInTheDocument();
+    });
+
+    it('컴포넌트가 unmount되면 대기 중인 타이머가 정리된다', () => {
+      const errorSpy = vi.spyOn(console, 'error');
+      const { rerender, unmount } = render(<Snackbar open message="메시지" />);
+      rerender(<Snackbar open={false} message="메시지" />);
+
+      unmount();
+      act(() => {
+        vi.advanceTimersByTime(200);
+      });
+
+      expect(errorSpy).not.toHaveBeenCalled();
+      errorSpy.mockRestore();
     });
   });
 });

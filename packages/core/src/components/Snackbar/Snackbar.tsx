@@ -8,6 +8,7 @@ import {
 import clsx from 'clsx';
 import {
   snackbar,
+  snackbarExit,
   severityStyles,
   positionStyles,
   content,
@@ -18,6 +19,10 @@ import {
 } from './Snackbar.css';
 import { IconButton } from '../IconButton';
 import { Icon, type IconName } from '../Icon';
+
+// 퇴장 전이(exit CSS transition, duration.base)와 맞춘다 — 등장(slow, 300ms)의
+// 66.7%로, 모션 명세 조항 3의 "퇴장은 등장의 60~70%" 범위를 만족한다.
+const EXIT_DURATION_MS = 200;
 
 /** 화면 모서리에 일시적으로 표시되는 알림 컴포넌트 */
 export interface SnackbarProps extends Omit<
@@ -86,6 +91,25 @@ export const Snackbar = ({
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const [liveMessage, setLiveMessage] = useState<ReactNode>(null);
 
+  // open이 꺼져도 DOM을 즉시 지우지 않고 한 틱 늦춰 언마운트한다 — 퇴장 전이가
+  // 재생될 자리를 남겨 둔다. 애니메이션 종료 이벤트가 아니라 타이머로 배선해
+  // 빠른 연속 개폐에서도 정확성이 이벤트 발생 여부에 기대지 않는다.
+  const [shouldRender, setShouldRender] = useState(open);
+
+  if (open && !shouldRender) {
+    setShouldRender(true);
+  }
+
+  useEffect(() => {
+    if (open || !shouldRender) return;
+
+    const timer = setTimeout(() => {
+      setShouldRender(false);
+    }, EXIT_DURATION_MS);
+
+    return () => clearTimeout(timer);
+  }, [open, shouldRender]);
+
   useEffect(() => {
     // 렌더 중에 바로 채우면 리전 노드와 내용이 동시에 생겨 스크린 리더가 못 읽는 경우가
     // 생긴다(처음부터 open인 채 마운트하는 경로). 한 틱 늦게 채우는 것이 목적이라 의도적으로
@@ -133,12 +157,13 @@ export const Snackbar = ({
       <div role="status" className={visuallyHidden}>
         {liveMessage}
       </div>
-      {open && (
+      {shouldRender && (
         <div
           className={clsx(
             snackbar,
             severityStyles[severity],
             positionStyles[position],
+            !open && snackbarExit,
             className
           )}
           {...props}

@@ -1,5 +1,7 @@
 import {
   useMemo,
+  useEffect,
+  useState,
   forwardRef,
   useId,
   useRef,
@@ -12,6 +14,7 @@ import {
   backdrop,
   modalContainer,
   modalDialog,
+  modalDialogExit,
   sizeStyles,
   modalHeader as modalHeaderStyle,
   modalHeaderContent,
@@ -23,6 +26,10 @@ import {
 } from './Modal.css';
 import { useFocusTrap } from '../../_internal/useFocusTrap';
 import { createOverlayContext } from '../../_internal/createOverlayContext';
+
+// 퇴장 전이(exit CSS transition, duration.base)와 맞춘다 — 등장(slow, 300ms)의
+// 66.7%로, 모션 명세 조항 3의 "퇴장은 등장의 60~70%" 범위를 만족한다.
+const EXIT_DURATION_MS = 200;
 
 // Context로 onClose·titleId 전달 (Header의 닫기 버튼, Title의 id 연결에서 사용)
 interface ModalContextValue {
@@ -88,6 +95,25 @@ const ModalRoot = ({
   const dialogRef = useRef<HTMLDivElement>(null);
   const titleId = useId();
 
+  // open이 꺼져도 DOM을 즉시 지우지 않고 한 틱 늦춰 언마운트한다 — 퇴장 전이가
+  // 재생될 자리를 남겨 둔다. 애니메이션 종료 이벤트가 아니라 타이머로 배선해
+  // 빠른 연속 개폐에서도 정확성이 이벤트 발생 여부에 기대지 않는다.
+  const [shouldRender, setShouldRender] = useState(open);
+
+  if (open && !shouldRender) {
+    setShouldRender(true);
+  }
+
+  useEffect(() => {
+    if (open || !shouldRender) return;
+
+    const timer = setTimeout(() => {
+      setShouldRender(false);
+    }, EXIT_DURATION_MS);
+
+    return () => clearTimeout(timer);
+  }, [open, shouldRender]);
+
   useFocusTrap({ open, onClose, closeOnEscape, containerRef: dialogRef });
 
   const contextValue = useMemo(
@@ -95,7 +121,7 @@ const ModalRoot = ({
     [onClose, titleId]
   );
 
-  if (!open) return null;
+  if (!shouldRender) return null;
 
   const handleBackdropClick = (e: React.MouseEvent<HTMLDivElement>) => {
     if (e.target === e.currentTarget && closeOnBackdropClick) {
@@ -176,7 +202,12 @@ const ModalRoot = ({
           aria-labelledby={labelledby}
           aria-describedby={ariaDescribedby}
           aria-label={ariaLabel}
-          className={clsx(modalDialog, sizeStyles[size], className)}
+          className={clsx(
+            modalDialog,
+            sizeStyles[size],
+            !open && modalDialogExit,
+            className
+          )}
           onClick={(e) => e.stopPropagation()}
           {...props}
         >

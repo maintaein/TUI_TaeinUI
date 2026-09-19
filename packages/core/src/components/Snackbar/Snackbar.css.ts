@@ -66,6 +66,13 @@ export const snackbar = style({
   color: themeContract.color.primary.contrast,
 });
 
+// 퇴장 전이. M3가 되돌릴 타임라인으로 통째로 교체할 자리 — 최소한의 CSS
+// transition으로 `exit` 토큰에 소비자를 붙인다.
+export const snackbarExit = style({
+  opacity: 0,
+  transition: `opacity ${themeContract.animation.duration.base} ${themeContract.animation.easing.exit}`,
+});
+
 // Severity 스타일
 export const severityStyles = styleVariants({
   success: {

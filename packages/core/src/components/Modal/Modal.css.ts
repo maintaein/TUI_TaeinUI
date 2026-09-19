@@ -62,6 +62,13 @@ export const modalDialog = style({
   },
 });
 
+// 퇴장 전이. M3가 되돌릴 타임라인으로 통째로 교체할 자리 — 최소한의 CSS
+// transition으로 `exit` 토큰에 소비자를 붙인다.
+export const modalDialogExit = style({
+  opacity: 0,
+  transition: `opacity ${themeContract.animation.duration.base} ${themeContract.animation.easing.exit}`,
+});
+
 export const sizeStyles = styleVariants({
   sm: {
     width: '400px',

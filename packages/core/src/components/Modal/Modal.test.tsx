@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, act } from '@testing-library/react';
 import { Modal } from './index';
 
 describe('Modal', () => {
@@ -287,6 +287,65 @@ describe('Modal', () => {
       render(<Modal {...defaultProps} />);
       const backdrop = document.querySelector('[data-backdrop="true"]');
       expect(backdrop).toBeInTheDocument();
+    });
+  });
+
+  describe('언마운트 지연 테스트', () => {
+    beforeEach(() => {
+      vi.useFakeTimers();
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it('open이 false가 돼도 즉시 DOM에서 제거되지 않는다', () => {
+      const { rerender } = render(<Modal {...defaultProps} open={true} />);
+      rerender(<Modal {...defaultProps} open={false} />);
+
+      expect(screen.getByRole('dialog')).toBeInTheDocument();
+    });
+
+    it('일정 시간 후 DOM에서 제거된다', () => {
+      const { rerender } = render(<Modal {...defaultProps} open={true} />);
+      rerender(<Modal {...defaultProps} open={false} />);
+
+      act(() => {
+        vi.advanceTimersByTime(200);
+      });
+
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    });
+
+    it('닫히는 도중 다시 열리면 언마운트가 취소된다', () => {
+      const { rerender } = render(<Modal {...defaultProps} open={true} />);
+      rerender(<Modal {...defaultProps} open={false} />);
+
+      act(() => {
+        vi.advanceTimersByTime(100);
+      });
+      rerender(<Modal {...defaultProps} open={true} />);
+      act(() => {
+        vi.advanceTimersByTime(300);
+      });
+
+      expect(screen.getByRole('dialog')).toBeInTheDocument();
+    });
+
+    it('컴포넌트가 unmount되면 대기 중인 타이머가 정리된다', () => {
+      const errorSpy = vi.spyOn(console, 'error');
+      const { rerender, unmount } = render(
+        <Modal {...defaultProps} open={true} />
+      );
+      rerender(<Modal {...defaultProps} open={false} />);
+
+      unmount();
+      act(() => {
+        vi.advanceTimersByTime(200);
+      });
+
+      expect(errorSpy).not.toHaveBeenCalled();
+      errorSpy.mockRestore();
     });
   });
 });
