@@ -53,11 +53,11 @@ export const backdrop = style({
 });
 
 export const backdropEnter = style({
-  animation: `${fadeIn} ${themeContract.animation.duration.base} ${themeContract.animation.easing.easeOut}`,
+  animation: `${fadeIn} ${themeContract.animation.duration.base} ${themeContract.animation.easing.settle}`,
 });
 
 export const backdropExit = style({
-  animation: `${fadeOut} ${themeContract.animation.duration.base} ${themeContract.animation.easing.easeOut} forwards`,
+  animation: `${fadeOut} ${themeContract.animation.duration.base} ${themeContract.animation.easing.settle} forwards`,
 });
 
 export const bottomSheet = style({
@@ -79,11 +79,11 @@ export const bottomSheet = style({
 });
 
 export const bottomSheetEnter = style({
-  animation: `${slideUp} ${themeContract.animation.duration.slow} ${themeContract.animation.easing.easeOut}`,
+  animation: `${slideUp} ${themeContract.animation.duration.slow} ${themeContract.animation.easing.settle}`,
 });
 
 export const bottomSheetExit = style({
-  animation: `${slideDown} ${themeContract.animation.duration.slow} ${themeContract.animation.easing.easeOut} forwards`,
+  animation: `${slideDown} ${themeContract.animation.duration.slow} ${themeContract.animation.easing.settle} forwards`,
 });
 
 export const heightStyles = styleVariants({
@@ -148,7 +148,7 @@ export const closeButton = style({
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'center',
-  transition: `background-color ${themeContract.animation.duration.fast} ${themeContract.animation.easing.easeInOut}`,
+  transition: `background-color ${themeContract.animation.duration.fast} ${themeContract.animation.easing.settle}`,
 
   ':hover': {
     backgroundColor: themeContract.color.background.paper,

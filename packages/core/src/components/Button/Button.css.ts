@@ -14,7 +14,7 @@ export const button = recipe({
     border: 'none',
     cursor: 'pointer',
     touchAction: 'manipulation',
-    transition: `all ${themeContract.animation.duration.base} ${themeContract.animation.easing.easeInOut}`,
+    transition: `all ${themeContract.animation.duration.base} ${themeContract.animation.easing.settle}`,
     userSelect: 'none',
     textDecoration: 'none',
     position: 'relative',

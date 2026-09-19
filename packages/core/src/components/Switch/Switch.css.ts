@@ -71,7 +71,7 @@ export const size = styleVariants(baseSizeContainer, (baseStyle) => [
   {
     backgroundColor: themeContract.color.text.secondary,
     border: '2px solid transparent',
-    transition: `all ${themeContract.animation.duration.fast} ${themeContract.animation.easing.easeInOut}`,
+    transition: `all ${themeContract.animation.duration.fast} ${themeContract.animation.easing.settle}`,
     position: 'relative',
     display: 'inline-block',
     flexShrink: 0,
@@ -121,7 +121,7 @@ export const thumbSize = styleVariants(
     height: config.height,
     borderRadius: '50%',
     backgroundColor: themeContract.color.background.paper,
-    transition: `all ${themeContract.animation.duration.fast} ${themeContract.animation.easing.easeInOut}`,
+    transition: `all ${themeContract.animation.duration.fast} ${themeContract.animation.easing.settle}`,
     boxShadow: '0 2px 4px rgba(0, 0, 0, 0.2)',
 
     selectors: {

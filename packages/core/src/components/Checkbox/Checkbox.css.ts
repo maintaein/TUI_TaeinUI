@@ -70,7 +70,7 @@ export const checkmark = style({
   border: `2px solid ${themeContract.color.text.secondary}`,
   borderRadius: '4px',
   backgroundColor: themeContract.color.background.paper,
-  transition: `all ${themeContract.animation.duration.fast} ${themeContract.animation.easing.easeInOut}`,
+  transition: `all ${themeContract.animation.duration.fast} ${themeContract.animation.easing.settle}`,
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'center',

@@ -102,7 +102,7 @@ export const slider = style({
       backgroundColor: themeContract.color.background.paper,
       border: `2px solid ${themeContract.color.primary.main}`,
       cursor: 'pointer',
-      transition: `all ${themeContract.animation.duration.base} ${themeContract.animation.easing.easeInOut}`,
+      transition: `all ${themeContract.animation.duration.base} ${themeContract.animation.easing.settle}`,
       boxShadow: '0 1px 4px rgba(0, 0, 0, 0.15)',
       marginTop: '-9px',
     },
@@ -133,7 +133,7 @@ export const slider = style({
       backgroundColor: themeContract.color.background.paper,
       border: `2px solid ${themeContract.color.primary.main}`,
       cursor: 'pointer',
-      transition: `all ${themeContract.animation.duration.base} ${themeContract.animation.easing.easeInOut}`,
+      transition: `all ${themeContract.animation.duration.base} ${themeContract.animation.easing.settle}`,
       boxShadow: '0 1px 4px rgba(0, 0, 0, 0.15)',
     },
     '&:hover::-moz-range-thumb': {

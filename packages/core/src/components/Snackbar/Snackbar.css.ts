@@ -93,34 +93,34 @@ export const positionStyles = styleVariants({
   'top-left': {
     top: themeContract.spacing[6],
     left: themeContract.spacing[6],
-    animation: `${slideInFromTop} ${themeContract.animation.duration.slow} ${themeContract.animation.easing.easeOut}`,
+    animation: `${slideInFromTop} ${themeContract.animation.duration.slow} ${themeContract.animation.easing.settle}`,
   },
   'top-center': {
     top: themeContract.spacing[6],
     left: '50%',
     transform: 'translateX(-50%)',
-    animation: `${slideInFromTopCenter} ${themeContract.animation.duration.slow} ${themeContract.animation.easing.easeOut}`,
+    animation: `${slideInFromTopCenter} ${themeContract.animation.duration.slow} ${themeContract.animation.easing.settle}`,
   },
   'top-right': {
     top: themeContract.spacing[6],
     right: themeContract.spacing[6],
-    animation: `${slideInFromTop} ${themeContract.animation.duration.slow} ${themeContract.animation.easing.easeOut}`,
+    animation: `${slideInFromTop} ${themeContract.animation.duration.slow} ${themeContract.animation.easing.settle}`,
   },
   'bottom-left': {
     bottom: themeContract.spacing[6],
     left: themeContract.spacing[6],
-    animation: `${slideInFromBottom} ${themeContract.animation.duration.slow} ${themeContract.animation.easing.easeOut}`,
+    animation: `${slideInFromBottom} ${themeContract.animation.duration.slow} ${themeContract.animation.easing.settle}`,
   },
   'bottom-center': {
     bottom: themeContract.spacing[6],
     left: '50%',
     transform: 'translateX(-50%)',
-    animation: `${slideInFromBottomCenter} ${themeContract.animation.duration.slow} ${themeContract.animation.easing.easeOut}`,
+    animation: `${slideInFromBottomCenter} ${themeContract.animation.duration.slow} ${themeContract.animation.easing.settle}`,
   },
   'bottom-right': {
     bottom: themeContract.spacing[6],
     right: themeContract.spacing[6],
-    animation: `${slideInFromBottom} ${themeContract.animation.duration.slow} ${themeContract.animation.easing.easeOut}`,
+    animation: `${slideInFromBottom} ${themeContract.animation.duration.slow} ${themeContract.animation.easing.settle}`,
   },
 });
 
@@ -162,7 +162,7 @@ export const closeButton = style({
   cursor: 'pointer',
   touchAction: 'manipulation',
   opacity: 0.8,
-  transition: `opacity ${themeContract.animation.duration.base} ${themeContract.animation.easing.easeInOut}`,
+  transition: `opacity ${themeContract.animation.duration.base} ${themeContract.animation.easing.settle}`,
 
   ':hover': {
     opacity: 1,

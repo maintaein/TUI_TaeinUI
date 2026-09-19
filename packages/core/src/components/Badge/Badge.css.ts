@@ -11,7 +11,7 @@ export const badge = style({
   letterSpacing: themeContract.font.letterSpacing.wide,
   borderRadius: '12px',
   whiteSpace: 'nowrap',
-  transition: `all ${themeContract.animation.duration.base} ${themeContract.animation.easing.easeInOut}`,
+  transition: `all ${themeContract.animation.duration.base} ${themeContract.animation.easing.settle}`,
   lineHeight: 1,
   minWidth: '20px',
 });

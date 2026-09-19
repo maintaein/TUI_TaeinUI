@@ -69,11 +69,11 @@ export const backdrop = style({
 });
 
 export const backdropEnter = style({
-  animation: `${fadeIn} 0.2s ${themeContract.animation.easing.easeOut}`,
+  animation: `${fadeIn} 0.2s ${themeContract.animation.easing.settle}`,
 });
 
 export const backdropExit = style({
-  animation: `${fadeOut} 0.2s ${themeContract.animation.easing.easeOut} forwards`,
+  animation: `${fadeOut} 0.2s ${themeContract.animation.easing.settle} forwards`,
 });
 
 export const sideSheet = style({
@@ -101,19 +101,19 @@ export const positionStyles = styleVariants({
 });
 
 export const sideSheetEnterRight = style({
-  animation: `${slideInRight} 0.3s ${themeContract.animation.easing.easeOut}`,
+  animation: `${slideInRight} 0.3s ${themeContract.animation.easing.settle}`,
 });
 
 export const sideSheetExitRight = style({
-  animation: `${slideOutRight} 0.3s ${themeContract.animation.easing.easeOut} forwards`,
+  animation: `${slideOutRight} 0.3s ${themeContract.animation.easing.settle} forwards`,
 });
 
 export const sideSheetEnterLeft = style({
-  animation: `${slideInLeft} 0.3s ${themeContract.animation.easing.easeOut}`,
+  animation: `${slideInLeft} 0.3s ${themeContract.animation.easing.settle}`,
 });
 
 export const sideSheetExitLeft = style({
-  animation: `${slideOutLeft} 0.3s ${themeContract.animation.easing.easeOut} forwards`,
+  animation: `${slideOutLeft} 0.3s ${themeContract.animation.easing.settle} forwards`,
 });
 
 export const widthStyles = styleVariants({
@@ -163,7 +163,7 @@ export const closeButton = style({
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'center',
-  transition: `background-color ${themeContract.animation.duration.fast} ${themeContract.animation.easing.easeInOut}`,
+  transition: `background-color ${themeContract.animation.duration.fast} ${themeContract.animation.easing.settle}`,
 
   ':hover': {
     backgroundColor: themeContract.color.background.paper,

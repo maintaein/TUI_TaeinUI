@@ -8,7 +8,7 @@ export const headerBar = style({
   justifyContent: 'space-between',
   gap: themeContract.spacing[4],
   padding: `${themeContract.spacing[4]} ${themeContract.spacing[6]}`,
-  transition: `box-shadow ${themeContract.animation.duration.base} ${themeContract.animation.easing.easeInOut}`,
+  transition: `box-shadow ${themeContract.animation.duration.base} ${themeContract.animation.easing.settle}`,
   zIndex: themeContract.zIndex.sticky,
   transform: 'translateZ(0)',
   willChange: 'transform, backdrop-filter',

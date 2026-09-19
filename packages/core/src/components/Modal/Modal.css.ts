@@ -43,7 +43,7 @@ export const backdrop = style({
   right: 0,
   bottom: 0,
   backgroundColor: themeContract.color.overlay.scrim,
-  animation: `${fadeIn} ${themeContract.animation.duration.base} ${themeContract.animation.easing.easeOut}`,
+  animation: `${fadeIn} ${themeContract.animation.duration.base} ${themeContract.animation.easing.settle}`,
   zIndex: -1,
 });
 
@@ -53,7 +53,7 @@ export const modalDialog = style({
   borderRadius: themeContract.borderRadius.lg,
   boxShadow: themeContract.shadow.xl,
   maxWidth: '100%',
-  animation: `${slideIn} ${themeContract.animation.duration.slow} ${themeContract.animation.easing.easeOut}`,
+  animation: `${slideIn} ${themeContract.animation.duration.slow} ${themeContract.animation.easing.settle}`,
   outline: 'none',
   margin: 'auto 0',
 
@@ -122,7 +122,7 @@ export const modalCloseButton = style({
   cursor: 'pointer',
   touchAction: 'manipulation',
   flexShrink: 0,
-  transition: `all ${themeContract.animation.duration.fast} ${themeContract.animation.easing.easeOut}`,
+  transition: `all ${themeContract.animation.duration.fast} ${themeContract.animation.easing.settle}`,
 
   ':hover': {
     backgroundColor: themeContract.color.surface.hover,

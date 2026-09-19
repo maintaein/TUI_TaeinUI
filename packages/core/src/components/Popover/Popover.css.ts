@@ -20,7 +20,7 @@ export const popover = style({
   borderRadius: themeContract.borderRadius.md,
   boxShadow: themeContract.shadow.lg,
   border: `1px solid ${themeContract.color.border.default}`,
-  animation: `${fadeIn} 0.15s ${themeContract.animation.easing.easeOut}`,
+  animation: `${fadeIn} 0.15s ${themeContract.animation.easing.settle}`,
   width: 'max-content',
   minWidth: '120px',
   overflow: 'visible',
