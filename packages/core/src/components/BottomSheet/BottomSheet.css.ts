@@ -56,8 +56,11 @@ export const backdropEnter = style({
   animation: `${fadeIn} ${themeContract.animation.duration.base} ${themeContract.animation.easing.settle}`,
 });
 
+// 등장(duration.base)의 65% — 조항 3의 60~70% 창 안. 65%에 맞는 duration 토큰이
+// 없어(fast=75%·base=100%) calc()로 표현한다 — 리터럴과 달리 :root의
+// reduced-motion 오버라이드가 duration.base를 줄이면 이 값도 같이 줄어든다.
 export const backdropExit = style({
-  animation: `${fadeOut} ${themeContract.animation.duration.base} ${themeContract.animation.easing.exit} forwards`,
+  animation: `${fadeOut} calc(${themeContract.animation.duration.base} * 0.65) ${themeContract.animation.easing.exit} forwards`,
 });
 
 export const bottomSheet = style({
@@ -82,8 +85,10 @@ export const bottomSheetEnter = style({
   animation: `${slideUp} ${themeContract.animation.duration.slow} ${themeContract.animation.easing.settle}`,
 });
 
+// 등장(duration.slow, 300ms)의 66.7% — duration.base(200ms)가 이미 창 안이라
+// calc 없이 토큰만 교체.
 export const bottomSheetExit = style({
-  animation: `${slideDown} ${themeContract.animation.duration.slow} ${themeContract.animation.easing.exit} forwards`,
+  animation: `${slideDown} ${themeContract.animation.duration.base} ${themeContract.animation.easing.exit} forwards`,
 });
 
 export const heightStyles = styleVariants({
