@@ -347,6 +347,15 @@ describe('Modal', () => {
       expect(errorSpy).not.toHaveBeenCalled();
       errorSpy.mockRestore();
     });
+
+    it('퇴장 중(open=false)엔 다이얼로그가 inert해 포커스·클릭이 들어가지 않는다', () => {
+      const { rerender } = render(<Modal {...defaultProps} open={true} />);
+      expect(screen.getByRole('dialog')).not.toHaveAttribute('inert');
+
+      rerender(<Modal {...defaultProps} open={false} />);
+
+      expect(screen.getByRole('dialog')).toHaveAttribute('inert');
+    });
   });
 });
 

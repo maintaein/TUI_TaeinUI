@@ -202,6 +202,9 @@ const ModalRoot = ({
           aria-labelledby={labelledby}
           aria-describedby={ariaDescribedby}
           aria-label={ariaLabel}
+          // 퇴장 중(open=false, shouldRender=true)엔 DOM이 200ms 더 남아있어도
+          // 포커스가 그 안으로 들어가거나 클릭될 수 없게 inert로 막는다.
+          inert={!open}
           className={clsx(
             modalDialog,
             sizeStyles[size],
