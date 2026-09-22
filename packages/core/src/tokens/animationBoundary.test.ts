@@ -1324,6 +1324,78 @@ describe('리터럴 이징 잠금 (T8 · R32)', () => {
   });
 });
 
+/**
+ * 리뷰 F6 — `declarationsOf`의 눈먼 자리. `transitionTimingFunction:
+ * themeContract.animation.easing.snap` 같은 줄은 값이 토큰 참조라(리터럴이
+ * 아님) `needsLiteral(property)`가 false를 돌려주고(정상이다 — 토큰 참조가
+ * 이 롱핸드의 맞는 모양이다), `ALL_DECLS`에도 `opaque`에도 남지 않는다. 이
+ * 배치(T3a)가 막 채택한 idiom이 정확히 이 모양이라, 위 `it`의
+ * `decl.property !== 'transition'` 분기는 여기 한 번도 걸리지 않고 죽어
+ * 있었다 — bare 롱핸드가 애초에 `ALL_DECLS`까지 오지 않기 때문이다.
+ *
+ * bare 오버라이드는 자기 규칙이 `transition-property`를 선언하지 않고 같은
+ * 선택자(또는 상위 규칙)의 `transition:` 단축에서 물려받는다. 물려받는
+ * 목록에 `transform` 아닌 속성(box-shadow·opacity 등)이 있으면 snap/spring이
+ * 거기에도 샌다 — Chip.css.ts의 옛 `selected`가 실사례였다(box-shadow까지
+ * spring을 받았다). 소스 텍스트만으로는 "이 줄이 상속하는 transition-property
+ * 목록"을 못 읽으므로, 여기 걸리는 모든 줄을 찾아 한 곳씩 손으로 안전을
+ * 확인하고 `OVERSHOOT_TIMING_EXCEPTIONS`에 올린다 — 안 올라간 새 자리는 실패한다.
+ */
+const BARE_OVERSHOOT_TIMING_LINE =
+  /(?<![\w.'"])transitionTimingFunction\s*:\s*themeContract\.animation\.easing\.(?:snap|spring)\b/;
+
+function bareOvershootTimingOf(file: string): { file: string; line: number }[] {
+  const lines = readFileSync(file, 'utf-8').split(/\r?\n/);
+  const hits: { file: string; line: number }[] = [];
+  lines.forEach((line, index) => {
+    if (BARE_OVERSHOOT_TIMING_LINE.test(line)) {
+      hits.push({ file: rel(file), line: index + 1 });
+    }
+  });
+  return hits;
+}
+
+/** `.css.ts`와 인라인(`.tsx`/`.ts`) 양쪽을 다 스캔한다 — ALL_DECLS와 같은 범위. */
+const BARE_OVERSHOOT_TIMING = [...CSS_FILES, ...INLINE_FILES].flatMap(
+  bareOvershootTimingOf
+);
+
+/** `line`을 키에 넣는 이유는 위 `Exception`과 다르다 — bare 롱핸드 자리는 값
+ * 다중집합으로 서로 바꿔 앉을 수 있는 항목이 아니라, 한 자리 한 자리가
+ * "상속하는 transition-property 목록이 transform 하나뿐"임을 개별로 확인해야
+ * 하는 지점이라 위치 자체가 곧 그 확인의 대상이다. */
+interface OvershootException {
+  at: string;
+  line: number;
+  owner: string;
+  reason: string;
+}
+
+/**
+ * 손으로 확인한 안전한 bare 오버라이드 2곳(F6 스캔 결과 전부) — 둘 다 자기
+ * own 규칙이 단일 속성(`transform`) transition만 선언하는 `::before`
+ * globalStyle이라, bare `transitionTimingFunction`이 상속할 수 있는 속성이
+ * transform 하나뿐이다. 새 자리가 여기 없이 생기면 위 `it`이 실패한다.
+ */
+const OVERSHOOT_TIMING_EXCEPTIONS: OvershootException[] = [
+  {
+    at: 'components/BoardRow/BoardRow.css.ts',
+    line: 42,
+    owner: '-',
+    reason:
+      '`${rowExpanded}::before` 진입 — boardRow base의 ::before(BoardRow.css.ts:28)가 ' +
+      'transform 단일 속성 transition만 선언해 bare snap이 샐 다른 속성이 없다.',
+  },
+  {
+    at: 'components/Chip/Chip.css.ts',
+    line: 221,
+    owner: '-',
+    reason:
+      '`${selected}::before` 진입 — chip base의 ::before(Chip.css.ts:43)가 transform ' +
+      '단일 속성 transition만 선언해 bare spring이 샐 다른 속성이 없다.',
+  },
+];
+
 // ---------------------------------------------------------------------------
 // 4. 오버슈트 이징 (R46)
 // ---------------------------------------------------------------------------
@@ -1351,7 +1423,40 @@ describe('오버슈트 이징 경계 (R46)', () => {
         }
       }
     }
+    // 리뷰 F6 — bare 롱핸드(transitionTimingFunction만 있고 transition 단축이
+    // 없는 줄)는 위 ALL_DECLS 루프에 아예 들어오지 않는다. 별도로 찾은
+    // BARE_OVERSHOOT_TIMING을 허용 목록과 대조해 같은 violations에 합류시킨다.
+    for (const hit of BARE_OVERSHOOT_TIMING) {
+      const allowed = OVERSHOOT_TIMING_EXCEPTIONS.some(
+        (e) => e.at === hit.file && e.line === hit.line
+      );
+      if (!allowed) {
+        violations.push(
+          `${hit.file}:${hit.line} (bare transitionTimingFunction — 허용 목록에 없음)`
+        );
+      }
+    }
     expect(violations).toEqual([]);
+  });
+
+  it('bare 오버슈트 타이밍 허용 목록이 실제 소스와 정확히 일치한다', () => {
+    // 목록에 있는데 소스에서 사라진 항목(예: 전체 transition으로 다시 적어
+    // 더는 bare가 아니게 된 경우)도 놓치지 않는다 — 목록이 저절로 줄지 않으면
+    // 다음 사람이 "이미 정리됐다"고 오해한다(위 Exception 관례와 동일 이유).
+    for (const e of OVERSHOOT_TIMING_EXCEPTIONS) {
+      const stillThere = BARE_OVERSHOOT_TIMING.some(
+        (hit) => hit.file === e.at && hit.line === e.line
+      );
+      expect(
+        stillThere,
+        `${e.at}:${e.line}가 더는 bare 오버라이드가 아니다 — 허용 목록에서 빼라`
+      ).toBe(true);
+    }
+    // 허용 목록에 없는 새 항목이 몰래 늘어도(중복 등으로 개수만 늘고 각 항목은
+    // 위 존재 확인을 통과하는 경우) 총량으로 잡는다.
+    expect(BARE_OVERSHOOT_TIMING).toHaveLength(
+      OVERSHOOT_TIMING_EXCEPTIONS.length
+    );
   });
 });
 
