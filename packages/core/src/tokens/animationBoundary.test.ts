@@ -121,8 +121,9 @@ const MOTION_PROPERTY =
 const INLINE_SET_PROPERTY =
   /\.style\.setProperty\(\s*(['"`])([\w-]+)\1\s*,\s*(['"`])([^'"`]*)\3/g;
 
-/** 맹점 3 — `element.style.cssText = '...'`. 선언 여러 개가 한 문자열에 들어온다. */
-const INLINE_CSS_TEXT = /\.style\.cssText\s*=\s*(['"`])([^'"`]*)\1/g;
+/** 맹점 3 — `element.style.cssText = '...'`. 선언 여러 개가 한 문자열에 들어온다.
+ * `+=`도 `cssText`를 정상적으로 건드리는 방법이라(F4) `\+?`로 한 글자만 늘려 받는다. */
+const INLINE_CSS_TEXT = /\.style\.cssText\s*\+?=\s*(['"`])([^'"`]*)\1/g;
 
 /**
  * 전이 **속성 목록**을 담는 선언. `transition` 단축뿐 아니라 `transitionProperty`
@@ -396,8 +397,18 @@ function crowdedJsxLinesFrom(file: string, text: string): string[] {
 /** 맹점 2 — `setProperty`의 케밥케이스 속성명을 정규화해 읽는다. */
 function setPropertyDeclarationsFrom(file: string, text: string): MotionDecl[] {
   const decls: MotionDecl[] = [];
-  text.split(/\r?\n/).forEach((line, index) => {
-    for (const match of line.matchAll(INLINE_SET_PROPERTY)) {
+  const lines = text.split(/\r?\n/);
+  lines.forEach((line, index) => {
+    // F4 — prettier가 두 인자를 각각 제 줄에 놓으면(여는 줄 · 속성 줄 · 값 줄) 한 줄
+    // 전용 정규식이 못 잡는다. 다음 두 줄까지 묶은 창으로 본다 — `\s*`가 이미 개행을
+    // 삼키므로 정규식은 그대로 두고 검사할 텍스트만 넓힌다. offset→줄 맵은 안 만든다:
+    // 이 줄(index)에서 "시작하는" 매치만 세어 다음 반복에서 같은 호출이 또 잡히는
+    // 것을 막는다.
+    const window = [line, lines[index + 1], lines[index + 2]]
+      .filter((l): l is string => l !== undefined)
+      .join('\n');
+    for (const match of window.matchAll(INLINE_SET_PROPERTY)) {
+      if ((match.index ?? 0) >= line.length) continue;
       const property = toCamelProperty(match[2]);
       if (!MOTION_PROPERTY.test(property)) continue;
       const value = match[4];
@@ -1038,6 +1049,21 @@ describe('스캐너 맹점 셋 (할 일 1)', () => {
     expect(decls[0].value).toBe('ease-in-out');
   });
 
+  it('F4 — prettier가 인자를 줄마다 쪼갠 setProperty도 읽는다', () => {
+    // 실측: 2개짜리 문자열 인자는 폭을 넘으면 prettier가 여는 줄·속성 줄·값 줄로
+    // 반드시 쪼갠다(한 줄 hug 없음) — 80자를 넘는 setProperty 호출은 도달 가능하다.
+    const fixture = [
+      'ref.current.style.setProperty(',
+      "  'transition-timing-function',",
+      "  'ease-in-out'",
+      ');',
+    ].join('\n');
+    const decls = setPropertyDeclarationsFrom(FIXTURE_FILE, fixture);
+    expect(decls).not.toEqual([]);
+    expect(decls[0].property).toBe('transitionTimingFunction');
+    expect(decls[0].value).toBe('ease-in-out');
+  });
+
   it('맹점 3 — `element.style.cssText = "..."`에 든 선언 여러 개를 각각 읽는다', () => {
     const fixture =
       "el.style.cssText = 'transition: transform 0.2s ease; color: red; animation-delay: 0.3s;';";
@@ -1048,6 +1074,14 @@ describe('스캐너 맹점 셋 (할 일 1)', () => {
       'transition=transform 0.2s ease',
       'animationDelay=0.3s',
     ]);
+  });
+
+  it('F4 — `cssText += "..."`도 읽는다', () => {
+    // `+=`는 cssText를 정상적으로 건드리는 방법이고, 한 글자 차이로 맹점 3
+    // 작업 전체를 우회한다.
+    const fixture = "el.style.cssText += 'transition: all 1s ease';";
+    const decls = cssTextDeclarationsFrom(FIXTURE_FILE, fixture);
+    expect(decls).not.toEqual([]);
   });
 
   it('저장소 실측: 오늘은 세 맹점 모두 0건이라 실전 스캔이 빈손이다', () => {
