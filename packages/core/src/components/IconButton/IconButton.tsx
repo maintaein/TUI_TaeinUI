@@ -5,6 +5,7 @@ import {
   iconSizeVariants,
   ghostBase,
   ghostSizeVariants,
+  iconMotion,
 } from './IconButton.css';
 import { LoadingSpinner } from '../LoadingSpinner';
 
@@ -86,7 +87,10 @@ export const IconButton = forwardRef<HTMLButtonElement, IconButtonProps>(
             aria-label="로딩 중"
           />
         ) : (
-          <span aria-hidden="true" className={iconSizeVariants[size]}>
+          <span
+            aria-hidden="true"
+            className={clsx(iconMotion, iconSizeVariants[size])}
+          >
             {children}
           </span>
         )}

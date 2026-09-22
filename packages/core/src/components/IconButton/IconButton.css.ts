@@ -1,4 +1,4 @@
-import { style, styleVariants } from '@vanilla-extract/css';
+import { style, styleVariants, globalStyle } from '@vanilla-extract/css';
 import { recipe } from '@vanilla-extract/recipes';
 import { themeContract } from '../../tokens/theme.css';
 import { focusRing } from '../../tokens/focusRing.css';
@@ -12,7 +12,7 @@ export const iconButton = recipe({
     border: 'none',
     cursor: 'pointer',
     touchAction: 'manipulation',
-    transition: `background-color ${themeContract.animation.duration.base} ${themeContract.animation.easing.settle}, opacity ${themeContract.animation.duration.base} ${themeContract.animation.easing.settle}, transform ${themeContract.animation.duration.base} ${themeContract.animation.easing.settle}`,
+    transition: `background-color ${themeContract.animation.duration.base} ${themeContract.animation.easing.settle}, opacity ${themeContract.animation.duration.base} ${themeContract.animation.easing.settle}, transform ${themeContract.animation.duration.base} ${themeContract.animation.easing.snap}`,
     userSelect: 'none',
     position: 'relative',
     overflow: 'hidden',
@@ -21,6 +21,15 @@ export const iconButton = recipe({
     ':disabled': {
       cursor: 'not-allowed',
       opacity: 0.5,
+    },
+
+    selectors: {
+      // 배치 전체 ":active 해제 오버슛" 형태(T3a 공통) — 누를 때 exit로 가속해
+      // 들어가고, 떼면 위 base의 snap으로 브라우저가 오버슛해 돌아온다. 변형
+      // 8곳의 :active 블록은 값이 이미 맞아 건드리지 않는다 — 이 한 줄이 전부 덮는다.
+      '&:active:not(:disabled)': {
+        transitionTimingFunction: themeContract.animation.easing.exit,
+      },
     },
 
     ':focus-visible': {
@@ -219,7 +228,7 @@ export const ghostBase = style({
   border: 'none',
   cursor: 'pointer',
   touchAction: 'manipulation',
-  transition: `background-color ${themeContract.animation.duration.base} ${themeContract.animation.easing.settle}, color ${themeContract.animation.duration.base} ${themeContract.animation.easing.settle}, opacity ${themeContract.animation.duration.base} ${themeContract.animation.easing.settle}, transform ${themeContract.animation.duration.base} ${themeContract.animation.easing.settle}`,
+  transition: `background-color ${themeContract.animation.duration.base} ${themeContract.animation.easing.settle}, color ${themeContract.animation.duration.base} ${themeContract.animation.easing.settle}, opacity ${themeContract.animation.duration.base} ${themeContract.animation.easing.settle}, transform ${themeContract.animation.duration.base} ${themeContract.animation.easing.snap}`,
   userSelect: 'none',
   borderRadius: themeContract.borderRadius.base,
   color: themeContract.palette.gray[600],
@@ -232,10 +241,12 @@ export const ghostBase = style({
       color: themeContract.palette.gray[900],
       backgroundColor: themeContract.palette.gray[100],
     },
+    // 배치 전체 ":active 해제 오버슛" 형태(T3a 공통, 위 iconButton base와 동일).
     '&:active:not(:disabled)': {
       color: themeContract.palette.gray[900],
       backgroundColor: themeContract.palette.gray[200],
       transform: 'scale(0.92)',
+      transitionTimingFunction: themeContract.animation.easing.exit,
     },
   },
 
@@ -255,3 +266,26 @@ export const ghostSizeVariants = styleVariants({
   lg: { padding: '0.5rem' },
   xl: { padding: '0.625rem' },
 });
+
+// 아이콘 스팬 전용 모션 — 몸통(iconButton/ghostBase)의 :active 전이보다 40ms
+// 늦게 눌림에 들어가, 몸통이 먼저 반응하고 아이콘이 뒤따르는 느낌을 만든다.
+// contract.ts에는 이 지연 전용 stagger 토큰이 없다(소비자가 여기 하나뿐이라
+// 토큰화 근거가 부족하다는 T2 판단) — 리터럴 40ms를 쓰고
+// animationBoundary.test.ts의 LITERAL_DELAY_EXCEPTIONS에 등록한다.
+export const iconMotion = style({
+  transform: 'scale(1)',
+  transition: `transform ${themeContract.animation.duration.base} ${themeContract.animation.easing.snap} 40ms`,
+});
+
+// 몸통이 눌리는 동안(:active) 아이콘 스팬도 함께 축소시키되, 위 iconMotion의
+// 40ms 지연은 건드리지 않는다(transitionDelay를 여기서 다시 선언하지 않음 —
+// 캐스케이드는 속성 단위로 적용되어 지연값은 iconMotion 기본 규칙이 그대로
+// 담당한다). List.css.ts의 globalStyle(두 독립 클래스 결합) 관례를 따른다.
+globalStyle(
+  `${iconButton.classNames.base}:active:not(:disabled) ${iconMotion}, ${ghostBase}:active:not(:disabled) ${iconMotion}`,
+  {
+    transform: 'scale(0.94)',
+    transitionDuration: themeContract.animation.duration.fast,
+    transitionTimingFunction: themeContract.animation.easing.exit,
+  }
+);

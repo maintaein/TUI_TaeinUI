@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -571,7 +573,12 @@ describe('IconButton', () => {
 
     it('ghost 모드에서 variant/buttonStyle 클래스가 적용되지 않는다', () => {
       render(
-        <IconButton ghost variant="primary" buttonStyle="fill" aria-label="닫기">
+        <IconButton
+          ghost
+          variant="primary"
+          buttonStyle="fill"
+          aria-label="닫기"
+        >
           <TestIcon />
         </IconButton>
       );
@@ -705,5 +712,67 @@ describe('IconButton', () => {
         });
       });
     });
+  });
+});
+
+describe('IconButton 모션 잠금', () => {
+  // vanilla-extract가 스타일을 클래스로 직렬화해서 jsdom에서 계산값을 못
+  // 읽는다. IconButton.css.ts 소스 텍스트에서 직접 확인한다(Button 관례).
+  const cssSource = readFileSync(
+    resolve(__dirname, './IconButton.css.ts'),
+    'utf-8'
+  );
+
+  it('아이콘 래퍼에 iconMotion 클래스가 붙는다(몸통보다 늦게 따라오는 지연용)', () => {
+    render(
+      <IconButton aria-label="지연">
+        <TestIcon />
+      </IconButton>
+    );
+    const button = screen.getByRole('button');
+    const iconWrapper = button.querySelector('[aria-hidden="true"]');
+    expect(iconWrapper?.className).toContain('iconMotion');
+  });
+
+  it('ghost 모드에서도 아이콘 래퍼에 iconMotion 클래스가 붙는다', () => {
+    render(
+      <IconButton ghost aria-label="지연-ghost">
+        <TestIcon />
+      </IconButton>
+    );
+    const button = screen.getByRole('button');
+    const iconWrapper = button.querySelector('[aria-hidden="true"]');
+    expect(iconWrapper?.className).toContain('iconMotion');
+  });
+
+  it('recipe base와 ghostBase의 transition이 transform에 snap을 쓴다(해제 오버슛)', () => {
+    const transitionLines = [...cssSource.matchAll(/transition: `([^`]*)`,/g)];
+    expect(transitionLines.length).toBeGreaterThanOrEqual(2);
+    for (const [, line] of transitionLines) {
+      expect(line).toContain(
+        'transform ${themeContract.animation.duration.base} ${themeContract.animation.easing.snap}'
+      );
+    }
+  });
+
+  it('recipe base와 ghostBase 양쪽에 :active:not(:disabled) exit 오버라이드가 있다', () => {
+    const activeBlocks = [
+      ...cssSource.matchAll(
+        /['&]*:active:not\(:disabled\)'?: \{([\s\S]*?)\n\s*\},/g
+      ),
+    ];
+    const withExit = activeBlocks.filter((m) =>
+      m[1].includes('themeContract.animation.easing.exit')
+    );
+    expect(withExit.length).toBeGreaterThanOrEqual(2);
+  });
+
+  it('iconMotion이 40ms 지연 리터럴에 근거 주석을 달고 있다(stagger 토큰 부재, T2 확인)', () => {
+    const iconMotionBlock = cssSource.match(
+      /export const iconMotion = style\(\{([\s\S]*?)\n\}\);/
+    )?.[1];
+    expect(iconMotionBlock, 'iconMotion 블록을 찾지 못했다').toBeDefined();
+    expect(iconMotionBlock).toContain('40ms');
+    expect(cssSource).toContain('stagger');
   });
 });
