@@ -63,6 +63,10 @@ export const variantStyles = styleVariants({
     border: `2px solid ${themeContract.color.border.default}`,
     boxShadow: 'none',
     cursor: 'pointer',
+    // 아래 한 줄은 커서와 한 몸이다 — touchAction.test.ts가 파일 단위로
+    // 커서와 touch-action의 개수를 대조한다. 탭 대상처럼 보이는 자리에서
+    // 300ms 더블탭 줌 대기를 없애라는 뜻이고, clickable이 이미 같은 짝을 쓴다.
+    touchAction: 'manipulation',
     ...hoverActiveMotion,
   },
 });
