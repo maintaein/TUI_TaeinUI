@@ -551,8 +551,9 @@ interface Exception {
 }
 
 /**
- * 리터럴 이징 16줄 25건 7파일(`.css.ts`) + 인라인 2줄 2건(`.tsx`).
- * BoardRow·Card·Chip은 M2 T3가 갚아 토큰으로 옮겨져 이 목록에서 빠졌다.
+ * 리터럴 이징 11줄 20건 4파일(`.css.ts`) + 인라인 2줄 2건(`.tsx`).
+ * BoardRow·Card·Chip은 M2 T3가, Loader·LoadingSpinner·Skeleton은 M2 T3c가
+ * 갚아 토큰으로 옮겨져 이 목록에서 빠졌다.
  *
  * **여기서 토큰으로 바꾸지 않는다.** `cubic-bezier(0.4, 0, 0.2, 1)`(Material
  * 표준 곡선)을 `settle`(`power3.out`)로 바꾸는 건 감각이 달라지는 모션 설계
@@ -565,24 +566,6 @@ const LITERAL_EASING_EXCEPTIONS: Exception[] = [
     values: ['ease', 'ease'],
     owner: 'M2',
     reason: 'AvatarGroup 오버플로 버튼의 filter·transform 전이 곡선',
-  },
-  {
-    at: 'components/Loader/Loader.css.ts',
-    values: ['cubic-bezier(0.4, 0, 0.2, 1)'],
-    owner: 'M2',
-    reason: 'indeterminate 바의 Material 표준 진행 곡선',
-  },
-  {
-    at: 'components/LoadingSpinner/LoadingSpinner.css.ts',
-    values: ['linear'],
-    owner: 'M2',
-    reason: '회전은 등속이어야 한다. easing.linear 토큰으로 옮길 후보',
-  },
-  {
-    at: 'components/LoadingSpinner/LoadingSpinner.css.ts',
-    values: ['ease-in-out'],
-    owner: 'M2',
-    reason: '점 페이드 왕복 곡선',
   },
   {
     at: 'components/NumericSpinner/NumericSpinner.css.ts',
@@ -637,18 +620,6 @@ const LITERAL_EASING_EXCEPTIONS: Exception[] = [
     values: ['ease', 'ease'],
     owner: 'M2',
     reason: '선택된 세그먼트 transform·text-shadow 전이 곡선',
-  },
-  {
-    at: 'components/Skeleton/Skeleton.css.ts',
-    values: ['linear'],
-    owner: 'M2',
-    reason: 'wave 훑기는 등속이어야 한다. easing.linear 토큰으로 옮길 후보',
-  },
-  {
-    at: 'components/Skeleton/Skeleton.css.ts',
-    values: ['ease-in-out'],
-    owner: 'M2',
-    reason: 'pulse 왕복 곡선',
   },
   {
     at: 'components/Slider/Slider.css.ts',
@@ -750,20 +721,12 @@ const INLINE_MECHANISM_EXCEPTIONS: Exception[] = [];
 /**
  * 저장소 소비자가 0인 채로 살려 두는 easing 토큰과 그 소유 마일스톤.
  *
- * `linear`는 R46이 예고하지 않은 세 번째 항목이다(실측으로 찾았다). 쓰일 자리
- * 둘(`LoadingSpinner.css.ts:32` 회전, `Skeleton.css.ts:80` wave)이 아직 리터럴
- * `linear` 키워드를 쓰고 있어서 토큰 쪽 소비자가 0으로 남았다 — 그 둘도 M2
- * 소유로 리터럴 이징 허용 목록에 올라가 있으니 소유자는 같다.
- *
- * `drift`는 M2 T2가 추가했다(청구 1 — inOut 계열 부재). 첫 소비자는
- * `Loader`·`LoadingSpinner`(점 페이드)·`Skeleton`(pulse·wave)의 자율 루프고,
- * 전부 T3c가 구현한다 — `build-easing.mjs`의 `EASE_SOURCES` 위 주석에 대조
- * 기록이 있다.
+ * `linear`·`drift` 둘 다 M2 T3c가 갚아 빠졌다: `linear`는 `LoadingSpinner`
+ * 회전이, `drift`는 `Loader`·`LoadingSpinner`(점 페이드)·`Skeleton`
+ * (pulse·wave)의 자율 루프가 토큰 참조로 소비한다 — 지금은 소유자를 적어
+ * 둘 예외가 없어 빈 객체다.
  */
-const EASING_OWNERS: Record<string, string> = {
-  linear: 'M2',
-  drift: 'M2 T3c',
-};
+const EASING_OWNERS: Record<string, string> = {};
 
 // ---------------------------------------------------------------------------
 // 1. 전이 목록 (T3)
@@ -1285,10 +1248,10 @@ describe('리터럴 이징 잠금 (T8 · R32)', () => {
     );
   });
 
-  it('.css.ts 쪽 실측이 16줄 25건 7파일이다', () => {
-    expect(new Set(cssEasings.map((e) => `${e.file}:${e.line}`)).size).toBe(16);
-    expect(cssEasings).toHaveLength(25);
-    expect(new Set(cssEasings.map((e) => e.file)).size).toBe(7);
+  it('.css.ts 쪽 실측이 11줄 20건 4파일이다', () => {
+    expect(new Set(cssEasings.map((e) => `${e.file}:${e.line}`)).size).toBe(11);
+    expect(cssEasings).toHaveLength(20);
+    expect(new Set(cssEasings.map((e) => e.file)).size).toBe(4);
   });
 
   it('.tsx 인라인 모션 대입까지 읽는다 (R39)', () => {
