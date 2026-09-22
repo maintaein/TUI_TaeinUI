@@ -8,6 +8,8 @@ import {
   textAlignStyles,
   dividerWithText,
   line,
+  lineBefore,
+  lineAfter,
   lineVertical,
   textContent,
   textContentVertical,
@@ -73,13 +75,13 @@ export const Divider = ({
       {...props}
     >
       {(textAlign === 'center' || textAlign === 'right') && (
-        <div className={isVertical ? lineVertical : line} />
+        <div className={isVertical ? lineVertical : clsx(line, lineBefore)} />
       )}
       <div className={isVertical ? textContentVertical : textContent}>
         {children}
       </div>
       {(textAlign === 'center' || textAlign === 'left') && (
-        <div className={isVertical ? lineVertical : line} />
+        <div className={isVertical ? lineVertical : clsx(line, lineAfter)} />
       )}
     </div>
   );

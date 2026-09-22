@@ -1,6 +1,13 @@
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { Divider } from './Divider';
+
+const DIVIDER_CSS = readFileSync(
+  resolve(__dirname, './Divider.css.ts'),
+  'utf-8'
+);
 
 describe('Divider', () => {
   describe('렌더링 테스트', () => {
@@ -201,6 +208,120 @@ describe('Divider', () => {
 
       const divider = screen.getByTestId('test-divider');
       expect(divider).toBeInTheDocument();
+    });
+  });
+
+  describe('등장 애니메이션 (장식계) — DOM', () => {
+    it('textAlign이 center일 때 앞선에는 lineBefore, 뒷선에는 lineAfter가 붙는다', () => {
+      const { container } = render(<Divider textAlign="center">중앙</Divider>);
+
+      const divider = container.querySelector('[role="separator"]');
+      const lines = divider?.querySelectorAll(':scope > div');
+
+      expect(lines?.[0].className).toMatch(/lineBefore/);
+      expect(lines?.[2].className).toMatch(/lineAfter/);
+    });
+
+    it('textAlign이 left일 때 뒷선(lineAfter)만 렌더링된다', () => {
+      const { container } = render(<Divider textAlign="left">왼쪽</Divider>);
+
+      const divider = container.querySelector('[role="separator"]');
+      const lines = divider?.querySelectorAll(':scope > div');
+
+      expect(lines?.length).toBe(2);
+      expect(lines?.[1].className).toMatch(/lineAfter/);
+    });
+
+    it('textAlign이 right일 때 앞선(lineBefore)만 렌더링된다', () => {
+      const { container } = render(<Divider textAlign="right">오른쪽</Divider>);
+
+      const divider = container.querySelector('[role="separator"]');
+      const lines = divider?.querySelectorAll(':scope > div');
+
+      expect(lines?.length).toBe(2);
+      expect(lines?.[0].className).toMatch(/lineBefore/);
+    });
+
+    it('세로 방향 텍스트 변형은 lineVertical을 그대로 쓴다 (모션 없음, 기존 동작 유지)', () => {
+      const { container } = render(
+        <Divider orientation="vertical" textAlign="center">
+          세로
+        </Divider>
+      );
+
+      const divider = container.querySelector('[role="separator"]');
+      const lines = divider?.querySelectorAll(':scope > div');
+
+      expect(lines?.[0].className).toMatch(/lineVertical/);
+      expect(lines?.[0].className).not.toMatch(/lineBefore|lineAfter/);
+    });
+  });
+
+  describe('등장 애니메이션 소스 검증', () => {
+    it('네 경우(가로 평선·세로 평선·텍스트 앞선·텍스트 뒷선)의 transform-origin이 표대로다', () => {
+      const horizontalBlock = DIVIDER_CSS.slice(
+        DIVIDER_CSS.indexOf('horizontal: {'),
+        DIVIDER_CSS.indexOf('vertical: {')
+      );
+      const verticalBlock = DIVIDER_CSS.slice(
+        DIVIDER_CSS.indexOf('vertical: {'),
+        DIVIDER_CSS.indexOf('});', DIVIDER_CSS.indexOf('vertical: {'))
+      );
+      expect(horizontalBlock).toContain("transformOrigin: 'center'");
+      expect(verticalBlock).toContain("transformOrigin: 'center'");
+
+      const lineBeforeBlock = DIVIDER_CSS.slice(
+        DIVIDER_CSS.indexOf('export const lineBefore'),
+        DIVIDER_CSS.indexOf('export const lineAfter')
+      );
+      const lineAfterBlock = DIVIDER_CSS.slice(
+        DIVIDER_CSS.indexOf('export const lineAfter'),
+        DIVIDER_CSS.indexOf('export const lineVertical')
+      );
+      expect(lineBeforeBlock).toContain("transformOrigin: 'right'");
+      expect(lineAfterBlock).toContain("transformOrigin: 'left'");
+    });
+
+    it('세로+텍스트 조합(lineVertical)에는 애니메이션이 없다 — 네 경우에서 제외된 판정', () => {
+      const lineVerticalBlock = DIVIDER_CSS.slice(
+        DIVIDER_CSS.indexOf('export const lineVertical'),
+        DIVIDER_CSS.indexOf('export const textContent')
+      );
+      expect(lineVerticalBlock).not.toContain('animation:');
+    });
+
+    it('텍스트 변형 루트(dividerWithText)는 animation을 none으로 끈다 — 텍스트가 찌그러지지 않는다', () => {
+      const block = DIVIDER_CSS.slice(
+        DIVIDER_CSS.indexOf('export const dividerWithText'),
+        DIVIDER_CSS.indexOf('export const line =')
+      );
+      expect(block).toContain("animation: 'none'");
+    });
+
+    it('축소 모드: base가 scale(1)이고 키프레임 0%만 scale(0)이다 (100% 키프레임 없음)', () => {
+      const keyframesBlock = DIVIDER_CSS.slice(
+        DIVIDER_CSS.indexOf('const grow = keyframes({'),
+        DIVIDER_CSS.indexOf(
+          '});',
+          DIVIDER_CSS.indexOf('const grow = keyframes({')
+        )
+      );
+      expect(keyframesBlock).toContain("'0%': { transform: 'scale(0)' }");
+      expect(keyframesBlock).not.toContain('100%');
+    });
+
+    it('이 파일에 keyframes 정의가 하나뿐이다', () => {
+      const count = (DIVIDER_CSS.match(/= keyframes\(/g) ?? []).length;
+      expect(count).toBe(1);
+    });
+
+    it('duration.slow·easing.settle 토큰을 쓴다', () => {
+      expect(DIVIDER_CSS).toContain('${themeContract.animation.duration.slow}');
+      expect(DIVIDER_CSS).toContain('${themeContract.animation.easing.settle}');
+    });
+
+    it('마운트 1회라 조항 1 밖이라는 근거가 주석으로 남아 있다', () => {
+      expect(DIVIDER_CSS).toMatch(/조항 1/);
     });
   });
 });
