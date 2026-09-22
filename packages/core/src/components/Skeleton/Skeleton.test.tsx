@@ -189,15 +189,15 @@ describe('Skeleton', () => {
   });
 
   describe('Skeleton 모션 잠금 (M2 T3c)', () => {
-    it('wave가 T5 공유 자산(loopRhythmDuration·loopRhythmEasing)으로 좌→우 훑는다', () => {
+    it('wave가 T5 공유 자산(loopRhythmEasing)의 커브로, loop.base 주기로 좌→우 훑는다', () => {
       expect(SKELETON_CSS).toMatch(
-        /import \{[\s\S]*?loopRhythmDuration,[\s\S]*?loopRhythmEasing,?[\s\S]*?\} from '\.\.\/\.\.\/tokens\/loopRhythm\.css'/
+        /import \{ loopRhythmEasing \} from '\.\.\/\.\.\/tokens\/loopRhythm\.css'/
       );
       const start = SKELETON_CSS.indexOf("'&::after': {");
       const end = SKELETON_CSS.indexOf('\n        },', start);
       const afterBlock = SKELETON_CSS.slice(start, end);
       expect(afterBlock).toContain(
-        'animation: `${wave} ${loopRhythmDuration} ${loopRhythmEasing} 0.5s infinite`'
+        'animation: `${wave} ${themeContract.animation.loop.base} ${loopRhythmEasing} 0.5s infinite`'
       );
       expect(afterBlock).not.toContain(' linear ');
     });

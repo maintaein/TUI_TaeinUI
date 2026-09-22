@@ -1,9 +1,6 @@
 import { style, styleVariants, keyframes } from '@vanilla-extract/css';
 import { themeContract } from '../../tokens/theme.css';
-import {
-  loopRhythmDuration,
-  loopRhythmEasing,
-} from '../../tokens/loopRhythm.css';
+import { loopRhythmEasing } from '../../tokens/loopRhythm.css';
 
 // 애니메이션 정의
 const progress = keyframes({
@@ -75,8 +72,8 @@ export const barFill = style({
   borderRadius: '2px',
   backgroundColor: 'var(--loader-color)',
   // 불확정 스윕이다(진행률을 받는 자리가 아니다) — S1: Skeleton wave와
-  // 방향(좌→우) · 커브 · 주기(loop.base)를 공유하는 T5 공유 자산을 그대로 쓴다.
-  animation: `${progress} ${loopRhythmDuration} ${loopRhythmEasing} infinite`,
+  // 방향(좌→우) · 커브(T5 공유 자산) · 주기(loop.base)를 공유한다.
+  animation: `${progress} ${themeContract.animation.loop.base} ${loopRhythmEasing} infinite`,
 });
 
 export const barSizeStyles = styleVariants({
