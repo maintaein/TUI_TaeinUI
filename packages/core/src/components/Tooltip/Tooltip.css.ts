@@ -32,34 +32,53 @@ export const tooltip = style({
 // `visible` 플래그가 false일 때). 열림 오프셋(8px)보다 트리거 쪽으로 2px
 // 가까운 자리다 — 툴팁이 트리거에서 나와 자리를 잡는(O1) 궤적의 시작점이고,
 // 퇴장은 같은 궤적을 되짚어 돌아간다(O2). 퇴장 전이는 calc(fast * 0.65)/exit.
+// 닫힌 뒤에도 노드는 퇴장 길이만큼 더 남는다(Tooltip.tsx의 shouldRender).
+// opacity: 0은 히트 테스트에서도 접근성 트리에서도 요소를 빼지 않아서, 그
+// 사이 클릭이 보이지 않는 툴팁에 먹히고 스크린 리더가 닫힌 툴팁을 읽는다
+// (리뷰 I1). visibility: hidden이 양쪽에서 빼되, 한쪽 끝이 visible이면
+// 중간값이 전부 visible이고 p=1에서만 넘어가는 성질이 있어 퇴장과 같은
+// 길이를 주면 페이드를 다 보여준 뒤 마지막 프레임에 숨는다. 지연 0s로 걸면
+// 페이드가 통째로 죽는다 — 열림 쪽은 목록에서 빼 즉시 켠다.
 export const positionStyles = styleVariants({
   top: {
     bottom: '100%',
     left: '50%',
     transform: 'translateX(-50%) translateY(-6px)',
     opacity: 0,
-    transition: `opacity calc(${themeContract.animation.duration.fast} * 0.65) ${themeContract.animation.easing.exit}, transform calc(${themeContract.animation.duration.fast} * 0.65) ${themeContract.animation.easing.exit}`,
+    pointerEvents: 'none',
+    visibility: 'hidden',
+    // 퇴장이 다 보인 뒤에 숨는다 — visibility는 p=1에서만 넘어간다(위 머리말).
+    transition: `opacity calc(${themeContract.animation.duration.fast} * 0.65) ${themeContract.animation.easing.exit}, transform calc(${themeContract.animation.duration.fast} * 0.65) ${themeContract.animation.easing.exit}, visibility calc(${themeContract.animation.duration.fast} * 0.65) ${themeContract.animation.easing.exit}`,
   },
   bottom: {
     top: '100%',
     left: '50%',
     transform: 'translateX(-50%) translateY(6px)',
     opacity: 0,
-    transition: `opacity calc(${themeContract.animation.duration.fast} * 0.65) ${themeContract.animation.easing.exit}, transform calc(${themeContract.animation.duration.fast} * 0.65) ${themeContract.animation.easing.exit}`,
+    pointerEvents: 'none',
+    visibility: 'hidden',
+    // 퇴장이 다 보인 뒤에 숨는다 — visibility는 p=1에서만 넘어간다(위 머리말).
+    transition: `opacity calc(${themeContract.animation.duration.fast} * 0.65) ${themeContract.animation.easing.exit}, transform calc(${themeContract.animation.duration.fast} * 0.65) ${themeContract.animation.easing.exit}, visibility calc(${themeContract.animation.duration.fast} * 0.65) ${themeContract.animation.easing.exit}`,
   },
   left: {
     right: '100%',
     top: '50%',
     transform: 'translateY(-50%) translateX(-6px)',
     opacity: 0,
-    transition: `opacity calc(${themeContract.animation.duration.fast} * 0.65) ${themeContract.animation.easing.exit}, transform calc(${themeContract.animation.duration.fast} * 0.65) ${themeContract.animation.easing.exit}`,
+    pointerEvents: 'none',
+    visibility: 'hidden',
+    // 퇴장이 다 보인 뒤에 숨는다 — visibility는 p=1에서만 넘어간다(위 머리말).
+    transition: `opacity calc(${themeContract.animation.duration.fast} * 0.65) ${themeContract.animation.easing.exit}, transform calc(${themeContract.animation.duration.fast} * 0.65) ${themeContract.animation.easing.exit}, visibility calc(${themeContract.animation.duration.fast} * 0.65) ${themeContract.animation.easing.exit}`,
   },
   right: {
     left: '100%',
     top: '50%',
     transform: 'translateY(-50%) translateX(6px)',
     opacity: 0,
-    transition: `opacity calc(${themeContract.animation.duration.fast} * 0.65) ${themeContract.animation.easing.exit}, transform calc(${themeContract.animation.duration.fast} * 0.65) ${themeContract.animation.easing.exit}`,
+    pointerEvents: 'none',
+    visibility: 'hidden',
+    // 퇴장이 다 보인 뒤에 숨는다 — visibility는 p=1에서만 넘어간다(위 머리말).
+    transition: `opacity calc(${themeContract.animation.duration.fast} * 0.65) ${themeContract.animation.easing.exit}, transform calc(${themeContract.animation.duration.fast} * 0.65) ${themeContract.animation.easing.exit}, visibility calc(${themeContract.animation.duration.fast} * 0.65) ${themeContract.animation.easing.exit}`,
   },
 });
 
@@ -71,6 +90,7 @@ export const positionOpenStyles = styleVariants({
     left: '50%',
     transform: 'translateX(-50%) translateY(-8px)',
     opacity: 1,
+    visibility: 'visible',
     transition: `opacity ${themeContract.animation.duration.fast} ${themeContract.animation.easing.settle}, transform ${themeContract.animation.duration.fast} ${themeContract.animation.easing.settle}`,
   },
   bottom: {
@@ -78,6 +98,7 @@ export const positionOpenStyles = styleVariants({
     left: '50%',
     transform: 'translateX(-50%) translateY(8px)',
     opacity: 1,
+    visibility: 'visible',
     transition: `opacity ${themeContract.animation.duration.fast} ${themeContract.animation.easing.settle}, transform ${themeContract.animation.duration.fast} ${themeContract.animation.easing.settle}`,
   },
   left: {
@@ -85,6 +106,7 @@ export const positionOpenStyles = styleVariants({
     top: '50%',
     transform: 'translateY(-50%) translateX(-8px)',
     opacity: 1,
+    visibility: 'visible',
     transition: `opacity ${themeContract.animation.duration.fast} ${themeContract.animation.easing.settle}, transform ${themeContract.animation.duration.fast} ${themeContract.animation.easing.settle}`,
   },
   right: {
@@ -92,6 +114,7 @@ export const positionOpenStyles = styleVariants({
     top: '50%',
     transform: 'translateY(-50%) translateX(8px)',
     opacity: 1,
+    visibility: 'visible',
     transition: `opacity ${themeContract.animation.duration.fast} ${themeContract.animation.easing.settle}, transform ${themeContract.animation.duration.fast} ${themeContract.animation.easing.settle}`,
   },
 });

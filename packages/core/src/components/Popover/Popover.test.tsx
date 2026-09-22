@@ -582,6 +582,72 @@ describe('Popover', () => {
         'opacity ${themeContract.animation.duration.base} ${themeContract.animation.easing.settle}'
       );
     });
+
+    /** `styleVariants` 블록에서 방향 하나의 본문만 떼어낸다 — 파일 전체를
+     * 훑으면 닫힘과 열림이 섞여 어느 쪽 값인지 못 가린다. */
+    const variantOf = (
+      block: 'positionStyles' | 'positionOpenStyles',
+      position: string
+    ): string => {
+      const blockBody = cssSource.match(
+        new RegExp(
+          `export const ${block} = styleVariants\\(\\{([\\s\\S]*?)\\n\\}\\);`
+        )
+      )?.[1];
+      expect(blockBody, `${block} 블록을 찾지 못했다`).toBeDefined();
+      const variant = (blockBody as string).match(
+        new RegExp(`${position}: \\{([\\s\\S]*?)\\n {2}\\},`)
+      )?.[1];
+      expect(variant, `${block}.${position}을 찾지 못했다`).toBeDefined();
+      return variant as string;
+    };
+
+    /** 닫힘 변형의 `transition` 백틱 안쪽만 꺼낸다 — `visibility: 'hidden'`
+     * 선언과 전이 목록의 `visibility`를 구분하기 위해서다. */
+    const transitionOf = (variant: string): string => {
+      const list = variant.match(/transition: `([^`]*)`/)?.[1];
+      expect(list, 'transition 선언을 찾지 못했다').toBeDefined();
+      return list as string;
+    };
+
+    it.each(['top', 'bottom', 'left', 'right'])(
+      'position="%s" 닫힘 변형이 히트 테스트와 접근성 트리에서 빠진다(리뷰 I1)',
+      (position) => {
+        // shouldRender가 닫은 뒤에도 노드를 130ms 더 남긴다. opacity: 0은
+        // 둘 중 어느 쪽에서도 요소를 빼지 않아서, 그 사이 클릭이 보이지 않는
+        // 팝오버에 먹히고 Tab이 닫힌 dialog 안으로 들어간다.
+        // 무엇을 뒤집으면 빨개지는가: 두 줄 중 하나라도 지우면.
+        const closed = variantOf('positionStyles', position);
+        expect(closed).toContain("pointerEvents: 'none'");
+        expect(closed).toContain("visibility: 'hidden'");
+      }
+    );
+
+    it.each(['top', 'bottom', 'left', 'right'])(
+      'position="%s" 닫힘 변형의 visibility가 퇴장 길이를 다 쓴다 — 페이드가 살아 있다(리뷰 I1)',
+      (position) => {
+        // visibility는 한쪽 끝이 visible이면 중간값이 전부 visible이고 p=1에서만
+        // 넘어간다. 그래서 퇴장과 같은 길이를 주면 페이드가 다 보인 뒤에 숨는다.
+        // 무엇을 뒤집으면 빨개지는가: 길이를 0s로 바꾸면(= 페이드가 통째로 죽는다).
+        const list = transitionOf(variantOf('positionStyles', position));
+        expect(list).toContain(
+          'visibility calc(${themeContract.animation.duration.base} * 0.65) ${themeContract.animation.easing.exit}'
+        );
+        expect(list).not.toContain('visibility 0s');
+      }
+    );
+
+    it.each(['top', 'bottom', 'left', 'right'])(
+      'position="%s" 열림 변형은 지연 없이 즉시 visible이다(리뷰 I1)',
+      (position) => {
+        // 열림 쪽 목록에 visibility가 있으면 열 때도 끝에서 넘어가 첫 프레임이
+        // 안 보인다 — 등장 페이드가 죽는다.
+        // 무엇을 뒤집으면 빨개지는가: 열림 transition에 visibility를 끼워 넣으면.
+        const open = variantOf('positionOpenStyles', position);
+        expect(open).toContain("visibility: 'visible'");
+        expect(transitionOf(open)).not.toContain('visibility');
+      }
+    );
   });
 
   describe('조항 1 — 중단 가능·역재생 가능', () => {
