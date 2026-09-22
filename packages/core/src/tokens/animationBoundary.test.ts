@@ -100,6 +100,31 @@ const INLINE_ASSIGNMENT =
   /\.style\.(transition|animation)(Delay|Duration|Property|TimingFunction)?\s*=\s*(['"`])([^'"`]*)\3/g;
 
 /**
+ * 할 일 1 — M1이 자기 손으로 기록한 스캐너 맹점 셋.
+ *
+ * 셋 다 `.tsx`/`.ts`가 DOM 스타일을 거는 다른 문법이라 `INLINE_ASSIGNMENT`(대입 `=`)로는
+ * 못 잡는다. 결과는 `analyze()`를 거쳐 `MotionDecl`로 만들어 기존 화이트리스트·허용목록
+ * 검사가 그대로 먹히게 한다(카멜케이스 정규화 포함).
+ */
+
+/** 케밥케이스를 .css.ts 쪽 카멜케이스로 정규화한다 — `setProperty`·`cssText`는 실제 CSS
+ * 속성명(케밥케이스)로 오지만 화이트리스트·허용목록은 카멜케이스 키를 쓴다. */
+function toCamelProperty(kebab: string): string {
+  return kebab.replace(/-([a-z])/g, (_, ch: string) => ch.toUpperCase());
+}
+
+/** 이 가드가 다스리는 속성만 통과시킨다. `color`·`width` 같은 무관한 속성은 대상이 아니다. */
+const MOTION_PROPERTY =
+  /^(transition|animation)(Delay|Duration|Property|TimingFunction)?$/;
+
+/** 맹점 2 — `element.style.setProperty('transition-timing-function', '...')`. */
+const INLINE_SET_PROPERTY =
+  /\.style\.setProperty\(\s*(['"`])([\w-]+)\1\s*,\s*(['"`])([^'"`]*)\3/g;
+
+/** 맹점 3 — `element.style.cssText = '...'`. 선언 여러 개가 한 문자열에 들어온다. */
+const INLINE_CSS_TEXT = /\.style\.cssText\s*=\s*(['"`])([^'"`]*)\1/g;
+
+/**
  * 전이 **속성 목록**을 담는 선언. `transition` 단축뿐 아니라 `transitionProperty`
  * 롱핸드도 목록 그 자체라 같은 검사를 받아야 한다 — 롱핸드를 빼면
  * `transitionProperty: 'all'`이 'all' 금지와 화이트리스트를 둘 다 우회한다.
@@ -292,6 +317,79 @@ function inlineDeclarationsOf(file: string): MotionDecl[] {
 }
 
 /**
+ * 맹점 1 — JSX 인라인 스타일 객체: `style={{ transition: '...' }}`.
+ *
+ * 카멜케이스 `속성: '문자열'` 문법이 `.css.ts`의 `style()`과 같아서 `MOTION_DECLARATION`을
+ * 그대로 재사용한다. `style={{`로 여는 객체 리터럴 **안으로 스캔을 좁혀서**, 스타일과 무관한
+ * 객체 리터럴에 우연히 `transition` 같은 키가 있어도 잡지 않게 한다 — `balancedFrom`으로
+ * 중괄호 짝을 맞춰 블록을 떼어낸다(전이 목록 판정 단위 자르기에 쓰는 것과 같은 함수).
+ *
+ * `file`은 `readFileSync`를 하지 않고 텍스트를 직접 받는다 — 테스트가 소스 파일을 새로
+ * 만들지 않고 문자열 픽스처를 바로 먹일 수 있어야 하기 때문이다.
+ */
+function jsxStyleDeclarationsFrom(file: string, text: string): MotionDecl[] {
+  const decls: MotionDecl[] = [];
+  for (const open of text.matchAll(/style=\{\{/g)) {
+    const openIndex = (open.index ?? 0) + open[0].length - 2;
+    const block = balancedFrom(text, openIndex);
+    const blockLines = block.split(/\r?\n/);
+    const startLine = text.slice(0, openIndex).split(/\r?\n/).length;
+    blockLines.forEach((line, i) => {
+      const match = MOTION_DECLARATION.exec(line);
+      if (!match) return;
+      const property = `${match[1]}${match[2] ?? ''}`;
+      const value = readLiteral(match[3], blockLines, i);
+      if (value === null || value === '' || value === 'none') return;
+      decls.push(analyze(file, property, startLine + i, value));
+    });
+  }
+  return decls;
+}
+function jsxStyleDeclarationsOf(file: string): MotionDecl[] {
+  return jsxStyleDeclarationsFrom(file, readFileSync(file, 'utf-8'));
+}
+
+/** 맹점 2 — `setProperty`의 케밥케이스 속성명을 정규화해 읽는다. */
+function setPropertyDeclarationsFrom(file: string, text: string): MotionDecl[] {
+  const decls: MotionDecl[] = [];
+  text.split(/\r?\n/).forEach((line, index) => {
+    for (const match of line.matchAll(INLINE_SET_PROPERTY)) {
+      const property = toCamelProperty(match[2]);
+      if (!MOTION_PROPERTY.test(property)) continue;
+      const value = match[4];
+      if (value === '' || value === 'none') continue;
+      decls.push(analyze(file, property, index + 1, value));
+    }
+  });
+  return decls;
+}
+function setPropertyDeclarationsOf(file: string): MotionDecl[] {
+  return setPropertyDeclarationsFrom(file, readFileSync(file, 'utf-8'));
+}
+
+/** 맹점 3 — `cssText` 문자열 하나에 든 선언들을 `;`로 갈라 각각 읽는다. */
+function cssTextDeclarationsFrom(file: string, text: string): MotionDecl[] {
+  const decls: MotionDecl[] = [];
+  text.split(/\r?\n/).forEach((line, index) => {
+    for (const match of line.matchAll(INLINE_CSS_TEXT)) {
+      for (const piece of match[2].split(';')) {
+        const found = /^\s*([\w-]+)\s*:\s*(.+?)\s*$/.exec(piece);
+        if (!found) continue;
+        const property = toCamelProperty(found[1]);
+        if (!MOTION_PROPERTY.test(property)) continue;
+        const value = found[2];
+        if (value === '' || value === 'none') continue;
+        decls.push(analyze(file, property, index + 1, value));
+      }
+    }
+  });
+  return decls;
+}
+function cssTextDeclarationsOf(file: string): MotionDecl[] {
+  return cssTextDeclarationsFrom(file, readFileSync(file, 'utf-8'));
+}
+
+/**
  * 한 줄에 모션 선언이 둘 이상인 자리. `declarationsOf`는 줄마다 `exec`를 한 번만
  * 불러 **둘째를 통째로 놓친다** — prettier가 한 줄로 유지하는
  * `style({ transition: 'opacity 1s ease', animationDelay: '1s' })`가 그 모양이다.
@@ -310,7 +408,12 @@ const CROWDED_LINES = CSS_FILES.flatMap((file) =>
 const SCANNED = CSS_FILES.map(declarationsOf);
 const CSS_DECLS = SCANNED.flatMap((scan) => scan.decls);
 const OPAQUE_DECLS = SCANNED.flatMap((scan) => scan.opaque);
-const INLINE_DECLS = INLINE_FILES.flatMap(inlineDeclarationsOf);
+const INLINE_DECLS = INLINE_FILES.flatMap((file) => [
+  ...inlineDeclarationsOf(file),
+  ...jsxStyleDeclarationsOf(file),
+  ...setPropertyDeclarationsOf(file),
+  ...cssTextDeclarationsOf(file),
+]);
 const ALL_DECLS = [...CSS_DECLS, ...INLINE_DECLS];
 
 /** 선언 안의 리터럴 이징을 줄 단위로 집어낸다. */
@@ -747,6 +850,74 @@ describe('전이 목록 잠금 (T3)', () => {
       }
     }
     expect(missing).toEqual([]);
+  });
+});
+
+describe('스캐너 맹점 셋 (할 일 1)', () => {
+  // 반증 입력 — 소스 파일이 아니라 문자열 픽스처다. 저장소에는 오늘 0건이라 ALL_DECLS만
+  // 보면 스캐너가 진짜 물리는지 정규식이 컴파일만 되고 노는지 구분이 안 된다(M1이 놓친
+  // transition-property 초기값 `all`처럼). 수집 함수에 직접 먹여 빈손이 아님을 본다.
+  const FIXTURE_FILE = resolve(SRC, 'components/__Fixture__/Fixture.tsx');
+
+  it('맹점 1 — JSX 인라인 스타일 `style={{ transition: "..." }}`을 읽는다', () => {
+    const fixture = [
+      'function Fixture() {',
+      '  return (',
+      '    <div',
+      '      style={{',
+      "        transition: 'opacity 0.2s ease',",
+      "        transitionDelay: '0.1s',",
+      '      }}',
+      '    />',
+      '  );',
+      '}',
+    ].join('\n');
+    const decls = jsxStyleDeclarationsFrom(FIXTURE_FILE, fixture);
+    expect(decls).not.toEqual([]);
+    expect(decls.map((d) => `${d.line}:${d.property}=${d.value}`)).toEqual([
+      '5:transition=opacity 0.2s ease',
+      '6:transitionDelay=0.1s',
+    ]);
+    // 무관한 객체의 `transition` 키는 style={{}} 밖이라 잡히면 안 된다(과탐 방지).
+    const outside = jsxStyleDeclarationsFrom(
+      FIXTURE_FILE,
+      "const config = { transition: 'not-a-style' };"
+    );
+    expect(outside).toEqual([]);
+  });
+
+  it("맹점 2 — `element.style.setProperty('kebab-case', ...)`을 읽고 카멜케이스로 정규화한다", () => {
+    const fixture =
+      "el.style.setProperty('transition-timing-function', 'ease-in-out');";
+    const decls = setPropertyDeclarationsFrom(FIXTURE_FILE, fixture);
+    expect(decls).not.toEqual([]);
+    // .css.ts 쪽 MOTION_DECLARATION이 만드는 것과 같은 카멜케이스 모양이어야 화이트리스트·
+    // 허용목록 검사가 그대로 먹힌다.
+    expect(decls[0].property).toBe('transitionTimingFunction');
+    expect(decls[0].value).toBe('ease-in-out');
+  });
+
+  it('맹점 3 — `element.style.cssText = "..."`에 든 선언 여러 개를 각각 읽는다', () => {
+    const fixture =
+      "el.style.cssText = 'transition: transform 0.2s ease; color: red; animation-delay: 0.3s;';";
+    const decls = cssTextDeclarationsFrom(FIXTURE_FILE, fixture);
+    expect(decls).not.toEqual([]);
+    // `color`는 이 가드의 대상이 아니라 빠지고, transition·animationDelay만 남는다.
+    expect(decls.map((d) => `${d.property}=${d.value}`)).toEqual([
+      'transition=transform 0.2s ease',
+      'animationDelay=0.3s',
+    ]);
+  });
+
+  it('저장소 실측: 오늘은 세 맹점 모두 0건이라 실전 스캔이 빈손이다', () => {
+    // 반증(위)은 정규식이 물린다는 증거고, 이 단언은 "저장소에 0건"이라는 브리프의
+    // 전제가 아직 사실인지를 잠근다 — 누가 새로 이 패턴을 쓰기 시작하면 여기서 걸린다.
+    const real = INLINE_FILES.flatMap((file) => [
+      ...jsxStyleDeclarationsOf(file),
+      ...setPropertyDeclarationsOf(file),
+      ...cssTextDeclarationsOf(file),
+    ]);
+    expect(real).toEqual([]);
   });
 });
 
