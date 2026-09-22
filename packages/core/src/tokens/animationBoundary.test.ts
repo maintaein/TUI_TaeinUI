@@ -1455,6 +1455,15 @@ describe('easing 토큰 소유자 (R5)', () => {
   });
 
   it('허용 목록에 오른 토큰은 실재하고 아직 소비자가 0이다', () => {
+    // M2의 이징 완결 신호: linear·drift 둘 다 M2 T3c가 소비자를 만들어
+    // 목록에서 지웠다(LoadingSpinner 회전 → linear, Skeleton·Loader
+    // 루프 커브 → drift). 지금 목록이 빈 게 우연이 아니라는 걸 여기서
+    // 단언해 둔다 — 이 줄이 깨지면 누군가 목록을 다시 채운 것이고, 그건
+    // 정리가 아니라 결정이니 이유를 남겨야 한다. M3가 새 토큰을 등록하며
+    // 다시 채우면 이 단언부터 고쳐야 하고, 그 순간 아래 루프가 다시
+    // 쓸모를 갖는다(지금은 목록이 비어 루프 본문이 0번 돈다).
+    expect(EASING_OWNERS).toEqual({});
+
     // 소비자가 생겼는데 목록에 남아 있으면 목록이 낡은 것이다.
     for (const name of Object.keys(EASING_OWNERS)) {
       expect(name in easing, `easing.${name}이 토큰에 없다`).toBe(true);
