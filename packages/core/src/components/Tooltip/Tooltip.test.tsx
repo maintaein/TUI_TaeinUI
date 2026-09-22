@@ -1,6 +1,15 @@
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, act } from '@testing-library/react';
 import { Tooltip } from './Tooltip';
+
+// Tooltip.tsx의 EXIT_DURATION_MS와 반드시 같은 값이어야 한다. isOpen이
+// false가 된 뒤 DOM이 실제로 사라지기까지 퇴장 전이 재생 시간만큼 더
+// 기다려야 한다 — 그 시간을 만드는 setTimeout은 isOpen 변화를 반영하는
+// effect가 플러시된 뒤에야 등록되므로, 닫는 이벤트/타이머 advance와
+// 같은 act() 안에서는 잡히지 않고 별도의 advance가 필요하다.
+const EXIT_DURATION_MS = 97.5;
 
 describe('Tooltip', () => {
   beforeEach(() => {
@@ -78,6 +87,11 @@ describe('Tooltip', () => {
         vi.advanceTimersByTime(1000);
       });
 
+      // 퇴장 전이가 재생될 시간만큼 더 흘려보내야 DOM이 실제로 사라진다
+      act(() => {
+        vi.advanceTimersByTime(EXIT_DURATION_MS);
+      });
+
       expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
     });
   });
@@ -117,6 +131,11 @@ describe('Tooltip', () => {
       expect(screen.getByRole('tooltip')).toBeInTheDocument();
 
       fireEvent.blur(button);
+
+      // 퇴장 전이가 재생될 시간만큼 더 흘려보내야 DOM이 실제로 사라진다
+      act(() => {
+        vi.advanceTimersByTime(EXIT_DURATION_MS);
+      });
 
       expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
     });
@@ -464,6 +483,11 @@ describe('Tooltip', () => {
 
       fireEvent.keyDown(button, { key: 'Escape' });
 
+      // 퇴장 전이가 재생될 시간만큼 더 흘려보내야 DOM이 실제로 사라진다
+      act(() => {
+        vi.advanceTimersByTime(EXIT_DURATION_MS);
+      });
+
       expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
     });
 
@@ -485,6 +509,11 @@ describe('Tooltip', () => {
 
       fireEvent.keyDown(document, { key: 'Escape' });
 
+      // 퇴장 전이가 재생될 시간만큼 더 흘려보내야 DOM이 실제로 사라진다
+      act(() => {
+        vi.advanceTimersByTime(EXIT_DURATION_MS);
+      });
+
       expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
     });
 
@@ -505,6 +534,11 @@ describe('Tooltip', () => {
       expect(screen.getByRole('tooltip')).toBeInTheDocument();
 
       fireEvent.keyDown(document, { key: 'Escape' });
+
+      // 퇴장 전이가 재생될 시간만큼 더 흘려보내야 DOM이 실제로 사라진다
+      act(() => {
+        vi.advanceTimersByTime(EXIT_DURATION_MS);
+      });
 
       expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
 
@@ -533,6 +567,11 @@ describe('Tooltip', () => {
       expect(screen.getByRole('tooltip')).toBeInTheDocument();
 
       fireEvent.keyDown(document, { key: 'Escape' });
+
+      // 퇴장 전이가 재생될 시간만큼 더 흘려보내야 DOM이 실제로 사라진다
+      act(() => {
+        vi.advanceTimersByTime(EXIT_DURATION_MS);
+      });
 
       expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
 
@@ -563,6 +602,11 @@ describe('Tooltip', () => {
       expect(screen.getByRole('tooltip')).toBeInTheDocument();
 
       fireEvent.keyDown(document, { key: 'Escape' });
+
+      // 퇴장 전이가 재생될 시간만큼 더 흘려보내야 DOM이 실제로 사라진다
+      act(() => {
+        vi.advanceTimersByTime(EXIT_DURATION_MS);
+      });
 
       expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
 
@@ -633,6 +677,11 @@ describe('Tooltip', () => {
         vi.advanceTimersByTime(1000);
       });
 
+      // 퇴장 전이가 재생될 시간만큼 더 흘려보내야 DOM이 실제로 사라진다
+      act(() => {
+        vi.advanceTimersByTime(EXIT_DURATION_MS);
+      });
+
       expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
     });
   });
@@ -689,6 +738,11 @@ describe('Tooltip', () => {
 
       fireEvent.keyDown(document, { key: 'Escape' }); // 유예가 끝나기 전에 Escape
 
+      // 퇴장 전이가 재생될 시간만큼 더 흘려보내야 DOM이 실제로 사라진다
+      act(() => {
+        vi.advanceTimersByTime(EXIT_DURATION_MS);
+      });
+
       expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
       expect(handleOpenChange).toHaveBeenCalledTimes(1);
 
@@ -724,6 +778,11 @@ describe('Tooltip', () => {
 
       fireEvent.blur(button); // 유예가 끝나기 전에 블러 → 즉시 닫힘
 
+      // 퇴장 전이가 재생될 시간만큼 더 흘려보내야 DOM이 실제로 사라진다
+      act(() => {
+        vi.advanceTimersByTime(EXIT_DURATION_MS);
+      });
+
       expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
       expect(handleOpenChange).toHaveBeenCalledTimes(1);
 
@@ -735,6 +794,188 @@ describe('Tooltip', () => {
       });
 
       expect(handleOpenChange).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('모션 잠금 — @keyframes 제거 + O3 최하한', () => {
+    // vanilla-extract가 스타일을 클래스로 직렬화해서 jsdom에서 계산값을 못
+    // 읽는다. Tooltip.css.ts 소스 텍스트에서 직접 확인한다(Popover와 동일 관례).
+    const cssSource = readFileSync(
+      resolve(__dirname, './Tooltip.css.ts'),
+      'utf-8'
+    );
+
+    it('@keyframes(fadeIn)가 없다 — 등장·퇴장 모두 transition이다', () => {
+      expect(cssSource).not.toContain('keyframes');
+      expect(cssSource).not.toContain('fadeIn');
+      expect(cssSource).not.toContain('animation:');
+    });
+
+    it('transition: all이 없다', () => {
+      expect(cssSource).not.toMatch(/transition:\s*['`]all/);
+    });
+
+    it("'use client'가 없다", () => {
+      expect(cssSource).not.toContain('use client');
+    });
+
+    it('등장 전이가 duration.fast(변경 없음) / easing.settle이다', () => {
+      expect(cssSource).toContain(
+        'opacity ${themeContract.animation.duration.fast} ${themeContract.animation.easing.settle}'
+      );
+    });
+
+    it('퇴장 전이가 calc(duration.fast * 0.65) / easing.exit이다(리터럴 ms 금지)', () => {
+      expect(cssSource).toContain(
+        'calc(${themeContract.animation.duration.fast} * 0.65) ${themeContract.animation.easing.exit}'
+      );
+      expect(cssSource).not.toMatch(/97\.5ms/);
+    });
+
+    it.each([
+      ['top', 'translateY(-6px)', 'translateY(-8px)'],
+      ['bottom', 'translateY(6px)', 'translateY(8px)'],
+      ['left', 'translateX(-6px)', 'translateX(-8px)'],
+      ['right', 'translateX(6px)', 'translateX(8px)'],
+    ])(
+      'position="%s"일 때 채널이 opacity + translateY 2px다(닫힘 %s → 열림 %s)',
+      (_position, closedTranslate, openTranslate) => {
+        expect(cssSource).toContain(closedTranslate);
+        expect(cssSource).toContain(openTranslate);
+      }
+    );
+
+    it('O3 — Popover(scale 채널, duration.base)보다 채널·길이가 작다(오버레이계 최하한)', () => {
+      const popoverSource = readFileSync(
+        resolve(__dirname, '../Popover/Popover.css.ts'),
+        'utf-8'
+      );
+      // Tooltip은 scale 채널을 쓰지 않는다 — Popover보다 가벼운 채널(opacity+
+      // translateY)만 쓴다.
+      expect(cssSource).not.toContain('scale(');
+      expect(popoverSource).toContain('scale(0.95)');
+      // Tooltip은 duration.fast, Popover는 duration.base를 쓴다 — fast가
+      // base보다 짧다(150ms < 200ms).
+      expect(cssSource).toContain('duration.fast');
+      expect(popoverSource).toContain('duration.base');
+    });
+
+    it('M2→M3 계약 주석(O3 — 오버레이계 최하한)이 남아있다', () => {
+      expect(cssSource).toContain('오버레이계의 최하한');
+    });
+  });
+
+  describe('조항 1 — 중단 가능·역재생 가능', () => {
+    it('퇴장 도중 다시 호버하면 언마운트 타이머가 취소되고 DOM이 유지된다(현재 위치에서 이어진다)', () => {
+      render(
+        <Tooltip content="툴팁 내용">
+          <button>호버하세요</button>
+        </Tooltip>
+      );
+
+      const button = screen.getByRole('button');
+      fireEvent.mouseEnter(button);
+      act(() => {
+        vi.advanceTimersByTime(200);
+      });
+      expect(screen.getByRole('tooltip')).toBeInTheDocument();
+
+      // 블러는 유예 없이 즉시 닫는다 — 퇴장 타이머(97.5ms)가 예약된다.
+      fireEvent.blur(button);
+
+      // 타이머가 끝나기 전에(절반 지점) 다시 포커스한다 — 처음부터 다시
+      // 마운트되는 게 아니라 같은 DOM 노드가 계속 살아 있어야 한다(조항 1 ③).
+      act(() => {
+        vi.advanceTimersByTime(EXIT_DURATION_MS / 2);
+      });
+      const tooltipBeforeReopen = screen.getByRole('tooltip');
+      fireEvent.focus(button);
+      act(() => {
+        vi.advanceTimersByTime(200);
+      });
+      expect(screen.getByRole('tooltip')).toBe(tooltipBeforeReopen);
+
+      // 원래 퇴장 타이머가 그대로 발화했다면 이 시점에 사라졌을 것이다 —
+      // 취소되지 않았다면 실패한다.
+      act(() => {
+        vi.advanceTimersByTime(EXIT_DURATION_MS / 2);
+      });
+      expect(screen.getByRole('tooltip')).toBeInTheDocument();
+    });
+  });
+
+  describe('그레이스 타이머 동결 (WCAG 1.4.13)', () => {
+    it('hide 유예(HIDE_GRACE_MS) 동안은 isOpen이 그대로라 전이가 돌지 않는다 — 열림 클래스가 유지된다', () => {
+      render(
+        <Tooltip content="툴팁 내용">
+          <button>호버하세요</button>
+        </Tooltip>
+      );
+
+      const button = screen.getByRole('button');
+      fireEvent.mouseEnter(button);
+      act(() => {
+        vi.advanceTimersByTime(200);
+      });
+
+      const tooltip = screen.getByRole('tooltip');
+      const openClassName = tooltip.className;
+      expect(openClassName).toContain('positionOpenStyles');
+
+      fireEvent.mouseLeave(button); // hide 유예 시작(300ms)
+
+      // 유예 중간 지점 — isOpen은 아직 true다(그레이스 타이머가 끝나야
+      // setOpen(false)가 불린다). 전이를 일으키는 클래스가 바뀌면 안 된다.
+      act(() => {
+        vi.advanceTimersByTime(150);
+      });
+      expect(screen.getByRole('tooltip').className).toBe(openClassName);
+
+      // 유예 중 다시 들어오면(hover-persistence) 닫기가 취소되고 그대로
+      // 열림 상태를 유지한다
+      fireEvent.mouseEnter(tooltip);
+      act(() => {
+        vi.advanceTimersByTime(1000);
+      });
+      expect(screen.getByRole('tooltip').className).toBe(openClassName);
+    });
+  });
+
+  describe('빠른 호버 아웃/인 반복 — 타이머 누수 없음', () => {
+    it('빠르게 mouseLeave→mouseEnter를 반복해도 열림 상태로 수렴하고 잔여 타이머가 뒤늦게 닫지 않는다', () => {
+      render(
+        <Tooltip content="툴팁 내용">
+          <button>호버하세요</button>
+        </Tooltip>
+      );
+
+      const button = screen.getByRole('button');
+      fireEvent.mouseEnter(button);
+      act(() => {
+        vi.advanceTimersByTime(200);
+      });
+      expect(screen.getByRole('tooltip')).toBeInTheDocument();
+
+      // 유예 시간(300ms)보다 짧은 간격으로 나갔다 들어왔다를 반복한다
+      for (let i = 0; i < 5; i += 1) {
+        fireEvent.mouseLeave(button);
+        act(() => {
+          vi.advanceTimersByTime(50);
+        });
+        fireEvent.mouseEnter(button);
+        act(() => {
+          vi.advanceTimersByTime(50);
+        });
+      }
+
+      // 반복 끝에 열림 상태로 수렴했다 — 닫히지 않았다
+      expect(screen.getByRole('tooltip')).toBeInTheDocument();
+
+      // 충분히 기다려도 잔여 타이머가 뒤늦게 닫지 않는다
+      act(() => {
+        vi.advanceTimersByTime(2000);
+      });
+      expect(screen.getByRole('tooltip')).toBeInTheDocument();
     });
   });
 });
