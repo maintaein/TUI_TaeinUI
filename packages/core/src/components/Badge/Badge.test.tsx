@@ -1,6 +1,10 @@
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { Badge } from './Badge';
+
+const BADGE_CSS = readFileSync(resolve(__dirname, './Badge.css.ts'), 'utf-8');
 
 describe('Badge', () => {
   describe('렌더링 테스트', () => {
@@ -226,6 +230,46 @@ describe('Badge', () => {
     it('undefined는 렌더링되지 않는다', () => {
       const { container } = render(<Badge>{undefined}</Badge>);
       expect(container.firstChild).toBeNull();
+    });
+  });
+
+  describe('Badge 모션 잠금 (M2 T3c)', () => {
+    it('값이 바뀌면 노드가 재마운트된다 (key로 교체 애니메이션을 재생한다)', () => {
+      const { container, rerender } = render(<Badge>5</Badge>);
+      const before = container.querySelector('[role="status"]');
+      rerender(<Badge>6</Badge>);
+      const after = container.querySelector('[role="status"]');
+      expect(screen.getByText('6')).toBeInTheDocument();
+      expect(after).not.toBe(before);
+    });
+
+    it('같은 값으로 리렌더링되면 노드를 유지한다', () => {
+      const { container, rerender } = render(<Badge>5</Badge>);
+      const before = container.querySelector('[role="status"]');
+      rerender(<Badge variant="error">5</Badge>);
+      const after = container.querySelector('[role="status"]');
+      expect(after).toBe(before);
+    });
+
+    it('valueEnter 키프레임이 0% 시작 프레임만 갖고, base(=최종 상태)를 덮지 않는다', () => {
+      const start = BADGE_CSS.indexOf('const valueEnter = keyframes({');
+      expect(start).toBeGreaterThan(-1);
+      const end = BADGE_CSS.indexOf('\n});', start);
+      const block = BADGE_CSS.slice(start, end);
+      expect(block).toContain("'0%'");
+      expect(block).not.toContain("'100%'");
+      expect(block).toContain('translateY(100%)');
+      expect(block).toContain('opacity: 0');
+    });
+
+    it('badge가 duration.base·easing.settle 토큰으로 valueEnter를 재생한다', () => {
+      expect(BADGE_CSS).toContain(
+        'animation: `${valueEnter} ${themeContract.animation.duration.base} ${themeContract.animation.easing.settle}`'
+      );
+    });
+
+    it('조항 1 위반이 아니라는 판정이 주석으로 남아 있다', () => {
+      expect(BADGE_CSS).toMatch(/조항 1|교체|전이가 아니/);
     });
   });
 });

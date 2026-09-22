@@ -122,6 +122,9 @@ export const Badge = ({
 
   return (
     <span
+      // 값이 바뀔 때만 재마운트해 valueEnter 교체 애니메이션을 다시 재생한다.
+      // variant·size 등 다른 prop 변경으로는 재생하지 않는다.
+      key={String(displayContent)}
       role="status"
       {...(finalAriaLabel ? { 'aria-label': finalAriaLabel } : {})}
       className={clsx(
