@@ -1,9 +1,16 @@
 import { style, styleVariants, keyframes } from '@vanilla-extract/css';
 import { themeContract } from '../../tokens/theme.css';
 
-// 회전 애니메이션 (spinner용)
+// 회전 애니메이션 (spinner용).
+// 한 방향 회전이되 속도가 일정하지 않다 — 끌려가는 느낌. 루프에 ease-out을
+// 걸면 매 바퀴 멈춘 것처럼 보이므로, 대신 중간 프레임(50% 200deg)을 넣어
+// timing은 linear로 두고 키프레임 자체로 비등속을 만든다.
+// T5(loopRhythm) 공유 자산을 쓰지 않는다 — 주기가 loop.fast이고 커브가
+// linear + 비등속 키프레임인 것은 이 명제 한 줄의 요구이지 계열 리듬(S1)의
+// 예외가 아니다. 회전은 좌→우의 원형 형태라 "한 방향"은 그대로 지켜진다.
 const spin = keyframes({
   '0%': { transform: 'rotate(0deg)' },
+  '50%': { transform: 'rotate(200deg)' },
   '100%': { transform: 'rotate(360deg)' },
 });
 
@@ -29,7 +36,7 @@ export const spinner = style({
   borderColor: themeContract.color.border.default,
   borderTopColor: 'var(--spinner-color)',
   borderRadius: '50%',
-  animation: `${spin} ${themeContract.animation.loop.fast} linear infinite`,
+  animation: `${spin} ${themeContract.animation.loop.fast} ${themeContract.animation.easing.linear} infinite`,
   boxSizing: 'border-box',
 });
 
@@ -44,7 +51,7 @@ export const dot = style({
   height: '100%',
   backgroundColor: 'var(--spinner-color)',
   borderRadius: '50%',
-  animation: `${fadeInOut} ${themeContract.animation.loop.base} infinite ease-in-out backwards`,
+  animation: `${fadeInOut} ${themeContract.animation.loop.base} infinite ${themeContract.animation.easing.drift} backwards`,
 });
 
 export const sizeStyles = styleVariants({
