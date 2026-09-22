@@ -327,26 +327,70 @@ function inlineDeclarationsOf(file: string): MotionDecl[] {
  * `file`은 `readFileSync`를 하지 않고 텍스트를 직접 받는다 — 테스트가 소스 파일을 새로
  * 만들지 않고 문자열 픽스처를 바로 먹일 수 있어야 하기 때문이다.
  */
-function jsxStyleDeclarationsFrom(file: string, text: string): MotionDecl[] {
-  const decls: MotionDecl[] = [];
+/** `style={{...}}` 블록들을 (시작 줄, 블록 내부 줄 배열)로 자른다. `jsxStyleDeclarationsFrom`과
+ * `CROWDED_LINES` 확장(F1)이 같은 블록 경계를 써야 서로 어긋나지 않는다. */
+function jsxStyleBlocksOf(
+  text: string
+): { startLine: number; lines: string[] }[] {
+  const blocks: { startLine: number; lines: string[] }[] = [];
   for (const open of text.matchAll(/style=\{\{/g)) {
     const openIndex = (open.index ?? 0) + open[0].length - 2;
     const block = balancedFrom(text, openIndex);
-    const blockLines = block.split(/\r?\n/);
-    const startLine = text.slice(0, openIndex).split(/\r?\n/).length;
+    blocks.push({
+      startLine: text.slice(0, openIndex).split(/\r?\n/).length,
+      lines: block.split(/\r?\n/),
+    });
+  }
+  return blocks;
+}
+
+function jsxStyleDeclarationsFrom(
+  file: string,
+  text: string
+): { decls: MotionDecl[]; opaque: string[] } {
+  const decls: MotionDecl[] = [];
+  const opaque: string[] = [];
+  for (const { startLine, lines: blockLines } of jsxStyleBlocksOf(text)) {
     blockLines.forEach((line, i) => {
       const match = MOTION_DECLARATION.exec(line);
       if (!match) return;
       const property = `${match[1]}${match[2] ?? ''}`;
       const value = readLiteral(match[3], blockLines, i);
-      if (value === null || value === '' || value === 'none') return;
+      if (value === null) {
+        // F2 — declarationsOf와 같은 판단: 리터럴이 아니면 opaque로 밀어 넣는다.
+        // 안 그러면 transition·animation처럼 값이 안 보이면 가드가 완전히 눈머는
+        // 속성이 조용히 사라진다(SegmentedButtons.tsx:218 · Slider.tsx:158류).
+        if (needsLiteral(property))
+          opaque.push(`${rel(file)}:${startLine + i}`);
+        return;
+      }
+      if (value === '' || value === 'none') return;
       decls.push(analyze(file, property, startLine + i, value));
     });
   }
-  return decls;
+  return { decls, opaque };
 }
-function jsxStyleDeclarationsOf(file: string): MotionDecl[] {
+function jsxStyleDeclarationsOf(file: string): {
+  decls: MotionDecl[];
+  opaque: string[];
+} {
   return jsxStyleDeclarationsFrom(file, readFileSync(file, 'utf-8'));
+}
+
+/** F1 — JSX `style={{...}}` 블록 안에서 붐비는 줄(모션 선언 2개 이상)을 찾는다.
+ * `jsxStyleDeclarationsFrom`도 `declarationsOf`처럼 줄마다 `exec`를 한 번만 불러
+ * 둘째 선언을 조용히 놓친다 — `.css.ts` 쪽 `CROWDED_LINES`가 이미 막아 둔 결함과
+ * 같다. 줄 안에서 매치를 반복하는 대신 붐비는 줄 자체를 막는 쪽으로 가드를 맞춘다. */
+function crowdedJsxLinesFrom(file: string, text: string): string[] {
+  const found: string[] = [];
+  for (const { startLine, lines: blockLines } of jsxStyleBlocksOf(text)) {
+    blockLines.forEach((line, i) => {
+      if ([...line.matchAll(MOTION_KEYWORD)].length >= 2) {
+        found.push(`${rel(file)}:${startLine + i}`);
+      }
+    });
+  }
+  return found;
 }
 
 /** 맹점 2 — `setProperty`의 케밥케이스 속성명을 정규화해 읽는다. */
@@ -395,25 +439,38 @@ function cssTextDeclarationsOf(file: string): MotionDecl[] {
  * `style({ transition: 'opacity 1s ease', animationDelay: '1s' })`가 그 모양이다.
  * 값 파싱 경계가 복잡해 `matchAll`로 바꾸는 대신 그런 줄 자체를 막는다.
  */
-const CROWDED_LINES = CSS_FILES.flatMap((file) =>
-  readFileSync(file, 'utf-8')
-    .split(/\r?\n/)
-    .flatMap((line, index) =>
-      [...line.matchAll(MOTION_KEYWORD)].length >= 2
-        ? [`${rel(file)}:${index + 1}`]
-        : []
-    )
-);
+const CROWDED_LINES = [
+  ...CSS_FILES.flatMap((file) =>
+    readFileSync(file, 'utf-8')
+      .split(/\r?\n/)
+      .flatMap((line, index) =>
+        [...line.matchAll(MOTION_KEYWORD)].length >= 2
+          ? [`${rel(file)}:${index + 1}`]
+          : []
+      )
+  ),
+  // F1 — JSX style={{...}} 블록도 같은 결함을 가진다. CSS_FILES와 별개 소스라
+  // 따로 순회한다.
+  ...INLINE_FILES.flatMap((file) =>
+    crowdedJsxLinesFrom(file, readFileSync(file, 'utf-8'))
+  ),
+];
 
 const SCANNED = CSS_FILES.map(declarationsOf);
 const CSS_DECLS = SCANNED.flatMap((scan) => scan.decls);
-const OPAQUE_DECLS = SCANNED.flatMap((scan) => scan.opaque);
-const INLINE_DECLS = INLINE_FILES.flatMap((file) => [
+const JSX_SCANNED = INLINE_FILES.map((file) => jsxStyleDeclarationsOf(file));
+const INLINE_DECLS = INLINE_FILES.flatMap((file, i) => [
   ...inlineDeclarationsOf(file),
-  ...jsxStyleDeclarationsOf(file),
+  ...JSX_SCANNED[i].decls,
   ...setPropertyDeclarationsOf(file),
   ...cssTextDeclarationsOf(file),
 ]);
+// F2 — JSX 스캐너의 opaque 결과도 .css.ts 쪽과 합쳐 "값을 읽을 수 있다" 단언이
+// 전체 소스를 덮게 한다.
+const OPAQUE_DECLS = [
+  ...SCANNED.flatMap((scan) => scan.opaque),
+  ...JSX_SCANNED.flatMap((scan) => scan.opaque),
+];
 const ALL_DECLS = [...CSS_DECLS, ...INLINE_DECLS];
 
 /** 선언 안의 리터럴 이징을 줄 단위로 집어낸다. */
@@ -934,7 +991,7 @@ describe('스캐너 맹점 셋 (할 일 1)', () => {
       '  );',
       '}',
     ].join('\n');
-    const decls = jsxStyleDeclarationsFrom(FIXTURE_FILE, fixture);
+    const { decls } = jsxStyleDeclarationsFrom(FIXTURE_FILE, fixture);
     expect(decls).not.toEqual([]);
     expect(decls.map((d) => `${d.line}:${d.property}=${d.value}`)).toEqual([
       '5:transition=opacity 0.2s ease',
@@ -944,8 +1001,28 @@ describe('스캐너 맹점 셋 (할 일 1)', () => {
     const outside = jsxStyleDeclarationsFrom(
       FIXTURE_FILE,
       "const config = { transition: 'not-a-style' };"
-    );
+    ).decls;
     expect(outside).toEqual([]);
+  });
+
+  it('F1 — 한 줄에 모션 선언이 둘인 JSX style 줄은 CROWDED_LINES가 잡는다', () => {
+    // 실측(리뷰): `<div style={{ transitionDuration: '0.2s', transitionDelay: '0.1s' }} />`
+    // 한 줄이면 jsxStyleDeclarationsFrom이 줄마다 exec를 한 번만 불러 transitionDelay를
+    // 조용히 놓친다. CROWDED_LINES를 INLINE_FILES까지 확장해 이 줄 자체를 막는다 — 줄
+    // 안에서 매치를 반복하는 대신 .css.ts에 이미 있는 같은 판단을 따른다.
+    const fixture =
+      "<div style={{ transitionDuration: '0.2s', transitionDelay: '0.1s' }} />";
+    expect(crowdedJsxLinesFrom(FIXTURE_FILE, fixture)).not.toEqual([]);
+  });
+
+  it('F2 — 리터럴이 아닌 JSX style 값은 사라지지 않고 opaque로 잡힌다', () => {
+    // declarationsOf(.css.ts 쪽)와 같은 판단: transition·animation 값이 식별자면
+    // 스캐너가 못 읽는다 — 조용히 버리지 않고 opaque로 밀어 넣어야 "값을 읽을 수
+    // 있다" 단언이 이 경로도 덮는다. SegmentedButtons.tsx:218·Slider.tsx:158류.
+    const fixture = '<div style={{ transition: motionValue }} />';
+    const { decls, opaque } = jsxStyleDeclarationsFrom(FIXTURE_FILE, fixture);
+    expect(decls).toEqual([]);
+    expect(opaque).not.toEqual([]);
   });
 
   it("맹점 2 — `element.style.setProperty('kebab-case', ...)`을 읽고 카멜케이스로 정규화한다", () => {
@@ -975,7 +1052,7 @@ describe('스캐너 맹점 셋 (할 일 1)', () => {
     // 반증(위)은 정규식이 물린다는 증거고, 이 단언은 "저장소에 0건"이라는 브리프의
     // 전제가 아직 사실인지를 잠근다 — 누가 새로 이 패턴을 쓰기 시작하면 여기서 걸린다.
     const real = INLINE_FILES.flatMap((file) => [
-      ...jsxStyleDeclarationsOf(file),
+      ...jsxStyleDeclarationsOf(file).decls,
       ...setPropertyDeclarationsOf(file),
       ...cssTextDeclarationsOf(file),
     ]);
