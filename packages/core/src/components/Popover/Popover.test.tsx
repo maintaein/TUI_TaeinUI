@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import {
   act,
   fireEvent,
@@ -50,53 +50,67 @@ describe('Popover', () => {
       expect(screen.getByText('팝오버 내용')).toBeInTheDocument();
     });
 
-    it('트리거를 다시 클릭하면 content가 닫힌다', async () => {
-      vi.useFakeTimers();
-      render(
-        <Popover content={<div>팝오버 내용</div>}>
-          <button>트리거</button>
-        </Popover>
-      );
-
-      fireEvent.click(screen.getByText('트리거'));
-      expect(screen.getByText('팝오버 내용')).toBeInTheDocument();
-
-      fireEvent.click(screen.getByText('트리거'));
-      // 퇴장 전이(130ms) 동안엔 DOM이 즉시 사라지지 않는다 — transition이
-      // 재생될 자리가 있어야 한다(조항 1: 일회성 @keyframes 금지의 반대편).
-      expect(screen.getByText('팝오버 내용')).toBeInTheDocument();
-
-      act(() => {
-        vi.advanceTimersByTime(EXIT_DURATION_MS);
+    describe('가짜 타이머 사용', () => {
+      beforeEach(() => {
+        vi.useFakeTimers();
       });
-      expect(screen.queryByText('팝오버 내용')).not.toBeInTheDocument();
+      afterEach(() => {
+        vi.clearAllTimers();
+        vi.useRealTimers();
+      });
 
-      vi.useRealTimers();
+      it('트리거를 다시 클릭하면 content가 닫힌다', async () => {
+        render(
+          <Popover content={<div>팝오버 내용</div>}>
+            <button>트리거</button>
+          </Popover>
+        );
+
+        fireEvent.click(screen.getByText('트리거'));
+        expect(screen.getByText('팝오버 내용')).toBeInTheDocument();
+
+        fireEvent.click(screen.getByText('트리거'));
+        // 퇴장 전이(130ms) 동안엔 DOM이 즉시 사라지지 않는다 — transition이
+        // 재생될 자리가 있어야 한다(조항 1: 일회성 @keyframes 금지의 반대편).
+        expect(screen.getByText('팝오버 내용')).toBeInTheDocument();
+
+        act(() => {
+          vi.advanceTimersByTime(EXIT_DURATION_MS);
+        });
+        expect(screen.queryByText('팝오버 내용')).not.toBeInTheDocument();
+      });
     });
   });
 
   describe('바깥 클릭 닫기 테스트', () => {
-    it('팝오버 외부를 클릭하면 닫힌다', async () => {
-      vi.useFakeTimers();
-      render(
-        <div>
-          <Popover content={<div>팝오버 내용</div>}>
-            <button>트리거</button>
-          </Popover>
-          <button>외부 버튼</button>
-        </div>
-      );
-
-      fireEvent.click(screen.getByText('트리거'));
-      expect(screen.getByText('팝오버 내용')).toBeInTheDocument();
-
-      fireEvent.mouseDown(screen.getByText('외부 버튼'));
-      act(() => {
-        vi.advanceTimersByTime(EXIT_DURATION_MS);
+    describe('가짜 타이머 사용', () => {
+      beforeEach(() => {
+        vi.useFakeTimers();
       });
-      expect(screen.queryByText('팝오버 내용')).not.toBeInTheDocument();
+      afterEach(() => {
+        vi.clearAllTimers();
+        vi.useRealTimers();
+      });
 
-      vi.useRealTimers();
+      it('팝오버 외부를 클릭하면 닫힌다', async () => {
+        render(
+          <div>
+            <Popover content={<div>팝오버 내용</div>}>
+              <button>트리거</button>
+            </Popover>
+            <button>외부 버튼</button>
+          </div>
+        );
+
+        fireEvent.click(screen.getByText('트리거'));
+        expect(screen.getByText('팝오버 내용')).toBeInTheDocument();
+
+        fireEvent.mouseDown(screen.getByText('외부 버튼'));
+        act(() => {
+          vi.advanceTimersByTime(EXIT_DURATION_MS);
+        });
+        expect(screen.queryByText('팝오버 내용')).not.toBeInTheDocument();
+      });
     });
 
     it('closeOnOutsideClick=false이면 외부 클릭으로 닫히지 않는다', async () => {
@@ -118,24 +132,31 @@ describe('Popover', () => {
   });
 
   describe('ESC 닫기 테스트', () => {
-    it('Escape 키를 누르면 팝오버가 닫힌다', async () => {
-      vi.useFakeTimers();
-      render(
-        <Popover content={<div>팝오버 내용</div>}>
-          <button>트리거</button>
-        </Popover>
-      );
-
-      fireEvent.click(screen.getByText('트리거'));
-      expect(screen.getByText('팝오버 내용')).toBeInTheDocument();
-
-      fireEvent.keyDown(document, { key: 'Escape' });
-      act(() => {
-        vi.advanceTimersByTime(EXIT_DURATION_MS);
+    describe('가짜 타이머 사용', () => {
+      beforeEach(() => {
+        vi.useFakeTimers();
       });
-      expect(screen.queryByText('팝오버 내용')).not.toBeInTheDocument();
+      afterEach(() => {
+        vi.clearAllTimers();
+        vi.useRealTimers();
+      });
 
-      vi.useRealTimers();
+      it('Escape 키를 누르면 팝오버가 닫힌다', async () => {
+        render(
+          <Popover content={<div>팝오버 내용</div>}>
+            <button>트리거</button>
+          </Popover>
+        );
+
+        fireEvent.click(screen.getByText('트리거'));
+        expect(screen.getByText('팝오버 내용')).toBeInTheDocument();
+
+        fireEvent.keyDown(document, { key: 'Escape' });
+        act(() => {
+          vi.advanceTimersByTime(EXIT_DURATION_MS);
+        });
+        expect(screen.queryByText('팝오버 내용')).not.toBeInTheDocument();
+      });
     });
 
     it('closeOnEscape=false이면 Escape로 닫히지 않는다', async () => {
@@ -218,6 +239,17 @@ describe('Popover', () => {
       expect(screen.getByText('팝오버 내용')).toBeInTheDocument();
     });
 
+    it('첫 렌더링부터 open=true이면 닫힘이 아닌 열림 위치 클래스를 갖는다', () => {
+      const { container } = render(
+        <Popover content={<div>팝오버 내용</div>} open={true}>
+          <button>트리거</button>
+        </Popover>
+      );
+
+      const popover = container.querySelector('[role="dialog"]');
+      expect(popover).toHaveClass(/positionOpenStyles_bottom/);
+    });
+
     it('open=false이면 content가 숨겨진다', () => {
       render(
         <Popover content={<div>팝오버 내용</div>} open={false}>
@@ -262,26 +294,33 @@ describe('Popover', () => {
   });
 
   describe('비제어 모드 테스트', () => {
-    it('내부 상태로 열기/닫기가 동작한다', async () => {
-      vi.useFakeTimers();
-      render(
-        <Popover content={<div>팝오버 내용</div>}>
-          <button>트리거</button>
-        </Popover>
-      );
-
-      expect(screen.queryByText('팝오버 내용')).not.toBeInTheDocument();
-
-      fireEvent.click(screen.getByText('트리거'));
-      expect(screen.getByText('팝오버 내용')).toBeInTheDocument();
-
-      fireEvent.click(screen.getByText('트리거'));
-      act(() => {
-        vi.advanceTimersByTime(EXIT_DURATION_MS);
+    describe('가짜 타이머 사용', () => {
+      beforeEach(() => {
+        vi.useFakeTimers();
       });
-      expect(screen.queryByText('팝오버 내용')).not.toBeInTheDocument();
+      afterEach(() => {
+        vi.clearAllTimers();
+        vi.useRealTimers();
+      });
 
-      vi.useRealTimers();
+      it('내부 상태로 열기/닫기가 동작한다', async () => {
+        render(
+          <Popover content={<div>팝오버 내용</div>}>
+            <button>트리거</button>
+          </Popover>
+        );
+
+        expect(screen.queryByText('팝오버 내용')).not.toBeInTheDocument();
+
+        fireEvent.click(screen.getByText('트리거'));
+        expect(screen.getByText('팝오버 내용')).toBeInTheDocument();
+
+        fireEvent.click(screen.getByText('트리거'));
+        act(() => {
+          vi.advanceTimersByTime(EXIT_DURATION_MS);
+        });
+        expect(screen.queryByText('팝오버 내용')).not.toBeInTheDocument();
+      });
     });
 
     it('onOpenChange 콜백이 호출된다', async () => {
@@ -546,8 +585,15 @@ describe('Popover', () => {
   });
 
   describe('조항 1 — 중단 가능·역재생 가능', () => {
-    it('퇴장 도중 다시 열면 언마운트 타이머가 취소되고 DOM이 유지된다(현재 위치에서 이어진다)', () => {
+    beforeEach(() => {
       vi.useFakeTimers();
+    });
+    afterEach(() => {
+      vi.clearAllTimers();
+      vi.useRealTimers();
+    });
+
+    it('퇴장 도중 다시 열면 언마운트 타이머가 취소되고 DOM이 유지된다(현재 위치에서 이어진다)', () => {
       render(
         <Popover content={<div>팝오버 내용</div>}>
           <button>트리거</button>
@@ -575,8 +621,6 @@ describe('Popover', () => {
         vi.advanceTimersByTime(65);
       });
       expect(screen.getByText('팝오버 내용')).toBeInTheDocument();
-
-      vi.useRealTimers();
     });
   });
 });
