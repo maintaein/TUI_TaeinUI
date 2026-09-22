@@ -711,3 +711,75 @@ describe('Card (Flat API)', () => {
     });
   });
 });
+
+describe('Card 모션 잠금', () => {
+  // vanilla-extract가 스타일을 클래스로 직렬화해서 jsdom에서 계산값을 못
+  // 읽는다. Card.css.ts 소스 텍스트에서 직접 확인한다(이미지 기준 박스 관례).
+  const cssSource = readFileSync(resolve(__dirname, './Card.css.ts'), 'utf-8');
+
+  it('cardRoot transition의 transform 구간이 snap을, box-shadow/opacity가 settle을 쓴다', () => {
+    const rootBlock = cssSource.match(
+      /export const cardRoot = style\(\{([\s\S]*?)\n\}\);/
+    )?.[1];
+    expect(rootBlock, 'cardRoot 블록을 찾지 못했다').toBeDefined();
+    const transitionLine = (rootBlock as string).match(
+      /transition: `([^`]*)`,/
+    )?.[1];
+    expect(
+      transitionLine,
+      'cardRoot transition 선언을 찾지 못했다'
+    ).toBeDefined();
+    expect(transitionLine).toContain(
+      'transform ${themeContract.animation.duration.base} ${themeContract.animation.easing.snap}'
+    );
+    expect(transitionLine).toContain(
+      'box-shadow ${themeContract.animation.duration.base} ${themeContract.animation.easing.settle}'
+    );
+    expect(transitionLine).toContain(
+      'opacity ${themeContract.animation.duration.base} ${themeContract.animation.easing.settle}'
+    );
+  });
+
+  it('variantStyles.interactive가 자기 :hover/transition을 더 갖지 않는다(clickable로 병합)', () => {
+    const variantBlock = cssSource.match(
+      /export const variantStyles = styleVariants\(\{([\s\S]*?)\n\}\);/
+    )?.[1];
+    expect(variantBlock, 'variantStyles 블록을 찾지 못했다').toBeDefined();
+    const interactiveBlock = (variantBlock as string).match(
+      /interactive: \{([\s\S]*?)\n {2}\},/
+    )?.[1];
+    expect(interactiveBlock, 'interactive 블록을 찾지 못했다').toBeDefined();
+    expect(interactiveBlock).not.toContain('cubic-bezier');
+    expect(interactiveBlock).not.toContain('transition');
+    expect(interactiveBlock).not.toContain(':hover');
+    expect(interactiveBlock).not.toContain('translateY(-8px)');
+  });
+
+  it('clickable :hover가 translateY(-3px)/base/settle로 합쳐진다', () => {
+    const hover = cssSource.match(/':hover': \{([\s\S]*?)\n {2}\},/)?.[1];
+    expect(hover, ':hover 블록을 찾지 못했다').toBeDefined();
+    expect(hover).toContain("transform: 'translateY(-3px)'");
+    expect(hover).toContain('themeContract.animation.duration.base');
+    expect(hover).toContain('themeContract.animation.easing.settle');
+  });
+
+  it('clickable :active가 scale(0.99) translateY(-1px)/fast/exit로 버틴다', () => {
+    const active = cssSource.match(/':active': \{([\s\S]*?)\n {2}\},/)?.[1];
+    expect(active, ':active 블록을 찾지 못했다').toBeDefined();
+    expect(active).toContain("transform: 'scale(0.99) translateY(-1px)'");
+    expect(active).toContain('themeContract.animation.duration.fast');
+    expect(active).toContain('themeContract.animation.easing.exit');
+  });
+
+  it('남은 boxShadow rgba 값은 손대지 않는다(M5) — interactive 병합 삭제로 4→3', () => {
+    // interactive의 hover boxShadow(0.12 알파)가 병합으로 통째로 사라져 4→3.
+    // 남은 3곳(elevated·clickable hover·clickable active)의 알파값은 그대로다.
+    const rgbaValues = cssSource.match(/rgba\(0, 0, 0, 0\.\d+\)/g) ?? [];
+    expect(rgbaValues).toHaveLength(3);
+    expect(rgbaValues).toEqual([
+      'rgba(0, 0, 0, 0.1)',
+      'rgba(0, 0, 0, 0.15)',
+      'rgba(0, 0, 0, 0.1)',
+    ]);
+  });
+});
