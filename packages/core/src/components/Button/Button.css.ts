@@ -14,7 +14,7 @@ export const button = recipe({
     border: 'none',
     cursor: 'pointer',
     touchAction: 'manipulation',
-    transition: `background-color ${themeContract.animation.duration.base} ${themeContract.animation.easing.settle}, box-shadow ${themeContract.animation.duration.base} ${themeContract.animation.easing.settle}, filter ${themeContract.animation.duration.base} ${themeContract.animation.easing.settle}, opacity ${themeContract.animation.duration.base} ${themeContract.animation.easing.settle}, transform ${themeContract.animation.duration.base} ${themeContract.animation.easing.settle}`,
+    transition: `background-color ${themeContract.animation.duration.base} ${themeContract.animation.easing.settle}, box-shadow ${themeContract.animation.duration.base} ${themeContract.animation.easing.settle}, filter ${themeContract.animation.duration.base} ${themeContract.animation.easing.settle}, opacity ${themeContract.animation.duration.base} ${themeContract.animation.easing.settle}, transform ${themeContract.animation.duration.base} ${themeContract.animation.easing.snap}`,
     userSelect: 'none',
     textDecoration: 'none',
     position: 'relative',
@@ -23,6 +23,23 @@ export const button = recipe({
     ':disabled': {
       cursor: 'not-allowed',
       opacity: 0.5,
+    },
+
+    selectors: {
+      // 새 hover — 기존엔 배경색만 바뀌어 색 단독 채널이었다(조항 4 위반).
+      // 이동을 더해 색과 위치가 함께 바뀌게 한다.
+      '&:hover:not(:disabled)': {
+        transform: 'translateY(-1px)',
+        transitionDuration: themeContract.animation.duration.fast,
+        transitionTimingFunction: themeContract.animation.easing.settle,
+      },
+
+      // 배치 전체 ":active 해제 오버슛" 형태(T3a 공통) — 누를 때 exit로 가속해
+      // 들어가고, 떼면 위 base의 snap으로 브라우저가 오버슛해 돌아온다. 변형
+      // 10곳의 :active 블록은 값이 이미 맞아 건드리지 않는다 — 이 한 줄이 전부 덮는다.
+      '&:active:not(:disabled)': {
+        transitionTimingFunction: themeContract.animation.easing.exit,
+      },
     },
 
     ':focus-visible': {
@@ -247,11 +264,13 @@ export const customOutlineVariant = style({
   border: '2px solid var(--btn-color)',
 
   selectors: {
+    // T6b: 하드코딩 rgba 대신 기존 surface.hover/active 토큰을 var() 기본값으로
+    // 쓴다(Modal·NumericSpinner와 같은 관례). --btn-hover-bg 자체는 유지된다.
     '&:hover:not(:disabled)': {
-      backgroundColor: 'var(--btn-hover-bg, rgba(0, 0, 0, 0.04))',
+      backgroundColor: `var(--btn-hover-bg, ${themeContract.color.surface.hover})`,
     },
     '&:active:not(:disabled)': {
-      backgroundColor: 'var(--btn-active-bg, rgba(0, 0, 0, 0.08))',
+      backgroundColor: `var(--btn-active-bg, ${themeContract.color.surface.active})`,
       transform: 'scale(0.98)',
     },
   },

@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -296,5 +298,52 @@ describe('Button', () => {
       expect(button).toHaveAttribute('name', 'submit-btn');
       expect(button).toHaveAttribute('data-info', 'test');
     });
+  });
+});
+
+describe('Button 모션 잠금', () => {
+  // vanilla-extract가 스타일을 클래스로 직렬화해서 jsdom에서 계산값을 못
+  // 읽는다. Button.css.ts 소스 텍스트에서 직접 확인한다(Card·Chip 관례).
+  const cssSource = readFileSync(
+    resolve(__dirname, './Button.css.ts'),
+    'utf-8'
+  );
+
+  it('base transition의 transform 구간이 snap을 쓴다(해제 오버슛)', () => {
+    const transitionLine = cssSource.match(/transition: `([^`]*)`,/)?.[1];
+    expect(transitionLine, 'base transition 선언을 찾지 못했다').toBeDefined();
+    expect(transitionLine).toContain(
+      'transform ${themeContract.animation.duration.base} ${themeContract.animation.easing.snap}'
+    );
+  });
+
+  it(':hover:not(:disabled)이 translateY(-1px)/settle을 새로 만든다(조항 4: 색 단독 금지)', () => {
+    const hover = cssSource.match(
+      /['&]*:hover:not\(:disabled\)'?: \{([\s\S]*?)\n\s*\},/
+    )?.[1];
+    expect(hover, ':hover:not(:disabled) 블록을 찾지 못했다').toBeDefined();
+    expect(hover).toContain("transform: 'translateY(-1px)'");
+    expect(hover).toContain('themeContract.animation.easing.settle');
+  });
+
+  it(':active:not(:disabled)이 exit 한 줄로 변형 10곳의 커브를 덮는다', () => {
+    const active = cssSource.match(
+      /['&]*:active:not\(:disabled\)'?: \{([\s\S]*?)\n\s*\},/
+    )?.[1];
+    expect(active, ':active:not(:disabled) 블록을 찾지 못했다').toBeDefined();
+    expect(active).toContain('themeContract.animation.easing.exit');
+  });
+
+  it('customOutlineVariant의 하드코딩 rgba가 surface 토큰으로 바뀌었다(T6b)', () => {
+    expect(cssSource).not.toMatch(/rgba\(0, 0, 0, 0\.0[48]\)/);
+    const outlineBlock = cssSource.match(
+      /export const customOutlineVariant = style\(\{([\s\S]*?)\n\}\);/
+    )?.[1];
+    expect(
+      outlineBlock,
+      'customOutlineVariant 블록을 찾지 못했다'
+    ).toBeDefined();
+    expect(outlineBlock).toContain('themeContract.color.surface.hover');
+    expect(outlineBlock).toContain('themeContract.color.surface.active');
   });
 });
