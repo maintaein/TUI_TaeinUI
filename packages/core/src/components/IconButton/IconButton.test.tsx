@@ -775,4 +775,32 @@ describe('IconButton 모션 잠금', () => {
     expect(iconMotionBlock).toContain('40ms');
     expect(cssSource).toContain('stagger');
   });
+
+  it('recipe base와 ghostBase 양쪽 hover에 translateY(-1px) 오버라이드가 있다(리뷰 F4 — 색 단독 채널 금지)', () => {
+    // compoundVariants 8곳의 hover(배경색/색만 바꾸는 블록, 이 리뷰가 손대지
+    // 말라고 한 부분)는 걸러내고, base.selectors/ghostBase.selectors에 새로
+    // 붙은 두 hover 블록만 겨냥한다 — 둘 다 'F4' 주석을 바로 앞에 단다.
+    const f4HoverBlocks = [
+      ...cssSource.matchAll(
+        /리뷰 F4[\s\S]*?\n\s*'&:hover:not\(:disabled\)': \{([\s\S]*?)\n\s*\},/g
+      ),
+    ];
+    expect(f4HoverBlocks).toHaveLength(2);
+    for (const [, block] of f4HoverBlocks) {
+      expect(block).toContain("transform: 'translateY(-1px)'");
+      expect(block).toContain('themeContract.animation.duration.fast');
+      expect(block).toContain('themeContract.animation.easing.settle');
+    }
+  });
+
+  it('아이콘 자신의 눌림 scale이 0.99로, 몸통 scale과 곱해도 0.94대에 머문다(리뷰 F5)', () => {
+    const overrideBlock = cssSource.match(
+      /globalStyle\(\s*`\$\{iconButton\.classNames\.base\}[\s\S]*?\{([\s\S]*?)\n\s*\}\s*\);/
+    )?.[1];
+    expect(
+      overrideBlock,
+      'iconMotion :active 오버라이드 블록을 찾지 못했다'
+    ).toBeDefined();
+    expect(overrideBlock).toContain("transform: 'scale(0.99)'");
+  });
 });

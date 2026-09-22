@@ -24,6 +24,14 @@ export const iconButton = recipe({
     },
 
     selectors: {
+      // 새 hover(리뷰 F4) — 변형 8곳이 배경색(+색)만 바꿔 색 단독 채널이었다
+      // (article 4 위반). 이동을 더해 색과 위치가 함께 바뀌게 한다. 변형별
+      // 8개 compoundVariants는 열지 않고 이 한 줄로 전부 덮는다.
+      '&:hover:not(:disabled)': {
+        transform: 'translateY(-1px)',
+        transitionDuration: themeContract.animation.duration.fast,
+        transitionTimingFunction: themeContract.animation.easing.settle,
+      },
       // 배치 전체 ":active 해제 오버슛" 형태(T3a 공통) — 누를 때 exit로 가속해
       // 들어가고, 떼면 위 base의 snap으로 브라우저가 오버슛해 돌아온다. 변형
       // 8곳의 :active 블록은 값이 이미 맞아 건드리지 않는다 — 이 한 줄이 전부 덮는다.
@@ -237,9 +245,13 @@ export const ghostBase = style({
   minHeight: '44px',
 
   selectors: {
+    // 색 단독 채널이었다(article 4 위반) — 이동을 더한다(리뷰 F4).
     '&:hover:not(:disabled)': {
       color: themeContract.palette.gray[900],
       backgroundColor: themeContract.palette.gray[100],
+      transform: 'translateY(-1px)',
+      transitionDuration: themeContract.animation.duration.fast,
+      transitionTimingFunction: themeContract.animation.easing.settle,
     },
     // 배치 전체 ":active 해제 오버슛" 형태(T3a 공통, 위 iconButton base와 동일).
     '&:active:not(:disabled)': {
@@ -281,10 +293,15 @@ export const iconMotion = style({
 // 40ms 지연은 건드리지 않는다(transitionDelay를 여기서 다시 선언하지 않음 —
 // 캐스케이드는 속성 단위로 적용되어 지연값은 iconMotion 기본 규칙이 그대로
 // 담당한다). List.css.ts의 globalStyle(두 독립 클래스 결합) 관례를 따른다.
+// 아이콘 자신의 scale은 몸통(base 0.95, danger 0.9~0.95대, ghost 0.92)의
+// scale과 곱해져 합성된다(리뷰 F5) — 예전 0.94는 0.95*0.94≈0.893,
+// ghost는 0.92*0.94≈0.865로 이 배치에서 가장 깊게 눌리는 조합이 됐다.
+// "본체 변형은 작게, 지연이 질량을 말한다"를 뒤집는다. 0.99로 낮춰 합성
+// 결과가 대부분 0.94대에 오도록 한다.
 globalStyle(
   `${iconButton.classNames.base}:active:not(:disabled) ${iconMotion}, ${ghostBase}:active:not(:disabled) ${iconMotion}`,
   {
-    transform: 'scale(0.94)',
+    transform: 'scale(0.99)',
     transitionDuration: themeContract.animation.duration.fast,
     transitionTimingFunction: themeContract.animation.easing.exit,
   }
