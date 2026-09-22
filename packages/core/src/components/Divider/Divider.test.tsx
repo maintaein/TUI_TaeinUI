@@ -298,6 +298,29 @@ describe('Divider', () => {
       expect(block).toContain("animation: 'none'");
     });
 
+    it('그 끄기가 선언 순서가 아니라 특정성으로 이긴다(리뷰 F2)', () => {
+      // 평범한 animation: 'none'은 orientationStyles와 같은 (0,1,0)이라 파일
+      // 뒤쪽에 있다는 사실 하나로만 이긴다. 순서가 바뀌면 텍스트 변형 루트가
+      // scale(0)에서 자라며 텍스트를 찌그러뜨린다 — 주석이 막으려던 바로 그
+      // 결과다. '&&'는 같은 클래스를 두 번 써 (0,2,0)을 만든다.
+      // 무엇을 뒤집으면 빨개지는가: animation: 'none'을 selectors 밖 최상위로
+      // 되돌리면(= 다시 순서에만 기대게 되면).
+      const block = DIVIDER_CSS.slice(
+        DIVIDER_CSS.indexOf('export const dividerWithText'),
+        DIVIDER_CSS.indexOf('export const line =')
+      );
+      const selectorsAt = block.indexOf('selectors: {');
+      expect(
+        selectorsAt,
+        'dividerWithText에 selectors 블록이 없다'
+      ).toBeGreaterThan(-1);
+      expect(block.slice(selectorsAt)).toContain("'&&': {");
+      // animation "선언"이 딱 하나이고(주석 속 언급은 줄 머리가 //라 안 잡힌다),
+      // selectors 바깥에는 하나도 없다.
+      expect(block.match(/^\s+animation:/gm) ?? []).toHaveLength(1);
+      expect(block.slice(0, selectorsAt)).not.toMatch(/^\s+animation:/m);
+    });
+
     it('축소 모드: base가 scale(1)이고 키프레임 0%만 scale(0)이다 (100% 키프레임 없음)', () => {
       const keyframesBlock = DIVIDER_CSS.slice(
         DIVIDER_CSS.indexOf('const grow = keyframes({'),

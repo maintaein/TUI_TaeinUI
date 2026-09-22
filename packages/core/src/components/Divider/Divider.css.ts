@@ -81,12 +81,18 @@ export const dividerWithText = style({
   borderTop: 0,
   borderLeft: 0,
   position: 'relative',
-  // 루트에도 orientationStyles의 animation이 얹히는데, 그대로 두면 flex
-  // 컨테이너 전체(텍스트 포함)가 scale(0)에서 자라며 텍스트까지 찌그러뜨린다
-  // — 텍스트 변형에서는 두 line div가 각자 자라므로 루트 애니메이션은 끈다.
-  // 파일 뒤쪽 정의라 orientationStyles보다 캐스케이드에서 이긴다(같은 파일
-  // 안 borderTop/borderLeft 0 처리와 동일한 관례).
-  animation: 'none',
+  selectors: {
+    // 루트에도 orientationStyles의 animation이 얹히는데, 그대로 두면 flex
+    // 컨테이너 전체(텍스트 포함)가 scale(0)에서 자라며 텍스트까지 찌그러뜨린다
+    // — 텍스트 변형에서는 두 line div가 각자 자라므로 루트 애니메이션은 끈다.
+    // 같은 클래스를 두 번 쓴 '&&'는 (0,2,0)이라 orientationStyles(0,1,0)를
+    // 파일 어디에 있든 이긴다(리뷰 F2). 평범한 animation: 'none'이면 특정성이
+    // 같아서 "파일 뒤쪽에 있다"는 사실에만 기대게 되고, 순서가 바뀌는 날
+    // 이 주석이 막으려던 결과가 그대로 난다.
+    '&&': {
+      animation: 'none',
+    },
+  },
 });
 
 export const line = style({
