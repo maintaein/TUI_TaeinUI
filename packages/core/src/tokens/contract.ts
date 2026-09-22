@@ -75,6 +75,9 @@ export const themeTokens = {
       // 실제 표시는 focusRing 유틸의 outline이 맡는다(S6). 이건 장식이다.
       focusHalo: 'rgba(25, 118, 210, 0.16)', // primary[700] @16%
       errorHalo: 'rgba(211, 47, 47, 0.16)', // error[700] @16%
+      // Skeleton shimmer 하이라이트. 팔레트 밖 흰색 반투명이라 컴포넌트가
+      // 리터럴로 들고 있었다(M2 T3c 사전 스캔 R3) — 토큰으로 옮긴다.
+      shimmer: 'rgba(255, 255, 255, 0.3)',
     },
     // semantic 4슬롯의 역할 구분:
     // - main    글자(contrast)를 얹는 면. 판정 기준은 페이지 배경이 아니라

@@ -1,6 +1,13 @@
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { Skeleton } from './Skeleton';
+
+const SKELETON_CSS = readFileSync(
+  resolve(__dirname, './Skeleton.css.ts'),
+  'utf-8'
+);
 
 describe('Skeleton', () => {
   describe('렌더링 테스트', () => {
@@ -178,6 +185,35 @@ describe('Skeleton', () => {
       );
       const skeletons = container.querySelectorAll('[role="status"]');
       expect(skeletons).toHaveLength(3);
+    });
+  });
+
+  describe('Skeleton 모션 잠금 (M2 T3c)', () => {
+    it('wave가 T5 공유 자산(loopRhythmDuration·loopRhythmEasing)으로 좌→우 훑는다', () => {
+      expect(SKELETON_CSS).toMatch(
+        /import \{[\s\S]*?loopRhythmDuration,[\s\S]*?loopRhythmEasing,?[\s\S]*?\} from '\.\.\/\.\.\/tokens\/loopRhythm\.css'/
+      );
+      const start = SKELETON_CSS.indexOf("'&::after': {");
+      const end = SKELETON_CSS.indexOf('\n        },', start);
+      const afterBlock = SKELETON_CSS.slice(start, end);
+      expect(afterBlock).toContain(
+        'animation: `${wave} ${loopRhythmDuration} ${loopRhythmEasing} 0.5s infinite`'
+      );
+      expect(afterBlock).not.toContain(' linear ');
+    });
+
+    it('pulse가 리터럴 ease-in-out 대신 easing.drift 토큰을 쓴다', () => {
+      const start = SKELETON_CSS.indexOf('pulse: {');
+      const end = SKELETON_CSS.indexOf('\n  },', start);
+      const pulseBlock = SKELETON_CSS.slice(start, end);
+      expect(pulseBlock).toContain(
+        'animation: `${pulse} ${themeContract.animation.loop.base} ${themeContract.animation.easing.drift} 0.5s infinite`'
+      );
+    });
+
+    it('shimmer 그라디언트가 하드코딩 rgba 대신 overlay.shimmer 토큰을 쓴다', () => {
+      expect(SKELETON_CSS).not.toContain('rgba(255, 255, 255, 0.3)');
+      expect(SKELETON_CSS).toContain('themeContract.color.overlay.shimmer');
     });
   });
 });
