@@ -2,7 +2,7 @@ import type { HTMLAttributes, ReactNode } from 'react';
 import clsx from 'clsx';
 import {
   border,
-  borderGlow,
+  glowRing,
   sidesStyles,
   variantStyles,
   widthStyles,
@@ -53,8 +53,6 @@ export const Border = ({
     <div
       className={clsx(
         border,
-        // 빛 루프는 닫힌 테두리(sides='all')에서만 "한 바퀴"가 성립한다.
-        sides === 'all' && borderGlow,
         sidesStyles[sides],
         variantStyles[variant],
         widthStyles[width],
@@ -65,6 +63,10 @@ export const Border = ({
       )}
       {...props}
     >
+      {/* 빛 루프는 닫힌 테두리(sides='all')에서만 "한 바퀴"가 성립한다.
+          회전하는 그라디언트를 가둘 그릇이라 실제 DOM 노드여야 한다
+          (pseudo-element는 자기 자식 pseudo-element를 못 갖는다 — 리뷰 C2). */}
+      {sides === 'all' && <span className={glowRing} aria-hidden="true" />}
       {children}
     </div>
   );

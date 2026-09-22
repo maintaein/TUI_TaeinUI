@@ -288,46 +288,107 @@ describe('Border', () => {
   });
 
   describe('빛 루프 (장식계)', () => {
-    it('sides가 all일 때만 borderGlow 클래스가 붙는다', () => {
+    it('sides가 all일 때만 장식용 glowRing span이 들어간다', () => {
       const { container } = render(<Border sides="all">콘텐츠</Border>);
-      const el = container.firstChild as HTMLElement;
+      const ring = container.querySelector('span[aria-hidden="true"]');
 
-      expect(el.className).toMatch(/borderGlow/);
+      expect(ring).not.toBeNull();
+      expect(ring?.className).toMatch(/glowRing/);
     });
 
-    it('sides가 all이 아니면 borderGlow 클래스가 붙지 않는다', () => {
+    it('sides가 all이 아니면 glowRing span이 없다', () => {
       const { container } = render(<Border sides="top">콘텐츠</Border>);
-      const el = container.firstChild as HTMLElement;
 
-      expect(el.className).not.toMatch(/borderGlow/);
+      expect(container.querySelector('span[aria-hidden="true"]')).toBeNull();
     });
   });
 
   describe('빛 루프 소스 검증', () => {
-    it('will-change가 :hover·:focus-within 선택자 블록 안에서만 선언된다', () => {
-      const globalStyleIndex = BORDER_CSS.indexOf('globalStyle(');
-      expect(globalStyleIndex).toBeGreaterThan(-1);
-      const block = BORDER_CSS.slice(globalStyleIndex);
+    it('will-change가 :hover·:focus-within 트리거 규칙 안에서만 선언된다', () => {
+      // 링은 이제 항상 존재한다(예전엔 ::before가 :hover 선택자 안에서만
+      // 정의돼 비활성 시 통째로 사라졌다). 상주 will-change를 되살리면
+      // 비활성 Border마다 합성 레이어가 남으므로, 선언이 트리거 규칙
+      // 하나뿐인 것을 개수로 잠근다.
+      const hits = [...BORDER_CSS.matchAll(/willChange/g)];
+      expect(hits).toHaveLength(1);
 
-      expect(block).toContain(':hover::before');
-      expect(block).toContain(':focus-within::before');
-      expect(block).toContain('willChange');
-
-      // globalStyle 앞부분(border 기본 블록 등)에는 willChange가 없다 —
-      // 비활성 시 "제거"되는 게 아니라 규칙이 안 걸리면 애초에 존재하지
-      // 않는다.
-      const baseBlock = BORDER_CSS.slice(0, globalStyleIndex);
-      expect(baseBlock).not.toContain('willChange');
+      const ruleStart = BORDER_CSS.lastIndexOf('globalStyle(', hits[0].index);
+      expect(ruleStart).toBeGreaterThan(-1);
+      const selector = BORDER_CSS.slice(ruleStart, hits[0].index);
+      expect(selector).toContain(':hover');
+      expect(selector).toContain(':focus-within');
+      expect(selector).toContain('::before');
     });
 
-    it('conic-gradient + rotate + mask로 빛을 구현한다 (@property 없이)', () => {
+    it('conic-gradient + rotate + mask 숏핸드로 빛을 구현한다 (@property 없이)', () => {
       expect(BORDER_CSS).toContain('conic-gradient');
       expect(BORDER_CSS).toContain('rotate(360deg)');
-      expect(BORDER_CSS).toContain('maskImage');
+      // <geometry-box>(content-box)는 mask 숏핸드에만 올 수 있다. 롱핸드
+      // maskImage에 넣으면 선언이 통째로 버려져(계산값 none) 마스크가 아예
+      // 안 걸린다 — 빛이 링이 아니라 박스 전체를 덮는다(리뷰 C1).
+      expect(BORDER_CSS).not.toContain('maskImage');
+      expect(BORDER_CSS).toContain(
+        "mask: 'linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0)'"
+      );
+      expect(BORDER_CSS).toContain('WebkitMask:');
+      // 표준 exclude에 대응하는 레거시 WebKit 값은 xor다 — 접두사만 붙이면
+      // 없는 값이라 무시되고 마스크가 꽉 찬 사각형이 된다.
+      expect(BORDER_CSS).toContain("maskComposite: 'exclude'");
+      expect(BORDER_CSS).toContain("WebkitMaskComposite: 'xor'");
       // 실제 @property 규칙(예: `@property --angle`) 사용 여부만 본다 —
       // 이 판정 자체를 설명하는 주석 문구 속 "@property" 언급은 걸리지
       // 않아야 한다.
       expect(BORDER_CSS).not.toMatch(/@property\s+--/);
+    });
+
+    it('회전 링이 아니라 그 자식 그라디언트만 돈다 (리뷰 C2)', () => {
+      // 마스크는 요소 좌표계에 정의된다 — 링 요소 자체를 돌리면 사각 링이
+      // 같이 돌아 모서리가 박스 밖으로 튀어나가고 링의 변이 children을
+      // 가로지른다. 링은 고정하고 ::before만 돌린다.
+      const ringBlock = BORDER_CSS.match(
+        /export const glowRing = style\(\{([\s\S]*?)^\}\);/m
+      )?.[1];
+      expect(ringBlock, 'glowRing 블록을 찾지 못했다').toBeDefined();
+      expect(ringBlock).not.toContain('animation:');
+      // 링 밖으로 새지 않게 가두는 것이 가독성 보증의 전부다.
+      expect(ringBlock).toContain("overflow: 'hidden'");
+
+      const beforeBlock = BORDER_CSS.match(
+        /globalStyle\(`\$\{glowRing\}::before`, \{([\s\S]*?)^\}\);/m
+      )?.[1];
+      expect(beforeBlock, 'glowRing::before 블록을 찾지 못했다').toBeDefined();
+      expect(beforeBlock).toContain('${rotate}');
+    });
+
+    it('빛 색이 color prop을 따라간다 — default만 강조색을 유지한다', () => {
+      const block = BORDER_CSS.match(
+        /export const colorStyles = styleVariants\(\{([\s\S]*?)^\}\);/m
+      )?.[1];
+      expect(block, 'colorStyles 블록을 찾지 못했다').toBeDefined();
+
+      // default는 회색 테두리라 회색 빛이 안 보인다 — 판정대로 강조색을
+      // 유지한다(나머지 넷만 자기 색을 따라간다).
+      const expected: Record<string, string> = {
+        default: 'themeContract.color.primary.main',
+        primary: 'themeContract.color.primary.main',
+        success: 'themeContract.color.success.main',
+        error: 'themeContract.color.error.main',
+        warning: 'themeContract.color.warning.main',
+      };
+      for (const [name, token] of Object.entries(expected)) {
+        const head = (block as string).indexOf(`\n  ${name}: {`);
+        expect(head, `colorStyles.${name} 블록을 찾지 못했다`).toBeGreaterThan(
+          -1
+        );
+        const variant = (block as string).slice(
+          head,
+          (block as string).indexOf('\n  },', head)
+        );
+        expect(variant).toContain(`vars: { [glowColor]: ${token} }`);
+      }
+
+      // conic-gradient가 그 var를 읽어야 색이 실제로 바뀐다.
+      expect(BORDER_CSS).toMatch(/conic-gradient\([^)]*\$\{glowColor\}/);
     });
 
     it('루프 주기·커브가 loop.base·easing.linear 토큰이다', () => {
