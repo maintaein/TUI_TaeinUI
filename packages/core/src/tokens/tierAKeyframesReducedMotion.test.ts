@@ -12,7 +12,7 @@
  * `matchMedia`도 없다 — `theme.reducedMotion.test.ts`·`animationBoundary.test.ts`와
  * 같은 이유로 생성 CSS가 아니라 `.css.ts` 원문을 읽는다.
  */
-import { readFileSync, readdirSync, statSync, existsSync } from 'node:fs';
+import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join, resolve, relative, sep } from 'node:path';
 import { describe, it, expect } from 'vitest';
 
@@ -57,10 +57,13 @@ function findFiles(dir: string, accept: (name: string) => boolean): string[] {
   return files.sort();
 }
 
-const CSS_FILES = TIER_A.flatMap((name) => {
-  const dir = join(COMPONENTS, name);
-  return existsSync(dir) ? findFiles(dir, (n) => n.endsWith('.css.ts')) : [];
-});
+/** `existsSync` 분기를 두지 않는다 — TIER_A 이름에 오타가 나거나 컴포넌트
+ * 디렉터리가 옮겨지면 `readdirSync`가 그 자리에서 던져야 한다. 빈 배열을
+ * 돌려주면 그 컴포넌트가 소리 없이 스캔에서 빠지고 아래 모든 검사가
+ * 「0건이라 통과」로 초록이 된다. */
+const CSS_FILES = TIER_A.flatMap((name) =>
+  findFiles(join(COMPONENTS, name), (n) => n.endsWith('.css.ts'))
+);
 
 const FILE_TEXT: Record<string, string> = {};
 for (const file of CSS_FILES)
@@ -167,6 +170,23 @@ function declaredProps(block: string): Record<string, string> {
   return props;
 }
 
+/** `scale`·`scaleX`·`scaleY`·`scale3d` 중 **평면 축**(x·y) 하나라도 0이면
+ * 요소가 납작해져 안 보인다. 표기를 열거하지 않고 인자를 파싱한다 —
+ * `scale(0.0)`·`scale3d(0,0,1)`·`scaleX(0%)`·`scale(1, 0)`이 전부 걸린다.
+ * `scaleZ`는 2D 렌더에서 가시성을 바꾸지 않아 대상이 아니다. */
+function hasZeroScale(transform: string): boolean {
+  const SCALE = /\bscale(3d|X|Y|Z)?\(([^)]*)\)/g;
+  for (const m of transform.matchAll(SCALE)) {
+    if (m[1] === 'Z') continue;
+    const args = m[2].split(',').slice(0, 2);
+    for (const arg of args) {
+      const n = Number(arg.trim().replace(/%$/, ''));
+      if (Number.isFinite(n) && n === 0) return true;
+    }
+  }
+  return false;
+}
+
 /** opacity 0, `scale(0)`류, 초기화 안 된 stroke — 요소를 완전히 안 보이게
  * 만드는 값만 대상이다. `translateX(±100%)`류는 대상이 아니다 — Loader의
  * progress·Skeleton의 wave처럼 막대/셰이머가 트랙 밖으로 이동하는 것은
@@ -174,11 +194,7 @@ function declaredProps(block: string): Record<string, string> {
  * opacity:0/scale(0)류뿐이다). */
 function isHidden(props: Record<string, string>): boolean {
   if (props.opacity !== undefined && Number(props.opacity) === 0) return true;
-  if (
-    props.transform &&
-    /scale[XY]?\(\s*0(?:\s*,\s*0)?\s*\)/.test(props.transform)
-  )
-    return true;
+  if (props.transform && hasZeroScale(props.transform)) return true;
   if (
     props.strokeDashoffset !== undefined &&
     Number(props.strokeDashoffset) !== 0
@@ -213,6 +229,13 @@ const LOOP = CLASSIFIED.filter((k) => k.loop);
 const ONCE = CLASSIFIED.filter((k) => !k.loop);
 
 describe('Tier-A 14개 @keyframes 소스 열거 (M2 T4)', () => {
+  it('TIER_A 14개 디렉터리를 전부 읽었다 — 스캔 대상이 0개로 줄면 아래 모든 검사가 진공이 된다', () => {
+    // 무엇을 뒤집으면 빨개지는가: TIER_A에서 이름 하나를 빼면 13개가 되어
+    // 여기가 빨개진다(오타를 내면 findFiles가 그 자리에서 던진다). 한
+    // 컴포넌트가 .css.ts를 둘로 쪼개도 개수가 바뀌어 잡힌다.
+    expect(CSS_FILES.map(rel)).toHaveLength(14);
+  });
+
   it('모든 keyframes 참조가 최소 한 곳에서 쓰인다 — 죽은 키프레임이 없다', () => {
     // 무엇을 뒤집으면 빨개지는가: keyframes를 정의만 하고 animation:에서 안 쓰면
     // (또는 이름을 오타내면) 여기서 잡힌다.
@@ -261,9 +284,49 @@ describe('Tier-A 14개 @keyframes 소스 열거 (M2 T4)', () => {
       'components/Icon/Icon.css.ts:draw',
     ]);
   });
+
+  it('keyframe 이름의 ${...} 보간이 전부 usagesOf에 잡힌다 — 다른 표기로 쓴 사용처가 검사 1·2·3에서 통째로 빠지지 않는다', () => {
+    // `usagesOf`는 `animation: \`${이름} ...\`` 한 가지 표기만 읽는다. 같은
+    // keyframe을 `animationName:` 분리 선언이나 다른 셰이프로 쓰면 그
+    // 사용처는 base·fill-mode·duration 검사에서 조용히 빠진다 — 파일 안의
+    // 보간 총량과 대조해 그 구멍을 닫는다(Divider grow가 4곳에서 쓰인다).
+    // 무엇을 뒤집으면 빨개지는가: Divider.css.ts lineAfter의
+    // `animation: \`${grow} ...\``를 `animationName: grow` + 별도 선언으로
+    // 바꾸면 보간 4건 vs 사용처 3건이 되어 여기가 빨개진다.
+    const missed = CLASSIFIED.filter((k) => {
+      const interpolations =
+        FILE_TEXT[k.file].match(new RegExp(`\\$\\{${k.name}\\}`, 'g')) ?? [];
+      return interpolations.length !== k.usages.length;
+    }).map((k) => `${k.file}:${k.name}`);
+    expect(missed).toEqual([]);
+  });
 });
 
-describe('검사 1 — 무한 루프 키프레임은 시작·끝 프레임에서 요소를 안 보이게 만들지 않는다 (M1 LoadingSpinner opacity:0.2 고착 재발 방지)', () => {
+/**
+ * 축소 모드에서 루프가 실제로 「보인다」를 결정하는 것은 프레임 값이 아니라
+ * **소비처 base + `animation-fill-mode`** 다. `theme.css.ts`의 `:root`
+ * 오버라이드가 `animation-duration: 0.01ms !important`와
+ * `animation-iteration-count: 1 !important`를 강제하므로, 무한 루프는 1회
+ * 돌고 끝난 뒤 fill-mode에 따라 (a) base로 복귀하거나 (b) 마지막 프레임에
+ * 고착한다. M1의 `LoadingSpinner` `opacity: 0.2` 고착이 바로 (b)였다 —
+ * `both`가 `'0%, 100%'` 프레임을 붙들었다.
+ *
+ * 그 성질은 지금까지 `theme.reducedMotion.test.ts`의 `dot` 한 자리에만
+ * 리터럴 문자열로 잠겨 있었다. 여기서 LOOP 6개 전부로 일반화한다.
+ */
+describe('검사 1 — 무한 루프 6개가 축소 모드(iteration 1)에서 보이는 상태로 끝난다: 소비처 base가 표시 상태이고 fill-mode가 forwards/both가 아니다', () => {
+  it('LOOP 6개에서 프레임 15개·프레임 속성 16개·소비처 6곳을 실제로 순회한다 — 파서가 0개를 세면 아래 검사들보다 먼저 여기가 빨개진다', () => {
+    // 무엇을 뒤집으면 빨개지는가: 루프 하나를 `from`/`to` 표기로 바꾸거나
+    // 프레임 값에 `${...}` 보간을 넣으면 parseFrames가 그 키프레임에서 0개를
+    // 돌려준다 — 개수가 어긋나 여기가 빨개진다. 개수 앵커가 없으면 같은
+    // 리팩터링이 "순회할 것이 없으니 위반도 없다"로 조용히 초록이 된다.
+    expect(LOOP.flatMap((k) => k.frames)).toHaveLength(15);
+    expect(
+      LOOP.flatMap((k) => k.frames).flatMap((f) => Object.keys(f.props))
+    ).toHaveLength(16);
+    expect(LOOP.flatMap((k) => k.usages)).toHaveLength(6);
+  });
+
   it('0%·100% 프레임에 opacity:0 / scale(0)류가 없다', () => {
     // 무엇을 뒤집으면 빨개지는가: LoadingSpinner.css.ts의 fadeInOut '0%, 100%'
     // 프레임 opacity를 0.2 → 0으로 바꾸면(또는 Border rotate 0%에
@@ -275,6 +338,37 @@ describe('검사 1 — 무한 루프 키프레임은 시작·끝 프레임에서
         if (!keys.includes('0%') && !keys.includes('100%')) continue;
         if (isHidden(frame.props))
           offenders.push(`${k.file}:${k.name}@${frame.key}`);
+      }
+    }
+    expect(offenders).toEqual([]);
+  });
+
+  it('LOOP 소비처의 fill-mode에 forwards·both가 없다 — 있으면 축소 모드에서 마지막 프레임에 고착한다 (M1 opacity:0.2 회귀 경로)', () => {
+    // 무엇을 뒤집으면 빨개지는가: LoadingSpinner.css.ts dot의 `backwards`를
+    // `both`로 되돌리면(M1 회귀 그 자체) 여기가 빨개진다. Border rotate나
+    // Skeleton pulse에 `forwards`를 붙여도 같다.
+    const offenders: string[] = [];
+    for (const k of LOOP) {
+      for (const usage of k.usages) {
+        if (/\b(forwards|both)\b/.test(usage.rest))
+          offenders.push(`${k.file}:${k.name} → "${usage.rest.trim()}"`);
+      }
+    }
+    expect(offenders).toEqual([]);
+  });
+
+  it('LOOP 소비처의 base가 숨김 상태가 아니다 — 1회 재생 뒤 복귀할 자리가 보이는 상태여야 한다', () => {
+    // fill-mode가 없으면 애니메이션이 끝난 뒤 base로 돌아간다. base 자체가
+    // 숨김이면 축소 모드에서 요소가 0.01ms 뒤에 사라진다.
+    // 무엇을 뒤집으면 빨개지는가: Skeleton.css.ts wave의 `&::after` base에
+    // `opacity: 0`을 넣거나 LoadingSpinner.css.ts dot에
+    // `transform: 'scale(0)'`를 넣으면 여기가 빨개진다.
+    const offenders: string[] = [];
+    for (const k of LOOP) {
+      const fileText = FILE_TEXT[k.file];
+      for (const usage of k.usages) {
+        const base = declaredProps(enclosingBlock(fileText, usage.index));
+        if (isHidden(base)) offenders.push(`${k.file}:${k.name}`);
       }
     }
     expect(offenders).toEqual([]);
@@ -400,6 +494,17 @@ describe('검사 3 — keyframes 소비의 duration 자리가 리터럴이 아�
 });
 
 describe('검사 4 — keyframes 본문이 transform·opacity·(Icon 한정) strokeDashoffset 밖을 안 건드린다', () => {
+  it('10개 전체에서 프레임 19개·프레임 속성 22개를 실제로 순회한다 — 파싱이 비면 화이트리스트 검사가 진공이다', () => {
+    // 무엇을 뒤집으면 빨개지는가: 프레임 값 하나를 백틱 보간(`\`${x}\``)으로
+    // 바꾸면 PROP 정규식이 그 속성을 못 읽어 속성 수가 줄고, 프레임 키를
+    // `from`/`to`로 바꾸면 FRAME 정규식이 그 프레임을 통째로 놓쳐 프레임 수가
+    // 준다 — 둘 다 여기가 먼저 잡는다.
+    expect(KEYFRAMES.flatMap((k) => k.frames)).toHaveLength(19);
+    expect(
+      KEYFRAMES.flatMap((k) => k.frames).flatMap((f) => Object.keys(f.props))
+    ).toHaveLength(22);
+  });
+
   it('프레임 속성이 화이트리스트 안이다', () => {
     // 무엇을 뒤집으면 빨개지는가: Loader.css.ts progress의 '0%' 프레임에
     // width: '0%' 같은 레이아웃 속성을 끼워 넣으면(공통 제약 §4 「금지」 목록)
@@ -430,14 +535,41 @@ describe("검사 5 — 'use client'가 진짜 지시어로 0건이다 (M2 경계
   // 성립한다 — 그 위치 기준으로 가른다.
   const DIRECTIVE = /^['"]use client['"];?$/;
 
+  /** 선행 주석 블록을 걷어낸다 — esbuild·SWC는 주석 뒤에 놓인 지시어도
+   * 지시어로 인정한다. "첫 비어있지 않은 줄"만 보면 주석 한 줄로 이 검사를
+   * 우회할 수 있다(이 파일 자체가 `/** ... *\/`로 시작한다). */
+  function stripLeadingComments(text: string): string {
+    let rest = text.trimStart();
+    for (;;) {
+      if (rest.startsWith('//')) {
+        const nl = rest.indexOf('\n');
+        rest = nl === -1 ? '' : rest.slice(nl + 1).trimStart();
+      } else if (rest.startsWith('/*')) {
+        const end = rest.indexOf('*/');
+        rest = end === -1 ? '' : rest.slice(end + 2).trimStart();
+      } else {
+        return rest;
+      }
+    }
+  }
+
   function hasDirective(text: string): boolean {
-    const firstLine = text.split(/\r?\n/).find((l) => l.trim() !== '');
+    const firstLine = stripLeadingComments(text).split(/\r?\n/)[0];
     return firstLine !== undefined && DIRECTIVE.test(firstLine.trim());
   }
 
   it('반증 — 파일 맨 위 지시어는 잡힌다', () => {
     expect(hasDirective("'use client';\nexport const x = 1;")).toBe(true);
     expect(hasDirective('"use client"\nexport const x = 1;')).toBe(true);
+  });
+
+  it('반증 — 선행 주석 블록 뒤의 지시어도 잡힌다', () => {
+    expect(
+      hasDirective("// 라이선스 헤더\n'use client';\nexport const x = 1;")
+    ).toBe(true);
+    expect(
+      hasDirective('/* 블록 주석 */\n\n"use client";\nexport const x = 1;')
+    ).toBe(true);
   });
 
   it('반증 — 가드 테스트 본문 안의 문자열은 안 잡힌다 (Popover.test.tsx:527류)', () => {
@@ -457,9 +589,84 @@ describe("검사 5 — 'use client'가 진짜 지시어로 0건이다 (M2 경계
     // 'use client';를 추가하면 여기가 빨개진다 — grep이 아니라 위치 기준
     // 판별이라 가드 테스트 두 파일은 여전히 통과한다.
     const ALL_SRC = findFiles(SRC, (n) => /\.tsx?$/.test(n));
+    // 스캔 대상이 비면 `[].filter(...)` → `[]` → 초록이다. 실측 157개이므로
+    // 100을 바닥으로 둔다(개수 자체는 컴포넌트가 늘면 바뀌는 값이라 고정하지
+    // 않는다 — 여기서 막으려는 것은 "0개를 돌았다"뿐이다).
+    expect(ALL_SRC.length).toBeGreaterThan(100);
     const offenders = ALL_SRC.filter((f) =>
       hasDirective(readFileSync(f, 'utf-8'))
     ).map(rel);
+    expect(offenders).toEqual([]);
+  });
+});
+
+describe('검사 6 — 정적 3개(FormField·List·Text)에 애니메이션이 0건이다 (task-4-brief.md R8)', () => {
+  /** `existsSync` 분기 없이 바로 읽는다 — 디렉터리가 옮겨지면 던져야 한다. */
+  const STATIC_CSS_FILES = ['FormField', 'List', 'Text'].flatMap((name) =>
+    findFiles(join(COMPONENTS, name), (n) => n.endsWith('.css.ts'))
+  );
+
+  it('정적 3개의 .css.ts를 실제로 3개 읽었다 — 0개를 읽고 "0건"이라 보고하는 진공을 막는다', () => {
+    // 무엇을 뒤집으면 빨개지는가: 위 목록에서 이름 하나를 빼면 2개가 되어
+    // 여기가 빨개진다(오타는 findFiles가 그 자리에서 던진다). 이 앵커가
+    // 없으면 아래 `it`은 파일을 하나도 안 읽고도 초록이다.
+    expect(STATIC_CSS_FILES.map(rel)).toEqual([
+      'components/FormField/FormField.css.ts',
+      'components/List/List.css.ts',
+      'components/Text/Text.css.ts',
+    ]);
+  });
+
+  it('세 파일에 animation·transition·keyframes가 한 글자도 없다', () => {
+    // 무엇을 뒤집으면 빨개지는가: Text.css.ts에 `transition: ...` 한 줄을
+    // 넣으면(M2가 정적으로 남기기로 한 3개에 모션이 들어오면) 여기가
+    // 빨개진다.
+    const offenders: string[] = [];
+    for (const file of STATIC_CSS_FILES) {
+      const text = readFileSync(file, 'utf-8');
+      for (const m of text.matchAll(/\b(animation|transition|keyframes)\w*/g)) {
+        const line = text.slice(0, m.index).split('\n').length;
+        offenders.push(`${rel(file)}:${line} (${m[0]})`);
+      }
+    }
+    expect(offenders).toEqual([]);
+  });
+});
+
+describe('검사 7 — 팔레트 밖 하드코딩 색상이 색상 3채널에 0건이다 (task-4-brief.md R10)', () => {
+  /** `background`·`color`·`border-color` 계열만 본다. `boxShadow`·`textShadow`
+   * 안의 rgba는 M5 소관이라 세지 않는다(브리프 50행) — 그래서 속성 이름을
+   * 열거해 그 셋만 고른다. `maskImage`의 `#000`도 색상 채널이 아니다. */
+  const CHANNEL =
+    /\b(background|backgroundColor|backgroundImage|color|borderColor|borderTopColor|borderRightColor|borderBottomColor|borderLeftColor)\s*:\s*(`[^`]*`|'[^']*'|[^,\n]*)/g;
+  /** 팔레트를 거치지 않는 리터럴 색. 토큰은 전부 `themeContract...` 또는
+   * `var(--...)`로 들어오므로 이 셋만 걸러내면 된다. */
+  const RAW_COLOR = /#[0-9a-fA-F]{3,8}\b|\b(?:rgba?|hsla?)\(/;
+
+  it('TIER_A 14개 파일 전체에서 색상 3채널 선언을 실제로 순회한다', () => {
+    // 무엇을 뒤집으면 빨개지는가: CHANNEL 정규식이 아무것도 못 잡게 되면
+    // (속성 이름 철자가 바뀌거나 포매팅이 달라지면) 아래 `it`이 진공으로
+    // 초록이 된다 — 그 전에 여기가 잡는다. 실측 하한이다.
+    const decls = Object.values(FILE_TEXT).flatMap((text) => [
+      ...text.matchAll(CHANNEL),
+    ]);
+    expect(decls.length).toBeGreaterThan(50);
+  });
+
+  it('세 채널 값에 #hex·rgb()·hsl() 리터럴이 없다 — 허용목록 없이 0건이다', () => {
+    // 무엇을 뒤집으면 빨개지는가: Button.css.ts의
+    // `var(--btn-hover-bg, ${themeContract.color.surface.hover})`를 T3 이전의
+    // `var(--btn-hover-bg, rgba(0,0,0,0.04))`로 되돌리거나, Skeleton.css.ts
+    // shimmer의 `${themeContract.color.overlay.shimmer}`를
+    // `rgba(255,255,255,0.3)`으로 되돌리면 여기가 빨개진다.
+    const offenders: string[] = [];
+    for (const [file, text] of Object.entries(FILE_TEXT)) {
+      for (const m of text.matchAll(CHANNEL)) {
+        if (!RAW_COLOR.test(m[2])) continue;
+        const line = text.slice(0, m.index).split('\n').length;
+        offenders.push(`${file}:${line} (${m[1]})`);
+      }
+    }
     expect(offenders).toEqual([]);
   });
 });
