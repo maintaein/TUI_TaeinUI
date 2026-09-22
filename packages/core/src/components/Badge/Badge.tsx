@@ -84,7 +84,7 @@ export const Badge = ({
   // 직전 값을 퇴장 노드로 넘긴다 — 이펙트 없이 렌더 중에 상태를 조정하는
   // 패턴이다. dot 모드는 표시값이 없어 대상에서 뺀다. prevValue가
   // null/undefined였다면(예: children이 잠깐 비었다가 돌아온 경우) 퇴장시킬
-  // "헌 값"이 없으므로 exitingValue는 건드리지 않는다.
+  // "헌 값"이 없으므로 새로 넘기는 대신 남아 있을 수 있는 옛 값을 지운다.
   const [prevValue, setPrevValue] = useState(displayContent);
   const [exitingValue, setExitingValue] = useState<typeof displayContent>(null);
 
@@ -102,6 +102,11 @@ export const Badge = ({
   if (!dot && String(displayContent) !== String(prevValue)) {
     if (prevValue != null) {
       setExitingValue(prevValue);
+    } else {
+      // 퇴장시킬 헌 값이 없다 = 직전에 배지가 비어 있었다는 뜻이다. 그때
+      // 박제된 옛 값이 남아 있을 수 있으므로 여기서 지운다 — 안 지우면 배지가
+      // 잠깐 사라졌다 돌아올 때 옛 숫자가 현재 값 옆에서 퇴장을 재생한다.
+      setExitingValue(null);
     }
     setPrevValue(displayContent);
   }

@@ -314,6 +314,29 @@ describe('Badge', () => {
       expect(root.querySelector('[aria-hidden="true"]')).toBeNull();
     });
 
+    it('값이 잠깐 비었다 돌아오면 옛 값 유령이 안 뜬다 (3 → undefined → 7, 리뷰 I2)', () => {
+      const { container, rerender } = render(<Badge>3</Badge>);
+
+      // 1) 3 → undefined: setExitingValue(3)이 불리지만 그 직후 조기 반환이
+      //    배지를 통째로 언마운트한다. 퇴장 노드가 렌더되지 않으니
+      //    onAnimationEnd가 영영 안 불리고 exitingValue는 3으로 박제된다.
+      rerender(<Badge>{undefined}</Badge>);
+      expect(container.querySelector('[role="status"]')).toBeNull();
+
+      // 2) undefined → 7: 퇴장시킬 헌 값이 없는 경로다(prevValue가 null).
+      //    여기서 박제를 지우지 않으면 3이 그대로 살아남는다.
+      rerender(<Badge>7</Badge>);
+
+      // 3) 배지가 다시 나타날 때 현재 값 7 옆에서 옛 값 3이 퇴장을 재생하면
+      //    안 된다. aria-hidden이라 AT에는 안 새지만 화면에는 틀린 숫자다 —
+      //    개수를 보여주는 것이 존재 이유인 컴포넌트다.
+      // 무엇을 뒤집으면 빨개지는가: Badge.tsx의 else { setExitingValue(null) }를 지우면.
+      const root = container.querySelector('[role="status"]') as HTMLElement;
+      expect(root.querySelector('[aria-hidden="true"]')).toBeNull();
+      expect(screen.getByText('7')).toBeInTheDocument();
+      expect(screen.queryByText('3')).toBeNull();
+    });
+
     it('dot 모드는 값 노드·퇴장 노드를 만들지 않는다', () => {
       const { container, rerender } = render(<Badge dot>5</Badge>);
       rerender(
