@@ -184,7 +184,6 @@ globalStyle(`${glowRing}::before`, {
   // 넘긴다.
   inset: '-100%',
   backgroundImage: `conic-gradient(from 0deg, transparent 0deg, transparent 270deg, ${glowColor} 330deg, transparent 360deg)`,
-  animation: `${rotate} ${themeContract.animation.loop.base} ${themeContract.animation.easing.linear} infinite`,
 });
 
 // 트리거는 루트의 :hover·:focus-within이다(Border에는 상태 prop이 없다 —
@@ -194,13 +193,15 @@ globalStyle(`${border}:hover ${glowRing}, ${border}:focus-within ${glowRing}`, {
   opacity: 1,
 });
 
-// will-change는 트리거 상태에서만 붙는다. 링이 이제 항상 존재하므로(예전엔
-// ::before가 :hover 선택자 안에서만 정의돼 비활성 시 통째로 사라졌다) 상주
-// will-change를 되살리지 않도록 이 규칙에만 둔다 — HeaderBar의 상주
-// will-change 반례를 피한다.
+// 루프와 will-change 둘 다 트리거 상태에서만 붙는다. 링이 이제 항상
+// 존재하므로(예전엔 ::before가 :hover 선택자 안에서만 정의돼 비활성 시 통째로
+// 사라졌다) 여기 두지 않으면 페이지의 모든 Border가 안 보이는 채로 영원히
+// 회전을 틱한다 — sides 기본값이 'all'이라 그게 사실상 전부다. 상주
+// will-change도 같은 이유로 여기에만 둔다(HeaderBar의 상주 will-change 반례).
 globalStyle(
   `${border}:hover ${glowRing}::before, ${border}:focus-within ${glowRing}::before`,
   {
+    animation: `${rotate} ${themeContract.animation.loop.base} ${themeContract.animation.easing.linear} infinite`,
     willChange: 'transform',
   }
 );

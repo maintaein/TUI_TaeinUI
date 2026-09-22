@@ -376,7 +376,23 @@ describe('Border', () => {
         /globalStyle\(`\$\{glowRing\}::before`, \{([\s\S]*?)^\}\);/m
       )?.[1];
       expect(beforeBlock, 'glowRing::before 블록을 찾지 못했다').toBeDefined();
-      expect(beforeBlock).toContain('${rotate}');
+      // 회전은 여기가 아니라 트리거 규칙에 있다 — 아래 it이 그것을 잠근다.
+      expect(beforeBlock).not.toContain('${rotate}');
+    });
+
+    it('루프가 :hover·:focus-within 트리거 규칙 안에서만 돈다', () => {
+      // 링은 항상 존재하고 sides 기본값이 all이므로, 회전이 기본 ::before
+      // 규칙에 있으면 페이지의 모든 Border가 안 보이는 채로 영원히 틱한다.
+      // will-change와 같은 규칙 안에 있는 것을 선언 개수로 잠근다.
+      const hits = [...BORDER_CSS.matchAll(/\$\{rotate\}/g)];
+      expect(hits).toHaveLength(1);
+
+      const ruleStart = BORDER_CSS.lastIndexOf('globalStyle(', hits[0].index);
+      expect(ruleStart).toBeGreaterThan(-1);
+      const selector = BORDER_CSS.slice(ruleStart, hits[0].index);
+      expect(selector).toContain(':hover');
+      expect(selector).toContain(':focus-within');
+      expect(selector).toContain('::before');
     });
 
     it('빛 색이 color prop을 따라간다 — default만 강조색을 유지한다', () => {
