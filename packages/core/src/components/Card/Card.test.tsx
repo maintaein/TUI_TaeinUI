@@ -740,7 +740,7 @@ describe('Card 모션 잠금', () => {
     );
   });
 
-  it('variantStyles.interactive가 hoverActiveMotion을 공유해 모션은 갖되 커서·포커스 링은 없다(리뷰 F2)', () => {
+  it('variantStyles.interactive가 hoverActiveMotion + cursor를 갖고 포커스 링은 M3로 미룬다(리뷰 I3)', () => {
     const variantBlock = cssSource.match(
       /export const variantStyles = styleVariants\(\{([\s\S]*?)\n\}\);/
     )?.[1];
@@ -752,9 +752,13 @@ describe('Card 모션 잠금', () => {
     // 모션(hover/active)은 clickable과 같은 출처(hoverActiveMotion)를 공유한다
     // — onClick 없이 쓰여도(LivePreview가 렌더하는 CardPage.tsx 3곳) 살아있다.
     expect(interactiveBlock).toContain('...hoverActiveMotion');
-    // 클릭 가능 어포던스(커서·포커스 링)는 onClick이 없을 수 있는 interactive
-    // 에는 주지 않는다 — clickable에서만 별도로 붙는다.
-    expect(interactiveBlock).not.toContain('cursor');
+    // :hover 리프트만이면 「강조」로 읽히지만 :active 누름까지 붙으면 버튼이라고
+    // 말하는 것이다. 누름 피드백은 어포던스 신호라, 포인터에게 그 신호를 받을
+    // 커서가 있어야 한다(리뷰 I3).
+    // 무엇을 뒤집으면 빨개지는가: interactive에서 cursor 줄을 빼면.
+    expect(interactiveBlock).toContain("cursor: 'pointer'");
+    // 포커스 링은 아직 주지 않는다 — role·tabIndex 없이 링만 붙이면 받을 수
+    // 없는 포커스를 그린다. Card에 진짜 상호작용 API를 주는 건 M3 몫이다.
     expect(interactiveBlock).not.toContain('focusRing');
   });
 

@@ -17,12 +17,14 @@ export const cardRoot = style({
 
 // clickable과 variantStyles.interactive가 같은 hover/active 모션을 공유한다
 // (단일 출처 — 값이 두 곳에 따로 있으면 결판이 시트 순서에 맡겨진다는 게
-// T3의 문제였다). 커서·포커스 링은 여기 넣지 않고 clickable에만 남긴다 —
+// T3의 문제였다). 포커스 링은 여기 넣지 않고 clickable에만 남긴다 —
 // interactive는 onClick 없이도 쓰이는데(CardPage.tsx의 라이브 데모 3곳이
-// 실제로 그렇다 — LivePreview가 code prop을 그대로 렌더한다), 그 경우
-// cursor: pointer나 포커스 링을 주면 클릭 불가능한 카드에 거짓 어포던스가
-// 생긴다(리뷰 F2). 모션(이동·그림자)은 onClick 유무와 무관하게 살아 있어도
-// 되는 채널이라 여기서만 공유한다.
+// 실제로 그렇다 — LivePreview가 code prop을 그대로 렌더한다), role·tabIndex
+// 없는 요소에 링만 붙이면 받을 수 없는 포커스를 그리게 된다. 커서는 반대로
+// interactive에도 준다 — :active 누름까지 붙은 순간 그건 「강조」가 아니라
+// 버튼이라고 말하는 것이고, 포인터에게 그 말을 받을 신호가 없으면 반응만
+// 하고 어포던스가 없는 카드가 된다(리뷰 I3). Card에 진짜 상호작용
+// API(role·tabIndex·포커스 링)를 주는 건 M3 몫이다.
 const hoverActiveMotion = {
   // 타이밍 함수는 얹지 않는다(리뷰 C3). 포인터를 떼도 :hover는 계속
   // 매치되므로 여기 롱핸드를 두면 cardRoot의 속성별 목록이 값 하나로
@@ -60,6 +62,7 @@ export const variantStyles = styleVariants({
   interactive: {
     border: `2px solid ${themeContract.color.border.default}`,
     boxShadow: 'none',
+    cursor: 'pointer',
     ...hoverActiveMotion,
   },
 });
