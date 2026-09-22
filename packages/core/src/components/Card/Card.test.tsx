@@ -740,7 +740,7 @@ describe('Card 모션 잠금', () => {
     );
   });
 
-  it('variantStyles.interactive가 자기 :hover/transition을 더 갖지 않는다(clickable로 병합)', () => {
+  it('variantStyles.interactive가 hoverActiveMotion을 공유해 모션은 갖되 커서·포커스 링은 없다(리뷰 F2)', () => {
     const variantBlock = cssSource.match(
       /export const variantStyles = styleVariants\(\{([\s\S]*?)\n\}\);/
     )?.[1];
@@ -749,10 +749,13 @@ describe('Card 모션 잠금', () => {
       /interactive: \{([\s\S]*?)\n {2}\},/
     )?.[1];
     expect(interactiveBlock, 'interactive 블록을 찾지 못했다').toBeDefined();
-    expect(interactiveBlock).not.toContain('cubic-bezier');
-    expect(interactiveBlock).not.toContain('transition');
-    expect(interactiveBlock).not.toContain(':hover');
-    expect(interactiveBlock).not.toContain('translateY(-8px)');
+    // 모션(hover/active)은 clickable과 같은 출처(hoverActiveMotion)를 공유한다
+    // — onClick 없이 쓰여도(LivePreview가 렌더하는 CardPage.tsx 3곳) 살아있다.
+    expect(interactiveBlock).toContain('...hoverActiveMotion');
+    // 클릭 가능 어포던스(커서·포커스 링)는 onClick이 없을 수 있는 interactive
+    // 에는 주지 않는다 — clickable에서만 별도로 붙는다.
+    expect(interactiveBlock).not.toContain('cursor');
+    expect(interactiveBlock).not.toContain('focusRing');
   });
 
   it('clickable :hover가 translateY(-3px)/base/settle로 합쳐진다', () => {
@@ -771,14 +774,17 @@ describe('Card 모션 잠금', () => {
     expect(active).toContain('themeContract.animation.easing.exit');
   });
 
-  it('남은 boxShadow rgba 값은 손대지 않는다(M5) — interactive 병합 삭제로 4→3', () => {
-    // interactive의 hover boxShadow(0.12 알파)가 병합으로 통째로 사라져 4→3.
-    // 남은 3곳(elevated·clickable hover·clickable active)의 알파값은 그대로다.
+  it('남은 boxShadow rgba 값은 손대지 않는다(M5) — hoverActiveMotion 공유로 3곳 유지', () => {
+    // hoverActiveMotion이 hover(0.15)/active(0.1) 값을 한 번만 갖고 clickable과
+    // variantStyles.interactive가 스프레드로 공유한다(리뷰 F2) — 텍스트에
+    // 새 리터럴이 추가되지 않아 elevated(0.1)까지 여전히 3곳이다. 소스 순서가
+    // hoverActiveMotion(먼저 선언) → elevated(styleVariants 안)로 바뀌어
+    // 등장 순서만 달라졌다.
     const rgbaValues = cssSource.match(/rgba\(0, 0, 0, 0\.\d+\)/g) ?? [];
     expect(rgbaValues).toHaveLength(3);
     expect(rgbaValues).toEqual([
-      'rgba(0, 0, 0, 0.1)',
       'rgba(0, 0, 0, 0.15)',
+      'rgba(0, 0, 0, 0.1)',
       'rgba(0, 0, 0, 0.1)',
     ]);
   });
