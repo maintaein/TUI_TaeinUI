@@ -779,6 +779,14 @@ const LITERAL_DELAY_EXCEPTIONS: Exception[] = [
 ];
 
 /**
+ * 인라인 메커니즘(DOM 대입 · JSX `style={{}}` · `setProperty` · `cssText`)으로 건
+ * transition·animation 허용 목록. 지금은 비어 있다 — M2의 경계 정의가 프레임워크가
+ * 아니라 메커니즘이고, 런타임에 인라인으로 박는 모션이 그 경계 자체라 M2 소관
+ * 파일에서는 0이 맞는 목표다(F7). M3의 GSAP 런타임이 여기에 항목을 추가한다.
+ */
+const INLINE_MECHANISM_EXCEPTIONS: Exception[] = [];
+
+/**
  * 저장소 소비자가 0인 채로 살려 두는 easing 토큰과 그 소유 마일스톤.
  *
  * `linear`는 R46이 예고하지 않은 세 번째 항목이다(실측으로 찾았다). 쓰일 자리
@@ -1097,15 +1105,20 @@ describe('스캐너 맹점 셋 (할 일 1)', () => {
     expect(decls).not.toEqual([]);
   });
 
-  it('저장소 실측: 오늘은 세 맹점 모두 0건이라 실전 스캔이 빈손이다', () => {
-    // 반증(위)은 정규식이 물린다는 증거고, 이 단언은 "저장소에 0건"이라는 브리프의
-    // 전제가 아직 사실인지를 잠근다 — 누가 새로 이 패턴을 쓰기 시작하면 여기서 걸린다.
+  it('저장소 실측: 인라인 메커니즘 3종이 허용 목록과 정확히 일치한다 (F7)', () => {
+    // 반증(위)은 정규식이 물린다는 증거고, 이 단언은 "저장소에 인라인 메커니즘으로
+    // 건 전이가 있다면 전부 허용 목록에 올라 있다"는 브리프의 전제를 잠근다 —
+    // 오늘은 목록이 비어 있어 사실상 0건 게이트와 같지만, 등록된 항목은 통과한다
+    // (`INLINE_ASSIGNMENT` 경로의 `BottomSheet.tsx`가 그 선례다). 누가 새로 이
+    // 패턴을 등록 없이 쓰기 시작하면 여기서 걸린다.
     const real = INLINE_FILES.flatMap((file) => [
       ...jsxStyleDeclarationsOf(file).decls,
       ...setPropertyDeclarationsOf(file),
       ...cssTextDeclarationsOf(file),
     ]);
-    expect(real).toEqual([]);
+    expect(
+      groupByFile(real.map((d) => ({ file: d.file, text: d.value })))
+    ).toEqual(expectedMap(INLINE_MECHANISM_EXCEPTIONS));
   });
 });
 
