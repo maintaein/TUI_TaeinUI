@@ -1,6 +1,18 @@
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { describe, it, expect, vi } from 'vitest';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from '@testing-library/react';
 import { Popover } from './Popover';
+
+// 조항 3: 퇴장 = 등장 * 0.65. calc(duration.base * 0.65) = 200ms * 0.65 = 130ms.
+// Popover.tsx의 EXIT_DURATION_MS와 반드시 같은 값이어야 한다.
+const EXIT_DURATION_MS = 130;
 
 describe('Popover', () => {
   describe('렌더링 테스트', () => {
@@ -39,6 +51,7 @@ describe('Popover', () => {
     });
 
     it('트리거를 다시 클릭하면 content가 닫힌다', async () => {
+      vi.useFakeTimers();
       render(
         <Popover content={<div>팝오버 내용</div>}>
           <button>트리거</button>
@@ -49,12 +62,22 @@ describe('Popover', () => {
       expect(screen.getByText('팝오버 내용')).toBeInTheDocument();
 
       fireEvent.click(screen.getByText('트리거'));
+      // 퇴장 전이(130ms) 동안엔 DOM이 즉시 사라지지 않는다 — transition이
+      // 재생될 자리가 있어야 한다(조항 1: 일회성 @keyframes 금지의 반대편).
+      expect(screen.getByText('팝오버 내용')).toBeInTheDocument();
+
+      act(() => {
+        vi.advanceTimersByTime(EXIT_DURATION_MS);
+      });
       expect(screen.queryByText('팝오버 내용')).not.toBeInTheDocument();
+
+      vi.useRealTimers();
     });
   });
 
   describe('바깥 클릭 닫기 테스트', () => {
     it('팝오버 외부를 클릭하면 닫힌다', async () => {
+      vi.useFakeTimers();
       render(
         <div>
           <Popover content={<div>팝오버 내용</div>}>
@@ -68,7 +91,12 @@ describe('Popover', () => {
       expect(screen.getByText('팝오버 내용')).toBeInTheDocument();
 
       fireEvent.mouseDown(screen.getByText('외부 버튼'));
+      act(() => {
+        vi.advanceTimersByTime(EXIT_DURATION_MS);
+      });
       expect(screen.queryByText('팝오버 내용')).not.toBeInTheDocument();
+
+      vi.useRealTimers();
     });
 
     it('closeOnOutsideClick=false이면 외부 클릭으로 닫히지 않는다', async () => {
@@ -91,6 +119,7 @@ describe('Popover', () => {
 
   describe('ESC 닫기 테스트', () => {
     it('Escape 키를 누르면 팝오버가 닫힌다', async () => {
+      vi.useFakeTimers();
       render(
         <Popover content={<div>팝오버 내용</div>}>
           <button>트리거</button>
@@ -101,7 +130,12 @@ describe('Popover', () => {
       expect(screen.getByText('팝오버 내용')).toBeInTheDocument();
 
       fireEvent.keyDown(document, { key: 'Escape' });
+      act(() => {
+        vi.advanceTimersByTime(EXIT_DURATION_MS);
+      });
       expect(screen.queryByText('팝오버 내용')).not.toBeInTheDocument();
+
+      vi.useRealTimers();
     });
 
     it('closeOnEscape=false이면 Escape로 닫히지 않는다', async () => {
@@ -130,7 +164,7 @@ describe('Popover', () => {
       fireEvent.click(screen.getByText('트리거'));
 
       const popover = container.querySelector('[role="dialog"]');
-      expect(popover).toHaveClass(/positionStyles_bottom/);
+      expect(popover).toHaveClass(/positionOpenStyles_bottom/);
     });
 
     it('position="top"일 때 적절한 클래스가 적용된다', async () => {
@@ -143,7 +177,7 @@ describe('Popover', () => {
       fireEvent.click(screen.getByText('트리거'));
 
       const popover = container.querySelector('[role="dialog"]');
-      expect(popover).toHaveClass(/positionStyles_top/);
+      expect(popover).toHaveClass(/positionOpenStyles_top/);
     });
 
     it('position="left"일 때 적절한 클래스가 적용된다', async () => {
@@ -156,7 +190,7 @@ describe('Popover', () => {
       fireEvent.click(screen.getByText('트리거'));
 
       const popover = container.querySelector('[role="dialog"]');
-      expect(popover).toHaveClass(/positionStyles_left/);
+      expect(popover).toHaveClass(/positionOpenStyles_left/);
     });
 
     it('position="right"일 때 적절한 클래스가 적용된다', async () => {
@@ -169,7 +203,7 @@ describe('Popover', () => {
       fireEvent.click(screen.getByText('트리거'));
 
       const popover = container.querySelector('[role="dialog"]');
-      expect(popover).toHaveClass(/positionStyles_right/);
+      expect(popover).toHaveClass(/positionOpenStyles_right/);
     });
   });
 
@@ -229,6 +263,7 @@ describe('Popover', () => {
 
   describe('비제어 모드 테스트', () => {
     it('내부 상태로 열기/닫기가 동작한다', async () => {
+      vi.useFakeTimers();
       render(
         <Popover content={<div>팝오버 내용</div>}>
           <button>트리거</button>
@@ -241,7 +276,12 @@ describe('Popover', () => {
       expect(screen.getByText('팝오버 내용')).toBeInTheDocument();
 
       fireEvent.click(screen.getByText('트리거'));
+      act(() => {
+        vi.advanceTimersByTime(EXIT_DURATION_MS);
+      });
       expect(screen.queryByText('팝오버 내용')).not.toBeInTheDocument();
+
+      vi.useRealTimers();
     });
 
     it('onOpenChange 콜백이 호출된다', async () => {
@@ -424,6 +464,119 @@ describe('Popover', () => {
 
       const arrowEl = container.querySelector('[data-popover-arrow]');
       expect(arrowEl).not.toBeInTheDocument();
+    });
+  });
+
+  describe('모션 잠금 — @keyframes 제거 + transform-origin', () => {
+    // vanilla-extract가 스타일을 클래스로 직렬화해서 jsdom에서 계산값을 못
+    // 읽는다. Popover.css.ts 소스 텍스트에서 직접 확인한다(BoardRow와 동일 관례).
+    const cssSource = readFileSync(
+      resolve(__dirname, './Popover.css.ts'),
+      'utf-8'
+    );
+
+    it('@keyframes(fadeIn)가 없다 — 등장·퇴장 모두 transition이다', () => {
+      expect(cssSource).not.toContain('keyframes');
+      expect(cssSource).not.toContain('fadeIn');
+      expect(cssSource).not.toContain('animation:');
+    });
+
+    it('transition: all이 없다', () => {
+      expect(cssSource).not.toMatch(/transition:\s*['`]all/);
+    });
+
+    it("'use client'가 없다", () => {
+      expect(cssSource).not.toContain('use client');
+    });
+
+    it.each([
+      ['top', 'bottom center'],
+      ['bottom', 'top center'],
+      ['left', 'right center'],
+      ['right', 'left center'],
+    ])(
+      'position="%s"일 때 transform-origin이 화살표 쪽(%s)이다',
+      (position, origin) => {
+        // positionStyles·positionOpenStyles 둘 다 같은 origin이어야 펼쳐지는
+        // 방향이 유지된다 — 두 변형 모두에서 확인한다.
+        const closedBlock = cssSource.match(
+          /export const positionStyles = styleVariants\(\{([\s\S]*?)\n\}\);/
+        )?.[1];
+        const openBlock = cssSource.match(
+          /export const positionOpenStyles = styleVariants\(\{([\s\S]*?)\n\}\);/
+        )?.[1];
+        expect(closedBlock, 'positionStyles 블록을 찾지 못했다').toBeDefined();
+        expect(
+          openBlock,
+          'positionOpenStyles 블록을 찾지 못했다'
+        ).toBeDefined();
+
+        const closedVariant = (closedBlock as string).match(
+          new RegExp(`${position}: \\{([\\s\\S]*?)\\n {2}\\},`)
+        )?.[1];
+        const openVariant = (openBlock as string).match(
+          new RegExp(`${position}: \\{([\\s\\S]*?)\\n {2}\\},`)
+        )?.[1];
+        expect(
+          closedVariant,
+          `positionStyles.${position}을 찾지 못했다`
+        ).toBeDefined();
+        expect(
+          openVariant,
+          `positionOpenStyles.${position}을 찾지 못했다`
+        ).toBeDefined();
+
+        expect(closedVariant).toContain(`transformOrigin: '${origin}'`);
+        expect(openVariant).toContain(`transformOrigin: '${origin}'`);
+      }
+    );
+
+    it('퇴장 전이가 calc(duration.base * 0.65) / easing.exit이다(리터럴 ms 금지)', () => {
+      expect(cssSource).toContain(
+        'calc(${themeContract.animation.duration.base} * 0.65) ${themeContract.animation.easing.exit}'
+      );
+      expect(cssSource).not.toMatch(/130ms/);
+    });
+
+    it('등장 전이가 duration.base / easing.settle이다', () => {
+      expect(cssSource).toContain(
+        'opacity ${themeContract.animation.duration.base} ${themeContract.animation.easing.settle}'
+      );
+    });
+  });
+
+  describe('조항 1 — 중단 가능·역재생 가능', () => {
+    it('퇴장 도중 다시 열면 언마운트 타이머가 취소되고 DOM이 유지된다(현재 위치에서 이어진다)', () => {
+      vi.useFakeTimers();
+      render(
+        <Popover content={<div>팝오버 내용</div>}>
+          <button>트리거</button>
+        </Popover>
+      );
+
+      fireEvent.click(screen.getByText('트리거'));
+      expect(screen.getByText('팝오버 내용')).toBeInTheDocument();
+
+      // 닫는다 — 퇴장 타이머(130ms)가 예약된다.
+      fireEvent.click(screen.getByText('트리거'));
+
+      // 타이머가 끝나기 전에(예: 65ms) 다시 연다 — 처음부터 다시 마운트되는
+      // 게 아니라 같은 DOM 노드가 계속 살아 있어야 한다(조항 1 ③).
+      act(() => {
+        vi.advanceTimersByTime(65);
+      });
+      const popoverBeforeReopen = screen.getByText('팝오버 내용');
+      fireEvent.click(screen.getByText('트리거'));
+      expect(screen.getByText('팝오버 내용')).toBe(popoverBeforeReopen);
+
+      // 원래 퇴장 타이머가 그대로 발화했다면 이 시점에 사라졌을 것이다 —
+      // 취소되지 않았다면 실패한다.
+      act(() => {
+        vi.advanceTimersByTime(65);
+      });
+      expect(screen.getByText('팝오버 내용')).toBeInTheDocument();
+
+      vi.useRealTimers();
     });
   });
 });
