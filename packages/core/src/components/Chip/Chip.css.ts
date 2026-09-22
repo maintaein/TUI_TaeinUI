@@ -20,6 +20,15 @@ export const chip = recipe({
     cursor: 'default',
     whiteSpace: 'nowrap',
 
+    // 선택 배율 합성용 변수(리뷰 F1) — 기본 1, .selected가 1.03으로 올린다.
+    // hover/active는 이 값을 곱해 자기 이동/축소와 합성한다 — transform은
+    // 단일 속성이라 예전엔 .selected의 scale(1.03)이 :hover/:active의
+    // scale(1)/scale(0.97)에 통째로 덮여 선택된 칩에 마우스를 올리면
+    // 1.03→1.0으로 줄었다.
+    vars: {
+      '--chip-scale': '1',
+    },
+
     // 선택 표식(B2) — 항상 존재하되 scale(0)으로 숨어 있다가 .selected에서만
     // 커진다(아래 globalStyle). 색은 --chip-marker-color로 Chip.tsx가 넣는다.
     '::before': {
@@ -166,9 +175,10 @@ export const clickable = style({
   // 불투명도로 hover/active를 표현하면 대비가 같이 떨어진다(4.60→3.47:1).
   // 색을 건드리지 않는 채널(이동·그림자·스케일)로 바꾼다. shadow.sm(5% 알파
   // 2px 블러)만으로는 색 있는 칩 위에서 지각 한계 아래라, :active의 scale과
-  // 같은 축인 1px 들어올림을 주 채널로 쓴다.
+  // 같은 축인 1px 들어올림을 주 채널로 쓴다. scale은 --chip-scale을 곱해
+  // 선택 배율과 합성한다(리뷰 F1) — 선택 안 된 칩은 1을 곱해 그대로다.
   ':hover': {
-    transform: 'translateY(-1px)',
+    transform: 'translateY(-1px) scale(var(--chip-scale))',
     boxShadow: themeContract.shadow.base,
     transitionDuration: themeContract.animation.duration.fast,
     transitionTimingFunction: themeContract.animation.easing.settle,
@@ -176,7 +186,7 @@ export const clickable = style({
 
   ':active': {
     boxShadow: 'none',
-    transform: 'scale(0.97)',
+    transform: 'scale(calc(var(--chip-scale) * 0.97))',
     transitionDuration: themeContract.animation.duration.fast,
     transitionTimingFunction: themeContract.animation.easing.exit,
   },
@@ -189,10 +199,16 @@ export const clickable = style({
 // 선택된 본체 — "표식이 꽂히듯 박히고 칩이 그 충격에 한 번 흔들린다"를 키프레임
 // 없이 표현한다. spring(감쇠 진동) 커브 자체가 scale(1)→1.03 전이 중간에
 // 1.03을 넘겼다 살짝 되돌아오는 흔들림을 만든다(article 1: 상태 전이는 커브로).
+// --chip-scale을 1.03으로 올려 위 :hover/:active가 곱해 합성한다(리뷰 F1).
+// transitionDuration/TimingFunction만 얹으면(구 코드) transition-property는
+// chip 베이스의 transform·box-shadow·opacity 세 개를 그대로 물려받아 spring이
+// box-shadow·opacity에도 샌다 — transition을 통째로 다시 적어 막는다(리뷰 F6).
 export const selected = style({
-  transform: 'scale(1.03)',
-  transitionDuration: themeContract.animation.duration.base,
-  transitionTimingFunction: themeContract.animation.easing.spring,
+  vars: {
+    '--chip-scale': '1.03',
+  },
+  transform: 'scale(var(--chip-scale))',
+  transition: `transform ${themeContract.animation.duration.base} ${themeContract.animation.easing.spring}, box-shadow ${themeContract.animation.duration.base} ${themeContract.animation.easing.settle}, opacity ${themeContract.animation.duration.base} ${themeContract.animation.easing.settle}`,
 });
 
 // 선택되면 위 chip base의 ::before 표식이 scale(1)로 꽂히듯 박힌다 — base

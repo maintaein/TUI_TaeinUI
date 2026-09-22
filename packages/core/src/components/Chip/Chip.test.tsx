@@ -366,7 +366,9 @@ describe('Chip 소스 잠금', () => {
     // hover는 "누를 수 있다"를 알리는 가장 기본 어포던스다.
     const hover = cssSource.match(/':hover': \{([\s\S]*?)\n {2}\},/)?.[1];
     expect(hover, ':hover 블록을 찾지 못했다').toBeDefined();
-    expect(hover).toContain("transform: 'translateY(-1px)'");
+    expect(hover).toContain(
+      "transform: 'translateY(-1px) scale(var(--chip-scale))'"
+    );
     expect(hover).toContain('themeContract.shadow.base');
   });
 
@@ -397,16 +399,25 @@ describe('Chip 모션 잠금', () => {
   it('clickable :hover에 fast/settle 커브 오버라이드가 붙는다', () => {
     const hover = cssSource.match(/':hover': \{([\s\S]*?)\n {2}\},/)?.[1];
     expect(hover, ':hover 블록을 찾지 못했다').toBeDefined();
+    expect(hover).toContain(
+      "transform: 'translateY(-1px) scale(var(--chip-scale))'"
+    );
     expect(hover).toContain('themeContract.animation.duration.fast');
     expect(hover).toContain('themeContract.animation.easing.settle');
   });
 
-  it('clickable :active에 fast/exit 커브 오버라이드가 붙는다(값은 그대로)', () => {
+  it('clickable :active에 fast/exit 커브 오버라이드가 붙는다 — --chip-scale과 합성(리뷰 F1)', () => {
     const active = cssSource.match(/':active': \{([\s\S]*?)\n {2}\},/)?.[1];
     expect(active, ':active 블록을 찾지 못했다').toBeDefined();
-    expect(active).toContain("transform: 'scale(0.97)'");
+    expect(active).toContain(
+      "transform: 'scale(calc(var(--chip-scale) * 0.97))'"
+    );
     expect(active).toContain('themeContract.animation.duration.fast');
     expect(active).toContain('themeContract.animation.easing.exit');
+  });
+
+  it('chip 베이스가 --chip-scale을 1로 선언한다(선택 안 된 칩은 hover/active가 그대로 유지)', () => {
+    expect(cssSource).toMatch(/vars:\s*\{\s*'--chip-scale':\s*'1',\s*\}/);
   });
 
   it('base에 표식(::before)이 scale(0)로 숨어 있다가 calc(base*0.65)/exit로 물러난다', () => {
@@ -430,13 +441,29 @@ describe('Chip 모션 잠금', () => {
     expect(marker).toContain('themeContract.animation.easing.spring');
   });
 
-  it('selected 클래스 자체가 spring으로 본체를 scale(1.03)까지 흔든다', () => {
+  it('selected 클래스 자체가 --chip-scale을 1.03으로 올려 spring으로 본체를 흔든다', () => {
     const selectedBlock = cssSource.match(
       /export const selected = style\(\{([\s\S]*?)\n\}\);/
     )?.[1];
     expect(selectedBlock, 'selected 블록을 찾지 못했다').toBeDefined();
-    expect(selectedBlock).toContain("transform: 'scale(1.03)'");
+    expect(selectedBlock).toContain("'--chip-scale': '1.03'");
+    expect(selectedBlock).toContain("transform: 'scale(var(--chip-scale))'");
     expect(selectedBlock).toContain('themeContract.animation.easing.spring');
+  });
+
+  it('selected가 transition을 통째로 재선언해 spring이 transform에만 걸린다(리뷰 F6 — box-shadow/opacity는 settle)', () => {
+    const selectedBlock = cssSource.match(
+      /export const selected = style\(\{([\s\S]*?)\n\}\);/
+    )?.[1];
+    expect(selectedBlock, 'selected 블록을 찾지 못했다').toBeDefined();
+    expect(selectedBlock).toMatch(
+      /transition: `transform \$\{themeContract\.animation\.duration\.base\} \$\{themeContract\.animation\.easing\.spring\}, box-shadow \$\{themeContract\.animation\.duration\.base\} \$\{themeContract\.animation\.easing\.settle\}, opacity \$\{themeContract\.animation\.duration\.base\} \$\{themeContract\.animation\.easing\.settle\}`,/
+    );
+    // 예전엔 transitionDuration/TimingFunction만 얹어 transition-property를
+    // chip 베이스(transform·box-shadow·opacity)에서 그대로 물려받았다 — 그
+    // 결과 bare 오버라이드가 box-shadow/opacity에도 spring을 흘렸다.
+    expect(selectedBlock).not.toMatch(/transitionDuration:/);
+    expect(selectedBlock).not.toMatch(/transitionTimingFunction:/);
   });
 
   it('삭제 버튼 hover가 translateX(1px)로 미는 방향 저항을 준다(settle)', () => {
