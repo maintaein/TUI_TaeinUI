@@ -822,13 +822,16 @@ const TRANSITION_WHITELIST = new Set([
  * 주석이 우연히 그 자리에 있다는 이유만으로 면제"가 되는 문을 다시 여는 셈이다. */
 const MAX_JUSTIFICATION_COMMENT_LINES = 8;
 
-/** `//`·블록 주석 시작(`/*`)·JSDoc 연속 줄(` * `) 모두 주석 줄로 센다. */
-function isCommentLine(line: string): boolean {
+/** `//`·블록 주석 시작(`/*`)은 항상 주석 줄이다. `*`로 시작하는 줄(JSDoc 본문·블록을
+ * 닫는 델리미터)은 실제 블록 주석 안(`inBlock`)에 있을 때만 주석으로 친다 — 아니면
+ * `*`로 우연히 시작하는 코드 줄이 블록을 뛰어넘어 위의 무관한 주석을 끌어온다(F6). */
+function isCommentLine(line: string, inBlock: boolean): boolean {
   const trimmed = line.trim();
   return (
     trimmed.startsWith('//') ||
     trimmed.startsWith('/*') ||
-    trimmed.startsWith('*')
+    trimmed.startsWith('*/') ||
+    (inBlock && trimmed.startsWith('*'))
   );
 }
 
@@ -838,11 +841,15 @@ function isCommentLine(line: string): boolean {
  */
 function commentBlockAbove(source: string[], declLine: number): string[] {
   const block: string[] = [];
+  let inBlock = false; // `*/`를 만나 블록 안으로 들어왔는지 (F6)
   let i = declLine - 2; // declLine 직전 줄의 0-based 인덱스
   while (i >= 0 && block.length < MAX_JUSTIFICATION_COMMENT_LINES) {
     const line = source[i] ?? '';
-    if (!isCommentLine(line)) break;
-    block.unshift(line.trim());
+    const trimmed = line.trim();
+    if (!isCommentLine(line, inBlock)) break;
+    if (trimmed.startsWith('/*')) inBlock = false;
+    else if (trimmed.startsWith('*/')) inBlock = true;
+    block.unshift(trimmed);
     i -= 1;
   }
   return block;
@@ -1134,6 +1141,19 @@ describe('근거 주석 블록 (할 일 2)', () => {
     ];
     const block = commentBlockAbove(fixture, 4);
     expect(block.some((line) => line.includes('width'))).toBe(false);
+  });
+
+  it('블록 밖의 `*` 코드 줄은 주석으로 안 세진다 (F6)', () => {
+    // 실측(리뷰): `*notAComment,`는 실제 블록 주석 안이 아닌데 `*`로 시작한다는
+    // 이유만으로 주석 취급되면, 블록이 이 코드 줄을 뛰어넘어 위의 무관한 주석까지
+    // 끌어온다. 고친 뒤에는 이 줄에서 바로 끊겨 블록이 비어야 한다.
+    const fixture = [
+      '  // width 근거',
+      '  *notAComment,',
+      "  transition: 'width 0.2s ease',",
+    ];
+    const block = commentBlockAbove(fixture, 3);
+    expect(block).toEqual([]);
   });
 
   it(`상한 ${MAX_JUSTIFICATION_COMMENT_LINES}줄 — 그보다 위 주석은 블록에 안 들어온다`, () => {
