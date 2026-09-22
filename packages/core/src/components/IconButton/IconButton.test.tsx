@@ -789,8 +789,39 @@ describe('IconButton 모션 잠금', () => {
     for (const [, block] of f4HoverBlocks) {
       expect(block).toContain("transform: 'translateY(-1px)'");
       expect(block).toContain('themeContract.animation.duration.fast');
-      expect(block).toContain('themeContract.animation.easing.settle');
     }
+  });
+
+  // 리뷰 C3 — 포인터를 떼도 요소는 여전히 :hover에 매치된다. (0,3,0)인 이
+  // 블록의 타이밍 함수 롱핸드가 base(0,1,0)의 transition 숏핸드를 이기고,
+  // 게다가 속성별 목록을 값 하나로 무너뜨려 transform에도 같은 커브를
+  // 먹인다 — 되돌아오는 전이까지 그 커브가 지배해서 base의 snap 오버슛이
+  // 포인터 사용자에게 한 번도 재생되지 않았다(크로미엄 실측). 두 블록을
+  // 따로 잠근다: 한쪽만 되돌려 놓는 회귀가 있다.
+  it('recipe base :hover 블록에 transitionTimingFunction이 없다(리뷰 C3)', () => {
+    // 무엇을 뒤집으면 빨개지는가: iconButton.base.selectors의
+    // '&:hover:not(:disabled)'에 transitionTimingFunction: settle을
+    // 되돌려 놓으면 여기가 빨개진다.
+    const hoverBlocks = [
+      ...cssSource.matchAll(
+        /리뷰 F4[\s\S]*?\n\s*'&:hover:not\(:disabled\)': \{([\s\S]*?)\n\s*\},/g
+      ),
+    ];
+    expect(hoverBlocks).toHaveLength(2);
+    expect(hoverBlocks[0][1]).not.toContain('transitionTimingFunction');
+  });
+
+  it('ghostBase :hover 블록에 transitionTimingFunction이 없다(리뷰 C3)', () => {
+    // 무엇을 뒤집으면 빨개지는가: ghostBase.selectors의
+    // '&:hover:not(:disabled)'에 transitionTimingFunction: settle을
+    // 되돌려 놓으면 여기가 빨개진다.
+    const hoverBlocks = [
+      ...cssSource.matchAll(
+        /리뷰 F4[\s\S]*?\n\s*'&:hover:not\(:disabled\)': \{([\s\S]*?)\n\s*\},/g
+      ),
+    ];
+    expect(hoverBlocks).toHaveLength(2);
+    expect(hoverBlocks[1][1]).not.toContain('transitionTimingFunction');
   });
 
   it('아이콘 자신의 눌림 scale이 0.99로, 몸통 scale과 곱해도 0.94대에 머문다(리뷰 F5)', () => {

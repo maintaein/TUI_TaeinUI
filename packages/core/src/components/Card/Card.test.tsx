@@ -758,12 +758,24 @@ describe('Card 모션 잠금', () => {
     expect(interactiveBlock).not.toContain('focusRing');
   });
 
-  it('clickable :hover가 translateY(-3px)/base/settle로 합쳐진다', () => {
+  it('clickable :hover가 translateY(-3px)/base로 합쳐진다', () => {
     const hover = cssSource.match(/':hover': \{([\s\S]*?)\n {2}\},/)?.[1];
     expect(hover, ':hover 블록을 찾지 못했다').toBeDefined();
     expect(hover).toContain("transform: 'translateY(-3px)'");
     expect(hover).toContain('themeContract.animation.duration.base');
-    expect(hover).toContain('themeContract.animation.easing.settle');
+  });
+
+  it(':hover 블록에 transitionTimingFunction이 없다(리뷰 C3)', () => {
+    // 포인터를 떼도 요소는 여전히 :hover에 매치된다. 이 블록의 타이밍 함수
+    // 롱핸드가 cardRoot의 transition 숏핸드를 이기고 속성별 목록을 값
+    // 하나로 무너뜨려서, 되돌아오는 전이까지 그 커브가 지배했다 —
+    // cardRoot가 transform에 준 snap 오버슛이 포인터 사용자에게 한 번도
+    // 재생되지 않았다(크로미엄 실측).
+    // 무엇을 뒤집으면 빨개지는가: hoverActiveMotion의 ':hover'에
+    // transitionTimingFunction: settle을 되돌려 놓으면 여기가 빨개진다.
+    const hover = cssSource.match(/':hover': \{([\s\S]*?)\n {2}\},/)?.[1];
+    expect(hover, ':hover 블록을 찾지 못했다').toBeDefined();
+    expect(hover).not.toContain('transitionTimingFunction');
   });
 
   it('clickable :active가 scale(0.99) translateY(-1px)/fast/exit로 버틴다', () => {

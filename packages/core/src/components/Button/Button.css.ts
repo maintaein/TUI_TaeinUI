@@ -28,14 +28,19 @@ export const button = recipe({
     selectors: {
       // 새 hover — 기존엔 배경색만 바뀌어 색 단독 채널이었다(조항 4 위반).
       // 이동을 더해 색과 위치가 함께 바뀌게 한다.
+      // 타이밍 함수는 얹지 않는다(리뷰 C3). 포인터를 떼도 요소는 여전히
+      // :hover에 매치되므로, 여기 타이밍 함수 롱핸드를 두면 base 숏핸드를
+      // 이기는 데 그치지 않고 속성별 목록을 값 하나로 무너뜨려 되돌아오는
+      // 전이까지 지배한다 — 아래가 말하는 해제 오버슛이 포인터 사용자에게
+      // 영영 안 보인다. 길이(fast)만 덮어 진입을 짧게 한다.
       '&:hover:not(:disabled)': {
         transform: 'translateY(-1px)',
         transitionDuration: themeContract.animation.duration.fast,
-        transitionTimingFunction: themeContract.animation.easing.settle,
       },
 
       // 배치 전체 ":active 해제 오버슛" 형태(T3a 공통) — 누를 때 exit로 가속해
-      // 들어가고, 떼면 위 base의 snap으로 브라우저가 오버슛해 돌아온다. 변형
+      // 들어가고, 떼면 위 base의 snap으로 브라우저가 오버슛해 돌아온다(:hover가
+      // 타이밍 함수를 쏘지 않으므로 실제로 그렇게 된다 — 리뷰 C3). 변형
       // 10곳의 :active 블록은 값이 이미 맞아 건드리지 않는다 — 이 한 줄이 전부 덮는다.
       '&:active:not(:disabled)': {
         transitionTimingFunction: themeContract.animation.easing.exit,

@@ -75,10 +75,12 @@ export const header = style({
   // 배치 관례로 snap을 얹어 release 오버슛도 같이 받는다.
   transition: `background-color ${themeContract.animation.duration.base} ${themeContract.animation.easing.settle}, transform ${themeContract.animation.duration.base} ${themeContract.animation.easing.snap}`,
 
+  // 타이밍 함수는 얹지 않는다(리뷰 C3). 포인터를 떼도 :hover는 계속
+  // 매치되므로 여기 롱핸드를 두면 위 목록이 값 하나로 무너져 transform의
+  // snap 해제 오버슛이 포인터 사용자에게 영영 안 보인다.
   ':hover': {
     backgroundColor: themeContract.color.background.paper,
     transitionDuration: themeContract.animation.duration.fast,
-    transitionTimingFunction: themeContract.animation.easing.settle,
   },
 
   // 배경색과 함께 스케일도 같이 바뀐다(article 4 — 색 단독 채널 금지).

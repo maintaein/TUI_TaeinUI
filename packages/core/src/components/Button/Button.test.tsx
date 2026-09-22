@@ -317,13 +317,29 @@ describe('Button 모션 잠금', () => {
     );
   });
 
-  it(':hover:not(:disabled)이 translateY(-1px)/settle을 새로 만든다(조항 4: 색 단독 금지)', () => {
+  it(':hover:not(:disabled)이 translateY(-1px)를 새로 만든다(조항 4: 색 단독 금지)', () => {
     const hover = cssSource.match(
       /['&]*:hover:not\(:disabled\)'?: \{([\s\S]*?)\n\s*\},/
     )?.[1];
     expect(hover, ':hover:not(:disabled) 블록을 찾지 못했다').toBeDefined();
     expect(hover).toContain("transform: 'translateY(-1px)'");
-    expect(hover).toContain('themeContract.animation.easing.settle');
+    expect(hover).toContain('themeContract.animation.duration.fast');
+  });
+
+  it(':hover 블록에 transitionTimingFunction이 없다 — 있으면 해제 오버슛이 죽는다(리뷰 C3)', () => {
+    // 포인터를 떼도 요소는 여전히 :hover에 매치된다. (0,3,0)인 이 블록의
+    // 롱핸드가 base(0,1,0)의 transition 숏핸드를 이기고, 게다가 속성별
+    // 목록을 값 하나로 무너뜨려 transform에도 같은 커브를 먹인다 —
+    // 되돌아오는 전이까지 이 커브가 지배해서 base의 snap 오버슛이 포인터
+    // 사용자에게 한 번도 재생되지 않았다(크로미엄 실측).
+    // 무엇을 뒤집으면 빨개지는가: 이 블록에
+    // transitionTimingFunction: settle을 되돌려 놓으면 여기가 빨개진다.
+    // transitionDuration은 대상이 아니다 — 진입만 짧게 하는 것은 의도다.
+    const hover = cssSource.match(
+      /['&]*:hover:not\(:disabled\)'?: \{([\s\S]*?)\n\s*\},/
+    )?.[1];
+    expect(hover, ':hover:not(:disabled) 블록을 찾지 못했다').toBeDefined();
+    expect(hover).not.toContain('transitionTimingFunction');
   });
 
   it(':active:not(:disabled)이 exit 한 줄로 변형 10곳의 커브를 덮는다', () => {

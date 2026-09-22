@@ -177,11 +177,13 @@ export const clickable = style({
   // 2px 블러)만으로는 색 있는 칩 위에서 지각 한계 아래라, :active의 scale과
   // 같은 축인 1px 들어올림을 주 채널로 쓴다. scale은 --chip-scale을 곱해
   // 선택 배율과 합성한다(리뷰 F1) — 선택 안 된 칩은 1을 곱해 그대로다.
+  // 타이밍 함수는 얹지 않는다(리뷰 C3). 포인터를 떼도 :hover는 계속
+  // 매치되므로 여기 롱핸드를 두면 속성별 목록이 값 하나로 무너져 해제
+  // 오버슛이 죽고, 덤으로 selected의 spring까지 settle로 눌린다.
   ':hover': {
     transform: 'translateY(-1px) scale(var(--chip-scale))',
     boxShadow: themeContract.shadow.base,
     transitionDuration: themeContract.animation.duration.fast,
-    transitionTimingFunction: themeContract.animation.easing.settle,
   },
 
   ':active': {

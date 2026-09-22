@@ -396,14 +396,26 @@ describe('Chip 모션 잠금', () => {
     );
   });
 
-  it('clickable :hover에 fast/settle 커브 오버라이드가 붙는다', () => {
+  it('clickable :hover에 fast 길이 오버라이드가 붙는다', () => {
     const hover = cssSource.match(/':hover': \{([\s\S]*?)\n {2}\},/)?.[1];
     expect(hover, ':hover 블록을 찾지 못했다').toBeDefined();
     expect(hover).toContain(
       "transform: 'translateY(-1px) scale(var(--chip-scale))'"
     );
     expect(hover).toContain('themeContract.animation.duration.fast');
-    expect(hover).toContain('themeContract.animation.easing.settle');
+  });
+
+  it(':hover 블록에 transitionTimingFunction이 없다(리뷰 C3)', () => {
+    // 포인터를 떼도 요소는 여전히 :hover에 매치된다. 이 블록의 타이밍 함수
+    // 롱핸드가 chip base의 transition 숏핸드를 이기고 속성별 목록을 값
+    // 하나로 무너뜨려서, 되돌아오는 전이까지 그 커브가 지배했다(크로미엄
+    // 실측). 그 사이 selected의 spring도 같이 죽는다 — clickable:hover가
+    // 타이밍 함수를 쏘면 선택 표식의 탄성이 settle로 눌린다.
+    // 무엇을 뒤집으면 빨개지는가: clickable의 ':hover'에
+    // transitionTimingFunction: settle을 되돌려 놓으면 여기가 빨개진다.
+    const hover = cssSource.match(/':hover': \{([\s\S]*?)\n {2}\},/)?.[1];
+    expect(hover, ':hover 블록을 찾지 못했다').toBeDefined();
+    expect(hover).not.toContain('transitionTimingFunction');
   });
 
   it('clickable :active에 fast/exit 커브 오버라이드가 붙는다 — --chip-scale과 합성(리뷰 F1)', () => {

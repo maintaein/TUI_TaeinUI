@@ -27,13 +27,16 @@ export const iconButton = recipe({
       // 새 hover(리뷰 F4) — 변형 8곳이 배경색(+색)만 바꿔 색 단독 채널이었다
       // (article 4 위반). 이동을 더해 색과 위치가 함께 바뀌게 한다. 변형별
       // 8개 compoundVariants는 열지 않고 이 한 줄로 전부 덮는다.
+      // 타이밍 함수는 얹지 않는다(리뷰 C3) — 자세한 이유는 Button.css.ts의
+      // 같은 자리 주석. 요약: 포인터를 떼도 :hover는 계속 매치되고, 여기
+      // 롱핸드가 있으면 속성별 목록이 값 하나로 무너져 해제 오버슛이 죽는다.
       '&:hover:not(:disabled)': {
         transform: 'translateY(-1px)',
         transitionDuration: themeContract.animation.duration.fast,
-        transitionTimingFunction: themeContract.animation.easing.settle,
       },
       // 배치 전체 ":active 해제 오버슛" 형태(T3a 공통) — 누를 때 exit로 가속해
-      // 들어가고, 떼면 위 base의 snap으로 브라우저가 오버슛해 돌아온다. 변형
+      // 들어가고, 떼면 위 base의 snap으로 브라우저가 오버슛해 돌아온다(:hover가
+      // 타이밍 함수를 쏘지 않으므로 실제로 그렇게 된다 — 리뷰 C3). 변형
       // 8곳의 :active 블록은 값이 이미 맞아 건드리지 않는다 — 이 한 줄이 전부 덮는다.
       '&:active:not(:disabled)': {
         transitionTimingFunction: themeContract.animation.easing.exit,
@@ -250,8 +253,8 @@ export const ghostBase = style({
       color: themeContract.palette.gray[900],
       backgroundColor: themeContract.palette.gray[100],
       transform: 'translateY(-1px)',
+      // 타이밍 함수는 얹지 않는다(리뷰 C3, 위 iconButton base와 같은 이유).
       transitionDuration: themeContract.animation.duration.fast,
-      transitionTimingFunction: themeContract.animation.easing.settle,
     },
     // 배치 전체 ":active 해제 오버슛" 형태(T3a 공통, 위 iconButton base와 동일).
     '&:active:not(:disabled)': {

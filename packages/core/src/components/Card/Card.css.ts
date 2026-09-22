@@ -24,11 +24,13 @@ export const cardRoot = style({
 // 생긴다(리뷰 F2). 모션(이동·그림자)은 onClick 유무와 무관하게 살아 있어도
 // 되는 채널이라 여기서만 공유한다.
 const hoverActiveMotion = {
+  // 타이밍 함수는 얹지 않는다(리뷰 C3). 포인터를 떼도 :hover는 계속
+  // 매치되므로 여기 롱핸드를 두면 cardRoot의 속성별 목록이 값 하나로
+  // 무너져 transform의 snap 해제 오버슛이 포인터 사용자에게 영영 안 보인다.
   ':hover': {
     transform: 'translateY(-3px)',
     boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
     transitionDuration: themeContract.animation.duration.base,
-    transitionTimingFunction: themeContract.animation.easing.settle,
   },
 
   // "끝까지 안 들어가고 버틴다" — scale(0.99)로 얕게, translateY는 hover
