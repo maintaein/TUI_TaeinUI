@@ -722,9 +722,9 @@ const INLINE_MECHANISM_EXCEPTIONS: Exception[] = [];
  * 저장소 소비자가 0인 채로 살려 두는 easing 토큰과 그 소유 마일스톤.
  *
  * `linear`·`drift` 둘 다 M2 T3c가 갚아 빠졌다: `linear`는 `LoadingSpinner`
- * 회전이, `drift`는 `Loader`·`LoadingSpinner`(점 페이드)·`Skeleton`
- * (pulse·wave)의 자율 루프가 토큰 참조로 소비한다 — 지금은 소유자를 적어
- * 둘 예외가 없어 빈 객체다.
+ * 회전이 토큰으로, `drift`는 `Loader`·`LoadingSpinner`(점 페이드)·`Skeleton`
+ * (pulse·wave)의 자율 루프가 공유 자산 `loopRhythmEasing`을 거쳐 소비한다
+ * — 지금은 소유자를 적어 둘 예외가 없어 빈 객체다.
  */
 const EASING_OWNERS: Record<string, string> = {};
 

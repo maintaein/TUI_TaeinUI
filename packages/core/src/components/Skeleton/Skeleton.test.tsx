@@ -202,13 +202,18 @@ describe('Skeleton', () => {
       expect(afterBlock).not.toContain(' linear ');
     });
 
-    it('pulse가 리터럴 ease-in-out 대신 easing.drift 토큰을 쓴다', () => {
+    it('pulse도 wave와 같은 공유 자산(loopRhythmEasing)을 거친다(리뷰 F3)', () => {
+      // 같은 파일 안에서 wave는 공유 자산, pulse는 토큰 직참조면 같은 값을 두
+      // 이름으로 부르는 것이다 — S1의 "계열이 커브를 공유한다"가 코드에서
+      // 안 보이고, 커브를 바꾸는 날 한쪽만 바뀐다.
+      // 무엇을 뒤집으면 빨개지는가: pulse를 themeContract…easing.drift로 되돌리면.
       const start = SKELETON_CSS.indexOf('pulse: {');
       const end = SKELETON_CSS.indexOf('\n  },', start);
       const pulseBlock = SKELETON_CSS.slice(start, end);
       expect(pulseBlock).toContain(
-        'animation: `${pulse} ${themeContract.animation.loop.base} ${themeContract.animation.easing.drift} 0.5s infinite`'
+        'animation: `${pulse} ${themeContract.animation.loop.base} ${loopRhythmEasing} 0.5s infinite`'
       );
+      expect(pulseBlock).not.toContain('themeContract.animation.easing');
     });
 
     it('shimmer 그라디언트가 하드코딩 rgba 대신 overlay.shimmer 토큰을 쓴다', () => {

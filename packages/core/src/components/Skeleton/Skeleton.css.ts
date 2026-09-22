@@ -86,6 +86,9 @@ export const animationStyles = styleVariants({
     },
   },
   pulse: {
-    animation: `${pulse} ${themeContract.animation.loop.base} ${themeContract.animation.easing.drift} 0.5s infinite`,
+    // wave와 같은 공유 자산을 거친다(리뷰 F3) — 같은 파일 안에서 한쪽만
+    // 토큰을 직접 부르면 같은 값이 두 이름을 갖고, 커브를 바꾸는 날 한쪽만
+    // 바뀐다.
+    animation: `${pulse} ${themeContract.animation.loop.base} ${loopRhythmEasing} 0.5s infinite`,
   },
 });

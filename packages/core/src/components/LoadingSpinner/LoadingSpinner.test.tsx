@@ -17,6 +17,25 @@ function block(source: string, name: string): string {
   return source.slice(start, end);
 }
 
+/** `anchor` 바로 위의 연속된 주석 줄만 모은다 — 파일 전체 검색은 무관한 한
+ * 줄로도 초록이 되기 때문이다(animationBoundary.test.ts와 같은 관례). */
+function commentBlockAbove(source: string, anchor: string): string {
+  const at = source.indexOf(anchor);
+  expect(at, `'${anchor}'를 찾지 못했다`).toBeGreaterThan(-1);
+  const lines = source.slice(0, at).split('\n');
+  const comments: string[] = [];
+  for (let i = lines.length - 2; i >= 0; i--) {
+    const trimmed = lines[i].trim();
+    if (!trimmed.startsWith('//')) break;
+    comments.unshift(trimmed);
+  }
+  expect(
+    comments.length,
+    `'${anchor}' 위에 근거 주석 블록이 없다`
+  ).toBeGreaterThan(0);
+  return comments.join('\n');
+}
+
 describe('LoadingSpinner', () => {
   describe('타입 변형', () => {
     it('기본 타입은 spinner여야 한다', () => {
@@ -159,18 +178,31 @@ describe('LoadingSpinner', () => {
       );
     });
 
-    it('dot 페이드가 리터럴 ease-in-out 대신 easing.drift 토큰을 쓰고 backwards를 유지한다', () => {
+    it('dot 페이드가 T5 공유 자산(loopRhythmEasing)을 거치고 backwards를 유지한다(리뷰 F3)', () => {
+      // 점 페이드는 주기·커브가 Skeleton wave와 같다 — 회전이라서 제외된다는
+      // 사유가 이 선언에는 적용되지 않는다. 계열이 커브를 공유한다는 S1이
+      // 코드에서 보여야 한다.
+      // 무엇을 뒤집으면 빨개지는가: dot을 themeContract…easing.drift로 되돌리면.
+      expect(SPINNER_CSS).toMatch(
+        /import \{ loopRhythmEasing \} from '\.\.\/\.\.\/tokens\/loopRhythm\.css'/
+      );
       const dotBlock = block(SPINNER_CSS, 'dot');
       expect(dotBlock).toContain(
-        'animation: `${fadeInOut} ${themeContract.animation.loop.base} infinite ${themeContract.animation.easing.drift} backwards`'
+        'animation: `${fadeInOut} ${themeContract.animation.loop.base} infinite ${loopRhythmEasing} backwards`'
       );
     });
 
-    it('T5 공유 자산을 소비하지 않는 이유가 주석으로 남아 있다', () => {
-      expect(SPINNER_CSS).not.toMatch(
-        /from '\.\.\/\.\.\/tokens\/loopRhythm\.css'/
-      );
-      expect(SPINNER_CSS).toMatch(/loopRhythm|T5|공유 자산/);
+    it('회전만 공유 자산 밖이고 그 이유가 회전 정의 바로 위에 적혀 있다', () => {
+      // 제외 대상은 컴포넌트가 아니라 회전 하나다(리뷰 F3 — 옛 사유는
+      // LoadingSpinner 전체를 제외한다고 적어 점 페이드까지 덮고 있었다).
+      const spinnerBlock = block(SPINNER_CSS, 'spinner');
+      expect(spinnerBlock).not.toContain('loopRhythmEasing');
+      expect(spinnerBlock).toContain('themeContract.animation.easing.linear');
+      // 근거가 "파일 어딘가"에 있으면 무관한 한 줄로도 초록이 된다(리뷰 F4).
+      // 회전 정의 바로 위 주석 블록 안에 있어야 한다.
+      expect(
+        commentBlockAbove(SPINNER_CSS, 'const spin = keyframes({')
+      ).toMatch(/loopRhythm|T5|공유 자산/);
     });
   });
 });

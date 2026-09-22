@@ -20,9 +20,10 @@ import { themeContract } from './theme.css';
  * 없으니 주기는 토큰을 그대로 쓰고, 이 파일은 새 토큰(`drift`)인 커브만
  * 공유 자산으로 내보낸다.
  *
- * `LoadingSpinner`는 이 자산의 소비자가 아니다 — 주기가 `loop.fast`이고
- * 커브가 `linear` + 비등속 키프레임인 것은 명제가 요구하는 별도 리듬이다
- * (자세한 이유는 `LoadingSpinner.css.ts` 참고).
+ * `LoadingSpinner`는 점 페이드(`dot`)로 이 자산을 소비한다 — 주기·커브가
+ * `Skeleton`의 wave와 같다. 제외되는 건 컴포넌트가 아니라 회전(`spinner`)
+ * 하나다: 주기가 `loop.fast`이고 커브가 `linear` + 비등속 키프레임인 것은
+ * 명제가 요구하는 별도 리듬이다(자세한 이유는 `LoadingSpinner.css.ts` 참고).
  *
  * `Skeleton.css.ts`가 아니라 `tokens/`에 두는 이유: `Skeleton.css.ts`가
  * 내보내면 `Loader`가 `Skeleton`을 `import`하게 되어 계열 리듬이라는
