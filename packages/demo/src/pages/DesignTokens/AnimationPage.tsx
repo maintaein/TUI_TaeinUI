@@ -43,6 +43,10 @@ const easingNotes: Record<EasingName, { source: string; description: string }> =
       source: 'none',
       description: '일정한 속도. 무한 회전처럼 끝이 없는 반복에 쓴다',
     },
+    drift: {
+      source: 'sine.inOut',
+      description: '천천히 나갔다 천천히 든다. 끝없이 오가는 자율 루프에 쓴다',
+    },
   };
 
 const durationNames = Object.keys(duration) as DurationName[];
