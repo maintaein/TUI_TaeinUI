@@ -1,6 +1,10 @@
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { Border } from './Border';
+
+const BORDER_CSS = readFileSync(resolve(__dirname, './Border.css.ts'), 'utf-8');
 
 describe('Border', () => {
   describe('렌더링 테스트', () => {
@@ -280,6 +284,64 @@ describe('Border', () => {
       render(<Border data-testid="test-border">콘텐츠</Border>);
 
       expect(screen.getByTestId('test-border')).toBeInTheDocument();
+    });
+  });
+
+  describe('빛 루프 (장식계)', () => {
+    it('sides가 all일 때만 borderGlow 클래스가 붙는다', () => {
+      const { container } = render(<Border sides="all">콘텐츠</Border>);
+      const el = container.firstChild as HTMLElement;
+
+      expect(el.className).toMatch(/borderGlow/);
+    });
+
+    it('sides가 all이 아니면 borderGlow 클래스가 붙지 않는다', () => {
+      const { container } = render(<Border sides="top">콘텐츠</Border>);
+      const el = container.firstChild as HTMLElement;
+
+      expect(el.className).not.toMatch(/borderGlow/);
+    });
+  });
+
+  describe('빛 루프 소스 검증', () => {
+    it('will-change가 :hover·:focus-within 선택자 블록 안에서만 선언된다', () => {
+      const globalStyleIndex = BORDER_CSS.indexOf('globalStyle(');
+      expect(globalStyleIndex).toBeGreaterThan(-1);
+      const block = BORDER_CSS.slice(globalStyleIndex);
+
+      expect(block).toContain(':hover::before');
+      expect(block).toContain(':focus-within::before');
+      expect(block).toContain('willChange');
+
+      // globalStyle 앞부분(border 기본 블록 등)에는 willChange가 없다 —
+      // 비활성 시 "제거"되는 게 아니라 규칙이 안 걸리면 애초에 존재하지
+      // 않는다.
+      const baseBlock = BORDER_CSS.slice(0, globalStyleIndex);
+      expect(baseBlock).not.toContain('willChange');
+    });
+
+    it('conic-gradient + rotate + mask로 빛을 구현한다 (@property 없이)', () => {
+      expect(BORDER_CSS).toContain('conic-gradient');
+      expect(BORDER_CSS).toContain('rotate(360deg)');
+      expect(BORDER_CSS).toContain('maskImage');
+      // 실제 @property 규칙(예: `@property --angle`) 사용 여부만 본다 —
+      // 이 판정 자체를 설명하는 주석 문구 속 "@property" 언급은 걸리지
+      // 않아야 한다.
+      expect(BORDER_CSS).not.toMatch(/@property\s+--/);
+    });
+
+    it('루프 주기·커브가 loop.base·easing.linear 토큰이다', () => {
+      expect(BORDER_CSS).toContain('${themeContract.animation.loop.base}');
+      expect(BORDER_CSS).toContain('${themeContract.animation.easing.linear}');
+    });
+
+    it('자율 루프라 조항 1 밖이라는 근거가 주석으로 남아 있다', () => {
+      expect(BORDER_CSS).toMatch(/조항 1/);
+    });
+
+    it('이 파일에 keyframes 정의가 하나뿐이다', () => {
+      const count = (BORDER_CSS.match(/= keyframes\(/g) ?? []).length;
+      expect(count).toBe(1);
     });
   });
 });

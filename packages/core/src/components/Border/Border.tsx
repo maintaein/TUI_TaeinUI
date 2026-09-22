@@ -2,6 +2,7 @@ import type { HTMLAttributes, ReactNode } from 'react';
 import clsx from 'clsx';
 import {
   border,
+  borderGlow,
   sidesStyles,
   variantStyles,
   widthStyles,
@@ -52,6 +53,8 @@ export const Border = ({
     <div
       className={clsx(
         border,
+        // 빛 루프는 닫힌 테두리(sides='all')에서만 "한 바퀴"가 성립한다.
+        sides === 'all' && borderGlow,
         sidesStyles[sides],
         variantStyles[variant],
         widthStyles[width],
