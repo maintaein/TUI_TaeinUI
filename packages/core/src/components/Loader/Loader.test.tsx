@@ -1,6 +1,10 @@
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { Loader } from './Loader';
+
+const LOADER_CSS = readFileSync(resolve(__dirname, './Loader.css.ts'), 'utf-8');
 
 describe('Loader', () => {
   describe('렌더링 테스트', () => {
@@ -202,6 +206,22 @@ describe('Loader', () => {
       const { container } = render(<Loader />);
       const wrapper = container.firstChild as HTMLElement;
       expect(wrapper.className).not.toContain('overlay');
+    });
+  });
+
+  describe('Loader 모션 잠금 (M2 T3c)', () => {
+    it('barFill이 T5 공유 자산(loopRhythmDuration·loopRhythmEasing)으로 스윕한다', () => {
+      expect(LOADER_CSS).toMatch(
+        /import \{[\s\S]*?loopRhythmDuration,[\s\S]*?loopRhythmEasing,?[\s\S]*?\} from '\.\.\/\.\.\/tokens\/loopRhythm\.css'/
+      );
+      const barFillBlock = LOADER_CSS.match(
+        /export const barFill = style\(\{([\s\S]*?)\n\}\);/
+      )?.[1];
+      expect(barFillBlock).toContain(
+        'animation: `${progress} ${loopRhythmDuration} ${loopRhythmEasing} infinite`'
+      );
+      // 리터럴 cubic-bezier가 남아 있으면 안 된다 — T5 공유 자산 경유로 대체됐다.
+      expect(barFillBlock).not.toContain('cubic-bezier');
     });
   });
 });
