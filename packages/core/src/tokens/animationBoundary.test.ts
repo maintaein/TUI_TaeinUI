@@ -715,6 +715,46 @@ const TRANSITION_WHITELIST = new Set([
   'text-shadow',
 ]);
 
+/**
+ * 할 일 2 — 근거 주석 술어가 여러 줄 블록을 읽게 한다.
+ *
+ * 선언 바로 윗줄 한 줄만 보면 여러 줄 근거 주석은 속성 이름이 **마지막 줄**에 있어야만
+ * 통과한다(M1에서 BoardRow·SegmentedButtons 주석 문구를 내용이 아니라 줄 배치 때문에
+ * 고쳐야 했던 이유). 연속된 주석 줄을 블록으로 모아 그 안 어디에 속성 이름이 있어도
+ * 통과시킨다.
+ */
+
+/** 상한 8줄 — 근거 설명 서너 문장은 다 들어가는 길이다. 상한이 없으면 선언과 무관한
+ * 윗 블록(예: 다른 속성 설명, 파일 머리말)의 주석까지 우연히 함께 딸려 들어와 "무관한
+ * 주석이 우연히 그 자리에 있다는 이유만으로 면제"가 되는 문을 다시 여는 셈이다. */
+const MAX_JUSTIFICATION_COMMENT_LINES = 8;
+
+/** `//`·블록 주석 시작(`/*`)·JSDoc 연속 줄(` * `) 모두 주석 줄로 센다. */
+function isCommentLine(line: string): boolean {
+  const trimmed = line.trim();
+  return (
+    trimmed.startsWith('//') ||
+    trimmed.startsWith('/*') ||
+    trimmed.startsWith('*')
+  );
+}
+
+/**
+ * `declLine`(1-based) 바로 위에서 시작해 연속된 주석 줄을 위로 모은다. 빈 줄이나 코드
+ * 줄에서 끊기고, `MAX_JUSTIFICATION_COMMENT_LINES`에서도 끊는다.
+ */
+function commentBlockAbove(source: string[], declLine: number): string[] {
+  const block: string[] = [];
+  let i = declLine - 2; // declLine 직전 줄의 0-based 인덱스
+  while (i >= 0 && block.length < MAX_JUSTIFICATION_COMMENT_LINES) {
+    const line = source[i] ?? '';
+    if (!isCommentLine(line)) break;
+    block.unshift(line.trim());
+    i -= 1;
+  }
+  return block;
+}
+
 /** 상태 선택자 키(`':hover'` · `'&:focus-visible'` · `'&[data-x]'`). */
 const STATE_SELECTOR = /'&?[:[][^']*'\s*:\s*\{/g;
 
@@ -786,22 +826,21 @@ describe('전이 목록 잠금 (T3)', () => {
     expect(found).toEqual([]);
   });
 
-  it('화이트리스트 밖 속성을 전이하면 직전 줄에 그 속성의 근거 주석이 있다', () => {
-    // 주석이 있기만 하면 통과시키면 `// 크기 변형` 같은 무관한 주석이 우연히 그
-    // 자리에 있는 것만으로 면제가 된다. 주석이 **그 속성 이름을 포함**할 것을
-    // 요구한다 — 여러 줄 근거 주석이면 속성 이름이 선언 바로 윗줄에 있어야 한다.
+  it('화이트리스트 밖 속성을 전이하면 선언 위 근거 주석 블록에 그 속성 이름이 있다', () => {
+    // 블록 안 아무 줄에 있기만 하면 통과시키면 `// 크기 변형` 같은 무관한 주석이 우연히
+    // 근처에 있는 것만으로 면제가 될 수 있다. 주석이 **그 속성 이름을 포함**할 것을
+    // 요구해 우연 통과를 막는다 — 위치는 블록 안 어디든 상관없다(할 일 2).
     const missing: string[] = [];
     for (const decl of ALL_DECLS) {
       if (!listsProperties(decl.property)) continue;
       const source = readFileSync(resolve(SRC, decl.file), 'utf-8').split(
         /\r?\n/
       );
-      const previous = (source[decl.line - 2] ?? '').trim();
+      const block = commentBlockAbove(source, decl.line);
       for (const segment of decl.segments) {
         if (segment.property === '' || segment.property === 'none') continue;
         if (TRANSITION_WHITELIST.has(segment.property)) continue;
-        if (previous.startsWith('//') && previous.includes(segment.property))
-          continue;
+        if (block.some((line) => line.includes(segment.property))) continue;
         missing.push(`${decl.file}:${segment.line} (${segment.property})`);
       }
     }
@@ -918,6 +957,58 @@ describe('스캐너 맹점 셋 (할 일 1)', () => {
       ...cssTextDeclarationsOf(file),
     ]);
     expect(real).toEqual([]);
+  });
+});
+
+describe('근거 주석 블록 (할 일 2)', () => {
+  it('여러 줄 주석 블록 — 속성 이름이 마지막 줄이 아니어도 블록에 있으면 잡힌다', () => {
+    const fixture = [
+      '  // width 전이 근거 — 이 줄에 속성 이름이 있다',
+      '  // 아래는 나머지 설명 문장이고 여기엔 속성 이름이 없다',
+      "  transition: 'width 0.2s ease',",
+    ];
+    const block = commentBlockAbove(fixture, 3);
+    expect(block).not.toEqual([]);
+    expect(block.some((line) => line.includes('width'))).toBe(true);
+  });
+
+  it('JSDoc(` * `) 줄도 주석으로 센다', () => {
+    const fixture = [
+      '  /**',
+      '   * width 전이 근거',
+      '   */',
+      "  transition: 'width 0.2s ease',",
+    ];
+    const block = commentBlockAbove(fixture, 4);
+    expect(block.some((line) => line.includes('width'))).toBe(true);
+  });
+
+  it('빈 줄에서 블록이 끊긴다 — 그 위 무관한 주석까지 딸려 들어오지 않는다', () => {
+    const fixture = [
+      '  // width — 이 무관한 주석은 안 이어져야 한다',
+      '',
+      '  // color 전이 근거',
+      "  transition: 'width 0.2s ease',",
+    ];
+    const block = commentBlockAbove(fixture, 4);
+    expect(block.some((line) => line.includes('width'))).toBe(false);
+  });
+
+  it(`상한 ${MAX_JUSTIFICATION_COMMENT_LINES}줄 — 그보다 위 주석은 블록에 안 들어온다`, () => {
+    // 상한 줄 수만큼 무관한 주석을 쌓고, 그 위에 속성 이름이 있는 주석을 하나 더 둔다.
+    const filler = Array.from(
+      { length: MAX_JUSTIFICATION_COMMENT_LINES },
+      (_, i) => `  // 무관한 설명 ${i}`
+    );
+    const fixture = [
+      '  // width 전이 근거 — 상한 밖이라 안 잡혀야 한다',
+      ...filler,
+      "  transition: 'width 0.2s ease',",
+    ];
+    const declLine = fixture.length; // transition 줄(1-based)
+    const block = commentBlockAbove(fixture, declLine);
+    expect(block).toHaveLength(MAX_JUSTIFICATION_COMMENT_LINES);
+    expect(block.some((line) => line.includes('width'))).toBe(false);
   });
 });
 
