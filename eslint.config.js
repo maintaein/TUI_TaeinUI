@@ -20,7 +20,9 @@ export default defineConfig([
   },
 
   {
-    files: ['**/*.{ts,tsx}'],
+    // `.d.mts`도 대상에 넣는다 — 안 넣으면 flat config가 이 확장자를 아예 안 보고
+    // 지나쳐 사실상 린트를 안 받는다(예: packages/core/scripts/build-easing.d.mts, M1 T8).
+    files: ['**/*.{ts,tsx}', '**/*.d.mts'],
     extends: [
       js.configs.recommended,
       tseslint.configs.recommended,
