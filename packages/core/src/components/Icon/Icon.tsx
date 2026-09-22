@@ -1,6 +1,6 @@
 import type { SVGAttributes } from 'react';
 import clsx from 'clsx';
-import { iconBase } from './Icon.css';
+import { iconBase, iconPath } from './Icon.css';
 
 export type IconName =
   | 'close'
@@ -96,7 +96,14 @@ export const Icon = ({
     >
       {title && <title>{title}</title>}
       <path
+        // 모양이 바뀔 때마다 다시 그려지도록 key로 강제 리마운트한다 —
+        // React가 같은 위치의 path를 재사용하면 draw @keyframes가 안 걸린다.
+        key={name}
         d={pathData}
+        // pathLength 정규화: 실제 경로 길이 대신 항상 0~1 스케일로
+        // stroke-dasharray/dashoffset을 쓸 수 있게 한다(브리프 핵심).
+        pathLength="1"
+        className={iconPath}
         stroke="currentColor"
         strokeWidth="2"
         strokeLinecap="round"

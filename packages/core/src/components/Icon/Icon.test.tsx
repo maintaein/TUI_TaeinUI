@@ -1,6 +1,10 @@
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { Icon } from './Icon';
+
+const ICON_CSS = readFileSync(resolve(__dirname, './Icon.css.ts'), 'utf-8');
 
 describe('Icon', () => {
   describe('기본 렌더링', () => {
@@ -226,6 +230,75 @@ describe('Icon', () => {
       const { container } = render(<Icon name="chevron-up" />);
       const path = container.querySelector('path');
       expect(path).toBeInTheDocument();
+    });
+  });
+
+  describe('등장 획 (장식계) — DOM', () => {
+    it('path에 pathLength="1"이 정규화되어 있다', () => {
+      const { container } = render(<Icon name="close" />);
+      const path = container.querySelector('path');
+      expect(path).toHaveAttribute('pathLength', '1');
+    });
+
+    it('path에 iconPath 클래스가 적용된다', () => {
+      const { container } = render(<Icon name="close" />);
+      const path = container.querySelector('path');
+      expect(path?.getAttribute('class')).toMatch(/iconPath/);
+    });
+
+    it('name이 바뀌면 key로 인해 path 노드가 다시 마운트된다', () => {
+      const { container, rerender } = render(<Icon name="close" />);
+      const before = container.querySelector('path');
+
+      rerender(<Icon name="plus" />);
+      const after = container.querySelector('path');
+
+      expect(after).not.toBe(before);
+    });
+
+    it('name이 그대로면 path 노드가 유지된다', () => {
+      const { container, rerender } = render(<Icon name="close" />);
+      const before = container.querySelector('path');
+
+      rerender(<Icon name="close" color="#FF0000" />);
+      const after = container.querySelector('path');
+
+      expect(after).toBe(before);
+    });
+  });
+
+  describe('등장 획 소스 검증', () => {
+    it('stroke-dashoffset/-dasharray로 그린다 (공통 제약 §4의 유일한 SVG 예외)', () => {
+      expect(ICON_CSS).toContain('strokeDasharray');
+      expect(ICON_CSS).toContain('strokeDashoffset');
+    });
+
+    it('축소 모드: base가 strokeDashoffset 0이고 키프레임 0%만 1이다', () => {
+      const keyframesBlock = ICON_CSS.slice(
+        ICON_CSS.indexOf('const draw = keyframes({'),
+        ICON_CSS.indexOf('});', ICON_CSS.indexOf('const draw = keyframes({'))
+      );
+      expect(keyframesBlock).toContain("'0%': { strokeDashoffset: 1 }");
+      expect(keyframesBlock).not.toContain('100%');
+
+      const iconPathBlock = ICON_CSS.slice(
+        ICON_CSS.indexOf('export const iconPath')
+      );
+      expect(iconPathBlock).toContain('strokeDashoffset: 0');
+    });
+
+    it('이 파일에 keyframes 정의가 하나뿐이다', () => {
+      const count = (ICON_CSS.match(/= keyframes\(/g) ?? []).length;
+      expect(count).toBe(1);
+    });
+
+    it('duration.slow·easing.settle 토큰을 쓴다', () => {
+      expect(ICON_CSS).toContain('${themeContract.animation.duration.slow}');
+      expect(ICON_CSS).toContain('${themeContract.animation.easing.settle}');
+    });
+
+    it('마운트 1회라 조항 1 밖이라는 근거가 주석으로 남아 있다', () => {
+      expect(ICON_CSS).toMatch(/조항 1/);
     });
   });
 });
