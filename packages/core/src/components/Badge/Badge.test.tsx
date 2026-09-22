@@ -293,6 +293,21 @@ describe('Badge', () => {
       expect(screen.getByText('6')).toBeInTheDocument();
     });
 
+    it('참조만 다른 동일 JSX 자식으로 부모가 리렌더돼도 퇴장 노드를 만들지 않는다 (변경 감지가 key와 같은 identity를 써야 한다)', () => {
+      const Parent = ({ tick }: { tick: number }) => (
+        <div data-tick={tick}>
+          {/* JSX 리터럴은 렌더될 때마다 새 객체다 — 내용이 같아도 참조는
+              다르다. 값 비교(prevValue)가 참조 비교면 "바뀌었다"고 오판해
+              헌 값 유령이 뜬다. */}
+          <Badge>{<span>ready</span>}</Badge>
+        </div>
+      );
+      const { rerender } = render(<Parent tick={0} />);
+      rerender(<Parent tick={1} />);
+      const root = screen.getByRole('status');
+      expect(root.querySelector('[aria-hidden="true"]')).toBeNull();
+    });
+
     it('처음 마운트될 때는 퇴장 노드가 없다 (비교할 헌 값이 없다)', () => {
       const { container } = render(<Badge>5</Badge>);
       const root = container.querySelector('[role="status"]') as HTMLElement;

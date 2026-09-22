@@ -88,7 +88,18 @@ export const Badge = ({
   const [prevValue, setPrevValue] = useState(displayContent);
   const [exitingValue, setExitingValue] = useState<typeof displayContent>(null);
 
-  if (!dot && displayContent !== prevValue) {
+  // key도 String(displayContent)로 매기므로(아래 valueCurrent), 변경
+  // 감지도 반드시 같은 identity(String 형)로 비교해야 한다. 참조
+  // 비교(!==)를 쓰면 JSX 자식(children이 텍스트/숫자가 아닌 경우)이 부모
+  // 리렌더마다 새 객체로 오는 것과 key가 어긋난다 — 비교는 "바뀌었다"고
+  // 보는데 key는 "같다"고 봐서(React 엘리먼트는 String()하면 다 같은
+  // "[object Object]"가 된다) 헌 값 유령이 뜨고 들어올 자리가 없어 제자리
+  // 걸음만 반복한다. 이건 의도적으로 모든 JSX 엘리먼트를 하나의 identity로
+  // 뭉갠다 — Badge의 계약은 숫자·짧은 텍스트(getDisplayContent 참고)라,
+  // 부모가 무관하게 리렌더될 때마다 조용히 애니메이션이 도는 게 JSX를
+  // 값으로 쓰는 드문 케이스를 못 알아채는 것보다 나쁘다. 이 비교를 다시
+  // 참조 비교로 "고치지" 말 것.
+  if (!dot && String(displayContent) !== String(prevValue)) {
     if (prevValue != null) {
       setExitingValue(prevValue);
     }
