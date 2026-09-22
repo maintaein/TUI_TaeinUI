@@ -1010,10 +1010,16 @@ describe('스캐너 맹점 셋 (할 일 1)', () => {
       '5:transition=opacity 0.2s ease',
       '6:transitionDelay=0.1s',
     ]);
-    // 무관한 객체의 `transition` 키는 style={{}} 밖이라 잡히면 안 된다(과탐 방지).
+    // 무관한 객체의 `transition` 키는 style={{}} 밖이라 잡히면 안 된다(과탐 방지, F5).
+    // `style={{ opacity: 1 }}` 블록과 무관한 `{ transition: ... }` 객체를 같이 둬야
+    // balancedFrom의 범위 한정이 실제로 일한다는 증거가 된다 — 무관한 객체가
+    // 스타일 블록 뒤에 있어서, 범위가 안 끊기면 그 transition까지 딸려 들어온다.
     const outside = jsxStyleDeclarationsFrom(
       FIXTURE_FILE,
-      "const config = { transition: 'not-a-style' };"
+      [
+        '<div style={{ opacity: 1 }} />;',
+        "const config = { transition: 'not-a-style' };",
+      ].join('\n')
     ).decls;
     expect(outside).toEqual([]);
   });
