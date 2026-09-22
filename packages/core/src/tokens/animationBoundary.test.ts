@@ -793,11 +793,17 @@ const INLINE_MECHANISM_EXCEPTIONS: Exception[] = [];
  * 둘(`LoadingSpinner.css.ts:32` 회전, `Skeleton.css.ts:80` wave)이 아직 리터럴
  * `linear` 키워드를 쓰고 있어서 토큰 쪽 소비자가 0으로 남았다 — 그 둘도 M2
  * 소유로 리터럴 이징 허용 목록에 올라가 있으니 소유자는 같다.
+ *
+ * `drift`는 M2 T2가 추가했다(청구 1 — inOut 계열 부재). 첫 소비자는
+ * `Loader`·`LoadingSpinner`(점 페이드)·`Skeleton`(pulse·wave)의 자율 루프고,
+ * 전부 T3c가 구현한다 — `build-easing.mjs`의 `EASE_SOURCES` 위 주석에 대조
+ * 기록이 있다.
  */
 const EASING_OWNERS: Record<string, string> = {
   snap: 'M2 T3',
   spring: 'M2 T3',
   linear: 'M2',
+  drift: 'M2 T3c',
 };
 
 // ---------------------------------------------------------------------------
