@@ -70,7 +70,10 @@ export const header = style({
   textAlign: 'left',
   cursor: 'pointer',
   touchAction: 'manipulation',
-  transition: `background-color ${themeContract.animation.duration.base} ${themeContract.animation.easing.settle}`,
+  // transform을 목록에 더한다(리뷰 F3) — :active가 배경색 단독 채널이라
+  // article 4 위반이었다. 다른 컴포넌트(Button·Card·Chip·IconButton)와 같은
+  // 배치 관례로 snap을 얹어 release 오버슛도 같이 받는다.
+  transition: `background-color ${themeContract.animation.duration.base} ${themeContract.animation.easing.settle}, transform ${themeContract.animation.duration.base} ${themeContract.animation.easing.snap}`,
 
   ':hover': {
     backgroundColor: themeContract.color.background.paper,
@@ -78,11 +81,12 @@ export const header = style({
     transitionTimingFunction: themeContract.animation.easing.settle,
   },
 
-  // 지금은 배경색만 바뀌는 채널이라 article 4 관점에서 hover와 같은 한계를
-  // 이어받는다 — header에 새 transform 채널을 넣는 건 이 작업 범위 밖이라
-  // duration/curve만 표에 맞춘다(브리프가 명시한 값만 구현).
+  // 배경색과 함께 스케일도 같이 바뀐다(article 4 — 색 단독 채널 금지).
+  // 1px 이동은 행 전체 폭에서 부담이 커 Button/Card 수준 이동 대신 미세한
+  // scale(0.995)만 쓴다.
   ':active': {
     backgroundColor: themeContract.color.surface.active,
+    transform: 'scale(0.995)',
     transitionDuration: themeContract.animation.duration.fast,
     transitionTimingFunction: themeContract.animation.easing.exit,
   },
@@ -126,12 +130,15 @@ export const contentWrapper = style({
   // 모르고도 자연 높이까지 여는 방법은 grid-template-rows의 0fr→1fr뿐이다.
   // 기존 커브 자리는 상태 전이라 조항 3이 지배한다 — 접힘(rest)은 exit,
   // 펼침(wrapperExpanded 오버라이드)은 settle. drift(자율 루프 전용)로 가지
-  // 않는다.
-  transition: `grid-template-rows ${themeContract.animation.duration.slow} ${themeContract.animation.easing.exit}`,
+  // 않는다. 조항 3은 길이에도 걸린다(리뷰 F8) — 물러날 때는 진입(slow)의
+  // 60~70%로 짧게, 위 ::before 막대의 calc(base * 0.65)와 같은 비율이다.
+  transition: `grid-template-rows calc(${themeContract.animation.duration.slow} * 0.65) ${themeContract.animation.easing.exit}`,
 });
 
 export const wrapperExpanded = style({
   gridTemplateRows: '1fr',
+  // 펼침은 진입이라 물러날 때의 단축 없이 slow 전체 길이를 되찾는다.
+  transitionDuration: themeContract.animation.duration.slow,
   transitionTimingFunction: themeContract.animation.easing.settle,
 });
 

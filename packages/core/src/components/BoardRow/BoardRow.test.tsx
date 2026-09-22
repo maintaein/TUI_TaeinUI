@@ -4,6 +4,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { BoardRow } from './BoardRow';
+import { rowExpanded } from './BoardRow.css';
 
 describe('BoardRow', () => {
   describe('렌더링 테스트', () => {
@@ -509,6 +510,8 @@ describe('BoardRow 모션 잠금', () => {
       'header :active 블록을 찾지 못했다(새로 생겨야 한다)'
     ).toBeDefined();
     expect(activeBlock).toContain('themeContract.color.surface.active');
+    // 배경색 단독 채널이면 article 4 위반이다(리뷰 F3) — scale이 companion.
+    expect(activeBlock).toContain("transform: 'scale(0.995)'");
     expect(activeBlock).toContain('themeContract.animation.duration.fast');
     expect(activeBlock).toContain('themeContract.animation.easing.exit');
   });
@@ -537,14 +540,20 @@ describe('BoardRow 모션 잠금', () => {
     )?.[1];
     expect(wrapperBlock, 'contentWrapper 블록을 찾지 못했다').toBeDefined();
     expect(wrapperBlock).not.toContain('ease-in-out');
+    // 조항 3은 길이에도 걸린다(리뷰 F8) — 물러날 때(접힘)는 진입(slow)의
+    // 60~70%로 짧다. ::before 막대와 같은 calc(* 0.65) 비율이다.
     expect(wrapperBlock).toContain(
-      'grid-template-rows ${themeContract.animation.duration.slow} ${themeContract.animation.easing.exit}'
+      'grid-template-rows calc(${themeContract.animation.duration.slow} * 0.65) ${themeContract.animation.easing.exit}'
     );
 
     const expandedBlock = cssSource.match(
       /export const wrapperExpanded = style\(\{([\s\S]*?)\n\}\);/
     )?.[1];
     expect(expandedBlock, 'wrapperExpanded 블록을 찾지 못했다').toBeDefined();
+    // 펼침(진입)은 단축 없이 slow 전체 길이를 되찾는다(리뷰 F8).
+    expect(expandedBlock).toContain(
+      'transitionDuration: themeContract.animation.duration.slow'
+    );
     expect(expandedBlock).toContain(
       'transitionTimingFunction: themeContract.animation.easing.settle'
     );
@@ -558,6 +567,17 @@ describe('BoardRow 모션 잠금', () => {
     );
     const button = screen.getByRole('button');
     const root = button.parentElement as HTMLElement;
-    expect(root.className.length).toBeGreaterThan(0);
+    expect(root.className).toContain(rowExpanded);
+  });
+
+  it('isExpanded가 아니면 루트에 rowExpanded 클래스가 붙지 않는다', () => {
+    render(
+      <BoardRow title="제목">
+        <div>내용</div>
+      </BoardRow>
+    );
+    const button = screen.getByRole('button');
+    const root = button.parentElement as HTMLElement;
+    expect(root.className).not.toContain(rowExpanded);
   });
 });
