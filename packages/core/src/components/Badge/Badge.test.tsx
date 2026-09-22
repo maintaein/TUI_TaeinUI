@@ -1,8 +1,9 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, it, expect } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import { Badge } from './Badge';
+import { valueExiting } from './Badge.css';
 
 const BADGE_CSS = readFileSync(resolve(__dirname, './Badge.css.ts'), 'utf-8');
 
@@ -61,47 +62,51 @@ describe('Badge', () => {
     });
   });
 
+  // variant·size 클래스는 role="status" 루트가 갖는다. 값(텍스트)은 이제
+  // 그 안의 별도 값 노드에 있으므로(M2 T3c, Badge 값 교체 두 스팬 구조),
+  // 여기서는 getByText 대신 getByRole('status')로 루트를 찾는다 — 각
+  // 테스트가 확인하려는 것(루트에 해당 클래스가 붙는지)은 그대로다.
   describe('variant prop 테스트', () => {
     it('primary variant를 렌더링한다', () => {
       render(<Badge variant="primary">5</Badge>);
-      const badge = screen.getByText('5');
-      expect(badge).toBeInTheDocument();
+      const badge = screen.getByRole('status');
+      expect(screen.getByText('5')).toBeInTheDocument();
       expect(badge.className).toContain('primary');
     });
 
     it('secondary variant를 렌더링한다', () => {
       render(<Badge variant="secondary">5</Badge>);
-      const badge = screen.getByText('5');
+      const badge = screen.getByRole('status');
       expect(badge.className).toContain('secondary');
     });
 
     it('success variant를 렌더링한다', () => {
       render(<Badge variant="success">5</Badge>);
-      const badge = screen.getByText('5');
+      const badge = screen.getByRole('status');
       expect(badge.className).toContain('success');
     });
 
     it('error variant를 렌더링한다', () => {
       render(<Badge variant="error">5</Badge>);
-      const badge = screen.getByText('5');
+      const badge = screen.getByRole('status');
       expect(badge.className).toContain('error');
     });
 
     it('info variant를 렌더링한다', () => {
       render(<Badge variant="info">5</Badge>);
-      const badge = screen.getByText('5');
+      const badge = screen.getByRole('status');
       expect(badge.className).toContain('info');
     });
 
     it('warning variant를 렌더링한다', () => {
       render(<Badge variant="warning">5</Badge>);
-      const badge = screen.getByText('5');
+      const badge = screen.getByRole('status');
       expect(badge.className).toContain('warning');
     });
 
     it('기본 variant는 primary이다', () => {
       render(<Badge>5</Badge>);
-      const badge = screen.getByText('5');
+      const badge = screen.getByRole('status');
       expect(badge.className).toContain('primary');
     });
   });
@@ -109,25 +114,25 @@ describe('Badge', () => {
   describe('size prop 테스트', () => {
     it('sm 크기를 렌더링한다', () => {
       render(<Badge size="sm">5</Badge>);
-      const badge = screen.getByText('5');
+      const badge = screen.getByRole('status');
       expect(badge.className).toContain('sm');
     });
 
     it('md 크기를 렌더링한다', () => {
       render(<Badge size="md">5</Badge>);
-      const badge = screen.getByText('5');
+      const badge = screen.getByRole('status');
       expect(badge.className).toContain('md');
     });
 
     it('lg 크기를 렌더링한다', () => {
       render(<Badge size="lg">5</Badge>);
-      const badge = screen.getByText('5');
+      const badge = screen.getByRole('status');
       expect(badge.className).toContain('lg');
     });
 
     it('기본 크기는 md이다', () => {
       render(<Badge>5</Badge>);
-      const badge = screen.getByText('5');
+      const badge = screen.getByRole('status');
       expect(badge.className).toContain('md');
     });
   });
@@ -196,7 +201,8 @@ describe('Badge', () => {
   describe('className prop 테스트', () => {
     it('커스텀 className을 적용한다', () => {
       render(<Badge className="custom-class">5</Badge>);
-      const badge = screen.getByText('5');
+      // custom className은 role="status" 루트에 붙는다(값 노드가 아니라).
+      const badge = screen.getByRole('status');
       expect(badge.className).toContain('custom-class');
     });
   });
@@ -234,21 +240,74 @@ describe('Badge', () => {
   });
 
   describe('Badge 모션 잠금 (M2 T3c)', () => {
-    it('값이 바뀌면 노드가 재마운트된다 (key로 교체 애니메이션을 재생한다)', () => {
+    it('값이 바뀌어도 role="status" 루트는 재마운트되지 않는다 (라이브 리전 안정성)', () => {
       const { container, rerender } = render(<Badge>5</Badge>);
       const before = container.querySelector('[role="status"]');
       rerender(<Badge>6</Badge>);
       const after = container.querySelector('[role="status"]');
       expect(screen.getByText('6')).toBeInTheDocument();
-      expect(after).not.toBe(before);
+      expect(after).toBe(before);
     });
 
-    it('같은 값으로 리렌더링되면 노드를 유지한다', () => {
+    it('값이 바뀌면 현재 값 노드는 재마운트된다 (key로 valueEnter를 재생한다)', () => {
       const { container, rerender } = render(<Badge>5</Badge>);
-      const before = container.querySelector('[role="status"]');
+      const root = container.querySelector('[role="status"]') as HTMLElement;
+      const before = root.querySelector('span:not([aria-hidden])');
+      rerender(<Badge>6</Badge>);
+      const after = root.querySelector('span:not([aria-hidden])');
+      expect(after).not.toBe(before);
+      expect(after).toHaveTextContent('6');
+    });
+
+    it('같은 값으로 리렌더링되면 루트도 값 노드도 유지한다', () => {
+      const { container, rerender } = render(<Badge>5</Badge>);
+      const root = container.querySelector('[role="status"]');
+      const value = container.querySelector('span:not([aria-hidden])');
       rerender(<Badge variant="error">5</Badge>);
-      const after = container.querySelector('[role="status"]');
-      expect(after).toBe(before);
+      expect(container.querySelector('[role="status"]')).toBe(root);
+      expect(container.querySelector('span:not([aria-hidden])')).toBe(value);
+    });
+
+    it('값이 바뀌면 헌 값이 aria-hidden 퇴장 노드로 남아 valueExiting을 재생한다', () => {
+      const { container, rerender } = render(<Badge>5</Badge>);
+      rerender(<Badge>6</Badge>);
+      const root = container.querySelector('[role="status"]') as HTMLElement;
+      const exiting = root.querySelector('[aria-hidden="true"]');
+      expect(exiting).toHaveTextContent('5');
+      expect(exiting?.className).toContain(valueExiting);
+      // 현재 값(6)도 동시에 존재한다 — 두 스팬이 같이 떠 있는 교체 구간이다.
+      expect(screen.getByText('6')).toBeInTheDocument();
+    });
+
+    it('퇴장 애니메이션이 끝나면 헌 값 노드가 제거된다 (스냅백 없이)', () => {
+      const { container, rerender } = render(<Badge>5</Badge>);
+      rerender(<Badge>6</Badge>);
+      const root = container.querySelector('[role="status"]') as HTMLElement;
+      const exiting = root.querySelector('[aria-hidden="true"]') as HTMLElement;
+      expect(exiting).toBeInTheDocument();
+      fireEvent.animationEnd(exiting);
+      expect(
+        root.querySelector('[aria-hidden="true"]')
+      ).not.toBeInTheDocument();
+      // 현재 값은 그대로 남는다.
+      expect(screen.getByText('6')).toBeInTheDocument();
+    });
+
+    it('처음 마운트될 때는 퇴장 노드가 없다 (비교할 헌 값이 없다)', () => {
+      const { container } = render(<Badge>5</Badge>);
+      const root = container.querySelector('[role="status"]') as HTMLElement;
+      expect(root.querySelector('[aria-hidden="true"]')).toBeNull();
+    });
+
+    it('dot 모드는 값 노드·퇴장 노드를 만들지 않는다', () => {
+      const { container, rerender } = render(<Badge dot>5</Badge>);
+      rerender(
+        <Badge dot variant="error">
+          6
+        </Badge>
+      );
+      const root = container.querySelector('[role="status"]') as HTMLElement;
+      expect(root.querySelectorAll('span').length).toBe(0);
     });
 
     it('valueEnter 키프레임이 0% 시작 프레임만 갖고, base(=최종 상태)를 덮지 않는다', () => {
@@ -262,10 +321,40 @@ describe('Badge', () => {
       expect(block).toContain('opacity: 0');
     });
 
-    it('badge가 duration.base·easing.settle 토큰으로 valueEnter를 재생한다', () => {
+    it('valueExit 키프레임이 0% 시작 프레임만 갖는다 (base가 이미 퇴장 완료 상태)', () => {
+      const start = BADGE_CSS.indexOf('const valueExit = keyframes({');
+      expect(start).toBeGreaterThan(-1);
+      const end = BADGE_CSS.indexOf('\n});', start);
+      const block = BADGE_CSS.slice(start, end);
+      expect(block).toContain("'0%'");
+      expect(block).not.toContain("'100%'");
+      expect(block).toContain('translateY(0)');
+      expect(block).toContain('opacity: 1');
+    });
+
+    it('valueCurrent가 duration.base·easing.settle 토큰으로 valueEnter를 재생한다', () => {
       expect(BADGE_CSS).toContain(
         'animation: `${valueEnter} ${themeContract.animation.duration.base} ${themeContract.animation.easing.settle}`'
       );
+    });
+
+    it('valueExiting이 duration.base*0.65(calc)·easing.exit 토큰으로 퇴장하고, 기본값이 이미 사라진 상태다', () => {
+      const start = BADGE_CSS.indexOf('export const valueExiting = style({');
+      expect(start).toBeGreaterThan(-1);
+      const end = BADGE_CSS.indexOf('\n});', start);
+      const block = BADGE_CSS.slice(start, end);
+      // 리터럴이 아니라 calc() 관례를 쓴다 — :root 축소 모드 오버라이드를
+      // 따라가려면 반드시 토큰 참조여야 한다.
+      expect(block).toContain(
+        'calc(${themeContract.animation.duration.base} * 0.65)'
+      );
+      expect(block).toContain('${themeContract.animation.easing.exit}');
+      expect(block).toContain("transform: 'translateY(-100%)'");
+      expect(block).toContain('opacity: 0');
+    });
+
+    it('퇴장 노드가 스냅백하지 않는 이유가 주석으로 남아 있다', () => {
+      expect(BADGE_CSS).toMatch(/스냅백/);
     });
 
     it('조항 1 위반이 아니라는 판정이 주석으로 남아 있다', () => {
