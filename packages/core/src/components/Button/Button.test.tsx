@@ -309,6 +309,25 @@ describe('Button 모션 잠금', () => {
     'utf-8'
   );
 
+  /**
+   * `:not(:disabled)` 가드가 붙은 상태 블록 하나를 꺼낸다. 파일 첫 매치를 그냥
+   * 쓰면 앞에 블록이 하나 끼어드는 날 조용히 엉뚱한 곳을 검사하므로, 그런
+   * 블록이 몇 개인지까지 같이 고정한다(리뷰 F4).
+   */
+  const guardedBlock = (state: 'hover' | 'active'): string => {
+    const blocks = [
+      ...cssSource.matchAll(
+        new RegExp(
+          `['&]*:${state}:not\\(:disabled\\)'?: \\{([\\s\\S]*?)\\n\\s*\\},`,
+          'g'
+        )
+      ),
+    ];
+    // recipe base 1 + variant 오버라이드 8 + custom 2 = 11. 첫 매치가 base다.
+    expect(blocks, `:${state} 블록 개수가 달라졌다`).toHaveLength(11);
+    return blocks[0][1];
+  };
+
   it('base transition의 transform 구간이 snap을 쓴다(해제 오버슛)', () => {
     const transitionLine = cssSource.match(/transition: `([^`]*)`,/)?.[1];
     expect(transitionLine, 'base transition 선언을 찾지 못했다').toBeDefined();
@@ -318,10 +337,7 @@ describe('Button 모션 잠금', () => {
   });
 
   it(':hover:not(:disabled)이 translateY(-1px)를 새로 만든다(조항 4: 색 단독 금지)', () => {
-    const hover = cssSource.match(
-      /['&]*:hover:not\(:disabled\)'?: \{([\s\S]*?)\n\s*\},/
-    )?.[1];
-    expect(hover, ':hover:not(:disabled) 블록을 찾지 못했다').toBeDefined();
+    const hover = guardedBlock('hover');
     expect(hover).toContain("transform: 'translateY(-1px)'");
     expect(hover).toContain('themeContract.animation.duration.fast');
   });
@@ -335,19 +351,13 @@ describe('Button 모션 잠금', () => {
     // 무엇을 뒤집으면 빨개지는가: 이 블록에
     // transitionTimingFunction: settle을 되돌려 놓으면 여기가 빨개진다.
     // transitionDuration은 대상이 아니다 — 진입만 짧게 하는 것은 의도다.
-    const hover = cssSource.match(
-      /['&]*:hover:not\(:disabled\)'?: \{([\s\S]*?)\n\s*\},/
-    )?.[1];
-    expect(hover, ':hover:not(:disabled) 블록을 찾지 못했다').toBeDefined();
-    expect(hover).not.toContain('transitionTimingFunction');
+    expect(guardedBlock('hover')).not.toContain('transitionTimingFunction');
   });
 
   it(':active:not(:disabled)이 exit 한 줄로 변형 10곳의 커브를 덮는다', () => {
-    const active = cssSource.match(
-      /['&]*:active:not\(:disabled\)'?: \{([\s\S]*?)\n\s*\},/
-    )?.[1];
-    expect(active, ':active:not(:disabled) 블록을 찾지 못했다').toBeDefined();
-    expect(active).toContain('themeContract.animation.easing.exit');
+    expect(guardedBlock('active')).toContain(
+      'themeContract.animation.easing.exit'
+    );
   });
 
   it('customOutlineVariant의 하드코딩 rgba가 surface 토큰으로 바뀌었다(T6b)', () => {

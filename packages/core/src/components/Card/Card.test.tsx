@@ -717,6 +717,25 @@ describe('Card 모션 잠금', () => {
   // 읽는다. Card.css.ts 소스 텍스트에서 직접 확인한다(이미지 기준 박스 관례).
   const cssSource = readFileSync(resolve(__dirname, './Card.css.ts'), 'utf-8');
 
+  /**
+   * hoverActiveMotion의 상태 블록 하나를 꺼낸다. 파일 첫 매치를 그냥 쓰면
+   * 앞에 같은 모양의 블록이 하나 끼어드는 날 조용히 엉뚱한 곳을 검사하므로,
+   * 그런 블록이 몇 개인지까지 같이 고정한다(리뷰 F4).
+   */
+  const hoverActiveMotionBlock = (state: ':hover' | ':active'): string => {
+    const blocks = [
+      ...cssSource.matchAll(
+        new RegExp(`'${state}': \\{([\\s\\S]*?)\\n {2}\\},`, 'g')
+      ),
+    ];
+    // :hover는 2곳 — hoverActiveMotion과 disabled의 되돌리기. :active는
+    // hoverActiveMotion 1곳뿐이다. 둘 다 첫 매치가 hoverActiveMotion이다.
+    expect(blocks, `${state} 블록 개수가 달라졌다`).toHaveLength(
+      state === ':hover' ? 2 : 1
+    );
+    return blocks[0][1];
+  };
+
   it('cardRoot transition의 transform 구간이 snap을, box-shadow/opacity가 settle을 쓴다', () => {
     const rootBlock = cssSource.match(
       /export const cardRoot = style\(\{([\s\S]*?)\n\}\);/
@@ -763,8 +782,7 @@ describe('Card 모션 잠금', () => {
   });
 
   it('clickable :hover가 translateY(-3px)/base로 합쳐진다', () => {
-    const hover = cssSource.match(/':hover': \{([\s\S]*?)\n {2}\},/)?.[1];
-    expect(hover, ':hover 블록을 찾지 못했다').toBeDefined();
+    const hover = hoverActiveMotionBlock(':hover');
     expect(hover).toContain("transform: 'translateY(-3px)'");
     expect(hover).toContain('themeContract.animation.duration.base');
   });
@@ -777,14 +795,13 @@ describe('Card 모션 잠금', () => {
     // 재생되지 않았다(크로미엄 실측).
     // 무엇을 뒤집으면 빨개지는가: hoverActiveMotion의 ':hover'에
     // transitionTimingFunction: settle을 되돌려 놓으면 여기가 빨개진다.
-    const hover = cssSource.match(/':hover': \{([\s\S]*?)\n {2}\},/)?.[1];
-    expect(hover, ':hover 블록을 찾지 못했다').toBeDefined();
-    expect(hover).not.toContain('transitionTimingFunction');
+    expect(hoverActiveMotionBlock(':hover')).not.toContain(
+      'transitionTimingFunction'
+    );
   });
 
   it('clickable :active가 scale(0.99) translateY(-1px)/fast/exit로 버틴다', () => {
-    const active = cssSource.match(/':active': \{([\s\S]*?)\n {2}\},/)?.[1];
-    expect(active, ':active 블록을 찾지 못했다').toBeDefined();
+    const active = hoverActiveMotionBlock(':active');
     expect(active).toContain("transform: 'scale(0.99) translateY(-1px)'");
     expect(active).toContain('themeContract.animation.duration.fast');
     expect(active).toContain('themeContract.animation.easing.exit');

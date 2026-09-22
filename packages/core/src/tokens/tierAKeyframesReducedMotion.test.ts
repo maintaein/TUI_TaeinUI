@@ -357,6 +357,26 @@ describe('검사 1 — 무한 루프 6개가 축소 모드(iteration 1)에서 �
     expect(offenders).toEqual([]);
   });
 
+  it('14개 파일 어디에도 animationFillMode 롱핸드가 없다 — 바로 위 검사가 숏핸드 꼬리만 보기 때문이다', () => {
+    // 위 it은 `animation:` 숏핸드에서 키프레임명 뒤 꼬리(`rest`)만 읽는다.
+    // 같은 fill-mode를 `animationFillMode: 'forwards'` 롱핸드로 따로 쓰면
+    // 그 스캔에 안 걸리고, LoadingSpinner.css.ts의 dotDelayStyles처럼 소비처
+    // 블록 밖에 놓이면 enclosingBlock도 못 닿는다. 그래서 롱핸드 자체를
+    // 14개 파일 전역에서 금지한다 — fill-mode는 숏핸드 꼬리에만 적는다.
+    // 무엇을 뒤집으면 빨개지는가: 아무 .css.ts에나 `animationFillMode:
+    // 'forwards'` 한 줄을 넣으면 여기가 빨개진다. 파일 수가 14에서 줄어도
+    // 마찬가지다 — 목록이 비면 아래 루프가 0번 돌고 조용히 초록이 된다.
+    expect(Object.keys(FILE_TEXT)).toHaveLength(14);
+    const offenders: string[] = [];
+    for (const [file, text] of Object.entries(FILE_TEXT)) {
+      for (const line of text.split('\n')) {
+        if (/\banimationFillMode\b/.test(line))
+          offenders.push(`${file} → "${line.trim()}"`);
+      }
+    }
+    expect(offenders).toEqual([]);
+  });
+
   it('LOOP 소비처의 base가 숨김 상태가 아니다 — 1회 재생 뒤 복귀할 자리가 보이는 상태여야 한다', () => {
     // fill-mode가 없으면 애니메이션이 끝난 뒤 base로 돌아간다. base 자체가
     // 숨김이면 축소 모드에서 요소가 0.01ms 뒤에 사라진다.
@@ -439,6 +459,11 @@ describe('검사 2 — 마운트 1회 키프레임은 base가 최종 표시 상�
     // 무엇을 뒤집으면 빨개지는가: Badge.css.ts valueExiting의
     // opacity: 0을 지우면(더는 숨김 base가 아니게 되면) 허용목록이 낡아
     // 여기가 빨개진다.
+    //
+    // 개수를 먼저 고정한다(리뷰 F4) — 목록이 비면 아래 루프가 0번 돌고 이
+    // it은 조용히 초록이 된다. 지금은 Badge의 valueExit 하나뿐이고, 늘거나
+    // 주는 건 정리가 아니라 결정이라 이 줄부터 고쳐야 한다.
+    expect(HIDDEN_BASE_ALLOWLIST.size).toBe(1);
     for (const key of HIDDEN_BASE_ALLOWLIST) {
       const k = ONCE.find((x) => `${x.file}:${x.name}` === key);
       expect(k, `${key}를 ONCE에서 찾지 못했다`).toBeDefined();

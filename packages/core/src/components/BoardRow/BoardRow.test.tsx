@@ -453,6 +453,25 @@ describe('BoardRow 모션 잠금', () => {
     'utf-8'
   );
 
+  /**
+   * header의 `:not(:disabled)` 가드가 붙은 상태 블록을 꺼낸다. 파일 첫 매치를
+   * 그냥 쓰면 앞에 같은 모양의 블록이 하나 끼어드는 날 조용히 엉뚱한 곳을
+   * 검사하므로, 그런 블록이 몇 개인지까지 같이 고정한다(리뷰 F4).
+   */
+  const guardedBlock = (state: 'hover' | 'active'): string => {
+    const blocks = [
+      ...cssSource.matchAll(
+        new RegExp(
+          `'&:${state}:not\\(:disabled\\)': \\{([\\s\\S]*?)\\n {4}\\},`,
+          'g'
+        )
+      ),
+    ];
+    // 이 파일에서 가드가 붙은 상태 블록은 header의 것 하나뿐이다.
+    expect(blocks, `:${state} 블록 개수가 달라졌다`).toHaveLength(1);
+    return blocks[0][1];
+  };
+
   it('boardRow가 position: relative와 좌측 막대 ::before(scaleY(0)/exit/calc(base*0.65))를 갖는다', () => {
     const rootBlock = cssSource.match(
       /export const boardRow = style\(\{([\s\S]*?)\n\}\);/
@@ -495,19 +514,10 @@ describe('BoardRow 모션 잠금', () => {
     );
     expect(headerBlock).toContain('themeContract.animation.easing.settle');
 
-    const hoverBlock = (headerBlock as string).match(
-      /'&:hover:not\(:disabled\)': \{([\s\S]*?)\n {4}\},/
-    )?.[1];
-    expect(hoverBlock, 'header :hover 블록을 찾지 못했다').toBeDefined();
+    const hoverBlock = guardedBlock('hover');
     expect(hoverBlock).toContain('themeContract.animation.duration.fast');
 
-    const activeBlock = (headerBlock as string).match(
-      /'&:active:not\(:disabled\)': \{([\s\S]*?)\n {4}\},/
-    )?.[1];
-    expect(
-      activeBlock,
-      'header :active 블록을 찾지 못했다(새로 생겨야 한다)'
-    ).toBeDefined();
+    const activeBlock = guardedBlock('active');
     expect(activeBlock).toContain('themeContract.color.surface.active');
     // 배경색 단독 채널이면 article 4 위반이다(리뷰 F3) — scale이 companion.
     expect(activeBlock).toContain("transform: 'scale(0.995)'");
@@ -539,15 +549,7 @@ describe('BoardRow 모션 잠금', () => {
     // 않았다(크로미엄 실측).
     // 무엇을 뒤집으면 빨개지는가: header의 :hover에
     // transitionTimingFunction: settle을 되돌려 놓으면 여기가 빨개진다.
-    const headerBlock = cssSource.match(
-      /export const header = style\(\{([\s\S]*?)\n\}\);/
-    )?.[1];
-    expect(headerBlock, 'header 블록을 찾지 못했다').toBeDefined();
-    const hoverBlock = (headerBlock as string).match(
-      /'&:hover:not\(:disabled\)': \{([\s\S]*?)\n {4}\},/
-    )?.[1];
-    expect(hoverBlock, 'header :hover 블록을 찾지 못했다').toBeDefined();
-    expect(hoverBlock).not.toContain('transitionTimingFunction');
+    expect(guardedBlock('hover')).not.toContain('transitionTimingFunction');
   });
 
   it('iconContainer(쉐브론) 회전이 리터럴 ease 대신 settle을 쓴다', () => {

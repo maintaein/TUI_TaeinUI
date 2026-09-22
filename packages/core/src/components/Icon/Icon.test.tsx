@@ -6,6 +6,25 @@ import { Icon } from './Icon';
 
 const ICON_CSS = readFileSync(resolve(__dirname, './Icon.css.ts'), 'utf-8');
 
+/** `anchor` 바로 위의 연속된 주석 줄만 모은다 — 파일 전체 검색은 무관한 한
+ * 줄로도 초록이 되기 때문이다(리뷰 F4, animationBoundary.test.ts와 같은 관례). */
+function commentBlockAbove(source: string, anchor: string): string {
+  const at = source.indexOf(anchor);
+  expect(at, `'${anchor}'를 찾지 못했다`).toBeGreaterThan(-1);
+  const lines = source.slice(0, at).split('\n');
+  const comments: string[] = [];
+  for (let i = lines.length - 2; i >= 0; i--) {
+    const trimmed = lines[i].trim();
+    if (!trimmed.startsWith('//')) break;
+    comments.unshift(trimmed);
+  }
+  expect(
+    comments.length,
+    `'${anchor}' 위에 근거 주석 블록이 없다`
+  ).toBeGreaterThan(0);
+  return comments.join('\n');
+}
+
 describe('Icon', () => {
   describe('기본 렌더링', () => {
     it('아이콘이 올바르게 렌더링되어야 한다', () => {
@@ -297,8 +316,13 @@ describe('Icon', () => {
       expect(ICON_CSS).toContain('${themeContract.animation.easing.settle}');
     });
 
-    it('마운트 1회라 조항 1 밖이라는 근거가 주석으로 남아 있다', () => {
-      expect(ICON_CSS).toMatch(/조항 1/);
+    it('마운트 1회라 조항 1 밖이라는 근거가 그 keyframes 정의 바로 위에 있다', () => {
+      // 파일 전체 toMatch는 "조항 1" 네 글자가 파일 어디에 있기만 하면
+      // 초록이다 — 근거가 딴 데로 옮겨가거나 무관한 문장에 섞여도 모른다.
+      // 무엇을 뒤집으면 빨개지는가: 근거 주석을 const draw = keyframes({ 정의 위에서 떼면.
+      expect(commentBlockAbove(ICON_CSS, 'const draw = keyframes({')).toMatch(
+        /조항 1/
+      );
     });
   });
 });
