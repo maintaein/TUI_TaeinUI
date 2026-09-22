@@ -1,4 +1,4 @@
-import { style } from '@vanilla-extract/css';
+import { style, globalStyle } from '@vanilla-extract/css';
 import { recipe } from '@vanilla-extract/recipes';
 import { themeContract } from '../../tokens/theme.css';
 import { focusRing } from '../../tokens/focusRing.css';
@@ -7,6 +7,7 @@ export const chip = recipe({
   base: {
     display: 'inline-flex',
     alignItems: 'center',
+    position: 'relative',
     gap: themeContract.spacing[1],
     padding: `${themeContract.spacing[1]} ${themeContract.spacing[3]}`,
     border: 'none',
@@ -15,9 +16,23 @@ export const chip = recipe({
     fontSize: themeContract.font.size.sm,
     lineHeight: 1,
     userSelect: 'none',
-    transition: `transform ${themeContract.animation.duration.base} ease, box-shadow ${themeContract.animation.duration.base} ease, opacity ${themeContract.animation.duration.base} ease`,
+    transition: `transform ${themeContract.animation.duration.base} ${themeContract.animation.easing.snap}, box-shadow ${themeContract.animation.duration.base} ${themeContract.animation.easing.settle}, opacity ${themeContract.animation.duration.base} ${themeContract.animation.easing.settle}`,
     cursor: 'default',
     whiteSpace: 'nowrap',
+
+    // 선택 표식(B2) — 항상 존재하되 scale(0)으로 숨어 있다가 .selected에서만
+    // 커진다(아래 globalStyle). 색은 --chip-marker-color로 Chip.tsx가 넣는다.
+    '::before': {
+      content: '""',
+      position: 'absolute',
+      inset: 0,
+      borderRadius: 'inherit',
+      border: '2px solid var(--chip-marker-color, transparent)',
+      transform: 'scale(0)',
+      pointerEvents: 'none',
+      // 물러날 때(article 3): 진입(base)의 60~70%로 짧고, 가속 커브로 뺀다.
+      transition: `transform calc(${themeContract.animation.duration.base} * 0.65) ${themeContract.animation.easing.exit}`,
+    },
   },
 
   variants: {
@@ -155,11 +170,15 @@ export const clickable = style({
   ':hover': {
     transform: 'translateY(-1px)',
     boxShadow: themeContract.shadow.base,
+    transitionDuration: themeContract.animation.duration.fast,
+    transitionTimingFunction: themeContract.animation.easing.settle,
   },
 
   ':active': {
     boxShadow: 'none',
     transform: 'scale(0.97)',
+    transitionDuration: themeContract.animation.duration.fast,
+    transitionTimingFunction: themeContract.animation.easing.exit,
   },
 
   ':focus-visible': {
@@ -167,7 +186,24 @@ export const clickable = style({
   },
 });
 
-export const selected = style({});
+// 선택된 본체 — "표식이 꽂히듯 박히고 칩이 그 충격에 한 번 흔들린다"를 키프레임
+// 없이 표현한다. spring(감쇠 진동) 커브 자체가 scale(1)→1.03 전이 중간에
+// 1.03을 넘겼다 살짝 되돌아오는 흔들림을 만든다(article 1: 상태 전이는 커브로).
+export const selected = style({
+  transform: 'scale(1.03)',
+  transitionDuration: themeContract.animation.duration.base,
+  transitionTimingFunction: themeContract.animation.easing.spring,
+});
+
+// 선택되면 위 chip base의 ::before 표식이 scale(1)로 꽂히듯 박힌다 — base
+// 소유의 짧은 퇴장 전이와 달리 진입은 base 길이 그대로에 spring으로 튄다.
+// selected가 빈 placeholder라 List.css.ts의 globalStyle(두 독립 클래스 결합)
+// 관례로 chip 표식과 결합한다.
+globalStyle(`${selected}::before`, {
+  transform: 'scale(1)',
+  transitionDuration: themeContract.animation.duration.base,
+  transitionTimingFunction: themeContract.animation.easing.spring,
+});
 
 export const disabled = style({
   opacity: 0.5,
@@ -199,11 +235,13 @@ export const deleteButton = style({
   touchAction: 'manipulation',
   color: 'inherit',
   opacity: 0.7,
-  transition: `opacity ${themeContract.animation.duration.base} ease`,
+  transition: `opacity ${themeContract.animation.duration.base} ${themeContract.animation.easing.settle}, transform ${themeContract.animation.duration.base} ${themeContract.animation.easing.settle}`,
   flexShrink: 0,
 
+  // 미는 방향 저항(article 4: 색 단독 금지 — opacity에 이동을 더한다).
   ':hover': {
     opacity: 1,
+    transform: 'translateX(1px)',
   },
 
   ':focus-visible': {

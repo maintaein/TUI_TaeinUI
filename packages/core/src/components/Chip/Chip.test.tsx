@@ -382,3 +382,84 @@ describe('Chip 소스 잠금', () => {
     expect(withMinHeight).toEqual(['sm', 'md']);
   });
 });
+
+describe('Chip 모션 잠금', () => {
+  const cssSource = readFileSync(resolve(__dirname, './Chip.css.ts'), 'utf-8');
+
+  it('base transition의 transform 구간이 snap을 쓴다(해제 오버슛)', () => {
+    const transitionLine = cssSource.match(/transition: `([^`]*)`,/)?.[1];
+    expect(transitionLine, 'base transition 선언을 찾지 못했다').toBeDefined();
+    expect(transitionLine).toContain(
+      'transform ${themeContract.animation.duration.base} ${themeContract.animation.easing.snap}'
+    );
+  });
+
+  it('clickable :hover에 fast/settle 커브 오버라이드가 붙는다', () => {
+    const hover = cssSource.match(/':hover': \{([\s\S]*?)\n {2}\},/)?.[1];
+    expect(hover, ':hover 블록을 찾지 못했다').toBeDefined();
+    expect(hover).toContain('themeContract.animation.duration.fast');
+    expect(hover).toContain('themeContract.animation.easing.settle');
+  });
+
+  it('clickable :active에 fast/exit 커브 오버라이드가 붙는다(값은 그대로)', () => {
+    const active = cssSource.match(/':active': \{([\s\S]*?)\n {2}\},/)?.[1];
+    expect(active, ':active 블록을 찾지 못했다').toBeDefined();
+    expect(active).toContain("transform: 'scale(0.97)'");
+    expect(active).toContain('themeContract.animation.duration.fast');
+    expect(active).toContain('themeContract.animation.easing.exit');
+  });
+
+  it('base에 표식(::before)이 scale(0)로 숨어 있다가 calc(base*0.65)/exit로 물러난다', () => {
+    const before = cssSource.match(/'::before': \{([\s\S]*?)\n {4}\},/)?.[1];
+    expect(before, '::before 블록을 찾지 못했다').toBeDefined();
+    expect(before).toContain("transform: 'scale(0)'");
+    expect(before).toContain('* 0.65');
+    expect(before).toContain('themeContract.animation.easing.exit');
+  });
+
+  it('selected::before가 spring으로 표식을 scale(1)로 박아 넣는다', () => {
+    expect(cssSource).toMatch(/\$\{selected\}::before/);
+    const marker = cssSource.match(
+      /\$\{selected\}::before[`'"],?\s*\{([\s\S]*?)\n\}\)/
+    )?.[1];
+    expect(
+      marker,
+      'selected::before globalStyle 블록을 찾지 못했다'
+    ).toBeDefined();
+    expect(marker).toContain("transform: 'scale(1)'");
+    expect(marker).toContain('themeContract.animation.easing.spring');
+  });
+
+  it('selected 클래스 자체가 spring으로 본체를 scale(1.03)까지 흔든다', () => {
+    const selectedBlock = cssSource.match(
+      /export const selected = style\(\{([\s\S]*?)\n\}\);/
+    )?.[1];
+    expect(selectedBlock, 'selected 블록을 찾지 못했다').toBeDefined();
+    expect(selectedBlock).toContain("transform: 'scale(1.03)'");
+    expect(selectedBlock).toContain('themeContract.animation.easing.spring');
+  });
+
+  it('삭제 버튼 hover가 translateX(1px)로 미는 방향 저항을 준다(settle)', () => {
+    const deleteHover = cssSource.match(
+      /export const deleteButton[\s\S]*?':hover': \{([\s\S]*?)\n {2}\},/
+    )?.[1];
+    expect(deleteHover, 'deleteButton :hover 블록을 찾지 못했다').toBeDefined();
+    expect(deleteHover).toContain("transform: 'translateX(1px)'");
+    const deleteTransition = cssSource.match(
+      /export const deleteButton[\s\S]*?transition: `([^`]*)`,/
+    )?.[1];
+    expect(deleteTransition).toContain('transform');
+    expect(deleteTransition).toContain('themeContract.animation.easing.settle');
+    expect(deleteTransition).not.toContain(' ease,');
+    expect(deleteTransition).not.toMatch(/ ease$/);
+  });
+
+  it('선택 시 --chip-marker-color 커스텀 프로퍼티가 인라인으로 붙고, boxShadow 인라인은 사라졌다', () => {
+    const { container } = render(
+      <Chip label="테스트" selected color="primary" />
+    );
+    const root = container.firstChild as HTMLElement;
+    expect(root.style.getPropertyValue('--chip-marker-color')).toBeTruthy();
+    expect(root.style.boxShadow).toBe('');
+  });
+});

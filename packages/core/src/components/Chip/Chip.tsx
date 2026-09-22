@@ -55,10 +55,9 @@ export const Chip = ({
   onClick,
   className,
 }: ChipProps) => {
-  // 선택된 상태일 때 색상별 boxShadow 계산
-  const selectedBoxShadow = useMemo(() => {
-    if (!selected) return undefined;
-
+  // 선택 표식(::before)의 색 — 모양·전이는 Chip.css.ts가 갖고, 여기서는
+  // 색만 커스텀 프로퍼티로 넘긴다(색상 axis가 recipe 밖에 있어 JS 계산이 필요).
+  const markerColor = useMemo(() => {
     const colorMap = {
       default: themeContract.color.border.default,
       primary: themeContract.color.primary.main,
@@ -67,8 +66,12 @@ export const Chip = ({
       warning: themeContract.color.warning.main,
     };
 
-    return `inset 0 0 0 2px ${colorMap[color]}`;
-  }, [selected, color]);
+    return colorMap[color];
+  }, [color]);
+
+  const markerStyle = {
+    '--chip-marker-color': markerColor,
+  } as React.CSSProperties;
 
   // 삭제 버튼 클릭 핸들러
   const handleDelete = (
@@ -137,7 +140,7 @@ export const Chip = ({
         disabled={disabled}
         aria-disabled={disabled}
         aria-label={label}
-        style={{ boxShadow: selectedBoxShadow }}
+        style={markerStyle}
       >
         {chipContent}
       </button>
@@ -145,7 +148,7 @@ export const Chip = ({
   }
 
   return (
-    <div className={chipClasses} style={{ boxShadow: selectedBoxShadow }}>
+    <div className={chipClasses} style={markerStyle}>
       {chipContent}
     </div>
   );
