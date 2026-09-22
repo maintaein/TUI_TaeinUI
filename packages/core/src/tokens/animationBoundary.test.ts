@@ -426,22 +426,45 @@ function literalEasingsOf(decl: MotionDecl): { line: number; text: string }[] {
   }));
 }
 
-/** `at`(= `파일:줄`) → 값 목록. 허용 목록과 같은 모양으로 맞춘다. */
-function groupByLocation(
-  entries: { file: string; line: number; text: string }[]
+/**
+ * 할 일 3 — 허용목록 키를 `file:line`에서 `file` + 값 다중집합으로 바꾼다.
+ *
+ * 줄번호를 키에 넣으면 파일 위쪽에 import 한 줄만 늘어도 그 아래 모든 항목의 줄번호가
+ * 밀려 허용목록을 다시 키잉해야 한다(M1에서 세 번 겪었다). 키를 파일로만 좁히고, 값
+ * 비교를 순서 무관 다중집합(정렬한 배열)으로 하면 줄 위치가 안 걸린다.
+ *
+ * **대가**: 같은 파일 안에서 이미 허용된 값과 *정확히 같은* 리터럴이 하나 더 생기면
+ * 개수가 늘어 다중집합 비교에 걸리지만, **한 줄을 지우고 다른 줄에 같은 값을 그대로
+ * 옮겨 적은 변경**은 다중집합이 그대로라 조용히 통과한다. 그 좁은 틈을 재키잉
+ * 반복(M1에서 3회, T3까지 포함하면 4회 확정)과 맞바꾼 것이고, 세 총량 단언(23·38·10)이
+ * 총량이 몰래 느는 것까지는 막는다.
+ */
+function sortValues(map: Record<string, string[]>): Record<string, string[]> {
+  for (const file of Object.keys(map)) map[file].sort();
+  return map;
+}
+
+/** `at`(= 파일 경로) → 값 다중집합(정렬 완료). */
+function groupByFile(
+  entries: { file: string; text: string }[]
 ): Record<string, string[]> {
   const grouped: Record<string, string[]> = {};
   for (const entry of entries) {
-    const at = `${entry.file}:${entry.line}`;
-    (grouped[at] ??= []).push(entry.text);
+    (grouped[entry.file] ??= []).push(entry.text);
   }
-  return grouped;
+  return sortValues(grouped);
 }
 
+/** 같은 파일을 가리키는 여러 `Exception` 항목의 `values`를 파일 단위로 합쳐 다중집합을
+ * 만든다. `owner`·`reason`은 항목마다 그대로 둔다 — 합치는 건 비교용 값 목록뿐이다. */
 function expectedMap(
   exceptions: { at: string; values: string[] }[]
 ): Record<string, string[]> {
-  return Object.fromEntries(exceptions.map((e) => [e.at, e.values]));
+  const grouped: Record<string, string[]> = {};
+  for (const e of exceptions) {
+    (grouped[e.at] ??= []).push(...e.values);
+  }
+  return sortValues(grouped);
 }
 
 // ---------------------------------------------------------------------------
@@ -449,7 +472,7 @@ function expectedMap(
 // ---------------------------------------------------------------------------
 
 interface Exception {
-  /** `src` 기준 상대 경로 + 줄번호 */
+  /** `src` 기준 상대 경로. 줄번호는 없다 — 넣으면 위쪽 줄 하나만 늘어도 항목 전체가 다시 키잉된다(할 일 3). */
   at: string;
   values: string[];
   /** 이 예외를 없앨 책임이 있는 마일스톤. `-`는 영구 예외 */
@@ -467,37 +490,37 @@ interface Exception {
  */
 const LITERAL_EASING_EXCEPTIONS: Exception[] = [
   {
-    at: 'components/Avatar/Avatar.css.ts:106',
+    at: 'components/Avatar/Avatar.css.ts',
     values: ['ease', 'ease'],
     owner: 'M2',
     reason: 'AvatarGroup 오버플로 버튼의 filter·transform 전이 곡선',
   },
   {
-    at: 'components/BoardRow/BoardRow.css.ts:41',
+    at: 'components/BoardRow/BoardRow.css.ts',
     values: ['ease'],
     owner: 'M2',
     reason: '행 hover 배경색 전이 곡선',
   },
   {
-    at: 'components/BoardRow/BoardRow.css.ts:70',
+    at: 'components/BoardRow/BoardRow.css.ts',
     values: ['ease'],
     owner: 'M2',
     reason: '펼침 셰브론 회전 전이 곡선',
   },
   {
-    at: 'components/BoardRow/BoardRow.css.ts:84',
+    at: 'components/BoardRow/BoardRow.css.ts',
     values: ['ease-in-out'],
     owner: 'M2',
     reason: 'grid-template-rows 0fr→1fr 펼침 곡선',
   },
   {
-    at: 'components/Card/Card.css.ts:12',
+    at: 'components/Card/Card.css.ts',
     values: ['ease', 'ease', 'ease'],
     owner: 'M2',
     reason: '카드 기본 전이 3속성 곡선',
   },
   {
-    at: 'components/Card/Card.css.ts:35',
+    at: 'components/Card/Card.css.ts',
     values: [
       'cubic-bezier(0.4, 0, 0.2, 1)',
       'cubic-bezier(0.4, 0, 0.2, 1)',
@@ -508,116 +531,116 @@ const LITERAL_EASING_EXCEPTIONS: Exception[] = [
       'outlined 변형의 Material 표준 곡선. settle로 바꾸면 감각이 달라진다',
   },
   {
-    at: 'components/Chip/Chip.css.ts:18',
+    at: 'components/Chip/Chip.css.ts',
     values: ['ease', 'ease', 'ease'],
     owner: 'M2',
     reason: '칩 기본 전이 3속성 곡선',
   },
   {
-    at: 'components/Chip/Chip.css.ts:202',
+    at: 'components/Chip/Chip.css.ts',
     values: ['ease'],
     owner: 'M2',
     reason: '삭제 버튼 opacity 전이 곡선',
   },
   {
-    at: 'components/Loader/Loader.css.ts:73',
+    at: 'components/Loader/Loader.css.ts',
     values: ['cubic-bezier(0.4, 0, 0.2, 1)'],
     owner: 'M2',
     reason: 'indeterminate 바의 Material 표준 진행 곡선',
   },
   {
-    at: 'components/LoadingSpinner/LoadingSpinner.css.ts:32',
+    at: 'components/LoadingSpinner/LoadingSpinner.css.ts',
     values: ['linear'],
     owner: 'M2',
     reason: '회전은 등속이어야 한다. easing.linear 토큰으로 옮길 후보',
   },
   {
-    at: 'components/LoadingSpinner/LoadingSpinner.css.ts:47',
+    at: 'components/LoadingSpinner/LoadingSpinner.css.ts',
     values: ['ease-in-out'],
     owner: 'M2',
     reason: '점 페이드 왕복 곡선',
   },
   {
-    at: 'components/NumericSpinner/NumericSpinner.css.ts:13',
+    at: 'components/NumericSpinner/NumericSpinner.css.ts',
     values: ['ease-in-out', 'ease-in-out', 'ease-in-out'],
     owner: 'M2',
     reason: '컨테이너 focus·error halo 전이 곡선',
   },
   {
-    at: 'components/NumericSpinner/NumericSpinner.css.ts:64',
+    at: 'components/NumericSpinner/NumericSpinner.css.ts',
     values: ['cubic-bezier(0.25, 0.8, 0.5, 1)', 'ease', 'ease'],
     owner: 'M2',
     reason: '버튼 눌림 transform 곡선 + 색 전이 곡선',
   },
   {
-    at: 'components/NumericSpinner/NumericSpinner.css.ts:68',
+    at: 'components/NumericSpinner/NumericSpinner.css.ts',
     values: ['cubic-bezier(0.25, 0.8, 0.25, 1)'],
     owner: 'M2',
     reason: 'clickPulse 키프레임 곡선',
   },
   {
-    at: 'components/NumericSpinner/NumericSpinner.css.ts:122',
+    at: 'components/NumericSpinner/NumericSpinner.css.ts',
     values: ['ease-in-out', 'ease-in-out', 'ease-in-out'],
     owner: 'M2',
     reason: '스텝 버튼 3속성 전이 곡선',
   },
   {
-    at: 'components/SegmentedButtons/SegmentedButtons.css.ts:31',
+    at: 'components/SegmentedButtons/SegmentedButtons.css.ts',
     values: ['cubic-bezier(0.25, 1, 0.5, 1)'],
     owner: 'M2',
     reason: '인디케이터 transform 곡선',
   },
   {
-    at: 'components/SegmentedButtons/SegmentedButtons.css.ts:32',
+    at: 'components/SegmentedButtons/SegmentedButtons.css.ts',
     values: ['cubic-bezier(0.25, 1, 0.5, 1)'],
     owner: 'M2',
     reason: '인디케이터 width 곡선',
   },
   {
-    at: 'components/SegmentedButtons/SegmentedButtons.css.ts:33',
+    at: 'components/SegmentedButtons/SegmentedButtons.css.ts',
     values: ['ease'],
     owner: 'M2',
     reason: '인디케이터 box-shadow 곡선',
   },
   {
-    at: 'components/SegmentedButtons/SegmentedButtons.css.ts:77',
+    at: 'components/SegmentedButtons/SegmentedButtons.css.ts',
     values: ['ease', 'ease'],
     owner: 'M2',
     reason: '세그먼트 라벨 색·transform 전이 곡선',
   },
   {
-    at: 'components/SegmentedButtons/SegmentedButtons.css.ts:93',
+    at: 'components/SegmentedButtons/SegmentedButtons.css.ts',
     values: ['ease', 'ease'],
     owner: 'M2',
     reason: '선택된 세그먼트 transform·text-shadow 전이 곡선',
   },
   {
-    at: 'components/Skeleton/Skeleton.css.ts:80',
+    at: 'components/Skeleton/Skeleton.css.ts',
     values: ['linear'],
     owner: 'M2',
     reason: 'wave 훑기는 등속이어야 한다. easing.linear 토큰으로 옮길 후보',
   },
   {
-    at: 'components/Skeleton/Skeleton.css.ts:85',
+    at: 'components/Skeleton/Skeleton.css.ts',
     values: ['ease-in-out'],
     owner: 'M2',
     reason: 'pulse 왕복 곡선',
   },
   {
-    at: 'components/Slider/Slider.css.ts:90',
+    at: 'components/Slider/Slider.css.ts',
     values: ['ease-out'],
     owner: 'M2',
     reason: 'fill 추종 곡선. Task 4가 :87-89에 근거 주석을 남겼다',
   },
   {
-    at: 'components/BottomSheet/BottomSheet.tsx:158',
+    at: 'components/BottomSheet/BottomSheet.tsx',
     values: ['ease-out'],
     owner: 'M2',
     reason:
       '드래그 놓음 복귀 모션. 곡선·길이를 정하는 건 컴포넌트별 모션 설계라 M2 소관이다 (R39)',
   },
   {
-    at: 'components/BottomSheet/BottomSheet.tsx:185',
+    at: 'components/BottomSheet/BottomSheet.tsx',
     values: ['ease-out'],
     owner: 'M2',
     reason:
@@ -628,20 +651,20 @@ const LITERAL_EASING_EXCEPTIONS: Exception[] = [
 /** 리터럴 **duration**. 지연은 아래 목록이 따로 맡는다. */
 const LITERAL_DURATION_EXCEPTIONS: Exception[] = [
   {
-    at: 'components/Slider/Slider.css.ts:90',
+    at: 'components/Slider/Slider.css.ts',
     values: ['0.05s'],
     owner: '-',
     reason:
       '드래그 중 fill이 thumb를 프레임 단위로 따라붙게 하는 의도된 값이다. 가장 짧은 duration 토큰(fast 150ms)도 세 프레임 늦는다',
   },
   {
-    at: 'components/BottomSheet/BottomSheet.tsx:158',
+    at: 'components/BottomSheet/BottomSheet.tsx',
     values: ['0.2s'],
     owner: 'M2',
     reason: '드래그 놓음 복귀 길이. duration.base(200ms)와 같은 값이다 (R39)',
   },
   {
-    at: 'components/BottomSheet/BottomSheet.tsx:185',
+    at: 'components/BottomSheet/BottomSheet.tsx',
     values: ['0.2s'],
     owner: 'M2',
     reason: '드래그 닫힘 길이. duration.base(200ms)와 같은 값이다 (R39)',
@@ -654,31 +677,31 @@ const LITERAL_DURATION_EXCEPTIONS: Exception[] = [
  */
 const LITERAL_DELAY_EXCEPTIONS: Exception[] = [
   {
-    at: 'components/LoadingSpinner/LoadingSpinner.css.ts:77',
+    at: 'components/LoadingSpinner/LoadingSpinner.css.ts',
     values: ['0s'],
     owner: '-',
     reason: '점 스태거 1번. duration.base(200ms) × 0',
   },
   {
-    at: 'components/LoadingSpinner/LoadingSpinner.css.ts:78',
+    at: 'components/LoadingSpinner/LoadingSpinner.css.ts',
     values: ['0.2s'],
     owner: '-',
     reason: '점 스태거 2번. duration.base(200ms) × 1',
   },
   {
-    at: 'components/LoadingSpinner/LoadingSpinner.css.ts:79',
+    at: 'components/LoadingSpinner/LoadingSpinner.css.ts',
     values: ['0.4s'],
     owner: '-',
     reason: '점 스태거 3번. duration.base(200ms) × 2',
   },
   {
-    at: 'components/Skeleton/Skeleton.css.ts:80',
+    at: 'components/Skeleton/Skeleton.css.ts',
     values: ['0.5s'],
     owner: '-',
     reason: 'wave 시작 지연. duration.slower(500ms)와 같은 값',
   },
   {
-    at: 'components/Skeleton/Skeleton.css.ts:85',
+    at: 'components/Skeleton/Skeleton.css.ts',
     values: ['0.5s'],
     owner: '-',
     reason: 'pulse 시작 지연. duration.slower(500ms)와 같은 값',
@@ -1012,6 +1035,48 @@ describe('근거 주석 블록 (할 일 2)', () => {
   });
 });
 
+describe('허용목록 키 = 파일 + 다중집합 (할 일 3)', () => {
+  it('같은 파일 안에서 값이 다른 줄로 옮겨가도(줄번호 변화) 통과한다', () => {
+    // 예전 `file:line` 키였다면 줄이 바뀌는 순간 키가 안 맞아 실패했다.
+    const exceptions = [
+      {
+        at: 'components/Fixture/Fixture.css.ts',
+        values: ['ease'],
+        owner: 'M2',
+        reason: 'a',
+      },
+      {
+        at: 'components/Fixture/Fixture.css.ts',
+        values: ['ease-in-out'],
+        owner: 'M2',
+        reason: 'b',
+      },
+    ];
+    // 실측: 두 값이 예전과 다른 줄에서 나왔다고 가정 — 파일과 다중집합만 같다.
+    const found = [
+      { file: 'components/Fixture/Fixture.css.ts', text: 'ease-in-out' },
+      { file: 'components/Fixture/Fixture.css.ts', text: 'ease' },
+    ];
+    expect(groupByFile(found)).toEqual(expectedMap(exceptions));
+  });
+
+  it('대가: 같은 값이 하나 더 생기면(개수 증가) 다중집합 비교가 잡아낸다', () => {
+    const exceptions = [
+      {
+        at: 'components/Fixture/Fixture.css.ts',
+        values: ['ease'],
+        owner: 'M2',
+        reason: 'a',
+      },
+    ];
+    const found = [
+      { file: 'components/Fixture/Fixture.css.ts', text: 'ease' },
+      { file: 'components/Fixture/Fixture.css.ts', text: 'ease' }, // 새로 하나 더 생겼다
+    ];
+    expect(groupByFile(found)).not.toEqual(expectedMap(exceptions));
+  });
+});
+
 // ---------------------------------------------------------------------------
 // 2. 하드코딩 시간 (T5 · R35)
 // ---------------------------------------------------------------------------
@@ -1063,15 +1128,13 @@ describe('하드코딩 시간 잠금 (T5 · R35)', () => {
   });
 
   it('리터럴 duration이 허용 목록과 정확히 일치한다', () => {
-    expect(groupByLocation(durations)).toEqual(
+    expect(groupByFile(durations)).toEqual(
       expectedMap(LITERAL_DURATION_EXCEPTIONS)
     );
   });
 
   it('리터럴 지연 5건을 정확히 집어낸다 (LoadingSpinner 3 + Skeleton 2)', () => {
-    expect(groupByLocation(delays)).toEqual(
-      expectedMap(LITERAL_DELAY_EXCEPTIONS)
-    );
+    expect(groupByFile(delays)).toEqual(expectedMap(LITERAL_DELAY_EXCEPTIONS));
     expect(delays).toHaveLength(5);
   });
 
@@ -1100,7 +1163,7 @@ describe('리터럴 이징 잠금 (T8 · R32)', () => {
   );
 
   it('리터럴 이징이 허용 목록과 정확히 일치한다', () => {
-    expect(groupByLocation([...cssEasings, ...inlineEasings])).toEqual(
+    expect(groupByFile([...cssEasings, ...inlineEasings])).toEqual(
       expectedMap(LITERAL_EASING_EXCEPTIONS)
     );
   });
