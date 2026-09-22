@@ -496,13 +496,13 @@ describe('BoardRow 모션 잠금', () => {
     expect(headerBlock).toContain('themeContract.animation.easing.settle');
 
     const hoverBlock = (headerBlock as string).match(
-      /':hover': \{([\s\S]*?)\n {2}\},/
+      /'&:hover:not\(:disabled\)': \{([\s\S]*?)\n {4}\},/
     )?.[1];
     expect(hoverBlock, 'header :hover 블록을 찾지 못했다').toBeDefined();
     expect(hoverBlock).toContain('themeContract.animation.duration.fast');
 
     const activeBlock = (headerBlock as string).match(
-      /':active': \{([\s\S]*?)\n {2}\},/
+      /'&:active:not\(:disabled\)': \{([\s\S]*?)\n {4}\},/
     )?.[1];
     expect(
       activeBlock,
@@ -513,6 +513,22 @@ describe('BoardRow 모션 잠금', () => {
     expect(activeBlock).toContain("transform: 'scale(0.995)'");
     expect(activeBlock).toContain('themeContract.animation.duration.fast');
     expect(activeBlock).toContain('themeContract.animation.easing.exit');
+  });
+
+  it('header의 :hover·:active가 :not(:disabled)로 막혀 있다(리뷰 F1)', () => {
+    // 배치 공통 제약: disabled에는 전이를 주지 않는다. :disabled 블록이 뒤에
+    // 있어 backgroundColor는 되돌아가지만, 가드가 없으면 :hover의 전이 자체는
+    // 비활성 헤더에도 그대로 걸린다. Button·IconButton은 이미 같은 가드를 쓰고
+    // Card는 pointerEvents: none으로 막는데 header만 둘 다 없었다.
+    // 무엇을 뒤집으면 빨개지는가: 셀렉터를 ':hover'/':active'로 되돌리면.
+    const headerBlock = cssSource.match(
+      /export const header = style\(\{([\s\S]*?)\n\}\);/
+    )?.[1];
+    expect(headerBlock, 'header 블록을 찾지 못했다').toBeDefined();
+    expect(headerBlock).toContain("'&:hover:not(:disabled)'");
+    expect(headerBlock).toContain("'&:active:not(:disabled)'");
+    expect(headerBlock).not.toMatch(/^ {2}':hover': \{/m);
+    expect(headerBlock).not.toMatch(/^ {2}':active': \{/m);
   });
 
   it('header :hover 블록에 transitionTimingFunction이 없다(리뷰 C3)', () => {
@@ -528,7 +544,7 @@ describe('BoardRow 모션 잠금', () => {
     )?.[1];
     expect(headerBlock, 'header 블록을 찾지 못했다').toBeDefined();
     const hoverBlock = (headerBlock as string).match(
-      /':hover': \{([\s\S]*?)\n {2}\},/
+      /'&:hover:not\(:disabled\)': \{([\s\S]*?)\n {4}\},/
     )?.[1];
     expect(hoverBlock, 'header :hover 블록을 찾지 못했다').toBeDefined();
     expect(hoverBlock).not.toContain('transitionTimingFunction');

@@ -75,22 +75,28 @@ export const header = style({
   // 배치 관례로 snap을 얹어 release 오버슛도 같이 받는다.
   transition: `background-color ${themeContract.animation.duration.base} ${themeContract.animation.easing.settle}, transform ${themeContract.animation.duration.base} ${themeContract.animation.easing.snap}`,
 
-  // 타이밍 함수는 얹지 않는다(리뷰 C3). 포인터를 떼도 :hover는 계속
-  // 매치되므로 여기 롱핸드를 두면 위 목록이 값 하나로 무너져 transform의
-  // snap 해제 오버슛이 포인터 사용자에게 영영 안 보인다.
-  ':hover': {
-    backgroundColor: themeContract.color.background.paper,
-    transitionDuration: themeContract.animation.duration.fast,
-  },
+  // :not(:disabled)로 막는다(리뷰 F1) — 배치 공통 제약 「disabled에는 전이를
+  // 주지 않는다」다. 아래 :disabled 블록이 backgroundColor는 되돌리지만,
+  // 가드가 없으면 :hover의 전이 자체는 비활성 헤더에도 그대로 걸린다.
+  // Button·IconButton은 같은 가드를, Card는 pointerEvents: none을 쓴다.
+  selectors: {
+    // 타이밍 함수는 얹지 않는다(리뷰 C3). 포인터를 떼도 :hover는 계속
+    // 매치되므로 여기 롱핸드를 두면 위 목록이 값 하나로 무너져 transform의
+    // snap 해제 오버슛이 포인터 사용자에게 영영 안 보인다.
+    '&:hover:not(:disabled)': {
+      backgroundColor: themeContract.color.background.paper,
+      transitionDuration: themeContract.animation.duration.fast,
+    },
 
-  // 배경색과 함께 스케일도 같이 바뀐다(article 4 — 색 단독 채널 금지).
-  // 1px 이동은 행 전체 폭에서 부담이 커 Button/Card 수준 이동 대신 미세한
-  // scale(0.995)만 쓴다.
-  ':active': {
-    backgroundColor: themeContract.color.surface.active,
-    transform: 'scale(0.995)',
-    transitionDuration: themeContract.animation.duration.fast,
-    transitionTimingFunction: themeContract.animation.easing.exit,
+    // 배경색과 함께 스케일도 같이 바뀐다(article 4 — 색 단독 채널 금지).
+    // 1px 이동은 행 전체 폭에서 부담이 커 Button/Card 수준 이동 대신 미세한
+    // scale(0.995)만 쓴다.
+    '&:active:not(:disabled)': {
+      backgroundColor: themeContract.color.surface.active,
+      transform: 'scale(0.995)',
+      transitionDuration: themeContract.animation.duration.fast,
+      transitionTimingFunction: themeContract.animation.easing.exit,
+    },
   },
 
   ':focus-visible': {
