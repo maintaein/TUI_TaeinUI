@@ -3,6 +3,7 @@ import clsx from 'clsx';
 import { Icon } from '../Icon';
 import {
   boardRow,
+  rowExpanded,
   variantStyles,
   header,
   title as titleStyle,
@@ -68,7 +69,15 @@ export const BoardRow = ({
   };
 
   return (
-    <div className={clsx(boardRow, variantStyles[variant], className)} {...props}>
+    <div
+      className={clsx(
+        boardRow,
+        variantStyles[variant],
+        isExpanded && rowExpanded,
+        className
+      )}
+      {...props}
+    >
       <button
         id={headerId}
         type="button"
@@ -91,9 +100,7 @@ export const BoardRow = ({
           aria-labelledby={headerId}
           className={content}
         >
-          <div className={contentInner}>
-            {children}
-          </div>
+          <div className={contentInner}>{children}</div>
         </div>
       </div>
     </div>

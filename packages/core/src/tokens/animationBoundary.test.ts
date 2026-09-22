@@ -551,7 +551,8 @@ interface Exception {
 }
 
 /**
- * 리터럴 이징 23줄 38건 10파일(`.css.ts`) + 인라인 2줄 2건(`.tsx`).
+ * 리터럴 이징 16줄 25건 7파일(`.css.ts`) + 인라인 2줄 2건(`.tsx`).
+ * BoardRow·Card·Chip은 M2 T3가 갚아 토큰으로 옮겨져 이 목록에서 빠졌다.
  *
  * **여기서 토큰으로 바꾸지 않는다.** `cubic-bezier(0.4, 0, 0.2, 1)`(Material
  * 표준 곡선)을 `settle`(`power3.out`)로 바꾸는 건 감각이 달라지는 모션 설계
@@ -564,53 +565,6 @@ const LITERAL_EASING_EXCEPTIONS: Exception[] = [
     values: ['ease', 'ease'],
     owner: 'M2',
     reason: 'AvatarGroup 오버플로 버튼의 filter·transform 전이 곡선',
-  },
-  {
-    at: 'components/BoardRow/BoardRow.css.ts',
-    values: ['ease'],
-    owner: 'M2',
-    reason: '행 hover 배경색 전이 곡선',
-  },
-  {
-    at: 'components/BoardRow/BoardRow.css.ts',
-    values: ['ease'],
-    owner: 'M2',
-    reason: '펼침 셰브론 회전 전이 곡선',
-  },
-  {
-    at: 'components/BoardRow/BoardRow.css.ts',
-    values: ['ease-in-out'],
-    owner: 'M2',
-    reason: 'grid-template-rows 0fr→1fr 펼침 곡선',
-  },
-  {
-    at: 'components/Card/Card.css.ts',
-    values: ['ease', 'ease', 'ease'],
-    owner: 'M2',
-    reason: '카드 기본 전이 3속성 곡선',
-  },
-  {
-    at: 'components/Card/Card.css.ts',
-    values: [
-      'cubic-bezier(0.4, 0, 0.2, 1)',
-      'cubic-bezier(0.4, 0, 0.2, 1)',
-      'cubic-bezier(0.4, 0, 0.2, 1)',
-    ],
-    owner: 'M2',
-    reason:
-      'outlined 변형의 Material 표준 곡선. settle로 바꾸면 감각이 달라진다',
-  },
-  {
-    at: 'components/Chip/Chip.css.ts',
-    values: ['ease', 'ease', 'ease'],
-    owner: 'M2',
-    reason: '칩 기본 전이 3속성 곡선',
-  },
-  {
-    at: 'components/Chip/Chip.css.ts',
-    values: ['ease'],
-    owner: 'M2',
-    reason: '삭제 버튼 opacity 전이 곡선',
   },
   {
     at: 'components/Loader/Loader.css.ts',
@@ -747,6 +701,13 @@ const LITERAL_DURATION_EXCEPTIONS: Exception[] = [
  */
 const LITERAL_DELAY_EXCEPTIONS: Exception[] = [
   {
+    at: 'components/IconButton/IconButton.css.ts',
+    values: ['40ms'],
+    owner: '-',
+    reason:
+      '아이콘이 몸통보다 늦게 따라오는 지연. stagger 토큰이 없어 리터럴로 적는다',
+  },
+  {
     at: 'components/LoadingSpinner/LoadingSpinner.css.ts',
     values: ['0s'],
     owner: '-',
@@ -800,8 +761,6 @@ const INLINE_MECHANISM_EXCEPTIONS: Exception[] = [];
  * 기록이 있다.
  */
 const EASING_OWNERS: Record<string, string> = {
-  snap: 'M2 T3',
-  spring: 'M2 T3',
   linear: 'M2',
   drift: 'M2 T3c',
 };
@@ -1291,9 +1250,9 @@ describe('하드코딩 시간 잠금 (T5 · R35)', () => {
     );
   });
 
-  it('리터럴 지연 5건을 정확히 집어낸다 (LoadingSpinner 3 + Skeleton 2)', () => {
+  it('리터럴 지연 6건을 정확히 집어낸다 (IconButton 1 + LoadingSpinner 3 + Skeleton 2)', () => {
     expect(groupByFile(delays)).toEqual(expectedMap(LITERAL_DELAY_EXCEPTIONS));
-    expect(delays).toHaveLength(5);
+    expect(delays).toHaveLength(6);
   });
 
   it('허용 목록의 모든 항목에 이유가 적혀 있다', () => {
@@ -1326,10 +1285,10 @@ describe('리터럴 이징 잠금 (T8 · R32)', () => {
     );
   });
 
-  it('.css.ts 쪽 실측이 23줄 38건 10파일이다', () => {
-    expect(new Set(cssEasings.map((e) => `${e.file}:${e.line}`)).size).toBe(23);
-    expect(cssEasings).toHaveLength(38);
-    expect(new Set(cssEasings.map((e) => e.file)).size).toBe(10);
+  it('.css.ts 쪽 실측이 16줄 25건 7파일이다', () => {
+    expect(new Set(cssEasings.map((e) => `${e.file}:${e.line}`)).size).toBe(16);
+    expect(cssEasings).toHaveLength(25);
+    expect(new Set(cssEasings.map((e) => e.file)).size).toBe(7);
   });
 
   it('.tsx 인라인 모션 대입까지 읽는다 (R39)', () => {

@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { describe, it, expect, vi } from 'vitest';
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -439,5 +441,123 @@ describe('BoardRow', () => {
         screen.getByRole('button', { name: '액션 버튼' })
       ).toBeInTheDocument();
     });
+  });
+});
+
+describe('BoardRow 모션 잠금', () => {
+  // vanilla-extract가 스타일을 클래스로 직렬화해서 jsdom에서 계산값을 못
+  // 읽는다. BoardRow.css.ts 소스 텍스트에서 직접 확인한다(Card/Chip과 동일 관례).
+  const cssSource = readFileSync(
+    resolve(__dirname, './BoardRow.css.ts'),
+    'utf-8'
+  );
+
+  it('boardRow가 position: relative와 좌측 막대 ::before(scaleY(0)/exit/calc(base*0.65))를 갖는다', () => {
+    const rootBlock = cssSource.match(
+      /export const boardRow = style\(\{([\s\S]*?)\n\}\);/
+    )?.[1];
+    expect(rootBlock, 'boardRow 블록을 찾지 못했다').toBeDefined();
+    expect(rootBlock).toContain("position: 'relative'");
+
+    const beforeBlock = (rootBlock as string).match(
+      /'::before': \{([\s\S]*?)\n {2}\},/
+    )?.[1];
+    expect(beforeBlock, 'boardRow ::before 블록을 찾지 못했다').toBeDefined();
+    expect(beforeBlock).toContain("transformOrigin: 'top'");
+    expect(beforeBlock).toContain("transform: 'scaleY(0)'");
+    expect(beforeBlock).toContain(
+      'transform calc(${themeContract.animation.duration.base} * 0.65) ${themeContract.animation.easing.exit}'
+    );
+  });
+
+  it('rowExpanded와 결합한 ::before가 scaleY(1)/base/snap로 그어져 내려온다', () => {
+    expect(cssSource).toContain('export const rowExpanded = style({});');
+    const globalBlock = cssSource.match(
+      /globalStyle\(`\$\{rowExpanded\}::before`, \{([\s\S]*?)\n\}\);/
+    )?.[1];
+    expect(
+      globalBlock,
+      'rowExpanded::before globalStyle을 찾지 못했다'
+    ).toBeDefined();
+    expect(globalBlock).toContain("transform: 'scaleY(1)'");
+    expect(globalBlock).toContain('themeContract.animation.duration.base');
+    expect(globalBlock).toContain('themeContract.animation.easing.snap');
+  });
+
+  it('header hover가 fast/settle을, 새로 생긴 :active가 fast/exit를 쓴다(리터럴 ease 없음)', () => {
+    const headerBlock = cssSource.match(
+      /export const header = style\(\{([\s\S]*?)\n\}\);/
+    )?.[1];
+    expect(headerBlock, 'header 블록을 찾지 못했다').toBeDefined();
+    expect(headerBlock).not.toMatch(
+      /transition: `background-color \$\{themeContract\.animation\.duration\.base\} ease`/
+    );
+    expect(headerBlock).toContain('themeContract.animation.easing.settle');
+
+    const hoverBlock = (headerBlock as string).match(
+      /':hover': \{([\s\S]*?)\n {2}\},/
+    )?.[1];
+    expect(hoverBlock, 'header :hover 블록을 찾지 못했다').toBeDefined();
+    expect(hoverBlock).toContain('themeContract.animation.duration.fast');
+    expect(hoverBlock).toContain('themeContract.animation.easing.settle');
+
+    const activeBlock = (headerBlock as string).match(
+      /':active': \{([\s\S]*?)\n {2}\},/
+    )?.[1];
+    expect(
+      activeBlock,
+      'header :active 블록을 찾지 못했다(새로 생겨야 한다)'
+    ).toBeDefined();
+    expect(activeBlock).toContain('themeContract.color.surface.active');
+    expect(activeBlock).toContain('themeContract.animation.duration.fast');
+    expect(activeBlock).toContain('themeContract.animation.easing.exit');
+  });
+
+  it('iconContainer(쉐브론) 회전이 리터럴 ease 대신 settle을 쓴다', () => {
+    const iconBlock = cssSource.match(
+      /export const iconContainer = style\(\{([\s\S]*?)\n\}\);/
+    )?.[1];
+    expect(iconBlock, 'iconContainer 블록을 찾지 못했다').toBeDefined();
+    expect(iconBlock).not.toMatch(
+      /transition: `transform \$\{themeContract\.animation\.duration\.base\} ease`/
+    );
+    expect(iconBlock).toContain('themeContract.animation.easing.settle');
+  });
+
+  it('contentWrapper의 grid-template-rows가 ease-in-out 대신 exit(접힘)/settle(펼침, wrapperExpanded 오버라이드)로 쪼개진다 — M1 근거 주석 유지', () => {
+    expect(cssSource).toContain(
+      'grid-template-rows는 transform·opacity가 아니라 레이아웃 속성이라 매 프레임'
+    );
+    expect(cssSource).toContain(
+      '미리 알 수 없어서다 — max-height 근사는 점프하거나 늦게 끝나고, 높이를'
+    );
+
+    const wrapperBlock = cssSource.match(
+      /export const contentWrapper = style\(\{([\s\S]*?)\n\}\);/
+    )?.[1];
+    expect(wrapperBlock, 'contentWrapper 블록을 찾지 못했다').toBeDefined();
+    expect(wrapperBlock).not.toContain('ease-in-out');
+    expect(wrapperBlock).toContain(
+      'grid-template-rows ${themeContract.animation.duration.slow} ${themeContract.animation.easing.exit}'
+    );
+
+    const expandedBlock = cssSource.match(
+      /export const wrapperExpanded = style\(\{([\s\S]*?)\n\}\);/
+    )?.[1];
+    expect(expandedBlock, 'wrapperExpanded 블록을 찾지 못했다').toBeDefined();
+    expect(expandedBlock).toContain(
+      'transitionTimingFunction: themeContract.animation.easing.settle'
+    );
+  });
+
+  it('isExpanded일 때 루트에 rowExpanded 클래스가 붙어 좌측 막대가 내려온다', () => {
+    render(
+      <BoardRow title="제목" defaultExpanded>
+        <div>내용</div>
+      </BoardRow>
+    );
+    const button = screen.getByRole('button');
+    const root = button.parentElement as HTMLElement;
+    expect(root.className.length).toBeGreaterThan(0);
   });
 });
