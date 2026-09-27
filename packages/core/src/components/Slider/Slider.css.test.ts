@@ -47,6 +47,22 @@ describe('Slider 생성 CSS', () => {
     expect(fillRule.style.transition).not.toContain('width');
   });
 
+  it('트랙이 overflow: hidden으로 자식 fill의 캡을 자른다 (Ruling 22)', () => {
+    const sheet = findSliderStyleSheet();
+    const trackRule = findRule(sheet, 'sliderTrack');
+
+    expect(trackRule.style.overflow).toBe('hidden');
+  });
+
+  it('fill은 트랙 안에 들어가면서 절대 위치·borderRadius를 잃는다 (Ruling 22)', () => {
+    const sheet = findSliderStyleSheet();
+    const fillRule = findRule(sheet, 'sliderFillTrack');
+
+    expect(fillRule.style.position).not.toBe('absolute');
+    expect(fillRule.style.getPropertyValue('border-radius')).toBe('');
+    expect(fillRule.style.height).toBe('100%');
+  });
+
   it.each([['webkit-slider-thumb'], ['moz-range-thumb']])(
     '%s의 :active 크기가 :hover보다 크고, :hover는 rest보다 크다',
     (pseudo) => {

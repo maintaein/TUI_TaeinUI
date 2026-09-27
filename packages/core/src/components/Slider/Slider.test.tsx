@@ -1,8 +1,54 @@
-import { describe, it, expect, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { describe, it, expect, vi, afterEach } from 'vitest';
+import { render, screen, fireEvent, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { Slider } from './Slider';
+
+/**
+ * 테스트 전용 DOM 확장 읽기용 타입. `Slider.tsx`의 `ScrubTicksTimelineHost`·
+ * `ValueFollowerTweenHost`(내보내지 않는 로컬 인터페이스)와 같은 모양이다 —
+ * Snackbar.test.tsx의 `CountdownTweenHost` 패턴을 그대로 따른다.
+ */
+type ScrubTicksTimelineHost = HTMLDivElement & {
+  __scrubTicksTimeline?: gsap.core.Timeline;
+};
+type ValueFollowerTweenHost = HTMLSpanElement & {
+  __valueFollowerTween?: gsap.core.Tween;
+};
+
+const getTicksContainer = (
+  container: HTMLElement
+): ScrubTicksTimelineHost | null =>
+  container.querySelector(
+    '[class*="scrubTicksContainer__"]'
+  ) as ScrubTicksTimelineHost | null;
+
+const getTicks = (container: HTMLElement): NodeListOf<Element> =>
+  container.querySelectorAll('[class*="scrubTick__"]');
+
+const getLandedTick = (container: HTMLElement): Element | null =>
+  container.querySelector('[class*="scrubTickLanded__"]');
+
+const getFollower = (container: HTMLElement): ValueFollowerTweenHost | null =>
+  container.querySelector(
+    '[class*="valueFollower__"]'
+  ) as ValueFollowerTweenHost | null;
+
+/** jsdom은 matchMedia를 구현하지 않는다 — 축소 선호 경로를 열려면 깔아야 한다. */
+const installReducedMotion = (): void => {
+  vi.stubGlobal(
+    'matchMedia',
+    (media: string): MediaQueryList =>
+      ({
+        matches: true,
+        media,
+        addEventListener: () => {},
+        removeEventListener: () => {},
+        dispatchEvent: () => false,
+        onchange: null,
+      }) as unknown as MediaQueryList
+  );
+};
 
 describe('Slider', () => {
   describe('렌더링 테스트', () => {
@@ -499,6 +545,346 @@ describe('Slider', () => {
       render(<Slider label="볼륨" value={60} onChange={() => {}} />);
 
       expect(screen.queryByText('60')).not.toBeInTheDocument();
+    });
+  });
+
+  describe('눈금·값 따라붙기 테스트 (M3 T4)', () => {
+    afterEach(() => {
+      vi.unstubAllGlobals();
+      vi.useRealTimers();
+    });
+
+    it('잡기 전에는 눈금도 놓은 자리 표식도 없다', () => {
+      const { container } = render(
+        <Slider
+          label="슬라이더"
+          value={5}
+          min={0}
+          max={10}
+          onChange={() => {}}
+        />
+      );
+
+      expect(getTicksContainer(container)).not.toBeInTheDocument();
+      expect(getLandedTick(container)).not.toBeInTheDocument();
+    });
+
+    it('pointerdown으로 잡으면 썸 근방에 눈금이 돋는다', () => {
+      const { container } = render(
+        <Slider
+          label="슬라이더"
+          value={5}
+          min={0}
+          max={10}
+          onChange={() => {}}
+        />
+      );
+      const slider = screen.getByRole('slider');
+
+      fireEvent.pointerDown(slider);
+
+      expect(getTicksContainer(container)).toBeInTheDocument();
+      expect(getTicks(container).length).toBeGreaterThan(0);
+    });
+
+    it('렌더되는 눈금 개수는 범위 크기와 무관하다 — 전 구간 DOM이 아니다', () => {
+      const small = render(
+        <Slider
+          label="작은 범위"
+          value={5}
+          min={0}
+          max={10}
+          step={1}
+          onChange={() => {}}
+        />
+      );
+      fireEvent.pointerDown(screen.getByRole('slider', { name: '작은 범위' }));
+      const smallCount = getTicks(small.container).length;
+
+      const large = render(
+        <Slider
+          label="큰 범위"
+          value={50000}
+          min={0}
+          max={100000}
+          step={1}
+          onChange={() => {}}
+        />
+      );
+      fireEvent.pointerDown(screen.getByRole('slider', { name: '큰 범위' }));
+      const largeCount = getTicks(large.container).length;
+
+      expect(smallCount).toBeGreaterThan(0);
+      expect(largeCount).toBe(smallCount);
+    });
+
+    it('놓으면 눈금이 가라앉기 시작하고 도달한 자리에 한 칸이 남는다', () => {
+      const { container } = render(
+        <Slider
+          label="슬라이더"
+          value={5}
+          min={0}
+          max={10}
+          onChange={() => {}}
+        />
+      );
+      const slider = screen.getByRole('slider');
+
+      fireEvent.pointerDown(slider);
+      fireEvent.pointerUp(slider);
+
+      const landed = getLandedTick(container);
+      expect(landed).toBeInTheDocument();
+      expect(landed).toHaveStyle({ left: '50%' });
+      // 가라앉는 애니메이션이 끝날 때까지 눈금 그룹은 계속 존재한다(즉시 사라지지 않는다).
+      expect(getTicksContainer(container)).toBeInTheDocument();
+    });
+
+    it('가라앉는 도중 다시 잡으면 그 자리(진행률 0·1이 아닌 지점)에서 이어진다', () => {
+      const { container } = render(
+        <Slider
+          label="슬라이더"
+          value={5}
+          min={0}
+          max={10}
+          onChange={() => {}}
+        />
+      );
+      const slider = screen.getByRole('slider');
+
+      fireEvent.pointerDown(slider);
+      const host = getTicksContainer(container);
+      expect(host).not.toBeNull();
+      act(() => {
+        host!.__scrubTicksTimeline!.progress(0.6);
+      });
+
+      fireEvent.pointerUp(slider);
+      const timelineAtRelease = host!.__scrubTicksTimeline;
+
+      fireEvent.pointerDown(slider);
+      const hostAfterRegrab = getTicksContainer(container);
+
+      // 같은 DOM·같은 타임라인 인스턴스를 재사용한다 — 새로 만들었다면 0으로 리셋됐을 것이다.
+      expect(hostAfterRegrab).toBe(host);
+      expect(hostAfterRegrab!.__scrubTicksTimeline).toBe(timelineAtRelease);
+      const progress = hostAfterRegrab!.__scrubTicksTimeline!.progress();
+      expect(progress).toBeGreaterThan(0);
+      expect(progress).toBeLessThan(1);
+    });
+
+    it('잡고 있는 동안 값이 썸을 따라간다 — quickTo가 관성을 갖고 좇는다(순간이동 금지)', () => {
+      const { container, rerender } = render(
+        <Slider
+          label="슬라이더"
+          value={20}
+          min={0}
+          max={100}
+          onChange={() => {}}
+        />
+      );
+      const slider = screen.getByRole('slider');
+
+      fireEvent.pointerDown(slider);
+      const follower = getFollower(container);
+      expect(follower).toBeInTheDocument();
+      expect(
+        follower!.style.getPropertyValue('--slider-value-follower-percent')
+      ).toBe('20');
+
+      rerender(
+        <Slider
+          label="슬라이더"
+          value={60}
+          min={0}
+          max={100}
+          onChange={() => {}}
+        />
+      );
+      // 값이 바뀐 직후에도 quickTo 트윈이 아직 안 흘렀으므로 순간이동하지 않는다.
+      expect(
+        follower!.style.getPropertyValue('--slider-value-follower-percent')
+      ).toBe('20');
+
+      act(() => {
+        follower!.__valueFollowerTween!.progress(1);
+      });
+      expect(
+        follower!.style.getPropertyValue('--slider-value-follower-percent')
+      ).toBe('60');
+    });
+
+    it('값 따라붙기는 aria-hidden이고 showValue를 대체하지 않는다', () => {
+      const { container } = render(
+        <Slider
+          label="슬라이더"
+          value={20}
+          min={0}
+          max={100}
+          onChange={() => {}}
+          showValue
+        />
+      );
+      const slider = screen.getByRole('slider');
+
+      // 잡기 전: showValue 고정 출력만 있다.
+      expect(
+        container.querySelector('[class*="valueDisplay__"]')
+      ).toBeInTheDocument();
+      expect(getFollower(container)).not.toBeInTheDocument();
+
+      fireEvent.pointerDown(slider);
+
+      // 잡은 동안: 고정 출력과 따라붙기 표시가 공존한다 — 대체가 아니다.
+      const follower = getFollower(container);
+      expect(
+        container.querySelector('[class*="valueDisplay__"]')
+      ).toBeInTheDocument();
+      expect(follower).toBeInTheDocument();
+      expect(follower).toHaveAttribute('aria-hidden', 'true');
+    });
+
+    it('키보드(화살표)로도 같은 신호가 만들어진다 — 눈금이 돋고 값이 따라간다', () => {
+      const { container } = render(
+        <Slider label="슬라이더" value={50} onChange={() => {}} />
+      );
+      const slider = screen.getByRole('slider');
+      slider.focus();
+
+      act(() => {
+        slider.dispatchEvent(
+          new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true })
+        );
+      });
+
+      expect(getTicksContainer(container)).toBeInTheDocument();
+      expect(getFollower(container)).toBeInTheDocument();
+    });
+
+    it('마지막 키 입력 후 일정 시간 무입력이면 놓은 것으로 처리된다', () => {
+      vi.useFakeTimers();
+      const { container } = render(
+        <Slider label="슬라이더" value={50} onChange={() => {}} />
+      );
+      const slider = screen.getByRole('slider');
+      slider.focus();
+
+      act(() => {
+        slider.dispatchEvent(
+          new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true })
+        );
+      });
+      expect(getLandedTick(container)).not.toBeInTheDocument();
+
+      act(() => {
+        vi.advanceTimersByTime(600);
+      });
+
+      expect(getLandedTick(container)).toBeInTheDocument();
+    });
+
+    it('연타 중에는 놓은 것으로 처리되지 않는다 — 무입력 타이머가 매 입력마다 갱신된다', () => {
+      vi.useFakeTimers();
+      const { container } = render(
+        <Slider label="슬라이더" value={50} onChange={() => {}} />
+      );
+      const slider = screen.getByRole('slider');
+      slider.focus();
+
+      act(() => {
+        slider.dispatchEvent(
+          new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true })
+        );
+      });
+      act(() => {
+        vi.advanceTimersByTime(300);
+      });
+      act(() => {
+        slider.dispatchEvent(
+          new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true })
+        );
+      });
+      act(() => {
+        vi.advanceTimersByTime(300);
+      });
+
+      // 마지막 입력 이후 300ms밖에 안 지났다 — 아직 놓은 게 아니다.
+      expect(getLandedTick(container)).not.toBeInTheDocument();
+      expect(getTicksContainer(container)).toBeInTheDocument();
+    });
+
+    it('blur로도 놓은 것으로 처리된다', () => {
+      const { container } = render(
+        <Slider label="슬라이더" value={50} onChange={() => {}} />
+      );
+      const slider = screen.getByRole('slider');
+      slider.focus();
+
+      act(() => {
+        slider.dispatchEvent(
+          new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true })
+        );
+      });
+      act(() => {
+        fireEvent.blur(slider);
+      });
+
+      expect(getLandedTick(container)).toBeInTheDocument();
+    });
+
+    it('축소 선호에서도 눈금은 존재한다 — 움직임만 사라진다', () => {
+      installReducedMotion();
+      const { container } = render(
+        <Slider
+          label="슬라이더"
+          value={5}
+          min={0}
+          max={10}
+          onChange={() => {}}
+        />
+      );
+      const slider = screen.getByRole('slider');
+
+      fireEvent.pointerDown(slider);
+
+      const host = getTicksContainer(container);
+      expect(host).toBeInTheDocument();
+      expect(getTicks(container).length).toBeGreaterThan(0);
+      expect(host!.style.opacity).toBe('1');
+    });
+
+    it('marks와 새 눈금이 동시에 켜진 경우를 렌더한다', () => {
+      const { container } = render(
+        <Slider
+          label="슬라이더"
+          value={5}
+          min={0}
+          max={10}
+          onChange={() => {}}
+          marks={[
+            { value: 0, label: '0' },
+            { value: 10, label: '10' },
+          ]}
+        />
+      );
+      const slider = screen.getByRole('slider');
+
+      fireEvent.pointerDown(slider);
+
+      expect(
+        container.querySelector('[class*="marksContainer"]')
+      ).toBeInTheDocument();
+      expect(getTicksContainer(container)).toBeInTheDocument();
+    });
+
+    it('fill이 트랙의 자식으로 중첩된다', () => {
+      const { container } = render(
+        <Slider label="슬라이더" value={50} onChange={() => {}} />
+      );
+      const track = container.querySelector('[class*="sliderTrack__"]');
+      const fill = container.querySelector('[class*="sliderFillTrack__"]');
+
+      expect(track).toContainElement(fill as HTMLElement);
     });
   });
 });
