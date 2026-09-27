@@ -48,7 +48,7 @@ import prettier from 'prettier';
  * 기능적 위험이 없다 — 깨지는 것은 `contract.ts` 단일 출처 원칙뿐이고, 소비자가
  * 하나뿐인 지금은 감수한다. 소비자가 둘 이상으로 늘면 그때 다시 청구한다.
  */
-const EASE_SOURCES = {
+export const EASE_SOURCES = {
   settle: 'power3.out',
   snap: 'back.out(1.7)',
   spring: 'elastic.out(1, 0.5)',

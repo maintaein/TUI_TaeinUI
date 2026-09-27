@@ -6,3 +6,9 @@
 
 /** 커밋된 `src/tokens/animation.css.ts`와 같아야 하는 생성 결과(prettier 적용 후). */
 export declare function generateAnimationSource(): Promise<string>;
+
+/**
+ * 토큰 이름 → GSAP 이징 소스. `src/tokens/gsapEasing.ts`가 같은 6쌍을 런타임용으로
+ * 내보내고 `gsapEasing.test.ts`가 두 곳의 일치를 잠근다.
+ */
+export declare const EASE_SOURCES: Record<string, string>;

@@ -29,7 +29,9 @@ export default defineConfig({
     },
     rollupOptions: {
       external: (id) =>
-        ['react', 'react-dom', 'react/jsx-runtime', 'clsx'].includes(id) ||
+        ['react', 'react-dom', 'react/jsx-runtime', 'clsx', 'gsap'].includes(
+          id
+        ) ||
         // recipe()가 컴파일되면 @vanilla-extract/recipes의 런타임 헬퍼
         // (createRuntimeFn)를 참조한다. external 목록에 없으면 Rollup이 이걸
         // 번들에 포함시키면서 preserveModulesRoot('src') 밖에 있는 모듈이라
