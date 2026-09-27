@@ -1514,32 +1514,37 @@ describe('reduce 전역 규칙이 duration과 delay 양쪽을 덮는다 (T7 · R
 // ---------------------------------------------------------------------------
 // 7. GSAP 번들 경계 (R37)
 // ---------------------------------------------------------------------------
+//
+// M3부터 경계가 옮겨간다 — "gsap을 아예 안 들인다"가 아니라 "gsap/all(전체
+// 배럴)을 안 들인다"로 반전됐다(계획서 T1). 코어(`from 'gsap'`)와 개별 플러그인
+// 경로(`from 'gsap/Flip'` 등)는 이제 허용된다. tree-shaking이 먹는 건 개별
+// 경로뿐이라 `gsap/all` import 금지만 남긴다.
 
-/** 런타임 참조만 본다. 주석·소스맵에 남는 글자는 번들도 의존성도 만들지 않는다. */
-const GSAP_IMPORT =
-  /(?:\bfrom\s*['"]gsap[^'"]*['"]|\brequire\(\s*['"]gsap[^'"]*['"]\s*\)|\bimport\(\s*['"]gsap[^'"]*['"]\s*\))/;
+/** `gsap/all` 전체 배럴만 잡는다. 코어와 개별 플러그인 경로는 이 정규식에 안 걸린다. */
+const GSAP_ALL_IMPORT =
+  /(?:\bfrom\s*['"]gsap\/all['"]|\brequire\(\s*['"]gsap\/all['"]\s*\)|\bimport\(\s*['"]gsap\/all['"]\s*\))/;
 
 describe('GSAP 번들 경계 (R37)', () => {
-  it('src의 발행 코드가 gsap을 값으로도 타입으로도 import하지 않는다', () => {
+  it('src의 gsap import가 gsap/all을 쓰지 않는다 (코어·개별 플러그인 경로만 허용)', () => {
     // scripts/build-easing.mjs는 빌드 타임 생성기라 대상이 아니다 —
     // 산출물(animation.css.ts)만 커밋되고 번들에는 들어가지 않는다.
     const importers = SRC_FILES.filter((file) =>
-      GSAP_IMPORT.test(readFileSync(file, 'utf-8'))
+      GSAP_ALL_IMPORT.test(readFileSync(file, 'utf-8'))
     ).map(rel);
     expect(importers).toEqual([]);
   });
 
-  it('빌드 산출물에 gsap import/require가 없다', () => {
+  it('빌드 산출물에 gsap/all import/require가 없다', () => {
     // dist는 .gitignore 대상이라 빌드 전에는 없다. 없으면 src 검사가 같은
     // 보증을 이미 들고 있으므로 건너뛰되, 있으면 반드시 검사한다.
     if (!existsSync(DIST)) return;
     const built = findFiles(DIST, (name) =>
       /\.(mjs|cjs|js|d\.ts)$/.test(name)
-    ).filter((file) => GSAP_IMPORT.test(readFileSync(file, 'utf-8')));
+    ).filter((file) => GSAP_ALL_IMPORT.test(readFileSync(file, 'utf-8')));
     expect(built.map((file) => relative(DIST, file))).toEqual([]);
   });
 
-  it('package.json의 런타임 의존성에 gsap이 없다', () => {
+  it('package.json의 dependencies에 gsap이 있고 devDependencies·peerDependencies에는 없다', () => {
     const pkg: unknown = JSON.parse(
       readFileSync(resolve(CORE_ROOT, 'package.json'), 'utf-8')
     );
@@ -1549,17 +1554,17 @@ describe('GSAP 번들 경계 (R37)', () => {
         ? Object.keys(value as Record<string, unknown>)
         : [];
     };
-    expect(section('dependencies')).not.toContain('gsap');
+    // gsap은 이제 런타임 의존성이다 — 컴포넌트가 직접 import해서 쓴다.
+    expect(section('dependencies')).toContain('gsap');
+    expect(section('devDependencies')).not.toContain('gsap');
     expect(section('peerDependencies')).not.toContain('gsap');
-    // devDependency이긴 해야 한다 — 빌드 타임 생성기와 게이트 테스트가 쓴다.
-    expect(section('devDependencies')).toContain('gsap');
   });
 
-  it('주석에 적힌 엔진 이름은 이 검사에 걸리지 않는다 (반증)', () => {
-    // 순진한 `grep -ri gsap dist`였다면 실패할 자리다. import 기준 검사는
+  it('주석에 적힌 gsap/all 문자열은 이 검사에 걸리지 않는다 (반증)', () => {
+    // 순진한 `grep -ri "gsap/all" dist`였다면 실패할 자리다. import 기준 검사는
     // 통과한다 — 검사가 옳은 걸 보고 있다는 증거를 테스트 안에 남긴다.
     const gate = readFileSync(resolve(SRC, 'hooks/gateMotion.ts'), 'utf-8');
-    expect(gate).toContain('GSAP');
-    expect(GSAP_IMPORT.test(gate)).toBe(false);
+    expect(gate).toContain('gsap/all');
+    expect(GSAP_ALL_IMPORT.test(gate)).toBe(false);
   });
 });

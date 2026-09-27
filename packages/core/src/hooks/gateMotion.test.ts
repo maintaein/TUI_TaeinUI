@@ -2,8 +2,8 @@ import { describe, it, expect, afterEach } from 'vitest';
 import { gsap } from 'gsap';
 import { gateMotion, settleMotion } from './gateMotion';
 
-// gsap은 devDependency다. 여기서만 쓰고 src 구현은 참조하지 않는다 —
-// 게이트는 구조 타입으로 트윈을 받고, 진짜 트윈으로 검증한다(대역 없음).
+// gateMotion.ts는 gsap을 구조 타입으로만 받는다. 여기서는 진짜 gsap 트윈으로
+// 검증한다(대역 없음).
 const createTarget = (): HTMLElement => {
   const element = document.createElement('div');
   document.body.appendChild(element);
