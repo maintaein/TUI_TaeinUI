@@ -21,11 +21,31 @@ const SRC_FILES = findFiles(SRC, (name) => /\.tsx?$/.test(name));
 /** 실제 호출만 게이트 사용으로 친다 — 주석·문자열에 이름만 있는 건 호출이 아니다. */
 const GATE_USAGE = /\b(?:gateMotion|settleMotion)\s*\(/;
 
+/** 게이트 없이 gsap을 쓰는 게 정당한 파일 한 항목. 경로와 이유를 같이 갖는다
+ * (Ruling 14 — 예전엔 `string[]`이라 이유를 못 적었다). */
+interface GateEnforcementException {
+  /** `src` 기준 상대 경로 */
+  path: string;
+  /** 게이트(gateMotion/settleMotion) 없이 gsap을 쓰는 이유 */
+  reason: string;
+}
+
 /**
- * 게이트 없이 gsap을 쓰는 게 정당한 파일의 `src` 기준 상대 경로 목록.
- * 지금은 비어 있다 — 아래 "예외 목록은 지금 비어 있다" 검사가 그 사실을 잠근다.
+ * 게이트 없이 gsap을 쓰는 게 정당한 파일의 목록. 첫 입주자는 M3 T3
+ * `Snackbar`다 — 아래 "정확히 이 항목들" 검사가 목록이 몰래 늘지 않는지 잠근다.
  */
-const GATE_ENFORCEMENT_EXCEPTIONS: string[] = [];
+const GATE_ENFORCEMENT_EXCEPTIONS: GateEnforcementException[] = [
+  {
+    path: 'components/Snackbar/Snackbar.tsx',
+    reason:
+      'autoHideDuration 카운트다운 gsap.to가 스낵바의 시계다. gateMotion은 진행 중 ' +
+      '애니메이션을 progress(1)로 확정하고 kill하므로, 축소 선호에서 이걸 거치면 ' +
+      '카운트다운이 즉시 끝나 스낵바가 열리자마자 닫힌다(Ruling 14) — 2.2.1은 ' +
+      '시간을 줄이지 말라는 뜻이라 게이트 대상이 아니다. 축소 모드가 바꾸는 건 ' +
+      '막대의 그림(연속→이산 단계)뿐이고 시계는 그대로 둔다. 등장·퇴장 타임라인은 ' +
+      '같은 파일의 useOverlayTransition을 통해 이미 게이트를 거친다.',
+  },
+];
 
 /** gsap을 import하는 소스가 게이트를 실제로 쓰지 않으면 위반이다. */
 function violatesGateEnforcement(source: string): boolean {
@@ -36,19 +56,26 @@ describe('GSAP 진입점은 게이트를 거친다 (T2 강제)', () => {
   it('gsap을 import하는 파일은 같은 파일에서 gateMotion 또는 settleMotion도 쓴다', () => {
     expect(SRC_FILES.length).toBeGreaterThan(0);
 
+    const exceptionPaths = GATE_ENFORCEMENT_EXCEPTIONS.map((e) => e.path);
     const violators = SRC_FILES.filter((file) =>
       violatesGateEnforcement(readFileSync(file, 'utf-8'))
     )
       .map(rel)
-      .filter((path) => !GATE_ENFORCEMENT_EXCEPTIONS.includes(path));
+      .filter((path) => !exceptionPaths.includes(path));
 
     expect(violators).toEqual([]);
   });
 
-  it('예외 목록은 지금 비어 있다', () => {
-    // 컴포넌트가 아직 0개라 대상 파일 자체가 없다. 다음 Task가 gsap을 쓰는
-    // 컴포넌트를 추가하는 순간 위 검사가 실제로 뭔가를 훑기 시작한다.
-    expect(GATE_ENFORCEMENT_EXCEPTIONS).toEqual([]);
+  it('예외 목록은 정확히 이 항목들이고, 이 개수다', () => {
+    // 목록이 저절로 늘어나지 않게 길이와 내용을 같이 잠근다. 새 예외가
+    // 필요해지면 여기부터 고쳐야 하고, 그 순간 이유를 적어야 한다.
+    expect(GATE_ENFORCEMENT_EXCEPTIONS).toHaveLength(1);
+    expect(GATE_ENFORCEMENT_EXCEPTIONS.map((e) => e.path)).toEqual([
+      'components/Snackbar/Snackbar.tsx',
+    ]);
+    expect(
+      GATE_ENFORCEMENT_EXCEPTIONS.every((e) => e.reason.trim().length > 0)
+    ).toBe(true);
   });
 
   it('판정 함수 표본 검사 — 주석에 적힌 gateMotion·settleMotion은 실제 호출로 치지 않는다', () => {

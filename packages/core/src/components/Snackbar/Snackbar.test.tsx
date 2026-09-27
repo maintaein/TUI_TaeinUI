@@ -1,7 +1,52 @@
+/**
+ * M3 T3 — 막대와 타이머가 GSAP 트윈 하나로 합쳐진 뒤의 스낵바 테스트.
+ *
+ * jsdom + 가짜 타이머 환경에서 GSAP 티커는 rAF로 도는데 그 틱이 안 온다
+ * (실측 — 함정 2). `vi.advanceTimersByTime`으로 카운트다운 트윈을 흘려보낼
+ * 수 없다는 뜻이라, 트윈을 직접 `progress()`/`time()`으로 seek해서 단언한다
+ * — 실제 GSAP 인스턴스를 조작하는 것이므로 무모킹 규칙에 맞다.
+ *
+ * 트윈은 공개 API로 안 나간다. `Snackbar.tsx`가 막대 DOM 노드에
+ * `__countdownTween`이라는 테스트 전용 통로를 얹어 두고, 여기서 그걸 읽는다
+ * (Task 2의 `timelineRef`와 같은 모양 — `useOverlayTransition.ts` 참고).
+ * 등장·퇴장 타임라인은 이 통로가 없다 — 그쪽은 손대지 않는 범위다(Task 2 소관).
+ */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { Snackbar } from './Snackbar';
+
+type CountdownTweenHost = HTMLDivElement & {
+  __countdownTween?: gsap.core.Tween;
+};
+
+const getSheet = (container: HTMLElement): HTMLElement =>
+  container.querySelector('[class*="Snackbar_snackbar__"]') as HTMLElement;
+
+const getBar = (container: HTMLElement): CountdownTweenHost | null =>
+  container.querySelector(
+    '[class*="Snackbar_bar__"]'
+  ) as CountdownTweenHost | null;
+
+/** 막대의 인라인 `transform: scaleX(n)`에서 n을 읽는다. */
+const readScaleX = (bar: HTMLElement | null): number => {
+  const match = bar?.style.transform.match(/scaleX\(([-\d.]+)\)/);
+  return match ? Number(match[1]) : NaN;
+};
+
+/** jsdom은 matchMedia를 구현하지 않는다 — 축소 선호 경로를 열려면 깔아야 한다. */
+const installReducedMotion = (): void => {
+  vi.stubGlobal(
+    'matchMedia',
+    (media: string): MediaQueryList =>
+      ({
+        matches: true,
+        media,
+        addEventListener: () => {},
+        removeEventListener: () => {},
+      }) as unknown as MediaQueryList
+  );
+};
 
 describe('Snackbar', () => {
   beforeEach(() => {
@@ -10,6 +55,7 @@ describe('Snackbar', () => {
 
   afterEach(() => {
     vi.restoreAllMocks();
+    vi.unstubAllGlobals();
     vi.useRealTimers();
   });
 
@@ -142,10 +188,39 @@ describe('Snackbar', () => {
     });
   });
 
-  describe('자동 닫힘 테스트 (타이머)', () => {
-    it('autoHideDuration 후에 onClose가 호출된다', () => {
+  describe('center 위치 가로 중앙 정렬 (함정 1)', () => {
+    it('xPercent(-50)이 등장 시작값에 이미 반영돼 있다', () => {
+      // fromTo의 xPercent는 from·to가 둘 다 -50이라 진행도(progress)와 무관하게
+      // 항상 -50으로 계산된다 — 진행이 전혀 안 되는 이 테스트 환경(함정 2)에서
+      // 확인해도, rest·퇴장 후의 값도 같은 상수라 함께 증명된다.
+      const { container } = render(
+        <Snackbar open message="메시지" position="top-center" />
+      );
+      expect(getSheet(container).style.transform).toContain('-50%');
+    });
+
+    it('bottom-center도 마찬가지다', () => {
+      const { container } = render(
+        <Snackbar open message="메시지" position="bottom-center" />
+      );
+      expect(getSheet(container).style.transform).toContain('-50%');
+    });
+
+    it('center가 아닌 위치는 xPercent를 안 쓴다', () => {
+      const { container } = render(
+        <Snackbar open message="메시지" position="top-left" />
+      );
+      expect(getSheet(container).style.transform).not.toContain('-50%');
+    });
+  });
+
+  describe('카운트다운 트윈 테스트 (막대·타이머 단일 진실)', () => {
+    it('트윈의 progress가 1이 되면 onClose가 호출된다', () => {
+      // 가짜 타이머로는 GSAP을 못 돌린다(함정 2 실측) — 트윈을 progress(1)로
+      // 직접 몰아 onComplete를 발화시킨다. 실제 GSAP 인스턴스를 seek하는
+      // 것이라 무모킹 규칙에 맞다.
       const handleClose = vi.fn();
-      render(
+      const { container } = render(
         <Snackbar
           open
           message="메시지"
@@ -156,25 +231,35 @@ describe('Snackbar', () => {
 
       expect(handleClose).not.toHaveBeenCalled();
 
-      vi.advanceTimersByTime(3000);
+      act(() => {
+        getBar(container)?.__countdownTween?.progress(1);
+      });
 
       expect(handleClose).toHaveBeenCalledTimes(1);
     });
 
-    it('autoHideDuration 기본값은 6000ms이다', () => {
-      const handleClose = vi.fn();
-      render(<Snackbar open message="메시지" onClose={handleClose} />);
-
-      vi.advanceTimersByTime(5999);
-      expect(handleClose).not.toHaveBeenCalled();
-
-      vi.advanceTimersByTime(1);
-      expect(handleClose).toHaveBeenCalledTimes(1);
+    it('autoHideDuration 기본값은 6000ms이다 — 트윈 duration이 6초다', () => {
+      const { container } = render(
+        <Snackbar open message="메시지" onClose={vi.fn()} />
+      );
+      expect(getBar(container)?.__countdownTween?.duration()).toBeCloseTo(6, 5);
     });
 
-    it('autoHideDuration=null이면 자동으로 닫히지 않는다', () => {
+    it('autoHideDuration이 트윈 duration(초)으로 그대로 반영된다', () => {
+      const { container } = render(
+        <Snackbar
+          open
+          message="메시지"
+          autoHideDuration={3000}
+          onClose={vi.fn()}
+        />
+      );
+      expect(getBar(container)?.__countdownTween?.duration()).toBeCloseTo(3, 5);
+    });
+
+    it('autoHideDuration=null이면 막대(카운트다운 트윈)가 없다', () => {
       const handleClose = vi.fn();
-      render(
+      const { container } = render(
         <Snackbar
           open
           message="메시지"
@@ -183,14 +268,27 @@ describe('Snackbar', () => {
         />
       );
 
-      vi.advanceTimersByTime(10000);
+      expect(getBar(container)).toBeNull();
 
+      act(() => {
+        vi.advanceTimersByTime(10000);
+      });
       expect(handleClose).not.toHaveBeenCalled();
     });
 
-    it('open이 false로 변경되면 타이머가 클리어된다', () => {
+    it('onClose가 없으면 막대를 만들지 않는다', () => {
+      const { container } = render(<Snackbar open message="메시지" />);
+      expect(getBar(container)).toBeNull();
+    });
+
+    it('open이 false로 바뀌면 다시 열렸을 때 카운트다운이 처음부터 다시 시작한다', () => {
+      // autoHideDuration이 개폐 사이에 안 바뀌어도, open=false는 진행 중이던
+      // 트윈을 죽인다(설계상 다시 열면 새 트윈 — 보고서 "도중에 바뀌면" 절 참고).
+      // 옛 트윈이 죽었는지 progress() 재호출로 확인하는 대신(킬 이후 동작이
+      // GSAP 내부 구현에 기댄다), 관측 가능한 사실 — 인스턴스가 바뀌고 새
+      // 트윈이 0에서 시작한다 — 로 "누수 없이 정리됐다"를 증명한다.
       const handleClose = vi.fn();
-      const { rerender } = render(
+      const { container, rerender } = render(
         <Snackbar
           open
           message="메시지"
@@ -198,8 +296,7 @@ describe('Snackbar', () => {
           onClose={handleClose}
         />
       );
-
-      vi.advanceTimersByTime(1000);
+      const first = getBar(container)?.__countdownTween;
 
       rerender(
         <Snackbar
@@ -209,14 +306,263 @@ describe('Snackbar', () => {
           onClose={handleClose}
         />
       );
+      rerender(
+        <Snackbar
+          open
+          message="메시지"
+          autoHideDuration={3000}
+          onClose={handleClose}
+        />
+      );
 
-      // open=false가 shouldRender 지연-언마운트 타이머(EXIT_DURATION_MS)도
-      // 같이 예약시키므로, 그 setState가 act() 밖에서 플러시되지 않게 감싼다.
+      const second = getBar(container)?.__countdownTween;
+      expect(second).not.toBe(first);
+      expect(second?.progress()).toBe(0);
+    });
+  });
+
+  describe('막대 시각 테스트', () => {
+    it('막대가 scaleX로만 움직인다 — width는 안 바뀐다', () => {
+      const { container } = render(
+        <Snackbar
+          open
+          message="메시지"
+          autoHideDuration={3000}
+          onClose={vi.fn()}
+        />
+      );
+      const bar = getBar(container);
+
       act(() => {
-        vi.advanceTimersByTime(3000);
+        bar?.__countdownTween?.progress(0.5);
       });
 
+      expect(readScaleX(bar)).toBeCloseTo(0.5, 5);
+      expect(bar?.style.width).toBe('');
+    });
+
+    it('severity 4종 모두에서 막대가 렌더링된다', () => {
+      for (const severity of ['success', 'error', 'warning', 'info'] as const) {
+        const { container, unmount } = render(
+          <Snackbar
+            open
+            message="메시지"
+            severity={severity}
+            autoHideDuration={3000}
+            onClose={vi.fn()}
+          />
+        );
+        expect(getBar(container)).not.toBeNull();
+        unmount();
+      }
+    });
+
+    it('위치 6종 전부에서 막대가 스낵바 내부에 있다', () => {
+      const positions = [
+        'top-left',
+        'top-center',
+        'top-right',
+        'bottom-left',
+        'bottom-center',
+        'bottom-right',
+      ] as const;
+      for (const position of positions) {
+        const { container, unmount } = render(
+          <Snackbar
+            open
+            message="메시지"
+            position={position}
+            autoHideDuration={3000}
+            onClose={vi.fn()}
+          />
+        );
+        expect(getSheet(container)).toContainElement(getBar(container));
+        unmount();
+      }
+    });
+
+    it('막대는 접근성 트리에서 숨겨진다', () => {
+      const { container } = render(
+        <Snackbar
+          open
+          message="메시지"
+          autoHideDuration={3000}
+          onClose={vi.fn()}
+        />
+      );
+      expect(getBar(container)).toHaveAttribute('aria-hidden', 'true');
+    });
+  });
+
+  describe('호버·포커스 일시정지 테스트 (2.2.1 — 완료 조건 3·4·5)', () => {
+    it('호버하면 카운트다운 트윈이 선다', async () => {
+      const user = userEvent.setup({ delay: null });
+      const { container } = render(
+        <Snackbar
+          open
+          message="메시지"
+          autoHideDuration={3000}
+          onClose={vi.fn()}
+        />
+      );
+      const tween = getBar(container)?.__countdownTween;
+
+      await user.hover(getSheet(container));
+
+      expect(tween?.paused()).toBe(true);
+    });
+
+    it('호버를 떼면 재개된다', async () => {
+      const user = userEvent.setup({ delay: null });
+      const { container } = render(
+        <Snackbar
+          open
+          message="메시지"
+          autoHideDuration={3000}
+          onClose={vi.fn()}
+        />
+      );
+      const sheet = getSheet(container);
+      const tween = getBar(container)?.__countdownTween;
+
+      await user.hover(sheet);
+      await user.unhover(sheet);
+
+      expect(tween?.paused()).toBe(false);
+    });
+
+    it('호버를 떼면 멈춘 자리에서 이어진다 — 처음부터 다시가 아니다', async () => {
+      const user = userEvent.setup({ delay: null });
+      const { container } = render(
+        <Snackbar
+          open
+          message="메시지"
+          autoHideDuration={3000}
+          onClose={vi.fn()}
+        />
+      );
+      const sheet = getSheet(container);
+      const tween = getBar(container)?.__countdownTween;
+
+      act(() => {
+        tween?.progress(0.4);
+      });
+
+      await user.hover(sheet);
+      expect(tween?.progress()).toBeCloseTo(0.4, 5);
+
+      await user.unhover(sheet);
+      expect(tween?.progress()).toBeCloseTo(0.4, 5);
+    });
+
+    it('action에 포커스가 있는 동안에도 선다 (키보드 경로)', () => {
+      const { container } = render(
+        <Snackbar
+          open
+          message="메시지"
+          autoHideDuration={3000}
+          onClose={vi.fn()}
+          action={<button>실행 취소</button>}
+        />
+      );
+      const tween = getBar(container)?.__countdownTween;
+      const actionButton = screen.getByText('실행 취소');
+
+      act(() => {
+        actionButton.focus();
+      });
+      expect(tween?.paused()).toBe(true);
+
+      act(() => {
+        actionButton.blur();
+      });
+      expect(tween?.paused()).toBe(false);
+    });
+
+    it('마우스와 포커스가 동시에 있으면 하나만 빠져도 재개하지 않는다', async () => {
+      const user = userEvent.setup({ delay: null });
+      const { container } = render(
+        <Snackbar
+          open
+          message="메시지"
+          autoHideDuration={3000}
+          onClose={vi.fn()}
+          action={<button>실행 취소</button>}
+        />
+      );
+      const sheet = getSheet(container);
+      const actionButton = screen.getByText('실행 취소');
+      const tween = getBar(container)?.__countdownTween;
+
+      await user.hover(sheet);
+      act(() => {
+        actionButton.focus();
+      });
+      expect(tween?.paused()).toBe(true);
+
+      await user.unhover(sheet);
+      expect(tween?.paused()).toBe(true);
+
+      act(() => {
+        actionButton.blur();
+      });
+      expect(tween?.paused()).toBe(false);
+    });
+  });
+
+  describe('축소 모드 테스트 (Ruling 14)', () => {
+    it('축소 모드에서도 카운트다운 duration이 그대로다 — 즉시 닫히지 않는다', () => {
+      installReducedMotion();
+      const handleClose = vi.fn();
+      const { container } = render(
+        <Snackbar
+          open
+          message="메시지"
+          autoHideDuration={3000}
+          onClose={handleClose}
+        />
+      );
+
+      expect(getBar(container)?.__countdownTween?.duration()).toBeCloseTo(3, 5);
       expect(handleClose).not.toHaveBeenCalled();
+    });
+
+    it('축소 모드에서는 막대 값이 스텝 단위로 끊긴다 — 연속으로 안 흐른다', () => {
+      installReducedMotion();
+      const { container } = render(
+        <Snackbar
+          open
+          message="메시지"
+          autoHideDuration={3000}
+          onClose={vi.fn()}
+        />
+      );
+      const bar = getBar(container);
+
+      // remaining = 1 - 0.53 = 0.47 → 8단 중 ceil(0.47*8)/8 = 4/8 = 0.5
+      act(() => {
+        bar?.__countdownTween?.progress(0.53);
+      });
+
+      expect(readScaleX(bar)).toBeCloseTo(0.5, 5);
+    });
+
+    it('일반 모드에서는 같은 progress에서 막대 값이 연속(비-스텝)이다', () => {
+      const { container } = render(
+        <Snackbar
+          open
+          message="메시지"
+          autoHideDuration={3000}
+          onClose={vi.fn()}
+        />
+      );
+      const bar = getBar(container);
+
+      act(() => {
+        bar?.__countdownTween?.progress(0.53);
+      });
+
+      expect(readScaleX(bar)).toBeCloseTo(0.47, 5);
     });
   });
 
@@ -425,14 +771,19 @@ describe('Snackbar', () => {
       expect(container.querySelector('[class*="content"]')).toBeInTheDocument();
     });
 
-    it('일정 시간 후 DOM에서 제거된다', () => {
+    it('퇴장 타이머가 끝나면 DOM에서 제거된다', () => {
+      // 예전엔 고정 EXIT_DURATION_MS(200ms)를 기다렸다. 지금은 Task 2의 훅이
+      // 퇴장 길이를 "등장 타임라인이 실제로 진행된 시간의 65%"로 계산한다
+      // (`useOverlayTransition.ts`). 이 테스트 환경은 GSAP 티커가 안 돌아
+      // 등장 타임라인이 progress 0에 머물러 있으므로(함정 2), 퇴장 길이도
+      // 0에 가깝다 — 충분히 큰 값으로 흘려보내 만료를 확인한다.
       const { container, rerender } = render(
         <Snackbar open message="메시지" />
       );
       rerender(<Snackbar open={false} message="메시지" />);
 
       act(() => {
-        vi.advanceTimersByTime(200);
+        vi.advanceTimersByTime(300);
       });
 
       expect(container.querySelector('[class*="content"]')).toBeNull();
@@ -443,11 +794,8 @@ describe('Snackbar', () => {
         <Snackbar open message="메시지" />
       );
       rerender(<Snackbar open={false} message="메시지" />);
-
-      act(() => {
-        vi.advanceTimersByTime(100);
-      });
       rerender(<Snackbar open message="메시지" />);
+
       act(() => {
         vi.advanceTimersByTime(300);
       });
@@ -462,8 +810,25 @@ describe('Snackbar', () => {
 
       unmount();
       act(() => {
-        vi.advanceTimersByTime(200);
+        vi.advanceTimersByTime(300);
       });
+
+      expect(errorSpy).not.toHaveBeenCalled();
+      errorSpy.mockRestore();
+    });
+
+    it('카운트다운이 있는 스낵바가 unmount돼도 에러 없이 정리된다', () => {
+      const errorSpy = vi.spyOn(console, 'error');
+      const { unmount } = render(
+        <Snackbar
+          open
+          message="메시지"
+          autoHideDuration={3000}
+          onClose={vi.fn()}
+        />
+      );
+
+      unmount();
 
       expect(errorSpy).not.toHaveBeenCalled();
       errorSpy.mockRestore();

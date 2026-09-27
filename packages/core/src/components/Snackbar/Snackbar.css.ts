@@ -1,52 +1,10 @@
-import { style, styleVariants, keyframes } from '@vanilla-extract/css';
+import { style, styleVariants } from '@vanilla-extract/css';
 import { themeContract } from '../../tokens/theme.css';
 import { focusRing } from '../../tokens/focusRing.css';
 
-// 애니메이션 정의
-const slideInFromTop = keyframes({
-  '0%': {
-    transform: 'translateY(-100%)',
-    opacity: 0,
-  },
-  '100%': {
-    transform: 'translateY(0)',
-    opacity: 1,
-  },
-});
-
-const slideInFromBottom = keyframes({
-  '0%': {
-    transform: 'translateY(100%)',
-    opacity: 0,
-  },
-  '100%': {
-    transform: 'translateY(0)',
-    opacity: 1,
-  },
-});
-
-// center 위치용 애니메이션 (translateX(-50%) 포함)
-const slideInFromTopCenter = keyframes({
-  '0%': {
-    transform: 'translateX(-50%) translateY(-100%)',
-    opacity: 0,
-  },
-  '100%': {
-    transform: 'translateX(-50%) translateY(0)',
-    opacity: 1,
-  },
-});
-
-const slideInFromBottomCenter = keyframes({
-  '0%': {
-    transform: 'translateX(-50%) translateY(100%)',
-    opacity: 0,
-  },
-  '100%': {
-    transform: 'translateX(-50%) translateY(0)',
-    opacity: 1,
-  },
-});
+// 등장 `@keyframes` 4개와 퇴장 `snackbarExit`은 M3 T3에서 GSAP 타임라인으로
+// 옮겼다(`Snackbar.tsx`의 `useOverlayTransition` 호출) — progress를 읽고
+// 중단할 수 있어야 하는데 `@keyframes`는 그게 안 된다.
 
 // 기본 스타일
 export const snackbar = style({
@@ -64,13 +22,9 @@ export const snackbar = style({
   fontWeight: themeContract.font.weight.medium,
   lineHeight: themeContract.font.lineHeight.normal,
   color: themeContract.color.primary.contrast,
-});
-
-// 퇴장 전이. M3가 되돌릴 타임라인으로 통째로 교체할 자리 — 최소한의 CSS
-// transition으로 `exit` 토큰에 소비자를 붙인다.
-export const snackbarExit = style({
-  opacity: 0,
-  transition: `opacity ${themeContract.animation.duration.base} ${themeContract.animation.easing.exit}`,
+  // 카운트다운 막대(아래 `bar`)가 각진 모서리를 갖고 있어, 안 잘라내면
+  // 둥근 하단 모서리 밖으로 살짝 튀어나온다.
+  overflow: 'hidden',
 });
 
 // Severity 스타일
@@ -95,39 +49,36 @@ export const severityStyles = styleVariants({
   },
 });
 
-// Position 스타일 (각 위치에 맞는 애니메이션 적용)
+// Position 스타일 (화면 고정 위치만 잡는다 — 등장·퇴장은 GSAP 타임라인이 맡는다)
+//
+// center 2종은 예전엔 여기서 `transform: translateX(-50%)`로 가로 중앙을
+// 잡았다. 이제 같은 요소의 `transform`을 GSAP 타임라인이 통째로 쓰므로(함정
+// 1), 정적 transform을 여기 남겨 두면 GSAP이 매 프레임 덮어써 중앙 정렬이
+// 깨진다 — `Snackbar.tsx`의 `buildTimeline`이 `xPercent: -50`을 대신 맡는다.
 export const positionStyles = styleVariants({
   'top-left': {
     top: themeContract.spacing[6],
     left: themeContract.spacing[6],
-    animation: `${slideInFromTop} ${themeContract.animation.duration.slow} ${themeContract.animation.easing.settle}`,
   },
   'top-center': {
     top: themeContract.spacing[6],
     left: '50%',
-    transform: 'translateX(-50%)',
-    animation: `${slideInFromTopCenter} ${themeContract.animation.duration.slow} ${themeContract.animation.easing.settle}`,
   },
   'top-right': {
     top: themeContract.spacing[6],
     right: themeContract.spacing[6],
-    animation: `${slideInFromTop} ${themeContract.animation.duration.slow} ${themeContract.animation.easing.settle}`,
   },
   'bottom-left': {
     bottom: themeContract.spacing[6],
     left: themeContract.spacing[6],
-    animation: `${slideInFromBottom} ${themeContract.animation.duration.slow} ${themeContract.animation.easing.settle}`,
   },
   'bottom-center': {
     bottom: themeContract.spacing[6],
     left: '50%',
-    transform: 'translateX(-50%)',
-    animation: `${slideInFromBottomCenter} ${themeContract.animation.duration.slow} ${themeContract.animation.easing.settle}`,
   },
   'bottom-right': {
     bottom: themeContract.spacing[6],
     right: themeContract.spacing[6],
-    animation: `${slideInFromBottom} ${themeContract.animation.duration.slow} ${themeContract.animation.easing.settle}`,
   },
 });
 
@@ -180,6 +131,22 @@ export const closeButton = style({
     borderRadius: themeContract.borderRadius.sm,
     opacity: 1,
   },
+});
+
+// 카운트다운 막대. `Snackbar.tsx`가 매 프레임 `transform: scaleX()`만 바꾼다
+// (완료 조건 9 — `width`를 바꾸면 레이아웃 재계산이다). 배경은 severity가
+// 이미 쓰는 `contrast` 텍스트색을 그대로 물려받는다 — 새 토큰 없이 4종
+// severity 배경 전부에서 이미 검증된 대비를 그대로 쓴다(완료 조건 8, 보고서
+// 참고). 시작 `scaleX(1)`은 첫 GSAP 틱 전 번쩍임을 막는 정적 기본값이다.
+export const bar = style({
+  position: 'absolute',
+  left: 0,
+  right: 0,
+  bottom: 0,
+  height: '3px',
+  transform: 'scaleX(1)',
+  transformOrigin: 'left',
+  backgroundColor: 'currentColor',
 });
 
 // 시각적으로만 숨기는 라이브 리전. SegmentedButtons.css.ts의 radioInput과 같은
