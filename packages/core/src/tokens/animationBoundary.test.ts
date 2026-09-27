@@ -35,33 +35,15 @@
  * 브라우저 육안 확인 항목이다.** jsdom은 `prefers-reduced-motion`을 모사하지도
  * 프레임을 그리지도 않아 vitest로 도달할 수 없다.
  */
-import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
-import { join, relative, resolve, sep } from 'node:path';
+import { existsSync, readFileSync } from 'node:fs';
+import { relative, resolve } from 'node:path';
 import { describe, it, expect } from 'vitest';
 import { easing } from './animation.css';
+import { SRC, rel, findFiles } from '../test/sourceScan';
 
-const CORE_ROOT = resolve(__dirname, '../..');
-const SRC = resolve(CORE_ROOT, 'src');
+const CORE_ROOT = resolve(SRC, '..');
 const COMPONENTS = resolve(SRC, 'components');
 const DIST = resolve(CORE_ROOT, 'dist');
-
-/** `src` 기준 posix 상대 경로. 허용 목록 키가 OS마다 달라지지 않게 한다. */
-function rel(path: string): string {
-  return relative(SRC, path).split(sep).join('/');
-}
-
-function findFiles(dir: string, accept: (name: string) => boolean): string[] {
-  const files: string[] = [];
-  for (const entry of readdirSync(dir)) {
-    const full = join(dir, entry);
-    if (statSync(full).isDirectory()) {
-      files.push(...findFiles(full, accept));
-    } else if (accept(entry)) {
-      files.push(full);
-    }
-  }
-  return files.sort();
-}
 
 const CSS_FILES = findFiles(COMPONENTS, (name) => name.endsWith('.css.ts'));
 const INLINE_FILES = findFiles(
