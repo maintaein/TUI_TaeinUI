@@ -1,26 +1,9 @@
-import { style, styleVariants, keyframes } from '@vanilla-extract/css';
+import { style, styleVariants } from '@vanilla-extract/css';
 import { themeContract } from '../../tokens/theme.css';
 import { focusRing } from '../../tokens/focusRing.css';
 
-const fadeIn = keyframes({
-  '0%': {
-    opacity: 0,
-  },
-  '100%': {
-    opacity: 1,
-  },
-});
-
-const slideIn = keyframes({
-  '0%': {
-    opacity: 0,
-    transform: 'translateY(-20px) scale(0.95)',
-  },
-  '100%': {
-    opacity: 1,
-    transform: 'translateY(0) scale(1)',
-  },
-});
+// 등장·퇴장은 CSS가 아니라 GSAP 타임라인이 소유한다(M3 T2). 키프레임은 진행 중
+// progress를 읽을 수도 되돌릴 수도 없어서 여는 도중 닫으면 요소가 점프했다.
 
 export const modalContainer = style({
   position: 'fixed',
@@ -43,16 +26,7 @@ export const backdrop = style({
   right: 0,
   bottom: 0,
   backgroundColor: themeContract.color.overlay.scrim,
-  animation: `${fadeIn} ${themeContract.animation.duration.base} ${themeContract.animation.easing.settle}`,
   zIndex: -1,
-});
-
-// 등장(duration.base)의 65% — 조항 3의 60~70% 창 안. 65%에 맞는 duration 토큰이
-// 없어(fast=75%·base=100%) calc()로 표현한다 — 리터럴과 달리 :root의
-// reduced-motion 오버라이드가 duration.base를 줄이면 이 값도 같이 줄어든다.
-export const modalBackdropExit = style({
-  opacity: 0,
-  transition: `opacity calc(${themeContract.animation.duration.base} * 0.65) ${themeContract.animation.easing.exit}`,
 });
 
 export const modalDialog = style({
@@ -61,20 +35,12 @@ export const modalDialog = style({
   borderRadius: themeContract.borderRadius.lg,
   boxShadow: themeContract.shadow.xl,
   maxWidth: '100%',
-  animation: `${slideIn} ${themeContract.animation.duration.slow} ${themeContract.animation.easing.settle}`,
   outline: 'none',
   margin: 'auto 0',
 
   ':focus': {
     outline: 'none',
   },
-});
-
-// 퇴장 전이. M3가 되돌릴 타임라인으로 통째로 교체할 자리 — 최소한의 CSS
-// transition으로 `exit` 토큰에 소비자를 붙인다.
-export const modalDialogExit = style({
-  opacity: 0,
-  transition: `opacity ${themeContract.animation.duration.base} ${themeContract.animation.easing.exit}`,
 });
 
 export const sizeStyles = styleVariants({

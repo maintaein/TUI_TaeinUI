@@ -1,4 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
+import { useRef } from 'react';
 import { render, screen, fireEvent, act } from '@testing-library/react';
 import { Modal } from './index';
 
@@ -289,17 +292,176 @@ describe('Modal', () => {
       expect(backdrop).toBeInTheDocument();
     });
 
-    it('닫히는 동안 backdrop에도 퇴장 클래스가 붙는다', () => {
-      const { rerender } = render(<Modal {...defaultProps} open={true} />);
-      expect(
-        document.querySelector('[data-backdrop="true"]')?.className
-      ).not.toMatch(/modalBackdropExit/);
+    // 예전엔 퇴장이 `modalBackdropExit` 클래스였고 이 자리에서 클래스 유무를
+    // 단언했다. M3 T2가 등장·퇴장을 한 GSAP 타임라인의 양방향으로 바꿨으므로
+    // 퇴장 클래스는 존재하지 않는다 — 단언 대상을 "타임라인이 상태를 소유한다"로
+    // 옮긴다. 퇴장이 재생될 자리를 남기는지는 아래 `언마운트 지연 테스트`가 잠근다.
+    it('등장 시작 상태를 CSS가 아니라 타임라인이 소유한다', () => {
+      render(<Modal {...defaultProps} />);
 
-      rerender(<Modal {...defaultProps} open={false} />);
+      const backdrop = document.querySelector<HTMLElement>(
+        '[data-backdrop="true"]'
+      );
+      const dialog = screen.getByRole('dialog');
 
-      expect(
-        document.querySelector('[data-backdrop="true"]')?.className
-      ).toMatch(/modalBackdropExit/);
+      // fromTo의 시작값은 만들어지는 순간 인라인으로 박힌다(immediateRender) —
+      // 첫 페인트가 이미 닫힌 상태라 열린 판이 한 프레임 번쩍이지 않는다.
+      expect(backdrop?.style.opacity).toBe('0');
+      expect(dialog.style.opacity).toBe('0');
+      expect(dialog.style.transform).toContain('scale(0.95, 0.95)');
+    });
+
+    it('CSS가 등장·퇴장 모션을 갖지 않는다 (명제 조항 1)', () => {
+      const source = readFileSync(resolve(__dirname, 'Modal.css.ts'), 'utf-8');
+
+      expect(source).not.toMatch(/keyframes/);
+      expect(source).not.toMatch(/animation:/);
+      expect(source).not.toMatch(/export const \w*Exit\w* = style/);
+    });
+  });
+
+  describe('triggerRef — 버튼 자리에서 자란다', () => {
+    /**
+     * jsdom은 레이아웃을 구현하지 않아 모든 getBoundingClientRect가 0을 준다.
+     * matchMedia와 같은 성격의 환경 보급이다 — 협력 객체를 가짜로 바꾸는 게
+     * 아니라, 이 환경에 없는 레이아웃 값을 넣어 준다.
+     */
+    const installLayout = (
+      trigger: { left: number; top: number; width: number; height: number },
+      dialogBox: { left: number; top: number; width: number; height: number }
+    ) => {
+      const toRect = (box: {
+        left: number;
+        top: number;
+        width: number;
+        height: number;
+      }) =>
+        ({
+          ...box,
+          x: box.left,
+          y: box.top,
+          right: box.left + box.width,
+          bottom: box.top + box.height,
+          toJSON: () => box,
+        }) as DOMRect;
+
+      vi.spyOn(Element.prototype, 'getBoundingClientRect').mockImplementation(
+        function (this: Element) {
+          return toRect(this.matches('[role="dialog"]') ? dialogBox : trigger);
+        }
+      );
+    };
+
+    afterEach(() => {
+      vi.restoreAllMocks();
+    });
+
+    const TriggeredModal = ({
+      open,
+      withRef = true,
+    }: {
+      open: boolean;
+      withRef?: boolean;
+    }) => {
+      const triggerRef = useRef<HTMLButtonElement>(null);
+      return (
+        <>
+          <button ref={triggerRef} type="button">
+            열기
+          </button>
+          <Modal
+            open={open}
+            onClose={() => {}}
+            triggerRef={withRef ? triggerRef : undefined}
+          >
+            Modal Content
+          </Modal>
+        </>
+      );
+    };
+
+    it('다이얼로그 중심이 트리거 중심으로 당겨진 상태에서 시작한다', () => {
+      // 트리거 중심 (140, 210), 다이얼로그 중심 (500, 300) → 차이 (-360, -90)
+      installLayout(
+        { left: 100, top: 200, width: 80, height: 20 },
+        { left: 200, top: 100, width: 600, height: 400 }
+      );
+
+      render(<TriggeredModal open />);
+
+      const dialog = screen.getByRole('dialog');
+      expect(dialog.style.transform).toBe(
+        'translate(-360px, -90px) scale(0.8, 0.8)'
+      );
+    });
+
+    it('transform만 쓴다 — 레이아웃 속성은 건드리지 않는다', () => {
+      installLayout(
+        { left: 100, top: 200, width: 80, height: 20 },
+        { left: 200, top: 100, width: 600, height: 400 }
+      );
+
+      render(<TriggeredModal open />);
+
+      const dialog = screen.getByRole('dialog');
+      expect(dialog.style.top).toBe('');
+      expect(dialog.style.left).toBe('');
+      expect(dialog.style.width).toBe('');
+      expect(dialog.style.height).toBe('');
+    });
+
+    it('글자가 뭉개지지 않는 배율에서 시작한다 — 비율이 아무리 작아도 0.8이다', () => {
+      // 트리거 폭/다이얼로그 폭 = 8/600 ≈ 0.013. 비율을 그대로 쓰면 본문이 사라진다.
+      installLayout(
+        { left: 0, top: 0, width: 8, height: 8 },
+        { left: 200, top: 100, width: 600, height: 400 }
+      );
+
+      render(<TriggeredModal open />);
+
+      expect(screen.getByRole('dialog').style.transform).toContain(
+        'scale(0.8, 0.8)'
+      );
+    });
+
+    it('triggerRef가 없으면 가운데에서 자란다 — 예외를 던지지 않는다', () => {
+      installLayout(
+        { left: 100, top: 200, width: 80, height: 20 },
+        { left: 200, top: 100, width: 600, height: 400 }
+      );
+
+      render(<TriggeredModal open withRef={false} />);
+
+      expect(screen.getByRole('dialog').style.transform).toBe(
+        'translate(0px, -20px) scale(0.95, 0.95)'
+      );
+    });
+
+    it('문서에서 떼어진 트리거면 가운데에서 자란다', () => {
+      installLayout(
+        { left: 100, top: 200, width: 80, height: 20 },
+        { left: 200, top: 100, width: 600, height: 400 }
+      );
+      const detached = { current: document.createElement('button') };
+
+      render(
+        <Modal open onClose={() => {}} triggerRef={detached}>
+          Modal Content
+        </Modal>
+      );
+
+      expect(screen.getByRole('dialog').style.transform).toBe(
+        'translate(0px, -20px) scale(0.95, 0.95)'
+      );
+    });
+
+    it('레이아웃이 없는 환경(크기 0)이면 가운데에서 자란다', () => {
+      // jsdom 기본값 그대로 — getBoundingClientRect를 보급하지 않는다.
+      render(<TriggeredModal open />);
+
+      expect(screen.getByRole('dialog').style.transform).toBe(
+        'translate(0px, -20px) scale(0.95, 0.95)'
+      );
     });
   });
 

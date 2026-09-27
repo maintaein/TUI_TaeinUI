@@ -380,29 +380,35 @@ describe('SideSheet', () => {
   describe('퇴장 메커니즘 잠금', () => {
     // jsdom은 애니메이션을 돌리지도 계산값을 주지도 않아 소스 텍스트를 읽는다
     // (tokens/animationBoundary.test.ts와 같은 방식).
-    it('퇴장 스타일이 일회성 키프레임이 아니라 전이다 (명제 조항 1)', () => {
+    // M3 T2 전까지 퇴장은 CSS transition 클래스였고 이 검사가 그 존재를 잠갔다.
+    // 지금은 등장·퇴장이 한 GSAP 타임라인의 양방향이므로 잠글 대상이 뒤집힌다 —
+    // CSS가 모션을 **다시 갖지 않는다**. 키프레임이 돌아오면 조항 1이 또 깨진다
+    // (진행 중 progress를 읽을 수 없어 중단 지점에서 점프한다).
+    it('CSS가 등장·퇴장 모션을 갖지 않는다 (명제 조항 1)', () => {
       const source = readFileSync(
         resolve(__dirname, 'SideSheet.css.ts'),
         'utf-8'
       );
-      const exits = [
-        ...source.matchAll(
-          /export const (\w*Exit\w*) = style\(\{([\s\S]*?)\}\);/g
-        ),
-      ];
 
-      expect(exits.map((m) => m[1])).toEqual([
-        'backdropExit',
-        'sideSheetExitRight',
-        'sideSheetExitLeft',
-      ]);
-      for (const [, name, body] of exits) {
-        expect(body, `${name}에 퇴장 전이가 없다`).toMatch(/transition:/);
-        expect(
-          body,
-          `${name}이 아직 되돌릴 수 없는 일회성 키프레임이다`
-        ).not.toMatch(/animation:/);
-      }
+      expect(source).not.toMatch(/keyframes/);
+      expect(source).not.toMatch(/animation:/);
+      expect(source).not.toMatch(/export const \w*Exit\w* = style/);
+    });
+
+    it('시트 시작 위치를 타임라인이 소유한다 — 오른쪽은 화면 오른쪽 밖', () => {
+      render(<SideSheet {...defaultProps} position="right" />);
+
+      expect(screen.getByRole('dialog').style.transform).toBe(
+        'translate(100%, 0%)'
+      );
+    });
+
+    it('시트 시작 위치를 타임라인이 소유한다 — 왼쪽은 화면 왼쪽 밖', () => {
+      render(<SideSheet {...defaultProps} position="left" />);
+
+      expect(screen.getByRole('dialog').style.transform).toBe(
+        'translate(-100%, 0%)'
+      );
     });
   });
 

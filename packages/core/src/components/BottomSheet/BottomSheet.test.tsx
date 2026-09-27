@@ -398,7 +398,11 @@ describe('BottomSheet', () => {
     });
   });
 
-  describe('드래그 닫기 폴백 타이머', () => {
+  // 예전엔 드래그 닫기가 자체 CSS transition을 걸고 `transitionend`를 기다렸고,
+  // 그 이벤트가 안 올 때를 위한 300ms 폴백 타이머가 있었다. M3 T2가 닫기를
+  // 타임라인에 넘겨 전이도 폴백 타이머도 사라졌으므로, 이 자리는 그 둘이
+  // 없어도 닫힘이 확정된다는 사실을 잠근다 — 폴백이 지키려던 바로 그 성질이다.
+  describe('드래그 닫기는 애니메이션 이벤트에 기대지 않는다', () => {
     beforeEach(() => {
       vi.useFakeTimers();
     });
@@ -407,7 +411,7 @@ describe('BottomSheet', () => {
       vi.useRealTimers();
     });
 
-    it('transitionend가 오지 않아도 폴백 타이머로 닫힌다', () => {
+    it('transitionend가 오지 않아도 놓는 즉시 닫힘이 확정된다', () => {
       render(<BottomSheet {...defaultProps} enableDrag />);
       const sheet = screen.getByRole('dialog');
 
@@ -415,15 +419,11 @@ describe('BottomSheet', () => {
       fireEvent.touchMove(sheet, { touches: [{ clientY: 300 }] });
       fireEvent.touchEnd(sheet, { changedTouches: [{ clientY: 300 }] });
 
-      // transitionend를 일부러 발생시키지 않는다 — 드래그가 중단된 상황을 흉내 낸다.
-      act(() => {
-        vi.advanceTimersByTime(300);
-      });
-
+      // transitionend를 일부러 발생시키지 않는다 — 기다리는 이벤트가 없다.
       expect(defaultProps.onClose).toHaveBeenCalledTimes(1);
     });
 
-    it('transitionend가 먼저 오면 폴백 타이머가 중복 호출하지 않는다', () => {
+    it('시간이 더 흘러도 onClose가 중복 호출되지 않는다', () => {
       render(<BottomSheet {...defaultProps} enableDrag />);
       const sheet = screen.getByRole('dialog');
 
@@ -495,28 +495,90 @@ describe('BottomSheet', () => {
   describe('퇴장 메커니즘 잠금', () => {
     // jsdom은 애니메이션을 돌리지도 계산값을 주지도 않아 소스 텍스트를 읽는다
     // (tokens/animationBoundary.test.ts와 같은 방식).
-    it('퇴장 스타일이 일회성 키프레임이 아니라 전이다 (명제 조항 1)', () => {
+    // M3 T2 전까지 퇴장은 CSS transition 클래스였고 이 검사가 그 존재를 잠갔다.
+    // 지금은 등장·퇴장이 한 GSAP 타임라인의 양방향이므로 잠글 대상이 뒤집힌다 —
+    // CSS가 모션을 **다시 갖지 않는다**. 키프레임이 돌아오면 조항 1이 또 깨지고
+    // (진행 중 progress를 못 읽어 중단 지점에서 점프한다) 드래그가 다시 같은
+    // transform을 놓고 다투게 된다.
+    it('CSS가 등장·퇴장 모션을 갖지 않는다 (명제 조항 1)', () => {
       const source = readFileSync(
         resolve(__dirname, 'BottomSheet.css.ts'),
         'utf-8'
       );
-      const exits = [
-        ...source.matchAll(
-          /export const (\w*Exit\w*) = style\(\{([\s\S]*?)\}\);/g
-        ),
-      ];
 
-      expect(exits.map((m) => m[1])).toEqual([
-        'backdropExit',
-        'bottomSheetExit',
-      ]);
-      for (const [, name, body] of exits) {
-        expect(body, `${name}에 퇴장 전이가 없다`).toMatch(/transition:/);
-        expect(
-          body,
-          `${name}이 아직 되돌릴 수 없는 일회성 키프레임이다`
-        ).not.toMatch(/animation:/);
-      }
+      expect(source).not.toMatch(/keyframes/);
+      expect(source).not.toMatch(/animation:/);
+      expect(source).not.toMatch(/export const \w*Exit\w* = style/);
+    });
+
+    it('시트 시작 위치를 타임라인이 소유한다 — 화면 아래 밖에서 시작한다', () => {
+      render(<BottomSheet {...defaultProps} />);
+
+      expect(screen.getByRole('dialog').style.transform).toBe(
+        'translate(0%, 100%)'
+      );
+    });
+  });
+
+  describe('축소 선호 — 드래그 복귀', () => {
+    /** jsdom은 matchMedia를 구현하지 않는다 — 축소 선호 경로를 열려면 깔아야 한다. */
+    beforeEach(() => {
+      vi.stubGlobal(
+        'matchMedia',
+        (media: string): MediaQueryList =>
+          ({
+            matches: true,
+            media,
+            addEventListener: () => {},
+            removeEventListener: () => {},
+          }) as unknown as MediaQueryList
+      );
+    });
+
+    afterEach(() => {
+      vi.unstubAllGlobals();
+    });
+
+    it('문턱 아래에서 놓으면 트윈 없이 즉시 쉬는 자리로 붙는다', () => {
+      render(<BottomSheet {...defaultProps} enableDrag />);
+      const sheet = screen.getByRole('dialog');
+
+      fireEvent.touchStart(sheet, { touches: [{ clientY: 100 }] });
+      fireEvent.touchMove(sheet, { touches: [{ clientY: 160 }] });
+      expect(sheet.style.transform).toContain('60px');
+
+      fireEvent.touchEnd(sheet, { changedTouches: [{ clientY: 160 }] });
+
+      // 게이트가 트윈을 끝 상태로 확정하고 죽인다 — 중간 어딘가에 멈추지 않는다.
+      expect(sheet.style.transform).not.toContain('60px');
+      expect(defaultProps.onClose).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('드래그와 타임라인의 채널 분리', () => {
+    it('드래그는 y(px)에 쓰고 타임라인의 yPercent를 지우지 않는다', () => {
+      render(<BottomSheet {...defaultProps} enableDrag />);
+      const sheet = screen.getByRole('dialog');
+
+      fireEvent.touchStart(sheet, { touches: [{ clientY: 100 }] });
+      fireEvent.touchMove(sheet, { touches: [{ clientY: 160 }] });
+
+      // 두 채널이 한 transform으로 합성된다 — 손가락이 60px 끌었고 타임라인의
+      // 100%는 그대로 남아 있다. 예전처럼 style.transform에 직접 쓰면
+      // yPercent가 지워져 시트가 튀었다.
+      expect(sheet.style.transform).toContain('60px');
+      expect(sheet.style.transform).toContain('100%');
+    });
+
+    it('위로 끌면 아무 채널도 움직이지 않는다', () => {
+      render(<BottomSheet {...defaultProps} enableDrag />);
+      const sheet = screen.getByRole('dialog');
+      const before = sheet.style.transform;
+
+      fireEvent.touchStart(sheet, { touches: [{ clientY: 300 }] });
+      fireEvent.touchMove(sheet, { touches: [{ clientY: 100 }] });
+
+      expect(sheet.style.transform).toBe(before);
     });
   });
 

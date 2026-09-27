@@ -1,21 +1,18 @@
 import {
   useMemo,
-  useEffect,
-  useState,
   forwardRef,
   useId,
   useRef,
   type ReactNode,
   type HTMLAttributes,
+  type RefObject,
 } from 'react';
 import clsx from 'clsx';
 import { createPortal } from 'react-dom';
 import {
   backdrop,
-  modalBackdropExit,
   modalContainer,
   modalDialog,
-  modalDialogExit,
   sizeStyles,
   modalHeader as modalHeaderStyle,
   modalHeaderContent,
@@ -27,12 +24,64 @@ import {
 } from './Modal.css';
 import { useFocusTrap } from '../../_internal/useFocusTrap';
 import { createOverlayContext } from '../../_internal/createOverlayContext';
+import {
+  createOverlayTimeline,
+  useOverlayTransition,
+} from '../../_internal/useOverlayTransition';
+import { gsapDuration, gsapEasing } from '../../tokens/gsapEasing';
 
-// 퇴장 전이(exit CSS transition, duration.base)와 맞춘다 — 등장(slow, 300ms)의
-// 66.7%로, 모션 명세 조항 3의 "퇴장은 등장의 60~70%" 범위를 만족한다.
-// `themeContract.animation.duration.base`와 같은 값이다 — 한쪽을 바꾸면 다른
-// 쪽도 바꿔야 CSS 퇴장이 끝나기 전에 DOM이 사라지거나 그 반대가 된다.
-const EXIT_DURATION_MS = 200;
+/**
+ * 트리거를 못 읽을 때의 시작 상태 — 화면 가운데에서 살짝 위·작게 자란다.
+ * 이전 `slideIn` 키프레임의 0% 프레임과 같은 값이다(y -20px · scale 0.95).
+ */
+const CENTER_START = { opacity: 0, x: 0, y: -20, scale: 0.95 } as const;
+
+/**
+ * 트리거에서 자랄 때의 시작 배율.
+ *
+ * 버튼 폭 / 다이얼로그 폭 비율(보통 0.15~0.25)을 그대로 쓰면 본문 16px이 3px로
+ * 찌그러져 첫 프레임이 글자 뭉개진 판이 된다. 가독성이 유일한 하드 제약이므로
+ * 배율을 고정하고, "저 버튼에서 나왔다"는 신호는 **위치**(중심 이동)가 맡는다 —
+ * 실제로 출처를 읽히게 하는 채널도 크기보다 위치다. 0.8이면 16px 본문이 최악의
+ * 프레임에서도 12.8px로, 정지 화면으로 얼려 놓아도 읽힌다.
+ */
+const GROW_SCALE = 0.8;
+
+/**
+ * 등장 시작 상태. 트리거를 읽을 수 있으면 다이얼로그 중심을 트리거 중심으로
+ * 당겨 두고(transform만 쓴다 — top/left/width/height는 건드리지 않아 레이아웃이
+ * 다시 계산되지 않는다), 못 읽으면 조용히 `CENTER_START`로 물러난다.
+ *
+ * 못 읽는 경우: ref 미전달 · `.current`가 null · 문서에서 떼어진 요소 ·
+ * 크기 0(숨겨졌거나 레이아웃 없는 환경). 어느 쪽도 예외를 던지지 않는다 —
+ * 모달이 열리지 않는 것보다 가운데에서 자라는 게 낫다.
+ */
+const enterStart = (
+  dialog: HTMLElement,
+  trigger: HTMLElement | null | undefined
+): { opacity: number; x: number; y: number; scale: number } => {
+  if (!trigger?.isConnected) return CENTER_START;
+
+  const from = trigger.getBoundingClientRect();
+  const to = dialog.getBoundingClientRect();
+  if (
+    from.width === 0 ||
+    from.height === 0 ||
+    to.width === 0 ||
+    to.height === 0
+  ) {
+    return CENTER_START;
+  }
+
+  // translate는 scale보다 먼저 적용되고(GSAP/CSS 합성 순서) 배율은 요소 중심을
+  // 기준으로 돈다 — 두 중심의 차이를 그대로 넣으면 중심이 정확히 겹친다.
+  return {
+    opacity: 0,
+    x: from.left + from.width / 2 - (to.left + to.width / 2),
+    y: from.top + from.height / 2 - (to.top + to.height / 2),
+    scale: GROW_SCALE,
+  };
+};
 
 // Context로 onClose·titleId 전달 (Header의 닫기 버튼, Title의 id 연결에서 사용)
 interface ModalContextValue {
@@ -58,6 +107,11 @@ export interface ModalProps extends Omit<
   size?: 'sm' | 'md' | 'lg' | 'xl' | 'full';
   /** 배경 클릭으로 닫기 허용 @default true */
   closeOnBackdropClick?: boolean;
+  /**
+   * 모달을 연 버튼. 주면 다이얼로그가 그 버튼 자리에서 자라 나온다 —
+   * 어디서 열렸는지가 위치로 보인다. 읽을 수 없으면 조용히 가운데에서 자란다.
+   */
+  triggerRef?: RefObject<HTMLElement | null>;
   /** ESC 키로 닫기 허용 @default true */
   closeOnEscape?: boolean;
   /** 제목 요소 ID 참조 (접근성) */
@@ -85,6 +139,7 @@ const ModalRoot = ({
   size = 'md',
   closeOnBackdropClick = true,
   closeOnEscape = true,
+  triggerRef,
   'aria-labelledby': ariaLabelledby,
   'aria-describedby': ariaDescribedby,
   'aria-label': ariaLabel,
@@ -96,26 +151,48 @@ const ModalRoot = ({
   ...props
 }: ModalProps) => {
   const dialogRef = useRef<HTMLDivElement>(null);
+  const backdropRef = useRef<HTMLDivElement>(null);
   const titleId = useId();
 
-  // open이 꺼져도 DOM을 즉시 지우지 않고 한 틱 늦춰 언마운트한다 — 퇴장 전이가
-  // 재생될 자리를 남겨 둔다. 애니메이션 종료 이벤트가 아니라 타이머로 배선해
-  // 빠른 연속 개폐에서도 정확성이 이벤트 발생 여부에 기대지 않는다.
-  const [shouldRender, setShouldRender] = useState(open);
+  // 백드롭과 다이얼로그를 **한 타임라인**에 넣는다. 따로 두면 여는 도중 닫았을 때
+  // 둘의 progress가 갈라져 배경만 남거나 판만 남는 프레임이 생긴다.
+  const { shouldRender } = useOverlayTransition({
+    open,
+    buildTimeline: () => {
+      const timeline = createOverlayTimeline();
+      const backdropEl = backdropRef.current;
+      const dialog = dialogRef.current;
 
-  if (open && !shouldRender) {
-    setShouldRender(true);
-  }
-
-  useEffect(() => {
-    if (open || !shouldRender) return;
-
-    const timer = setTimeout(() => {
-      setShouldRender(false);
-    }, EXIT_DURATION_MS);
-
-    return () => clearTimeout(timer);
-  }, [open, shouldRender]);
+      if (backdropEl) {
+        timeline.fromTo(
+          backdropEl,
+          { opacity: 0 },
+          {
+            opacity: 1,
+            duration: gsapDuration.base,
+            ease: gsapEasing.settle,
+          },
+          0
+        );
+      }
+      if (dialog) {
+        timeline.fromTo(
+          dialog,
+          enterStart(dialog, triggerRef?.current),
+          {
+            opacity: 1,
+            x: 0,
+            y: 0,
+            scale: 1,
+            duration: gsapDuration.slow,
+            ease: gsapEasing.settle,
+          },
+          0
+        );
+      }
+      return timeline;
+    },
+  });
 
   useFocusTrap({ open, onClose, closeOnEscape, containerRef: dialogRef });
 
@@ -191,8 +268,9 @@ const ModalRoot = ({
     <ModalContext.Provider value={contextValue}>
       <div className={modalContainer}>
         <div
+          ref={backdropRef}
           role="presentation"
-          className={clsx(backdrop, !open && modalBackdropExit)}
+          className={backdrop}
           onClick={handleBackdropClick}
           data-backdrop="true"
           aria-hidden="true"
@@ -205,15 +283,10 @@ const ModalRoot = ({
           aria-labelledby={labelledby}
           aria-describedby={ariaDescribedby}
           aria-label={ariaLabel}
-          // 퇴장 중(open=false, shouldRender=true)엔 DOM이 200ms 더 남아있어도
+          // 퇴장 중(open=false, shouldRender=true)엔 DOM이 잠깐 더 남아있어도
           // 포커스가 그 안으로 들어가거나 클릭될 수 없게 inert로 막는다.
           inert={!open}
-          className={clsx(
-            modalDialog,
-            sizeStyles[size],
-            !open && modalDialogExit,
-            className
-          )}
+          className={clsx(modalDialog, sizeStyles[size], className)}
           onClick={(e) => e.stopPropagation()}
           {...props}
         >

@@ -1,7 +1,6 @@
 import {
   useEffect,
   useRef,
-  useState,
   useMemo,
   useId,
   forwardRef,
@@ -10,14 +9,11 @@ import {
 } from 'react';
 import { createPortal } from 'react-dom';
 import clsx from 'clsx';
+import { gsap } from 'gsap';
 import {
   backdrop,
-  backdropEnter,
-  backdropExit,
   bottomSheetContainer,
   bottomSheet as bottomSheetStyle,
-  bottomSheetEnter,
-  bottomSheetExit,
   heightStyles,
   handle,
   header,
@@ -29,6 +25,13 @@ import { IconButton } from '../IconButton';
 import { Icon } from '../Icon';
 import { useFocusTrap } from '../../_internal/useFocusTrap';
 import { createOverlayContext } from '../../_internal/createOverlayContext';
+import {
+  createOverlayTimeline,
+  useOverlayTransition,
+} from '../../_internal/useOverlayTransition';
+import { gateMotion } from '../../hooks/gateMotion';
+import { useReducedMotion } from '../../hooks/useReducedMotion';
+import { gsapDuration, gsapEasing } from '../../tokens/gsapEasing';
 
 interface BottomSheetContextValue {
   onClose: () => void;
@@ -38,11 +41,8 @@ interface BottomSheetContextValue {
 const [BottomSheetContext, useBottomSheetContext] =
   createOverlayContext<BottomSheetContextValue>('BottomSheet');
 
-// 퇴장 전이(exit CSS transition, duration.base)와 맞춘다 — 등장(slow, 300ms)의
-// 66.7%로, 모션 명세 조항 3의 "퇴장은 등장의 60~70%" 범위를 만족한다.
-// `themeContract.animation.duration.base`와 같은 값이다 — 한쪽을 바꾸면 다른
-// 쪽도 바꿔야 CSS 퇴장이 끝나기 전에 DOM이 사라지거나 그 반대가 된다.
-const EXIT_DURATION_MS = 200;
+/** 이 거리보다 아래로 끌고 놓으면 닫는다. */
+const DRAG_CLOSE_THRESHOLD_PX = 100;
 
 /** 화면 하단에서 올라오는 시트 컴포넌트. Compound 패턴(BottomSheet.Header/Content) 또는 Flat 패턴(title prop) 지원 */
 export interface BottomSheetProps extends Omit<
@@ -89,35 +89,17 @@ const BottomSheetRoot = ({
   ...props
 }: BottomSheetProps) => {
   const sheetRef = useRef<HTMLDivElement>(null);
+  const backdropRef = useRef<HTMLDivElement>(null);
   const titleId = useId();
 
   const startYRef = useRef<number>(0);
   const isDraggingRef = useRef(false);
-  const isClosingViaDragRef = useRef(false);
-  const dragCloseFallbackRef = useRef<ReturnType<typeof setTimeout> | null>(
-    null
-  );
+  /** 놓은 뒤 쉬는 자리로 돌아가는 트윈. 다시 잡으면 죽인다. */
+  const restTweenRef = useRef<gsap.core.Tween | null>(null);
+  const reduced = useReducedMotion();
 
-  const [shouldRender, setShouldRender] = useState(open);
-
-  if (open && !shouldRender) {
-    setShouldRender(true);
-  }
-
-  useEffect(() => {
-    if (open) {
-      isClosingViaDragRef.current = false;
-    } else if (!open && sheetRef.current) {
-      if (!isClosingViaDragRef.current) {
-        sheetRef.current.style.transform = '';
-        sheetRef.current.style.transition = '';
-        sheetRef.current.style.animation = '';
-      }
-    }
-  }, [open]);
-
-  // 접근성(포커스 트랩 + ESC) 및 스크롤 제어 — 퇴장 전이가 끝난 뒤 포커스를
-  // 복원해야 하므로 restoreFocusOnClose는 false로 두고, 아래 언마운트 타이머에서
+  // 접근성(포커스 트랩 + ESC) 및 스크롤 제어 — 퇴장이 끝난 뒤 포커스를 복원해야
+  // 하므로 restoreFocusOnClose는 false로 두고, 훅의 onExited에서
   // previousActiveElementRef를 직접 사용해 복원한다(기존 타이밍 그대로 유지).
   const { previousActiveElementRef } = useFocusTrap({
     open,
@@ -127,19 +109,36 @@ const BottomSheetRoot = ({
     restoreFocusOnClose: false,
   });
 
-  // open이 꺼져도 DOM을 즉시 지우지 않고 퇴장 전이가 재생될 자리를 남겨 둔다.
-  // 애니메이션 종료 이벤트가 아니라 타이머로 배선해, animationcancel로
-  // animationend가 오지 않으면 시트가 영영 안 닫히던 경로를 없앤다.
-  useEffect(() => {
-    if (open || !shouldRender) return;
+  // 백드롭과 시트를 한 타임라인에 넣는다. 시트는 `yPercent`(시트 높이 기준)를
+  // 쓰고 드래그는 `y`(px)를 쓴다 — GSAP이 두 채널을 하나의 transform으로
+  // 합성하므로 손가락과 타임라인이 같은 속성을 놓고 다투지 않는다.
+  const { shouldRender } = useOverlayTransition({
+    open,
+    buildTimeline: () => {
+      const timeline = createOverlayTimeline();
+      const backdropEl = backdropRef.current;
+      const sheet = sheetRef.current;
 
-    const timer = setTimeout(() => {
-      setShouldRender(false);
-      previousActiveElementRef.current?.focus();
-    }, EXIT_DURATION_MS);
-
-    return () => clearTimeout(timer);
-  }, [open, shouldRender, previousActiveElementRef]);
+      if (backdropEl) {
+        timeline.fromTo(
+          backdropEl,
+          { opacity: 0 },
+          { opacity: 1, duration: gsapDuration.base, ease: gsapEasing.settle },
+          0
+        );
+      }
+      if (sheet) {
+        timeline.fromTo(
+          sheet,
+          { yPercent: 100 },
+          { yPercent: 0, duration: gsapDuration.slow, ease: gsapEasing.settle },
+          0
+        );
+      }
+      return timeline;
+    },
+    onExited: () => previousActiveElementRef.current?.focus(),
+  });
 
   //드래그 제어 로직
   useEffect(() => {
@@ -148,49 +147,43 @@ const BottomSheetRoot = ({
     const sheet = sheetRef.current;
     if (!sheet) return;
 
+    // 손가락을 1:1로 따라가는 쓰기. 트윈이 아니라 즉시 쓰기라 추종이 늦지 않고,
+    // `style.transform`에 직접 쓰는 것과 달리 타임라인의 `yPercent`를 지우지
+    // 않는다 — GSAP이 같은 transform 캐시를 갱신해 두 채널을 합성한다.
+    const dragTo = gsap.quickSetter(sheet, 'y', 'px') as (
+      value: number
+    ) => void;
+
+    /** 쉬는 자리(y=0)로 되돌린다. 축소 선호면 트윈 없이 즉시 붙는다. */
+    const restToY0 = () => {
+      restTweenRef.current = gateMotion(reduced, () =>
+        gsap.to(sheet, {
+          y: 0,
+          duration: gsapDuration.fast,
+          ease: gsapEasing.settle,
+        })
+      );
+    };
+
+    // 드래그로 닫히던 시트가 퇴장 도중 다시 열리면 손가락이 남긴 오프셋이 그대로
+    // 남는다 — 열릴 때마다 쉬는 자리로 데려온다(갓 마운트된 시트는 이미 0이라
+    // 눈에 보이는 변화가 없다).
+    restToY0();
+
     const finishDrag = (diff: number) => {
       isDraggingRef.current = false;
 
-      if (diff > 100) {
-        isClosingViaDragRef.current = true;
-
-        // 드래그로 닫기 성공
-        sheet.style.transition = 'transform 0.2s ease-out';
-        sheet.style.transform = 'translateY(100%)';
-
-        let settled = false;
-        const settle = () => {
-          if (settled) return;
-          settled = true;
-
-          sheet.removeEventListener('transitionend', handleTransitionEnd);
-          if (dragCloseFallbackRef.current) {
-            clearTimeout(dragCloseFallbackRef.current);
-            dragCloseFallbackRef.current = null;
-          }
-
-          setShouldRender(false);
-          onClose();
-        };
-
-        const handleTransitionEnd = () => settle();
-        sheet.addEventListener('transitionend', handleTransitionEnd);
-
-        // transitionend 폴백: 드래그가 중단돼 transition이 시작되지 않으면
-        // 시트가 영영 안 닫히는 것을 막는다. 위 transition(0.2s)보다 여유를 둬
-        // 정상 케이스에선 transitionend가 먼저 오게 한다.
-        dragCloseFallbackRef.current = setTimeout(settle, 300);
-      } else {
-        // 원위치로 복구
-        sheet.style.transition = 'transform 0.2s ease-out';
-        sheet.style.transform = 'translateY(0)';
-        const handleTransitionEnd = () => {
-          sheet.removeEventListener('transitionend', handleTransitionEnd);
-          sheet.style.transition = '';
-        };
-        sheet.addEventListener('transitionend', handleTransitionEnd);
+      if (diff > DRAG_CLOSE_THRESHOLD_PX) {
+        // 닫기는 타임라인에 넘긴다 — 시트는 손가락이 멈춘 자리에서 그대로
+        // 이어 내려간다(드래그가 만든 y 오프셋은 그대로 둔다. 화면 밖으로
+        // 나가는 방향이라 되돌리면 오히려 위로 튀어오른다). 자체 전이를 걸면
+        // 타임라인과 transform을 놓고 다툰다.
+        onClose();
+        return;
       }
+      restToY0();
     };
+
     const handleTouchStart = (e: TouchEvent) => {
       const target = e.target as HTMLElement;
       const isInteractive = target.closest(
@@ -199,16 +192,15 @@ const BottomSheetRoot = ({
       if (isInteractive) return;
       startYRef.current = e.touches[0].clientY;
       isDraggingRef.current = true;
-      sheet.style.transition = '';
-      sheet.style.animation = 'none';
-      sheet.style.transform = 'translateY(0)';
+      restTweenRef.current?.kill();
+      restTweenRef.current = null;
     };
 
     const handleTouchMove = (e: TouchEvent) => {
       if (!isDraggingRef.current) return;
       const diff = e.touches[0].clientY - startYRef.current;
       if (diff > 0) {
-        sheet.style.transform = `translateY(${diff}px)`;
+        dragTo(diff);
       }
     };
 
@@ -228,9 +220,8 @@ const BottomSheetRoot = ({
       if (isInteractive) return;
       startYRef.current = e.clientY;
       isDraggingRef.current = true;
-      sheet.style.transition = '';
-      sheet.style.animation = 'none';
-      sheet.style.transform = 'translateY(0)';
+      restTweenRef.current?.kill();
+      restTweenRef.current = null;
     };
 
     // mousemove/mouseup은 document에 등록 — 마우스가 시트 밖으로 나가도 감지
@@ -238,7 +229,7 @@ const BottomSheetRoot = ({
       if (!isDraggingRef.current) return;
       const diff = e.clientY - startYRef.current;
       if (diff > 0) {
-        sheet.style.transform = `translateY(${diff}px)`;
+        dragTo(diff);
       }
     };
 
@@ -263,12 +254,10 @@ const BottomSheetRoot = ({
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleMouseUp);
 
-      if (dragCloseFallbackRef.current) {
-        clearTimeout(dragCloseFallbackRef.current);
-        dragCloseFallbackRef.current = null;
-      }
+      restTweenRef.current?.kill();
+      restTweenRef.current = null;
     };
-  }, [enableDrag, open, onClose]);
+  }, [enableDrag, open, onClose, reduced]);
 
   const contextValue = useMemo(
     () => ({ onClose, titleId }),
@@ -292,8 +281,9 @@ const BottomSheetRoot = ({
     <BottomSheetContext.Provider value={contextValue}>
       <div className={bottomSheetContainer}>
         <div
+          ref={backdropRef}
           role="presentation"
-          className={clsx(backdrop, !open ? backdropExit : backdropEnter)}
+          className={backdrop}
           onClick={handleBackdropClick}
           aria-hidden="true"
         />
@@ -303,15 +293,10 @@ const BottomSheetRoot = ({
           role="dialog"
           aria-modal="true"
           aria-labelledby={labelledby}
-          // 퇴장 중(open=false, shouldRender=true)엔 DOM이 200ms 더 남아있어도
+          // 퇴장 중(open=false, shouldRender=true)엔 DOM이 잠깐 더 남아있어도
           // 포커스가 그 안으로 들어가거나 클릭될 수 없게 inert로 막는다.
           inert={!open}
-          className={clsx(
-            bottomSheetStyle,
-            heightStyles[height],
-            !open ? bottomSheetExit : bottomSheetEnter,
-            className
-          )}
+          className={clsx(bottomSheetStyle, heightStyles[height], className)}
           onClick={(e) => e.stopPropagation()}
           {...props}
         >
