@@ -18,32 +18,26 @@ import { useReducedMotion } from '../hooks/useReducedMotion';
  */
 const EXIT_RATIO = 0.65;
 
-/**
- * 오버레이 타임라인의 빈 껍데기. `buildTimeline`을 넘기는 쪽은 `gsap`을 직접
- * import하지 않고 이걸 쓴다.
- *
- * 두 가지를 한 곳에 묶는다.
- * - `paused: true`는 훅의 전제다. 빠뜨리면 타임라인이 생성 즉시 재생되면서
- *   `shouldRender`가 아직 못 따라온 프레임에 등장이 흘러가 버린다.
- * - gsap 값 참조를 이 파일 하나로 모아 둔다. `gsapGateEnforcement.test.ts`가
- *   "gsap을 import하는 파일은 게이트도 쓴다"를 강제하는데, 타임라인을 만드는
- *   쪽(컴포넌트)은 게이트를 부르지 않는다 — 게이트는 이 훅이 소유한다.
- */
-export const createOverlayTimeline = (): gsap.core.Timeline =>
-  gsap.timeline({ paused: true });
-
 export interface UseOverlayTransitionOptions {
   /** 오버레이 열림 여부 */
   open: boolean;
   /**
-   * 일시정지 타임라인을 만든다. progress 0이 닫힘, 1이 열림이다.
+   * 훅이 만들어 넘기는 **일시정지 타임라인을 채운다.** progress 0이 닫힘, 1이
+   * 열림이다. 타임라인을 직접 만들지 않는다 — `paused: true`를 빠뜨릴 길도,
+   * 훅이 모르는 타임라인이 떠돌 길도 구조적으로 없다.
    *
-   * DOM이 붙은 뒤(`shouldRender`가 켜진 다음 layout 단계)에 **한 번만** 불린다 —
-   * 상태가 바뀔 때마다 새로 만들면 현재 위치를 잃어 중단 지점에서 점프한다.
-   * 백드롭과 시트는 같은 타임라인에 넣어라. 따로 두면 중단 시 둘의 progress가
+   * 백드롭과 시트는 **같은** 타임라인에 넣어라. 따로 두면 중단 시 둘의 progress가
    * 갈라진다.
+   *
+   * 호출 시점: DOM이 붙은 직후(`shouldRender`가 켜진 다음 layout 단계) 한 번,
+   * 그리고 **축소 선호(`prefers-reduced-motion`)가 뒤집히면 다시** 한 번. 개폐를
+   * 반복해도 다시 불리지 않는다 — 상태마다 새로 만들면 현재 위치를 잃어 중단
+   * 지점에서 점프한다. 다시 불릴 때는 시작값을 **그 시점의 DOM에서 다시 읽는다**:
+   * 열려 있는 동안 트리거가 움직였다면 새 좌표가 잡힌다. 그래서 열릴 때마다
+   * 달라지는 값(요소 좌표 등)은 바깥에서 계산해 두지 말고 이 콜백 **안에서**
+   * 읽어야 한다.
    */
-  buildTimeline: () => gsap.core.Timeline;
+  buildTimeline: (timeline: gsap.core.Timeline) => void;
   /** 퇴장이 끝나 `shouldRender`가 내려가는 순간 한 번 불린다 (포커스 복원 등) */
   onExited?: () => void;
 }
@@ -52,8 +46,13 @@ export interface UseOverlayTransitionReturn {
   /** DOM을 유지해야 하는지. 퇴장이 재생되는 동안에도 true다 */
   shouldRender: boolean;
   /**
-   * 살아 있는 타임라인. 드래그처럼 외부가 progress를 읽고 써야 하는 경로가 쓴다.
-   * `shouldRender`가 false면 null이다.
+   * **테스트 전용.** 중단 재개(`progress`·`reversed`·`timeScale`) 메커니즘을 잠그는
+   * 테스트가 타임라인을 집기 위한 손잡이다. `shouldRender`가 false면 null이다.
+   *
+   * **컴포넌트는 쓰지 마라.** 여기서 `play()`/`reverse()`를 직접 부르면 훅의 퇴장
+   * 타이머와 어긋나 DOM이 먼저 사라지거나 영영 남는다. 재생은 `open`으로만
+   * 조종한다. 드래그처럼 손가락이 개입하는 경로도 타임라인을 건드리지 말고
+   * 별도 transform 채널을 써라(`BottomSheet`가 `yPercent` 대 `y`로 그렇게 한다).
    */
   timelineRef: RefObject<gsap.core.Timeline | null>;
 }
@@ -105,7 +104,15 @@ export const useOverlayTransition = ({
 
     // 축소 선호면 gateMotion이 타임라인을 끝 상태로 확정하고 죽인다 — 열린
     // 정지 화면이 된다. 진행 중 트윈이 없으니 중간 상태에 멈출 수가 없다.
-    const timeline = gateMotion(reduced, () => buildTimelineRef.current());
+    //
+    // `paused: true`는 훅의 전제다. 빠뜨리면 타임라인이 생성 즉시 재생되면서
+    // `shouldRender`가 아직 못 따라온 프레임에 등장이 흘러가 버린다. 그래서
+    // 생성을 호출자에게 맡기지 않고 여기서 만들어 채우게만 한다.
+    const timeline = gateMotion(reduced, () => {
+      const created = gsap.timeline({ paused: true });
+      buildTimelineRef.current(created);
+      return created;
+    });
     timelineRef.current = timeline;
 
     return () => {

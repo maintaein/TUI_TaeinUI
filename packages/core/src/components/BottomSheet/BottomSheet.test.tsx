@@ -467,20 +467,13 @@ describe('BottomSheet', () => {
       expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     });
 
-    it('닫히는 도중 다시 열리면 언마운트가 취소된다', () => {
-      const { rerender } = render(<BottomSheet {...defaultProps} />);
-      rerender(<BottomSheet {...defaultProps} open={false} />);
-
-      act(() => {
-        vi.advanceTimersByTime(100);
-      });
-      rerender(<BottomSheet {...defaultProps} open />);
-      act(() => {
-        vi.advanceTimersByTime(300);
-      });
-
-      expect(screen.getByRole('dialog')).toBeInTheDocument();
-    });
+    // "닫히는 도중 다시 열리면 언마운트가 취소된다"를 여기서 검증할 수 없어 지웠다.
+    // jsdom엔 rAF 티커가 없어 `timeline.time()`이 0이고 퇴장 타이머가 0ms로 접힌다 —
+    // 타이머를 조금만 진전시키면 취소가 아니라 재마운트를 보게 된다. 진짜 취소를
+    // 만들려면 타임라인을 0이 아닌 위치로 seek해야 하는데 그러려면 이 파일이 gsap을
+    // import해야 하고(게이트 검사가 막는다), 취소 메커니즘은 훅이 100% 소유한다.
+    // 잠그는 자리: `_internal/useOverlayTransition.test.ts`의
+    // `닫는 도중 다시 열면 현재 progress에서 정방향으로 이어진다`.
 
     it('퇴장 중(open=false)엔 시트가 inert해 포커스·클릭이 들어가지 않는다', () => {
       const { rerender } = render(<BottomSheet {...defaultProps} />);
@@ -552,6 +545,28 @@ describe('BottomSheet', () => {
       // 게이트가 트윈을 끝 상태로 확정하고 죽인다 — 중간 어딘가에 멈추지 않는다.
       expect(sheet.style.transform).not.toContain('60px');
       expect(defaultProps.onClose).not.toHaveBeenCalled();
+    });
+
+    // 드래그 effect의 deps에 onClose가 있어서, 소비자가 인라인 화살표를 넘기면
+    // 부모 리렌더마다 effect가 다시 돈다. 진입 때 무조건 복귀 트윈을 걸면 손가락이
+    // 아직 내려가 있는데 시트를 끌어올린다 — 채널 분리로 막은 싸움이 같은 `y`
+    // 채널 안에서 재발한다. 축소 선호를 깔아 둔 이유: jsdom엔 rAF 티커가 없어
+    // 평소엔 트윈이 한 프레임도 안 돌아 이 결함이 관측되지 않는다. 게이트는
+    // 트윈을 즉시 끝 상태로 확정하므로 y=0이 곧바로 보인다.
+    it('드래그 중 부모가 리렌더해도 복귀 트윈이 손가락을 끌어올리지 않는다', () => {
+      const { rerender } = render(
+        <BottomSheet {...defaultProps} onClose={() => {}} enableDrag />
+      );
+      const sheet = screen.getByRole('dialog');
+
+      fireEvent.touchStart(sheet, { touches: [{ clientY: 100 }] });
+      fireEvent.touchMove(sheet, { touches: [{ clientY: 160 }] });
+      expect(sheet.style.transform).toContain('60px');
+
+      // onClose identity가 바뀌어 드래그 effect가 다시 돈다.
+      rerender(<BottomSheet {...defaultProps} onClose={() => {}} enableDrag />);
+
+      expect(sheet.style.transform).toContain('60px');
     });
   });
 

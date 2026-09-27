@@ -352,20 +352,13 @@ describe('SideSheet', () => {
       expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     });
 
-    it('닫히는 도중 다시 열리면 언마운트가 취소된다', () => {
-      const { rerender } = render(<SideSheet {...defaultProps} />);
-      rerender(<SideSheet {...defaultProps} open={false} />);
-
-      act(() => {
-        vi.advanceTimersByTime(100);
-      });
-      rerender(<SideSheet {...defaultProps} open />);
-      act(() => {
-        vi.advanceTimersByTime(300);
-      });
-
-      expect(screen.getByRole('dialog')).toBeInTheDocument();
-    });
+    // "닫히는 도중 다시 열리면 언마운트가 취소된다"를 여기서 검증할 수 없어 지웠다.
+    // jsdom엔 rAF 티커가 없어 `timeline.time()`이 0이고 퇴장 타이머가 0ms로 접힌다 —
+    // 타이머를 조금만 진전시키면 취소가 아니라 재마운트를 보게 된다. 진짜 취소를
+    // 만들려면 타임라인을 0이 아닌 위치로 seek해야 하는데 그러려면 이 파일이 gsap을
+    // import해야 하고(게이트 검사가 막는다), 취소 메커니즘은 훅이 100% 소유한다.
+    // 잠그는 자리: `_internal/useOverlayTransition.test.ts`의
+    // `닫는 도중 다시 열면 현재 progress에서 정방향으로 이어진다`.
 
     it('퇴장 중(open=false)엔 시트가 inert해 포커스·클릭이 들어가지 않는다', () => {
       const { rerender } = render(<SideSheet {...defaultProps} />);

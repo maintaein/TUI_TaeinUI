@@ -24,10 +24,7 @@ import {
 } from './Modal.css';
 import { useFocusTrap } from '../../_internal/useFocusTrap';
 import { createOverlayContext } from '../../_internal/createOverlayContext';
-import {
-  createOverlayTimeline,
-  useOverlayTransition,
-} from '../../_internal/useOverlayTransition';
+import { useOverlayTransition } from '../../_internal/useOverlayTransition';
 import { gsapDuration, gsapEasing } from '../../tokens/gsapEasing';
 
 /**
@@ -158,8 +155,7 @@ const ModalRoot = ({
   // 둘의 progress가 갈라져 배경만 남거나 판만 남는 프레임이 생긴다.
   const { shouldRender } = useOverlayTransition({
     open,
-    buildTimeline: () => {
-      const timeline = createOverlayTimeline();
+    buildTimeline: (timeline) => {
       const backdropEl = backdropRef.current;
       const dialog = dialogRef.current;
 
@@ -190,7 +186,6 @@ const ModalRoot = ({
           0
         );
       }
-      return timeline;
     },
   });
 

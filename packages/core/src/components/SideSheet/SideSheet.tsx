@@ -23,10 +23,7 @@ import { IconButton } from '../IconButton';
 import { Icon } from '../Icon';
 import { useFocusTrap } from '../../_internal/useFocusTrap';
 import { createOverlayContext } from '../../_internal/createOverlayContext';
-import {
-  createOverlayTimeline,
-  useOverlayTransition,
-} from '../../_internal/useOverlayTransition';
+import { useOverlayTransition } from '../../_internal/useOverlayTransition';
 import { gsapDuration, gsapEasing } from '../../tokens/gsapEasing';
 
 interface SideSheetContextValue {
@@ -86,8 +83,7 @@ const SideSheetRoot = ({
   // 화면 밖 위치가 따라온다(기존 `translateX(±100%)` 키프레임과 같은 양).
   const { shouldRender } = useOverlayTransition({
     open,
-    buildTimeline: () => {
-      const timeline = createOverlayTimeline();
+    buildTimeline: (timeline) => {
       const backdropEl = backdropRef.current;
       const sheet = sheetRef.current;
 
@@ -107,7 +103,6 @@ const SideSheetRoot = ({
           0
         );
       }
-      return timeline;
     },
   });
 

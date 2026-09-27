@@ -12,10 +12,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { act, renderHook } from '@testing-library/react';
 import { gsapDuration, gsapEasing } from '../tokens/gsapEasing';
-import {
-  createOverlayTimeline,
-  useOverlayTransition,
-} from './useOverlayTransition';
+import { useOverlayTransition } from './useOverlayTransition';
 
 /** 등장 길이. 시트 300ms + 백드롭 200ms 동시 시작 = 타임라인 길이 300ms. */
 const ENTER_MS = 300;
@@ -26,8 +23,7 @@ let sheet: HTMLDivElement;
 let backdropEl: HTMLDivElement;
 
 /** 세 오버레이가 훅에 넘기는 것과 같은 모양의 실제 타임라인. */
-const buildTimeline = (): gsap.core.Timeline => {
-  const timeline = createOverlayTimeline();
+const buildTimeline = (timeline: gsap.core.Timeline): void => {
   timeline.fromTo(
     backdropEl,
     { opacity: 0 },
@@ -40,7 +36,6 @@ const buildTimeline = (): gsap.core.Timeline => {
     { yPercent: 0, duration: gsapDuration.slow, ease: gsapEasing.settle },
     0
   );
-  return timeline;
 };
 
 /** jsdom은 matchMedia를 구현하지 않는다 — 축소 선호 경로를 열려면 깔아야 한다. */
@@ -59,7 +54,10 @@ const installReducedMotion = (): void => {
 
 const setup = (
   open: boolean,
-  options: { onExited?: () => void; build?: () => gsap.core.Timeline } = {}
+  options: {
+    onExited?: () => void;
+    build?: (timeline: gsap.core.Timeline) => void;
+  } = {}
 ) =>
   renderHook(
     ({ open: isOpen }: { open: boolean }) =>
@@ -147,10 +145,6 @@ describe('useOverlayTransition — 퇴장은 등장의 65%', () => {
       vi.advanceTimersByTime(1);
     });
     expect(result.current.shouldRender).toBe(false);
-
-    const ratio = FULL_EXIT_MS / ENTER_MS;
-    expect(ratio).toBeGreaterThanOrEqual(0.6);
-    expect(ratio).toBeLessThanOrEqual(0.7);
   });
 
   it('남은 시간을 타임라인에서 읽는다 — 절반만 열린 상태면 절반만 붙들고 있는다', () => {
@@ -237,7 +231,8 @@ describe('useOverlayTransition — 중단 (명제 조항 1)', () => {
   });
 
   it('연타해도 최종 상태가 정확하다 — 열림으로 끝나면 살아 있고 정방향이다', () => {
-    const { result, rerender } = setup(true);
+    const onExited = vi.fn();
+    const { result, rerender } = setup(true, { onExited });
     const timeline = result.current.timelineRef.current;
     act(() => {
       timeline?.progress(1);
@@ -252,6 +247,9 @@ describe('useOverlayTransition — 중단 (명제 조항 1)', () => {
 
     expect(result.current.shouldRender).toBe(true);
     expect(timeline?.reversed()).toBe(false);
+    // 중간에 스쳐 간 close가 퇴장을 확정했다면 여기가 잡는다 — shouldRender는
+    // 렌더 단계의 `open && !shouldRender` 되살림이 증상을 지워 버려서 못 잡는다.
+    expect(onExited).not.toHaveBeenCalled();
   });
 });
 

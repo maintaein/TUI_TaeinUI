@@ -25,10 +25,7 @@ import { IconButton } from '../IconButton';
 import { Icon } from '../Icon';
 import { useFocusTrap } from '../../_internal/useFocusTrap';
 import { createOverlayContext } from '../../_internal/createOverlayContext';
-import {
-  createOverlayTimeline,
-  useOverlayTransition,
-} from '../../_internal/useOverlayTransition';
+import { useOverlayTransition } from '../../_internal/useOverlayTransition';
 import { gateMotion } from '../../hooks/gateMotion';
 import { useReducedMotion } from '../../hooks/useReducedMotion';
 import { gsapDuration, gsapEasing } from '../../tokens/gsapEasing';
@@ -114,8 +111,7 @@ const BottomSheetRoot = ({
   // 합성하므로 손가락과 타임라인이 같은 속성을 놓고 다투지 않는다.
   const { shouldRender } = useOverlayTransition({
     open,
-    buildTimeline: () => {
-      const timeline = createOverlayTimeline();
+    buildTimeline: (timeline) => {
       const backdropEl = backdropRef.current;
       const sheet = sheetRef.current;
 
@@ -135,7 +131,6 @@ const BottomSheetRoot = ({
           0
         );
       }
-      return timeline;
     },
     onExited: () => previousActiveElementRef.current?.focus(),
   });
@@ -167,8 +162,10 @@ const BottomSheetRoot = ({
 
     // 드래그로 닫히던 시트가 퇴장 도중 다시 열리면 손가락이 남긴 오프셋이 그대로
     // 남는다 — 열릴 때마다 쉬는 자리로 데려온다(갓 마운트된 시트는 이미 0이라
-    // 눈에 보이는 변화가 없다).
-    restToY0();
+    // 눈에 보이는 변화가 없다). 단, 손가락이 내려가 있는 동안은 건드리지 않는다:
+    // deps의 `onClose`가 인라인 화살표면 부모 리렌더마다 이 effect가 다시 돌고,
+    // 그때 복귀 트윈을 걸면 `quickSetter`와 같은 `y`를 놓고 서로 되돌린다.
+    if (!isDraggingRef.current) restToY0();
 
     const finishDrag = (diff: number) => {
       isDraggingRef.current = false;

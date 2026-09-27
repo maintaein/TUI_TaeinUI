@@ -1,9 +1,6 @@
 export { useClickable } from './useClickable';
 export type { UseClickableProps, UseClickableReturn } from './useClickable';
-export {
-  createOverlayTimeline,
-  useOverlayTransition,
-} from './useOverlayTransition';
+export { useOverlayTransition } from './useOverlayTransition';
 export type {
   UseOverlayTransitionOptions,
   UseOverlayTransitionReturn,

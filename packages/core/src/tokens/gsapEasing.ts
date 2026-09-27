@@ -9,6 +9,10 @@
  *
  * 이 파일은 `.css.ts`가 아니다 — `.css.ts`는 생성·컴파일 대상이고, 이 값들은
  * 스타일이 아니라 JS가 GSAP에 넘기는 인자다.
+ *
+ * `tokens/index.ts` 배럴에 **일부러 넣지 않았다.** 공개 API가 아니다 — 소비자가
+ * 쓰는 것은 CSS 변수로 나가는 `themeContract.animation`이고, 이 이름들은 core
+ * 내부 컴포넌트가 GSAP에 넘기는 인자다. 배럴에 올리면 공개 표면이 된다.
  */
 import { duration } from './animation.css';
 
