@@ -1,5 +1,6 @@
 import {
   useEffect,
+  useLayoutEffect,
   useRef,
   useState,
   type ReactNode,
@@ -121,6 +122,17 @@ export const Snackbar = ({
   const tweenRef = useRef<gsap.core.Tween | null>(null);
   const pauseSourcesRef = useRef<Set<'hover' | 'focus'>>(new Set());
 
+  // `onClose`를 ref로 들고 있는다 — 매 렌더 새 함수가 와도(부모가 인라인으로
+  // 넘기는 흔한 패턴) 카운트다운 effect를 다시 만들지 않는다. 갱신은 아래
+  // 카운트다운 effect보다 **먼저 선언된** layout effect에서 한다: 같은
+  // 커밋의 layout effect는 선언 순서로 돌아가므로 이 순서가 생성 시점의
+  // 최신성을 보장한다(useOverlayTransition의 buildTimelineRef와 같은 패턴).
+  const onCloseRef = useRef(onClose);
+
+  useLayoutEffect(() => {
+    onCloseRef.current = onClose;
+  });
+
   const [liveMessage, setLiveMessage] = useState<ReactNode>(null);
 
   // `onClose`가 없으면 닫을 수단이 없다. 빈 채로 줄어드는 막대는 거짓말이라
@@ -211,9 +223,17 @@ export const Snackbar = ({
         barEl.style.transform = `scaleX(${value})`;
       },
       onComplete: () => {
-        onClose?.();
+        onCloseRef.current?.();
       },
     });
+
+    // 이 effect가 재실행돼 트윈이 새로 만들어질 때도(예: autoHideDuration
+    // 변경) 마우스가 아직 스낵바 위에 있거나 포커스가 안에 있으면 새 트윈은
+    // 멈춘 채로 시작해야 한다 — 안 그러면 WCAG 2.2.1의 일시정지 보장이
+    // 트윈 재생성 한 번으로 조용히 깨진다.
+    if (pauseSourcesRef.current.size > 0) {
+      tween.pause();
+    }
 
     tweenRef.current = tween;
     if (barEl) {
@@ -223,8 +243,11 @@ export const Snackbar = ({
     return () => {
       tween.kill();
       tweenRef.current = null;
+      if (barEl) {
+        delete (barEl as CountdownTweenHost).__countdownTween;
+      }
     };
-  }, [open, hasCountdown, autoHideDuration, onClose]);
+  }, [open, hasCountdown, autoHideDuration]);
 
   // 포인터·키보드가 같은 신호를 쓴다 — 둘 다 같은 pause()/resume()을 부른다.
   // 소스를 Set으로 들고 있는 이유: 마우스가 스낵바 위에 있는 채로 action에

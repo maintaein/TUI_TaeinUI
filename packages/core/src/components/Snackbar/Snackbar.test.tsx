@@ -321,6 +321,81 @@ describe('Snackbar', () => {
     });
   });
 
+  describe('수정 라운드 1 회귀 테스트 (C1·C2)', () => {
+    it('onClose 아이덴티티가 리렌더마다 바뀌어도 트윈이 재생성되지 않고 progress가 유지된다 (C1)', () => {
+      // 부모가 인라인 onClose(예: () => setOpen(false))를 넘기는 흔한 패턴 —
+      // 이 프로젝트의 SnackbarPage 데모가 실제로 이렇게 쓴다. onClose가
+      // deps에 raw로 남아 있으면 매 리렌더마다 effect가 재실행돼 막대와
+      // 시계가 처음으로 되돌아간다.
+      const { container, rerender } = render(
+        <Snackbar
+          open
+          message="메시지"
+          autoHideDuration={3000}
+          onClose={() => {}}
+        />
+      );
+      const tween = getBar(container)?.__countdownTween;
+
+      act(() => {
+        tween?.progress(0.5);
+      });
+
+      // 매번 새 함수 아이덴티티
+      rerender(
+        <Snackbar
+          open
+          message="메시지"
+          autoHideDuration={3000}
+          onClose={() => {}}
+        />
+      );
+      rerender(
+        <Snackbar
+          open
+          message="메시지"
+          autoHideDuration={3000}
+          onClose={() => {}}
+        />
+      );
+
+      expect(getBar(container)?.__countdownTween).toBe(tween);
+      expect(tween?.progress()).toBeCloseTo(0.5, 5);
+    });
+
+    it('호버로 정지한 상태에서 effect가 재실행돼도(autoHideDuration 변경) 새 트윈이 정지 상태로 시작한다 (C2)', async () => {
+      const user = userEvent.setup({ delay: null });
+      const { container, rerender } = render(
+        <Snackbar
+          open
+          message="메시지"
+          autoHideDuration={3000}
+          onClose={vi.fn()}
+        />
+      );
+      const sheet = getSheet(container);
+      const firstTween = getBar(container)?.__countdownTween;
+
+      await user.hover(sheet);
+      expect(firstTween?.paused()).toBe(true);
+
+      // autoHideDuration 변경 — effect가 재실행돼 트윈이 새로 만들어지는
+      // 유일하게 남은 경로(C1 수정 후).
+      rerender(
+        <Snackbar
+          open
+          message="메시지"
+          autoHideDuration={4000}
+          onClose={vi.fn()}
+        />
+      );
+
+      const secondTween = getBar(container)?.__countdownTween;
+      expect(secondTween).not.toBe(firstTween);
+      expect(secondTween?.paused()).toBe(true);
+    });
+  });
+
   describe('막대 시각 테스트', () => {
     it('막대가 scaleX로만 움직인다 — width는 안 바뀐다', () => {
       const { container } = render(
@@ -563,6 +638,48 @@ describe('Snackbar', () => {
       });
 
       expect(readScaleX(bar)).toBeCloseTo(0.47, 5);
+    });
+
+    it('축소 모드 막대는 progress 0에서 정확히 scaleX(1)이다 (Minor 2 — 끝값 고정)', () => {
+      // Math.ceil(1 * 8) / 8 = 1 — 부동소수 오차 없이 정확히 1이어야 한다.
+      // 0.3으로 먼저 옮겼다가 0으로 되돌려 실제 렌더(onUpdate)가 일어나게 한다.
+      installReducedMotion();
+      const { container } = render(
+        <Snackbar
+          open
+          message="메시지"
+          autoHideDuration={3000}
+          onClose={vi.fn()}
+        />
+      );
+      const bar = getBar(container);
+
+      act(() => {
+        bar?.__countdownTween?.progress(0.3);
+        bar?.__countdownTween?.progress(0);
+      });
+
+      expect(readScaleX(bar)).toBe(1);
+    });
+
+    it('축소 모드 막대는 progress 1에서 정확히 scaleX(0)이다 (Minor 2 — 끝값 고정)', () => {
+      // Math.ceil(0 * 8) / 8 = 0 — 부동소수 오차 없이 정확히 0이어야 한다.
+      installReducedMotion();
+      const { container } = render(
+        <Snackbar
+          open
+          message="메시지"
+          autoHideDuration={3000}
+          onClose={vi.fn()}
+        />
+      );
+      const bar = getBar(container);
+
+      act(() => {
+        bar?.__countdownTween?.progress(1);
+      });
+
+      expect(readScaleX(bar)).toBe(0);
     });
   });
 
