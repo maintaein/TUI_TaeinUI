@@ -16,6 +16,10 @@ export default defineConfig([
       '**/.storybook-static/**',
       '**/sb-manager/**',
       '**/*.css.ts',
+      // .claude/고도화/ex/*는 읽으려고 받아 둔 외부 참조 소스다(PillNav·Dock·
+      // FlowingMenu·SplitFlapText). 발행하지도 빌드하지도 않고 .gitignore 대상이라
+      // 우리 규칙으로 고칠 수 없다 — 린트 대상이 아니다.
+      '.claude/**',
     ],
   },
 
