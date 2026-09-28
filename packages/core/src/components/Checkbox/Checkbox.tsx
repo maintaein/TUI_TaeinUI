@@ -117,7 +117,7 @@ const syncMarkState = (
       attr: { d: pathFor(nextState) },
       strokeDasharray: length,
       // 중단 복귀(비행 중인 트윈은 퇴장뿐이다)면 되감기를 건너뛴다 — 명제 1조 ③가
-      // "상태가 또 바뀜면 현재 위치에서 이어진다"이라, 퇴장 커브 중간값을 length로
+      // "상태가 또 바뀌면 현재 위치에서 이어진다"라, 퇴장 커브 중간값을 length로
       // 덮으면 체크마크가 한 프레임 사라졌다가 처음부터 다시 그려진다.
       ...(interrupted ? {} : { strokeDashoffset: length }),
     });
