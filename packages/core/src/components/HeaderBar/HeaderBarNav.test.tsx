@@ -193,6 +193,28 @@ describe('HeaderBarNav — 키보드 = 포인터와 같은 신호', () => {
     expect(readScale(pills[3])).toBeCloseTo(1.4);
   });
 
+  it('항목 수는 같은데 label이 바뀌면 세터가 새 노드를 가리킨다', () => {
+    // key={label}이라 label이 바뀌면 DOM 노드가 통째로 교체된다. 길이만
+    // 의존하는 deps는 이걸 못 보고, 세터들은 떨어져 나간 노드를 계속 가리킨다.
+    const { container, rerender } = render(
+      <HeaderBarNav items={makeItems(3)} />
+    );
+    const renamed: HeaderBarNavItem[] = makeItems(3).map((navItem, index) => ({
+      ...navItem,
+      label: `바뀜 ${index}`,
+    }));
+    rerender(<HeaderBarNav items={renamed} />);
+
+    const nav = screen.getByRole('navigation') as NavScaleSetterHost;
+    fireEvent.focus(screen.getByRole('button', { name: '바뀜 1' }));
+    (nav.__navScaleSetters ?? []).forEach((setter) => setter.tween.progress(1));
+
+    const pills = getPills(container);
+    expect(readScale(pills[0])).toBeCloseTo(1.2);
+    expect(readScale(pills[1])).toBeCloseTo(1.4);
+    expect(readScale(pills[2])).toBeCloseTo(1.2);
+  });
+
   it('nav 밖으로 blur가 나가면(relatedTarget이 nav 밖) 모두 1로 돌아온다', () => {
     const { container } = render(<HeaderBarNav items={makeItems(3)} />);
     const nav = screen.getByRole('navigation') as NavScaleSetterHost;

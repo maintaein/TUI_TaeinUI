@@ -199,7 +199,10 @@ export const Snackbar = ({
   // `GATE_ENFORCEMENT_EXCEPTIONS`의 첫 항목이다 — 등장·퇴장은 위
   // `useOverlayTransition`이 이미 게이트를 거친다.
   useEffect(() => {
-    if (!open || !hasCountdown) return;
+    // `hasCountdown`은 boolean이라 TS가 `autoHideDuration`을 안 좁힌다 — 아래
+    // duration에서 `as number` 없이 쓰려고 같은 조건을 여기서 한 번 더 집는다.
+    // 조건 자체는 `hasCountdown`이 이미 단언하므로 여기서는 타입 좁히기가 목적이다.
+    if (!open || !hasCountdown || autoHideDuration === null) return;
 
     const barEl = barRef.current;
     // 실제 DOM 속성을 트윈 타깃으로 삼지 않는다 — 막대는 onUpdate에서
@@ -210,7 +213,7 @@ export const Snackbar = ({
 
     const tween = gsap.to(proxy, {
       remaining: 0,
-      duration: (autoHideDuration as number) / 1000,
+      duration: autoHideDuration / 1000,
       // 항상 linear(none)다 — 축소 선호가 바뀌어도 시계 자체(이 이징)는 안
       // 바뀐다. 바뀌는 건 아래 onUpdate가 그리는 시각값뿐이다.
       ease: gsapEasing.linear,

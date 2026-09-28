@@ -26,6 +26,11 @@ import { gsapEasing, gsapDuration } from '../../tokens/gsapEasing';
 /** 이동 중 진행 방향으로 늘어나는 배율(Ruling 33). 왜곡은 의도된 연출이다. */
 const TRAVEL_STRETCH = 1.12;
 
+/** 전체 이동 시간 중 늘어나는 구간의 비율. Switch.tsx의 SQUASH_PORTION과 같은 모양이다. */
+const STRETCH_PORTION = 0.4;
+/** 나머지 — 늘어난 것이 1로 되돌아오는 정착 구간의 비율. 둘의 합은 항상 1이다. */
+const SETTLE_PORTION = 1 - STRETCH_PORTION;
+
 /**
  * 인디케이터의 진행 중 타임라인을 테스트가 읽을 수 있는 통로. 공개 prop/state로
  * 내보내지 않고 span DOM 노드에 얹는다 — 타입 전용 확장이라 값으로 export되지
@@ -193,7 +198,7 @@ export const SegmentedButtons = ({
           indicator,
           {
             scaleX: TRAVEL_STRETCH,
-            duration: gsapDuration.slow * 0.4,
+            duration: gsapDuration.slow * STRETCH_PORTION,
             ease: gsapEasing.settle,
           },
           0
@@ -202,10 +207,10 @@ export const SegmentedButtons = ({
           indicator,
           {
             scaleX: 1,
-            duration: gsapDuration.slow * 0.6,
+            duration: gsapDuration.slow * SETTLE_PORTION,
             ease: gsapEasing.exit,
           },
-          gsapDuration.slow * 0.4
+          gsapDuration.slow * STRETCH_PORTION
         );
       }
 
