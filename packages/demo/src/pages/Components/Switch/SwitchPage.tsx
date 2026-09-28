@@ -252,6 +252,49 @@ export function SwitchPage() {
 />`}
           />
         </div>
+
+        {/* Dense Grid Example (M3 T3e — GSAP 런타임 인스턴스 비용 확인용) */}
+        <div className={styles.example}>
+          <h3 className={styles.exampleTitle}>Dense Grid (24 instances)</h3>
+          <LivePreview
+            title="대량 인스턴스"
+            description="24개의 스위치를 동시에 렌더링하고 일괄 토글합니다. GSAP 모션이 인스턴스마다 독립적으로 도는지, 언마운트 시 정리되는지 확인하는 예제입니다."
+            editable
+            code={`const [states, setStates] = useState(
+  Array.from({ length: 24 }, () => false)
+);
+const allOn = states.every(Boolean);
+const toggleAll = () => {
+  setStates(Array.from({ length: 24 }, () => !allOn));
+};
+
+<div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+  <Button onClick={toggleAll}>
+    {allOn ? '전체 끄기' : '전체 켜기'}
+  </Button>
+  <div
+    style={{
+      display: 'grid',
+      gridTemplateColumns: 'repeat(4, 1fr)',
+      gap: '0.75rem',
+    }}
+  >
+    {states.map((on, i) => (
+      <Switch
+        key={i}
+        label={\`설정 \${i + 1}\`}
+        checked={on}
+        onChange={(e) => {
+          const next = [...states];
+          next[i] = e.target.checked;
+          setStates(next);
+        }}
+      />
+    ))}
+  </div>
+</div>`}
+          />
+        </div>
       </section>
 
       {/* Props API */}

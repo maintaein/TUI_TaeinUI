@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, afterEach } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import '@testing-library/jest-dom';
@@ -308,6 +308,166 @@ describe('Switch', () => {
       render(<Switch label="스위치" className="custom-class" />);
       const switchElement = screen.getByRole('switch');
       expect(switchElement).toHaveClass('custom-class');
+    });
+  });
+
+  describe('GSAP 모션 테스트 (Task 6)', () => {
+    afterEach(() => {
+      vi.unstubAllGlobals();
+    });
+
+    // gsap 네임스페이스는 ambient 전역 타입이라 import 없이 참조된다
+    // (Checkbox.test.tsx·Snackbar.test.tsx와 같은 방식) — 이 파일에서
+    // `from 'gsap'`가 없어야 gsapGateEnforcement 스캔에 안 걸린다.
+    type SwitchTimelineHost = HTMLDivElement & {
+      __switchTimeline?: gsap.core.Timeline;
+    };
+
+    const getTrack = (switchElement: HTMLElement): SwitchTimelineHost =>
+      switchElement.parentElement as SwitchTimelineHost;
+    // DOM 순서는 스윕 → input → 썸이다(스윕을 input 앞으로 둬서 size prop
+    // 테스트의 nextElementSibling=썸 가정을 안 깼다 — task-6-report.md 참고).
+    const getSweep = (switchElement: HTMLElement): HTMLElement =>
+      switchElement.previousElementSibling as HTMLElement;
+    const getThumb = (switchElement: HTMLElement): HTMLElement =>
+      switchElement.nextElementSibling as HTMLElement;
+
+    // yPercent(-50)가 "translate(0%, -50%)"로 따로 렌더되고, x는 px 단위의
+    // 별도 translate(...)로 렌더된다 — px 표기가 있는 쪽만 집어야 x다.
+    const readX = (el: HTMLElement): number => {
+      const match = el.style.transform.match(/translate\(([-\d.]+)px/);
+      return match ? Number(match[1]) : 0;
+    };
+    const readScaleX = (el: HTMLElement): number => {
+      const match = el.style.transform.match(/scale[XY]?\(([-\d.]+)/);
+      return match ? Number(match[1]) : 1;
+    };
+    const readScaleY = (el: HTMLElement): number => {
+      const match = el.style.transform.match(/scale\(([-\d.]+),\s*([-\d.]+)/);
+      return match ? Number(match[2]) : 1;
+    };
+
+    /** jsdom은 matchMedia를 구현하지 않는다 — 축소 선호 경로를 열려면 깔아야 한다. */
+    const installReducedMotion = (): void => {
+      vi.stubGlobal(
+        'matchMedia',
+        (media: string): MediaQueryList =>
+          ({
+            matches: true,
+            media,
+            addEventListener: () => {},
+            removeEventListener: () => {},
+            dispatchEvent: () => false,
+            onchange: null,
+          }) as unknown as MediaQueryList
+      );
+    };
+
+    it('off → on 전이에서 스윕이 scaleX 트윈으로 생기고, 인라인 backgroundColor는 건드리지 않는다(Ruling 42)', () => {
+      const { rerender } = render(
+        <Switch label="스위치" checked={false} onChange={() => {}} />
+      );
+      const switchElement = screen.getByRole('switch');
+      rerender(<Switch label="스위치" checked onChange={() => {}} />);
+
+      const track = getTrack(switchElement);
+      const timeline = track.__switchTimeline;
+      expect(timeline).toBeDefined();
+      expect(timeline?.parent).not.toBeNull();
+
+      const sweep = getSweep(switchElement);
+      expect(sweep.style.backgroundColor).toBe('');
+      expect(readScaleX(sweep)).toBe(0);
+
+      timeline?.progress(1);
+      expect(readScaleX(sweep)).toBe(1);
+    });
+
+    it('on 전이 중 썸이 눌렸다 펴진다 — 스쿼시 구간 끝에서 scaleX>1·scaleY<1, 완료 시점엔 둘 다 1', () => {
+      const { rerender } = render(
+        <Switch label="스위치" checked={false} onChange={() => {}} />
+      );
+      const switchElement = screen.getByRole('switch');
+      rerender(<Switch label="스위치" checked onChange={() => {}} />);
+
+      const track = getTrack(switchElement);
+      const timeline = track.__switchTimeline;
+      const thumb = getThumb(switchElement);
+
+      // SQUASH_PORTION(0.2) 지점 — 눌림이 정점을 찍고 이동·복원이 시작되는 경계.
+      timeline?.progress(0.2);
+      expect(readScaleX(thumb)).toBeGreaterThan(1);
+      expect(readScaleY(thumb)).toBeLessThan(1);
+
+      timeline?.progress(1);
+      expect(readScaleX(thumb)).toBe(1);
+      expect(readScaleY(thumb)).toBe(1);
+      expect(readX(thumb)).toBe(18); // md 사이즈의 thumbOffset
+    });
+
+    it('on → off 전이는 역재생이 아니라 짧은 exit 트윈 하나다(Ruling 41) — squash 없이 x·스윕이 함께 빠진다', () => {
+      const { rerender } = render(
+        <Switch label="스위치" checked onChange={() => {}} />
+      );
+      const switchElement = screen.getByRole('switch');
+      rerender(<Switch label="스위치" checked={false} onChange={() => {}} />);
+
+      const track = getTrack(switchElement);
+      const timeline = track.__switchTimeline;
+      const thumb = getThumb(switchElement);
+      const sweep = getSweep(switchElement);
+
+      expect(timeline).toBeDefined();
+      timeline?.progress(1);
+      expect(readX(thumb)).toBe(0);
+      expect(readScaleX(sweep)).toBe(0);
+    });
+
+    it('제어되지 않는(uncontrolled) 스위치를 클릭해도 aria-checked가 실제 상태를 따라간다(Ruling 40 회귀)', async () => {
+      render(<Switch label="스위치" defaultChecked={false} />);
+      const switchElement = screen.getByRole('switch');
+      expect(switchElement).toHaveAttribute('aria-checked', 'false');
+
+      await userEvent.click(switchElement);
+      expect(switchElement).toHaveAttribute('aria-checked', 'true');
+
+      await userEvent.click(switchElement);
+      expect(switchElement).toHaveAttribute('aria-checked', 'false');
+    });
+
+    it('축소 선호에서는 진행 중 트윈 없이 최종 상태로 곧장 정지한다', () => {
+      installReducedMotion();
+      const { rerender } = render(
+        <Switch label="스위치" checked={false} onChange={() => {}} />
+      );
+      const switchElement = screen.getByRole('switch');
+      rerender(<Switch label="스위치" checked onChange={() => {}} />);
+
+      const track = getTrack(switchElement);
+      const thumb = getThumb(switchElement);
+      const sweep = getSweep(switchElement);
+
+      expect(track.__switchTimeline).toBeUndefined();
+      expect(readScaleX(sweep)).toBe(1);
+      expect(readX(thumb)).toBe(18);
+      expect(readScaleX(thumb)).toBe(1);
+      expect(readScaleY(thumb)).toBe(1);
+    });
+
+    it('언마운트 후 인스턴스당 살아 있는 gsap 객체가 0개다', () => {
+      const { rerender, unmount } = render(
+        <Switch label="스위치" checked={false} onChange={() => {}} />
+      );
+      const switchElement = screen.getByRole('switch');
+      rerender(<Switch label="스위치" checked onChange={() => {}} />);
+
+      const track = getTrack(switchElement);
+      const timeline = track.__switchTimeline;
+      expect(timeline?.parent).not.toBeNull();
+
+      unmount();
+
+      expect(timeline?.parent).toBeNull();
     });
   });
 });

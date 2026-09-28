@@ -79,10 +79,7 @@ export const size = styleVariants(baseSizeContainer, (baseStyle) => [
     touchAction: 'manipulation',
 
     selectors: {
-      [`&:has(input:checked)`]: {
-        backgroundColor: themeContract.color.primary.main,
-      },
-
+      // &:has(input:checked) 제거 — 트랙 색 전환은 이제 스윕 span(GSAP scaleX)이 담당한다(Ruling 42).
       [`&:has(input:focus-visible)`]: {
         ...focusRing(),
       },
@@ -105,30 +102,30 @@ export const size = styleVariants(baseSizeContainer, (baseStyle) => [
   },
 ]);
 
+/** 썸이 off→on으로 움직이는 거리(px). thumbSize의 offset과 같은 값이어야 한다. */
+export const thumbOffset = { sm: 14, md: 18, lg: 22 } as const;
+
 // Thumb Size Variants
+// 위치(x)와 Y 중앙 정렬(yPercent)은 GSAP이 소유한다 — offset 필드는 이제 어떤
+// 선택자에서도 쓰이지 않지만, thumbOffset과 값이 갈라지지 않도록 참조만 남긴다.
 export const thumbSize = styleVariants(
   {
-    sm: { width: '16px', height: '16px', offset: '14px' },
-    md: { width: '20px', height: '20px', offset: '18px' },
-    lg: { width: '24px', height: '24px', offset: '22px' },
+    sm: { width: '16px', height: '16px', offset: `${thumbOffset.sm}px` },
+    md: { width: '20px', height: '20px', offset: `${thumbOffset.md}px` },
+    lg: { width: '24px', height: '24px', offset: `${thumbOffset.lg}px` },
   },
   (config) => ({
     position: 'absolute',
     top: '50%',
     left: '2px',
-    transform: 'translateY(-50%)',
     width: config.width,
     height: config.height,
     borderRadius: '50%',
     backgroundColor: themeContract.color.background.paper,
-    transition: `box-shadow ${themeContract.animation.duration.fast} ${themeContract.animation.easing.settle}, opacity ${themeContract.animation.duration.fast} ${themeContract.animation.easing.settle}, transform ${themeContract.animation.duration.fast} ${themeContract.animation.easing.settle}`,
+    transition: `box-shadow ${themeContract.animation.duration.fast} ${themeContract.animation.easing.settle}, opacity ${themeContract.animation.duration.fast} ${themeContract.animation.easing.settle}`,
     boxShadow: '0 2px 4px rgba(0, 0, 0, 0.2)',
 
     selectors: {
-      [`input:checked + &`]: {
-        transform: `translate(${config.offset}, -50%)`,
-      },
-
       [`input:disabled + &`]: {
         backgroundColor: themeContract.color.background.paper,
         boxShadow: 'none',
@@ -137,6 +134,15 @@ export const thumbSize = styleVariants(
     },
   })
 );
+
+// Sweep (트랙 색 전환용 오버레이) — GSAP이 scaleX로 왼쪽부터 채운다(Ruling 42).
+export const sweep = style({
+  position: 'absolute',
+  inset: 0,
+  borderRadius: 'inherit',
+  backgroundColor: themeContract.color.primary.main,
+  transformOrigin: 'left center',
+});
 
 // Error State
 export const error = style({

@@ -1,8 +1,4 @@
-import {
-  Card,
-  List,
-  ListItem,
-} from '@taein-designsystem/core';
+import { Card, List, ListItem } from '@taein-designsystem/core';
 import { LivePreview } from '../../../components/LivePreview';
 import { CodeBlock } from '../../../components/CodeBlock';
 import { PropsTable } from '../../../components/PropsTable';
@@ -11,7 +7,6 @@ import { AccessibilitySection } from '../../../components/AccessibilitySection';
 import * as styles from './CheckboxPage.css';
 
 export function CheckboxPage() {
-
   const propsData: PropDefinition[] = [
     {
       name: 'label',
@@ -81,7 +76,8 @@ export function CheckboxPage() {
       <header className={styles.header}>
         <h1 className={styles.title}>Checkbox</h1>
         <p className={styles.description}>
-          Checkbox 컴포넌트는 약관 동의, 다중 항목 선택, 설정 토글 등 사용자가 하나 이상의 항목을 선택하거나 해제할 때 사용합니다.
+          Checkbox 컴포넌트는 약관 동의, 다중 항목 선택, 설정 토글 등 사용자가
+          하나 이상의 항목을 선택하거나 해제할 때 사용합니다.
         </p>
       </header>
 
@@ -262,6 +258,49 @@ export function CheckboxPage() {
 />`}
           />
         </div>
+
+        {/* Dense Grid Example (M3 T3e — GSAP 런타임 인스턴스 비용 확인용) */}
+        <div className={styles.example}>
+          <h3 className={styles.exampleTitle}>Dense Grid (24 instances)</h3>
+          <LivePreview
+            title="대량 인스턴스"
+            description="24개의 체크박스를 동시에 렌더링하고 일괄 토글합니다. GSAP 모션이 인스턴스마다 독립적으로 도는지, 언마운트 시 정리되는지 확인하는 예제입니다."
+            editable
+            code={`const [checkedList, setCheckedList] = useState(
+  Array.from({ length: 24 }, () => false)
+);
+const allChecked = checkedList.every(Boolean);
+const toggleAll = () => {
+  setCheckedList(Array.from({ length: 24 }, () => !allChecked));
+};
+
+<div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+  <Button onClick={toggleAll}>
+    {allChecked ? '전체 해제' : '전체 선택'}
+  </Button>
+  <div
+    style={{
+      display: 'grid',
+      gridTemplateColumns: 'repeat(6, 1fr)',
+      gap: '0.75rem',
+    }}
+  >
+    {checkedList.map((checked, i) => (
+      <Checkbox
+        key={i}
+        label={\`항목 \${i + 1}\`}
+        checked={checked}
+        onChange={(e) => {
+          const next = [...checkedList];
+          next[i] = e.target.checked;
+          setCheckedList(next);
+        }}
+      />
+    ))}
+  </div>
+</div>`}
+          />
+        </div>
       </section>
 
       {/* Props API */}
@@ -285,22 +324,26 @@ export function CheckboxPage() {
           {
             attribute: 'label',
             effect: '스크린 리더에서 체크박스의 용도를 읽어줍니다.',
-            description: '레이블이 input[type="checkbox"]와 자동으로 연결되어 사용자가 무엇을 선택하는지 명확히 알 수 있습니다.',
+            description:
+              '레이블이 input[type="checkbox"]와 자동으로 연결되어 사용자가 무엇을 선택하는지 명확히 알 수 있습니다.',
           },
           {
             attribute: 'required',
             effect: '필수 선택 항목임을 스크린 리더에 알립니다.',
-            description: 'aria-required="true"가 설정되어 필수 항목이라는 정보를 제공합니다.',
+            description:
+              'aria-required="true"가 설정되어 필수 항목이라는 정보를 제공합니다.',
           },
           {
             attribute: 'error + errorMessage',
             effect: '에러 메시지를 스크린 리더가 읽어줍니다.',
-            description: 'aria-describedby로 에러 메시지가 연결되어 사용자가 무엇이 잘못되었는지 알 수 있습니다.',
+            description:
+              'aria-describedby로 에러 메시지가 연결되어 사용자가 무엇이 잘못되었는지 알 수 있습니다.',
           },
           {
             attribute: 'disabled',
             effect: '비활성화 상태를 스크린 리더에서 알립니다.',
-            description: 'aria-disabled="true"가 설정되어 선택할 수 없는 상태임을 전달합니다.',
+            description:
+              'aria-disabled="true"가 설정되어 선택할 수 없는 상태임을 전달합니다.',
           },
           {
             attribute: 'checked',
@@ -343,11 +386,17 @@ export function CheckboxPage() {
                 <h3 className={styles.practiceTitle}>Don't</h3>
               </div>
               <List spacing="sm" className={styles.practiceList}>
-                <ListItem>단일 선택이 필요한 경우 사용하지 않기 (Radio 권장)</ListItem>
+                <ListItem>
+                  단일 선택이 필요한 경우 사용하지 않기 (Radio 권장)
+                </ListItem>
                 <ListItem>레이블 없이 아이콘만 사용하지 않기</ListItem>
-                <ListItem>너무 많은 체크박스 나열 (5개 초과 시 다른 패턴 고려)</ListItem>
+                <ListItem>
+                  너무 많은 체크박스 나열 (5개 초과 시 다른 패턴 고려)
+                </ListItem>
                 <ListItem>체크박스를 버튼처럼 사용하지 않기</ListItem>
-                <ListItem>indeterminate를 일반 체크 상태 대신 사용하지 않기</ListItem>
+                <ListItem>
+                  indeterminate를 일반 체크 상태 대신 사용하지 않기
+                </ListItem>
               </List>
             </Card.Body>
           </Card>

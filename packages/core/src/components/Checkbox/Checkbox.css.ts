@@ -90,34 +90,9 @@ export const checkmark = style({
       borderColor: themeContract.color.primary.main,
     },
 
-    'input:checked + &::after': {
-      content: '',
-      position: 'absolute',
-      display: 'block',
-      left: '50%',
-      top: '50%',
-      transform: 'translate(-50%, -50%) rotate(45deg)',
-      width: '30%',
-      height: '60%',
-      border: `solid ${themeContract.color.primary.contrast}`,
-      borderWidth: '0 2px 2px 0',
-    },
-
     'input:indeterminate + &': {
       backgroundColor: themeContract.color.primary.main,
       borderColor: themeContract.color.primary.main,
-    },
-
-    'input:indeterminate + &::after': {
-      content: '',
-      position: 'absolute',
-      display: 'block',
-      left: '50%',
-      top: '50%',
-      transform: 'translate(-50%, -50%)',
-      width: '60%',
-      height: '2px',
-      backgroundColor: themeContract.color.primary.contrast,
     },
 
     'input:disabled + &': {
@@ -131,6 +106,22 @@ export const checkmark = style({
       borderColor: themeContract.color.text.disabled,
     },
   },
+});
+
+export const markSvg = style({
+  width: '100%',
+  height: '100%',
+  display: 'block',
+  overflow: 'visible',
+});
+
+export const markPath = style({
+  fill: 'none',
+  stroke: themeContract.color.primary.contrast,
+  strokeWidth: 2,
+  strokeLinecap: 'round',
+  strokeLinejoin: 'round',
+  // GSAP이 d·strokeDasharray·strokeDashoffset을 소유한다. 트랜지션 없음.
 });
 
 export const error = style({
