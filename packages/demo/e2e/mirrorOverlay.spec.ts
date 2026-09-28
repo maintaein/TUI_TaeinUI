@@ -10,6 +10,14 @@ import { test, expect, type Page } from '@playwright/test';
  * 이 비교는 "애니메이션이 최종 위치에 잔여 변형(transform)을 남기지 않는다"를
  * 좌표로 확인하는 것이다. 기존 데모 예제(Basic TextField, label="이름")를
  * 그대로 쓴다 — 새 예제를 추가하지 않는다(Ruling 76).
+ *
+ * **인용 범위에 대한 정정(Task 9 수정 라운드 1, F2).** 이 스펙이 비교하는 건
+ * 일반 경로의 미러 vs reduced 경로의 미러다 — **양쪽 다 미러가 켜져 있다.**
+ * 「미러를 표시한 상태 vs 숨긴 상태」의 대조는 이 구현에서 불가능하다 — 미러
+ * 자체를 끄는 경로가 없다(reduced motion에서 `gateMotion`이 하는 일은 트윈을
+ * 즉시 정착시키는 것뿐이고, 미러는 그대로 렌더된다). 그러므로 여기서 나오는
+ * 0px은 "정착 후 잔여 transform이 남지 않는다"의 증거이지, Ruling 47이 주장한
+ * "미러로 교체되는 것이 눈에 보이지 않는다"의 증거가 아니다.
  */
 
 const TYPED_TEXT = 'abc';

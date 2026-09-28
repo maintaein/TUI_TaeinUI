@@ -108,5 +108,14 @@ describe('GSAP 진입점은 게이트를 거친다 (T2 강제)', () => {
       'export const wobble = (el) => gsap.to(el, { x: 10 });',
     ].join('\n');
     expect(violatesGateEnforcement(gateOnlyInComment)).toBe(true);
+
+    // 위반: 게이트 호출이 주석 안에만 있다 — stripComments가 없으면 GATE_USAGE가
+    // 이 주석의 `gateMotion(`에 걸려 위반이 아니라고 오판한다(산출물 3이 닫은 구멍).
+    const gateCallOnlyInComment = [
+      "import { gsap } from 'gsap';",
+      '// TODO: call gateMotion(el) here',
+      'export const wobble = (el) => gsap.to(el, { x: 10 });',
+    ].join('\n');
+    expect(violatesGateEnforcement(gateCallOnlyInComment)).toBe(true);
   });
 });

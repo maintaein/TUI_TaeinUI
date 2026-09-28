@@ -317,7 +317,11 @@ describe('useOverlayTransition — 컴포넌트 모양 중단/재개 (Ruling 30)
         dialogBox.height
       );
 
-    // Modal.tsx의 enterStart와 같은 계산 — 두 중심의 차이.
+    // `Modal.tsx`의 `enterStart()` 공식을 여기 그대로 복제했다(두 중심의 차이).
+    // 한쪽을 바꾸면 다른 쪽도 같이 바꿔야 한다 — 이 복제는 `enterStart()`가
+    // Modal이 실제로 호출하는 걸 검증하지 않고, 같은 모양의 숫자만 재현한다
+    // (F1 — Task 9 수정 라운드 1 review). 진짜 배선 잠금은
+    // `Modal.test.tsx`의 `triggerRef — 버튼 자리에서 자란다` 스위트가 맡는다.
     const from = trigger.getBoundingClientRect();
     const to = dialog.getBoundingClientRect();
     const enterX = from.left + from.width / 2 - (to.left + to.width / 2);
