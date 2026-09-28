@@ -796,3 +796,66 @@ describe('MirrorOverlay — 제어 컴포넌트 경로 (layout effect)', () => {
     ).toBe(true);
   });
 });
+
+describe('MirrorOverlay — CSSOM 잠금 (캐럿 가시성)', () => {
+  function findMirrorOverlayStyleSheet(): CSSStyleSheet {
+    const sheet = Array.from(document.styleSheets).find((candidate) =>
+      Array.from(candidate.cssRules).some((rule) =>
+        rule.cssText.includes('mirrorOverlay_')
+      )
+    );
+    if (!sheet) {
+      throw new Error('mirrorOverlay.css.ts가 생성한 스타일시트를 찾지 못했다');
+    }
+    return sheet;
+  }
+
+  /** pseudo 선택자(`:`)가 없는 기본 규칙만 잡는다 — HeaderBarNav.test.tsx와 같은 모양. */
+  function findBaseRule(
+    sheet: CSSStyleSheet,
+    selectorSubstring: string
+  ): CSSStyleRule {
+    const rule = Array.from(sheet.cssRules).find(
+      (candidate): candidate is CSSStyleRule =>
+        candidate instanceof CSSStyleRule &&
+        candidate.selectorText.includes(selectorSubstring) &&
+        !candidate.selectorText.includes(':')
+    );
+    if (!rule) {
+      throw new Error(`"${selectorSubstring}" 셀렉터 규칙을 찾지 못했다`);
+    }
+    return rule;
+  }
+
+  it('hiddenText가 캐럿 색을 따로 준다 — color:transparent가 캐럿까지 지우지 않는다', () => {
+    renderCharMirror();
+    const rule = findBaseRule(findMirrorOverlayStyleSheet(), 'hiddenText');
+    const caretColor = rule.style.getPropertyValue('caret-color');
+    expect(caretColor).not.toBe('');
+    expect(caretColor).not.toBe('transparent');
+  });
+
+  it('강제 색상 모드에서 미러를 접고 실제 입력 색을 되돌린다 (F3)', () => {
+    renderCharMirror();
+    const sheet = findMirrorOverlayStyleSheet();
+    const mediaRule = Array.from(sheet.cssRules).find(
+      (candidate): candidate is CSSMediaRule =>
+        candidate instanceof CSSMediaRule &&
+        candidate.conditionText.includes('forced-colors')
+    );
+    expect(mediaRule, 'forced-colors 미디어 규칙을 찾지 못했다').toBeDefined();
+
+    const inner = Array.from((mediaRule as CSSMediaRule).cssRules).filter(
+      (candidate): candidate is CSSStyleRule =>
+        candidate instanceof CSSStyleRule
+    );
+
+    const rootRule = inner.find((r) => r.selectorText.includes('root'));
+    expect(rootRule?.style.visibility).toBe('hidden');
+
+    const hiddenTextRule = inner.find((r) =>
+      r.selectorText.includes('hiddenText')
+    );
+    expect(hiddenTextRule?.style.getPropertyValue('color')).toBe('revert');
+  });
+});

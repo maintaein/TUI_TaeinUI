@@ -22,6 +22,17 @@ export const root = style({
   pointerEvents: 'none',
   color: themeContract.color.text.primary,
   fontFamily: 'inherit',
+  '@media': {
+    // 강제 색상 모드(Windows 고대비)는 color를 시스템 색으로 덮어쓴다 — 아래
+    // hiddenText의 transparent가 무효가 되어 실제 입력 글자가 보이고, 이 루트의
+    // color도 CanvasText로 강제되어 미러 글자까지 같이 보인다. 두 겹이 겹치고
+    // 진입 중인 글자는 SCATTER 변환 때문에 어긋난 자리에 겹친다. transparent
+    // 테두리도 시스템 색으로 강제되어 필드 안에 상자가 하나 더 생긴다.
+    // 고대비에서는 모션을 포기하고 실제 입력만 그린다.
+    '(forced-colors: active)': {
+      visibility: 'hidden',
+    },
+  },
 });
 
 /**
@@ -45,7 +56,20 @@ export const entering = style({
   display: 'inline-block',
 });
 
-/** input에 imperative하게 classList로 붙인다(Ruling 47) — React state면 조합·선택마다 리렌더가 돈다. */
+/**
+ * input에 imperative하게 classList로 붙인다(Ruling 47) — React state면 조합·선택마다 리렌더가 돈다.
+ * `caretColor`를 따로 못 박는 이유: 초깃값 `auto`는 `currentColor`로 계산되므로
+ * `color: transparent`만 두면 글자와 함께 **캐럿까지** 투명해진다. 미러 루트는
+ * `pointerEvents: 'none'`이라 캐럿을 대신 그려 주지도 않는다. 미러 텍스트 색(root의
+ * `color`)과 같은 토큰을 써야 캐럿과 글자가 같은 색으로 보인다.
+ */
 export const hiddenText = style({
   color: 'transparent',
+  caretColor: themeContract.color.text.primary,
+  '@media': {
+    // 미러가 접혔으므로(root 참고) 실제 입력이 자기 색을 되찾아야 한다.
+    '(forced-colors: active)': {
+      color: 'revert',
+    },
+  },
 });
