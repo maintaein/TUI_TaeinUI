@@ -5,6 +5,15 @@ import { FormField } from '../FormField';
 import { MirrorOverlay } from '../../_internal/MirrorOverlay';
 import * as styles from './TextField.css';
 
+/**
+ * 미러가 붙어도 되는 type의 허용 목록이다 (Ruling 80) — 금지 목록이 아니다.
+ * password는 평문을 그대로 그려 보안 결함이 되고(C-1), number는 브라우저가
+ * 중간 입력값(`-`, `1e`, `1.`)을 value=''로 지워 버려 타이핑한 글자가 투명
+ * 오버레이 아래서 통째로 사라진다(C-1b). 나중에 type이 추가돼도 여기 없으면
+ * 기본은 "미러 없음"이다.
+ */
+const MIRRORABLE_TYPES = new Set(['text', 'email', 'tel', 'url']);
+
 /** 한 줄 텍스트 입력 컴포넌트. 레이블, 에러, 도움말 텍스트 내장 */
 export interface TextFieldProps extends Omit<
   InputHTMLAttributes<HTMLInputElement>,
@@ -92,7 +101,7 @@ export const TextField = forwardRef<HTMLInputElement, TextFieldProps>(
               )}
               {...rest}
             />
-            {!disabled && !rest.readOnly && (
+            {!disabled && !rest.readOnly && MIRRORABLE_TYPES.has(type) && (
               <MirrorOverlay
                 inputRef={internalRef}
                 unit="char"

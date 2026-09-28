@@ -1,6 +1,7 @@
 import { style, styleVariants } from '@vanilla-extract/css';
 import { themeContract } from '../../tokens/theme.css';
 import { focusRing } from '../../tokens/focusRing.css';
+import { BORDER_WIDTH } from '../../_internal/mirrorOverlay.css';
 
 // input container 스타일
 export const inputContainer = style({
@@ -9,17 +10,29 @@ export const inputContainer = style({
   alignItems: 'center',
 });
 
+const HEIGHT = { sm: 44, md: 44, lg: 52 } as const;
+
 /**
  * 미러와 input이 둘 다 쓰는 텍스트 기하. 한 곳에만 적는다 — 두 군데 적으면
  * 다음 사람이 한쪽만 고치고, 그러면 사용자가 자기 글자를 1px 어긋난 자리에서 읽는다.
  *
- * lineHeight는 콘텐츠 박스 높이와 같다: sm·md는 44 − (테두리 1 × 2) = 42,
- * lg는 52 − 2 = 50. input의 단일행 세로 중앙 정렬을 미러가 line-height로 재현한다.
+ * lineHeight는 콘텐츠 박스 높이와 같다: HEIGHT − (BORDER_WIDTH × 2). input의
+ * 단일행 세로 중앙 정렬을 미러가 line-height로 재현한다 (Ruling 83 — BORDER_WIDTH가
+ * 바뀌면 이 계산도 같이 따라간다, 하드코딩된 42/50과 따로 놀지 않는다).
  */
 const textMetrics = {
-  sm: { fontSize: '0.875rem', lineHeight: '42px' },
-  md: { fontSize: '1rem', lineHeight: '42px' },
-  lg: { fontSize: '1.125rem', lineHeight: '50px' },
+  sm: {
+    fontSize: '0.875rem',
+    lineHeight: `${HEIGHT.sm - BORDER_WIDTH * 2}px`,
+  },
+  md: {
+    fontSize: '1rem',
+    lineHeight: `${HEIGHT.md - BORDER_WIDTH * 2}px`,
+  },
+  lg: {
+    fontSize: '1.125rem',
+    lineHeight: `${HEIGHT.lg - BORDER_WIDTH * 2}px`,
+  },
 } as const;
 
 /** 미러와 input이 둘 다 쓰는 좌우 패딩. */
@@ -27,9 +40,9 @@ const TEXT_PADDING = '0 1rem';
 
 // size variants
 export const size = styleVariants({
-  sm: { height: '44px', ...textMetrics.sm },
-  md: { height: '44px', ...textMetrics.md },
-  lg: { height: '52px', ...textMetrics.lg },
+  sm: { height: `${HEIGHT.sm}px`, ...textMetrics.sm },
+  md: { height: `${HEIGHT.md}px`, ...textMetrics.md },
+  lg: { height: `${HEIGHT.lg}px`, ...textMetrics.lg },
 });
 
 /** 미러 전용 텍스트 기하 — input과 같은 textMetrics 객체를 스프레드한다 (Ruling 48). */
@@ -44,7 +57,7 @@ export const mirror = style({
 export const input = style({
   width: '100%',
   padding: TEXT_PADDING,
-  border: `1px solid ${themeContract.color.text.secondary}`,
+  border: `${BORDER_WIDTH}px solid ${themeContract.color.text.secondary}`,
   borderRadius: '8px',
   backgroundColor: themeContract.color.background.paper,
   color: themeContract.color.text.primary,

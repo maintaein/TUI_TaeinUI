@@ -366,5 +366,25 @@ describe('TextField', () => {
       );
       expect(container.querySelector('[aria-hidden="true"]')).toBeNull();
     });
+
+    it('type="password"에서는 미러 오버레이가 렌더되지 않는다 (Ruling 80, C-1 — 평문 노출 방지)', () => {
+      const { container } = render(
+        <TextField label="비밀번호" type="password" />
+      );
+      expect(container.querySelector('[aria-hidden="true"]')).toBeNull();
+    });
+
+    it('type="number"에서는 미러 오버레이가 렌더되지 않는다 (Ruling 80, C-1b — 중간 입력이 value=""로 사라진다)', () => {
+      const { container } = render(<TextField label="수량" type="number" />);
+      expect(container.querySelector('[aria-hidden="true"]')).toBeNull();
+    });
+
+    it.each([['text'], ['email'], ['tel'], ['url']] as const)(
+      'type="%s"에서는 미러 오버레이가 렌더된다 (허용 목록)',
+      (type) => {
+        const { container } = render(<TextField label="입력" type={type} />);
+        expect(container.querySelector('[aria-hidden="true"]')).not.toBeNull();
+      }
+    );
   });
 });

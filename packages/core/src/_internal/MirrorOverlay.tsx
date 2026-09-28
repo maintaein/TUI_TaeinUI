@@ -232,26 +232,43 @@ const runWordSync = (
   next: string,
   reduced: boolean
 ): void => {
-  (root.__mirrorTweens ?? []).forEach((tween) => tween.kill());
-  root.__mirrorTweens = [];
-
   const lastSpaceIndex = next.lastIndexOf(' ');
   const head = lastSpaceIndex === -1 ? '' : next.slice(0, lastSpaceIndex + 1);
   const word = lastSpaceIndex === -1 ? next : next.slice(lastSpaceIndex + 1);
 
   if (word.length > MAX_WORD_CHARS) {
+    (root.__mirrorTweens ?? []).forEach((tween) => tween.kill());
+    root.__mirrorTweens = [];
     settled.textContent = next;
     incoming.replaceChildren();
     wordMeasureRef.current = { word: '', top: 0 };
     return;
   }
 
+  // I-1(Ruling 77 후반부): 말미에 그대로 이어붙는 입력이면(예: 낙하 트윈이 도는
+  // 도중 다음 글자가 옴) 기존 span을 재사용하고 살아 있는 트윈은 그대로 둔다.
+  // 예전엔 호출마다 무조건 죽이고 span을 새로 만들어서, 낙하 애니메이션이 도는
+  // 중에 다음 키 입력 한 번이면 매번 잘렸다. 낱말 정체성이 바뀔 때만(말미 추가가
+  // 아닐 때) 죽이고 새로 만든다 — 이때는 트윈이 쓰던 노드도 같이 사라지므로
+  // Ruling 77 전반부(노드가 죽을 때만 트윈을 죽인다)에 어긋나지 않는다.
+  const existingSpan = incoming.firstElementChild as HTMLSpanElement | null;
+  const isTrailingAppend =
+    existingSpan !== null && word.startsWith(wordMeasureRef.current.word);
+
   settled.textContent = head;
-  incoming.replaceChildren();
-  const span = document.createElement('span');
-  span.className = styles.entering;
+
+  let span: HTMLSpanElement;
+  if (isTrailingAppend) {
+    span = existingSpan;
+  } else {
+    (root.__mirrorTweens ?? []).forEach((tween) => tween.kill());
+    root.__mirrorTweens = [];
+    span = document.createElement('span');
+    span.className = styles.entering;
+    incoming.replaceChildren();
+    incoming.appendChild(span);
+  }
   span.textContent = word;
-  incoming.appendChild(span);
 
   // 이 한 줄이 DOM 측정 전부다 — jsdom은 항상 0을 준다(위험 목록 2).
   const nextTop = span.offsetTop;
@@ -263,6 +280,10 @@ const runWordSync = (
   );
 
   if (fromY !== null) {
+    // 재사용한 span이라도 새 낙하가 시작되면 그 span에 걸려 있던 이전 트윈은
+    // 여기서 죽인다 — 노드는 안 죽고 살아 있으므로 안전하다.
+    (root.__mirrorTweens ?? []).forEach((tween) => tween.kill());
+    root.__mirrorTweens = [];
     const tween = gateMotion(reduced, () =>
       gsap.from(span, {
         y: fromY,
@@ -300,6 +321,11 @@ export const MirrorOverlay = ({
   reducedRef.current = reduced;
 
   const sync = (nextValue: string): void => {
+    // I-3: 제어 컴포넌트는 조합 중에도 리렌더가 돌 수 있다 — 여기서 동기화하면
+    // 아직 확정 안 된 중간 음절이 lastSyncedRef에 앉아, compositionend가 실제로
+    // 왔을 때 "말미 추가"가 아니게 돼 확정 음절이 애니메이션을 못 받는다.
+    // compositionend 핸들러만이 조합 확정의 유일한 진입점으로 남는다.
+    if (composingRef.current) return;
     if (lastSyncedRef.current === nextValue) return;
     const root = rootRef.current;
     const settled = settledRef.current;
@@ -401,6 +427,13 @@ export const MirrorOverlay = ({
     if (!input || !root) return;
     sync(input.value);
     syncScroll(root, input, unit);
+    // Ruling 81(C-2): React가 매 렌더 input의 className을 다시 쓰면서 imperative로
+    // 붙인 hiddenText가 같이 지워질 수 있다. applyBrowserOwnsText의 조기 반환은
+    // "소유권이 바뀔 때만 쓴다"는 최적화라 이 복구 경로를 못 덮는다 — 여기서
+    // 매 렌더 무조건 재확인한다. classList.add는 멱등이라 이미 있어도 안전하다.
+    if (!ownsTextRef.current) {
+      input.classList.add(styles.hiddenText);
+    }
   });
 
   return (
