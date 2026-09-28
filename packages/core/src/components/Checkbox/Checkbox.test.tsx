@@ -465,6 +465,25 @@ describe('Checkbox', () => {
         expect(Number(path.style.strokeDashoffset)).toBe(19.8);
       });
 
+      it('등장(unchecked→checked) 중단 후 모프(indeterminate)로 전이하면 dashoffset도 0으로 수렴한다', () => {
+        const { container, rerender } = render(
+          <Checkbox label="동의" checked={false} onChange={() => {}} />
+        );
+
+        rerender(<Checkbox label="동의" checked onChange={() => {}} />);
+        getMarkPath(container).__markTween?.progress(0.4); // 등장 중단 — dashoffset이 중간값에 걸림
+
+        rerender(
+          <Checkbox label="동의" checked indeterminate onChange={() => {}} />
+        );
+        const path = getMarkPath(container);
+        path.__markTween?.progress(1);
+
+        expect(path.getAttribute('d')).toBe('M5 12 L19 12');
+        expect(Number(path.style.strokeDasharray)).toBe(14);
+        expect(Number(path.style.strokeDashoffset)).toBe(0);
+      });
+
       it('checked↔indeterminate 모프 중단 후 퇴장(unchecked)으로 전이하면 조각 없이 prev 정준 모양으로 수렴한다(Critical-2 회귀)', () => {
         const { container, rerender } = render(
           <Checkbox label="동의" checked={false} onChange={() => {}} />

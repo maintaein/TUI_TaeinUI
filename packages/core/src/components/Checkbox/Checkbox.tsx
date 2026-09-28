@@ -142,11 +142,13 @@ const syncMarkState = (
     );
     attachSelfKill(tween, path, reduced);
   } else {
-    // 모양 변형: checked ↔ indeterminate. dashoffset은 0에 머문다.
+    // 모양 변형: checked ↔ indeterminate. dashoffset도 같이 0으로 트윈한다(Ruling 77) —
+    // 등장이 중단된 채로 모프에 진입하면 dashoffset이 중간값에 걸려 있을 수 있어서다.
     const tween = gateMotion(reduced, () =>
       gsap.to(path, {
         morphSVG: pathFor(nextState),
         strokeDasharray: lengthFor(nextState),
+        strokeDashoffset: 0,
         duration: gsapDuration.base,
         ease: gsapEasing.settle,
         overwrite: 'auto',
