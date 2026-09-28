@@ -162,8 +162,8 @@ interface MotionDecl {
  * 콜론 뒤에서 문자열 리터럴 하나를 읽는다. 리터럴이 아니면 `null`.
  *
  * 백틱이 같은 줄에서 안 닫히면 닫힐 때까지 다음 줄을 이어 붙인다 —
- * `transition:`이 있는 줄만 보는 스캐너는 `SegmentedButtons.css.ts:32`·`:33`을
- * 통째로 놓친다(R32 함정 4).
+ * `transition:`이 있는 줄만 보는 스캐너는 여러 줄 전이의 둘째·셋째 줄을 통째로
+ * 놓친다(R32 함정 4 — 합성 표본으로 잠근다).
  */
 function readLiteral(
   rest: string,
@@ -260,12 +260,26 @@ function analyze(
   return { file: rel(file), property, line, value, segments };
 }
 
-/** `.css.ts` 한 파일의 모션 선언 전부. 값이 리터럴이 아니면 `opaque`에 남는다. */
+/** 파일에서 읽어 스캔한다. 합성 원본을 먹이려면 `declarationsFrom`을 직접 부른다. */
 function declarationsOf(file: string): {
   decls: MotionDecl[];
   opaque: string[];
 } {
-  const lines = readFileSync(file, 'utf-8').split(/\r?\n/);
+  return declarationsFrom(file, readFileSync(file, 'utf-8').split(/\r?\n/));
+}
+
+/**
+ * 줄 배열에서 모션 선언을 모은다. 파일 읽기와 분리한 이유는 함정 4 테스트가
+ * 합성 원본을 먹이기 때문이다 — 파서를 지키는 검사가 제품 코드의 우연한 모양에
+ * 매달리면, 제품 코드가 정당하게 바뀔 때 파서 검사가 같이 죽는다(M3 T3d에서 겪었다).
+ */
+function declarationsFrom(
+  file: string,
+  lines: string[]
+): {
+  decls: MotionDecl[];
+  opaque: string[];
+} {
   const decls: MotionDecl[] = [];
   const opaque: string[] = [];
   lines.forEach((line, index) => {
@@ -533,7 +547,7 @@ interface Exception {
 }
 
 /**
- * 리터럴 이징 11줄 20건 4파일(`.css.ts`) + 인라인 2줄 2건(`.tsx`).
+ * 리터럴 이징 8줄 15건 4파일(`.css.ts`) + 인라인 현재 0건 — 양성 표본 상실은 M7 항목(`.tsx`).
  * BoardRow·Card·Chip은 M2 T3가, Loader·LoadingSpinner·Skeleton은 M2 T3c가
  * 갚아 토큰으로 옮겨져 이 목록에서 빠졌다.
  *
@@ -1188,9 +1202,11 @@ describe('리터럴 이징 잠금 (T8 · R32)', () => {
     );
   });
 
-  it('.css.ts 쪽 실측이 11줄 20건 4파일이다', () => {
-    expect(new Set(cssEasings.map((e) => `${e.file}:${e.line}`)).size).toBe(11);
-    expect(cssEasings).toHaveLength(20);
+  it('.css.ts 쪽 실측이 8줄 15건 4파일이다', () => {
+    // M3 T3d에서 11줄 20건 → 8줄 15건. SegmentedButtons의 activeIndicator 전이에서
+    // transform·width가 GSAP으로 넘어가며 리터럴 이징 3건이 사라졌다.
+    expect(new Set(cssEasings.map((e) => `${e.file}:${e.line}`)).size).toBe(8);
+    expect(cssEasings).toHaveLength(15);
     expect(new Set(cssEasings.map((e) => e.file)).size).toBe(4);
   });
 
@@ -1198,28 +1214,42 @@ describe('리터럴 이징 잠금 (T8 · R32)', () => {
     expect(inlineEasings.map((e) => `${e.file}:${e.line}`)).toEqual([]);
   });
 
-  it('여러 줄 템플릿 리터럴의 :31·:32·:33을 세 검사 모두가 잡는다 (함정 4)', () => {
-    const file = 'components/SegmentedButtons/SegmentedButtons.css.ts';
-    const decl = CSS_DECLS.find((d) => d.file === file && d.line === 30);
-    expect(decl, ':30에서 시작하는 전이 선언을 찾지 못했다').toBeDefined();
+  it('여러 줄 템플릿 리터럴의 세 줄을 세 검사 모두가 잡는다 (함정 4)', () => {
+    // 합성 원본. 예전 표본은 SegmentedButtons.css.ts:30이었지만 M3 T3d가
+    // transform·width를 GSAP으로 넘겨 그 선언이 한 줄로 줄었고, 실측상 제품
+    // 소스에 여러 줄 전이가 더 이상 하나도 없다. 이 테스트가 지키는 것은
+    // readLiteral(:166)의 "백틱이 닫힐 때까지 다음 줄을 이어 붙인다" 기계이므로
+    // 표본을 여기 고정한다.
+    const source = [
+      '  transition: `',
+      '    transform ${themeContract.animation.duration.slow} cubic-bezier(0.25, 1, 0.5, 1),',
+      '    width ${themeContract.animation.duration.slow} cubic-bezier(0.25, 1, 0.5, 1),',
+      '    box-shadow ${themeContract.animation.duration.slow} ease',
+      '  `,',
+    ];
+    const fixture = resolve(COMPONENTS, '__fixture__/multiline.css.ts');
+    const decl = declarationsFrom(fixture, source).decls.find(
+      (d) => d.line === 1
+    );
+    expect(decl, ':1에서 시작하는 전이 선언을 찾지 못했다').toBeDefined();
 
     // (1) 속성 추출 — transition: all 검사와 화이트리스트 검사가 쓰는 값
     expect(decl?.segments.map((s) => `${s.line}:${s.property}`)).toEqual([
-      '31:transform',
-      '32:width',
-      '33:box-shadow',
+      '2:transform',
+      '3:width',
+      '4:box-shadow',
     ]);
     // (2) 시간 슬롯 — duration 검사가 쓰는 값. 세 줄 모두 토큰 참조다
     expect(
       decl?.segments.flatMap((s) => s.slots.map((t) => `${t.line}:${t.kind}`))
-    ).toEqual(['31:token', '32:token', '33:token']);
+    ).toEqual(['2:token', '3:token', '4:token']);
     // (3) 리터럴 이징
     expect(
       literalEasingsOf(decl as MotionDecl).map((h) => `${h.line}:${h.text}`)
     ).toEqual([
-      '31:cubic-bezier(0.25, 1, 0.5, 1)',
-      '32:cubic-bezier(0.25, 1, 0.5, 1)',
-      '33:ease',
+      '2:cubic-bezier(0.25, 1, 0.5, 1)',
+      '3:cubic-bezier(0.25, 1, 0.5, 1)',
+      '4:ease',
     ]);
   });
 });
