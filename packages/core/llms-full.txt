@@ -1029,6 +1029,39 @@ import { HeaderBar, IconButton, Icon } from '@taein-designsystem/core';
 | aria-label | string | — | Accessibility label |
 | className | string | — | Additional CSS class |
 
+### HeaderBarNav
+
+Header navigation whose items swell by proximity to the pointer (and,
+identically, to keyboard focus). Two guards keep it legible: items only ever
+grow from rest (never shrink below it), and the hit area is a fixed
+`RESERVED_SIZE` (56px) box — only the pill inside it scales via `transform`,
+so layout never recalculates.
+
+```tsx
+import { HeaderBar, HeaderBarNav, Icon } from '@taein-designsystem/core';
+
+<HeaderBar
+  title="My App"
+  actions={
+    <HeaderBarNav
+      aria-label="주요 메뉴"
+      items={[
+        { icon: <Icon name="info" />, label: '홈', href: '/' },
+        { icon: <Icon name="plus" />, label: '새로 만들기', onClick: () => {} },
+        { icon: <Icon name="check-circle" />, label: '완료함' },
+      ]}
+    />
+  }
+/>
+```
+
+### HeaderBarNav Props
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| items | HeaderBarNavItem[] | (required) | Nav items — `{ icon, label, href?, onClick? }` |
+| aria-label | string | '주요 메뉴' | Accessibility name for the `<nav>` |
+| className | string | — | Additional CSS class |
+
 ---
 
 ## FormField

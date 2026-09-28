@@ -155,6 +155,33 @@ export function HeaderBarPage() {
           />
         </div>
 
+        {/* Proximity Navigation */}
+        <div className={styles.example}>
+          <h3 className={styles.exampleTitle}>
+            Proximity Navigation (HeaderBarNav)
+          </h3>
+          <LivePreview
+            title="근접 확대 네비게이션"
+            description="커서나 키보드 포커스가 가까워질수록 항목이 부풀고, 양옆 이웃은 절반만 부풉니다. 히트 영역은 고정 크기라 레이아웃이 흔들리지 않습니다."
+            editable
+            code={`<HeaderBar
+  title="Store"
+  actions={
+    <HeaderBarNav
+      aria-label="주요 메뉴"
+      items={[
+        { icon: <Icon name="info" />, label: '홈', href: '#' },
+        { icon: <Icon name="plus" />, label: '새로 만들기' },
+        { icon: <Icon name="check-circle" />, label: '완료함' },
+        { icon: <Icon name="alert-circle" />, label: '알림' },
+        { icon: <Icon name="minus" />, label: '설정' },
+      ]}
+    />
+  }
+/>`}
+          />
+        </div>
+
         {/* Variants */}
         <div className={styles.example}>
           <h3 className={styles.exampleTitle}>Variants</h3>
