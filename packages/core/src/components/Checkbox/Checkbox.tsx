@@ -126,9 +126,14 @@ const syncMarkState = (
     attachSelfKill(tween, path, reduced);
   } else if (nextState === 'unchecked') {
     // 퇴장: checked | indeterminate → unchecked
+    // d·strokeDasharray도 prev의 정준 모양으로 같이 트윈한다(Ruling 77) —
+    // 모프 도중 끊기고 곧장 퇴장으로 넘어오면 d/dasharray가 중간값에 얼어
+    // dashoffset과 안 맞아 조각이 남을 수 있어서다.
     const length = lengthFor(prev);
     const tween = gateMotion(reduced, () =>
       gsap.to(path, {
+        morphSVG: pathFor(prev),
+        strokeDasharray: length,
         strokeDashoffset: length,
         duration: gsapDuration.slow * EXIT_RATIO,
         ease: gsapEasing.exit,

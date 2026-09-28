@@ -469,5 +469,72 @@ describe('Switch', () => {
 
       expect(timeline?.parent).toBeNull();
     });
+
+    describe('중단 매트릭스 (Ruling 77 회귀)', () => {
+      it('on 전이를 스쿼시 구간에서 중단하고 off로 전이하면 썸의 scaleX·scaleY가 모두 1로 되돌아온다(Critical-1 회귀)', () => {
+        const { rerender } = render(
+          <Switch label="스위치" checked={false} onChange={() => {}} />
+        );
+        const switchElement = screen.getByRole('switch');
+        const thumb = getThumb(switchElement);
+        const sweep = getSweep(switchElement);
+
+        rerender(<Switch label="스위치" checked onChange={() => {}} />);
+        getTrack(switchElement).__switchTimeline?.progress(0.1); // 스쿼시 구간 중단
+        expect(readScaleY(thumb)).toBeLessThan(1);
+
+        rerender(<Switch label="스위치" checked={false} onChange={() => {}} />);
+        const timeline = getTrack(switchElement).__switchTimeline;
+        timeline?.progress(1);
+
+        expect(readScaleX(thumb)).toBe(1);
+        expect(readScaleY(thumb)).toBe(1);
+        expect(readX(thumb)).toBe(0);
+        expect(readScaleX(sweep)).toBe(0);
+      });
+
+      it('on 전이를 이동 구간에서 중단하고 off로 전이해도 채널 전체가 off 정준값으로 수렴한다', () => {
+        const { rerender } = render(
+          <Switch label="스위치" checked={false} onChange={() => {}} />
+        );
+        const switchElement = screen.getByRole('switch');
+        const thumb = getThumb(switchElement);
+        const sweep = getSweep(switchElement);
+
+        rerender(<Switch label="스위치" checked onChange={() => {}} />);
+        getTrack(switchElement).__switchTimeline?.progress(0.6); // 이동·복원 구간 중단
+
+        rerender(<Switch label="스위치" checked={false} onChange={() => {}} />);
+        const timeline = getTrack(switchElement).__switchTimeline;
+        timeline?.progress(1);
+
+        expect(readScaleX(thumb)).toBe(1);
+        expect(readScaleY(thumb)).toBe(1);
+        expect(readX(thumb)).toBe(0);
+        expect(readScaleX(sweep)).toBe(0);
+      });
+
+      it('off 전이를 중단하고 다시 on으로 전이하면 채널 전체가 on 정준값으로 수렴한다', () => {
+        const { rerender } = render(
+          <Switch label="스위치" checked onChange={() => {}} />
+        );
+        const switchElement = screen.getByRole('switch');
+        const thumb = getThumb(switchElement);
+        const sweep = getSweep(switchElement);
+        getTrack(switchElement).__switchTimeline?.progress(1); // on 완전 착지
+
+        rerender(<Switch label="스위치" checked={false} onChange={() => {}} />);
+        getTrack(switchElement).__switchTimeline?.progress(0.3); // off 중단
+
+        rerender(<Switch label="스위치" checked onChange={() => {}} />); // 다시 on
+        const timeline = getTrack(switchElement).__switchTimeline;
+        timeline?.progress(1);
+
+        expect(readX(thumb)).toBe(18); // md 사이즈의 thumbOffset
+        expect(readScaleX(thumb)).toBe(1);
+        expect(readScaleY(thumb)).toBe(1);
+        expect(readScaleX(sweep)).toBe(1);
+      });
+    });
   });
 });

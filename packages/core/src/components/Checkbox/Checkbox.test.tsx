@@ -446,5 +446,89 @@ describe('Checkbox', () => {
 
       expect(tween?.parent).toBeNull();
     });
+
+    describe('중단 매트릭스 (Ruling 77 회귀)', () => {
+      it('등장(unchecked→checked) 중단 후 퇴장(unchecked)으로 전이하면 완전히 숨은 정준 모양으로 수렴한다', () => {
+        const { container, rerender } = render(
+          <Checkbox label="동의" checked={false} onChange={() => {}} />
+        );
+
+        rerender(<Checkbox label="동의" checked onChange={() => {}} />);
+        getMarkPath(container).__markTween?.progress(0.3); // 등장 중단
+
+        rerender(<Checkbox label="동의" checked={false} onChange={() => {}} />);
+        const path = getMarkPath(container);
+        path.__markTween?.progress(1);
+
+        expect(path.getAttribute('d')).toBe('M5 13 L9 17 L19 7');
+        expect(Number(path.style.strokeDasharray)).toBe(19.8);
+        expect(Number(path.style.strokeDashoffset)).toBe(19.8);
+      });
+
+      it('checked↔indeterminate 모프 중단 후 퇴장(unchecked)으로 전이하면 조각 없이 prev 정준 모양으로 수렴한다(Critical-2 회귀)', () => {
+        const { container, rerender } = render(
+          <Checkbox label="동의" checked={false} onChange={() => {}} />
+        );
+
+        rerender(<Checkbox label="동의" checked onChange={() => {}} />);
+        getMarkPath(container).__markTween?.progress(1); // checked 완전 착지
+
+        rerender(
+          <Checkbox label="동의" checked indeterminate onChange={() => {}} />
+        );
+        getMarkPath(container).__markTween?.progress(0.5); // 모프 중단
+
+        rerender(<Checkbox label="동의" checked={false} onChange={() => {}} />);
+        const path = getMarkPath(container);
+        path.__markTween?.progress(1);
+
+        // 중단 시점의 논리 상태는 indeterminate였다 — prev는 checked가 아니라 indeterminate다.
+        expect(path.getAttribute('d')).toBe('M5 12 L19 12');
+        expect(Number(path.style.strokeDasharray)).toBe(14);
+        expect(Number(path.style.strokeDashoffset)).toBe(14);
+      });
+
+      it('checked→indeterminate 모프 중단 후 다시 checked로 되돌리면 반대쪽 정준 모양으로 수렴한다', () => {
+        const { container, rerender } = render(
+          <Checkbox label="동의" checked={false} onChange={() => {}} />
+        );
+
+        rerender(<Checkbox label="동의" checked onChange={() => {}} />);
+        getMarkPath(container).__markTween?.progress(1);
+
+        rerender(
+          <Checkbox label="동의" checked indeterminate onChange={() => {}} />
+        );
+        getMarkPath(container).__markTween?.progress(0.4); // 모프 중단
+
+        rerender(<Checkbox label="동의" checked onChange={() => {}} />); // 반대 방향 모프
+        const path = getMarkPath(container);
+        path.__markTween?.progress(1);
+
+        expect(path.getAttribute('d')).toBe('M5 13 L9 17 L19 7');
+        expect(Number(path.style.strokeDasharray)).toBe(19.8);
+        expect(Number(path.style.strokeDashoffset)).toBe(0);
+      });
+
+      it('퇴장(checked→unchecked) 중단 후 다시 checked로 전이하면 등장 목표로 수렴한다', () => {
+        const { container, rerender } = render(
+          <Checkbox label="동의" checked={false} onChange={() => {}} />
+        );
+
+        rerender(<Checkbox label="동의" checked onChange={() => {}} />);
+        getMarkPath(container).__markTween?.progress(1);
+
+        rerender(<Checkbox label="동의" checked={false} onChange={() => {}} />);
+        getMarkPath(container).__markTween?.progress(0.3); // 퇴장 중단
+
+        rerender(<Checkbox label="동의" checked onChange={() => {}} />); // 다시 등장
+        const path = getMarkPath(container);
+        path.__markTween?.progress(1);
+
+        expect(path.getAttribute('d')).toBe('M5 13 L9 17 L19 7');
+        expect(Number(path.style.strokeDasharray)).toBe(19.8);
+        expect(Number(path.style.strokeDashoffset)).toBe(0);
+      });
+    });
   });
 });

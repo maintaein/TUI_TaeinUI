@@ -102,7 +102,13 @@ const buildOffTimeline = (
     const duration = gsapDuration.slow * EXIT_RATIO;
 
     // 역재생하지 않는다(Ruling 41) — squash 없이 exit 이징 하나로 짧게 빠진다.
-    timeline.to(thumb, { x: 0, duration, ease: gsapEasing.exit }, 0);
+    // scaleX/scaleY도 같이 1로 되돌린다(Ruling 77) — on 타임라인이 스쿼시
+    // 구간에서 끊기고 곧장 off로 넘어오면 눌린 채 정지할 수 있어서다.
+    timeline.to(
+      thumb,
+      { x: 0, scaleX: 1, scaleY: 1, duration, ease: gsapEasing.exit },
+      0
+    );
     timeline.to(sweep, { scaleX: 0, duration, ease: gsapEasing.exit }, 0);
 
     return timeline;
