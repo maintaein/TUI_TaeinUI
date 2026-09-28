@@ -285,12 +285,11 @@ const runWordSync = (
     (root.__mirrorTweens ?? []).forEach((tween) => tween.kill());
     root.__mirrorTweens = [];
     const tween = gateMotion(reduced, () =>
-      gsap.from(span, {
-        y: fromY,
-        x: FALL_X,
-        duration: gsapDuration.slow,
-        ease: gsapEasing.snap,
-      })
+      gsap.fromTo(
+        span,
+        { y: fromY, x: FALL_X },
+        { y: 0, x: 0, duration: gsapDuration.slow, ease: gsapEasing.snap }
+      )
     );
     attachTweenCleanup(tween, root, reduced, () => {});
   }

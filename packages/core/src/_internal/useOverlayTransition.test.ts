@@ -52,6 +52,36 @@ const installReducedMotion = (): void => {
   );
 };
 
+/**
+ * installReducedMotion과 달리 change 이벤트로 값을 바꿀 수 있다 (Ruling 24) —
+ * useReducedMotion.test.ts의 FakeMediaQueryList와 같은 패턴.
+ */
+class ToggleableMediaQueryList extends EventTarget {
+  matches: boolean;
+  readonly media = '(prefers-reduced-motion: reduce)';
+
+  constructor(matches: boolean) {
+    super();
+    this.matches = matches;
+  }
+
+  setMatches(next: boolean): void {
+    this.matches = next;
+    this.dispatchEvent(new Event('change'));
+  }
+}
+
+const installToggleableReducedMotion = (
+  initial: boolean
+): ToggleableMediaQueryList => {
+  const list = new ToggleableMediaQueryList(initial);
+  vi.stubGlobal(
+    'matchMedia',
+    (): MediaQueryList => list as unknown as MediaQueryList
+  );
+  return list;
+};
+
 const setup = (
   open: boolean,
   options: {
@@ -253,6 +283,87 @@ describe('useOverlayTransition — 중단 (명제 조항 1)', () => {
   });
 });
 
+describe('useOverlayTransition — 컴포넌트 모양 중단/재개 (Ruling 30)', () => {
+  /**
+   * `Modal.tsx`가 실제로 렌더되는 걸 이 파일에서 직접 구동하지는 못한다 —
+   * `gsap`을 값으로 import하는 순간 게이트 검사가 그 파일을 위반자로 잡는다
+   * (`Modal.test.tsx`가 같은 이유로 이미 gsap import를 피하고 있고, 이 파일이
+   * 그 우회를 안 쓰는 것도 `timelineRef.current`가 이미 실제 GSAP 인스턴스를
+   * import 없이 손에 쥐여 주기 때문이다 — 직접 확인: 임시로 `Modal.test.tsx`에
+   * `import { gsap } from 'gsap'`를 넣고 게이트 검사를 돌리면 그 파일이
+   * violators에 잡힌다). 그래서 `Modal.buildTimeline`과 같은 모양 —
+   * 트리거·다이얼로그 좌표 차이를 x/y로 넣는 것까지 — 을 여기서 그대로
+   * 재현해 중단/재개를 구동한다.
+   */
+  it('트리거 좌표를 포함한 Modal 모양 타임라인도 여는 도중 닫으면 같은 인스턴스가 현재 progress에서 역방향으로 이어진다', () => {
+    const trigger = document.createElement('button');
+    const dialog = document.createElement('div');
+    document.body.append(trigger, dialog);
+
+    const triggerBox = { left: 100, top: 200, width: 80, height: 32 };
+    const dialogBox = { left: 300, top: 150, width: 400, height: 240 };
+    trigger.getBoundingClientRect = () =>
+      new DOMRect(
+        triggerBox.left,
+        triggerBox.top,
+        triggerBox.width,
+        triggerBox.height
+      );
+    dialog.getBoundingClientRect = () =>
+      new DOMRect(
+        dialogBox.left,
+        dialogBox.top,
+        dialogBox.width,
+        dialogBox.height
+      );
+
+    // Modal.tsx의 enterStart와 같은 계산 — 두 중심의 차이.
+    const from = trigger.getBoundingClientRect();
+    const to = dialog.getBoundingClientRect();
+    const enterX = from.left + from.width / 2 - (to.left + to.width / 2);
+    const enterY = from.top + from.height / 2 - (to.top + to.height / 2);
+
+    const modalShapedBuild = (timeline: gsap.core.Timeline): void => {
+      timeline.fromTo(
+        backdropEl,
+        { opacity: 0 },
+        { opacity: 1, duration: gsapDuration.base, ease: gsapEasing.settle },
+        0
+      );
+      timeline.fromTo(
+        dialog,
+        { opacity: 0, x: enterX, y: enterY, scale: 0.8 },
+        {
+          opacity: 1,
+          x: 0,
+          y: 0,
+          scale: 1,
+          duration: gsapDuration.slow,
+          ease: gsapEasing.settle,
+        },
+        0
+      );
+    };
+
+    const { result, rerender } = setup(true, { build: modalShapedBuild });
+    const timeline = result.current.timelineRef.current;
+
+    act(() => {
+      timeline?.progress(0.4);
+    });
+
+    rerender({ open: false });
+
+    // 같은 인스턴스가 이어받는다 — 새로 만들지 않는다.
+    expect(result.current.timelineRef.current).toBe(timeline);
+    expect(timeline?.progress()).toBeCloseTo(0.4, 5);
+    expect(timeline?.reversed()).toBe(true);
+
+    dialog.remove();
+    trigger.remove();
+  });
+});
+
 describe('useOverlayTransition — 완료 콜백에 의존하지 않는다', () => {
   it('onReverseComplete가 먼저 와도 타이머와 합쳐 onExited가 한 번만 불린다', () => {
     const onExited = vi.fn();
@@ -297,6 +408,43 @@ describe('useOverlayTransition — 축소 모드', () => {
     expect(result.current.shouldRender).toBe(false);
     expect(onExited).toHaveBeenCalledTimes(1);
     expect(vi.getTimerCount()).toBe(0);
+  });
+});
+
+describe('useOverlayTransition — 축소 선호 전환 (Ruling 24)', () => {
+  it('열린 상태에서 축소 선호를 켰다 끄면 타임라인이 재빌드된다 — [shouldRender, reduced] 의존성이 실제로 재호출을 일으킨다', () => {
+    const list = installToggleableReducedMotion(false);
+    const build = vi.fn(buildTimeline);
+    const { result } = setup(true, { build });
+
+    const original = result.current.timelineRef.current;
+    expect(build).toHaveBeenCalledTimes(1);
+    expect(original).not.toBeNull();
+
+    act(() => {
+      list.setMatches(true);
+    });
+
+    // 이펙트 클린업이 이전 타임라인을 kill했다 — parent === null이 kill 신호다
+    // (isActive()는 parent가 null이어도 true를 반환해 신뢰할 수 없다).
+    expect(original?.parent).toBeNull();
+    const reducedTimeline = result.current.timelineRef.current;
+    expect(reducedTimeline).not.toBe(original);
+    expect(build).toHaveBeenCalledTimes(2);
+    // gateMotion이 축소 선호면 만들자마자 끝 상태로 확정하고 죽인다.
+    expect(reducedTimeline?.progress()).toBe(1);
+    expect(reducedTimeline?.parent).toBeNull();
+
+    act(() => {
+      list.setMatches(false);
+    });
+
+    // 다시 꺼졌으니 또 한 번 재빌드된다 — 이번엔 게이트를 거치지 않아 살아 있다.
+    expect(build).toHaveBeenCalledTimes(3);
+    const restoredTimeline = result.current.timelineRef.current;
+    expect(restoredTimeline).not.toBe(reducedTimeline);
+    expect(restoredTimeline).not.toBe(original);
+    expect(restoredTimeline?.parent).not.toBeNull();
   });
 });
 

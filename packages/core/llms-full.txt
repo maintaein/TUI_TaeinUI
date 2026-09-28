@@ -1228,6 +1228,29 @@ Semantic 색상은 역할별 4슬롯이다. 슬롯을 바꿔 쓰면 대비가 �
   넣는다. `down`이 1px이 아니라 0.02px을 빼는 것은 소수 픽셀 폭에서 `up`과
   사이에 틈이 생기지 않게 하기 위함이다.
 
+## Motion (GSAP Runtime)
+
+M3(Tier-B GSAP 런타임)에서 실제로 GSAP이 붙은 컴포넌트와 그 능력이다. 계획서의
+예측이 아니라 구현된 소스에서 읽었다 — 아래에 없는 컴포넌트는 CSS 트랜지션만
+쓴다. 공유 easing·duration 토큰은 위 Design Tokens > Animation 절 참고.
+
+| 컴포넌트 | 쓰는 능력 | 근거 |
+| --- | --- | --- |
+| Modal | 타임라인 상대 위치 · CSS가 못 보는 값 읽기(트리거 좌표) | 백드롭·다이얼로그를 한 타임라인의 위치 `0`에 넣고, `enterStart`가 트리거·다이얼로그의 `getBoundingClientRect()` 차이로 시작 x/y를 계산한다 |
+| BottomSheet | 타임라인 상대 위치 · 제스처 추적(터치 드래그 1:1) | 등장·퇴장은 `useOverlayTransition`, 터치 드래그는 `gsap.quickSetter(sheet, 'y', 'px')`로 손가락을 1:1로 따라간다 |
+| SideSheet | 타임라인 상대 위치 | `useOverlayTransition`만 쓴다 — 직접 `gsap` import도, 트리거 좌표도, 드래그도 없다 |
+| Snackbar | CSS가 못 보는 값 읽기(카운트다운 진행률 read-back) | `gsap.to(proxy, { remaining: 0, ... })`의 `remaining` 값 자체를 막대 렌더와 닫힘 판정이 함께 읽는다 — CSS/WAAPI로는 진행률을 밖에서 못 읽는다. 유일한 GATE_ENFORCEMENT_EXCEPTIONS 항목이다 |
+| Checkbox | 모양 변형(checked ↔ indeterminate) · 다중 목표 중단 | `MorphSVGPlugin`으로 체크 표시 경로를 모핑하고, `overwrite: 'auto'`로 빠른 재클릭을 흡수한다 |
+| Switch | 타임라인 상대 위치 · 다중 목표 중단 | `buildOnTimeline`/`buildOffTimeline`이 sweep·thumb를 위치 `0`과 `squashDuration` 오프셋에 나눠 건다 |
+| SegmentedButtons | 다중 목표 중단 · CSS가 못 보는 값 읽기(인디케이터 좌표) | 선택마다 새 타임라인을 만들어(재사용 금지) `overwrite: 'auto'`가 이전 타임라인을 현재 값에서 죽이게 하고, 인디케이터 위치는 `selectedLabel`/컨테이너의 `getBoundingClientRect()`로 잰다 |
+| NumericSpinner | 다중 목표 중단 | 버튼 눌림 깊이(`overwrite: 'auto'` 2단 타임라인)와 입력 필드 흔들림(`gsap.fromTo(..., { overwrite: 'auto' })`) 두 채널 모두 재호출을 안전하게 흡수한다 |
+| Slider | 제스처 추적(드래그 중 값 따라붙기) | `gsap.quickTo(el, VALUE_FOLLOWER_PERCENT_VAR, ...)`가 드래그 중에만 값을 따라간다 — 길게 사는 트윈이라 gateMotion을 거치지 않고 `reduced`를 직접 분기한다 |
+| HeaderBarNav | 제스처 추적(포인터 근접) · CSS가 못 보는 값 읽기(컨테이너 좌표) | `pointermove`마다 `gsap.quickTo` 세터로 각 항목 배율을 갱신하고, 원점은 `pointerenter`에서 캐시한 `nav.getBoundingClientRect().left`로 잰다 |
+| TextField, TextArea | CSS가 못 보는 값 읽기(줄바꿈 감지용 offsetTop) | 타이핑 미러 오버레이(`_internal/MirrorOverlay.tsx`)가 `offsetTop` 비교로 줄바꿈을 감지한다 — CSS는 줄바꿈 여부를 JS에 알려주지 않는다 |
+
+**Flip은 이 목록 어디에도 없다.** 유일한 후보였던 `Card`는 레이아웃 변화를
+CSS 전환으로 충분히 표현할 수 있다고 판단해 채택하지 않았다.
+
 ## Next.js & Server Components
 
 ### 설치
@@ -1255,9 +1278,14 @@ zero-runtime이라 빌드 결과는 정적 CSS 파일 하나다.
 
 지시문이 **없는**(= 서버 컴포넌트로 렌더되는) 컴포넌트:
 `Text`, `Divider`, `Border`, `Badge`, `Icon`, `List`, `Skeleton`, `HeaderBar`,
-`Loader`, `LoadingSpinner`, 그리고 `Button` · `IconButton` · `TextField`.
-뒤의 셋은 훅 없이 `forwardRef`만 쓰는데, `forwardRef`는 React의 서버 빌드에도
+`Loader`, `LoadingSpinner`, 그리고 `Button` · `IconButton`.
+뒤의 둘은 훅 없이 `forwardRef`만 쓰는데, `forwardRef`는 React의 서버 빌드에도
 있으므로 RSC에서 유효하다.
+
+`TextField`는 `'use client'`가 붙는다. 타이핑 미러 오버레이(Task 7)가 입력값을
+글자 단위 DOM 요소로 쪼개 겹쳐 그리는데, `<input>`의 `value`는 문자열일 뿐
+글자별 노드를 갖지 않는다 — 그 노드를 만들고 위치를 맞추는 훅이 있어야 하므로
+더 이상 서버 컴포넌트로 남을 수 없다.
 
 단, 서버 컴포넌트에서 `onClick` 같은 함수 prop을 넘기는 것은 TDS와 무관하게
 React가 막는다. 이벤트 핸들러를 붙이는 파일 쪽에 `'use client'`를 적어야 한다.
@@ -1309,3 +1337,8 @@ All components follow WCAG 2.2 AA standards:
      애니메이션도 여기서 멈춘다.
 - 2번이 필요한 이유는 무한 반복 애니메이션이다. `Skeleton`의 wave/pulse는
   `infinite`라 duration만 줄이면 더 빨리 깜빡일 뿐 멈추지 않는다.
+- GSAP으로 움직이는 컴포넌트(Motion 절 참고)는 위 두 겹으로 못 잡는다 —
+  인라인 스타일로 도는 트윈이라 전역 CSS 규칙이 안 닿는다. 그래서 각 컴포넌트가
+  훅 안에서 `useReducedMotion()`으로 같은 선호를 직접 확인하고, `gateMotion`이
+  트윈을 끝 상태로 확정한 뒤 끈다(`hooks/gateMotion.ts`). 중간 상태에 멈추는
+  프레임이 구조적으로 없다.

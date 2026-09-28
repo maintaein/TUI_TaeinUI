@@ -160,6 +160,39 @@ describe('HeaderBarNav — 키보드 = 포인터와 같은 신호', () => {
     expect(readScale(pills[4])).toBeCloseTo(1);
   });
 
+  it('정착 전에 포커스를 옮겨도 배율이 0이나 1로 순간이동하지 않는다 (명제 조항 1③, Ruling 87)', () => {
+    const { container } = render(<HeaderBarNav items={makeItems(5)} />);
+    const nav = screen.getByRole('navigation') as NavScaleSetterHost;
+    const pills = getPills(container);
+
+    fireEvent.focus(screen.getByRole('button', { name: '항목 1' }));
+    const setters = nav.__navScaleSetters ?? [];
+    expect(setters).toHaveLength(5);
+
+    // 항목 1의 트윈만 부분 진행시킨다 — progress(1)로 정착하지 않는다.
+    setters[1].tween.progress(0.3);
+    const midValue = readScale(pills[1]);
+    expect(midValue).toBeGreaterThan(1);
+    expect(midValue).toBeLessThan(1.4);
+
+    // 정착 전에 다른 항목(3)으로 포커스를 옮긴다 — quickTo 재목표(다중 목표 중단).
+    fireEvent.focus(screen.getByRole('button', { name: '항목 3' }));
+
+    // 여기서 곧장 읽는다 — settle(progress(1))을 아직 아무 트윈에도 안 걸었다.
+    // quickTo는 재목표해도 progress()는 새 트윈 기준 0으로 보이지만, 렌더된 값은
+    // 그 순간의 값에서 그대로 이어받는다 — 0(쉼)이나 1.4(항목 1이 새로 원점일 때의
+    // 최댓값)로 순간이동했다면 이 재현이 실패한다.
+    const afterInterrupt = readScale(pills[1]);
+    expect(afterInterrupt).not.toBeCloseTo(1, 5);
+    expect(afterInterrupt).toBeCloseTo(midValue, 5);
+
+    // 이제 전부 정착한다 — 최종값을 확인한다. 원점이 항목 3으로 옮겨갔으니
+    // 항목 1은 두 칸 이상 떨어져 쉼(1)으로, 항목 3은 1.4로 향한다.
+    setters.forEach((setter) => setter.tween.progress(1));
+    expect(readScale(pills[1])).toBeCloseTo(1, 5);
+    expect(readScale(pills[3])).toBeCloseTo(1.4);
+  });
+
   it('nav 밖으로 blur가 나가면(relatedTarget이 nav 밖) 모두 1로 돌아온다', () => {
     const { container } = render(<HeaderBarNav items={makeItems(3)} />);
     const nav = screen.getByRole('navigation') as NavScaleSetterHost;

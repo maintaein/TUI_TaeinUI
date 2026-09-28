@@ -14,7 +14,13 @@
  */
 import { readFileSync } from 'node:fs';
 import { describe, it, expect } from 'vitest';
-import { SRC, rel, findFiles, GSAP_IMPORT } from '../test/sourceScan';
+import {
+  SRC,
+  rel,
+  findFiles,
+  GSAP_IMPORT,
+  stripComments,
+} from '../test/sourceScan';
 
 const SRC_FILES = findFiles(SRC, (name) => /\.tsx?$/.test(name));
 
@@ -49,7 +55,8 @@ const GATE_ENFORCEMENT_EXCEPTIONS: GateEnforcementException[] = [
 
 /** gsap을 import하는 소스가 게이트를 실제로 쓰지 않으면 위반이다. */
 function violatesGateEnforcement(source: string): boolean {
-  return GSAP_IMPORT.test(source) && !GATE_USAGE.test(source);
+  const stripped = stripComments(source);
+  return GSAP_IMPORT.test(stripped) && !GATE_USAGE.test(stripped);
 }
 
 describe('GSAP 진입점은 게이트를 거친다 (T2 강제)', () => {

@@ -38,9 +38,22 @@ export function findFiles(
  * 넓게 잡는다 — `animationBoundary.test.ts`의 `GSAP_ALL_IMPORT`(`gsap/all` 배럴만
  * 좁게 잡는 별개 검사)와는 목적이 다르다.
  *
- * 앞의 `(?<!`)`가 백틱 바로 뒤는 걸러낸다 — 이 저장소는 주석 안에서 코드를
- * `` `from 'gsap'` `` 처럼 백틱으로 인용한다(예: animationBoundary.test.ts R37절
- * 설명 주석). 그런 인용문은 실제 import가 아닌데 이 정규식만으로는 구분이 안 된다.
+ * 소비자가 `stripComments`로 걸러낸 텍스트에 돌리는 것을 전제한다 — 주석 안
+ * 백틱 인용(예: 옛 animationBoundary.test.ts R37절 설명 주석의 `` `from 'gsap'` ``)을
+ * 가려내던 후방탐색(Ruling 12)은 주석 자체가 사라지므로 더 필요 없다.
  */
 export const GSAP_IMPORT =
-  /(?<!`)(?:\bfrom\s*['"]gsap[^'"]*['"]|\brequire\(\s*['"]gsap[^'"]*['"]\s*\)|\bimport\(\s*['"]gsap[^'"]*['"]\s*\))/;
+  /\bfrom\s*['"]gsap[^'"]*['"]|\brequire\(\s*['"]gsap[^'"]*['"]\s*\)|\bimport\(\s*['"]gsap[^'"]*['"]\s*\)/;
+
+/**
+ * 스캔 전에 소스 주석을 걷어낸다(Ruling 74). 따옴표 상태는 줄 안에서만 유지하고
+ * (파일 전체로 이으면 `animationBoundary.test.ts:82`의 정규식과 충돌한다), 블록
+ * 주석의 여닫힘만 줄을 넘어 이어간다. 주석 자리는 개행을 보존한 채 비워 줄번호를
+ * 지킨다 — 문자열 안의 `//`(URL 등)는 문자열 매치가 먼저 잡아 보존된다.
+ */
+export function stripComments(source: string): string {
+  return source.replace(
+    /'[^'\n]*'|"[^"\n]*"|`[^`\n]*`|\/\/[^\n]*|\/\*[\s\S]*?\*\//g,
+    (m) => (m[0] === '/' ? m.replace(/[^\n]/g, '') : m)
+  );
+}
