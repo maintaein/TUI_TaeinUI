@@ -348,4 +348,23 @@ describe('TextField', () => {
       expect(input).toHaveValue('test');
     });
   });
+
+  describe('미러 오버레이 테스트 (Task 7)', () => {
+    it('기본 상태에서는 미러 오버레이가 렌더된다', () => {
+      const { container } = render(<TextField label="이름" />);
+      expect(container.querySelector('[aria-hidden="true"]')).not.toBeNull();
+    });
+
+    it('disabled에서는 미러 오버레이가 렌더되지 않는다 (Ruling 49)', () => {
+      const { container } = render(<TextField label="이름" disabled />);
+      expect(container.querySelector('[aria-hidden="true"]')).toBeNull();
+    });
+
+    it('readOnly에서는 미러 오버레이가 렌더되지 않는다 (Ruling 49)', () => {
+      const { container } = render(
+        <TextField label="이름" readOnly value="값" onChange={() => {}} />
+      );
+      expect(container.querySelector('[aria-hidden="true"]')).toBeNull();
+    });
+  });
 });

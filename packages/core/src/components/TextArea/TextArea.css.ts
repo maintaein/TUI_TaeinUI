@@ -9,20 +9,28 @@ export const textareaContainer = style({
   flexDirection: 'column',
 });
 
+/**
+ * 미러와 textarea가 둘 다 쓰는 텍스트 기하. 한 곳에만 적는다 — 두 군데 적으면
+ * 다음 사람이 한쪽만 고치고, 그러면 사용자가 자기 글자를 1px 어긋난 자리에서 읽는다.
+ */
+const textMetrics = {
+  sm: { fontSize: '0.875rem', padding: '0.5rem 0.75rem' },
+  md: { fontSize: '1rem', padding: '0.75rem 1rem' },
+  lg: { fontSize: '1.125rem', padding: '1rem 1.25rem' },
+} as const;
+
 // size variants
-export const size = styleVariants({
-  sm: {
-    fontSize: '0.875rem',
-    padding: '0.5rem 0.75rem',
-  },
-  md: {
-    fontSize: '1rem',
-    padding: '0.75rem 1rem',
-  },
-  lg: {
-    fontSize: '1.125rem',
-    padding: '1rem 1.25rem',
-  },
+export const size = styleVariants(textMetrics);
+
+/** 미러 전용 텍스트 기하 — textarea와 같은 textMetrics 객체를 스프레드한다 (Ruling 48). */
+export const mirrorSize = styleVariants(textMetrics);
+
+/**
+ * lineHeight: 1.5는 아래 textarea 기본 스타일(:38 부근)에도 있다 — 미러는 textarea
+ * 클래스를 안 받으므로 같은 값을 여기 명시해야 한다(브리프가 명시적으로 요구한 중복).
+ */
+export const mirror = style({
+  lineHeight: 1.5,
 });
 
 // textarea 기본 스타일

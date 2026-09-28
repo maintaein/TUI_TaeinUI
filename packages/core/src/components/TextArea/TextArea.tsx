@@ -2,6 +2,7 @@ import { forwardRef, useEffect, useRef, useCallback } from 'react';
 import type { TextareaHTMLAttributes, ChangeEvent } from 'react';
 import { clsx } from 'clsx';
 import { FormField } from '../FormField';
+import { MirrorOverlay } from '../../_internal/MirrorOverlay';
 import * as styles from './TextArea.css';
 
 /** 여러 줄 텍스트 입력 컴포넌트. 자동 높이 조정 지원 */
@@ -129,6 +130,13 @@ export const TextArea = forwardRef<HTMLTextAreaElement, TextAreaProps>(
               onChange={handleChange}
               {...rest}
             />
+            {!disabled && !rest.readOnly && (
+              <MirrorOverlay
+                inputRef={internalRef}
+                unit="word"
+                geometryClassName={clsx(styles.mirror, styles.mirrorSize[size])}
+              />
+            )}
           </div>
         )}
       </FormField>
