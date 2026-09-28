@@ -7,6 +7,7 @@ import {
   useState,
 } from 'react';
 import clsx from 'clsx';
+import { gsap } from 'gsap';
 import {
   container,
   sizeVariants,
@@ -18,6 +19,23 @@ import {
   radioInput,
   activeIndicator,
 } from './SegmentedButtons.css';
+import { gateMotion } from '../../hooks/gateMotion';
+import { useReducedMotion } from '../../hooks/useReducedMotion';
+import { gsapEasing, gsapDuration } from '../../tokens/gsapEasing';
+
+/** 이동 중 진행 방향으로 늘어나는 배율(Ruling 33). 왜곡은 의도된 연출이다. */
+const TRAVEL_STRETCH = 1.12;
+
+/**
+ * 인디케이터의 진행 중 타임라인을 테스트가 읽을 수 있는 통로. 공개 prop/state로
+ * 내보내지 않고 span DOM 노드에 얹는다 — 타입 전용 확장이라 값으로 export되지
+ * 않고 `SegmentedButtonsProps`에도 없으니 공개 API·`dist` 표면에 안 나간다
+ * (Snackbar.tsx의 CountdownTweenHost와 같은 패턴). 테스트는 실제 GSAP 인스턴스를
+ * 그대로 받아 `progress()`로 seek한다(무모킹).
+ */
+interface IndicatorTimelineHost extends HTMLSpanElement {
+  __indicatorTimeline?: gsap.core.Timeline;
+}
 
 /** 개별 세그먼트 옵션 */
 export interface SegmentedButtonOption {
@@ -99,27 +117,113 @@ export const SegmentedButtons = ({
     }
   }
 
-  const [indicatorStyle, setIndicatorStyle] = useState<{
-    left: number;
-    width: number;
-  }>({ left: 0, width: 0 });
+  const reduced = useReducedMotion();
+  const indicatorRef = useRef<HTMLSpanElement>(null);
+  // 인디케이터의 직전 위치. null이면 "이전 위치가 없다"는 뜻이라 미끄러지지도
+  // 늘어나지도 않는다(위험 4 — 마운트 시, 그리고 무효 값에서 되돌아올 때).
+  const prevIndicatorRectRef = useRef<{ left: number; width: number } | null>(
+    null
+  );
+  const indicatorTimelineRef = useRef<gsap.core.Timeline | null>(null);
 
   useEffect(() => {
     const container = containerRef.current;
-    if (!container) return;
+    const indicator = indicatorRef.current;
+    if (!container || !indicator) return;
     const labels = Array.from(container.querySelectorAll('label'));
     const selectedLabel = labels.find(
       (_, i) => options[i].value === currentValue
     );
-    if (selectedLabel) {
-      const rect = selectedLabel.getBoundingClientRect();
-      const containerRect = container.getBoundingClientRect();
-      setIndicatorStyle({
-        left: rect.left - containerRect.left,
-        width: rect.width,
-      });
+
+    if (!selectedLabel) {
+      // 값이 options에 없다 — 인디케이터는 숨어 있는다(width 0). 다음에
+      // 유효한 값으로 돌아오면 "처음 놓는 것"처럼 다시 취급한다.
+      gsap.set(indicator, { width: 0 });
+      prevIndicatorRectRef.current = null;
+      return;
     }
-  }, [currentValue, options]);
+
+    const rect = selectedLabel.getBoundingClientRect();
+    const containerRect = container.getBoundingClientRect();
+    const left = rect.left - containerRect.left;
+    const width = rect.width;
+
+    const prev = prevIndicatorRectRef.current;
+    prevIndicatorRectRef.current = { left, width };
+
+    if (!prev) {
+      // 첫 배치 — 이전 위치가 없으므로 미끄러지지도 늘어나지도 않는다.
+      gsap.set(indicator, { x: left, width, scaleX: 1 });
+      return;
+    }
+
+    const direction =
+      left === prev.left ? null : left > prev.left ? 'right' : 'left';
+
+    // 새 타임라인을 매번 새로 만든다(재사용 금지) — overwrite:'auto'가
+    // 진행 중이던 이전 타임라인을 현재 값에서 죽이고, 이 타임라인은 그
+    // 현재 값에서 이어받는다(Article 1③ — 이 작업의 핵심 잠금).
+    const timeline = gateMotion(reduced, () => {
+      const tl = gsap.timeline({ defaults: { overwrite: 'auto' } });
+
+      tl.to(
+        indicator,
+        {
+          x: left,
+          width,
+          duration: gsapDuration.slow,
+          ease: gsapEasing.settle,
+        },
+        0
+      );
+
+      if (direction) {
+        // 이동 중 진행 방향으로 살짝 늘어난다(왜곡은 의도된 연출, Ruling 33).
+        // 앞 40%는 늘고 뒤 60%는 되돌아온다 — 한 타임라인 안 두 트윈 체인이며,
+        // GSAP keyframes 옵션은 일부러 쓰지 않는다(@keyframes 금지 스캐너 혼동 방지).
+        tl.set(
+          indicator,
+          {
+            transformOrigin:
+              direction === 'right' ? 'left center' : 'right center',
+          },
+          0
+        );
+        tl.to(
+          indicator,
+          {
+            scaleX: TRAVEL_STRETCH,
+            duration: gsapDuration.slow * 0.4,
+            ease: gsapEasing.settle,
+          },
+          0
+        );
+        tl.to(
+          indicator,
+          {
+            scaleX: 1,
+            duration: gsapDuration.slow * 0.6,
+            ease: gsapEasing.exit,
+          },
+          gsapDuration.slow * 0.4
+        );
+      }
+
+      return tl;
+    });
+
+    indicatorTimelineRef.current = timeline;
+    (indicator as IndicatorTimelineHost).__indicatorTimeline = timeline;
+  }, [currentValue, options, reduced]);
+
+  // 언마운트 시 진행 중인 타임라인을 정리한다. 위 effect는 currentValue·
+  // options·reduced가 바뀔 때마다 재실행되므로, 정리 전용 effect를 빈 배열로
+  // 따로 둔다.
+  useEffect(() => {
+    return () => {
+      indicatorTimelineRef.current?.kill();
+    };
+  }, []);
 
   const handleSelect = useCallback(
     (newValue: string) => {
@@ -213,13 +317,7 @@ export const SegmentedButtons = ({
         className
       )}
     >
-      <span
-        className={activeIndicator}
-        style={{
-          transform: `translateX(${indicatorStyle.left}px)`,
-          width: indicatorStyle.width,
-        }}
-      />
+      <span ref={indicatorRef} className={activeIndicator} />
 
       {options.map((option, index) => {
         const isSelected = currentValue === option.value;

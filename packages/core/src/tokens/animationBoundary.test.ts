@@ -557,33 +557,17 @@ const LITERAL_EASING_EXCEPTIONS: Exception[] = [
   },
   {
     at: 'components/NumericSpinner/NumericSpinner.css.ts',
-    values: ['cubic-bezier(0.25, 0.8, 0.5, 1)', 'ease', 'ease'],
+    values: ['ease', 'ease'],
     owner: 'M2',
-    reason: '버튼 눌림 transform 곡선 + 색 전이 곡선',
+    reason:
+      '색 전이 곡선 — transform은 M3 T3d에서 GSAP(채널 A·B)로 옮겨 여기서 빠졌다',
   },
   {
     at: 'components/NumericSpinner/NumericSpinner.css.ts',
-    values: ['cubic-bezier(0.25, 0.8, 0.25, 1)'],
+    values: ['ease-in-out', 'ease-in-out'],
     owner: 'M2',
-    reason: 'clickPulse 키프레임 곡선',
-  },
-  {
-    at: 'components/NumericSpinner/NumericSpinner.css.ts',
-    values: ['ease-in-out', 'ease-in-out', 'ease-in-out'],
-    owner: 'M2',
-    reason: '스텝 버튼 3속성 전이 곡선',
-  },
-  {
-    at: 'components/SegmentedButtons/SegmentedButtons.css.ts',
-    values: ['cubic-bezier(0.25, 1, 0.5, 1)'],
-    owner: 'M2',
-    reason: '인디케이터 transform 곡선',
-  },
-  {
-    at: 'components/SegmentedButtons/SegmentedButtons.css.ts',
-    values: ['cubic-bezier(0.25, 1, 0.5, 1)'],
-    owner: 'M2',
-    reason: '인디케이터 width 곡선',
+    reason:
+      '스텝 버튼 2속성 전이 곡선 — transform은 M3 T3d에서 GSAP(채널 A)로 옮겨 3속성에서 줄었다',
   },
   {
     at: 'components/SegmentedButtons/SegmentedButtons.css.ts',

@@ -19,19 +19,17 @@ export const activeIndicator = style({
   position: 'absolute',
   top: '3px',
   left: 0,
+  width: 0,
   height: 'calc(100% - 6px)',
   borderRadius: themeContract.borderRadius.md,
   backgroundColor: themeContract.color.primary.main,
   boxShadow: '0 2px 8px rgba(0, 102, 255, 0.25)',
-  // width는 레이아웃 속성이라 매 프레임 재계산이 난다. 그래도 쓰는 이유는
-  // 인디케이터가 폭이 제각각인 세그먼트 사이를 옮겨 다녀서다 — scaleX로 대신하면
-  // borderRadius와 boxShadow가 같이 늘어나 모서리가 찌그러진다. 절대 위치라
-  // 리플로우 범위가 이 엘리먼트 하나로 막혀, width 전이를 여기서는 감수한다.
-  transition: `
-    transform ${themeContract.animation.duration.slow} cubic-bezier(0.25, 1, 0.5, 1),
-    width ${themeContract.animation.duration.slow} cubic-bezier(0.25, 1, 0.5, 1),
-    box-shadow ${themeContract.animation.duration.slow} ease
-  `,
+  // x·width·scaleX는 이제 GSAP이 소유한다(M3 T3d) — 인디케이터가 폭이 제각각인
+  // 세그먼트 사이를 옮겨 다니며, 이동 중 진행 방향으로 살짝 늘어나는 왜곡까지
+  // 의도된 연출이라 CSS 전이로는 "중단 시 현재 위치에서 이어받기"를 표현할 수
+  // 없다. CSS와 GSAP이 같은 속성을 동시에 전이하면 서로 싸우므로 transform·width는
+  // 여기 전이 목록에서 뺀다. box-shadow만 색 강도 변화용으로 남긴다.
+  transition: `box-shadow ${themeContract.animation.duration.slow} ease`,
   zIndex: 0,
 });
 

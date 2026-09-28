@@ -1,5 +1,5 @@
-import { describe, it, expect, vi } from 'vitest';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { describe, it, expect, vi, afterEach } from 'vitest';
+import { fireEvent, render, screen, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { SegmentedButtons } from './SegmentedButtons';
 
@@ -729,6 +729,271 @@ describe('SegmentedButtons', () => {
 
       consoleWarn.mockRestore();
       process.env.NODE_ENV = originalEnv;
+    });
+  });
+
+  /**
+   * M3 T3d — 인디케이터 x/width/scaleX가 GSAP 소유로 넘어간 뒤의 테스트.
+   *
+   * jsdom은 레이아웃이 없어 getBoundingClientRect가 항상 0을 준다(환경
+   * 보급 필요, Modal.test.tsx 선례). GSAP 티커는 rAF 기반이라 가짜 타이머로
+   * 못 돌린다 — 실제 타임라인/트윈을 `.progress()`로 seek해서 단언한다
+   * (무모킹, Snackbar.test.tsx 선례). 트윈은 공개 API로 안 나가고
+   * `__indicatorTimeline`이라는 테스트 전용 통로로만 읽는다.
+   */
+  describe('GSAP 인디케이터 (M3 T3d)', () => {
+    type IndicatorTimelineHost = HTMLElement & {
+      __indicatorTimeline?: gsap.core.Timeline;
+    };
+
+    const getIndicator = (container: HTMLElement): IndicatorTimelineHost =>
+      container.querySelector(
+        '[class*="SegmentedButtons_activeIndicator__"]'
+      ) as IndicatorTimelineHost;
+
+    // GSAP이 쓰는 transform 문자열 포맷은 .set()과 .to()가 다르다
+    // (.set: "translate(0, 0)", .to: "translate3d(7.79px, 0px, 0px) scale(1.05, 1)")
+    // — 둘 다 잡히게 단위(px)와 3d 접미사를 선택적으로 둔다.
+    const readX = (el: HTMLElement): number => {
+      const match = el.style.transform.match(/translate(?:3d)?\(([-\d.]+)/);
+      return match ? Number(match[1]) : 0;
+    };
+    const readScaleX = (el: HTMLElement): number => {
+      const match = el.style.transform.match(/scale\(([-\d.]+)/);
+      return match ? Number(match[1]) : 1;
+    };
+    const readWidth = (el: HTMLElement): number =>
+      Number.parseFloat(el.style.width || '0');
+
+    /** label 텍스트별로 rect를 채워 넣는다(환경 보급, Modal.test.tsx 선례). */
+    const installLabelRects = (
+      rects: Record<string, { left: number; width: number }>
+    ): void => {
+      vi.spyOn(Element.prototype, 'getBoundingClientRect').mockImplementation(
+        function (this: Element) {
+          const toRect = (box: { left: number; width: number }): DOMRect =>
+            ({
+              left: box.left,
+              top: 0,
+              width: box.width,
+              height: 40,
+              right: box.left + box.width,
+              bottom: 40,
+              x: box.left,
+              y: 0,
+              toJSON: () => box,
+            }) as DOMRect;
+
+          if (this.tagName === 'LABEL') {
+            const rect = rects[this.textContent ?? ''];
+            if (rect) return toRect(rect);
+          }
+          return toRect({ left: 0, width: 0 });
+        }
+      );
+    };
+
+    /** jsdom은 matchMedia를 구현하지 않는다 — 축소 선호 경로를 열려면 깔아야 한다. */
+    const installReducedMotion = (): void => {
+      vi.stubGlobal(
+        'matchMedia',
+        (media: string): MediaQueryList =>
+          ({
+            matches: true,
+            media,
+            addEventListener: () => {},
+            removeEventListener: () => {},
+          }) as unknown as MediaQueryList
+      );
+    };
+
+    afterEach(() => {
+      vi.restoreAllMocks();
+      vi.unstubAllGlobals();
+    });
+
+    const rects = {
+      '옵션 1': { left: 0, width: 80 },
+      '옵션 2': { left: 84, width: 80 },
+      '옵션 3': { left: 168, width: 80 },
+    };
+
+    it('마운트 시엔 미끄러지거나 늘어나지 않는다 (위험 4)', () => {
+      installLabelRects(rects);
+      const { container } = render(
+        <SegmentedButtons
+          options={options}
+          value="option1"
+          onChange={() => {}}
+        />
+      );
+      const indicator = getIndicator(container);
+
+      expect(readX(indicator)).toBe(0);
+      expect(readWidth(indicator)).toBe(80);
+      expect(readScaleX(indicator)).toBe(1);
+      // 첫 배치는 gsap.set이라 타임라인이 아예 안 생긴다.
+      expect(indicator.__indicatorTimeline).toBeUndefined();
+    });
+
+    it('value가 options에 없으면 인디케이터가 폭 0으로 숨는다', () => {
+      installLabelRects(rects);
+      const { container } = render(
+        <SegmentedButtons
+          options={options}
+          value="nonexistent"
+          onChange={() => {}}
+        />
+      );
+      const indicator = getIndicator(container);
+
+      expect(readWidth(indicator)).toBe(0);
+    });
+
+    it(
+      '선택이 옮겨가면 현재 위치에서 이어받는다 — 중단해도 처음부터 다시 ' +
+        '시작하지 않는다 (Article 1③ 핵심 잠금)',
+      () => {
+        installLabelRects(rects);
+        const { container, rerender } = render(
+          <SegmentedButtons
+            options={options}
+            value="option1"
+            onChange={() => {}}
+          />
+        );
+        const indicator = getIndicator(container);
+
+        rerender(
+          <SegmentedButtons
+            options={options}
+            value="option2"
+            onChange={() => {}}
+          />
+        );
+        const timeline1 = indicator.__indicatorTimeline;
+        expect(timeline1).toBeDefined();
+        const xWidthTween1 = timeline1!.getChildren()[0] as gsap.core.Tween;
+
+        act(() => {
+          timeline1!.progress(0.5);
+        });
+        const xAtInterrupt = readX(indicator);
+        // 절반쯤 왔으니 0(옵션1)과 84(옵션2) 사이 어딘가여야 한다.
+        expect(xAtInterrupt).toBeGreaterThan(0);
+        expect(xAtInterrupt).toBeLessThan(84);
+
+        // option2가 끝나기 전에 option3으로 또 옮겨간다 — 다중 목표 중단.
+        rerender(
+          <SegmentedButtons
+            options={options}
+            value="option3"
+            onChange={() => {}}
+          />
+        );
+        const timeline2 = indicator.__indicatorTimeline;
+        expect(timeline2).toBeDefined();
+        expect(timeline2).not.toBe(timeline1);
+
+        act(() => {
+          timeline2!.progress(0.001);
+        });
+        const xJustAfterInterrupt = readX(indicator);
+
+        // 새 트윈은 0도 84도 아니라 "중단 당시의 현재 값"에서 이어받는다 —
+        // 진행이 0.1%뿐이니 xAtInterrupt에서 거의 안 움직였어야 한다.
+        expect(xJustAfterInterrupt).toBeGreaterThan(0);
+        expect(Math.abs(xJustAfterInterrupt - xAtInterrupt)).toBeLessThan(10);
+
+        // 중단된 이전 트윈은 죽었다 — overwrite:'auto'가 실제로 정리했다는
+        // 구조적 증거다.
+        expect(xWidthTween1.parent).toBeNull();
+      }
+    );
+
+    it('오른쪽으로 이동할 땐 진행 중 늘어나고 transformOrigin이 left center다', () => {
+      installLabelRects(rects);
+      const { container, rerender } = render(
+        <SegmentedButtons
+          options={options}
+          value="option1"
+          onChange={() => {}}
+        />
+      );
+      const indicator = getIndicator(container);
+
+      rerender(
+        <SegmentedButtons
+          options={options}
+          value="option2"
+          onChange={() => {}}
+        />
+      );
+      const timeline = indicator.__indicatorTimeline!;
+
+      act(() => {
+        timeline.progress(0.3); // 전체 300ms 중 앞 40%(120ms) 구간 안
+      });
+      // transformOrigin은 타임라인이 최소 한 번 렌더된 뒤에야 DOM에 반영된다.
+      expect(indicator.style.transformOrigin).toBe('0% 50%'); // left center
+      expect(readScaleX(indicator)).toBeGreaterThan(1);
+
+      act(() => {
+        timeline.progress(1);
+      });
+      expect(readScaleX(indicator)).toBeCloseTo(1, 2);
+    });
+
+    it('왼쪽으로 이동할 땐 transformOrigin이 right center다', () => {
+      installLabelRects(rects);
+      const { container, rerender } = render(
+        <SegmentedButtons
+          options={options}
+          value="option3"
+          onChange={() => {}}
+        />
+      );
+      const indicator = getIndicator(container);
+
+      rerender(
+        <SegmentedButtons
+          options={options}
+          value="option2"
+          onChange={() => {}}
+        />
+      );
+
+      act(() => {
+        indicator.__indicatorTimeline!.progress(0.3);
+      });
+      expect(indicator.style.transformOrigin).toBe('100% 50%'); // right center
+    });
+
+    it('모션 축소 선호에서는 인디케이터가 목표 위치로 즉시 이동한다', () => {
+      installReducedMotion();
+      installLabelRects(rects);
+      const { container, rerender } = render(
+        <SegmentedButtons
+          options={options}
+          value="option1"
+          onChange={() => {}}
+        />
+      );
+      const indicator = getIndicator(container);
+
+      rerender(
+        <SegmentedButtons
+          options={options}
+          value="option2"
+          onChange={() => {}}
+        />
+      );
+
+      // gateMotion이 즉시 progress(1) 후 kill한다 — seek 없이도 이미 도착해
+      // 있고, 늘어남(overshoot)도 안 보인다.
+      expect(readX(indicator)).toBeCloseTo(84, 0);
+      expect(readScaleX(indicator)).toBeCloseTo(1, 2);
+      expect(indicator.__indicatorTimeline!.parent).toBeNull();
     });
   });
 });

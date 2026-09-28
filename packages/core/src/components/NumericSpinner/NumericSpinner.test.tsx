@@ -1,9 +1,10 @@
-import { describe, it, expect, vi } from 'vitest';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { fireEvent, render, screen, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import '@testing-library/jest-dom';
 import React, { createRef } from 'react';
 import { NumericSpinner } from './NumericSpinner';
+import { gsapDuration } from '../../tokens/gsapEasing';
 
 describe('NumericSpinner', () => {
   describe('렌더링 테스트', () => {
@@ -588,6 +589,426 @@ describe('NumericSpinner', () => {
 
       fireEvent.click(incrementButton);
       expect(input).toHaveValue(1);
+    });
+  });
+
+  describe('길게 누르기 반복·가속 (M3 T3d)', () => {
+    // NumericSpinner.tsx의 모듈 내부 상수(공개 export 아님)와 값을 맞춘다.
+    const REPEAT_RAMP_MS = 1200;
+    const NUDGE_PX = 4;
+
+    type PressTweenHost = HTMLElement & {
+      __pressTween?: gsap.core.Tween | gsap.core.Timeline;
+    };
+    type InputNudgeHost = HTMLElement & {
+      __nudgeTween?: gsap.core.Tween;
+    };
+
+    const readScale = (el: HTMLElement): number => {
+      const match = el.style.transform.match(/scale\(([-\d.]+)/);
+      return match ? Number(match[1]) : 1;
+    };
+    // translate(3d)?(x, y[, z]) 중 두 번째 성분(y)을 읽는다.
+    const readY = (el: HTMLElement): number => {
+      const match = el.style.transform.match(
+        /translate(?:3d)?\([^,]+,\s*([-\d.]+)/
+      );
+      return match ? Number(match[1]) : 0;
+    };
+
+    /** pointerdown → pointerup → click까지 즉시 이어지는, 400ms 안의 짧은 탭. */
+    const tap = (button: HTMLElement): void => {
+      fireEvent.pointerDown(button);
+      fireEvent.pointerUp(button);
+      fireEvent.click(button);
+    };
+
+    beforeEach(() => {
+      vi.useFakeTimers();
+    });
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it('400ms 안에 떼면 반복 없이 한 걸음만 간다', () => {
+      render(<NumericSpinner label="수량" defaultValue={0} />);
+      const incrementButton = screen.getByRole('button', { name: '값 증가' });
+      const input = screen.getByLabelText('수량');
+
+      act(() => {
+        tap(incrementButton);
+      });
+
+      expect(input).toHaveValue(1);
+    });
+
+    it('400ms를 채우면 반복이 시작되고, 뒤이은 클릭은 더 늘리지 않는다', () => {
+      render(<NumericSpinner label="수량" defaultValue={0} />);
+      const incrementButton = screen.getByRole('button', { name: '값 증가' });
+      const input = screen.getByLabelText('수량');
+
+      fireEvent.pointerDown(incrementButton);
+      act(() => {
+        vi.advanceTimersByTime(400); // 첫 반복 tick
+      });
+      expect(input).toHaveValue(1);
+
+      act(() => {
+        vi.advanceTimersByTime(160); // 두 번째 tick(시작 시 간격은 정확히 160ms)
+      });
+      expect(input).toHaveValue(2);
+
+      fireEvent.pointerUp(incrementButton);
+      fireEvent.click(incrementButton); // 네이티브 click은 반복이 이미 한 몫을 했으니 씹혀야 한다
+
+      expect(input).toHaveValue(2);
+    });
+
+    it('길게 누를수록 반복 간격이 좁아져 같은 시간에 더 많이 증가한다', () => {
+      render(<NumericSpinner label="수량" defaultValue={0} />);
+      const incrementButton = screen.getByRole('button', { name: '값 증가' });
+      const input = screen.getByLabelText('수량') as HTMLInputElement;
+
+      fireEvent.pointerDown(incrementButton);
+      act(() => {
+        vi.advanceTimersByTime(400); // 반복 시작
+      });
+      const valueRightAfterStart = Number(input.value);
+
+      act(() => {
+        vi.advanceTimersByTime(400); // 막 시작한 직후 400ms(간격 넓음)
+      });
+      const countEarly = Number(input.value) - valueRightAfterStart;
+
+      act(() => {
+        vi.advanceTimersByTime(2000); // 가속이 바닥까지 다 붙을 시간
+      });
+      const valueBeforeLateWindow = Number(input.value);
+
+      act(() => {
+        vi.advanceTimersByTime(400); // 가속이 다 붙은 뒤 같은 400ms(간격 좁음)
+      });
+      const countLate = Number(input.value) - valueBeforeLateWindow;
+
+      expect(countLate).toBeGreaterThan(countEarly);
+
+      fireEvent.pointerUp(incrementButton);
+    });
+
+    it('최댓값에 닿으면 반복이 스스로 멈춘다 (위험 5-나: disabled 전환)', () => {
+      render(
+        <NumericSpinner label="수량" defaultValue={8} max={10} step={1} />
+      );
+      const incrementButton = screen.getByRole('button', { name: '값 증가' });
+      const input = screen.getByLabelText('수량');
+
+      fireEvent.pointerDown(incrementButton);
+      act(() => {
+        vi.advanceTimersByTime(400); // tick1: 8 -> 9
+      });
+      expect(input).toHaveValue(9);
+
+      act(() => {
+        vi.advanceTimersByTime(160); // tick2: 9 -> 10(최댓값, 버튼 disabled 전환)
+      });
+      expect(input).toHaveValue(10);
+
+      act(() => {
+        vi.advanceTimersByTime(10000); // 다음 tick은 스스로 멈춰야 한다
+      });
+      expect(input).toHaveValue(10);
+    });
+
+    it(
+      '제어 모드에서 부모가 값을 갱신하지 않으면 두 번째 tick에서 스스로 ' +
+        '멈춘다 (위험 5-가)',
+      () => {
+        const onChange = vi.fn();
+        render(<NumericSpinner label="수량" value={5} onChange={onChange} />);
+        const incrementButton = screen.getByRole('button', {
+          name: '값 증가',
+        });
+
+        fireEvent.pointerDown(incrementButton);
+        act(() => {
+          vi.advanceTimersByTime(400); // tick1 — 값이 안 바뀌어도 최초 1회는 부른다
+        });
+        expect(onChange).toHaveBeenCalledTimes(1);
+
+        act(() => {
+          vi.advanceTimersByTime(1000); // tick2 이후로는 값이 그대로라 스스로 멈춘다
+        });
+        expect(onChange).toHaveBeenCalledTimes(1);
+
+        fireEvent.pointerUp(incrementButton);
+      }
+    );
+
+    it('누르는 도중 disabled가 되면 반복이 스스로 멈춘다 (위험 5-나)', () => {
+      const Wrapper = (): React.JSX.Element => {
+        const [disabled, setDisabled] = React.useState(false);
+        return (
+          <>
+            <NumericSpinner label="수량" defaultValue={0} disabled={disabled} />
+            <button type="button" onClick={() => setDisabled(true)}>
+              끄기
+            </button>
+          </>
+        );
+      };
+      render(<Wrapper />);
+      const incrementButton = screen.getByRole('button', { name: '값 증가' });
+      const input = screen.getByLabelText('수량');
+
+      fireEvent.pointerDown(incrementButton);
+      act(() => {
+        vi.advanceTimersByTime(400); // tick1
+      });
+      expect(input).toHaveValue(1);
+
+      act(() => {
+        fireEvent.click(screen.getByText('끄기'));
+      });
+
+      act(() => {
+        vi.advanceTimersByTime(2000); // 다음 tick에서 스스로 멈춰야 한다
+      });
+      expect(input).toHaveValue(1);
+    });
+
+    it('감소 버튼을 길게 누르면 같은 경로로 계속 줄어든다', () => {
+      render(<NumericSpinner label="수량" defaultValue={10} />);
+      const decrementButton = screen.getByRole('button', { name: '값 감소' });
+      const input = screen.getByLabelText('수량');
+
+      fireEvent.pointerDown(decrementButton);
+      act(() => {
+        vi.advanceTimersByTime(400);
+      });
+      expect(input).toHaveValue(9);
+
+      act(() => {
+        vi.advanceTimersByTime(160);
+      });
+      expect(input).toHaveValue(8);
+
+      fireEvent.pointerUp(decrementButton);
+    });
+
+    it('키보드로 스페이스를 길게 누르면 같은 반복 경로를 탄다', () => {
+      render(<NumericSpinner label="수량" defaultValue={0} />);
+      const incrementButton = screen.getByRole('button', { name: '값 증가' });
+      const input = screen.getByLabelText('수량');
+
+      fireEvent.keyDown(incrementButton, { key: ' ' });
+      act(() => {
+        vi.advanceTimersByTime(400);
+      });
+      expect(input).toHaveValue(1);
+
+      act(() => {
+        vi.advanceTimersByTime(160);
+      });
+      expect(input).toHaveValue(2);
+
+      fireEvent.keyUp(incrementButton, { key: ' ' });
+      expect(input).toHaveValue(2); // 반복이 이미 몫을 다 했으니 keyup의 수동 tap은 씹힌다
+    });
+
+    it('키보드로 짧게 눌렀다 떼면 한 걸음만 간다', () => {
+      render(<NumericSpinner label="수량" defaultValue={0} />);
+      const incrementButton = screen.getByRole('button', { name: '값 증가' });
+      const input = screen.getByLabelText('수량');
+
+      fireEvent.keyDown(incrementButton, { key: 'Enter' });
+      act(() => {
+        vi.advanceTimersByTime(50);
+      });
+      fireEvent.keyUp(incrementButton, { key: 'Enter' });
+
+      expect(input).toHaveValue(1);
+    });
+
+    it('OS 키 반복(event.repeat)은 새로 반복을 시작하지 않는다', () => {
+      render(<NumericSpinner label="수량" defaultValue={0} />);
+      const incrementButton = screen.getByRole('button', {
+        name: '값 증가',
+      }) as PressTweenHost;
+
+      fireEvent.keyDown(incrementButton, { key: ' ' });
+      const tweenAfterFirstDown = incrementButton.__pressTween;
+      expect(tweenAfterFirstDown).toBeDefined();
+
+      fireEvent.keyDown(incrementButton, { key: ' ', repeat: true });
+      fireEvent.keyDown(incrementButton, { key: ' ', repeat: true });
+
+      // 새 채널 A 트윈이 다시 시작되지 않았다 — 같은 인스턴스를 계속 쓴다.
+      expect(incrementButton.__pressTween).toBe(tweenAfterFirstDown);
+
+      fireEvent.keyUp(incrementButton, { key: ' ' });
+    });
+
+    it(
+      '채널 A: 누르면 0.92로, 길게 누르면 0.86까지 깊어지고 떼면 현재 ' +
+        '위치에서 1로 돌아온다',
+      () => {
+        render(<NumericSpinner label="수량" defaultValue={0} />);
+        const incrementButton = screen.getByRole('button', {
+          name: '값 증가',
+        }) as PressTweenHost;
+
+        fireEvent.pointerDown(incrementButton);
+        const holdTimeline = incrementButton.__pressTween as gsap.core.Timeline;
+        expect(holdTimeline).toBeDefined();
+
+        const firstLegEnd =
+          gsapDuration.fast / (gsapDuration.fast + REPEAT_RAMP_MS / 1000);
+
+        act(() => {
+          holdTimeline.progress(firstLegEnd);
+        });
+        expect(readScale(incrementButton)).toBeCloseTo(0.92, 2);
+
+        act(() => {
+          holdTimeline.progress((firstLegEnd + 1) / 2); // 2단계 진행 중
+        });
+        const scaleAtInterrupt = readScale(incrementButton);
+        expect(scaleAtInterrupt).toBeLessThan(0.92);
+        expect(scaleAtInterrupt).toBeGreaterThan(0.86);
+
+        fireEvent.pointerUp(incrementButton);
+        const releaseTween = incrementButton.__pressTween as gsap.core.Tween;
+        expect(releaseTween).not.toBe(holdTimeline);
+
+        act(() => {
+          releaseTween.progress(0.001);
+        });
+        // 뗀 직후엔 1로 점프하지 않고 중단 당시 값에서 이어받는다.
+        expect(
+          Math.abs(readScale(incrementButton) - scaleAtInterrupt)
+        ).toBeLessThan(0.05);
+
+        act(() => {
+          releaseTween.progress(1);
+        });
+        expect(readScale(incrementButton)).toBeCloseTo(1, 2);
+      }
+    );
+
+    it('채널 B: 증가는 -4px에서, 감소는 +4px에서 제자리로 넛지된다', () => {
+      render(<NumericSpinner label="수량" defaultValue={5} />);
+      const incrementButton = screen.getByRole('button', { name: '값 증가' });
+      const decrementButton = screen.getByRole('button', { name: '값 감소' });
+      const input = screen.getByLabelText('수량') as InputNudgeHost;
+
+      fireEvent.pointerDown(incrementButton);
+      act(() => {
+        vi.advanceTimersByTime(400); // 첫 tick에서 넛지 트윈이 생긴다
+      });
+      const incNudge = input.__nudgeTween!;
+      expect(incNudge).toBeDefined();
+      act(() => {
+        incNudge.progress(0);
+      });
+      expect(readY(input)).toBeCloseTo(-NUDGE_PX, 1);
+      act(() => {
+        incNudge.progress(1);
+      });
+      expect(readY(input)).toBeCloseTo(0, 1);
+      fireEvent.pointerUp(incrementButton);
+
+      fireEvent.pointerDown(decrementButton);
+      act(() => {
+        vi.advanceTimersByTime(400);
+      });
+      const decNudge = input.__nudgeTween!;
+      act(() => {
+        decNudge.progress(0);
+      });
+      expect(readY(input)).toBeCloseTo(NUDGE_PX, 1);
+      fireEvent.pointerUp(decrementButton);
+    });
+
+    it('모션 축소 선호에서는 시각 채널만 즉시 정착하고 반복 속도는 그대로다', () => {
+      vi.stubGlobal(
+        'matchMedia',
+        (media: string): MediaQueryList =>
+          ({
+            matches: true,
+            media,
+            addEventListener: () => {},
+            removeEventListener: () => {},
+          }) as unknown as MediaQueryList
+      );
+
+      render(<NumericSpinner label="수량" defaultValue={0} />);
+      const incrementButton = screen.getByRole('button', {
+        name: '값 증가',
+      }) as PressTweenHost;
+      const input = screen.getByLabelText('수량');
+
+      fireEvent.pointerDown(incrementButton);
+      // gateMotion이 즉시 progress(1) 후 kill한다 — 이미 다 깊어져 있다.
+      expect(readScale(incrementButton)).toBeCloseTo(0.86, 2);
+      expect(incrementButton.__pressTween!.parent).toBeNull();
+
+      act(() => {
+        vi.advanceTimersByTime(400); // 반복 타이머는 실시간 속도 그대로다(Ruling 34)
+      });
+      expect(input).toHaveValue(1);
+
+      fireEvent.pointerUp(incrementButton);
+
+      vi.unstubAllGlobals();
+    });
+
+    it('언마운트 시 타이머가 정리돼 이후 tick이 더 이상 실행되지 않는다', () => {
+      const onChange = vi.fn();
+      const { unmount } = render(
+        <NumericSpinner label="수량" value={0} onChange={onChange} />
+      );
+      const incrementButton = screen.getByRole('button', { name: '값 증가' });
+
+      fireEvent.pointerDown(incrementButton);
+      act(() => {
+        vi.advanceTimersByTime(400); // 반복 시작, tick1
+      });
+      const callsBeforeUnmount = onChange.mock.calls.length;
+      expect(callsBeforeUnmount).toBeGreaterThan(0);
+
+      unmount();
+
+      act(() => {
+        vi.advanceTimersByTime(5000); // 정리가 안 됐다면 tick이 계속 돌며 더 불렀을 것이다
+      });
+      expect(onChange.mock.calls.length).toBe(callsBeforeUnmount);
+    });
+
+    it('언마운트 시 진행 중이던 채널 A·B 트윈이 죽는다 (위험 5-다)', () => {
+      const { unmount } = render(
+        <NumericSpinner label="수량" defaultValue={0} />
+      );
+      const incrementButton = screen.getByRole('button', {
+        name: '값 증가',
+      }) as PressTweenHost;
+      const input = screen.getByLabelText('수량') as InputNudgeHost;
+
+      fireEvent.pointerDown(incrementButton);
+      act(() => {
+        vi.advanceTimersByTime(400); // 반복 시작 — 채널 A·B 트윈이 생긴다
+      });
+
+      const pressTween = incrementButton.__pressTween;
+      const nudgeTween = input.__nudgeTween;
+      expect(pressTween).toBeDefined();
+      expect(nudgeTween).toBeDefined();
+
+      unmount();
+
+      // kill()된 트윈은 parent를 잃는다 — isActive()는 parent가 없어도 true를
+      // 내므로(Slider.test.tsx:747과 같은 이유) kill 여부 판별에 못 쓴다.
+      expect(pressTween?.parent).toBeNull();
+      expect(nudgeTween?.parent).toBeNull();
     });
   });
 });

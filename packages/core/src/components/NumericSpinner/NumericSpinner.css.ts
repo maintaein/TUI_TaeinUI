@@ -1,4 +1,4 @@
-import { keyframes, style, styleVariants } from '@vanilla-extract/css';
+import { style, styleVariants } from '@vanilla-extract/css';
 import { themeContract } from '../../tokens/theme.css';
 import { focusRing } from '../../tokens/focusRing.css';
 
@@ -39,13 +39,6 @@ export const size = styleVariants({
   },
 });
 
-export const clickPulse = keyframes({
-  '0%': { transform: 'scale(1)' },
-  '30%': { transform: 'scale(0.92)' },
-  '60%': { transform: 'scale(1.06)' },
-  '100%': { transform: 'scale(1)' },
-});
-
 export const input = style({
   border: `1px solid ${themeContract.color.border.default}`,
   outline: 'none',
@@ -61,13 +54,17 @@ export const input = style({
   padding: '0.5rem 0',
   margin: '0 8px',
   borderRadius: '6px',
-  transition: `transform ${themeContract.animation.duration.slow} cubic-bezier(0.25, 0.8, 0.5, 1), background-color ${themeContract.animation.duration.base} ease, color ${themeContract.animation.duration.base} ease, box-shadow ${themeContract.animation.duration.fast} ${themeContract.animation.easing.settle}`,
+  // y(자리수 nudge)는 이제 GSAP이 소유한다(M3 T3d) — transform을 여기서 전이하면
+  // GSAP이 매 프레임 쓰는 인라인 transform과 CSS 전이가 같은 속성을 놓고 싸운다.
+  transition: `background-color ${themeContract.animation.duration.base} ease, color ${themeContract.animation.duration.base} ease, box-shadow ${themeContract.animation.duration.fast} ${themeContract.animation.easing.settle}`,
 
   selectors: {
+    // 눌림 중 색만 CSS가 맡는다(단독 채널 금지, Article 4) — 굴곡(채널 B의
+    // nudge)이 같이 있어 색은 보조 채널로 유효하다. 예전 clickPulse
+    // 키프레임은 500ms에 한 번 끝나 가속이 계속되는데도 모션이 사라졌다 —
+    // 지금은 채널 A·B가 눌려 있는 동안 계속 산다(M3 T3d).
     [`${inputContainer}:has(button:active:not(:disabled)) &`]: {
-      animation: `${clickPulse} ${themeContract.animation.duration.slower} cubic-bezier(0.25, 0.8, 0.25, 1) forwards`,
       color: themeContract.color.primary.main,
-      transition: 'none',
     },
     '&::placeholder': {
       color: themeContract.color.text.disabled,
@@ -119,7 +116,9 @@ export const button = style({
   color: themeContract.color.text.primary,
   cursor: 'pointer',
   touchAction: 'manipulation',
-  transition: `background-color ${themeContract.animation.duration.fast} ease-in-out, color ${themeContract.animation.duration.fast} ease-in-out, transform ${themeContract.animation.duration.fast} ease-in-out`,
+  // scale(눌림 깊이)은 이제 GSAP이 소유한다(M3 T3d, 채널 A) — 길게 누르는
+  // 동안 0.92→0.86로 깊어지는 걸 CSS 전이는 표현할 수 없고, 같이 두면 서로 싸운다.
+  transition: `background-color ${themeContract.animation.duration.fast} ease-in-out, color ${themeContract.animation.duration.fast} ease-in-out`,
   flexShrink: 0,
   minWidth: '44px',
   minHeight: '44px',
@@ -133,7 +132,6 @@ export const button = style({
     },
     '&:active:not(:disabled)': {
       backgroundColor: themeContract.color.surface.active,
-      transform: 'scale(0.92)',
     },
     '&:disabled': {
       color: themeContract.color.text.disabled,
