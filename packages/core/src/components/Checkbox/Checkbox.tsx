@@ -105,6 +105,9 @@ const syncMarkState = (
     return;
   }
 
+  // kill() 전에 읽어야 산다. attachSelfKill은 자연 완료(onComplete)나 축소 선호에서
+  // 핸들을 비우므로, `__markTween !== undefined`는 "지금 비행 중인 트윈이 있다"와 같다.
+  const interrupted = path.__markTween !== undefined;
   path.__markTween?.kill();
 
   if (prev === 'unchecked') {
@@ -113,7 +116,10 @@ const syncMarkState = (
     gsap.set(path, {
       attr: { d: pathFor(nextState) },
       strokeDasharray: length,
-      strokeDashoffset: length,
+      // 중단 복귀(비행 중인 트윈은 퇴장뿐이다)면 되감기를 건너뛴다 — 명제 1조 ③가
+      // "상태가 또 바뀜면 현재 위치에서 이어진다"이라, 퇴장 커브 중간값을 length로
+      // 덮으면 체크마크가 한 프레임 사라졌다가 처음부터 다시 그려진다.
+      ...(interrupted ? {} : { strokeDashoffset: length }),
     });
     const tween = gateMotion(reduced, () =>
       gsap.to(path, {

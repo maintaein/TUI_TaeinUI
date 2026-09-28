@@ -529,7 +529,7 @@ describe('Checkbox', () => {
         expect(Number(path.style.strokeDashoffset)).toBe(0);
       });
 
-      it('퇴장(checked→unchecked) 중단 후 다시 checked로 전이하면 등장 목표로 수렴한다', () => {
+      it('퇴장(checked→unchecked) 중단 후 다시 checked로 전이하면 등장 목표로 수렴하고 현재 위치에서 이어진다(1조 ③)', () => {
         const { container, rerender } = render(
           <Checkbox label="동의" checked={false} onChange={() => {}} />
         );
@@ -542,6 +542,11 @@ describe('Checkbox', () => {
 
         rerender(<Checkbox label="동의" checked onChange={() => {}} />); // 다시 등장
         const path = getMarkPath(container);
+
+        const resumed = Number(path.style.strokeDashoffset);
+        expect(resumed).toBeGreaterThan(0);
+        expect(resumed).toBeLessThan(19.8); // 19.8 = 되감긴 값
+
         path.__markTween?.progress(1);
 
         expect(path.getAttribute('d')).toBe('M5 13 L9 17 L19 7');
