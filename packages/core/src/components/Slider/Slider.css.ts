@@ -272,10 +272,13 @@ export const scrubTickLanded = style({
 // showValue(라벨 행의 고정 출력, :36-43)와 별개이고 그것을 대체하지 않는다.
 // left는 quickTo가 매 프레임 쓰는 --slider-value-follower-percent 커스텀
 // 속성에서 나온다 — Ruling 23: getBoundingClientRect() 대신 값에서 나온 %다.
+/** quickTo가 매 프레임 쓰는 값 표시 위치 채널. 이름을 복제하지 말고 이것을 import하라. */
+export const VALUE_FOLLOWER_PERCENT_VAR = '--slider-value-follower-percent';
+
 export const valueFollower = style({
   position: 'absolute',
   top: '-1.5rem',
-  left: 'calc(var(--slider-value-follower-percent, 0) * 1%)',
+  left: `calc(var(${VALUE_FOLLOWER_PERCENT_VAR}, 0) * 1%)`,
   transform: 'translateX(-50%)',
   fontSize: themeContract.font.size.xs,
   fontWeight: themeContract.font.weight.semibold,

@@ -34,6 +34,7 @@ import {
   scrubTick,
   scrubTickLanded,
   valueFollower,
+  VALUE_FOLLOWER_PERCENT_VAR,
 } from './Slider.css';
 
 /** 슬라이더 트랙 위에 표시되는 마크 */
@@ -257,6 +258,19 @@ export const Slider = forwardRef<HTMLInputElement, SliderProps>(
       if (isGrabbed) handleRelease();
     };
 
+    // keyboardReleaseTimerRef 마운트 범위 정리 — :231-233·:247-248은 재잡음·
+    // 해제 경로만 정리한다. 유휴창(≤500ms) 안에 언마운트되면 정리할 곳이
+    // 없어 언마운트 뒤에 setState가 돈다. ticksExitTimerRef(:298-303)와 같은
+    // 모양으로 마운트 스코프 cleanup 하나로 닫는다.
+    useEffect(() => {
+      return () => {
+        if (keyboardReleaseTimerRef.current !== null) {
+          clearTimeout(keyboardReleaseTimerRef.current);
+          keyboardReleaseTimerRef.current = null;
+        }
+      };
+    }, []);
+
     // 눈금 타임라인 생성 — renderTicks가 켜진 뒤(DOM이 붙은 layout 단계)
     // 한 번. fromTo의 시작값이 즉시 적용돼(immediateRender) 첫 페인트가 가라앉은
     // 상태로 나온다(useOverlayTransition.ts:99-101과 같은 이유).
@@ -349,14 +363,11 @@ export const Slider = forwardRef<HTMLInputElement, SliderProps>(
       const percent = valueToPercent(currentValueRef.current, min, max);
 
       if (reduced) {
-        el.style.setProperty(
-          '--slider-value-follower-percent',
-          String(percent)
-        );
+        el.style.setProperty(VALUE_FOLLOWER_PERCENT_VAR, String(percent));
         return;
       }
 
-      const setPercent = gsap.quickTo(el, '--slider-value-follower-percent', {
+      const setPercent = gsap.quickTo(el, VALUE_FOLLOWER_PERCENT_VAR, {
         duration: gsapDuration.fast,
         ease: gsapEasing.settle,
       });
@@ -365,6 +376,7 @@ export const Slider = forwardRef<HTMLInputElement, SliderProps>(
       (el as ValueFollowerTweenHost).__valueFollowerTween = setPercent.tween;
 
       return () => {
+        setPercent.tween.kill();
         followerSetterRef.current = null;
         delete (el as ValueFollowerTweenHost).__valueFollowerTween;
       };
@@ -376,7 +388,7 @@ export const Slider = forwardRef<HTMLInputElement, SliderProps>(
 
       if (reduced) {
         followerRef.current?.style.setProperty(
-          '--slider-value-follower-percent',
+          VALUE_FOLLOWER_PERCENT_VAR,
           String(percent)
         );
         return;
@@ -413,9 +425,9 @@ export const Slider = forwardRef<HTMLInputElement, SliderProps>(
               aria-hidden
               ref={ticksContainerRef}
             >
-              {tickValues.map((tickValue) => (
+              {tickValues.map((tickValue, index) => (
                 <span
-                  key={tickValue}
+                  key={index}
                   className={scrubTick}
                   style={{ left: `${valueToPercent(tickValue, min, max)}%` }}
                 />

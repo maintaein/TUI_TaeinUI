@@ -3,6 +3,7 @@ import { render, screen, fireEvent, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { Slider } from './Slider';
+import { VALUE_FOLLOWER_PERCENT_VAR } from './Slider.css';
 
 /**
  * 테스트 전용 DOM 확장 읽기용 타입. `Slider.tsx`의 `ScrubTicksTimelineHost`·
@@ -688,9 +689,9 @@ describe('Slider', () => {
       fireEvent.pointerDown(slider);
       const follower = getFollower(container);
       expect(follower).toBeInTheDocument();
-      expect(
-        follower!.style.getPropertyValue('--slider-value-follower-percent')
-      ).toBe('20');
+      expect(follower!.style.getPropertyValue(VALUE_FOLLOWER_PERCENT_VAR)).toBe(
+        '20'
+      );
 
       rerender(
         <Slider
@@ -702,16 +703,50 @@ describe('Slider', () => {
         />
       );
       // 값이 바뀐 직후에도 quickTo 트윈이 아직 안 흘렀으므로 순간이동하지 않는다.
-      expect(
-        follower!.style.getPropertyValue('--slider-value-follower-percent')
-      ).toBe('20');
+      expect(follower!.style.getPropertyValue(VALUE_FOLLOWER_PERCENT_VAR)).toBe(
+        '20'
+      );
 
       act(() => {
         follower!.__valueFollowerTween!.progress(1);
       });
-      expect(
-        follower!.style.getPropertyValue('--slider-value-follower-percent')
-      ).toBe('60');
+      expect(follower!.style.getPropertyValue(VALUE_FOLLOWER_PERCENT_VAR)).toBe(
+        '60'
+      );
+    });
+
+    it('잡은 상태에서 축소 선호로 바뀌면 quickTo 트윈이 죽는다 — 확정 값 위에서 계속 덮어쓰지 않는다', () => {
+      const { container, rerender } = render(
+        <Slider
+          label="슬라이더"
+          value={20}
+          min={0}
+          max={100}
+          onChange={() => {}}
+        />
+      );
+      const slider = screen.getByRole('slider');
+
+      fireEvent.pointerDown(slider);
+      const follower = getFollower(container);
+      const tween = follower!.__valueFollowerTween;
+      expect(tween?.parent).not.toBeNull();
+
+      installReducedMotion();
+      rerender(
+        <Slider
+          label="슬라이더"
+          value={20}
+          min={0}
+          max={100}
+          onChange={() => {}}
+        />
+      );
+
+      // kill()된 트윈은 부모를 잃는다(useOverlayTransition.test.ts:311의 같은
+      // 패턴) — GSAP의 isActive()는 parent가 null이면 true를 내므로(gsap.js:1785:
+      // `!!(!parent || ...)`) killed 여부 판별에 쓸 수 없다. parent가 신뢰 가능한 신호다.
+      expect(tween?.parent).toBeNull();
     });
 
     it('값 따라붙기는 aria-hidden이고 showValue를 대체하지 않는다', () => {
@@ -811,6 +846,30 @@ describe('Slider', () => {
       // 마지막 입력 이후 300ms밖에 안 지났다 — 아직 놓은 게 아니다.
       expect(getLandedTick(container)).not.toBeInTheDocument();
       expect(getTicksContainer(container)).toBeInTheDocument();
+    });
+
+    it('키보드로 잡은 유휴창 안에서 언마운트하면 유휴 타이머가 정리된다 — 언마운트 뒤 setState가 돌지 않는다', () => {
+      vi.useFakeTimers();
+      const { unmount } = render(
+        <Slider label="슬라이더" value={50} onChange={() => {}} />
+      );
+      const slider = screen.getByRole('slider');
+      slider.focus();
+
+      act(() => {
+        slider.dispatchEvent(
+          new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true })
+        );
+      });
+
+      unmount();
+
+      expect(vi.getTimerCount()).toBe(0);
+      expect(() => {
+        act(() => {
+          vi.advanceTimersByTime(600);
+        });
+      }).not.toThrow();
     });
 
     it('blur로도 놓은 것으로 처리된다', () => {
