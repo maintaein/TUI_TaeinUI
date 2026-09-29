@@ -399,7 +399,7 @@ export const CompleteExample: Story = {
             <path d="M16 8 L22 24 L10 24 Z" fill="white" />
           </svg>
         }
-        title="Design System"
+        title="TaeinUI"
         sticky
         elevation
       >

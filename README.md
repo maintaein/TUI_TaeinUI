@@ -14,7 +14,7 @@ https://tds-taein-design-system.vercel.app/
 
 - **컴포넌트별 모션** — 열림·전환·되먹임을 컴포넌트마다 따로 설계합니다. 같은 이징 하나를 전부에 바르지 않습니다
 - **GSAP이 모션의 메인 런타임** — 현재 12개 컴포넌트가 GSAP으로 움직입니다. CSS가 못 하는 것(트리거 좌표 읽기, 제스처 1:1 추적, 여러 목표를 동시에 중단)이 있는 자리에만 쓰고, 나머지는 CSS 트랜지션으로 둡니다. 최신 목록은 [`packages/core/llms.txt`](./packages/core/llms.txt)의 "Motion (GSAP Runtime)" 절
-- **시인성은 협상 대상이 아님** — WCAG 2.2 AA를 테스트로 잠가 두었고, `prefers-reduced-motion`에서는 CSS 전역 규칙과 GSAP 트윈 게이트가 함께 움직임을 끕니다
+- **시인성은 협상 대상이 아님** — 본문 대비 4.5:1과 포커스 링 폭을 테스트로 잠가 두었고, `prefers-reduced-motion`에서는 CSS 전역 규칙과 GSAP 트윈 게이트가 함께 움직임을 끕니다
 - **컴포넌트 패밀리 30개** — Button, Modal, Card 등 실무에 필요한 UI 컴포넌트. 패키지의 top-level export는 49개로, 차이는 개별 import도 가능한 하위 컴포넌트입니다(`ModalHeader`, `CardBody`, `AvatarGroup`, `ListItem` 등)
 - **Zero-runtime CSS** — Vanilla Extract 기반, 빌드 타임에 CSS 생성
 - **Tree-shakable** — 사용하는 컴포넌트만 번들에 포함
@@ -132,6 +132,7 @@ designsystem/
 | UI            | React 18/19              |
 | 언어          | TypeScript 5.9 (strict)  |
 | 스타일링      | Vanilla Extract CSS      |
+| 모션          | GSAP 3.15                |
 | 빌드          | Vite 7                   |
 | 테스트        | Vitest + Testing Library |
 | 패키지 매니저 | pnpm workspace           |

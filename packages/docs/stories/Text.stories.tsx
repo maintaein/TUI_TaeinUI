@@ -186,7 +186,7 @@ export const Combination: Story = {
         TUI - TaeinUI
       </Text>
       <Text variant="body1" color="secondary" align="center">
-        아름답고 일관된 사용자 경험을 제공하는 디자인 시스템입니다.
+        컴포넌트마다 다른 움직임을 갖는 UI 컴포넌트 라이브러리입니다.
       </Text>
       <Text variant="body2" color="success">
         ✓ 성공적으로 저장되었습니다

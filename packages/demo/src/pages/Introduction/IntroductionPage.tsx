@@ -38,7 +38,7 @@ export function IntroductionPage() {
           <p className={styles.heroDescription}>
             컴포넌트마다 다른 움직임을 갖는 React UI 컴포넌트 라이브러리입니다.
             <br />전 컴포넌트에 같은 전환 하나를 입히지 않는 대신,
-            시인성·가독성· 가시성은 어디서도 낮추지 않습니다.
+            시인성·가독성·가시성은 어디서도 낮추지 않습니다.
           </p>
           <div className={styles.heroActions}>
             <Button
@@ -121,8 +121,8 @@ export function IntroductionPage() {
                 시인성은 협상 대상이 아닙니다
               </h3>
               <p className={styles.goalDescription}>
-                통일성을 내려놓는 범위는 모션까지입니다. 모션이 시인성·가독성·
-                가시성 중 하나라도 깎으면 틀린 쪽은 모션입니다.
+                통일성을 내려놓는 범위는 모션까지입니다. 모션이
+                시인성·가독성·가시성 중 하나라도 깎으면 틀린 쪽은 모션입니다.
               </p>
               <ul className={styles.goalDetails}>
                 <li className={styles.goalDetailItem}>
@@ -217,9 +217,9 @@ export function IntroductionPage() {
           빠른 미리보기
         </Text>
         <p className={styles.sectionDescription}>
-          직접 눌러 보세요. 아래 Switch는 GSAP으로, Button과 Chip은 CSS
-          트랜지션으로 움직입니다 — 같은 화면 안에서도 서로 다른 손맛을
-          갖습니다.
+          직접 눌러 보세요. 같은 화면 안에서도 컴포넌트마다 움직임이 다릅니다 —
+          GSAP이어야 하는 자리는 GSAP이, 그렇지 않은 자리는 CSS 트랜지션이
+          맡습니다.
         </p>
         <div className={styles.preview}>
           <LivePreview
