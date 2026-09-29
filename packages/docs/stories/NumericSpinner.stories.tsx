@@ -167,11 +167,7 @@ const ControlledSpinner = (args: ComponentProps<typeof NumericSpinner>) => {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-      <NumericSpinner
-        {...args}
-        value={value}
-        onChange={(e) => setValue(Number(e.target.value))}
-      />
+      <NumericSpinner {...args} value={value} onChange={setValue} />
       <div style={{ fontSize: '0.875rem', color: '#666' }}>
         현재 값: {value}
       </div>
@@ -202,7 +198,7 @@ const FormExampleComponent = () => {
       <NumericSpinner
         label="수량"
         value={quantity}
-        onChange={(e) => setQuantity(Number(e.target.value))}
+        onChange={setQuantity}
         min={1}
         max={99}
         required
@@ -212,7 +208,7 @@ const FormExampleComponent = () => {
       <NumericSpinner
         label="단가 (원)"
         value={price}
-        onChange={(e) => setPrice(Number(e.target.value))}
+        onChange={setPrice}
         min={0}
         step={1000}
         fullWidth
