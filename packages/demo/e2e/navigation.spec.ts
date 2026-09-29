@@ -18,11 +18,6 @@ test.describe('페이지 네비게이션', () => {
     await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
   });
 
-  test('디자인 토큰 - 색상 페이지로 이동한다', async ({ page }) => {
-    await page.goto('/design-tokens/colors');
-    await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
-  });
-
   test('사이드바 네비게이션이 동작한다', async ({ page }) => {
     await page.goto('/');
     const sidebar = page.locator('nav');

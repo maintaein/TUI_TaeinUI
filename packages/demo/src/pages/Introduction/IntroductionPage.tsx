@@ -15,7 +15,6 @@ import {
   Bot,
   Package,
   ArrowRight,
-  Palette,
   LayoutGrid,
 } from 'lucide-react';
 import { LivePreview } from '../../components/LivePreview';
@@ -309,24 +308,6 @@ function Example() {
               <h3 className={styles.nextStepTitle}>시작하기</h3>
               <p className={styles.nextStepDescription}>
                 TDS를 프로젝트에 설치하고 사용하는 방법을 알아보세요.
-              </p>
-              <div className={styles.nextStepArrow}>&rarr;</div>
-            </Card.Body>
-          </Card>
-          <Card
-            variant="interactive"
-            accentColor="#2563eb"
-            onClick={() => navigate('/design-tokens/colors')}
-            className={styles.nextStepCard}
-          >
-            <Card.Body padding="lg">
-              <div className={styles.nextStepIcon} aria-hidden="true">
-                <Palette size={32} color="#2563eb" strokeWidth={2.5} />
-              </div>
-              <h3 className={styles.nextStepTitle}>디자인 토큰</h3>
-              <p className={styles.nextStepDescription}>
-                색상, 타이포그래피, 간격 등 디자인 시스템의 기본 요소를
-                살펴보세요.
               </p>
               <div className={styles.nextStepArrow}>&rarr;</div>
             </Card.Body>

@@ -50,23 +50,4 @@ export const navigationData: NavigationItem[] = [
       { label: 'Tooltip', path: '/components/tooltip' },
     ],
   },
-  {
-    label: '디자인 토큰',
-    path: '/design-tokens',
-    children: [
-      { label: '색상', path: '/design-tokens/colors' },
-      { label: '타이포그래피', path: '/design-tokens/typography' },
-      { label: '간격', path: '/design-tokens/spacing' },
-      { label: '그림자', path: '/design-tokens/shadows' },
-      { label: '애니메이션', path: '/design-tokens/animation' },
-    ],
-  },
-  {
-    label: '가이드라인',
-    path: '/guidelines',
-    children: [
-      { label: '디자인 원칙', path: '/guidelines/design-principles' },
-      { label: '접근성', path: '/guidelines/accessibility' },
-    ],
-  },
 ];

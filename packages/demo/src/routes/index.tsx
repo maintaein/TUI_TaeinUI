@@ -17,33 +17,6 @@ const GettingStartedPage = lazy(() =>
   }))
 );
 
-// Design Tokens
-const ColorsPage = lazy(() =>
-  import('../pages/DesignTokens/ColorsPage').then((m) => ({
-    default: m.ColorsPage,
-  }))
-);
-const TypographyPage = lazy(() =>
-  import('../pages/DesignTokens/TypographyPage').then((m) => ({
-    default: m.TypographyPage,
-  }))
-);
-const SpacingPage = lazy(() =>
-  import('../pages/DesignTokens/SpacingPage').then((m) => ({
-    default: m.SpacingPage,
-  }))
-);
-const ShadowsPage = lazy(() =>
-  import('../pages/DesignTokens/ShadowsPage').then((m) => ({
-    default: m.ShadowsPage,
-  }))
-);
-const AnimationPage = lazy(() =>
-  import('../pages/DesignTokens/AnimationPage').then((m) => ({
-    default: m.AnimationPage,
-  }))
-);
-
 // Components
 const ComponentsOverviewPage = lazy(() =>
   import('../pages/Components/ComponentsOverviewPage').then((m) => ({
@@ -175,18 +148,6 @@ const LoadingSpinnerPage = lazy(() =>
   }))
 );
 
-// Guidelines
-const DesignPrinciplesPage = lazy(() =>
-  import('../pages/Guidelines/DesignPrinciplesPage').then((m) => ({
-    default: m.DesignPrinciplesPage,
-  }))
-);
-const AccessibilityPage = lazy(() =>
-  import('../pages/Guidelines/AccessibilityPage').then((m) => ({
-    default: m.AccessibilityPage,
-  }))
-);
-
 // ─── Suspense wrapper ──────────────────────────────────────────────
 
 function PageLoader() {
@@ -238,51 +199,6 @@ const router = createBrowserRouter([
             <GettingStartedPage />
           </LazyPage>
         ),
-      },
-      {
-        path: 'design-tokens',
-        children: [
-          {
-            path: 'colors',
-            element: (
-              <LazyPage>
-                <ColorsPage />
-              </LazyPage>
-            ),
-          },
-          {
-            path: 'typography',
-            element: (
-              <LazyPage>
-                <TypographyPage />
-              </LazyPage>
-            ),
-          },
-          {
-            path: 'spacing',
-            element: (
-              <LazyPage>
-                <SpacingPage />
-              </LazyPage>
-            ),
-          },
-          {
-            path: 'shadows',
-            element: (
-              <LazyPage>
-                <ShadowsPage />
-              </LazyPage>
-            ),
-          },
-          {
-            path: 'animation',
-            element: (
-              <LazyPage>
-                <AnimationPage />
-              </LazyPage>
-            ),
-          },
-        ],
       },
       {
         path: 'components',
@@ -536,27 +452,6 @@ const router = createBrowserRouter([
             element: (
               <LazyPage>
                 <LoadingSpinnerPage />
-              </LazyPage>
-            ),
-          },
-        ],
-      },
-      {
-        path: 'guidelines',
-        children: [
-          {
-            path: 'design-principles',
-            element: (
-              <LazyPage>
-                <DesignPrinciplesPage />
-              </LazyPage>
-            ),
-          },
-          {
-            path: 'accessibility',
-            element: (
-              <LazyPage>
-                <AccessibilityPage />
               </LazyPage>
             ),
           },

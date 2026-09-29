@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { Button, Card, Text } from '@taein-designsystem/core';
-import { Palette, LayoutGrid, ClipboardList } from 'lucide-react';
+import { LayoutGrid } from 'lucide-react';
 import { CodeBlock } from '../../components/CodeBlock';
 import * as styles from './GettingStartedPage.css';
 
@@ -179,25 +179,6 @@ function Example() {
         <div className={styles.nextStepsGrid}>
           <Card
             variant="interactive"
-            accentColor="#2563eb"
-            onClick={() => navigate('/design-tokens/colors')}
-            className={styles.nextStepCard}
-          >
-            <Card.Body padding="lg">
-              <div className={styles.nextStepIcon} aria-hidden="true">
-                <Palette size={32} color="#2563eb" strokeWidth={2.5} />
-              </div>
-              <h3 className={styles.nextStepTitle}>디자인 토큰</h3>
-              <p className={styles.nextStepDescription}>
-                색상, 타이포그래피, 간격 등 디자인 시스템의 기본 요소를
-                살펴보세요.
-              </p>
-              <div className={styles.nextStepArrow}>&rarr;</div>
-            </Card.Body>
-          </Card>
-
-          <Card
-            variant="interactive"
             accentColor="#8b5cf6"
             onClick={() => navigate('/components')}
             className={styles.nextStepCard}
@@ -210,24 +191,6 @@ function Example() {
               <p className={styles.nextStepDescription}>
                 컴포넌트 패밀리 30개(top-level export 48개)와 사용 예시를
                 확인하세요.
-              </p>
-              <div className={styles.nextStepArrow}>&rarr;</div>
-            </Card.Body>
-          </Card>
-
-          <Card
-            variant="interactive"
-            accentColor="#f59e0b"
-            onClick={() => navigate('/guidelines/accessibility')}
-            className={styles.nextStepCard}
-          >
-            <Card.Body padding="lg">
-              <div className={styles.nextStepIcon} aria-hidden="true">
-                <ClipboardList size={32} color="#f59e0b" strokeWidth={2} />
-              </div>
-              <h3 className={styles.nextStepTitle}>가이드라인</h3>
-              <p className={styles.nextStepDescription}>
-                접근성, 디자인 원칙을 확인하세요
               </p>
               <div className={styles.nextStepArrow}>&rarr;</div>
             </Card.Body>
