@@ -26,7 +26,7 @@ pnpm preview
 | 경로                   | 페이지        | 설명                                       |
 | ---------------------- | ------------- | ------------------------------------------ |
 | `/`                    | 소개          | TUI가 무엇인지, 빠른 미리보기              |
-| `/getting-started`     | 시작하기      | 설치 방법, 사용법, 테마 설정               |
+| `/getting-started`     | 시작하기      | 설치, 기본 사용법, TypeScript 설정         |
 | `/components/overview` | 컴포넌트 개요 | 전체 컴포넌트 목록                         |
 | `/components/:name`    | 컴포넌트 상세 | Props 표, 라이브 프리뷰, 접근성, 코드 예제 |
 
@@ -44,7 +44,7 @@ packages/demo/
 │   │   └── EditableCodeBlock/# 편집 가능한 코드 블록
 │   ├── layouts/              # 레이아웃
 │   │   ├── RootLayout.tsx    # 루트 (Header + Sidebar + Content)
-│   │   ├── Header.tsx        # 헤더 (로고, 테마 토글)
+│   │   ├── Header.tsx        # 헤더 (로고, 검색, GitHub 링크)
 │   │   └── Sidebar.tsx       # 사이드바 네비게이션
 │   ├── pages/                # 페이지 컴포넌트
 │   │   ├── Introduction/

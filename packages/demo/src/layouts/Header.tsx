@@ -186,7 +186,7 @@ export function Header({ onMenuClick, showMenuButton = false }: HeaderProps) {
         </div>
 
         <a
-          href="https://github.com"
+          href="https://github.com/maintaein/TUI_TaeinUI"
           target="_blank"
           rel="noopener noreferrer"
           className={styles.githubLink}
