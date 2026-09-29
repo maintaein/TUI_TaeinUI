@@ -18,12 +18,12 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/maintaein/TDS_TaeinDesignSystem.git",
+    "url": "https://github.com/maintaein/TUI_TaeinUI.git",
     "directory": "packages/core"
   },
-  "homepage": "https://github.com/maintaein/TDS_TaeinDesignSystem#readme",
+  "homepage": "https://github.com/maintaein/TUI_TaeinUI#readme",
   "bugs": {
-    "url": "https://github.com/maintaein/TDS_TaeinDesignSystem/issues"
+    "url": "https://github.com/maintaein/TUI_TaeinUI/issues"
   },
   "main": "./dist/index.cjs",
   "module": "./dist/index.mjs",

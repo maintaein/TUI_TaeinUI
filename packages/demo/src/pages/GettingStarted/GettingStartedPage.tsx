@@ -243,7 +243,7 @@ function Example() {
           </p>
           <div className={styles.helpActions}>
             <a
-              href="https://github.com/maintaein/TDS_TaeinDesignSystem/issues"
+              href="https://github.com/maintaein/TUI_TaeinUI/issues"
               target="_blank"
               rel="noopener noreferrer"
               style={{ textDecoration: 'none' }}
