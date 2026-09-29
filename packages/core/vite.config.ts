@@ -32,6 +32,14 @@ export default defineConfig({
         ['react', 'react-dom', 'react/jsx-runtime', 'clsx', 'gsap'].includes(
           id
         ) ||
+        // 서브패스 플러그인(gsap/MorphSVGPlugin 등)은 위 정확 일치를 통과하지
+        // 못한다. 아래 @vanilla-extract/recipes 주석이 경고하는 바로 그 증상이
+        // gsap에서도 났다 — Checkbox가 쓰는 MorphSVGPlugin이 번들에 딸려
+        // 들어가 dist/node_modules/.pnpm/gsap@.../ 로 356KB가 새어나갔고,
+        // files:["dist"]라 npm 타르볼에까지 실렸다. gsap의 package.json
+        // exports가 "./*" 와일드카드를 갖고 있어 서브패스도 소비자 쪽에서
+        // 정상 resolve된다(확인함).
+        id.startsWith('gsap/') ||
         // recipe()가 컴파일되면 @vanilla-extract/recipes의 런타임 헬퍼
         // (createRuntimeFn)를 참조한다. external 목록에 없으면 Rollup이 이걸
         // 번들에 포함시키면서 preserveModulesRoot('src') 밖에 있는 모듈이라
