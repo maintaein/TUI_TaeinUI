@@ -1,8 +1,4 @@
-import {
-  Card,
-  List,
-  ListItem,
-} from '@taein-designsystem/core';
+import { Card, List, ListItem } from '@taein-ui/core';
 import { LivePreview } from '../../../components/LivePreview';
 import { CodeBlock } from '../../../components/CodeBlock';
 import { PropsTable } from '../../../components/PropsTable';
@@ -11,7 +7,6 @@ import { AccessibilitySection } from '../../../components/AccessibilitySection';
 import * as styles from './SkeletonPage.css';
 
 export function SkeletonPage() {
-
   const propsData: PropDefinition[] = [
     {
       name: 'variant',
@@ -23,7 +18,8 @@ export function SkeletonPage() {
       name: 'animation',
       type: "'wave' | 'pulse' | false",
       default: "'wave'",
-      description: '애니메이션 타입 (wave: 빛 흐름, pulse: 깜빡임, false: 없음)',
+      description:
+        '애니메이션 타입 (wave: 빛 흐름, pulse: 깜빡임, false: 없음)',
     },
     {
       name: 'width',
@@ -54,7 +50,8 @@ export function SkeletonPage() {
       <header className={styles.header}>
         <h1 className={styles.title}>Skeleton</h1>
         <p className={styles.description}>
-          Skeleton 컴포넌트는 콘텐츠가 로딩되기 전에 레이아웃 윤곽을 미리 보여줄 때 사용합니다. 사용자에게 화면이 곧 채워질 것임을 알려줍니다.
+          Skeleton 컴포넌트는 콘텐츠가 로딩되기 전에 레이아웃 윤곽을 미리 보여줄
+          때 사용합니다. 사용자에게 화면이 곧 채워질 것임을 알려줍니다.
         </p>
       </header>
 
@@ -65,7 +62,7 @@ export function SkeletonPage() {
             <h3 className={styles.quickRefTitle}>Import</h3>
             <CodeBlock
               language="typescript"
-              code={`import { Skeleton } from '@taein-designsystem/core';`}
+              code={`import { Skeleton } from '@taein-ui/core';`}
             />
           </Card.Body>
         </Card>
@@ -218,7 +215,8 @@ export function SkeletonPage() {
         <div className={styles.sectionHeader}>
           <h2 className={styles.sectionTitle}>Custom Dimensions</h2>
           <p className={styles.sectionDescription}>
-            width와 height로 크기를 자유롭게 지정합니다. 숫자는 px, 문자열은 그대로 적용됩니다.
+            width와 height로 크기를 자유롭게 지정합니다. 숫자는 px, 문자열은
+            그대로 적용됩니다.
           </p>
         </div>
 
@@ -360,7 +358,8 @@ const handleLoad = () => {
         <div className={styles.sectionHeader}>
           <h2 className={styles.sectionTitle}>Props API</h2>
           <p className={styles.sectionDescription}>
-            Skeleton 컴포넌트의 모든 Props와 타입 정보입니다. HTML span 속성도 모두 사용 가능합니다.
+            Skeleton 컴포넌트의 모든 Props와 타입 정보입니다. HTML span 속성도
+            모두 사용 가능합니다.
           </p>
         </div>
         <div className={styles.propsTableWrapper}>
@@ -376,28 +375,33 @@ const handleLoad = () => {
           {
             attribute: 'role="status"',
             effect: '로딩 상태임을 전달합니다.',
-            description: 'role="status"로 설정되어 스크린 리더가 콘텐츠가 로딩 중임을 인식합니다.',
+            description:
+              'role="status"로 설정되어 스크린 리더가 콘텐츠가 로딩 중임을 인식합니다.',
           },
           {
             attribute: 'aria-busy="true"',
             effect: '콘텐츠가 아직 준비 중임을 알려줍니다.',
-            description: 'aria-busy="true"로 설정되어 현재 콘텐츠가 로딩 중이라는 것을 전달합니다.',
+            description:
+              'aria-busy="true"로 설정되어 현재 콘텐츠가 로딩 중이라는 것을 전달합니다.',
           },
           {
             attribute: 'aria-live="polite"',
             effect: '상태 변화를 자동으로 읽어줍니다.',
-            description: '로딩 완료 시 스크린 리더가 변경 사항을 사용자에게 알려줍니다.',
+            description:
+              '로딩 완료 시 스크린 리더가 변경 사항을 사용자에게 알려줍니다.',
           },
           {
             attribute: 'aria-label',
             effect: '"콘텐츠 로딩 중"이라고 읽어줍니다.',
-            description: '기본 "콘텐츠 로딩 중" 또는 커스텀 aria-label로 로딩 내용을 설명합니다.',
+            description:
+              '기본 "콘텐츠 로딩 중" 또는 커스텀 aria-label로 로딩 내용을 설명합니다.',
           },
         ]}
         additionalGuidance={[
           {
             title: 'prefers-reduced-motion 대응',
-            description: '모션에 민감한 사용자를 위해 animation={false}를 제공하세요.',
+            description:
+              '모션에 민감한 사용자를 위해 animation={false}를 제공하세요.',
             examples: [
               {
                 code: `// 모션 감소 설정에 대응
@@ -405,7 +409,8 @@ const handleLoad = () => {
 
 // 또는 CSS @media로 시스템 설정 감지
 // @media (prefers-reduced-motion: reduce)`,
-                explanation: '시스템의 모션 감소 설정을 존중하면 접근성이 향상됩니다.',
+                explanation:
+                  '시스템의 모션 감소 설정을 존중하면 접근성이 향상됩니다.',
               },
             ],
           },
@@ -430,10 +435,16 @@ const handleLoad = () => {
               </div>
               <List spacing="sm" className={styles.practiceList}>
                 <ListItem>실제 콘텐츠와 유사한 형태로 스켈레톤 구성</ListItem>
-                <ListItem>아바타에는 circle, 이미지에는 rect/rounded 사용</ListItem>
-                <ListItem>텍스트 스켈레톤의 너비를 다양하게 설정하여 자연스러움 유지</ListItem>
+                <ListItem>
+                  아바타에는 circle, 이미지에는 rect/rounded 사용
+                </ListItem>
+                <ListItem>
+                  텍스트 스켈레톤의 너비를 다양하게 설정하여 자연스러움 유지
+                </ListItem>
                 <ListItem>로딩 완료 후 즉시 실제 콘텐츠로 교체</ListItem>
-                <ListItem>모션 감소 설정 사용자를 위해 animation={false} 고려</ListItem>
+                <ListItem>
+                  모션 감소 설정 사용자를 위해 animation={false} 고려
+                </ListItem>
               </List>
             </Card.Body>
           </Card>
@@ -445,10 +456,18 @@ const handleLoad = () => {
                 <h3 className={styles.practiceTitle}>Don't</h3>
               </div>
               <List spacing="sm" className={styles.practiceList}>
-                <ListItem>실제 레이아웃과 다른 형태로 스켈레톤 배치하지 않기</ListItem>
-                <ListItem>모든 텍스트 라인을 같은 너비로 만들지 않기 (부자연스러움)</ListItem>
-                <ListItem>스켈레톤을 장시간 표시하지 않기 (사용자 혼란)</ListItem>
-                <ListItem>즉시 로드되는 콘텐츠에 스켈레톤 사용하지 않기</ListItem>
+                <ListItem>
+                  실제 레이아웃과 다른 형태로 스켈레톤 배치하지 않기
+                </ListItem>
+                <ListItem>
+                  모든 텍스트 라인을 같은 너비로 만들지 않기 (부자연스러움)
+                </ListItem>
+                <ListItem>
+                  스켈레톤을 장시간 표시하지 않기 (사용자 혼란)
+                </ListItem>
+                <ListItem>
+                  즉시 로드되는 콘텐츠에 스켈레톤 사용하지 않기
+                </ListItem>
                 <ListItem>Loader와 Skeleton을 동시에 사용하지 않기</ListItem>
               </List>
             </Card.Body>

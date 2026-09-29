@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react';
-import { FormField } from '@taein-designsystem/core';
+import { FormField } from '@taein-ui/core';
 import { useState } from 'react';
 
 const meta = {

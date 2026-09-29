@@ -1,8 +1,4 @@
-import {
-  Card,
-  List,
-  ListItem,
-} from '@taein-designsystem/core';
+import { Card, List, ListItem } from '@taein-ui/core';
 import { LivePreview } from '../../../components/LivePreview';
 import { CodeBlock } from '../../../components/CodeBlock';
 import { PropsTable } from '../../../components/PropsTable';
@@ -11,12 +7,12 @@ import { AccessibilitySection } from '../../../components/AccessibilitySection';
 import * as styles from './BadgePage.css';
 
 export function BadgePage() {
-
   const propsData: PropDefinition[] = [
     {
       name: 'children',
       type: 'ReactNode',
-      description: '배지에 표시할 내용 (숫자 또는 텍스트). dot 모드에서는 무시됨',
+      description:
+        '배지에 표시할 내용 (숫자 또는 텍스트). dot 모드에서는 무시됨',
     },
     {
       name: 'variant',
@@ -66,7 +62,9 @@ export function BadgePage() {
       <header className={styles.header}>
         <h1 className={styles.title}>Badge</h1>
         <p className={styles.description}>
-          Badge 컴포넌트는 읽지 않은 알림 수, 새로운 메시지, 상태 라벨 등을 표시할 때 사용합니다. 아이콘이나 메뉴 항목 옆에 붙여 사용자의 주의를 끌 수 있습니다.
+          Badge 컴포넌트는 읽지 않은 알림 수, 새로운 메시지, 상태 라벨 등을
+          표시할 때 사용합니다. 아이콘이나 메뉴 항목 옆에 붙여 사용자의 주의를
+          끌 수 있습니다.
         </p>
       </header>
 
@@ -77,7 +75,7 @@ export function BadgePage() {
             <h3 className={styles.quickRefTitle}>Import</h3>
             <CodeBlock
               language="typescript"
-              code={`import { Badge } from '@taein-designsystem/core';`}
+              code={`import { Badge } from '@taein-ui/core';`}
             />
           </Card.Body>
         </Card>
@@ -93,10 +91,7 @@ export function BadgePage() {
         <Card className={styles.quickRefCard}>
           <Card.Body padding="md">
             <h3 className={styles.quickRefTitle}>Dot</h3>
-            <CodeBlock
-              language="tsx"
-              code={`<Badge dot variant="error" />`}
-            />
+            <CodeBlock language="tsx" code={`<Badge dot variant="error" />`} />
           </Card.Body>
         </Card>
       </section>
@@ -337,7 +332,8 @@ export function BadgePage() {
         <div className={styles.sectionHeader}>
           <h2 className={styles.sectionTitle}>Props API</h2>
           <p className={styles.sectionDescription}>
-            Badge 컴포넌트의 모든 Props와 타입 정보입니다. HTML span 속성도 모두 사용 가능합니다.
+            Badge 컴포넌트의 모든 Props와 타입 정보입니다. HTML span 속성도 모두
+            사용 가능합니다.
           </p>
         </div>
         <div className={styles.propsTableWrapper}>
@@ -353,17 +349,20 @@ export function BadgePage() {
           {
             attribute: 'role="status"',
             effect: '배지가 상태 정보임을 전달합니다.',
-            description: 'role="status"로 설정되어 스크린 리더가 배지의 역할을 올바르게 인식합니다.',
+            description:
+              'role="status"로 설정되어 스크린 리더가 배지의 역할을 올바르게 인식합니다.',
           },
           {
             attribute: 'aria-label 자동 생성',
             effect: '배지 내용을 스크린 리더가 읽습니다.',
-            description: '숫자 배지는 "5개의 알림", dot 배지는 "알림", 텍스트 배지는 텍스트 자체를 aria-label로 자동 생성합니다.',
+            description:
+              '숫자 배지는 "5개의 알림", dot 배지는 "알림", 텍스트 배지는 텍스트 자체를 aria-label로 자동 생성합니다.',
           },
           {
             attribute: 'aria-label 커스텀',
             effect: '원하는 레이블을 직접 지정할 수 있습니다.',
-            description: 'aria-label prop으로 자동 생성된 레이블 대신 커스텀 레이블을 사용할 수 있습니다.',
+            description:
+              'aria-label prop으로 자동 생성된 레이블 대신 커스텀 레이블을 사용할 수 있습니다.',
           },
         ]}
         additionalGuidance={[
@@ -377,7 +376,8 @@ export function BadgePage() {
 
 // Bad - 맥락 부족
 <Badge variant="error">{3}</Badge>`,
-                explanation: '자동 생성되는 "3개의 알림" 대신, 구체적인 맥락을 포함하면 더 좋습니다.',
+                explanation:
+                  '자동 생성되는 "3개의 알림" 대신, 구체적인 맥락을 포함하면 더 좋습니다.',
               },
             ],
           },
@@ -402,9 +402,13 @@ export function BadgePage() {
               </div>
               <List spacing="sm" className={styles.practiceList}>
                 <ListItem>알림 카운트에 error variant 사용</ListItem>
-                <ListItem>max를 적절히 설정하여 레이아웃 유지 (기본 99)</ListItem>
+                <ListItem>
+                  max를 적절히 설정하여 레이아웃 유지 (기본 99)
+                </ListItem>
                 <ListItem>새 알림 유무만 표시할 때 dot 모드 사용</ListItem>
-                <ListItem>의미에 맞는 variant 선택 (success=완료, warning=주의)</ListItem>
+                <ListItem>
+                  의미에 맞는 variant 선택 (success=완료, warning=주의)
+                </ListItem>
                 <ListItem>맥락에 맞는 aria-label 커스텀</ListItem>
               </List>
             </Card.Body>
@@ -420,8 +424,12 @@ export function BadgePage() {
                 <ListItem>배지에 너무 긴 텍스트 넣지 않기 (간결하게)</ListItem>
                 <ListItem>장식 목적으로만 배지 사용하지 않기</ListItem>
                 <ListItem>한 화면에 너무 많은 배지 남용하지 않기</ListItem>
-                <ListItem>의미 없는 0 표시하지 않기 (showZero={false} 활용)</ListItem>
-                <ListItem>색상만으로 정보를 전달하지 않기 (텍스트 병행)</ListItem>
+                <ListItem>
+                  의미 없는 0 표시하지 않기 (showZero={false} 활용)
+                </ListItem>
+                <ListItem>
+                  색상만으로 정보를 전달하지 않기 (텍스트 병행)
+                </ListItem>
               </List>
             </Card.Body>
           </Card>

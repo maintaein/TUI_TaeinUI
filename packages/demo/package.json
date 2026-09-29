@@ -1,8 +1,8 @@
 {
-  "name": "@taein-designsystem/demo",
+  "name": "@taein-ui/demo",
   "version": "0.1.0",
   "private": true,
-  "description": "TDS - Taein Design System - 데모 애플리케이션",
+  "description": "TUI - TaeinUI - 데모 애플리케이션",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -12,7 +12,7 @@
     "test:e2e:ui": "playwright test --ui"
   },
   "dependencies": {
-    "@taein-designsystem/core": "workspace:*",
+    "@taein-ui/core": "workspace:*",
     "clsx": "^2.1.1",
     "lucide-react": "^0.547.0",
     "prismjs": "^1.30.0",

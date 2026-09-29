@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react';
-import { Modal, ModalProps } from '@taein-designsystem/core';
+import { Modal, ModalProps } from '@taein-ui/core';
 import { useState } from 'react';
 
 const meta = {
@@ -546,8 +546,8 @@ export const CompoundAPIBasic: Story = {
             </Modal.Header>
             <Modal.Content>
               <p style={{ margin: 0, lineHeight: 1.6 }}>
-                Modal.Header, Modal.Title, Modal.Content, Modal.Footer를 조합하여
-                구조화된 모달을 만들 수 있습니다.
+                Modal.Header, Modal.Title, Modal.Content, Modal.Footer를
+                조합하여 구조화된 모달을 만들 수 있습니다.
               </p>
             </Modal.Content>
             <Modal.Footer align="right">
@@ -826,7 +826,11 @@ export const CompoundFooterAlign: Story = {
           >
             Center Align
           </button>
-          <Modal open={openCenter} onClose={() => setOpenCenter(false)} size="sm">
+          <Modal
+            open={openCenter}
+            onClose={() => setOpenCenter(false)}
+            size="sm"
+          >
             <Modal.Header showClose>
               <Modal.Title>Center Align</Modal.Title>
             </Modal.Header>

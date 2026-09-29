@@ -1,8 +1,4 @@
-import {
-  Card,
-  List,
-  ListItem,
-} from '@taein-designsystem/core';
+import { Card, List, ListItem } from '@taein-ui/core';
 import { LivePreview } from '../../../components/LivePreview';
 import { CodeBlock } from '../../../components/CodeBlock';
 import { PropsTable } from '../../../components/PropsTable';
@@ -34,7 +30,8 @@ export function ModalPage() {
       name: 'size',
       type: "'sm' | 'md' | 'lg' | 'xl' | 'full'",
       default: "'md'",
-      description: '모달 너비 (sm:400px, md:600px, lg:800px, xl:1000px, full:100vw)',
+      description:
+        '모달 너비 (sm:400px, md:600px, lg:800px, xl:1000px, full:100vw)',
     },
     {
       name: 'closeOnBackdropClick',
@@ -138,7 +135,8 @@ export function ModalPage() {
       <header className={styles.header}>
         <h1 className={styles.title}>Modal</h1>
         <p className={styles.description}>
-          Modal 컴포넌트는 사용자의 확인이 필요한 대화상자, 폼 입력, 상세 정보 등을 화면 중앙에 띄울 때 사용합니다.
+          Modal 컴포넌트는 사용자의 확인이 필요한 대화상자, 폼 입력, 상세 정보
+          등을 화면 중앙에 띄울 때 사용합니다.
         </p>
       </header>
 
@@ -149,7 +147,7 @@ export function ModalPage() {
             <h3 className={styles.quickRefTitle}>Flat (간편)</h3>
             <CodeBlock
               language="tsx"
-              code={`import { Modal, Button } from '@taein-designsystem/core';
+              code={`import { Modal, Button } from '@taein-ui/core';
 
 <Modal
   open={open}
@@ -169,7 +167,7 @@ export function ModalPage() {
             <h3 className={styles.quickRefTitle}>Compound (커스텀)</h3>
             <CodeBlock
               language="tsx"
-              code={`import { Modal, Button } from '@taein-designsystem/core';
+              code={`import { Modal, Button } from '@taein-ui/core';
 
 <Modal open={open} onClose={() => setOpen(false)}>
   <Modal.Header showClose>
@@ -391,7 +389,8 @@ const [name, setName] = useState('');
         <div className={styles.sectionHeader}>
           <h2 className={styles.sectionTitle}>Flat vs Compound 패턴</h2>
           <p className={styles.sectionDescription}>
-            Modal은 하나의 컴포넌트로 두 가지 API 스타일을 모두 지원합니다. 상황에 맞게 선택하세요.
+            Modal은 하나의 컴포넌트로 두 가지 API 스타일을 모두 지원합니다.
+            상황에 맞게 선택하세요.
           </p>
         </div>
 
@@ -411,10 +410,13 @@ const [name, setName] = useState('');
             </ul>
           </div>
           <div className={styles.patternCard}>
-            <p className={styles.patternCardTitle}>Compound Pattern (커스텀용)</p>
+            <p className={styles.patternCardTitle}>
+              Compound Pattern (커스텀용)
+            </p>
             <p className={styles.patternCardDesc}>
-              Modal.Header, Modal.Content 등 점 표기법으로 내부 구조를 직접 구성합니다.
-              헤더에 이미지나 커스텀 레이아웃이 필요할 때 활용합니다.
+              Modal.Header, Modal.Content 등 점 표기법으로 내부 구조를 직접
+              구성합니다. 헤더에 이미지나 커스텀 레이아웃이 필요할 때
+              활용합니다.
             </p>
             <p className={styles.patternCardWhen}>사용할 때</p>
             <ul className={styles.patternCardList}>
@@ -438,8 +440,12 @@ const [name, setName] = useState('');
             <tbody>
               <tr className={styles.patternCompareTr}>
                 <td className={styles.patternCompareTdLabel}>API 방식</td>
-                <td className={styles.patternCompareTd}>title, footer 등 props 전달</td>
-                <td className={styles.patternCompareTd}>Modal.Header, Modal.Content 점 표기법</td>
+                <td className={styles.patternCompareTd}>
+                  title, footer 등 props 전달
+                </td>
+                <td className={styles.patternCompareTd}>
+                  Modal.Header, Modal.Content 점 표기법
+                </td>
               </tr>
               <tr className={styles.patternCompareTr}>
                 <td className={styles.patternCompareTdLabel}>Import</td>
@@ -448,8 +454,12 @@ const [name, setName] = useState('');
               </tr>
               <tr className={styles.patternCompareTr}>
                 <td className={styles.patternCompareTdLabel}>커스텀 자유도</td>
-                <td className={styles.patternCompareTd}>제한적 (props로 제어)</td>
-                <td className={styles.patternCompareTd}>높음 (서브 컴포넌트별 className, children 커스텀)</td>
+                <td className={styles.patternCompareTd}>
+                  제한적 (props로 제어)
+                </td>
+                <td className={styles.patternCompareTd}>
+                  높음 (서브 컴포넌트별 className, children 커스텀)
+                </td>
               </tr>
               <tr className={styles.patternCompareTr}>
                 <td className={styles.patternCompareTdLabel}>코드량</td>
@@ -458,13 +468,19 @@ const [name, setName] = useState('');
               </tr>
               <tr className={styles.patternCompareTr}>
                 <td className={styles.patternCompareTdLabel}>주 용도</td>
-                <td className={styles.patternCompareTd}>일반 확인/알림/폼 모달</td>
-                <td className={styles.patternCompareTd}>도메인 전용 래퍼, 커스텀 레이아웃</td>
+                <td className={styles.patternCompareTd}>
+                  일반 확인/알림/폼 모달
+                </td>
+                <td className={styles.patternCompareTd}>
+                  도메인 전용 래퍼, 커스텀 레이아웃
+                </td>
               </tr>
               <tr className={styles.patternCompareTr}>
                 <td className={styles.patternCompareTdLabel}>권장 여부</td>
                 <td className={styles.patternCompareTd}>대부분의 경우 권장</td>
-                <td className={styles.patternCompareTd}>커스텀이 필요할 때 선택</td>
+                <td className={styles.patternCompareTd}>
+                  커스텀이 필요할 때 선택
+                </td>
               </tr>
             </tbody>
           </table>
@@ -472,15 +488,21 @@ const [name, setName] = useState('');
 
         {/* Compound 실전 예시 */}
         <div className={styles.example} style={{ marginTop: '2rem' }}>
-          <h3 className={styles.exampleTitle}>Compound 실전 예시 — 도메인 전용 모달 컴포넌트</h3>
-          <p className={styles.sectionDescription} style={{ marginBottom: '1rem' }}>
-            Compound Pattern으로 ConfirmModal 같은 재사용 컴포넌트를 만들 때 활용합니다.
-            소비자는 내부 구조를 몰라도 되고, props만 전달하면 됩니다.
+          <h3 className={styles.exampleTitle}>
+            Compound 실전 예시 — 도메인 전용 모달 컴포넌트
+          </h3>
+          <p
+            className={styles.sectionDescription}
+            style={{ marginBottom: '1rem' }}
+          >
+            Compound Pattern으로 ConfirmModal 같은 재사용 컴포넌트를 만들 때
+            활용합니다. 소비자는 내부 구조를 몰라도 되고, props만 전달하면
+            됩니다.
           </p>
           <CodeBlock
             language="tsx"
             code={`// components/ConfirmModal.tsx
-import { Modal, Button } from '@taein-designsystem/core';
+import { Modal, Button } from '@taein-ui/core';
 import type { ReactNode } from 'react';
 
 interface ConfirmModalProps {
@@ -519,15 +541,20 @@ export function ConfirmModal({
 
         {/* Compound 커스텀 확장 예시 */}
         <div className={styles.example}>
-          <h3 className={styles.exampleTitle}>Compound 커스텀 확장 — 서브컴포넌트 교체</h3>
-          <p className={styles.sectionDescription} style={{ marginBottom: '1rem' }}>
-            Compound Pattern에서 특정 서브컴포넌트에 className이나 커스텀 요소를 조합해
-            확장할 수 있습니다.
+          <h3 className={styles.exampleTitle}>
+            Compound 커스텀 확장 — 서브컴포넌트 교체
+          </h3>
+          <p
+            className={styles.sectionDescription}
+            style={{ marginBottom: '1rem' }}
+          >
+            Compound Pattern에서 특정 서브컴포넌트에 className이나 커스텀 요소를
+            조합해 확장할 수 있습니다.
           </p>
           <CodeBlock
             language="tsx"
             code={`// components/ProductDetailModal.tsx
-import { Modal, Button } from '@taein-designsystem/core';
+import { Modal, Button } from '@taein-ui/core';
 import * as styles from './ProductDetailModal.css';
 
 export function ProductDetailModal({ open, onClose, product }) {
@@ -556,7 +583,8 @@ export function ProductDetailModal({ open, onClose, product }) {
         <div className={styles.sectionHeader}>
           <h2 className={styles.sectionTitle}>Props API</h2>
           <p className={styles.sectionDescription}>
-            Modal 하나로 Flat과 Compound 모두 사용합니다. title이나 footer prop이 있으면 Flat 모드로 자동 전환됩니다.
+            Modal 하나로 Flat과 Compound 모두 사용합니다. title이나 footer
+            prop이 있으면 Flat 모드로 자동 전환됩니다.
           </p>
         </div>
 
@@ -612,23 +640,27 @@ export function ProductDetailModal({ open, onClose, product }) {
           {
             attribute: '포커스 트랩 (Tab)',
             effect: '모달 내부 포커스 순환',
-            description: 'Tab/Shift+Tab이 모달 내부 요소 사이에서만 순환되어 외부로 탈출하지 않습니다.',
+            description:
+              'Tab/Shift+Tab이 모달 내부 요소 사이에서만 순환되어 외부로 탈출하지 않습니다.',
           },
           {
             attribute: 'Escape 키',
             effect: '키보드 닫힘',
-            description: 'Esc 키로 모달을 닫을 수 있습니다. closeOnEscape={false}로 비활성화 가능합니다.',
+            description:
+              'Esc 키로 모달을 닫을 수 있습니다. closeOnEscape={false}로 비활성화 가능합니다.',
           },
           {
             attribute: '포커스 복귀',
             effect: '이전 포커스 복원',
-            description: '모달이 닫히면 모달을 열었던 요소(버튼 등)로 포커스가 자동 복귀됩니다.',
+            description:
+              '모달이 닫히면 모달을 열었던 요소(버튼 등)로 포커스가 자동 복귀됩니다.',
           },
         ]}
         additionalGuidance={[
           {
             title: 'aria-labelledby 연결하기',
-            description: 'Modal.Title의 id를 Modal의 aria-labelledby에 연결하면 스크린 리더가 모달 열림 시 제목을 읽어줍니다.',
+            description:
+              'Modal.Title의 id를 Modal의 aria-labelledby에 연결하면 스크린 리더가 모달 열림 시 제목을 읽어줍니다.',
             examples: [
               {
                 code: `<Modal
@@ -641,7 +673,8 @@ export function ProductDetailModal({ open, onClose, product }) {
   </Modal.Header>
   <Modal.Content>...</Modal.Content>
 </Modal>`,
-                explanation: '모달 제목 요소에 id를 부여하고 aria-labelledby로 연결합니다.',
+                explanation:
+                  '모달 제목 요소에 id를 부여하고 aria-labelledby로 연결합니다.',
               },
             ],
           },
@@ -664,8 +697,12 @@ export function ProductDetailModal({ open, onClose, product }) {
                 <h3 className={styles.practiceTitle}>Do</h3>
               </div>
               <List spacing="sm" className={styles.practiceList}>
-                <ListItem>일반 모달은 Flat Pattern (title, footer props) 사용</ListItem>
-                <ListItem>커스텀 레이아웃이 필요할 때만 Compound Pattern 활용</ListItem>
+                <ListItem>
+                  일반 모달은 Flat Pattern (title, footer props) 사용
+                </ListItem>
+                <ListItem>
+                  커스텀 레이아웃이 필요할 때만 Compound Pattern 활용
+                </ListItem>
                 <ListItem>명확한 제목으로 목적을 즉시 파악 가능하게</ListItem>
                 <ListItem>취소/확인 버튼을 함께 제공</ListItem>
                 <ListItem>aria-labelledby로 제목 요소 연결</ListItem>

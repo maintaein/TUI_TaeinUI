@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react';
-import { Card } from '@taein-designsystem/core';
+import { Card } from '@taein-ui/core';
 
 // Compound API (Card) - 기본 컴포넌트
 
@@ -11,7 +11,7 @@ const meta = {
   },
   tags: ['autodocs'],
   args: {
-    children: " ",
+    children: ' ',
   },
   argTypes: {
     variant: {
@@ -465,7 +465,8 @@ export const ProfileCard: Story = {
       <Card.Body>
         <div style={{ textAlign: 'center' }}>
           <p style={{ margin: '0 0 16px', color: '#666' }}>
-            웹 개발을 사랑하는 개발자입니다. React와 TypeScript를 주로 사용합니다.
+            웹 개발을 사랑하는 개발자입니다. React와 TypeScript를 주로
+            사용합니다.
           </p>
           <div
             style={{
@@ -531,8 +532,12 @@ export const FlatAPIBasic: Story = {
     <Card
       header={<h3 style={{ margin: 0 }}>Flat API</h3>}
       footer={
-        <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
-          <button style={{ padding: '8px 16px', cursor: 'pointer' }}>취소</button>
+        <div
+          style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}
+        >
+          <button style={{ padding: '8px 16px', cursor: 'pointer' }}>
+            취소
+          </button>
           <button
             style={{
               padding: '8px 16px',

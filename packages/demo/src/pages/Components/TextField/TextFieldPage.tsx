@@ -1,8 +1,4 @@
-import {
-  Card,
-  List,
-  ListItem,
-} from '@taein-designsystem/core';
+import { Card, List, ListItem } from '@taein-ui/core';
 import { LivePreview } from '../../../components/LivePreview';
 import { CodeBlock } from '../../../components/CodeBlock';
 import { PropsTable } from '../../../components/PropsTable';
@@ -11,7 +7,6 @@ import { AccessibilitySection } from '../../../components/AccessibilitySection';
 import * as styles from './TextFieldPage.css';
 
 export function TextFieldPage() {
-
   const propsData: PropDefinition[] = [
     {
       name: 'label',
@@ -81,7 +76,8 @@ export function TextFieldPage() {
       <header className={styles.header}>
         <h1 className={styles.title}>TextField</h1>
         <p className={styles.description}>
-          TextField 컴포넌트는 이름, 이메일, 비밀번호, 검색어 등 한 줄 텍스트를 입력받을 때 사용합니다.
+          TextField 컴포넌트는 이름, 이메일, 비밀번호, 검색어 등 한 줄 텍스트를
+          입력받을 때 사용합니다.
         </p>
       </header>
 
@@ -92,7 +88,7 @@ export function TextFieldPage() {
             <h3 className={styles.quickRefTitle}>Import</h3>
             <CodeBlock
               language="typescript"
-              code={`import { TextField } from '@taein-designsystem/core';`}
+              code={`import { TextField } from '@taein-ui/core';`}
             />
           </Card.Body>
         </Card>
@@ -314,33 +310,39 @@ const [password, setPassword] = useState('');
           {
             attribute: 'label',
             effect: '스크린 리더에서 입력 필드의 용도를 읽어줍니다.',
-            description: '레이블이 input과 자동으로 연결되어 사용자가 무엇을 입력해야 하는지 명확히 알 수 있습니다.',
+            description:
+              '레이블이 input과 자동으로 연결되어 사용자가 무엇을 입력해야 하는지 명확히 알 수 있습니다.',
           },
           {
             attribute: 'required',
             effect: '필수 입력 항목임을 스크린 리더에 알려줍니다.',
-            description: 'aria-required="true"가 설정되어 필수 입력 필드라는 정보를 제공합니다.',
+            description:
+              'aria-required="true"가 설정되어 필수 입력 필드라는 정보를 제공합니다.',
           },
           {
             attribute: 'error + errorMessage',
             effect: '에러 메시지를 스크린 리더가 읽어줍니다.',
-            description: 'aria-describedby로 에러 메시지가 연결되어 사용자가 무엇이 잘못되었는지 알 수 있습니다.',
+            description:
+              'aria-describedby로 에러 메시지가 연결되어 사용자가 무엇이 잘못되었는지 알 수 있습니다.',
           },
           {
             attribute: 'disabled',
             effect: '비활성화 상태를 스크린 리더에서 알려줍니다.',
-            description: 'aria-disabled="true"가 설정되어 입력할 수 없는 상태임을 전달합니다.',
+            description:
+              'aria-disabled="true"가 설정되어 입력할 수 없는 상태임을 전달합니다.',
           },
           {
             attribute: 'helperText',
             effect: '추가 설명을 스크린 리더가 읽어줍니다.',
-            description: 'aria-describedby로 도움말이 연결되어 입력에 대한 가이드를 제공합니다.',
+            description:
+              'aria-describedby로 도움말이 연결되어 입력에 대한 가이드를 제공합니다.',
           },
         ]}
         additionalGuidance={[
           {
             title: '명확한 레이블 제공하기',
-            description: 'placeholder만으로는 접근성이 충분하지 않습니다. 반드시 label prop을 사용해 명확한 레이블을 제공해주세요.',
+            description:
+              'placeholder만으로는 접근성이 충분하지 않습니다. 반드시 label prop을 사용해 명확한 레이블을 제공해주세요.',
             examples: [
               {
                 code: `// Good ✓
@@ -353,13 +355,15 @@ const [password, setPassword] = useState('');
 <TextField
   placeholder="이메일 주소를 입력하세요"
 />`,
-                explanation: 'placeholder는 입력 시 사라지기 때문에 레이블 역할을 할 수 없습니다.',
+                explanation:
+                  'placeholder는 입력 시 사라지기 때문에 레이블 역할을 할 수 없습니다.',
               },
             ],
           },
           {
             title: '에러 메시지는 구체적으로',
-            description: '에러가 발생했을 때는 무엇이 잘못되었는지 명확하게 알려주세요.',
+            description:
+              '에러가 발생했을 때는 무엇이 잘못되었는지 명확하게 알려주세요.',
             examples: [
               {
                 code: `// Good ✓
@@ -375,7 +379,8 @@ const [password, setPassword] = useState('');
   error
   errorMessage="잘못된 입력"
 />`,
-                explanation: '구체적인 에러 메시지가 사용자의 문제 해결을 도와줍니다.',
+                explanation:
+                  '구체적인 에러 메시지가 사용자의 문제 해결을 도와줍니다.',
               },
             ],
           },

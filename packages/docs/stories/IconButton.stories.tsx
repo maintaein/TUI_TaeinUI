@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react';
-import { IconButton } from '@taein-designsystem/core';
+import { IconButton } from '@taein-ui/core';
 
 // 아이콘 컴포넌트들
 const SearchIcon = () => (

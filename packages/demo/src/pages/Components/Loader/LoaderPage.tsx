@@ -1,8 +1,4 @@
-import {
-  Card,
-  List,
-  ListItem,
-} from '@taein-designsystem/core';
+import { Card, List, ListItem } from '@taein-ui/core';
 import { LivePreview } from '../../../components/LivePreview';
 import { CodeBlock } from '../../../components/CodeBlock';
 import { PropsTable } from '../../../components/PropsTable';
@@ -11,7 +7,6 @@ import { AccessibilitySection } from '../../../components/AccessibilitySection';
 import * as styles from './LoaderPage.css';
 
 export function LoaderPage() {
-
   const propsData: PropDefinition[] = [
     {
       name: 'type',
@@ -66,7 +61,8 @@ export function LoaderPage() {
       <header className={styles.header}>
         <h1 className={styles.title}>Loader</h1>
         <p className={styles.description}>
-          Loader 컴포넌트는 페이지 전체 또는 특정 영역이 로딩 중일 때 사용합니다. 오버레이, 라벨 등을 함께 표시할 수 있습니다.
+          Loader 컴포넌트는 페이지 전체 또는 특정 영역이 로딩 중일 때
+          사용합니다. 오버레이, 라벨 등을 함께 표시할 수 있습니다.
         </p>
       </header>
 
@@ -75,7 +71,8 @@ export function LoaderPage() {
         <div className={styles.sectionHeader}>
           <h2 className={styles.sectionTitle}>Loader vs LoadingSpinner</h2>
           <p className={styles.sectionDescription}>
-            TDS는 로딩 인디케이터를 두 계층으로 나누어 제공합니다. 목적에 맞는 컴포넌트를 선택하세요.
+            TUI는 로딩 인디케이터를 두 계층으로 나누어 제공합니다. 목적에 맞는
+            컴포넌트를 선택하세요.
           </p>
         </div>
 
@@ -83,12 +80,18 @@ export function LoaderPage() {
           <Card>
             <Card.Body padding="lg">
               <div className={styles.practiceHeader}>
-                <h3 className={styles.practiceTitle}>LoadingSpinner (저수준)</h3>
+                <h3 className={styles.practiceTitle}>
+                  LoadingSpinner (저수준)
+                </h3>
               </div>
               <List spacing="sm" className={styles.practiceList}>
                 <ListItem>순수한 스피너/점 애니메이션만 렌더링</ListItem>
-                <ListItem>CSS 색상 문자열로 색상 직접 지정 (예: "#8b5cf6")</ListItem>
-                <ListItem>inline-flex — 텍스트, 버튼 옆에 자연스럽게 배치</ListItem>
+                <ListItem>
+                  CSS 색상 문자열로 색상 직접 지정 (예: "#8b5cf6")
+                </ListItem>
+                <ListItem>
+                  inline-flex — 텍스트, 버튼 옆에 자연스럽게 배치
+                </ListItem>
                 <ListItem>라벨, 오버레이, 전체 화면 기능 없음</ListItem>
                 <ListItem>커스텀 로딩 UI를 직접 조합할 때 사용</ListItem>
               </List>
@@ -98,12 +101,18 @@ export function LoaderPage() {
           <Card>
             <Card.Body padding="lg">
               <div className={styles.practiceHeader}>
-                <h3 className={styles.practiceTitle}>Loader (고수준) ← 현재 페이지</h3>
+                <h3 className={styles.practiceTitle}>
+                  Loader (고수준) ← 현재 페이지
+                </h3>
               </div>
               <List spacing="sm" className={styles.practiceList}>
                 <ListItem>내부에서 LoadingSpinner를 사용하여 구현</ListItem>
-                <ListItem>디자인 토큰 기반 색상 프리셋 (primary / secondary / white)</ListItem>
-                <ListItem>label, overlay, fullScreen 등 앱 수준 기능 내장</ListItem>
+                <ListItem>
+                  디자인 토큰 기반 색상 프리셋 (primary / secondary / white)
+                </ListItem>
+                <ListItem>
+                  label, overlay, fullScreen 등 앱 수준 기능 내장
+                </ListItem>
                 <ListItem>bar 타입 (프로그레스 바) 추가 지원</ListItem>
                 <ListItem>빠르게 로딩 UI를 완성하고 싶을 때 사용</ListItem>
               </List>
@@ -139,7 +148,7 @@ export function LoaderPage() {
             <h3 className={styles.quickRefTitle}>Import</h3>
             <CodeBlock
               language="typescript"
-              code={`import { Loader } from '@taein-designsystem/core';`}
+              code={`import { Loader } from '@taein-ui/core';`}
             />
           </Card.Body>
         </Card>
@@ -399,7 +408,8 @@ const handleLoad = () => {
         <div className={styles.sectionHeader}>
           <h2 className={styles.sectionTitle}>Props API</h2>
           <p className={styles.sectionDescription}>
-            Loader 컴포넌트의 모든 Props와 타입 정보입니다. HTML div 속성도 모두 사용 가능합니다.
+            Loader 컴포넌트의 모든 Props와 타입 정보입니다. HTML div 속성도 모두
+            사용 가능합니다.
           </p>
         </div>
         <div className={styles.propsTableWrapper}>
@@ -415,22 +425,26 @@ const handleLoad = () => {
           {
             attribute: 'role="status"',
             effect: '로더가 상태 정보임을 전달합니다.',
-            description: 'role="status"로 설정되어 스크린 리더가 로딩 상태임을 인식합니다.',
+            description:
+              'role="status"로 설정되어 스크린 리더가 로딩 상태임을 인식합니다.',
           },
           {
             attribute: 'aria-busy="true"',
             effect: '작업이 진행 중임을 알립니다.',
-            description: 'bar 타입에서 aria-busy="true"가 설정되어 콘텐츠가 아직 로딩 중임을 전달합니다.',
+            description:
+              'bar 타입에서 aria-busy="true"가 설정되어 콘텐츠가 아직 로딩 중임을 전달합니다.',
           },
           {
             attribute: 'aria-live="polite"',
             effect: '상태 변화를 자동으로 읽습니다.',
-            description: 'bar 타입에서 aria-live="polite"로 설정되어 로딩 완료 시 스크린 리더가 알립니다.',
+            description:
+              'bar 타입에서 aria-live="polite"로 설정되어 로딩 완료 시 스크린 리더가 알립니다.',
           },
           {
             attribute: 'aria-label',
             effect: '로더의 용도를 설명합니다.',
-            description: 'label prop 또는 aria-label로 "로딩 중" 등 기본 레이블이 제공됩니다.',
+            description:
+              'label prop 또는 aria-label로 "로딩 중" 등 기본 레이블이 제공됩니다.',
           },
         ]}
         additionalGuidance={[
@@ -444,7 +458,8 @@ const handleLoad = () => {
 
 // Bad - 맥락 부족
 <Loader />`,
-                explanation: 'label이나 aria-label로 구체적인 맥락을 전달하면 스크린 리더 사용자의 이해도가 높아집니다.',
+                explanation:
+                  'label이나 aria-label로 구체적인 맥락을 전달하면 스크린 리더 사용자의 이해도가 높아집니다.',
               },
             ],
           },
@@ -470,7 +485,9 @@ const handleLoad = () => {
               <List spacing="sm" className={styles.practiceList}>
                 <ListItem>200ms 이상 걸리는 작업에만 로더 표시</ListItem>
                 <ListItem>무엇을 로딩하는지 label로 안내</ListItem>
-                <ListItem>부분 로딩에는 overlay, 전체 로딩에는 fullScreen 사용</ListItem>
+                <ListItem>
+                  부분 로딩에는 overlay, 전체 로딩에는 fullScreen 사용
+                </ListItem>
                 <ListItem>인라인 로더는 sm 크기 사용</ListItem>
                 <ListItem>어두운 배경에서는 white 색상 사용</ListItem>
               </List>
@@ -485,8 +502,12 @@ const handleLoad = () => {
               </div>
               <List spacing="sm" className={styles.practiceList}>
                 <ListItem>즉시 완료되는 작업에 로더 표시하지 않기</ListItem>
-                <ListItem>한 화면에 여러 개의 fullScreen 로더 사용하지 않기</ListItem>
-                <ListItem>로딩 중 사용자 인터랙션을 막지 않는 곳에 overlay 남용하지 않기</ListItem>
+                <ListItem>
+                  한 화면에 여러 개의 fullScreen 로더 사용하지 않기
+                </ListItem>
+                <ListItem>
+                  로딩 중 사용자 인터랙션을 막지 않는 곳에 overlay 남용하지 않기
+                </ListItem>
                 <ListItem>라벨 없이 장시간 로딩 상태를 유지하지 않기</ListItem>
                 <ListItem>로딩 완료 후 로더를 방치하지 않기</ListItem>
               </List>

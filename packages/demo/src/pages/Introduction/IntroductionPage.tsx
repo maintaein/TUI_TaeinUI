@@ -8,7 +8,7 @@ import {
   Badge,
   Switch,
   Chip,
-} from '@taein-designsystem/core';
+} from '@taein-ui/core';
 import {
   Component,
   CheckCircle2,
@@ -31,9 +31,9 @@ export function IntroductionPage() {
         <div className={styles.heroContent}>
           <h1 className={styles.heroTitle}>
             <Text variant="h1" as="span" className={styles.heroTitleMain}>
-              TDS
+              TUI
             </Text>
-            <span className={styles.heroTitleSub}>Taein Design System</span>
+            <span className={styles.heroTitleSub}>TaeinUI</span>
           </h1>
           <p className={styles.heroDescription}>
             일관된 UI와 효율적인 개발을 위해 만든 React 기반 디자인
@@ -64,15 +64,15 @@ export function IntroductionPage() {
       <div className={styles.heroImageWrapper}>
         <img
           src="/images/TDS.png"
-          alt="TDS Taein Design System"
+          alt="TUI TaeinUI"
           className={styles.heroImage}
         />
       </div> */}
 
-      {/* TDS goal */}
+      {/* TUI goal */}
       <section className={styles.section}>
         <Text variant="h2" className={styles.sectionTitle}>
-          TDS의 목표
+          TUI의 목표
         </Text>
         <div className={styles.goalList}>
           {/* 일관성과 효율 */}
@@ -212,12 +212,12 @@ export function IntroductionPage() {
           빠른 미리보기
         </Text>
         <p className={styles.sectionDescription}>
-          TDS 컴포넌트를 직접 체험해보세요. 다양한 컴포넌트를 조합하여 UI를
+          TUI 컴포넌트를 직접 체험해보세요. 다양한 컴포넌트를 조합하여 UI를
           구성할 수 있습니다.
         </p>
         <div className={styles.preview}>
           <LivePreview
-            code={`import { Button, TextField, Card, Badge, Switch, Chip } from '@taein-designsystem/core';
+            code={`import { Button, TextField, Card, Badge, Switch, Chip } from '@taein-ui/core';
 
 function Example() {
   const [email, setEmail] = useState('');
@@ -307,7 +307,7 @@ function Example() {
               </div>
               <h3 className={styles.nextStepTitle}>시작하기</h3>
               <p className={styles.nextStepDescription}>
-                TDS를 프로젝트에 설치하고 사용하는 방법을 알아보세요.
+                TUI를 프로젝트에 설치하고 사용하는 방법을 알아보세요.
               </p>
               <div className={styles.nextStepArrow}>&rarr;</div>
             </Card.Body>

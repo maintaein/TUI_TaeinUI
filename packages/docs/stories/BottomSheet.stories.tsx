@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react';
-import { BottomSheet, BottomSheetProps } from '@taein-designsystem/core';
+import { BottomSheet, BottomSheetProps } from '@taein-ui/core';
 import { useState } from 'react';
 
 const meta = {
@@ -457,7 +457,9 @@ export const CompoundBasic: Story = {
               <BottomSheet.Title>Compound API 예제</BottomSheet.Title>
             </BottomSheet.Header>
             <BottomSheet.Content>
-              <p>Header, Title, Content를 서브 컴포넌트로 구조화할 수 있습니다.</p>
+              <p>
+                Header, Title, Content를 서브 컴포넌트로 구조화할 수 있습니다.
+              </p>
               <p>더 유연한 레이아웃과 커스터마이징이 가능합니다.</p>
             </BottomSheet.Content>
           </BottomSheet>
@@ -490,7 +492,9 @@ export const CompoundCustomHeader: Story = {
           </button>
           <BottomSheet open={open} onClose={() => setOpen(false)} showHandle>
             <BottomSheet.Header showClose>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <div
+                style={{ display: 'flex', alignItems: 'center', gap: '12px' }}
+              >
                 <BottomSheet.Title>알림 설정</BottomSheet.Title>
                 <span
                   style={{
@@ -562,7 +566,27 @@ export const CompoundFilter: Story = {
             <BottomSheet.Content>
               <div>
                 <h4 style={{ margin: '0 0 16px 0' }}>가격대</h4>
-                {['10,000원 이하', '10,000 - 30,000원', '30,000 - 50,000원', '50,000원 이상'].map(
+                {[
+                  '10,000원 이하',
+                  '10,000 - 30,000원',
+                  '30,000 - 50,000원',
+                  '50,000원 이상',
+                ].map((item, index) => (
+                  <div
+                    key={index}
+                    style={{
+                      padding: '12px 0',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                    }}
+                  >
+                    <input type="checkbox" id={`price-${index}`} />
+                    <label htmlFor={`price-${index}`}>{item}</label>
+                  </div>
+                ))}
+                <h4 style={{ margin: '24px 0 16px 0' }}>브랜드</h4>
+                {['브랜드 A', '브랜드 B', '브랜드 C', '브랜드 D'].map(
                   (item, index) => (
                     <div
                       key={index}
@@ -573,26 +597,11 @@ export const CompoundFilter: Story = {
                         gap: '8px',
                       }}
                     >
-                      <input type="checkbox" id={`price-${index}`} />
-                      <label htmlFor={`price-${index}`}>{item}</label>
+                      <input type="checkbox" id={`brand-${index}`} />
+                      <label htmlFor={`brand-${index}`}>{item}</label>
                     </div>
                   )
                 )}
-                <h4 style={{ margin: '24px 0 16px 0' }}>브랜드</h4>
-                {['브랜드 A', '브랜드 B', '브랜드 C', '브랜드 D'].map((item, index) => (
-                  <div
-                    key={index}
-                    style={{
-                      padding: '12px 0',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '8px',
-                    }}
-                  >
-                    <input type="checkbox" id={`brand-${index}`} />
-                    <label htmlFor={`brand-${index}`}>{item}</label>
-                  </div>
-                ))}
                 <div style={{ marginTop: '24px', display: 'flex', gap: '8px' }}>
                   <button
                     style={{

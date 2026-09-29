@@ -1,8 +1,4 @@
-import {
-  Card,
-  List,
-  ListItem,
-} from '@taein-designsystem/core';
+import { Card, List, ListItem } from '@taein-ui/core';
 import { LivePreview } from '../../../components/LivePreview';
 import { CodeBlock } from '../../../components/CodeBlock';
 import { PropsTable } from '../../../components/PropsTable';
@@ -11,7 +7,6 @@ import { AccessibilitySection } from '../../../components/AccessibilitySection';
 import * as styles from './SliderPage.css';
 
 export function SliderPage() {
-
   const propsData: PropDefinition[] = [
     {
       name: 'label',
@@ -105,7 +100,8 @@ export function SliderPage() {
       <header className={styles.header}>
         <h1 className={styles.title}>Slider</h1>
         <p className={styles.description}>
-          Slider 컴포넌트는 볼륨, 밝기, 가격 범위 등 연속적인 값을 드래그로 조절할 때 사용합니다.
+          Slider 컴포넌트는 볼륨, 밝기, 가격 범위 등 연속적인 값을 드래그로
+          조절할 때 사용합니다.
         </p>
       </header>
 
@@ -116,7 +112,7 @@ export function SliderPage() {
             <h3 className={styles.quickRefTitle}>Import</h3>
             <CodeBlock
               language="typescript"
-              code={`import { Slider } from '@taein-designsystem/core';`}
+              code={`import { Slider } from '@taein-ui/core';`}
             />
           </Card.Body>
         </Card>
@@ -433,38 +429,45 @@ const [b, setB] = useState(50);
           {
             attribute: 'role="slider"',
             effect: '스크린 리더에서 "슬라이더"로 인식합니다.',
-            description: 'HTML input[type="range"]가 사용되어 자동으로 role="slider"가 적용됩니다.',
+            description:
+              'HTML input[type="range"]가 사용되어 자동으로 role="slider"가 적용됩니다.',
           },
           {
             attribute: 'aria-label',
             effect: '슬라이더의 목적을 스크린 리더가 읽어줍니다.',
-            description: 'label prop이 aria-label로 설정되어 슬라이더가 무엇을 조절하는지 명확히 전달합니다.',
+            description:
+              'label prop이 aria-label로 설정되어 슬라이더가 무엇을 조절하는지 명확히 전달합니다.',
           },
           {
             attribute: 'aria-valuemin / aria-valuemax',
             effect: '슬라이더의 최소/최대 범위를 알려줍니다.',
-            description: 'min, max 값이 각각 aria-valuemin, aria-valuemax로 설정됩니다.',
+            description:
+              'min, max 값이 각각 aria-valuemin, aria-valuemax로 설정됩니다.',
           },
           {
             attribute: 'aria-valuenow',
             effect: '현재 값을 실시간으로 알려줍니다.',
-            description: '슬라이더 값이 변경될 때마다 aria-valuenow가 업데이트되어 현재 값을 전달합니다.',
+            description:
+              '슬라이더 값이 변경될 때마다 aria-valuenow가 업데이트되어 현재 값을 전달합니다.',
           },
           {
             attribute: 'keyboard navigation',
             effect: '키보드로 값을 조절할 수 있습니다.',
-            description: 'ArrowLeft/Right로 step 단위 감소/증가, Home/End로 최소/최대값으로 이동할 수 있습니다.',
+            description:
+              'ArrowLeft/Right로 step 단위 감소/증가, Home/End로 최소/최대값으로 이동할 수 있습니다.',
           },
           {
             attribute: 'aria-describedby',
             effect: '도움말 텍스트를 스크린 리더가 읽어줍니다.',
-            description: 'helperText가 있을 경우 aria-describedby로 연결되어 추가 정보를 제공합니다.',
+            description:
+              'helperText가 있을 경우 aria-describedby로 연결되어 추가 정보를 제공합니다.',
           },
         ]}
         additionalGuidance={[
           {
             title: '명확한 label 제공',
-            description: 'label은 필수 prop으로, 슬라이더가 무엇을 조절하는지 명확히 나타내야 합니다.',
+            description:
+              'label은 필수 prop으로, 슬라이더가 무엇을 조절하는지 명확히 나타내야 합니다.',
             examples: [
               {
                 code: `// Good
@@ -474,13 +477,15 @@ const [b, setB] = useState(50);
 // Bad
 <Slider label="값" />
 <Slider label="슬라이더" />`,
-                explanation: '구체적인 레이블로 사용자가 무엇을 조절하는지 즉시 이해할 수 있어야 합니다.',
+                explanation:
+                  '구체적인 레이블로 사용자가 무엇을 조절하는지 즉시 이해할 수 있어야 합니다.',
               },
             ],
           },
           {
             title: 'step 설정 시 helperText 활용',
-            description: '비표준 step을 사용할 때는 helperText로 증감 단위를 안내해주세요.',
+            description:
+              '비표준 step을 사용할 때는 helperText로 증감 단위를 안내해주세요.',
             examples: [
               {
                 code: `<Slider
@@ -491,7 +496,8 @@ const [b, setB] = useState(50);
   helperText="50만원 단위로 조절됩니다"
   showValue
 />`,
-                explanation: 'step이 1이 아닐 경우, 사용자에게 증감 단위를 알려주면 혼란을 줄일 수 있습니다.',
+                explanation:
+                  'step이 1이 아닐 경우, 사용자에게 증감 단위를 알려주면 혼란을 줄일 수 있습니다.',
               },
             ],
           },
@@ -515,7 +521,9 @@ const [b, setB] = useState(50);
                 <h3 className={styles.practiceTitle}>Do</h3>
               </div>
               <List spacing="sm" className={styles.practiceList}>
-                <ListItem>연속적인 값 범위에 사용 (볼륨, 밝기, 크기 등)</ListItem>
+                <ListItem>
+                  연속적인 값 범위에 사용 (볼륨, 밝기, 크기 등)
+                </ListItem>
                 <ListItem>showValue로 현재 값을 시각적으로 제공</ListItem>
                 <ListItem>적절한 step 값으로 의미 있는 간격 설정</ListItem>
                 <ListItem>marks로 주요 기준점 표시</ListItem>
@@ -531,11 +539,20 @@ const [b, setB] = useState(50);
                 <h3 className={styles.practiceTitle}>Don't</h3>
               </div>
               <List spacing="sm" className={styles.practiceList}>
-                <ListItem>정확한 숫자 입력이 필요할 때 사용하지 않기 (NumericSpinner 권장)</ListItem>
-                <ListItem>2~3개의 이산적 옵션에 사용하지 않기 (SegmentedButtons 권장)</ListItem>
-                <ListItem>범위가 너무 넓고 step이 1인 경우 주의 (1~10000 등)</ListItem>
+                <ListItem>
+                  정확한 숫자 입력이 필요할 때 사용하지 않기 (NumericSpinner
+                  권장)
+                </ListItem>
+                <ListItem>
+                  2~3개의 이산적 옵션에 사용하지 않기 (SegmentedButtons 권장)
+                </ListItem>
+                <ListItem>
+                  범위가 너무 넓고 step이 1인 경우 주의 (1~10000 등)
+                </ListItem>
                 <ListItem>레이블 없이 사용하지 않기 (접근성 필수)</ListItem>
-                <ListItem>불분명한 레이블 사용하지 않기 ("값", "레벨" 등)</ListItem>
+                <ListItem>
+                  불분명한 레이블 사용하지 않기 ("값", "레벨" 등)
+                </ListItem>
               </List>
             </Card.Body>
           </Card>

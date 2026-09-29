@@ -1,8 +1,4 @@
-import {
-  Card,
-  List,
-  ListItem,
-} from '@taein-designsystem/core';
+import { Card, List, ListItem } from '@taein-ui/core';
 import { LivePreview } from '../../../components/LivePreview';
 import { CodeBlock } from '../../../components/CodeBlock';
 import { PropsTable } from '../../../components/PropsTable';
@@ -106,7 +102,8 @@ export function SideSheetPage() {
       <header className={styles.header}>
         <h1 className={styles.title}>SideSheet</h1>
         <p className={styles.description}>
-          SideSheet 컴포넌트는 상세 정보, 설정 패널, 편집 폼 등을 화면 옆에서 슬라이드로 열 때 사용합니다.
+          SideSheet 컴포넌트는 상세 정보, 설정 패널, 편집 폼 등을 화면 옆에서
+          슬라이드로 열 때 사용합니다.
         </p>
       </header>
 
@@ -119,7 +116,7 @@ export function SideSheetPage() {
               language="typescript"
               code={`import {
   SideSheet,
-} from '@taein-designsystem/core';`}
+} from '@taein-ui/core';`}
             />
           </Card.Body>
         </Card>
@@ -316,8 +313,8 @@ const menuItems = ['대시보드', '프로젝트', '팀 멤버', '설정', '도�
           <div className={styles.patternCard}>
             <p className={styles.patternCardTitle}>Flat Pattern (기본 권장)</p>
             <p className={styles.patternCardDesc}>
-              SideSheet 컴포넌트에 title, showClose 등의 props를 전달하는 방식입니다.
-              대부분의 사용 케이스에 적합합니다.
+              SideSheet 컴포넌트에 title, showClose 등의 props를 전달하는
+              방식입니다. 대부분의 사용 케이스에 적합합니다.
             </p>
             <p className={styles.patternCardWhen}>사용할 때</p>
             <ul className={styles.patternCardList}>
@@ -327,10 +324,12 @@ const menuItems = ['대시보드', '프로젝트', '팀 멤버', '설정', '도�
             </ul>
           </div>
           <div className={styles.patternCard}>
-            <p className={styles.patternCardTitle}>Compound Pattern (커스텀용)</p>
+            <p className={styles.patternCardTitle}>
+              Compound Pattern (커스텀용)
+            </p>
             <p className={styles.patternCardDesc}>
-              SideSheet.Header, SideSheet.Content 등 점 표기법으로
-              헤더/콘텐츠 영역을 자유롭게 커스텀합니다.
+              SideSheet.Header, SideSheet.Content 등 점 표기법으로 헤더/콘텐츠
+              영역을 자유롭게 커스텀합니다.
             </p>
             <p className={styles.patternCardWhen}>사용할 때</p>
             <ul className={styles.patternCardList}>
@@ -354,41 +353,62 @@ const menuItems = ['대시보드', '프로젝트', '팀 멤버', '설정', '도�
               <tr className={styles.patternCompareTr}>
                 <td className={styles.patternCompareTdLabel}>Import</td>
                 <td className={styles.patternCompareTd}>SideSheet 하나</td>
-                <td className={styles.patternCompareTd}>SideSheet.Header, SideSheet.Content 등 점 표기법</td>
+                <td className={styles.patternCompareTd}>
+                  SideSheet.Header, SideSheet.Content 등 점 표기법
+                </td>
               </tr>
               <tr className={styles.patternCompareTr}>
                 <td className={styles.patternCompareTdLabel}>헤더 구성</td>
-                <td className={styles.patternCompareTd}>title, showClose props로 자동 생성</td>
-                <td className={styles.patternCompareTd}>SideSheetHeader 안에 자유 배치</td>
+                <td className={styles.patternCompareTd}>
+                  title, showClose props로 자동 생성
+                </td>
+                <td className={styles.patternCompareTd}>
+                  SideSheetHeader 안에 자유 배치
+                </td>
               </tr>
               <tr className={styles.patternCompareTr}>
                 <td className={styles.patternCompareTdLabel}>커스텀 자유도</td>
                 <td className={styles.patternCompareTd}>props 범위 내 제어</td>
-                <td className={styles.patternCompareTd}>서브컴포넌트별 className, 커스텀 요소 자유 배치</td>
+                <td className={styles.patternCompareTd}>
+                  서브컴포넌트별 className, 커스텀 요소 자유 배치
+                </td>
               </tr>
               <tr className={styles.patternCompareTr}>
                 <td className={styles.patternCompareTdLabel}>주 용도</td>
-                <td className={styles.patternCompareTd}>일반 페이지 · 표준 레이아웃</td>
-                <td className={styles.patternCompareTd}>도메인 전용 래퍼 · 커스텀 헤더</td>
+                <td className={styles.patternCompareTd}>
+                  일반 페이지 · 표준 레이아웃
+                </td>
+                <td className={styles.patternCompareTd}>
+                  도메인 전용 래퍼 · 커스텀 헤더
+                </td>
               </tr>
               <tr className={styles.patternCompareTr}>
                 <td className={styles.patternCompareTdLabel}>권장 여부</td>
-                <td className={styles.patternCompareTd}>✅ 대부분의 경우 권장</td>
-                <td className={styles.patternCompareTd}>커스텀 래퍼 제작 시 선택</td>
+                <td className={styles.patternCompareTd}>
+                  ✅ 대부분의 경우 권장
+                </td>
+                <td className={styles.patternCompareTd}>
+                  커스텀 래퍼 제작 시 선택
+                </td>
               </tr>
             </tbody>
           </table>
         </div>
 
         <div className={styles.example} style={{ marginTop: '2rem' }}>
-          <h3 className={styles.exampleTitle}>Compound 실전 예시 — 도메인 전용 사이드시트</h3>
-          <p className={styles.sectionDescription} style={{ marginBottom: '1rem' }}>
+          <h3 className={styles.exampleTitle}>
+            Compound 실전 예시 — 도메인 전용 사이드시트
+          </h3>
+          <p
+            className={styles.sectionDescription}
+            style={{ marginBottom: '1rem' }}
+          >
             Compound Pattern으로 도메인 전용 컴포넌트를 만들 때 활용합니다.
           </p>
           <CodeBlock
             language="tsx"
             code={`// components/NotificationPanel.tsx
-import { SideSheet } from '@taein-designsystem/core';
+import { SideSheet } from '@taein-ui/core';
 
 interface NotificationPanelProps {
   open: boolean;
@@ -424,13 +444,19 @@ export function NotificationPanel({ open, onClose, notifications }: Notification
         </div>
 
         <div className={styles.example}>
-          <h3 className={styles.exampleTitle}>Compound 커스텀 확장 — 점 표기법</h3>
-          <p className={styles.sectionDescription} style={{ marginBottom: '1rem' }}>
-            SideSheet.Header 점 표기법으로 검색바 등 커스텀 헤더를 구성할 수 있습니다.
+          <h3 className={styles.exampleTitle}>
+            Compound 커스텀 확장 — 점 표기법
+          </h3>
+          <p
+            className={styles.sectionDescription}
+            style={{ marginBottom: '1rem' }}
+          >
+            SideSheet.Header 점 표기법으로 검색바 등 커스텀 헤더를 구성할 수
+            있습니다.
           </p>
           <CodeBlock
             language="tsx"
-            code={`import { SideSheet } from '@taein-designsystem/core';
+            code={`import { SideSheet } from '@taein-ui/core';
 import * as styles from './SearchPanel.css';
 
 export function SearchPanel({ open, onClose }) {
@@ -472,21 +498,27 @@ export function SearchPanel({ open, onClose }) {
         </div>
 
         <div className={styles.example}>
-          <h3 className={styles.exampleTitle}>SideSheetHeader / SideSheet.Header</h3>
+          <h3 className={styles.exampleTitle}>
+            SideSheetHeader / SideSheet.Header
+          </h3>
           <div className={styles.propsTableWrapper}>
             <PropsTable props={headerProps} />
           </div>
         </div>
 
         <div className={styles.example}>
-          <h3 className={styles.exampleTitle}>SideSheetTitle / SideSheet.Title</h3>
+          <h3 className={styles.exampleTitle}>
+            SideSheetTitle / SideSheet.Title
+          </h3>
           <div className={styles.propsTableWrapper}>
             <PropsTable props={titleProps} />
           </div>
         </div>
 
         <div className={styles.example}>
-          <h3 className={styles.exampleTitle}>SideSheetContent / SideSheet.Content</h3>
+          <h3 className={styles.exampleTitle}>
+            SideSheetContent / SideSheet.Content
+          </h3>
           <div className={styles.propsTableWrapper}>
             <PropsTable props={contentProps} />
           </div>
@@ -506,27 +538,32 @@ export function SearchPanel({ open, onClose }) {
           {
             attribute: 'aria-modal="true"',
             effect: '외부 콘텐츠 비활성화',
-            description: '스크린 리더가 사이드시트 뒤의 콘텐츠를 읽지 않도록 합니다.',
+            description:
+              '스크린 리더가 사이드시트 뒤의 콘텐츠를 읽지 않도록 합니다.',
           },
           {
             attribute: 'aria-labelledby',
             effect: '사이드시트 제목 연결',
-            description: 'title prop이 있으면 자동으로 제목 요소의 id가 연결됩니다.',
+            description:
+              'title prop이 있으면 자동으로 제목 요소의 id가 연결됩니다.',
           },
           {
             attribute: '포커스 트랩 (Tab)',
             effect: '내부 포커스 순환',
-            description: 'Tab/Shift+Tab이 사이드시트 내부 요소 사이에서만 순환되어 외부로 탈출하지 않습니다.',
+            description:
+              'Tab/Shift+Tab이 사이드시트 내부 요소 사이에서만 순환되어 외부로 탈출하지 않습니다.',
           },
           {
             attribute: 'Escape 키',
             effect: '키보드 닫힘',
-            description: 'Esc 키로 사이드시트를 닫을 수 있습니다. closeOnEscape={false}로 비활성화 가능합니다.',
+            description:
+              'Esc 키로 사이드시트를 닫을 수 있습니다. closeOnEscape={false}로 비활성화 가능합니다.',
           },
           {
             attribute: '포커스 복귀',
             effect: '이전 포커스 복원',
-            description: '사이드시트가 닫히면 사이드시트를 열었던 요소로 포커스가 자동 복귀됩니다.',
+            description:
+              '사이드시트가 닫히면 사이드시트를 열었던 요소로 포커스가 자동 복귀됩니다.',
           },
         ]}
       />
@@ -547,10 +584,17 @@ export function SearchPanel({ open, onClose }) {
                 <h3 className={styles.practiceTitle}>Do</h3>
               </div>
               <List spacing="sm" className={styles.practiceList}>
-                <ListItem>일반 케이스는 Flat Pattern (SideSheet + title/showClose props) 사용</ListItem>
-                <ListItem>네비게이션은 position="left", 상세 정보는 position="right"</ListItem>
+                <ListItem>
+                  일반 케이스는 Flat Pattern (SideSheet + title/showClose props)
+                  사용
+                </ListItem>
+                <ListItem>
+                  네비게이션은 position="left", 상세 정보는 position="right"
+                </ListItem>
                 <ListItem>명확한 제목으로 사이드시트의 목적을 전달</ListItem>
-                <ListItem>폼 입력 시 closeOnBackdropClick={'{false}'} 설정</ListItem>
+                <ListItem>
+                  폼 입력 시 closeOnBackdropClick={'{false}'} 설정
+                </ListItem>
                 <ListItem>콘텐츠 양에 맞는 width 선택 (sm/md/lg)</ListItem>
               </List>
             </Card.Body>
@@ -562,11 +606,17 @@ export function SearchPanel({ open, onClose }) {
                 <h3 className={styles.practiceTitle}>Don't</h3>
               </div>
               <List spacing="sm" className={styles.practiceList}>
-                <ListItem>모바일 전용 화면에서 사이드시트 사용 (BottomSheet 권장)</ListItem>
+                <ListItem>
+                  모바일 전용 화면에서 사이드시트 사용 (BottomSheet 권장)
+                </ListItem>
                 <ListItem>사이드시트 안에 사이드시트 중첩</ListItem>
                 <ListItem>좁은 화면에서 width="lg" 또는 "full" 남용</ListItem>
-                <ListItem>Flat으로 충분한데 불필요하게 Compound 래퍼 추가</ListItem>
-                <ListItem>백드롭 비활성 + 닫기 버튼 없음 (닫을 수 없는 상태)</ListItem>
+                <ListItem>
+                  Flat으로 충분한데 불필요하게 Compound 래퍼 추가
+                </ListItem>
+                <ListItem>
+                  백드롭 비활성 + 닫기 버튼 없음 (닫을 수 없는 상태)
+                </ListItem>
               </List>
             </Card.Body>
           </Card>

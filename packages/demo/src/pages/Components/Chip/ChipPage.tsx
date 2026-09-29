@@ -1,8 +1,4 @@
-import {
-  Card,
-  List,
-  ListItem,
-} from '@taein-designsystem/core';
+import { Card, List, ListItem } from '@taein-ui/core';
 import { LivePreview } from '../../../components/LivePreview';
 import { CodeBlock } from '../../../components/CodeBlock';
 import { PropsTable } from '../../../components/PropsTable';
@@ -11,7 +7,6 @@ import { AccessibilitySection } from '../../../components/AccessibilitySection';
 import * as styles from './ChipPage.css';
 
 export function ChipPage() {
-
   const propsData: PropDefinition[] = [
     {
       name: 'label',
@@ -93,7 +88,8 @@ export function ChipPage() {
       <header className={styles.header}>
         <h1 className={styles.title}>Chip</h1>
         <p className={styles.description}>
-          Chip 컴포넌트는 태그, 필터, 카테고리 표시 등 짧은 정보를 라벨 형태로 나타낼 때 사용합니다. 선택, 삭제, 클릭 등의 인터랙션도 지원합니다.
+          Chip 컴포넌트는 태그, 필터, 카테고리 표시 등 짧은 정보를 라벨 형태로
+          나타낼 때 사용합니다. 선택, 삭제, 클릭 등의 인터랙션도 지원합니다.
         </p>
       </header>
 
@@ -104,7 +100,7 @@ export function ChipPage() {
             <h3 className={styles.quickRefTitle}>Import</h3>
             <CodeBlock
               language="typescript"
-              code={`import { Chip } from '@taein-designsystem/core';`}
+              code={`import { Chip } from '@taein-ui/core';`}
             />
           </Card.Body>
         </Card>
@@ -357,12 +353,14 @@ const toggle = (tag) => {
           {
             attribute: '<button> / <div>',
             effect: 'clickable 여부에 따라 적절한 요소로 렌더링됩니다.',
-            description: 'clickable + onClick이면 button으로, 아니면 div로 렌더링되어 역할이 올바르게 전달됩니다.',
+            description:
+              'clickable + onClick이면 button으로, 아니면 div로 렌더링되어 역할이 올바르게 전달됩니다.',
           },
           {
             attribute: 'aria-label',
             effect: '칩의 라벨을 스크린 리더에 전달합니다.',
-            description: 'clickable 칩에 aria-label이 label 값으로 자동 설정됩니다.',
+            description:
+              'clickable 칩에 aria-label이 label 값으로 자동 설정됩니다.',
           },
           {
             attribute: 'aria-disabled',
@@ -372,18 +370,21 @@ const toggle = (tag) => {
           {
             attribute: '삭제 버튼 aria-label',
             effect: '삭제 버튼에 "{label} 삭제" 레이블이 제공됩니다.',
-            description: 'onDelete가 있을 때 삭제 버튼에 접근 가능한 이름이 자동 설정됩니다.',
+            description:
+              'onDelete가 있을 때 삭제 버튼에 접근 가능한 이름이 자동 설정됩니다.',
           },
           {
             attribute: 'focus-visible',
             effect: '키보드 포커스 시 아웃라인이 표시됩니다.',
-            description: 'clickable 칩과 삭제 버튼에 포커스 인디케이터가 제공됩니다.',
+            description:
+              'clickable 칩과 삭제 버튼에 포커스 인디케이터가 제공됩니다.',
           },
         ]}
         additionalGuidance={[
           {
             title: 'Badge와의 구분',
-            description: 'Badge는 숫자나 상태를 다른 요소 위에 표시하는 용도이고, Chip은 독립적인 태그/필터/선택 요소입니다.',
+            description:
+              'Badge는 숫자나 상태를 다른 요소 위에 표시하는 용도이고, Chip은 독립적인 태그/필터/선택 요소입니다.',
             examples: [
               {
                 code: `// Chip: 태그, 필터, 선택 항목
@@ -392,7 +393,8 @@ const toggle = (tag) => {
 
 // Badge: 다른 요소에 부착되는 카운터/상태
 <Badge count={5}>알림</Badge>`,
-                explanation: 'Chip은 독립적으로 사용하고, Badge는 다른 요소에 부착하여 사용합니다.',
+                explanation:
+                  'Chip은 독립적으로 사용하고, Badge는 다른 요소에 부착하여 사용합니다.',
               },
             ],
           },
@@ -416,9 +418,13 @@ const toggle = (tag) => {
                 <h3 className={styles.practiceTitle}>Do</h3>
               </div>
               <List spacing="sm" className={styles.practiceList}>
-                <ListItem>태그, 카테고리, 필터 등 간결한 정보 표시에 사용</ListItem>
+                <ListItem>
+                  태그, 카테고리, 필터 등 간결한 정보 표시에 사용
+                </ListItem>
                 <ListItem>삭제 가능한 칩으로 선택 해제 기능 제공</ListItem>
-                <ListItem>색상으로 상태 구분 (success=완료, error=오류 등)</ListItem>
+                <ListItem>
+                  색상으로 상태 구분 (success=완료, error=오류 등)
+                </ListItem>
                 <ListItem>selected + clickable로 토글 필터 구현</ListItem>
                 <ListItem>아바타 칩으로 사용자/멤버 표시</ListItem>
               </List>
@@ -432,8 +438,12 @@ const toggle = (tag) => {
                 <h3 className={styles.practiceTitle}>Don't</h3>
               </div>
               <List spacing="sm" className={styles.practiceList}>
-                <ListItem>긴 텍스트를 label에 사용하지 않기 (2-3단어 이내)</ListItem>
-                <ListItem>버튼 대용으로 사용하지 않기 (액션은 Button 사용)</ListItem>
+                <ListItem>
+                  긴 텍스트를 label에 사용하지 않기 (2-3단어 이내)
+                </ListItem>
+                <ListItem>
+                  버튼 대용으로 사용하지 않기 (액션은 Button 사용)
+                </ListItem>
                 <ListItem>clickable 없이 onClick만 전달하지 않기</ListItem>
                 <ListItem>한 영역에 너무 많은 색상을 혼용하지 않기</ListItem>
                 <ListItem>disabled 칩에 onDelete를 사용하지 않기</ListItem>

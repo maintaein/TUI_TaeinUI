@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react';
-import { Avatar, AvatarGroup } from '@taein-designsystem/core';
+import { Avatar, AvatarGroup } from '@taein-ui/core';
 
 const meta = {
   title: 'Data Display/Avatar',

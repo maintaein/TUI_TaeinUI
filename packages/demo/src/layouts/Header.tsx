@@ -7,7 +7,7 @@ import {
   type KeyboardEvent,
 } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { IconButton } from '@taein-designsystem/core';
+import { IconButton } from '@taein-ui/core';
 import { SearchDropdown } from '../components/SearchDialog';
 import { useSearch } from '../hooks/useSearch';
 import * as styles from './Header.css';
@@ -128,7 +128,7 @@ export function Header({ onMenuClick, showMenuButton = false }: HeaderProps) {
           <source srcSet="/images/TDSlogo.webp" type="image/webp" />
           <img
             src="/images/TDSlogo.png"
-            alt="TDS 로고"
+            alt="TUI 로고"
             width={40}
             height={26}
             className={styles.logoImage}
@@ -136,7 +136,7 @@ export function Header({ onMenuClick, showMenuButton = false }: HeaderProps) {
             decoding="async"
           />
         </picture>
-        <div className={styles.logo}>TDS</div>
+        <div className={styles.logo}>TUI</div>
       </div>
 
       <div className={styles.rightSection}>

@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react';
-import { TextArea } from '@taein-designsystem/core';
+import { TextArea } from '@taein-ui/core';
 import { useState } from 'react';
 
 const meta = {

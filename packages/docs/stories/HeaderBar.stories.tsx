@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react';
-import { HeaderBar } from '@taein-designsystem/core';
+import { HeaderBar } from '@taein-ui/core';
 
 const meta = {
   title: 'Layout/HeaderBar',

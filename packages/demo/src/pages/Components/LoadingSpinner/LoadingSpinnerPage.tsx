@@ -1,8 +1,4 @@
-import {
-  Card,
-  List,
-  ListItem,
-} from '@taein-designsystem/core';
+import { Card, List, ListItem } from '@taein-ui/core';
 import { LivePreview } from '../../../components/LivePreview';
 import { CodeBlock } from '../../../components/CodeBlock';
 import { PropsTable } from '../../../components/PropsTable';
@@ -16,7 +12,8 @@ export function LoadingSpinnerPage() {
       name: 'type',
       type: "'spinner' | 'dots'",
       default: "'spinner'",
-      description: '로딩 표시 타입. spinner는 회전 원형, dots는 점 3개 애니메이션',
+      description:
+        '로딩 표시 타입. spinner는 회전 원형, dots는 점 3개 애니메이션',
     },
     {
       name: 'size',
@@ -44,7 +41,8 @@ export function LoadingSpinnerPage() {
       <header className={styles.header}>
         <h1 className={styles.title}>LoadingSpinner</h1>
         <p className={styles.description}>
-          LoadingSpinner 컴포넌트는 버튼, 카드 등 작은 영역 안에 로딩 인디케이터를 넣을 때 사용합니다.
+          LoadingSpinner 컴포넌트는 버튼, 카드 등 작은 영역 안에 로딩
+          인디케이터를 넣을 때 사용합니다.
         </p>
       </header>
 
@@ -55,7 +53,7 @@ export function LoadingSpinnerPage() {
             <h3 className={styles.quickRefTitle}>Import</h3>
             <CodeBlock
               language="typescript"
-              code={`import { LoadingSpinner } from '@taein-designsystem/core';`}
+              code={`import { LoadingSpinner } from '@taein-ui/core';`}
             />
           </Card.Body>
         </Card>
@@ -266,7 +264,8 @@ const handleLoad = () => {
         <div className={styles.sectionHeader}>
           <h2 className={styles.sectionTitle}>Props API</h2>
           <p className={styles.sectionDescription}>
-            LoadingSpinner 컴포넌트의 모든 Props와 타입 정보입니다. HTML div 속성도 모두 사용 가능합니다.
+            LoadingSpinner 컴포넌트의 모든 Props와 타입 정보입니다. HTML div
+            속성도 모두 사용 가능합니다.
           </p>
         </div>
         <div className={styles.propsTableWrapper}>
@@ -282,23 +281,27 @@ const handleLoad = () => {
           {
             attribute: 'role="status"',
             effect: '상태 정보를 전달합니다.',
-            description: '스크린 리더가 해당 영역을 상태 표시 영역으로 인식합니다.',
+            description:
+              '스크린 리더가 해당 영역을 상태 표시 영역으로 인식합니다.',
           },
           {
             attribute: 'aria-live="polite"',
             effect: '변경 시 스크린 리더에 알립니다.',
-            description: '로딩 스피너가 나타나거나 사라질 때 스크린 리더가 polite 우선순위로 변경 사항을 읽어줍니다.',
+            description:
+              '로딩 스피너가 나타나거나 사라질 때 스크린 리더가 polite 우선순위로 변경 사항을 읽어줍니다.',
           },
           {
             attribute: 'aria-label',
             effect: '로딩 상태를 설명합니다.',
-            description: '기본값 "로딩 중"이 설정되어 있으며, 맥락에 맞게 커스텀할 수 있습니다.',
+            description:
+              '기본값 "로딩 중"이 설정되어 있으며, 맥락에 맞게 커스텀할 수 있습니다.',
           },
         ]}
         additionalGuidance={[
           {
             title: '맥락에 맞는 aria-label 제공',
-            description: '어떤 데이터를 로딩 중인지 구체적으로 설명하면 스크린 리더 사용자에게 더 유용합니다.',
+            description:
+              '어떤 데이터를 로딩 중인지 구체적으로 설명하면 스크린 리더 사용자에게 더 유용합니다.',
             examples: [
               {
                 code: `// Good — 구체적인 설명
@@ -307,7 +310,8 @@ const handleLoad = () => {
 
 // Bad — 기본값만 사용
 <LoadingSpinner />  // "로딩 중"만 전달`,
-                explanation: '사용자가 무엇을 기다리고 있는지 알 수 있도록 구체적인 레이블을 제공하세요.',
+                explanation:
+                  '사용자가 무엇을 기다리고 있는지 알 수 있도록 구체적인 레이블을 제공하세요.',
               },
             ],
           },
@@ -331,8 +335,12 @@ const handleLoad = () => {
                 <h3 className={styles.practiceTitle}>Do</h3>
               </div>
               <List spacing="sm" className={styles.practiceList}>
-                <ListItem>맥락에 맞는 aria-label 제공 (예: "주문 목록 로딩 중")</ListItem>
-                <ListItem>인라인 사용 시 sm 크기, 전체 화면 로딩 시 lg/xl 크기 사용</ListItem>
+                <ListItem>
+                  맥락에 맞는 aria-label 제공 (예: "주문 목록 로딩 중")
+                </ListItem>
+                <ListItem>
+                  인라인 사용 시 sm 크기, 전체 화면 로딩 시 lg/xl 크기 사용
+                </ListItem>
                 <ListItem>로딩 텍스트와 함께 배치하여 의미 전달</ListItem>
                 <ListItem>버튼 내부 로딩은 Button의 loading prop 사용</ListItem>
                 <ListItem>어두운 배경에서는 밝은 color 지정</ListItem>
@@ -348,10 +356,16 @@ const handleLoad = () => {
               </div>
               <List spacing="sm" className={styles.practiceList}>
                 <ListItem>한 화면에 여러 개의 스피너를 동시에 표시</ListItem>
-                <ListItem>짧은 작업(100ms 이하)에 스피너 표시 (깜빡임 유발)</ListItem>
+                <ListItem>
+                  짧은 작업(100ms 이하)에 스피너 표시 (깜빡임 유발)
+                </ListItem>
                 <ListItem>로딩 완료 후 스피너를 화면에 남겨두기</ListItem>
-                <ListItem>스피너만 표시하고 무엇을 로딩 중인지 안내하지 않기</ListItem>
-                <ListItem>진행률을 알 수 있는 작업에 스피너 사용 (Loader 사용 권장)</ListItem>
+                <ListItem>
+                  스피너만 표시하고 무엇을 로딩 중인지 안내하지 않기
+                </ListItem>
+                <ListItem>
+                  진행률을 알 수 있는 작업에 스피너 사용 (Loader 사용 권장)
+                </ListItem>
               </List>
             </Card.Body>
           </Card>
@@ -362,14 +376,26 @@ const handleLoad = () => {
             <div className={styles.practiceHeader}>
               <h3 className={styles.practiceTitle}>Loader와의 관계</h3>
             </div>
-            <p style={{ fontSize: '0.875rem', color: '#6b7280', lineHeight: 1.6, marginBottom: '0.75rem' }}>
-              LoadingSpinner는 순수한 애니메이션 프리미티브입니다.
-              Loader 컴포넌트는 내부적으로 LoadingSpinner를 사용하면서 라벨, 오버레이, 전체 화면, 프로그레스 바 등
-              앱 수준의 기능을 추가한 고수준 래퍼입니다.
+            <p
+              style={{
+                fontSize: '0.875rem',
+                color: '#6b7280',
+                lineHeight: 1.6,
+                marginBottom: '0.75rem',
+              }}
+            >
+              LoadingSpinner는 순수한 애니메이션 프리미티브입니다. Loader
+              컴포넌트는 내부적으로 LoadingSpinner를 사용하면서 라벨, 오버레이,
+              전체 화면, 프로그레스 바 등 앱 수준의 기능을 추가한 고수준
+              래퍼입니다.
             </p>
             <List spacing="sm" className={styles.practiceList}>
-              <ListItem>커스텀 레이아웃이나 임의의 CSS 색상이 필요하면 LoadingSpinner</ListItem>
-              <ListItem>label, overlay, fullScreen 같은 기능이 필요하면 Loader</ListItem>
+              <ListItem>
+                커스텀 레이아웃이나 임의의 CSS 색상이 필요하면 LoadingSpinner
+              </ListItem>
+              <ListItem>
+                label, overlay, fullScreen 같은 기능이 필요하면 Loader
+              </ListItem>
             </List>
           </Card.Body>
         </Card>

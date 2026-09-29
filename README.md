@@ -1,12 +1,12 @@
-# TDS — Taein Design System
+# TUI — TaeinUI
 
 일관된 UI와 효율적인 개발을 위해 만든 React 디자인 시스템입니다.
 가볍고, 배우기 쉽고, AI 친화적인 컴포넌트 라이브러리를 지향합니다.
 
 https://tds-taein-design-system.vercel.app/
 
-[![npm version](https://img.shields.io/npm/v/@taein-designsystem/core)](https://www.npmjs.com/package/@taein-designsystem/core)
-[![license](https://img.shields.io/npm/l/@taein-designsystem/core)](./LICENSE)
+[![npm version](https://img.shields.io/npm/v/@taein-ui/core)](https://www.npmjs.com/package/@taein-ui/core)
+[![license](https://img.shields.io/npm/l/@taein-ui/core)](./LICENSE)
 
 ## 특징
 
@@ -21,11 +21,11 @@ https://tds-taein-design-system.vercel.app/
 ## 설치
 
 ```bash
-npm install @taein-designsystem/core
+npm install @taein-ui/core
 # 또는
-pnpm add @taein-designsystem/core
+pnpm add @taein-ui/core
 # 또는
-yarn add @taein-designsystem/core
+yarn add @taein-ui/core
 ```
 
 ### 요구 사항
@@ -39,13 +39,13 @@ yarn add @taein-designsystem/core
 
 ```tsx
 // 앱 엔트리 파일 (main.tsx 등)
-import '@taein-designsystem/core/styles.css';
+import '@taein-ui/core/styles.css';
 ```
 
 ### 2. 컴포넌트 사용
 
 ```tsx
-import { Button, TextField, Card } from '@taein-designsystem/core';
+import { Button, TextField, Card } from '@taein-ui/core';
 
 function LoginForm() {
   return (
@@ -89,7 +89,7 @@ Vanilla Extract 기반의 디자인 토큰 시스템을 제공합니다. 테마�
 | **Breakpoints**   | sm 360 / md 768 / lg 1024 / xl 1280 (px). `@media`에 CSS 변수를 쓸 수 없어 `themeContract` 밖의 빌드 타임 상수 |
 
 ```tsx
-import { themeContract } from '@taein-designsystem/core';
+import { themeContract } from '@taein-ui/core';
 
 // 커스텀 스타일에서 토큰 사용
 import { style } from '@vanilla-extract/css';
@@ -106,7 +106,7 @@ const customStyle = style({
 ```
 designsystem/
 ├── packages/
-│   ├── core/          # 디자인 시스템 라이브러리 (@taein-designsystem/core)
+│   ├── core/          # 디자인 시스템 라이브러리 (@taein-ui/core)
 │   ├── demo/          # 데모 및 문서 앱
 │   └── docs/          # Storybook
 ├── LICENSE
@@ -145,7 +145,7 @@ cd packages/demo && pnpm dev
 
 ## AI 지원
 
-TDS는 AI 도구와의 협업을 위해 다음을 제공합니다:
+TUI는 AI 도구와의 협업을 위해 다음을 제공합니다:
 
 - **llms.txt** — 컴포넌트 요약 정보 (NPM 패키지에 포함)
 - **llms-full.txt** — 전체 Props 인터페이스 및 예제 코드

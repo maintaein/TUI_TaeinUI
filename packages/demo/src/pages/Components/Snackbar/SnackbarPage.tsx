@@ -1,8 +1,4 @@
-import {
-  Card,
-  List,
-  ListItem,
-} from '@taein-designsystem/core';
+import { Card, List, ListItem } from '@taein-ui/core';
 import { LivePreview } from '../../../components/LivePreview';
 import { CodeBlock } from '../../../components/CodeBlock';
 import { PropsTable } from '../../../components/PropsTable';
@@ -65,7 +61,8 @@ export function SnackbarPage() {
       <header className={styles.header}>
         <h1 className={styles.title}>Snackbar</h1>
         <p className={styles.description}>
-          Snackbar 컴포넌트는 저장 완료, 에러 발생, 네트워크 상태 등 짧은 알림을 화면에 잠시 띄울 때 사용합니다.
+          Snackbar 컴포넌트는 저장 완료, 에러 발생, 네트워크 상태 등 짧은 알림을
+          화면에 잠시 띄울 때 사용합니다.
         </p>
       </header>
 
@@ -75,7 +72,7 @@ export function SnackbarPage() {
           <Card.Body>
             <div className={styles.quickRefTitle}>Import</div>
             <CodeBlock
-              code="import { Snackbar } from '@taein-designsystem/core';"
+              code="import { Snackbar } from '@taein-ui/core';"
               language="tsx"
             />
           </Card.Body>
@@ -358,17 +355,37 @@ const handleSubmit = (success) => {
 
       {/* Accessibility */}
       <section className={styles.section}>
-        <div className={styles.sectionHeader}>
-        </div>
+        <div className={styles.sectionHeader}></div>
         <AccessibilitySection
           componentName="Snackbar"
           intro="Snackbar는 role='alert'와 aria-live 속성으로 스크린 리더에 메시지를 전달하며, 닫기 버튼에 적절한 레이블과 포커스 인디케이터를 제공합니다."
           features={[
-            { attribute: 'role="alert"', effect: '알림 역할 전달', description: '스크린 리더가 스낵바를 알림으로 인식합니다.' },
-            { attribute: 'aria-live="polite"', effect: '실시간 메시지 전달', description: '현재 읽기가 끝난 후 스낵바 메시지를 읽어줍니다.' },
-            { attribute: 'aria-label="닫기"', effect: '닫기 버튼 레이블', description: 'IconButton에 설정되어 닫기 동작을 전달합니다.' },
-            { attribute: 'focus-visible', effect: '포커스 인디케이터', description: '닫기 버튼에 키보드 포커스 시 윤곽선이 표시됩니다.' },
-            { attribute: 'autoHideDuration', effect: '충분한 읽기 시간', description: '기본 6초의 자동 닫힘 시간으로 메시지를 읽을 시간을 제공합니다.' },
+            {
+              attribute: 'role="alert"',
+              effect: '알림 역할 전달',
+              description: '스크린 리더가 스낵바를 알림으로 인식합니다.',
+            },
+            {
+              attribute: 'aria-live="polite"',
+              effect: '실시간 메시지 전달',
+              description: '현재 읽기가 끝난 후 스낵바 메시지를 읽어줍니다.',
+            },
+            {
+              attribute: 'aria-label="닫기"',
+              effect: '닫기 버튼 레이블',
+              description: 'IconButton에 설정되어 닫기 동작을 전달합니다.',
+            },
+            {
+              attribute: 'focus-visible',
+              effect: '포커스 인디케이터',
+              description: '닫기 버튼에 키보드 포커스 시 윤곽선이 표시됩니다.',
+            },
+            {
+              attribute: 'autoHideDuration',
+              effect: '충분한 읽기 시간',
+              description:
+                '기본 6초의 자동 닫힘 시간으로 메시지를 읽을 시간을 제공합니다.',
+            },
           ]}
         />
       </section>
@@ -408,7 +425,9 @@ const handleSubmit = (success) => {
                 <ListItem>중요한 정보를 스낵바로만 전달</ListItem>
                 <ListItem>여러 스낵바를 동시에 표시</ListItem>
                 <ListItem>자동 닫힘을 너무 짧게 설정 (최소 3초)</ListItem>
-                <ListItem>사용자 확인이 필요한 내용에 스낵바 사용 (Modal 사용)</ListItem>
+                <ListItem>
+                  사용자 확인이 필요한 내용에 스낵바 사용 (Modal 사용)
+                </ListItem>
               </List>
             </Card.Body>
           </Card>

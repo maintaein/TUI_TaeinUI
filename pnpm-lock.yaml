@@ -130,7 +130,7 @@ importers:
 
   packages/demo:
     dependencies:
-      '@taein-designsystem/core':
+      '@taein-ui/core':
         specifier: workspace:*
         version: link:../core
       clsx:
@@ -197,7 +197,7 @@ importers:
 
   packages/docs:
     dependencies:
-      '@taein-designsystem/core':
+      '@taein-ui/core':
         specifier: workspace:*
         version: link:../core
     devDependencies:

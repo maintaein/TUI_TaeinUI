@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react';
 import { useState } from 'react';
-import { SideSheet } from '@taein-designsystem/core';
+import { SideSheet } from '@taein-ui/core';
 
 const meta: Meta<typeof SideSheet> = {
   title: 'Components/SideSheet',

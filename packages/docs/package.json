@@ -1,15 +1,15 @@
 {
-  "name": "@taein-designsystem/docs",
+  "name": "@taein-ui/docs",
   "version": "0.1.0",
   "private": true,
-  "description": "TDS - Taein Design System - Storybook 문서",
+  "description": "TUI - TaeinUI - Storybook 문서",
   "scripts": {
     "storybook": "storybook dev -p 6006",
     "build": "storybook build -o dist",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@taein-designsystem/core": "workspace:*"
+    "@taein-ui/core": "workspace:*"
   },
   "devDependencies": {
     "@storybook/addon-a11y": "^8.4.7",

@@ -1,20 +1,20 @@
-# TDS (Taein Design System)
+# TUI (TaeinUI)
 
 > A lightweight (~23KB gzip), beginner-friendly, AI-ready React + TypeScript design system built with Vanilla Extract CSS (zero-runtime). Only 2 runtime dependencies.
 
 ## Installation
 
 ```bash
-npm install @taein-designsystem/core
+npm install @taein-ui/core
 # or
-pnpm add @taein-designsystem/core
+pnpm add @taein-ui/core
 ```
 
 ## Setup
 
 ```tsx
 // main.tsx
-import '@taein-designsystem/core/styles.css';
+import '@taein-ui/core/styles.css';
 
 function App() {
   return <YourApp />;
@@ -81,7 +81,7 @@ All components follow consistent patterns:
 
 ## Design Tokens
 
-TDS uses a theme contract (`themeContract`) for consistent styling. 라이트 단일
+TUI uses a theme contract (`themeContract`) for consistent styling. 라이트 단일
 테마이며 `:root`의 전역 CSS 변수로 선언된다 (`ThemeProvider`·다크 테마 없음).
 
 - **Color** — primary, text (primary/secondary/disabled/inverse), background, surface, border, overlay, semantic (success/warning/error/info)
@@ -137,10 +137,10 @@ M3에서 GSAP 런타임이 실제로 붙은 컴포넌트와 그 능력. 계획�
   그대로 서버 컴포넌트다 — 그래서 둘을 분리해 둔다.
 - `TextArea`도 `'use client'`가 붙는다. `TextField`와 같은 타이핑 미러 오버레이를
   낱말 단위로 쓴다.
-- 단, 서버 컴포넌트에서 `onClick` 같은 함수 prop을 넘기는 것은 TDS와 무관하게
+- 단, 서버 컴포넌트에서 `onClick` 같은 함수 prop을 넘기는 것은 TUI와 무관하게
   React가 막는다. 이벤트 핸들러를 붙이는 쪽 파일에 `'use client'`를 적어야 한다.
 - `styles.css`는 루트 레이아웃에서 한 번 import한다:
-  `import '@taein-designsystem/core/styles.css';`
+  `import '@taein-ui/core/styles.css';`
 - 플래시 없음: 테마가 라이트 단일이고 `:root` 정적 CSS 변수로 선언되므로
   하이드레이션 전후 색이 바뀌지 않는다. 테마 스크립트도 필요 없다.
 
@@ -153,7 +153,7 @@ M3에서 GSAP 런타임이 실제로 붙은 컴포넌트와 그 능력. 계획�
 - Focus traps in overlays (Modal, BottomSheet, SideSheet)
 - Color contrast 4.5:1 (text), 3:1 (UI elements) — 값과 실측 대비비는 Design Tokens 절 참고
 - Target size: WCAG 2.2 AA(2.5.8)의 최소 요구치는 **24x24 CSS px**이고
-  44x44는 AAA(2.5.5) 수준의 TDS 자체 권장치다. 인터랙티브 컴포넌트는 기본으로
+  44x44는 AAA(2.5.5) 수준의 TUI 자체 권장치다. 인터랙티브 컴포넌트는 기본으로
   44x44를 확보하되, 좁은 화면에서 줄일 때 24x24가 AA 하한선이다.
 - `prefers-reduced-motion: reduce`에서 duration 토큰과 전역 `*` 규칙이 함께
   적용돼 애니메이션·트랜지션이 멈춘다 (무한 반복도 1회로 끊긴다). GSAP으로

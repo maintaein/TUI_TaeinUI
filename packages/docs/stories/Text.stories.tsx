@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react';
-import { Text } from '@taein-designsystem/core';
+import { Text } from '@taein-ui/core';
 
 const meta = {
   title: 'Components/Text',
@@ -183,7 +183,7 @@ export const Combination: Story = {
       }}
     >
       <Text variant="h1" color="primary" weight="bold" align="center">
-        TDS - 태인 디자인 시스템
+        TUI - TaeinUI
       </Text>
       <Text variant="body1" color="secondary" align="center">
         아름답고 일관된 사용자 경험을 제공하는 디자인 시스템입니다.

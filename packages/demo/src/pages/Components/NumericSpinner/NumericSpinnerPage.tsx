@@ -1,4 +1,4 @@
-import { Card, List, ListItem } from '@taein-designsystem/core';
+import { Card, List, ListItem } from '@taein-ui/core';
 import { LivePreview } from '../../../components/LivePreview';
 import { CodeBlock } from '../../../components/CodeBlock';
 import { PropsTable } from '../../../components/PropsTable';
@@ -119,7 +119,7 @@ export function NumericSpinnerPage() {
             <h3 className={styles.quickRefTitle}>Import</h3>
             <CodeBlock
               language="typescript"
-              code={`import { NumericSpinner } from '@taein-designsystem/core';`}
+              code={`import { NumericSpinner } from '@taein-ui/core';`}
             />
           </Card.Body>
         </Card>

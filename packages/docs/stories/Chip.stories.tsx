@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react';
-import { Chip } from '@taein-designsystem/core';
+import { Chip } from '@taein-ui/core';
 import { useState } from 'react';
 
 const meta = {

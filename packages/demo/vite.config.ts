@@ -33,7 +33,7 @@ export default defineConfig({
             return 'react-vendor';
           }
           if (
-            id.includes('@taein-designsystem') ||
+            id.includes('@taein-ui') ||
             id.includes('packages/core') ||
             id.includes('packages\\core')
           ) {

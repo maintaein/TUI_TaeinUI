@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react';
-import { Snackbar } from '@taein-designsystem/core';
+import { Snackbar } from '@taein-ui/core';
 import { useState } from 'react';
 
 const meta = {

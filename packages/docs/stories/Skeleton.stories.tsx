@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react';
-import { Skeleton } from '@taein-designsystem/core';
+import { Skeleton } from '@taein-ui/core';
 
 const meta = {
   title: 'Components/Skeleton',

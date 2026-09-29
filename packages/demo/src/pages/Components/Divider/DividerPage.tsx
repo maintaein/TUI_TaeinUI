@@ -1,8 +1,4 @@
-import {
-  Card,
-  List,
-  ListItem,
-} from '@taein-designsystem/core';
+import { Card, List, ListItem } from '@taein-ui/core';
 import { LivePreview } from '../../../components/LivePreview';
 import { CodeBlock } from '../../../components/CodeBlock';
 import { PropsTable } from '../../../components/PropsTable';
@@ -11,7 +7,6 @@ import { AccessibilitySection } from '../../../components/AccessibilitySection';
 import * as styles from './DividerPage.css';
 
 export function DividerPage() {
-
   const propsData: PropDefinition[] = [
     {
       name: 'children',
@@ -55,7 +50,8 @@ export function DividerPage() {
       <header className={styles.header}>
         <h1 className={styles.title}>Divider</h1>
         <p className={styles.description}>
-          Divider 컴포넌트는 콘텐츠 사이에 시각적 구분선을 넣을 때 사용합니다. 섹션 분리, 메뉴 항목 구분, 레이아웃 정리 등에 활용할 수 있습니다.
+          Divider 컴포넌트는 콘텐츠 사이에 시각적 구분선을 넣을 때 사용합니다.
+          섹션 분리, 메뉴 항목 구분, 레이아웃 정리 등에 활용할 수 있습니다.
         </p>
       </header>
 
@@ -66,7 +62,7 @@ export function DividerPage() {
             <h3 className={styles.quickRefTitle}>Import</h3>
             <CodeBlock
               language="typescript"
-              code={`import { Divider } from '@taein-designsystem/core';`}
+              code={`import { Divider } from '@taein-ui/core';`}
             />
           </Card.Body>
         </Card>
@@ -224,7 +220,8 @@ export function DividerPage() {
         <div className={styles.sectionHeader}>
           <h2 className={styles.sectionTitle}>Props API</h2>
           <p className={styles.sectionDescription}>
-            Divider 컴포넌트의 모든 Props와 타입 정보입니다. HTML div 속성도 모두 사용 가능합니다.
+            Divider 컴포넌트의 모든 Props와 타입 정보입니다. HTML div 속성도
+            모두 사용 가능합니다.
           </p>
         </div>
         <div className={styles.propsTableWrapper}>
@@ -240,28 +237,33 @@ export function DividerPage() {
           {
             attribute: 'role="separator"',
             effect: '스크린 리더에서 구분선으로 인식합니다.',
-            description: 'WAI-ARIA separator role을 사용하여 콘텐츠 구분을 명확히 전달합니다.',
+            description:
+              'WAI-ARIA separator role을 사용하여 콘텐츠 구분을 명확히 전달합니다.',
           },
           {
             attribute: 'aria-orientation',
             effect: '구분선 방향을 알립니다.',
-            description: 'horizontal 또는 vertical 값으로 구분선의 방향을 스크린 리더에 전달합니다.',
+            description:
+              'horizontal 또는 vertical 값으로 구분선의 방향을 스크린 리더에 전달합니다.',
           },
           {
             attribute: '시각적 구분',
             effect: '콘텐츠 영역을 명확히 나눕니다.',
-            description: 'solid, dashed, dotted 스타일로 시각적 구분을 제공하여 콘텐츠 구조를 파악하기 쉽게 합니다.',
+            description:
+              'solid, dashed, dotted 스타일로 시각적 구분을 제공하여 콘텐츠 구조를 파악하기 쉽게 합니다.',
           },
           {
             attribute: '텍스트 콘텐츠',
             effect: '구분선의 맥락을 설명합니다.',
-            description: 'children으로 텍스트를 넣으면 스크린 리더가 구분선의 의미를 읽을 수 있습니다.',
+            description:
+              'children으로 텍스트를 넣으면 스크린 리더가 구분선의 의미를 읽을 수 있습니다.',
           },
         ]}
         additionalGuidance={[
           {
             title: '장식용 구분선과 의미 있는 구분선',
-            description: '콘텐츠 구분이 아닌 단순 장식 목적이라면 aria-hidden을 사용하세요.',
+            description:
+              '콘텐츠 구분이 아닌 단순 장식 목적이라면 aria-hidden을 사용하세요.',
             examples: [
               {
                 code: `// Good - 의미 있는 구분선
@@ -274,7 +276,8 @@ export function DividerPage() {
 <Divider />
 <Divider />
 <Divider />`,
-                explanation: '구분선이 너무 많으면 스크린 리더 사용자에게 불필요한 정보가 전달됩니다.',
+                explanation:
+                  '구분선이 너무 많으면 스크린 리더 사용자에게 불필요한 정보가 전달됩니다.',
               },
             ],
           },
@@ -299,7 +302,9 @@ export function DividerPage() {
               </div>
               <List spacing="sm" className={styles.practiceList}>
                 <ListItem>논리적으로 다른 콘텐츠 사이에 배치</ListItem>
-                <ListItem>로그인/회원가입 폼에서 "또는" 텍스트와 함께 사용</ListItem>
+                <ListItem>
+                  로그인/회원가입 폼에서 "또는" 텍스트와 함께 사용
+                </ListItem>
                 <ListItem>수직 구분선은 인라인 메뉴 구분에 활용</ListItem>
                 <ListItem>spacing으로 적절한 시각적 여백 확보</ListItem>
                 <ListItem>텍스트가 있을 때 textAlign으로 가독성 향상</ListItem>
@@ -315,8 +320,12 @@ export function DividerPage() {
               </div>
               <List spacing="sm" className={styles.practiceList}>
                 <ListItem>연속으로 여러 구분선을 배치하지 않기</ListItem>
-                <ListItem>padding/margin으로 대체 가능한 곳에 남용하지 않기</ListItem>
-                <ListItem>수직 구분선에 height 없는 부모 사용하지 않기</ListItem>
+                <ListItem>
+                  padding/margin으로 대체 가능한 곳에 남용하지 않기
+                </ListItem>
+                <ListItem>
+                  수직 구분선에 height 없는 부모 사용하지 않기
+                </ListItem>
                 <ListItem>텍스트에 너무 긴 문장 넣지 않기</ListItem>
                 <ListItem>카드, 리스트 내부에서 중복 구분하지 않기</ListItem>
               </List>

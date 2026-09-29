@@ -142,7 +142,7 @@ export function renderTokenReference(): string {
   ].join('\n');
 
   return [
-    'TDS uses `themeContract` for type-safe, theme-aware styling. 테마는 라이트',
+    'TUI uses `themeContract` for type-safe, theme-aware styling. 테마는 라이트',
     '단일 테마 하나뿐이며 `:root`에 전역 CSS 변수로 선언된다. `ThemeProvider`,',
     '`useTheme`, `createTheme`, 다크 테마는 존재하지 않는다 — import하면 실패한다.',
     '',
@@ -339,7 +339,7 @@ export function renderTokenReference(): string {
 export function renderTokenSummary(): string {
   const sizeKeys = Object.keys(font.size);
   return [
-    'TDS uses a theme contract (`themeContract`) for consistent styling. 라이트 단일',
+    'TUI uses a theme contract (`themeContract`) for consistent styling. 라이트 단일',
     '테마이며 `:root`의 전역 CSS 변수로 선언된다 (`ThemeProvider`·다크 테마 없음).',
     '',
     `- **Color** — primary, text (${Object.keys(color.text).join('/')}), background, surface, border, overlay, semantic (${SEMANTIC_NAMES.join('/')})`,

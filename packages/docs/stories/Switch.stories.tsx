@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react';
-import { Switch } from '@taein-designsystem/core';
+import { Switch } from '@taein-ui/core';
 import { useState } from 'react';
 
 const meta = {

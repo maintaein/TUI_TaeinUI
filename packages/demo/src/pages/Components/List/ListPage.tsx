@@ -1,8 +1,4 @@
-import {
-  Card,
-  List,
-  ListItem,
-} from '@taein-designsystem/core';
+import { Card, List, ListItem } from '@taein-ui/core';
 import { LivePreview } from '../../../components/LivePreview';
 import { CodeBlock } from '../../../components/CodeBlock';
 import { PropsTable } from '../../../components/PropsTable';
@@ -11,7 +7,6 @@ import { AccessibilitySection } from '../../../components/AccessibilitySection';
 import * as styles from './ListPage.css';
 
 export function ListPage() {
-
   const listPropsData: PropDefinition[] = [
     {
       name: 'children',
@@ -37,7 +32,8 @@ export function ListPage() {
     {
       name: 'children',
       type: 'ReactNode',
-      description: '자유 레이아웃 콘텐츠. 지정 시 label/value를 무시하고 커스텀 렌더링합니다.',
+      description:
+        '자유 레이아웃 콘텐츠. 지정 시 label/value를 무시하고 커스텀 렌더링합니다.',
     },
     {
       name: 'label',
@@ -75,7 +71,8 @@ export function ListPage() {
       <header className={styles.header}>
         <h1 className={styles.title}>List</h1>
         <p className={styles.description}>
-          List 컴포넌트는 설정 항목, 주문 내역, 사양 정보 등을 세로로 나열할 때 사용합니다.
+          List 컴포넌트는 설정 항목, 주문 내역, 사양 정보 등을 세로로 나열할 때
+          사용합니다.
         </p>
       </header>
 
@@ -86,7 +83,7 @@ export function ListPage() {
             <h3 className={styles.quickRefTitle}>Import</h3>
             <CodeBlock
               language="typescript"
-              code={`import { List, ListItem } from '@taein-designsystem/core';`}
+              code={`import { List, ListItem } from '@taein-ui/core';`}
             />
           </Card.Body>
         </Card>
@@ -374,7 +371,8 @@ export function ListPage() {
         <div className={styles.sectionHeader}>
           <h2 className={styles.sectionTitle}>Props API — ListItem</h2>
           <p className={styles.sectionDescription}>
-            ListItem 컴포넌트의 Props입니다. HTML li 속성도 모두 사용 가능합니다.
+            ListItem 컴포넌트의 Props입니다. HTML li 속성도 모두 사용
+            가능합니다.
           </p>
         </div>
         <div className={styles.propsTableWrapper}>
@@ -390,23 +388,27 @@ export function ListPage() {
           {
             attribute: '<ul> / <li> 요소',
             effect: '스크린 리더에서 "목록"과 "항목"으로 인식합니다.',
-            description: '네이티브 ul, li 요소를 사용하여 목록 구조를 올바르게 전달합니다.',
+            description:
+              '네이티브 ul, li 요소를 사용하여 목록 구조를 올바르게 전달합니다.',
           },
           {
             attribute: 'label-value 구조',
             effect: '정보가 순서대로 읽힙니다.',
-            description: 'label과 value가 자연스러운 순서로 스크린 리더에 전달됩니다.',
+            description:
+              'label과 value가 자연스러운 순서로 스크린 리더에 전달됩니다.',
           },
           {
             attribute: 'HTML 속성 전달',
             effect: 'aria-label 등을 자유롭게 설정할 수 있습니다.',
-            description: 'List는 HTMLUListElement, ListItem은 HTMLLIElement 속성을 모두 지원합니다.',
+            description:
+              'List는 HTMLUListElement, ListItem은 HTMLLIElement 속성을 모두 지원합니다.',
           },
         ]}
         additionalGuidance={[
           {
             title: '목록에 제목 연결',
-            description: '목록의 맥락을 명확히 하려면 aria-labelledby로 제목 요소와 연결하세요.',
+            description:
+              '목록의 맥락을 명확히 하려면 aria-labelledby로 제목 요소와 연결하세요.',
             examples: [
               {
                 code: `<h3 id="user-info">사용자 정보</h3>
@@ -414,7 +416,8 @@ export function ListPage() {
   <ListItem label="이름" value="홍길동" />
   <ListItem label="이메일" value="hong@example.com" />
 </List>`,
-                explanation: '스크린 리더 사용자가 목록의 맥락을 바로 이해할 수 있습니다.',
+                explanation:
+                  '스크린 리더 사용자가 목록의 맥락을 바로 이해할 수 있습니다.',
               },
             ],
           },
@@ -454,10 +457,18 @@ export function ListPage() {
                 <h3 className={styles.practiceTitle}>Don't</h3>
               </div>
               <List spacing="sm" className={styles.practiceList}>
-                <ListItem>한 List에 label-value와 children 모드를 혼용하지 않기</ListItem>
-                <ListItem>항목이 너무 많으면 섹션을 나누기 (10개 이상 주의)</ListItem>
-                <ListItem>spacing="none"과 divider 없이 사용하지 않기 (구분 불가)</ListItem>
-                <ListItem>네비게이션 목적으로 사용하지 않기 (nav 요소 사용)</ListItem>
+                <ListItem>
+                  한 List에 label-value와 children 모드를 혼용하지 않기
+                </ListItem>
+                <ListItem>
+                  항목이 너무 많으면 섹션을 나누기 (10개 이상 주의)
+                </ListItem>
+                <ListItem>
+                  spacing="none"과 divider 없이 사용하지 않기 (구분 불가)
+                </ListItem>
+                <ListItem>
+                  네비게이션 목적으로 사용하지 않기 (nav 요소 사용)
+                </ListItem>
               </List>
             </Card.Body>
           </Card>

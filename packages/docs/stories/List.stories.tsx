@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react';
-import { List, ListItem } from '@taein-designsystem/core';
+import { List, ListItem } from '@taein-ui/core';
 
 const meta = {
   title: 'Layout/List',
@@ -413,7 +413,7 @@ export const MixedLayout: Story = {
       <List divider spacing="lg">
         <ListItem
           label="프로젝트명"
-          value="TDS - 태인 디자인 시스템"
+          value="TUI - TaeinUI"
           layout="horizontal"
           labelWidth="120px"
         />

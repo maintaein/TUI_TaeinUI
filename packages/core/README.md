@@ -1,16 +1,16 @@
-# @taein-designsystem/core
+# @taein-ui/core
 
-TDS(Taein Design System)의 핵심 컴포넌트 라이브러리입니다.
+TUI(TaeinUI)의 핵심 컴포넌트 라이브러리입니다.
 30개의 React UI 컴포넌트와 디자인 토큰을 제공합니다.
 
-[![npm version](https://img.shields.io/npm/v/@taein-designsystem/core)](https://www.npmjs.com/package/@taein-designsystem/core)
+[![npm version](https://img.shields.io/npm/v/@taein-ui/core)](https://www.npmjs.com/package/@taein-ui/core)
 
 ## 설치
 
 ```bash
-npm install @taein-designsystem/core
+npm install @taein-ui/core
 # 또는
-pnpm add @taein-designsystem/core
+pnpm add @taein-ui/core
 ```
 
 ### Peer Dependencies
@@ -22,10 +22,10 @@ pnpm add @taein-designsystem/core
 
 ```tsx
 // 1. CSS import (앱 엔트리에서 한 번)
-import '@taein-designsystem/core/styles.css';
+import '@taein-ui/core/styles.css';
 
 // 2. 컴포넌트 사용
-import { Button, TextField, Card } from '@taein-designsystem/core';
+import { Button, TextField, Card } from '@taein-ui/core';
 
 function LoginForm() {
   return (
@@ -96,7 +96,7 @@ function LoginForm() {
 ## 디자인 토큰
 
 ```tsx
-import { themeContract } from '@taein-designsystem/core';
+import { themeContract } from '@taein-ui/core';
 ```
 
 | 토큰          | 경로 예시                                 |

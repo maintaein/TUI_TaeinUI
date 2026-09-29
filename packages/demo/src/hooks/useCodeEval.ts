@@ -8,7 +8,7 @@ import {
   type ReactElement,
 } from 'react';
 import { transform } from 'sucrase';
-import * as Core from '@taein-designsystem/core';
+import * as Core from '@taein-ui/core';
 
 /**
  * 코드 스니펫에서 마지막 JSX 표현식을 찾아 함수 컴포넌트 본문으로 변환한다.

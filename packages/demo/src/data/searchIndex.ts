@@ -20,15 +20,15 @@ export const searchIndex: SearchEntry[] = [
     path: '/',
     category: '시작하기',
     description:
-      'TDS(Taein Design System) 소개. 가볍고 배우기 쉽고 AI와 함께 쓸 수 있는 React 디자인 시스템.',
+      'TUI(TaeinUI) 소개. 가볍고 배우기 쉽고 AI와 함께 쓸 수 있는 React 디자인 시스템.',
     sections: [
       {
-        title: '왜 TDS인가?',
+        title: '왜 TUI인가?',
         content:
           '일관성과 효율, 초심자 친화, AI 친화, 경량 번들. 디자인 토큰, 일관된 API, CLAUDE.md, llms.txt 제공',
       },
       {
-        title: '한눈에 보는 TDS',
+        title: '한눈에 보는 TUI',
         content:
           '컴포넌트 패밀리 30개(top-level export 48개), ~23KB 번들, 런타임 의존성 2개, Zero-runtime CSS',
       },
@@ -43,7 +43,7 @@ export const searchIndex: SearchEntry[] = [
     sections: [
       {
         title: '설치',
-        content: 'npm install @taein-designsystem/core, pnpm add, yarn add',
+        content: 'npm install @taein-ui/core, pnpm add, yarn add',
       },
       {
         title: '기본 사용법',

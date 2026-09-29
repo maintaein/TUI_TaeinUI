@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react';
-import { Checkbox } from '@taein-designsystem/core';
+import { Checkbox } from '@taein-ui/core';
 import { useState } from 'react';
 
 const meta = {

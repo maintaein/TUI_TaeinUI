@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react';
-import { LoadingSpinner } from '@taein-designsystem/core';
+import { LoadingSpinner } from '@taein-ui/core';
 
 /**
  * LoadingSpinner 컴포넌트

@@ -1,8 +1,4 @@
-import {
-  Card,
-  List,
-  ListItem,
-} from '@taein-designsystem/core';
+import { Card, List, ListItem } from '@taein-ui/core';
 import { LivePreview } from '../../../components/LivePreview';
 import { CodeBlock } from '../../../components/CodeBlock';
 import { PropsTable } from '../../../components/PropsTable';
@@ -22,7 +18,8 @@ export function FormFieldPage() {
       name: 'children',
       type: '(props: FormFieldRenderProps) => ReactNode',
       required: true,
-      description: 'Render prop 함수. inputId, helperId, hasHelper, isError를 인자로 받습니다.',
+      description:
+        'Render prop 함수. inputId, helperId, hasHelper, isError를 인자로 받습니다.',
     },
     {
       name: 'helperText',
@@ -87,7 +84,9 @@ export function FormFieldPage() {
       <header className={styles.header}>
         <h1 className={styles.title}>FormField</h1>
         <p className={styles.description}>
-          FormField 컴포넌트는 입력 요소에 라벨, 도움말, 에러 메시지를 일관되게 감쌀 때 사용합니다. 커스텀 입력 컴포넌트에도 동일한 폼 레이아웃을 적용할 수 있습니다.
+          FormField 컴포넌트는 입력 요소에 라벨, 도움말, 에러 메시지를 일관되게
+          감쌀 때 사용합니다. 커스텀 입력 컴포넌트에도 동일한 폼 레이아웃을
+          적용할 수 있습니다.
         </p>
       </header>
 
@@ -98,7 +97,7 @@ export function FormFieldPage() {
             <h3 className={styles.quickRefTitle}>Import</h3>
             <CodeBlock
               language="typescript"
-              code={`import { FormField } from '@taein-designsystem/core';`}
+              code={`import { FormField } from '@taein-ui/core';`}
             />
           </Card.Body>
         </Card>
@@ -122,33 +121,42 @@ export function FormFieldPage() {
         <div className={styles.sectionHeader}>
           <h2 className={styles.sectionTitle}>Render Prop 패턴</h2>
           <p className={styles.sectionDescription}>
-            FormField는 children으로 함수를 받습니다. 이 함수에 전달되는 props를 활용해
-            입력 컴포넌트의 접근성을 자동으로 연결할 수 있습니다.
+            FormField는 children으로 함수를 받습니다. 이 함수에 전달되는 props를
+            활용해 입력 컴포넌트의 접근성을 자동으로 연결할 수 있습니다.
           </p>
         </div>
 
         <div className={styles.patternCard}>
           <p className={styles.patternCardTitle}>children에 전달되는 Props</p>
           <p className={styles.patternCardDesc}>
-            FormField가 내부에서 고유 id를 생성하고, 자식 함수에 전달합니다.
-            이 값들을 input 요소에 연결하면 label-input 연결, 도움말 연결이 자동으로 이루어집니다.
+            FormField가 내부에서 고유 id를 생성하고, 자식 함수에 전달합니다. 이
+            값들을 input 요소에 연결하면 label-input 연결, 도움말 연결이
+            자동으로 이루어집니다.
           </p>
           <div className={styles.renderPropsGrid}>
             <div className={styles.renderPropItem}>
               <span className={styles.renderPropName}>inputId</span>
-              <span className={styles.renderPropDesc}>input의 id에 설정 → label과 자동 연결</span>
+              <span className={styles.renderPropDesc}>
+                input의 id에 설정 → label과 자동 연결
+              </span>
             </div>
             <div className={styles.renderPropItem}>
               <span className={styles.renderPropName}>helperId</span>
-              <span className={styles.renderPropDesc}>aria-describedby에 설정 → 도움말/에러와 연결</span>
+              <span className={styles.renderPropDesc}>
+                aria-describedby에 설정 → 도움말/에러와 연결
+              </span>
             </div>
             <div className={styles.renderPropItem}>
               <span className={styles.renderPropName}>hasHelper</span>
-              <span className={styles.renderPropDesc}>도움말이 표시 중인지 확인. aria-describedby 조건부 설정에 사용</span>
+              <span className={styles.renderPropDesc}>
+                도움말이 표시 중인지 확인. aria-describedby 조건부 설정에 사용
+              </span>
             </div>
             <div className={styles.renderPropItem}>
               <span className={styles.renderPropName}>isError</span>
-              <span className={styles.renderPropDesc}>에러 상태 여부. aria-invalid 설정에 사용</span>
+              <span className={styles.renderPropDesc}>
+                에러 상태 여부. aria-invalid 설정에 사용
+              </span>
             </div>
           </div>
         </div>
@@ -349,7 +357,10 @@ export function FormFieldPage() {
 
         <div className={styles.example}>
           <h3 className={styles.exampleTitle}>FormFieldRenderProps</h3>
-          <p className={styles.sectionDescription} style={{ marginBottom: '1rem' }}>
+          <p
+            className={styles.sectionDescription}
+            style={{ marginBottom: '1rem' }}
+          >
             children 함수에 전달되는 props 타입입니다.
           </p>
           <div className={styles.propsTableWrapper}>
@@ -366,28 +377,33 @@ export function FormFieldPage() {
           {
             attribute: '<label htmlFor={inputId}>',
             effect: '레이블과 입력 요소가 연결됩니다.',
-            description: '자동 생성된 id로 label의 htmlFor와 input의 id가 연결되어, 레이블 클릭 시 입력 요소에 포커스됩니다.',
+            description:
+              '자동 생성된 id로 label의 htmlFor와 input의 id가 연결되어, 레이블 클릭 시 입력 요소에 포커스됩니다.',
           },
           {
             attribute: 'aria-describedby={helperId}',
             effect: '도움말/에러가 스크린 리더에 전달됩니다.',
-            description: 'helperText 또는 errorMessage가 있을 때, helperId를 input의 aria-describedby에 연결하면 스크린 리더가 해당 텍스트를 읽어줍니다.',
+            description:
+              'helperText 또는 errorMessage가 있을 때, helperId를 input의 aria-describedby에 연결하면 스크린 리더가 해당 텍스트를 읽어줍니다.',
           },
           {
             attribute: 'aria-invalid={isError}',
             effect: '에러 상태를 스크린 리더에 알립니다.',
-            description: 'isError를 input의 aria-invalid에 연결하면, 스크린 리더가 "잘못된 항목"으로 안내합니다.',
+            description:
+              'isError를 input의 aria-invalid에 연결하면, 스크린 리더가 "잘못된 항목"으로 안내합니다.',
           },
           {
             attribute: '필수 입력 표시 (*)',
             effect: '시각적 필수 입력 안내',
-            description: 'required 설정 시 레이블 옆에 빨간색 *가 표시됩니다. input에 required 속성도 함께 설정하는 것을 권장합니다.',
+            description:
+              'required 설정 시 레이블 옆에 빨간색 *가 표시됩니다. input에 required 속성도 함께 설정하는 것을 권장합니다.',
           },
         ]}
         additionalGuidance={[
           {
             title: 'Render Props 올바르게 연결하기',
-            description: 'FormField가 제공하는 id 값들을 input에 빠짐없이 연결해야 접근성이 완성됩니다.',
+            description:
+              'FormField가 제공하는 id 값들을 input에 빠짐없이 연결해야 접근성이 완성됩니다.',
             examples: [
               {
                 code: `// Good — 모든 props 연결
@@ -405,7 +421,8 @@ export function FormFieldPage() {
 <FormField label="이메일">
   {() => <TextField />}
 </FormField>`,
-                explanation: 'inputId를 연결하지 않으면 label 클릭 시 input에 포커스되지 않습니다.',
+                explanation:
+                  'inputId를 연결하지 않으면 label 클릭 시 input에 포커스되지 않습니다.',
               },
             ],
           },
@@ -431,9 +448,13 @@ export function FormFieldPage() {
               <List spacing="sm" className={styles.practiceList}>
                 <ListItem>모든 폼 입력에 FormField로 레이블을 제공</ListItem>
                 <ListItem>inputId를 input의 id에 항상 연결</ListItem>
-                <ListItem>hasHelper가 true일 때만 aria-describedby 설정</ListItem>
+                <ListItem>
+                  hasHelper가 true일 때만 aria-describedby 설정
+                </ListItem>
                 <ListItem>에러 상태에서 구체적인 errorMessage 제공</ListItem>
-                <ListItem>폼에서 fullWidth를 통일하여 일관된 레이아웃 유지</ListItem>
+                <ListItem>
+                  폼에서 fullWidth를 통일하여 일관된 레이아웃 유지
+                </ListItem>
               </List>
             </Card.Body>
           </Card>
@@ -445,10 +466,19 @@ export function FormFieldPage() {
                 <h3 className={styles.practiceTitle}>Don't</h3>
               </div>
               <List spacing="sm" className={styles.practiceList}>
-                <ListItem>render prop의 인자를 무시하고 id를 연결하지 않기</ListItem>
-                <ListItem>error만 true로 설정하고 errorMessage를 비워두기</ListItem>
-                <ListItem>FormField 없이 label 태그를 직접 작성 (일관성 저하)</ListItem>
-                <ListItem>helperText와 errorMessage를 동시에 보여주려 하기 (error 시 errorMessage만 표시)</ListItem>
+                <ListItem>
+                  render prop의 인자를 무시하고 id를 연결하지 않기
+                </ListItem>
+                <ListItem>
+                  error만 true로 설정하고 errorMessage를 비워두기
+                </ListItem>
+                <ListItem>
+                  FormField 없이 label 태그를 직접 작성 (일관성 저하)
+                </ListItem>
+                <ListItem>
+                  helperText와 errorMessage를 동시에 보여주려 하기 (error 시
+                  errorMessage만 표시)
+                </ListItem>
                 <ListItem>버튼이나 비입력 요소에 FormField 사용</ListItem>
               </List>
             </Card.Body>

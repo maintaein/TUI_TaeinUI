@@ -1,8 +1,4 @@
-import {
-  Card,
-  List,
-  ListItem,
-} from '@taein-designsystem/core';
+import { Card, List, ListItem } from '@taein-ui/core';
 import { LivePreview } from '../../../components/LivePreview';
 import { CodeBlock } from '../../../components/CodeBlock';
 import { PropsTable } from '../../../components/PropsTable';
@@ -11,7 +7,6 @@ import { AccessibilitySection } from '../../../components/AccessibilitySection';
 import * as styles from './TextAreaPage.css';
 
 export function TextAreaPage() {
-
   const propsData: PropDefinition[] = [
     {
       name: 'label',
@@ -99,7 +94,8 @@ export function TextAreaPage() {
       <header className={styles.header}>
         <h1 className={styles.title}>TextArea</h1>
         <p className={styles.description}>
-          TextArea 컴포넌트는 후기, 메모, 설명 등 여러 줄의 텍스트를 입력받을 때 사용합니다.
+          TextArea 컴포넌트는 후기, 메모, 설명 등 여러 줄의 텍스트를 입력받을 때
+          사용합니다.
         </p>
       </header>
 
@@ -110,7 +106,7 @@ export function TextAreaPage() {
             <h3 className={styles.quickRefTitle}>Import</h3>
             <CodeBlock
               language="typescript"
-              code={`import { TextArea } from '@taein-designsystem/core';`}
+              code={`import { TextArea } from '@taein-ui/core';`}
             />
           </Card.Body>
         </Card>
@@ -133,7 +129,8 @@ export function TextAreaPage() {
         <div className={styles.sectionHeader}>
           <h2 className={styles.sectionTitle}>Examples</h2>
           <p className={styles.sectionDescription}>
-            다양한 사용 사례와 인터랙티브 예제를 통해 TextArea의 기능을 확인하세요.
+            다양한 사용 사례와 인터랙티브 예제를 통해 TextArea의 기능을
+            확인하세요.
           </p>
         </div>
 
@@ -347,33 +344,39 @@ export function TextAreaPage() {
           {
             attribute: 'label',
             effect: '스크린 리더에서 입력 영역의 용도를 읽어줍니다.',
-            description: '레이블이 textarea와 자동으로 연결되어 사용자가 무엇을 입력해야 하는지 명확히 알 수 있습니다.',
+            description:
+              '레이블이 textarea와 자동으로 연결되어 사용자가 무엇을 입력해야 하는지 명확히 알 수 있습니다.',
           },
           {
             attribute: 'required',
             effect: '필수 입력 항목임을 스크린 리더에 알려줍니다.',
-            description: 'aria-required="true"가 설정되어 필수 입력 필드라는 정보를 제공합니다.',
+            description:
+              'aria-required="true"가 설정되어 필수 입력 필드라는 정보를 제공합니다.',
           },
           {
             attribute: 'error + errorMessage',
             effect: '에러 메시지를 스크린 리더가 읽어줍니다.',
-            description: 'aria-describedby로 에러 메시지가 연결되어 사용자가 무엇이 잘못되었는지 알 수 있습니다.',
+            description:
+              'aria-describedby로 에러 메시지가 연결되어 사용자가 무엇이 잘못되었는지 알 수 있습니다.',
           },
           {
             attribute: 'disabled',
             effect: '비활성화 상태를 스크린 리더에서 알려줍니다.',
-            description: 'aria-disabled="true"가 설정되어 입력할 수 없는 상태임을 전달합니다.',
+            description:
+              'aria-disabled="true"가 설정되어 입력할 수 없는 상태임을 전달합니다.',
           },
           {
             attribute: 'helperText',
             effect: '추가 설명을 스크린 리더가 읽어줍니다.',
-            description: 'aria-describedby로 도움말이 연결되어 입력에 대한 가이드를 제공합니다.',
+            description:
+              'aria-describedby로 도움말이 연결되어 입력에 대한 가이드를 제공합니다.',
           },
         ]}
         additionalGuidance={[
           {
             title: 'placeholder는 레이블이 아닙니다',
-            description: 'placeholder만으로는 접근성이 충분하지 않습니다. 반드시 label prop을 사용해 명확한 레이블을 제공해주세요.',
+            description:
+              'placeholder만으로는 접근성이 충분하지 않습니다. 반드시 label prop을 사용해 명확한 레이블을 제공해주세요.',
             examples: [
               {
                 code: `// Good ✓
@@ -386,13 +389,15 @@ export function TextAreaPage() {
 <TextArea
   placeholder="의견을 작성하세요"
 />`,
-                explanation: 'placeholder는 입력 시 사라지기 때문에 레이블 역할을 할 수 없습니다.',
+                explanation:
+                  'placeholder는 입력 시 사라지기 때문에 레이블 역할을 할 수 없습니다.',
               },
             ],
           },
           {
             title: '글자 수 제한은 명확하게',
-            description: 'maxLength를 사용할 때는 helperText로 제한을 명확히 안내해주세요.',
+            description:
+              'maxLength를 사용할 때는 helperText로 제한을 명확히 안내해주세요.',
             examples: [
               {
                 code: `// Good ✓
@@ -407,7 +412,8 @@ export function TextAreaPage() {
   label="소개"
   maxLength={500}
 />`,
-                explanation: '글자 수 제한을 미리 알려주면 사용자가 더 쉽게 입력할 수 있습니다.',
+                explanation:
+                  '글자 수 제한을 미리 알려주면 사용자가 더 쉽게 입력할 수 있습니다.',
               },
             ],
           },
@@ -447,7 +453,9 @@ export function TextAreaPage() {
                 <h3 className={styles.practiceTitle}>Don't</h3>
               </div>
               <List spacing="sm" className={styles.practiceList}>
-                <ListItem>짧은 입력에 TextArea 사용하지 않기 (TextField 권장)</ListItem>
+                <ListItem>
+                  짧은 입력에 TextArea 사용하지 않기 (TextField 권장)
+                </ListItem>
                 <ListItem>placeholder만으로 레이블 대체하지 않기</ListItem>
                 <ListItem>너무 작은 높이 설정 (최소 120px 권장)</ListItem>
                 <ListItem>모호한 에러 메시지 ("잘못된 입력")</ListItem>

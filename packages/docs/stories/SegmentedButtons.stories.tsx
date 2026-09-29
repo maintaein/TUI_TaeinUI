@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react';
-import { SegmentedButtons } from '@taein-designsystem/core';
+import { SegmentedButtons } from '@taein-ui/core';
 import { useState } from 'react';
 
 // 아이콘 컴포넌트들

@@ -22,7 +22,7 @@ const config: StorybookConfig = {
     config.resolve = config.resolve || {};
     config.resolve.alias = {
       ...config.resolve.alias,
-      '@taein-designsystem/core': resolve(__dirname, '../../core/src'),
+      '@taein-ui/core': resolve(__dirname, '../../core/src'),
     };
 
     return config;

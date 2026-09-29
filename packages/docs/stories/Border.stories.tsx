@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react';
-import { Border } from '@taein-designsystem/core';
+import { Border } from '@taein-ui/core';
 
 const meta = {
   title: 'Layout/Border',

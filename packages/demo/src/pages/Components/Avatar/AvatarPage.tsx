@@ -1,8 +1,4 @@
-import {
-  Card,
-  List,
-  ListItem,
-} from '@taein-designsystem/core';
+import { Card, List, ListItem } from '@taein-ui/core';
 import { LivePreview } from '../../../components/LivePreview';
 import { CodeBlock } from '../../../components/CodeBlock';
 import { PropsTable } from '../../../components/PropsTable';
@@ -11,7 +7,6 @@ import { AccessibilitySection } from '../../../components/AccessibilitySection';
 import * as styles from './AvatarPage.css';
 
 export function AvatarPage() {
-
   const avatarPropsData: PropDefinition[] = [
     {
       name: 'src',
@@ -120,7 +115,8 @@ export function AvatarPage() {
       <header className={styles.header}>
         <h1 className={styles.title}>Avatar</h1>
         <p className={styles.description}>
-          Avatar 컴포넌트는 사용자나 그룹을 시각적으로 나타낼 때 사용합니다. 프로필 사진, 댓글 작성자 표시, 참여자 목록 등에 활용할 수 있습니다.
+          Avatar 컴포넌트는 사용자나 그룹을 시각적으로 나타낼 때 사용합니다.
+          프로필 사진, 댓글 작성자 표시, 참여자 목록 등에 활용할 수 있습니다.
         </p>
       </header>
 
@@ -131,7 +127,7 @@ export function AvatarPage() {
             <h3 className={styles.quickRefTitle}>Import</h3>
             <CodeBlock
               language="typescript"
-              code={`import { Avatar, AvatarGroup } from '@taein-designsystem/core';`}
+              code={`import { Avatar, AvatarGroup } from '@taein-ui/core';`}
             />
           </Card.Body>
         </Card>
@@ -414,33 +410,40 @@ const profileMenu = (
           {
             attribute: 'alt',
             effect: '이미지의 대체 텍스트를 스크린 리더에 전달합니다.',
-            description: 'img 태그에 alt 속성이 설정되어 이미지 내용을 설명합니다.',
+            description:
+              'img 태그에 alt 속성이 설정되어 이미지 내용을 설명합니다.',
           },
           {
             attribute: 'role="img"',
             effect: 'fallback 상태에서 이미지 역할을 알립니다.',
-            description: '이미지가 없을 때 이니셜 영역에 role="img"을 설정하여 스크린 리더가 이미지로 인식합니다.',
+            description:
+              '이미지가 없을 때 이니셜 영역에 role="img"을 설정하여 스크린 리더가 이미지로 인식합니다.',
           },
           {
             attribute: 'aria-label',
             effect: 'fallback 상태에서 접근 가능한 이름을 제공합니다.',
-            description: '이니셜만 표시될 때 aria-label로 전체 이름을 전달합니다.',
+            description:
+              '이니셜만 표시될 때 aria-label로 전체 이름을 전달합니다.',
           },
           {
             attribute: 'aria-hidden',
             effect: '상태 뱃지를 스크린 리더에서 숨깁니다.',
-            description: '상태 뱃지는 장식적 요소이므로 aria-hidden="true"로 설정되어 있습니다.',
+            description:
+              '상태 뱃지는 장식적 요소이므로 aria-hidden="true"로 설정되어 있습니다.',
           },
           {
             attribute: 'button / a 태그',
-            effect: 'onClick 또는 href가 있으면 적절한 인터랙티브 요소로 렌더링됩니다.',
-            description: 'onClick → button, href → a 태그로 자동 전환되며, aria-label이 alt 값으로 설정됩니다.',
+            effect:
+              'onClick 또는 href가 있으면 적절한 인터랙티브 요소로 렌더링됩니다.',
+            description:
+              'onClick → button, href → a 태그로 자동 전환되며, aria-label이 alt 값으로 설정됩니다.',
           },
         ]}
         additionalGuidance={[
           {
             title: '의미 있는 alt 텍스트 제공하기',
-            description: 'alt에 사용자의 실제 이름을 넣어 스크린 리더가 누구인지 전달할 수 있도록 합니다.',
+            description:
+              'alt에 사용자의 실제 이름을 넣어 스크린 리더가 누구인지 전달할 수 있도록 합니다.',
             examples: [
               {
                 code: `// Good
@@ -475,7 +478,9 @@ const profileMenu = (
               <List spacing="sm" className={styles.practiceList}>
                 <ListItem>alt에 사용자의 실제 이름 사용</ListItem>
                 <ListItem>적절한 size를 맥락에 맞게 선택</ListItem>
-                <ListItem>AvatarGroup으로 여러 사용자 표시 시 max 활용</ListItem>
+                <ListItem>
+                  AvatarGroup으로 여러 사용자 표시 시 max 활용
+                </ListItem>
                 <ListItem>이미지 로드 실패 대비 fallback 확인</ListItem>
                 <ListItem>상태 뱃지는 실시간 상태 반영에만 사용</ListItem>
               </List>
@@ -489,9 +494,14 @@ const profileMenu = (
                 <h3 className={styles.practiceTitle}>Don't</h3>
               </div>
               <List spacing="sm" className={styles.practiceList}>
-                <ListItem>alt를 비워두거나 "사진", "이미지" 같은 일반적 텍스트 사용하지 않기</ListItem>
+                <ListItem>
+                  alt를 비워두거나 "사진", "이미지" 같은 일반적 텍스트 사용하지
+                  않기
+                </ListItem>
                 <ListItem>너무 많은 아바타를 max 없이 나열하지 않기</ListItem>
-                <ListItem>장식용 아바타에 불필요한 status 사용하지 않기</ListItem>
+                <ListItem>
+                  장식용 아바타에 불필요한 status 사용하지 않기
+                </ListItem>
                 <ListItem>매우 큰 이미지를 src에 직접 전달하지 않기</ListItem>
               </List>
             </Card.Body>

@@ -3,7 +3,7 @@ import { test, expect } from '@playwright/test';
 test.describe('페이지 네비게이션', () => {
   test('메인 페이지가 로드된다', async ({ page }) => {
     await page.goto('/');
-    await expect(page).toHaveTitle(/TDS/i);
+    await expect(page).toHaveTitle(/TUI/i);
   });
 
   test('시작하기 페이지로 이동한다', async ({ page }) => {

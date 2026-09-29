@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { Button, Card, Text } from '@taein-designsystem/core';
+import { Button, Card, Text } from '@taein-ui/core';
 import { LayoutGrid } from 'lucide-react';
 import { CodeBlock } from '../../components/CodeBlock';
 import * as styles from './GettingStartedPage.css';
@@ -12,7 +12,7 @@ export function GettingStartedPage() {
         시작하기
       </Text>
       <p className={styles.description}>
-        TDS를 프로젝트에 설치하고 사용하는 방법을 알아보세요.
+        TUI를 프로젝트에 설치하고 사용하는 방법을 알아보세요.
       </p>
 
       {/* Installation Section */}
@@ -21,14 +21,14 @@ export function GettingStartedPage() {
           1. 설치
         </Text>
         <p className={styles.sectionDescription}>
-          원하는 패키지 매니저를 사용하여 TDS를 설치하세요.
+          원하는 패키지 매니저를 사용하여 TUI를 설치하세요.
         </p>
 
         <div className={styles.installTabs}>
           <div className={styles.installOption}>
             <h3 className={styles.installTitle}>npm</h3>
             <CodeBlock
-              code="npm install @taein-designsystem/core"
+              code="npm install @taein-ui/core"
               language="bash"
               showLineNumbers={false}
             />
@@ -37,7 +37,7 @@ export function GettingStartedPage() {
           <div className={styles.installOption}>
             <h3 className={styles.installTitle}>pnpm</h3>
             <CodeBlock
-              code="pnpm add @taein-designsystem/core"
+              code="pnpm add @taein-ui/core"
               language="bash"
               showLineNumbers={false}
             />
@@ -46,7 +46,7 @@ export function GettingStartedPage() {
           <div className={styles.installOption}>
             <h3 className={styles.installTitle}>yarn</h3>
             <CodeBlock
-              code="yarn add @taein-designsystem/core"
+              code="yarn add @taein-ui/core"
               language="bash"
               showLineNumbers={false}
             />
@@ -60,7 +60,7 @@ export function GettingStartedPage() {
           2. 기본 사용법
         </Text>
         <p className={styles.sectionDescription}>
-          TDS 컴포넌트를 사용하려면 먼저 CSS를 import하고 컴포넌트를 가져옵니다.
+          TUI 컴포넌트를 사용하려면 먼저 CSS를 import하고 컴포넌트를 가져옵니다.
         </p>
 
         <div className={styles.codeExample}>
@@ -70,7 +70,7 @@ export function GettingStartedPage() {
           </p>
           <CodeBlock
             code={`// main.tsx 또는 App.tsx
-import '@taein-designsystem/core/styles.css';`}
+import '@taein-ui/core/styles.css';`}
             language="tsx"
             fileName="main.tsx"
           />
@@ -79,7 +79,7 @@ import '@taein-designsystem/core/styles.css';`}
         <div className={styles.codeExample}>
           <h3 className={styles.exampleTitle}>폰트 설정 (권장)</h3>
           <p className={styles.exampleDescription}>
-            TDS는 기본 폰트로 Pretendard를 사용합니다. 폰트가 로드되지 않은
+            TUI는 기본 폰트로 Pretendard를 사용합니다. 폰트가 로드되지 않은
             환경에서는 시스템 폰트로 자동 대체되지만, 최적의 경험을 위해
             Pretendard를 로드하는 것을 권장합니다.
           </p>
@@ -102,7 +102,7 @@ import '@taein-designsystem/core/styles.css';`}
             필요한 컴포넌트를 import하여 사용합니다.
           </p>
           <CodeBlock
-            code={`import { Button, TextField, Modal } from '@taein-designsystem/core';
+            code={`import { Button, TextField, Modal } from '@taein-ui/core';
 
 function App() {
   return (
@@ -124,7 +124,7 @@ function App() {
           3. TypeScript 설정
         </Text>
         <p className={styles.sectionDescription}>
-          TDS는 TypeScript로 작성되었으며 모든 컴포넌트에 타입 정의가 포함되어
+          TUI는 TypeScript로 작성되었으며 모든 컴포넌트에 타입 정의가 포함되어
           있습니다. 별도의 @types 패키지가 필요하지 않습니다.
         </p>
 
@@ -134,7 +134,7 @@ function App() {
             TypeScript는 자동으로 props를 검증하고 자동완성을 제공합니다.
           </p>
           <CodeBlock
-            code={`import { Button, type ButtonProps } from '@taein-designsystem/core';
+            code={`import { Button, type ButtonProps } from '@taein-ui/core';
 
 // Props 타입을 명시적으로 사용할 수 있습니다
 const MyButton: React.FC<ButtonProps> = (props) => {
@@ -173,7 +173,7 @@ function Example() {
           4. 다음 단계
         </Text>
         <p className={styles.sectionDescription}>
-          TDS를 설치했다면 이제 컴포넌트를 탐색하고 프로젝트에 적용해보세요.
+          TUI를 설치했다면 이제 컴포넌트를 탐색하고 프로젝트에 적용해보세요.
         </p>
 
         <div className={styles.nextStepsGrid}>

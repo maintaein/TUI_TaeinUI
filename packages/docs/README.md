@@ -1,6 +1,6 @@
-# @taein-designsystem/docs
+# @taein-ui/docs
 
-TDS(Taein Design System)의 Storybook 문서 패키지입니다.
+TUI(TaeinUI)의 Storybook 문서 패키지입니다.
 컴포넌트의 다양한 상태와 사용 예시를 시각적으로 확인할 수 있습니다.
 
 ## 실행
@@ -37,7 +37,7 @@ packages/docs/
 
 ```tsx
 import type { Meta, StoryObj } from '@storybook/react';
-import { Button } from '@taein-designsystem/core';
+import { Button } from '@taein-ui/core';
 
 const meta: Meta<typeof Button> = {
   title: 'Components/Button',

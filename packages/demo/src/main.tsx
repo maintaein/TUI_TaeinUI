@@ -1,7 +1,7 @@
 import { StrictMode, startTransition } from 'react';
 import { createRoot } from 'react-dom/client';
 import { inject } from '@vercel/analytics';
-import '@taein-designsystem/core/styles.css';
+import '@taein-ui/core/styles.css';
 import { AppRouter } from './routes';
 import './styles/global.css';
 

@@ -1,8 +1,4 @@
-import {
-  Card,
-  List,
-  ListItem,
-} from '@taein-designsystem/core';
+import { Card, List, ListItem } from '@taein-ui/core';
 import { LivePreview } from '../../../components/LivePreview';
 import { CodeBlock } from '../../../components/CodeBlock';
 import { PropsTable } from '../../../components/PropsTable';
@@ -11,7 +7,6 @@ import { AccessibilitySection } from '../../../components/AccessibilitySection';
 import * as styles from './BorderPage.css';
 
 export function BorderPage() {
-
   const propsData: PropDefinition[] = [
     {
       name: 'children',
@@ -63,7 +58,9 @@ export function BorderPage() {
       <header className={styles.header}>
         <h1 className={styles.title}>Border</h1>
         <p className={styles.description}>
-          Border 컴포넌트는 콘텐츠 영역을 시각적으로 구분하거나 강조할 때 사용합니다. 인용문 강조, 섹션 구분선, 경고 박스 등에 활용할 수 있습니다.
+          Border 컴포넌트는 콘텐츠 영역을 시각적으로 구분하거나 강조할 때
+          사용합니다. 인용문 강조, 섹션 구분선, 경고 박스 등에 활용할 수
+          있습니다.
         </p>
       </header>
 
@@ -74,7 +71,7 @@ export function BorderPage() {
             <h3 className={styles.quickRefTitle}>Import</h3>
             <CodeBlock
               language="typescript"
-              code={`import { Border } from '@taein-designsystem/core';`}
+              code={`import { Border } from '@taein-ui/core';`}
             />
           </Card.Body>
         </Card>
@@ -320,7 +317,8 @@ export function BorderPage() {
         <div className={styles.sectionHeader}>
           <h2 className={styles.sectionTitle}>Props API</h2>
           <p className={styles.sectionDescription}>
-            Border 컴포넌트의 모든 Props와 타입 정보입니다. HTML div 속성도 모두 사용 가능합니다.
+            Border 컴포넌트의 모든 Props와 타입 정보입니다. HTML div 속성도 모두
+            사용 가능합니다.
           </p>
         </div>
         <div className={styles.propsTableWrapper}>
@@ -336,23 +334,27 @@ export function BorderPage() {
           {
             attribute: '<div> 요소',
             effect: '의미 없는 컨테이너로 렌더링됩니다.',
-            description: '시각적 스타일만 제공하며, 스크린 리더에서 별도 역할을 갖지 않습니다.',
+            description:
+              '시각적 스타일만 제공하며, 스크린 리더에서 별도 역할을 갖지 않습니다.',
           },
           {
             attribute: 'HTML 속성 전달',
             effect: 'role, aria-* 등을 자유롭게 설정할 수 있습니다.',
-            description: 'HTMLAttributes를 확장하므로 필요에 따라 시맨틱 정보를 추가할 수 있습니다.',
+            description:
+              'HTMLAttributes를 확장하므로 필요에 따라 시맨틱 정보를 추가할 수 있습니다.',
           },
           {
             attribute: '색상 대비',
             effect: '테마 시스템의 시맨틱 컬러를 사용합니다.',
-            description: 'default, primary, success, error, warning 색상은 충분한 대비를 제공합니다.',
+            description:
+              'default, primary, success, error, warning 색상은 충분한 대비를 제공합니다.',
           },
         ]}
         additionalGuidance={[
           {
             title: '시맨틱 역할이 필요한 경우',
-            description: 'Border가 의미 있는 영역을 감싸는 경우 적절한 role이나 시맨틱 요소를 함께 사용하세요.',
+            description:
+              'Border가 의미 있는 영역을 감싸는 경우 적절한 role이나 시맨틱 요소를 함께 사용하세요.',
             examples: [
               {
                 code: `// 경고 영역
@@ -365,7 +367,8 @@ export function BorderPage() {
   <p>이름: 홍길동</p>
   <p>이메일: hong@example.com</p>
 </Border>`,
-                explanation: '순수 장식 용도가 아닌 경우 role이나 aria-label을 추가하세요.',
+                explanation:
+                  '순수 장식 용도가 아닌 경우 role이나 aria-label을 추가하세요.',
               },
             ],
           },
@@ -389,8 +392,12 @@ export function BorderPage() {
                 <h3 className={styles.practiceTitle}>Do</h3>
               </div>
               <List spacing="sm" className={styles.practiceList}>
-                <ListItem>영역 구분에 sides="bottom" 또는 sides="top" 활용</ListItem>
-                <ListItem>강조 영역에 sides="left" + color="primary" 조합 사용</ListItem>
+                <ListItem>
+                  영역 구분에 sides="bottom" 또는 sides="top" 활용
+                </ListItem>
+                <ListItem>
+                  강조 영역에 sides="left" + color="primary" 조합 사용
+                </ListItem>
                 <ListItem>에러/경고 메시지에 적절한 color 사용</ListItem>
                 <ListItem>카드 스타일에 rounded + padding 조합 활용</ListItem>
                 <ListItem>의미 있는 영역에 role, aria-label 추가</ListItem>
@@ -405,10 +412,16 @@ export function BorderPage() {
                 <h3 className={styles.practiceTitle}>Don't</h3>
               </div>
               <List spacing="sm" className={styles.practiceList}>
-                <ListItem>테두리를 과도하게 중첩하여 시각적 복잡도 높이지 않기</ListItem>
-                <ListItem>의미 전달 목적으로 색상에만 의존하지 않기 (텍스트 병행)</ListItem>
+                <ListItem>
+                  테두리를 과도하게 중첩하여 시각적 복잡도 높이지 않기
+                </ListItem>
+                <ListItem>
+                  의미 전달 목적으로 색상에만 의존하지 않기 (텍스트 병행)
+                </ListItem>
                 <ListItem>thick 두께를 장식 외 목적으로 남용하지 않기</ListItem>
-                <ListItem>padding 없이 텍스트를 테두리에 밀착시키지 않기</ListItem>
+                <ListItem>
+                  padding 없이 텍스트를 테두리에 밀착시키지 않기
+                </ListItem>
               </List>
             </Card.Body>
           </Card>

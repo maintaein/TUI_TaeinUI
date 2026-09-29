@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react';
-import { Loader } from '@taein-designsystem/core';
+import { Loader } from '@taein-ui/core';
 import { useState } from 'react';
 
 const meta = {

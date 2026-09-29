@@ -1,8 +1,4 @@
-import {
-  Card,
-  List,
-  ListItem,
-} from '@taein-designsystem/core';
+import { Card, List, ListItem } from '@taein-ui/core';
 import { LivePreview } from '../../../components/LivePreview';
 import { CodeBlock } from '../../../components/CodeBlock';
 import { PropsTable } from '../../../components/PropsTable';
@@ -71,7 +67,8 @@ export function TooltipPage() {
       <header className={styles.header}>
         <h1 className={styles.title}>Tooltip</h1>
         <p className={styles.description}>
-          Tooltip 컴포넌트는 아이콘이나 버튼 위에 마우스를 올렸을 때 부가 설명을 보여줄 때 사용합니다.
+          Tooltip 컴포넌트는 아이콘이나 버튼 위에 마우스를 올렸을 때 부가 설명을
+          보여줄 때 사용합니다.
         </p>
       </header>
 
@@ -81,7 +78,7 @@ export function TooltipPage() {
           <Card.Body>
             <div className={styles.quickRefTitle}>Import</div>
             <CodeBlock
-              code="import { Tooltip } from '@taein-designsystem/core';"
+              code="import { Tooltip } from '@taein-ui/core';"
               language="tsx"
             />
           </Card.Body>
@@ -116,7 +113,8 @@ arrow: 화살표 표시/숨김
         <div className={styles.sectionHeader}>
           <h2 className={styles.sectionTitle}>Basic</h2>
           <p className={styles.sectionDescription}>
-            기본 사용법입니다. children 요소에 hover 또는 focus하면 툴팁이 나타납니다.
+            기본 사용법입니다. children 요소에 hover 또는 focus하면 툴팁이
+            나타납니다.
           </p>
         </div>
 
@@ -297,7 +295,8 @@ arrow: 화살표 표시/숨김
         <div className={styles.sectionHeader}>
           <h2 className={styles.sectionTitle}>Controlled Mode</h2>
           <p className={styles.sectionDescription}>
-            open / onOpenChange prop으로 툴팁 표시 상태를 외부에서 제어할 수 있습니다.
+            open / onOpenChange prop으로 툴팁 표시 상태를 외부에서 제어할 수
+            있습니다.
           </p>
         </div>
 
@@ -326,7 +325,8 @@ arrow: 화살표 표시/숨김
         <div className={styles.sectionHeader}>
           <h2 className={styles.sectionTitle}>Rich Content</h2>
           <p className={styles.sectionDescription}>
-            content prop은 ReactNode를 받으므로 복잡한 내용도 표시할 수 있습니다.
+            content prop은 ReactNode를 받으므로 복잡한 내용도 표시할 수
+            있습니다.
           </p>
         </div>
 
@@ -418,11 +418,34 @@ arrow: 화살표 표시/숨김
           componentName="Tooltip"
           intro="Tooltip은 role='tooltip'과 aria-describedby를 통해 보조 기술에 추가 정보를 제공합니다. 키보드 포커스 시에도 툴팁이 나타납니다."
           features={[
-            { attribute: 'role="tooltip"', effect: '툴팁 역할 전달', description: '스크린 리더가 해당 요소를 툴팁으로 인식합니다.' },
-            { attribute: 'aria-describedby', effect: '연관 요소 연결', description: '트리거 요소가 툴팁 내용을 설명으로 참조합니다. 툴팁이 열릴 때만 설정됩니다.' },
-            { attribute: 'onFocus / onBlur', effect: '키보드 접근성', description: '마우스 없이 Tab 키로 포커스해도 툴팁이 나타납니다.' },
-            { attribute: 'delay', effect: '실수 방지', description: '지연 시간으로 빠른 마우스 이동 시 불필요한 툴팁 표시를 방지합니다.' },
-            { attribute: 'pointerEvents: none', effect: '인터랙션 차단 방지', description: '툴팁 자체는 클릭/hover 이벤트를 받지 않아 레이아웃 간섭이 없습니다.' },
+            {
+              attribute: 'role="tooltip"',
+              effect: '툴팁 역할 전달',
+              description: '스크린 리더가 해당 요소를 툴팁으로 인식합니다.',
+            },
+            {
+              attribute: 'aria-describedby',
+              effect: '연관 요소 연결',
+              description:
+                '트리거 요소가 툴팁 내용을 설명으로 참조합니다. 툴팁이 열릴 때만 설정됩니다.',
+            },
+            {
+              attribute: 'onFocus / onBlur',
+              effect: '키보드 접근성',
+              description: '마우스 없이 Tab 키로 포커스해도 툴팁이 나타납니다.',
+            },
+            {
+              attribute: 'delay',
+              effect: '실수 방지',
+              description:
+                '지연 시간으로 빠른 마우스 이동 시 불필요한 툴팁 표시를 방지합니다.',
+            },
+            {
+              attribute: 'pointerEvents: none',
+              effect: '인터랙션 차단 방지',
+              description:
+                '툴팁 자체는 클릭/hover 이벤트를 받지 않아 레이아웃 간섭이 없습니다.',
+            },
           ]}
         />
       </section>
@@ -447,7 +470,9 @@ arrow: 화살표 표시/숨김
                 <ListItem>아이콘 버튼에 기능 설명 제공</ListItem>
                 <ListItem>긴 레이블의 잘린 텍스트 전체 내용 표시</ListItem>
                 <ListItem>키보드 접근 가능한 요소에만 사용</ListItem>
-                <ListItem>화면 가장자리 요소는 반대 방향 position 사용</ListItem>
+                <ListItem>
+                  화면 가장자리 요소는 반대 방향 position 사용
+                </ListItem>
               </List>
             </Card.Body>
           </Card>
@@ -458,7 +483,9 @@ arrow: 화살표 표시/숨김
                 <span className={styles.practiceTitle}>지양</span>
               </div>
               <List>
-                <ListItem>필수 정보를 툴팁으로만 전달 (항상 보여야 할 내용)</ListItem>
+                <ListItem>
+                  필수 정보를 툴팁으로만 전달 (항상 보여야 할 내용)
+                </ListItem>
                 <ListItem>긴 문단이나 여러 단락의 내용</ListItem>
                 <ListItem>모바일 터치 전용 UI (hover 불가)</ListItem>
                 <ListItem>클릭 가능한 링크나 버튼을 content에 포함</ListItem>

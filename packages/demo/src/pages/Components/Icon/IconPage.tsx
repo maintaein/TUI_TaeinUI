@@ -1,9 +1,4 @@
-import {
-  Card,
-  List,
-  ListItem,
-  Icon,
-} from '@taein-designsystem/core';
+import { Card, List, ListItem, Icon } from '@taein-ui/core';
 import { LivePreview } from '../../../components/LivePreview';
 import { CodeBlock } from '../../../components/CodeBlock';
 import { PropsTable } from '../../../components/PropsTable';
@@ -11,10 +6,15 @@ import type { PropDefinition } from '../../../components/PropsTable/PropsTable';
 import { AccessibilitySection } from '../../../components/AccessibilitySection';
 import * as styles from './IconPage.css';
 
-const ICON_NAMES = ['close', 'plus', 'minus', 'chevron-down', 'chevron-up'] as const;
+const ICON_NAMES = [
+  'close',
+  'plus',
+  'minus',
+  'chevron-down',
+  'chevron-up',
+] as const;
 
 export function IconPage() {
-
   const propsData: PropDefinition[] = [
     {
       name: 'name',
@@ -37,7 +37,8 @@ export function IconPage() {
     {
       name: 'aria-label',
       type: 'string',
-      description: '접근성 레이블. 설정하면 role="img"로 변경되어 의미 있는 이미지로 인식됩니다.',
+      description:
+        '접근성 레이블. 설정하면 role="img"로 변경되어 의미 있는 이미지로 인식됩니다.',
     },
     {
       name: 'title',
@@ -57,7 +58,9 @@ export function IconPage() {
       <header className={styles.header}>
         <h1 className={styles.title}>Icon</h1>
         <p className={styles.description}>
-          Icon 컴포넌트는 버튼, 메뉴, 상태 표시 등 UI 곳곳에 아이콘을 넣을 때 사용합니다. 닫기, 더하기, 빼기, 화살표 등 자주 쓰이는 아이콘을 내장하고 있습니다.
+          Icon 컴포넌트는 버튼, 메뉴, 상태 표시 등 UI 곳곳에 아이콘을 넣을 때
+          사용합니다. 닫기, 더하기, 빼기, 화살표 등 자주 쓰이는 아이콘을
+          내장하고 있습니다.
         </p>
       </header>
 
@@ -68,7 +71,7 @@ export function IconPage() {
             <h3 className={styles.quickRefTitle}>Import</h3>
             <CodeBlock
               language="typescript"
-              code={`import { Icon } from '@taein-designsystem/core';`}
+              code={`import { Icon } from '@taein-ui/core';`}
             />
           </Card.Body>
         </Card>
@@ -176,7 +179,9 @@ export function IconPage() {
 
         {/* currentColor Inheritance */}
         <div className={styles.example}>
-          <h3 className={styles.exampleTitle}>Color Inheritance (currentColor)</h3>
+          <h3 className={styles.exampleTitle}>
+            Color Inheritance (currentColor)
+          </h3>
           <LivePreview
             title="색상 상속"
             description="color를 지정하지 않으면 부모 요소의 텍스트 색상(currentColor)을 자동으로 상속받습니다."
@@ -285,7 +290,8 @@ export function IconPage() {
         <div className={styles.sectionHeader}>
           <h2 className={styles.sectionTitle}>Props API</h2>
           <p className={styles.sectionDescription}>
-            Icon 컴포넌트의 모든 Props와 타입 정보입니다. HTML SVG 속성도 모두 사용 가능합니다.
+            Icon 컴포넌트의 모든 Props와 타입 정보입니다. HTML SVG 속성도 모두
+            사용 가능합니다.
           </p>
         </div>
         <div className={styles.propsTableWrapper}>
@@ -298,12 +304,13 @@ export function IconPage() {
         <div className={styles.sectionHeader}>
           <h2 className={styles.sectionTitle}>IconName Type</h2>
           <p className={styles.sectionDescription}>
-            사용 가능한 아이콘 이름은 타입으로 정의되어 있어 자동 완성과 타입 검사가 가능합니다.
+            사용 가능한 아이콘 이름은 타입으로 정의되어 있어 자동 완성과 타입
+            검사가 가능합니다.
           </p>
         </div>
         <CodeBlock
           language="typescript"
-          code={`import type { IconName } from '@taein-designsystem/core';
+          code={`import type { IconName } from '@taein-ui/core';
 
 type IconName =
   | 'close'
@@ -322,28 +329,33 @@ type IconName =
           {
             attribute: 'aria-hidden="true"',
             effect: '장식용 아이콘으로 처리됩니다.',
-            description: 'aria-label이 없으면 자동으로 aria-hidden="true"가 설정되어 스크린 리더가 무시합니다.',
+            description:
+              'aria-label이 없으면 자동으로 aria-hidden="true"가 설정되어 스크린 리더가 무시합니다.',
           },
           {
             attribute: 'role="img"',
             effect: '의미 있는 이미지로 인식됩니다.',
-            description: 'aria-label을 설정하면 role="img"가 추가되어 스크린 리더가 이미지로 읽어줍니다.',
+            description:
+              'aria-label을 설정하면 role="img"가 추가되어 스크린 리더가 이미지로 읽어줍니다.',
           },
           {
             attribute: '<title>',
             effect: '마우스 호버 시 툴팁을 표시합니다.',
-            description: 'title prop을 설정하면 SVG 내부에 <title> 요소가 추가됩니다.',
+            description:
+              'title prop을 설정하면 SVG 내부에 <title> 요소가 추가됩니다.',
           },
           {
             attribute: 'data-icon',
             effect: '어떤 아이콘인지 식별할 수 있습니다.',
-            description: 'data-icon 속성에 아이콘 이름이 설정되어 테스트나 디버깅에 활용할 수 있습니다.',
+            description:
+              'data-icon 속성에 아이콘 이름이 설정되어 테스트나 디버깅에 활용할 수 있습니다.',
           },
         ]}
         additionalGuidance={[
           {
             title: '단독 사용 시 aria-label 필수',
-            description: '텍스트 없이 아이콘만 단독으로 사용할 때는 반드시 aria-label을 제공하세요.',
+            description:
+              '텍스트 없이 아이콘만 단독으로 사용할 때는 반드시 aria-label을 제공하세요.',
             examples: [
               {
                 code: `// Good — 단독 사용 시 aria-label 제공
@@ -358,7 +370,8 @@ type IconName =
 <button>
   <Icon name="close" />
 </button>`,
-                explanation: '텍스트 레이블이 없는 아이콘은 스크린 리더 사용자가 용도를 알 수 없습니다.',
+                explanation:
+                  '텍스트 레이블이 없는 아이콘은 스크린 리더 사용자가 용도를 알 수 없습니다.',
               },
             ],
           },
@@ -384,9 +397,13 @@ type IconName =
               <List spacing="sm" className={styles.practiceList}>
                 <ListItem>텍스트와 함께 사용하여 의미를 보강</ListItem>
                 <ListItem>단독 사용 시 aria-label로 의미 전달</ListItem>
-                <ListItem>currentColor 상속을 활용하여 부모 색상과 통일</ListItem>
+                <ListItem>
+                  currentColor 상속을 활용하여 부모 색상과 통일
+                </ListItem>
                 <ListItem>버튼 내부 아이콘은 sm 크기 사용</ListItem>
-                <ListItem>의미가 직관적인 아이콘 선택 (close → 닫기, plus → 추가)</ListItem>
+                <ListItem>
+                  의미가 직관적인 아이콘 선택 (close → 닫기, plus → 추가)
+                </ListItem>
               </List>
             </Card.Body>
           </Card>
@@ -398,10 +415,18 @@ type IconName =
                 <h3 className={styles.practiceTitle}>Don't</h3>
               </div>
               <List spacing="sm" className={styles.practiceList}>
-                <ListItem>텍스트 없이 아이콘만 사용하면서 aria-label 생략하지 않기</ListItem>
-                <ListItem>아이콘에 직접 onClick 이벤트 걸지 않기 (IconButton 사용)</ListItem>
-                <ListItem>의미가 모호한 아이콘을 설명 없이 사용하지 않기</ListItem>
-                <ListItem>아이콘 크기를 주변 텍스트보다 과하게 크게 설정하지 않기</ListItem>
+                <ListItem>
+                  텍스트 없이 아이콘만 사용하면서 aria-label 생략하지 않기
+                </ListItem>
+                <ListItem>
+                  아이콘에 직접 onClick 이벤트 걸지 않기 (IconButton 사용)
+                </ListItem>
+                <ListItem>
+                  의미가 모호한 아이콘을 설명 없이 사용하지 않기
+                </ListItem>
+                <ListItem>
+                  아이콘 크기를 주변 텍스트보다 과하게 크게 설정하지 않기
+                </ListItem>
                 <ListItem>색상 대비가 부족한 배경에서 사용하지 않기</ListItem>
               </List>
             </Card.Body>

@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import type { CSSProperties } from 'react';
-import { Card, Divider, Badge, Text } from '@taein-designsystem/core';
+import { Card, Divider, Badge, Text } from '@taein-ui/core';
 import {
   componentsData,
   categoryLabels,

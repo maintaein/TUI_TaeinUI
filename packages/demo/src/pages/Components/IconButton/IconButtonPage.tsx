@@ -1,8 +1,4 @@
-import {
-  Card,
-  List,
-  ListItem,
-} from '@taein-designsystem/core';
+import { Card, List, ListItem } from '@taein-ui/core';
 import { LivePreview } from '../../../components/LivePreview';
 import { CodeBlock } from '../../../components/CodeBlock';
 import { PropsTable } from '../../../components/PropsTable';
@@ -11,7 +7,6 @@ import { AccessibilitySection } from '../../../components/AccessibilitySection';
 import * as styles from './IconButtonPage.css';
 
 export function IconButtonPage() {
-
   const propsData: PropDefinition[] = [
     {
       name: 'children',
@@ -73,7 +68,8 @@ export function IconButtonPage() {
       <header className={styles.header}>
         <h1 className={styles.title}>IconButton</h1>
         <p className={styles.description}>
-          IconButton 컴포넌트는 닫기, 메뉴 열기, 설정 등 텍스트 없이 아이콘만으로 액션을 표현할 때 사용합니다.
+          IconButton 컴포넌트는 닫기, 메뉴 열기, 설정 등 텍스트 없이
+          아이콘만으로 액션을 표현할 때 사용합니다.
         </p>
       </header>
 
@@ -84,7 +80,7 @@ export function IconButtonPage() {
             <h3 className={styles.quickRefTitle}>Import</h3>
             <CodeBlock
               language="typescript"
-              code={`import { IconButton } from '@taein-designsystem/core';`}
+              code={`import { IconButton } from '@taein-ui/core';`}
             />
           </Card.Body>
         </Card>
@@ -117,7 +113,9 @@ export function IconButtonPage() {
         <div className={styles.sectionHeader}>
           <h2 className={styles.sectionTitle}>Contained Mode</h2>
           <p className={styles.sectionDescription}>
-            배경이 있는 정사각형 컨테이너 안에 아이콘을 배치하는 기본 모드입니다. variant, buttonStyle, size를 조합하여 다양한 스타일을 표현합니다.
+            배경이 있는 정사각형 컨테이너 안에 아이콘을 배치하는 기본
+            모드입니다. variant, buttonStyle, size를 조합하여 다양한 스타일을
+            표현합니다.
           </p>
         </div>
 
@@ -273,7 +271,9 @@ const handleClick = () => {
         <div className={styles.sectionHeader}>
           <h2 className={styles.sectionTitle}>Ghost Mode</h2>
           <p className={styles.sectionDescription}>
-            배경과 테두리 없이 아이콘 자체만 버튼으로 사용하는 모드입니다. ghost prop을 추가하면 variant, buttonStyle, size가 무시되고 투명한 버튼으로 렌더링됩니다. 호버 시 미세한 배경이 나타납니다.
+            배경과 테두리 없이 아이콘 자체만 버튼으로 사용하는 모드입니다. ghost
+            prop을 추가하면 variant, buttonStyle, size가 무시되고 투명한
+            버튼으로 렌더링됩니다. 호버 시 미세한 배경이 나타납니다.
           </p>
         </div>
 
@@ -369,7 +369,8 @@ const handleClick = () => {
         <div className={styles.sectionHeader}>
           <h2 className={styles.sectionTitle}>Props API</h2>
           <p className={styles.sectionDescription}>
-            IconButton 컴포넌트의 모든 Props와 타입 정보입니다. HTML button 속성도 모두 사용 가능합니다.
+            IconButton 컴포넌트의 모든 Props와 타입 정보입니다. HTML button
+            속성도 모두 사용 가능합니다.
           </p>
         </div>
         <div className={styles.propsTableWrapper}>
@@ -385,38 +386,45 @@ const handleClick = () => {
           {
             attribute: '<button> 요소',
             effect: '스크린 리더에서 "버튼"으로 인식합니다.',
-            description: '네이티브 button 요소를 사용하여 추가 role 없이도 올바른 역할을 전달합니다.',
+            description:
+              '네이티브 button 요소를 사용하여 추가 role 없이도 올바른 역할을 전달합니다.',
           },
           {
             attribute: 'aria-label (필수)',
             effect: '스크린 리더가 버튼의 용도를 알립니다.',
-            description: '아이콘만으로는 용도를 알 수 없으므로 aria-label 또는 aria-labelledby를 반드시 제공해야 합니다.',
+            description:
+              '아이콘만으로는 용도를 알 수 없으므로 aria-label 또는 aria-labelledby를 반드시 제공해야 합니다.',
           },
           {
             attribute: 'aria-hidden (아이콘)',
             effect: '아이콘이 스크린 리더에서 무시됩니다.',
-            description: 'children이 aria-hidden="true"로 감싸져 있어 중복 읽기를 방지합니다.',
+            description:
+              'children이 aria-hidden="true"로 감싸져 있어 중복 읽기를 방지합니다.',
           },
           {
             attribute: 'aria-disabled',
             effect: '비활성화 상태를 알립니다.',
-            description: 'disabled 또는 loading일 때 aria-disabled="true"가 설정됩니다.',
+            description:
+              'disabled 또는 loading일 때 aria-disabled="true"가 설정됩니다.',
           },
           {
             attribute: 'aria-busy',
             effect: '로딩 상태를 알립니다.',
-            description: 'loading일 때 aria-busy="true"가 설정되어 작업 진행 중임을 전달합니다.',
+            description:
+              'loading일 때 aria-busy="true"가 설정되어 작업 진행 중임을 전달합니다.',
           },
           {
             attribute: 'focus-visible',
             effect: '키보드 포커스 시 아웃라인이 표시됩니다.',
-            description: '2px solid outline과 2px offset으로 명확한 포커스 인디케이터를 제공합니다.',
+            description:
+              '2px solid outline과 2px offset으로 명확한 포커스 인디케이터를 제공합니다.',
           },
         ]}
         additionalGuidance={[
           {
             title: 'aria-label은 필수',
-            description: 'IconButton은 텍스트가 없으므로 스크린 리더 사용자를 위해 반드시 aria-label을 제공해야 합니다.',
+            description:
+              'IconButton은 텍스트가 없으므로 스크린 리더 사용자를 위해 반드시 aria-label을 제공해야 합니다.',
             examples: [
               {
                 code: `// Good
@@ -425,13 +433,15 @@ const handleClick = () => {
 
 // Bad - aria-label 없음
 <IconButton>✕</IconButton>`,
-                explanation: 'aria-label이 없으면 스크린 리더 사용자가 버튼의 용도를 알 수 없습니다. 개발 환경에서 콘솔 경고가 표시됩니다.',
+                explanation:
+                  'aria-label이 없으면 스크린 리더 사용자가 버튼의 용도를 알 수 없습니다. 개발 환경에서 콘솔 경고가 표시됩니다.',
               },
             ],
           },
           {
             title: '텍스트가 필요한 경우 Button 사용',
-            description: '버튼의 용도가 아이콘만으로 명확하지 않다면 Button 컴포넌트에 텍스트를 함께 사용하세요.',
+            description:
+              '버튼의 용도가 아이콘만으로 명확하지 않다면 Button 컴포넌트에 텍스트를 함께 사용하세요.',
             examples: [
               {
                 code: `// 아이콘만으로 충분한 경우 → IconButton
@@ -439,7 +449,8 @@ const handleClick = () => {
 
 // 텍스트가 필요한 경우 → Button
 <Button leftIcon="✕">삭제하기</Button>`,
-                explanation: '닫기(✕), 메뉴(☰) 같은 범용 아이콘은 IconButton으로 충분하지만, 구체적인 행동은 텍스트가 필요합니다.',
+                explanation:
+                  '닫기(✕), 메뉴(☰) 같은 범용 아이콘은 IconButton으로 충분하지만, 구체적인 행동은 텍스트가 필요합니다.',
               },
             ],
           },
@@ -467,7 +478,9 @@ const handleClick = () => {
                 <ListItem>범용적으로 인식 가능한 아이콘 사용하기</ListItem>
                 <ListItem>툴바에서 일관된 size와 buttonStyle 사용하기</ListItem>
                 <ListItem>비동기 작업 시 loading 상태 표시하기</ListItem>
-                <ListItem>Button과 함께 사용 시 동일한 variant 체계 활용하기</ListItem>
+                <ListItem>
+                  Button과 함께 사용 시 동일한 variant 체계 활용하기
+                </ListItem>
               </List>
             </Card.Body>
           </Card>
@@ -481,9 +494,13 @@ const handleClick = () => {
               <List spacing="sm" className={styles.practiceList}>
                 <ListItem>aria-label 없이 사용하지 않기</ListItem>
                 <ListItem>의미가 불분명한 커스텀 아이콘 사용하지 않기</ListItem>
-                <ListItem>텍스트 설명이 필요한 행동에 IconButton 사용하지 않기</ListItem>
+                <ListItem>
+                  텍스트 설명이 필요한 행동에 IconButton 사용하지 않기
+                </ListItem>
                 <ListItem>같은 아이콘으로 다른 행동을 수행하지 않기</ListItem>
-                <ListItem>너무 작은 터치 타깃 사용하지 않기 (최소 sm 권장)</ListItem>
+                <ListItem>
+                  너무 작은 터치 타깃 사용하지 않기 (최소 sm 권장)
+                </ListItem>
               </List>
             </Card.Body>
           </Card>

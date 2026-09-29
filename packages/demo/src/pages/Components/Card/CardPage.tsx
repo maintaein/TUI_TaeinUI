@@ -1,8 +1,4 @@
-import {
-  Card,
-  List,
-  ListItem,
-} from '@taein-designsystem/core';
+import { Card, List, ListItem } from '@taein-ui/core';
 import { LivePreview } from '../../../components/LivePreview';
 import { CodeBlock } from '../../../components/CodeBlock';
 import { PropsTable } from '../../../components/PropsTable';
@@ -16,7 +12,8 @@ export function CardPage() {
       name: 'children',
       type: 'ReactNode',
       required: true,
-      description: '카드 본문 콘텐츠 (Flat: 본문 영역, Compound: 서브 컴포넌트)',
+      description:
+        '카드 본문 콘텐츠 (Flat: 본문 영역, Compound: 서브 컴포넌트)',
     },
     {
       name: 'variant',
@@ -148,7 +145,8 @@ export function CardPage() {
       <header className={styles.header}>
         <h1 className={styles.title}>Card</h1>
         <p className={styles.description}>
-          Card 컴포넌트는 상품 정보, 블로그 글, 사용자 프로필 등 관련된 콘텐츠를 하나의 영역으로 묶어 표시할 때 사용합니다.
+          Card 컴포넌트는 상품 정보, 블로그 글, 사용자 프로필 등 관련된 콘텐츠를
+          하나의 영역으로 묶어 표시할 때 사용합니다.
         </p>
       </header>
 
@@ -159,7 +157,7 @@ export function CardPage() {
             <h3 className={styles.quickRefTitle}>Import</h3>
             <CodeBlock
               language="typescript"
-              code={`import { Card } from '@taein-designsystem/core';
+              code={`import { Card } from '@taein-ui/core';
 
 // Flat: props로 간단하게
 <Card title="제목">내용</Card>
@@ -201,7 +199,8 @@ export function CardPage() {
         <div className={styles.sectionHeader}>
           <h2 className={styles.sectionTitle}>Examples</h2>
           <p className={styles.sectionDescription}>
-            title, header, footer, image 등 props만으로 빠르게 카드를 구성하는 Flat 패턴 예제입니다.
+            title, header, footer, image 등 props만으로 빠르게 카드를 구성하는
+            Flat 패턴 예제입니다.
           </p>
         </div>
 
@@ -349,7 +348,8 @@ export function CardPage() {
         <div className={styles.sectionHeader}>
           <h2 className={styles.sectionTitle}>Flat vs Compound 패턴</h2>
           <p className={styles.sectionDescription}>
-            Card는 하나의 import로 두 가지 API 스타일을 제공합니다. 상황에 맞게 선택하세요.
+            Card는 하나의 import로 두 가지 API 스타일을 제공합니다. 상황에 맞게
+            선택하세요.
           </p>
         </div>
 
@@ -357,8 +357,8 @@ export function CardPage() {
           <div className={styles.patternCard}>
             <p className={styles.patternCardTitle}>Flat Pattern (기본 권장)</p>
             <p className={styles.patternCardDesc}>
-              Card에 title, header, footer, image를 props로 전달합니다.
-              빠르게 만들 수 있지만 확장성에 한계가 있습니다.
+              Card에 title, header, footer, image를 props로 전달합니다. 빠르게
+              만들 수 있지만 확장성에 한계가 있습니다.
             </p>
             <p className={styles.patternCardWhen}>사용할 때</p>
             <ul className={styles.patternCardList}>
@@ -368,10 +368,13 @@ export function CardPage() {
             </ul>
           </div>
           <div className={styles.patternCard}>
-            <p className={styles.patternCardTitle}>Compound Pattern (커스텀용)</p>
+            <p className={styles.patternCardTitle}>
+              Compound Pattern (커스텀용)
+            </p>
             <p className={styles.patternCardDesc}>
-              Card.Header, Card.Body, Card.Footer 등 점 표기법으로 자유롭게 조합합니다.
-              이미지 오버레이, 커스텀 헤더 등 복잡한 레이아웃에 적합합니다.
+              Card.Header, Card.Body, Card.Footer 등 점 표기법으로 자유롭게
+              조합합니다. 이미지 오버레이, 커스텀 헤더 등 복잡한 레이아웃에
+              적합합니다.
             </p>
             <p className={styles.patternCardWhen}>사용할 때</p>
             <ul className={styles.patternCardList}>
@@ -394,35 +397,55 @@ export function CardPage() {
             <tbody>
               <tr className={styles.patternCompareTr}>
                 <td className={styles.patternCompareTdLabel}>사용 방식</td>
-                <td className={styles.patternCompareTd}>{`<Card title="...">`}</td>
-                <td className={styles.patternCompareTd}>{`<Card><Card.Header>...</Card.Header></Card>`}</td>
+                <td
+                  className={styles.patternCompareTd}
+                >{`<Card title="...">`}</td>
+                <td
+                  className={styles.patternCompareTd}
+                >{`<Card><Card.Header>...</Card.Header></Card>`}</td>
               </tr>
               <tr className={styles.patternCompareTr}>
                 <td className={styles.patternCompareTdLabel}>유연성</td>
-                <td className={styles.patternCompareTd}>낮음 — props 기반 고정 구조</td>
-                <td className={styles.patternCompareTd}>높음 — 서브 컴포넌트 자유 조합</td>
+                <td className={styles.patternCompareTd}>
+                  낮음 — props 기반 고정 구조
+                </td>
+                <td className={styles.patternCompareTd}>
+                  높음 — 서브 컴포넌트 자유 조합
+                </td>
               </tr>
               <tr className={styles.patternCompareTr}>
-                <td className={styles.patternCompareTdLabel}>이미지 오버레이</td>
+                <td className={styles.patternCompareTdLabel}>
+                  이미지 오버레이
+                </td>
                 <td className={styles.patternCompareTd}>미지원</td>
-                <td className={styles.patternCompareTd}>Card.ImageOverlay 지원</td>
+                <td className={styles.patternCompareTd}>
+                  Card.ImageOverlay 지원
+                </td>
               </tr>
               <tr className={styles.patternCompareTr}>
                 <td className={styles.patternCompareTdLabel}>주 용도</td>
-                <td className={styles.patternCompareTd}>일반 페이지 · 빠른 프로토타이핑</td>
-                <td className={styles.patternCompareTd}>복잡한 레이아웃 · 도메인 컴포넌트 제작</td>
+                <td className={styles.patternCompareTd}>
+                  일반 페이지 · 빠른 프로토타이핑
+                </td>
+                <td className={styles.patternCompareTd}>
+                  복잡한 레이아웃 · 도메인 컴포넌트 제작
+                </td>
               </tr>
               <tr className={styles.patternCompareTr}>
                 <td className={styles.patternCompareTdLabel}>권장 여부</td>
                 <td className={styles.patternCompareTd}>대부분의 경우 권장</td>
-                <td className={styles.patternCompareTd}>커스텀 레이아웃 시 선택</td>
+                <td className={styles.patternCompareTd}>
+                  커스텀 레이아웃 시 선택
+                </td>
               </tr>
             </tbody>
           </table>
         </div>
 
         <div className={styles.example} style={{ marginTop: '2rem' }}>
-          <h3 className={styles.exampleTitle}>Compound 실전 예시 — 이미지 오버레이</h3>
+          <h3 className={styles.exampleTitle}>
+            Compound 실전 예시 — 이미지 오버레이
+          </h3>
           <LivePreview
             title="이미지 + 오버레이"
             description="Card.ImageOverlay로 이미지 위에 콘텐츠를 겹칠 수 있습니다. Flat에서는 지원하지 않는 기능입니다."
@@ -461,7 +484,9 @@ export function CardPage() {
         </div>
 
         <div className={styles.example}>
-          <h3 className={styles.exampleTitle}>Compound 실전 예시 — Interactive + Accent Color</h3>
+          <h3 className={styles.exampleTitle}>
+            Compound 실전 예시 — Interactive + Accent Color
+          </h3>
           <LivePreview
             title="인터랙티브 카드"
             description="variant='interactive'는 호버 시 카드가 떠오르는 효과를 제공합니다. accentColor로 강조 색상도 설정할 수 있습니다."
@@ -499,15 +524,21 @@ export function CardPage() {
         </div>
 
         <div className={styles.example}>
-          <h3 className={styles.exampleTitle}>Compound 커스텀 확장 — 도메인 전용 카드 컴포넌트</h3>
-          <p className={styles.sectionDescription} style={{ marginBottom: '1rem' }}>
-            Compound 패턴으로 ProductCard 같은 재사용 컴포넌트를 만들 때 활용합니다.
-            소비자는 내부 구조를 몰라도 되고, props만 전달하면 됩니다.
+          <h3 className={styles.exampleTitle}>
+            Compound 커스텀 확장 — 도메인 전용 카드 컴포넌트
+          </h3>
+          <p
+            className={styles.sectionDescription}
+            style={{ marginBottom: '1rem' }}
+          >
+            Compound 패턴으로 ProductCard 같은 재사용 컴포넌트를 만들 때
+            활용합니다. 소비자는 내부 구조를 몰라도 되고, props만 전달하면
+            됩니다.
           </p>
           <CodeBlock
             language="tsx"
             code={`// components/ProductCard.tsx
-import { Card } from '@taein-designsystem/core';
+import { Card } from '@taein-ui/core';
 
 interface ProductCardProps {
   name: string;
@@ -544,7 +575,8 @@ export function ProductCard({ name, price, image, onBuy }: ProductCardProps) {
         <div className={styles.sectionHeader}>
           <h2 className={styles.sectionTitle}>Props API</h2>
           <p className={styles.sectionDescription}>
-            Card의 Props입니다. title, header, footer, image와 공통 props가 함께 포함되어 있습니다.
+            Card의 Props입니다. title, header, footer, image와 공통 props가 함께
+            포함되어 있습니다.
           </p>
         </div>
 
@@ -599,33 +631,39 @@ export function ProductCard({ name, price, image, onBuy }: ProductCardProps) {
           {
             attribute: '<article>',
             effect: '독립 콘텐츠 구조',
-            description: '클릭 불가능한 카드는 article 요소로 렌더링되어 스크린 리더가 독립적인 콘텐츠 영역으로 인식합니다.',
+            description:
+              '클릭 불가능한 카드는 article 요소로 렌더링되어 스크린 리더가 독립적인 콘텐츠 영역으로 인식합니다.',
           },
           {
             attribute: '<button>',
             effect: '클릭 가능 카드',
-            description: 'onClick이 있는 카드는 button 요소로 렌더링되어 Tab 키 포커스와 Enter/Space 키 활성화를 지원합니다.',
+            description:
+              'onClick이 있는 카드는 button 요소로 렌더링되어 Tab 키 포커스와 Enter/Space 키 활성화를 지원합니다.',
           },
           {
             attribute: '<header> / <footer>',
             effect: '구조적 의미',
-            description: 'Card.Header와 Card.Footer는 시맨틱 HTML 요소를 사용하여 카드 내부 구조를 전달합니다.',
+            description:
+              'Card.Header와 Card.Footer는 시맨틱 HTML 요소를 사용하여 카드 내부 구조를 전달합니다.',
           },
           {
             attribute: 'aria-disabled',
             effect: '비활성화 상태',
-            description: 'disabled 카드에 aria-disabled="true"가 설정되어 스크린 리더가 비활성 상태를 알립니다.',
+            description:
+              'disabled 카드에 aria-disabled="true"가 설정되어 스크린 리더가 비활성 상태를 알립니다.',
           },
           {
             attribute: 'focus-visible',
             effect: '포커스 인디케이터',
-            description: '클릭 가능한 카드에 3px outline 포커스 표시기가 적용됩니다.',
+            description:
+              '클릭 가능한 카드에 3px outline 포커스 표시기가 적용됩니다.',
           },
         ]}
         additionalGuidance={[
           {
             title: '이미지 대체 텍스트',
-            description: 'Card의 image prop이나 Card.Image에 의미 있는 alt 텍스트를 제공하여 스크린 리더 사용자가 이미지 내용을 이해할 수 있도록 합니다.',
+            description:
+              'Card의 image prop이나 Card.Image에 의미 있는 alt 텍스트를 제공하여 스크린 리더 사용자가 이미지 내용을 이해할 수 있도록 합니다.',
             examples: [
               {
                 code: `<Card
@@ -634,7 +672,8 @@ export function ProductCard({ name, price, image, onBuy }: ProductCardProps) {
 >
   운동화 상세 정보
 </Card>`,
-                explanation: '장식적 이미지가 아닌 경우 구체적인 alt 텍스트를 제공합니다.',
+                explanation:
+                  '장식적 이미지가 아닌 경우 구체적인 alt 텍스트를 제공합니다.',
               },
             ],
           },
@@ -657,10 +696,14 @@ export function ProductCard({ name, price, image, onBuy }: ProductCardProps) {
                 <h3 className={styles.practiceTitle}>Do</h3>
               </div>
               <List spacing="sm" className={styles.practiceList}>
-                <ListItem>일반 케이스는 Flat 패턴 (title, header 등 props) 사용</ListItem>
+                <ListItem>
+                  일반 케이스는 Flat 패턴 (title, header 등 props) 사용
+                </ListItem>
                 <ListItem>복잡한 레이아웃 필요 시 Compound 패턴 활용</ListItem>
                 <ListItem>관련 정보를 하나의 카드로 그룹화</ListItem>
-                <ListItem>클릭 가능한 카드에 명확한 시각적 피드백 제공</ListItem>
+                <ListItem>
+                  클릭 가능한 카드에 명확한 시각적 피드백 제공
+                </ListItem>
                 <ListItem>이미지에 의미 있는 alt 텍스트 제공</ListItem>
               </List>
             </Card.Body>
@@ -674,9 +717,13 @@ export function ProductCard({ name, price, image, onBuy }: ProductCardProps) {
               <List spacing="sm" className={styles.practiceList}>
                 <ListItem>하나의 카드에 너무 많은 정보 담기</ListItem>
                 <ListItem>카드 안에 카드 중첩 사용</ListItem>
-                <ListItem>클릭 가능 카드 내부에 또 다른 클릭 요소 배치</ListItem>
+                <ListItem>
+                  클릭 가능 카드 내부에 또 다른 클릭 요소 배치
+                </ListItem>
                 <ListItem>Flat으로 충분한데 불필요하게 Compound 사용</ListItem>
-                <ListItem>장식적 이미지에 긴 alt 텍스트 사용 (빈 문자열 사용)</ListItem>
+                <ListItem>
+                  장식적 이미지에 긴 alt 텍스트 사용 (빈 문자열 사용)
+                </ListItem>
               </List>
             </Card.Body>
           </Card>

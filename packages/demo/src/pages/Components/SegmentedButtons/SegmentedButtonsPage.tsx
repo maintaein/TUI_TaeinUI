@@ -1,8 +1,4 @@
-import {
-  Card,
-  List,
-  ListItem,
-} from '@taein-designsystem/core';
+import { Card, List, ListItem } from '@taein-ui/core';
 import { LivePreview } from '../../../components/LivePreview';
 import { CodeBlock } from '../../../components/CodeBlock';
 import { PropsTable } from '../../../components/PropsTable';
@@ -11,7 +7,6 @@ import { AccessibilitySection } from '../../../components/AccessibilitySection';
 import * as styles from './SegmentedButtonsPage.css';
 
 export function SegmentedButtonsPage() {
-
   const propsData: PropDefinition[] = [
     {
       name: 'options',
@@ -69,7 +64,8 @@ export function SegmentedButtonsPage() {
       <header className={styles.header}>
         <h1 className={styles.title}>SegmentedButtons</h1>
         <p className={styles.description}>
-          SegmentedButtons 컴포넌트는 보기 모드, 정렬 방식, 탭 전환 등 여러 옵션 중 하나를 선택할 때 사용합니다.
+          SegmentedButtons 컴포넌트는 보기 모드, 정렬 방식, 탭 전환 등 여러 옵션
+          중 하나를 선택할 때 사용합니다.
         </p>
       </header>
 
@@ -80,7 +76,7 @@ export function SegmentedButtonsPage() {
             <h3 className={styles.quickRefTitle}>Import</h3>
             <CodeBlock
               language="typescript"
-              code={`import { SegmentedButtons } from '@taein-designsystem/core';`}
+              code={`import { SegmentedButtons } from '@taein-ui/core';`}
             />
           </Card.Body>
         </Card>
@@ -373,38 +369,45 @@ export function SegmentedButtonsPage() {
           {
             attribute: 'role="radiogroup"',
             effect: '스크린 리더에서 "라디오 그룹"으로 인식합니다.',
-            description: 'role="radiogroup"이 컨테이너에 설정되어 옵션 그룹이라는 맥락을 제공합니다.',
+            description:
+              'role="radiogroup"이 컨테이너에 설정되어 옵션 그룹이라는 맥락을 제공합니다.',
           },
           {
             attribute: 'role="radio"',
             effect: '각 옵션을 스크린 리더가 "라디오 버튼"으로 읽어줍니다.',
-            description: '내부 input[type="radio"]가 사용되어 단일 선택 패턴임을 명확히 전달합니다.',
+            description:
+              '내부 input[type="radio"]가 사용되어 단일 선택 패턴임을 명확히 전달합니다.',
           },
           {
             attribute: 'aria-label',
             effect: '그룹의 용도를 스크린 리더가 읽어줍니다.',
-            description: 'aria-label로 그룹 레이블을 제공하여 무엇을 선택하는 그룹인지 알 수 있습니다.',
+            description:
+              'aria-label로 그룹 레이블을 제공하여 무엇을 선택하는 그룹인지 알 수 있습니다.',
           },
           {
             attribute: 'aria-checked',
             effect: '현재 선택 상태를 스크린 리더가 알려줍니다.',
-            description: 'aria-checked="true|false"로 각 옵션의 선택 여부를 명확히 전달합니다.',
+            description:
+              'aria-checked="true|false"로 각 옵션의 선택 여부를 명확히 전달합니다.',
           },
           {
             attribute: 'keyboard navigation',
             effect: '화살표 키로 옵션 간 이동이 가능합니다.',
-            description: 'ArrowLeft/Right로 이전/다음 옵션 이동, Space/Enter로 선택, Tab으로 그룹 진입/이탈이 가능합니다.',
+            description:
+              'ArrowLeft/Right로 이전/다음 옵션 이동, Space/Enter로 선택, Tab으로 그룹 진입/이탈이 가능합니다.',
           },
           {
             attribute: 'disabled',
             effect: '비활성화 상태를 스크린 리더에서 알려줍니다.',
-            description: 'aria-disabled="true"가 설정되어 선택할 수 없는 상태임을 전달하고, 키보드 내비게이션에서도 건너뜁니다.',
+            description:
+              'aria-disabled="true"가 설정되어 선택할 수 없는 상태임을 전달하고, 키보드 내비게이션에서도 건너뜁니다.',
           },
         ]}
         additionalGuidance={[
           {
             title: 'aria-label 필수 제공',
-            description: '그룹의 목적을 명확히 전달하기 위해 aria-label을 반드시 제공해주세요.',
+            description:
+              '그룹의 목적을 명확히 전달하기 위해 aria-label을 반드시 제공해주세요.',
             examples: [
               {
                 code: `// Good ✓
@@ -417,13 +420,15 @@ export function SegmentedButtonsPage() {
 <SegmentedButtons
   options={options}
 />`,
-                explanation: 'aria-label 없이는 스크린 리더 사용자가 무엇을 선택하는 그룹인지 알 수 없습니다.',
+                explanation:
+                  'aria-label 없이는 스크린 리더 사용자가 무엇을 선택하는 그룹인지 알 수 없습니다.',
               },
             ],
           },
           {
             title: 'iconOnly 사용 시 label 유지',
-            description: 'iconOnly를 사용하더라도 label은 반드시 제공해주세요. 스크린 리더가 아이콘 대신 label을 읽어줍니다.',
+            description:
+              'iconOnly를 사용하더라도 label은 반드시 제공해주세요. 스크린 리더가 아이콘 대신 label을 읽어줍니다.',
             examples: [
               {
                 code: `// Good ✓
@@ -431,7 +436,8 @@ export function SegmentedButtonsPage() {
 
 // Bad ✗
 { value: 'left', label: '', icon: '⫷', iconOnly: true }`,
-                explanation: '시각적으로 보이지 않더라도 label은 접근성을 위해 필수입니다.',
+                explanation:
+                  '시각적으로 보이지 않더라도 label은 접근성을 위해 필수입니다.',
               },
             ],
           },
@@ -471,10 +477,16 @@ export function SegmentedButtonsPage() {
                 <h3 className={styles.practiceTitle}>Don't</h3>
               </div>
               <List spacing="sm" className={styles.practiceList}>
-                <ListItem>8개 이상의 옵션에 사용하지 않기 (Select 권장)</ListItem>
-                <ListItem>다중 선택이 필요한 경우 사용하지 않기 (Checkbox 권장)</ListItem>
+                <ListItem>
+                  8개 이상의 옵션에 사용하지 않기 (Select 권장)
+                </ListItem>
+                <ListItem>
+                  다중 선택이 필요한 경우 사용하지 않기 (Checkbox 권장)
+                </ListItem>
                 <ListItem>긴 레이블 사용하지 않기 (2-3단어 이내 권장)</ListItem>
-                <ListItem>네비게이션 탭 대신 사용하지 않기 (Tabs 권장)</ListItem>
+                <ListItem>
+                  네비게이션 탭 대신 사용하지 않기 (Tabs 권장)
+                </ListItem>
                 <ListItem>iconOnly 사용 시 label을 비워두지 않기</ListItem>
               </List>
             </Card.Body>

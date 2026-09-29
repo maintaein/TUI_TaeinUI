@@ -1,8 +1,4 @@
-import {
-  Card,
-  List,
-  ListItem,
-} from '@taein-designsystem/core';
+import { Card, List, ListItem } from '@taein-ui/core';
 import { LivePreview } from '../../../components/LivePreview';
 import { CodeBlock } from '../../../components/CodeBlock';
 import { PropsTable } from '../../../components/PropsTable';
@@ -11,7 +7,6 @@ import { AccessibilitySection } from '../../../components/AccessibilitySection';
 import * as styles from './PopoverPage.css';
 
 export function PopoverPage() {
-
   const propsData: PropDefinition[] = [
     {
       name: 'children',
@@ -65,7 +60,7 @@ export function PopoverPage() {
       name: 'maxWidth',
       type: 'string',
       default: 'undefined',
-      description: "팝오버 최대 너비",
+      description: '팝오버 최대 너비',
     },
     {
       name: 'disabled',
@@ -87,7 +82,8 @@ export function PopoverPage() {
       <header className={styles.header}>
         <h1 className={styles.title}>Popover</h1>
         <p className={styles.description}>
-          Popover 컴포넌트는 프로필 메뉴, 날짜 선택기, 필터 패널 등 특정 요소를 클릭했을 때 근처에 패널을 띄울 때 사용합니다.
+          Popover 컴포넌트는 프로필 메뉴, 날짜 선택기, 필터 패널 등 특정 요소를
+          클릭했을 때 근처에 패널을 띄울 때 사용합니다.
         </p>
       </header>
 
@@ -98,7 +94,7 @@ export function PopoverPage() {
             <h3 className={styles.quickRefTitle}>Import</h3>
             <CodeBlock
               language="typescript"
-              code={`import { Popover } from '@taein-designsystem/core';`}
+              code={`import { Popover } from '@taein-ui/core';`}
             />
           </Card.Body>
         </Card>
@@ -274,7 +270,8 @@ const menu = (
         <div className={styles.sectionHeader}>
           <h2 className={styles.sectionTitle}>Props API</h2>
           <p className={styles.sectionDescription}>
-            Popover 컴포넌트의 모든 Props와 타입 정보입니다. HTML div 속성도 사용 가능합니다.
+            Popover 컴포넌트의 모든 Props와 타입 정보입니다. HTML div 속성도
+            사용 가능합니다.
           </p>
         </div>
         <div className={styles.propsTableWrapper}>
@@ -290,38 +287,45 @@ const menu = (
           {
             attribute: 'role="dialog"',
             effect: '팝오버를 대화 상자로 인식합니다.',
-            description: '팝오버 콘텐츠에 role="dialog"가 설정되어 스크린 리더에서 대화 상자로 인식합니다.',
+            description:
+              '팝오버 콘텐츠에 role="dialog"가 설정되어 스크린 리더에서 대화 상자로 인식합니다.',
           },
           {
             attribute: 'aria-haspopup="dialog"',
             effect: '트리거에 팝업이 있음을 알립니다.',
-            description: '트리거 요소에 aria-haspopup="dialog"가 설정되어 팝업의 존재를 미리 알립니다.',
+            description:
+              '트리거 요소에 aria-haspopup="dialog"가 설정되어 팝업의 존재를 미리 알립니다.',
           },
           {
             attribute: 'aria-expanded',
             effect: '팝오버의 열림/닫힘 상태를 전달합니다.',
-            description: '트리거의 aria-expanded가 팝오버 상태에 따라 true/false로 변경됩니다.',
+            description:
+              '트리거의 aria-expanded가 팝오버 상태에 따라 true/false로 변경됩니다.',
           },
           {
             attribute: 'aria-controls',
             effect: '트리거와 팝오버를 연결합니다.',
-            description: '팝오버가 열릴 때 aria-controls로 트리거와 팝오버 콘텐츠를 연결합니다.',
+            description:
+              '팝오버가 열릴 때 aria-controls로 트리거와 팝오버 콘텐츠를 연결합니다.',
           },
           {
             attribute: 'Escape 키',
             effect: 'ESC 키로 팝오버를 닫습니다.',
-            description: 'ESC를 누르면 팝오버가 닫히고 포커스가 트리거로 복귀합니다.',
+            description:
+              'ESC를 누르면 팝오버가 닫히고 포커스가 트리거로 복귀합니다.',
           },
           {
             attribute: '포커스 관리',
             effect: '열릴 때 첫 focusable 요소로 포커스가 이동합니다.',
-            description: '팝오버가 열리면 내부의 첫 포커스 가능한 요소로 포커스가 이동하고, 닫히면 트리거로 복귀합니다.',
+            description:
+              '팝오버가 열리면 내부의 첫 포커스 가능한 요소로 포커스가 이동하고, 닫히면 트리거로 복귀합니다.',
           },
         ]}
         additionalGuidance={[
           {
             title: 'Tooltip과의 구분',
-            description: 'Tooltip은 hover 시 짧은 텍스트를 보여주는 용도이고, Popover는 클릭 시 인터랙티브한 콘텐츠를 표시하는 용도입니다.',
+            description:
+              'Tooltip은 hover 시 짧은 텍스트를 보여주는 용도이고, Popover는 클릭 시 인터랙티브한 콘텐츠를 표시하는 용도입니다.',
             examples: [
               {
                 code: `// Popover: 클릭 인터랙션, 인터랙티브 콘텐츠
@@ -333,7 +337,8 @@ const menu = (
 <Tooltip content="삭제합니다">
   <IconButton icon="✕" aria-label="삭제" />
 </Tooltip>`,
-                explanation: 'Popover는 버튼, 링크, 폼 등 인터랙티브 요소를 포함할 수 있습니다.',
+                explanation:
+                  'Popover는 버튼, 링크, 폼 등 인터랙티브 요소를 포함할 수 있습니다.',
               },
             ],
           },
@@ -357,11 +362,15 @@ const menu = (
                 <h3 className={styles.practiceTitle}>Do</h3>
               </div>
               <List spacing="sm" className={styles.practiceList}>
-                <ListItem>드롭다운 메뉴, 프로필 카드 등 인터랙티브 콘텐츠에 사용</ListItem>
+                <ListItem>
+                  드롭다운 메뉴, 프로필 카드 등 인터랙티브 콘텐츠에 사용
+                </ListItem>
                 <ListItem>제어 모드로 외부 상태와 연동</ListItem>
                 <ListItem>팝오버 내부에 명확한 액션 버튼 배치</ListItem>
                 <ListItem>트리거 요소에 클릭 가능한 시각적 힌트 제공</ListItem>
-                <ListItem>콘텐츠 양이 적을 때 사용 (많으면 Modal 사용)</ListItem>
+                <ListItem>
+                  콘텐츠 양이 적을 때 사용 (많으면 Modal 사용)
+                </ListItem>
               </List>
             </Card.Body>
           </Card>
@@ -373,11 +382,20 @@ const menu = (
                 <h3 className={styles.practiceTitle}>Don't</h3>
               </div>
               <List spacing="sm" className={styles.practiceList}>
-                <ListItem>단순 텍스트 정보에 Popover 사용하지 않기 (Tooltip 사용)</ListItem>
+                <ListItem>
+                  단순 텍스트 정보에 Popover 사용하지 않기 (Tooltip 사용)
+                </ListItem>
                 <ListItem>팝오버 안에 또 다른 팝오버를 중첩하지 않기</ListItem>
-                <ListItem>긴 폼이나 복잡한 콘텐츠에 사용하지 않기 (Modal 사용)</ListItem>
-                <ListItem>closeOnOutsideClick과 closeOnEscape를 동시에 false로 설정하지 않기</ListItem>
-                <ListItem>팝오버 트리거를 비인터랙티브 요소로 사용하지 않기</ListItem>
+                <ListItem>
+                  긴 폼이나 복잡한 콘텐츠에 사용하지 않기 (Modal 사용)
+                </ListItem>
+                <ListItem>
+                  closeOnOutsideClick과 closeOnEscape를 동시에 false로 설정하지
+                  않기
+                </ListItem>
+                <ListItem>
+                  팝오버 트리거를 비인터랙티브 요소로 사용하지 않기
+                </ListItem>
               </List>
             </Card.Body>
           </Card>

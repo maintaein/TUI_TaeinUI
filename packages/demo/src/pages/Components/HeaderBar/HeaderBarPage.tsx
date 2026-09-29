@@ -1,4 +1,4 @@
-import { Card, List, ListItem } from '@taein-designsystem/core';
+import { Card, List, ListItem } from '@taein-ui/core';
 import { LivePreview } from '../../../components/LivePreview';
 import { CodeBlock } from '../../../components/CodeBlock';
 import { PropsTable } from '../../../components/PropsTable';
@@ -82,7 +82,7 @@ export function HeaderBarPage() {
             <h3 className={styles.quickRefTitle}>Import</h3>
             <CodeBlock
               language="typescript"
-              code={`import { HeaderBar } from '@taein-designsystem/core';`}
+              code={`import { HeaderBar } from '@taein-ui/core';`}
             />
           </Card.Body>
         </Card>
@@ -128,7 +128,7 @@ export function HeaderBarPage() {
             editable
             code={`<HeaderBar
   logo={<span style={{ fontSize: '1.5rem' }}>🎨</span>}
-  title="TDS"
+  title="TUI"
   actions={<Button size="sm" variant="dark">시작하기</Button>}
 />`}
           />
@@ -143,7 +143,7 @@ export function HeaderBarPage() {
             editable
             code={`<HeaderBar
   logo={<span style={{ fontSize: '1.5rem' }}>🎨</span>}
-  title="TDS"
+  title="TUI"
   actions={<IconButton ghost aria-label="메뉴" size="sm">☰</IconButton>}
 >
   <div style={{ display: 'flex', gap: '1.5rem', fontSize: '0.875rem' }}>

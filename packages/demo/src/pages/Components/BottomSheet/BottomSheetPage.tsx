@@ -1,8 +1,4 @@
-import {
-  Card,
-  List,
-  ListItem,
-} from '@taein-designsystem/core';
+import { Card, List, ListItem } from '@taein-ui/core';
 import { LivePreview } from '../../../components/LivePreview';
 import { CodeBlock } from '../../../components/CodeBlock';
 import { PropsTable } from '../../../components/PropsTable';
@@ -112,7 +108,8 @@ export function BottomSheetPage() {
       <header className={styles.header}>
         <h1 className={styles.title}>BottomSheet</h1>
         <p className={styles.description}>
-          BottomSheet 컴포넌트는 모바일에서 옵션 선택, 필터, 공유 메뉴 등을 화면 아래에서 올릴 때 사용합니다.
+          BottomSheet 컴포넌트는 모바일에서 옵션 선택, 필터, 공유 메뉴 등을 화면
+          아래에서 올릴 때 사용합니다.
         </p>
       </header>
 
@@ -125,7 +122,7 @@ export function BottomSheetPage() {
               language="typescript"
               code={`import {
   BottomSheet,
-} from '@taein-designsystem/core';`}
+} from '@taein-ui/core';`}
             />
           </Card.Body>
         </Card>
@@ -298,7 +295,8 @@ const [name, setName] = useState('');
         <div className={styles.sectionHeader}>
           <h2 className={styles.sectionTitle}>Flat vs Compound 패턴</h2>
           <p className={styles.sectionDescription}>
-            BottomSheet는 두 가지 API 스타일을 제공합니다. 상황에 맞게 선택하세요.
+            BottomSheet는 두 가지 API 스타일을 제공합니다. 상황에 맞게
+            선택하세요.
           </p>
         </div>
 
@@ -307,8 +305,8 @@ const [name, setName] = useState('');
           <div className={styles.patternCard}>
             <p className={styles.patternCardTitle}>Flat Pattern (기본 권장)</p>
             <p className={styles.patternCardDesc}>
-              BottomSheet 컴포넌트에 title, showClose 등의 props를 전달하는 방식입니다.
-              대부분의 사용 케이스에 적합합니다.
+              BottomSheet 컴포넌트에 title, showClose 등의 props를 전달하는
+              방식입니다. 대부분의 사용 케이스에 적합합니다.
             </p>
             <p className={styles.patternCardWhen}>사용할 때</p>
             <ul className={styles.patternCardList}>
@@ -318,7 +316,9 @@ const [name, setName] = useState('');
             </ul>
           </div>
           <div className={styles.patternCard}>
-            <p className={styles.patternCardTitle}>Compound Pattern (커스텀용)</p>
+            <p className={styles.patternCardTitle}>
+              Compound Pattern (커스텀용)
+            </p>
             <p className={styles.patternCardDesc}>
               BottomSheet.Header, BottomSheet.Content 등 점 표기법으로
               헤더/콘텐츠 영역을 자유롭게 커스텀합니다.
@@ -346,27 +346,43 @@ const [name, setName] = useState('');
               <tr className={styles.patternCompareTr}>
                 <td className={styles.patternCompareTdLabel}>Import</td>
                 <td className={styles.patternCompareTd}>BottomSheet 하나</td>
-                <td className={styles.patternCompareTd}>BottomSheet.Header, BottomSheet.Content 등 점 표기법</td>
+                <td className={styles.patternCompareTd}>
+                  BottomSheet.Header, BottomSheet.Content 등 점 표기법
+                </td>
               </tr>
               <tr className={styles.patternCompareTr}>
                 <td className={styles.patternCompareTdLabel}>헤더 구성</td>
-                <td className={styles.patternCompareTd}>title, showClose props로 자동 생성</td>
-                <td className={styles.patternCompareTd}>BottomSheetHeader 안에 자유 배치</td>
+                <td className={styles.patternCompareTd}>
+                  title, showClose props로 자동 생성
+                </td>
+                <td className={styles.patternCompareTd}>
+                  BottomSheetHeader 안에 자유 배치
+                </td>
               </tr>
               <tr className={styles.patternCompareTr}>
                 <td className={styles.patternCompareTdLabel}>커스텀 자유도</td>
                 <td className={styles.patternCompareTd}>props 범위 내 제어</td>
-                <td className={styles.patternCompareTd}>서브컴포넌트별 className, 커스텀 요소 자유 배치</td>
+                <td className={styles.patternCompareTd}>
+                  서브컴포넌트별 className, 커스텀 요소 자유 배치
+                </td>
               </tr>
               <tr className={styles.patternCompareTr}>
                 <td className={styles.patternCompareTdLabel}>주 용도</td>
-                <td className={styles.patternCompareTd}>일반 페이지 · 표준 레이아웃</td>
-                <td className={styles.patternCompareTd}>도메인 전용 래퍼 · 커스텀 헤더</td>
+                <td className={styles.patternCompareTd}>
+                  일반 페이지 · 표준 레이아웃
+                </td>
+                <td className={styles.patternCompareTd}>
+                  도메인 전용 래퍼 · 커스텀 헤더
+                </td>
               </tr>
               <tr className={styles.patternCompareTr}>
                 <td className={styles.patternCompareTdLabel}>권장 여부</td>
-                <td className={styles.patternCompareTd}>✅ 대부분의 경우 권장</td>
-                <td className={styles.patternCompareTd}>커스텀 래퍼 제작 시 선택</td>
+                <td className={styles.patternCompareTd}>
+                  ✅ 대부분의 경우 권장
+                </td>
+                <td className={styles.patternCompareTd}>
+                  커스텀 래퍼 제작 시 선택
+                </td>
               </tr>
             </tbody>
           </table>
@@ -374,15 +390,20 @@ const [name, setName] = useState('');
 
         {/* Compound 실전 예시 */}
         <div className={styles.example} style={{ marginTop: '2rem' }}>
-          <h3 className={styles.exampleTitle}>Compound 실전 예시 — 도메인 전용 바텀시트</h3>
-          <p className={styles.sectionDescription} style={{ marginBottom: '1rem' }}>
+          <h3 className={styles.exampleTitle}>
+            Compound 실전 예시 — 도메인 전용 바텀시트
+          </h3>
+          <p
+            className={styles.sectionDescription}
+            style={{ marginBottom: '1rem' }}
+          >
             Compound Pattern으로 도메인 전용 컴포넌트를 만들 때 활용합니다.
             소비자는 내부 구조를 몰라도 되고, props만 전달하면 됩니다.
           </p>
           <CodeBlock
             language="tsx"
             code={`// components/ShareBottomSheet.tsx
-import { BottomSheet } from '@taein-designsystem/core';
+import { BottomSheet } from '@taein-ui/core';
 
 interface ShareBottomSheetProps {
   open: boolean;
@@ -421,13 +442,18 @@ export function ShareBottomSheet({ open, onClose, onShare }: ShareBottomSheetPro
         </div>
 
         <div className={styles.example}>
-          <h3 className={styles.exampleTitle}>Compound 커스텀 확장 — 점 표기법</h3>
-          <p className={styles.sectionDescription} style={{ marginBottom: '1rem' }}>
+          <h3 className={styles.exampleTitle}>
+            Compound 커스텀 확장 — 점 표기법
+          </h3>
+          <p
+            className={styles.sectionDescription}
+            style={{ marginBottom: '1rem' }}
+          >
             BottomSheet.Header 점 표기법으로 커스텀 헤더를 구성할 수도 있습니다.
           </p>
           <CodeBlock
             language="tsx"
-            code={`import { BottomSheet } from '@taein-designsystem/core';
+            code={`import { BottomSheet } from '@taein-ui/core';
 import * as styles from './FilterSheet.css';
 
 export function FilterSheet({ open, onClose, onApply }) {
@@ -452,7 +478,8 @@ export function FilterSheet({ open, onClose, onApply }) {
         <div className={styles.sectionHeader}>
           <h2 className={styles.sectionTitle}>Props API</h2>
           <p className={styles.sectionDescription}>
-            BottomSheet 하나로 Flat과 Compound 모두 사용합니다. title prop이 있으면 Flat 모드로 자동 전환됩니다.
+            BottomSheet 하나로 Flat과 Compound 모두 사용합니다. title prop이
+            있으면 Flat 모드로 자동 전환됩니다.
           </p>
         </div>
 
@@ -464,21 +491,27 @@ export function FilterSheet({ open, onClose, onApply }) {
         </div>
 
         <div className={styles.example}>
-          <h3 className={styles.exampleTitle}>BottomSheetHeader / BottomSheet.Header</h3>
+          <h3 className={styles.exampleTitle}>
+            BottomSheetHeader / BottomSheet.Header
+          </h3>
           <div className={styles.propsTableWrapper}>
             <PropsTable props={headerProps} />
           </div>
         </div>
 
         <div className={styles.example}>
-          <h3 className={styles.exampleTitle}>BottomSheetTitle / BottomSheet.Title</h3>
+          <h3 className={styles.exampleTitle}>
+            BottomSheetTitle / BottomSheet.Title
+          </h3>
           <div className={styles.propsTableWrapper}>
             <PropsTable props={titleProps} />
           </div>
         </div>
 
         <div className={styles.example}>
-          <h3 className={styles.exampleTitle}>BottomSheetContent / BottomSheet.Content</h3>
+          <h3 className={styles.exampleTitle}>
+            BottomSheetContent / BottomSheet.Content
+          </h3>
           <div className={styles.propsTableWrapper}>
             <PropsTable props={contentProps} />
           </div>
@@ -498,32 +531,38 @@ export function FilterSheet({ open, onClose, onApply }) {
           {
             attribute: 'aria-modal="true"',
             effect: '외부 콘텐츠 비활성화',
-            description: '스크린 리더가 바텀시트 뒤의 콘텐츠를 읽지 않도록 합니다.',
+            description:
+              '스크린 리더가 바텀시트 뒤의 콘텐츠를 읽지 않도록 합니다.',
           },
           {
             attribute: 'aria-labelledby',
             effect: '바텀시트 제목 연결',
-            description: 'title prop이 있으면 자동으로 제목 요소의 id가 연결됩니다.',
+            description:
+              'title prop이 있으면 자동으로 제목 요소의 id가 연결됩니다.',
           },
           {
             attribute: '포커스 트랩',
             effect: '내부 포커스 순환',
-            description: '바텀시트가 열리면 내부의 첫 번째 포커스 가능한 요소로 포커스가 이동합니다.',
+            description:
+              '바텀시트가 열리면 내부의 첫 번째 포커스 가능한 요소로 포커스가 이동합니다.',
           },
           {
             attribute: 'Escape 키',
             effect: '키보드 닫힘',
-            description: 'Esc 키로 바텀시트를 닫을 수 있습니다. closeOnEscape={false}로 비활성화 가능합니다.',
+            description:
+              'Esc 키로 바텀시트를 닫을 수 있습니다. closeOnEscape={false}로 비활성화 가능합니다.',
           },
           {
             attribute: '포커스 복귀',
             effect: '이전 포커스 복원',
-            description: '바텀시트가 닫히면 바텀시트를 열었던 요소로 포커스가 자동 복귀됩니다.',
+            description:
+              '바텀시트가 닫히면 바텀시트를 열었던 요소로 포커스가 자동 복귀됩니다.',
           },
           {
             attribute: '드래그 닫기',
             effect: '터치 제스처 지원',
-            description: '100px 이상 아래로 드래그하면 닫힙니다. enableDrag={false}로 비활성화 가능합니다.',
+            description:
+              '100px 이상 아래로 드래그하면 닫힙니다. enableDrag={false}로 비활성화 가능합니다.',
           },
         ]}
       />
@@ -544,10 +583,17 @@ export function FilterSheet({ open, onClose, onApply }) {
                 <h3 className={styles.practiceTitle}>Do</h3>
               </div>
               <List spacing="sm" className={styles.practiceList}>
-                <ListItem>일반 케이스는 Flat Pattern (BottomSheet + title/showClose props) 사용</ListItem>
-                <ListItem>모바일 중심 인터랙션에 활용 (액션 선택, 필터, 간단한 폼)</ListItem>
+                <ListItem>
+                  일반 케이스는 Flat Pattern (BottomSheet + title/showClose
+                  props) 사용
+                </ListItem>
+                <ListItem>
+                  모바일 중심 인터랙션에 활용 (액션 선택, 필터, 간단한 폼)
+                </ListItem>
                 <ListItem>명확한 제목으로 바텀시트의 목적을 전달</ListItem>
-                <ListItem>폼 입력 시 closeOnBackdropClick={'{false}'} 설정</ListItem>
+                <ListItem>
+                  폼 입력 시 closeOnBackdropClick={'{false}'} 설정
+                </ListItem>
                 <ListItem>height="auto"로 내용에 맞는 높이 사용</ListItem>
               </List>
             </Card.Body>
@@ -559,11 +605,20 @@ export function FilterSheet({ open, onClose, onApply }) {
                 <h3 className={styles.practiceTitle}>Don't</h3>
               </div>
               <List spacing="sm" className={styles.practiceList}>
-                <ListItem>데스크톱 전용 화면에서 바텀시트 사용 (Modal 권장)</ListItem>
+                <ListItem>
+                  데스크톱 전용 화면에서 바텀시트 사용 (Modal 권장)
+                </ListItem>
                 <ListItem>바텀시트 안에 바텀시트 중첩</ListItem>
-                <ListItem>너무 많은 내용을 height="auto"에 담기 (lg/full 사용)</ListItem>
-                <ListItem>Flat으로 충분한데 불필요하게 Compound 래퍼 추가</ListItem>
-                <ListItem>드래그 비활성 + 백드롭 비활성 + 닫기 버튼 없음 (닫을 수 없는 상태)</ListItem>
+                <ListItem>
+                  너무 많은 내용을 height="auto"에 담기 (lg/full 사용)
+                </ListItem>
+                <ListItem>
+                  Flat으로 충분한데 불필요하게 Compound 래퍼 추가
+                </ListItem>
+                <ListItem>
+                  드래그 비활성 + 백드롭 비활성 + 닫기 버튼 없음 (닫을 수 없는
+                  상태)
+                </ListItem>
               </List>
             </Card.Body>
           </Card>

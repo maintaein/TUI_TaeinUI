@@ -1,8 +1,4 @@
-import {
-  Card,
-  List,
-  ListItem,
-} from '@taein-designsystem/core';
+import { Card, List, ListItem } from '@taein-ui/core';
 import { LivePreview } from '../../../components/LivePreview';
 import { CodeBlock } from '../../../components/CodeBlock';
 import { PropsTable } from '../../../components/PropsTable';
@@ -11,7 +7,6 @@ import { AccessibilitySection } from '../../../components/AccessibilitySection';
 import * as styles from './BoardRowPage.css';
 
 export function BoardRowPage() {
-
   const propsData: PropDefinition[] = [
     {
       name: 'title',
@@ -69,7 +64,9 @@ export function BoardRowPage() {
       <header className={styles.header}>
         <h1 className={styles.title}>BoardRow</h1>
         <p className={styles.description}>
-          BoardRow 컴포넌트는 FAQ, 상세 설명, 주문 내역 등 긴 콘텐츠를 접었다 펼칠 때 사용합니다. 클릭하면 콘텐츠가 슬라이드 애니메이션과 함께 나타납니다.
+          BoardRow 컴포넌트는 FAQ, 상세 설명, 주문 내역 등 긴 콘텐츠를 접었다
+          펼칠 때 사용합니다. 클릭하면 콘텐츠가 슬라이드 애니메이션과 함께
+          나타납니다.
         </p>
       </header>
 
@@ -80,7 +77,7 @@ export function BoardRowPage() {
             <h3 className={styles.quickRefTitle}>Import</h3>
             <CodeBlock
               language="typescript"
-              code={`import { BoardRow } from '@taein-designsystem/core';`}
+              code={`import { BoardRow } from '@taein-ui/core';`}
             />
           </Card.Body>
         </Card>
@@ -198,7 +195,9 @@ export function BoardRowPage() {
 
         {/* Accordion Pattern (Controlled) */}
         <div className={styles.example}>
-          <h3 className={styles.exampleTitle}>Accordion Pattern (하나만 펼치기)</h3>
+          <h3 className={styles.exampleTitle}>
+            Accordion Pattern (하나만 펼치기)
+          </h3>
           <LivePreview
             title="아코디언 패턴"
             description="controlled 모드를 활용하여 여러 BoardRow 중 하나만 펼쳐지도록 구현할 수 있습니다. onChange 콜백으로 현재 열린 항목을 추적합니다."
@@ -308,27 +307,32 @@ const items = [
           {
             attribute: 'aria-expanded',
             effect: '펼침/접힘 상태를 스크린 리더에 알립니다.',
-            description: '헤더 버튼에 aria-expanded가 자동으로 설정되어 현재 상태를 전달합니다.',
+            description:
+              '헤더 버튼에 aria-expanded가 자동으로 설정되어 현재 상태를 전달합니다.',
           },
           {
             attribute: 'aria-controls',
             effect: '버튼이 제어하는 콘텐츠 영역을 알립니다.',
-            description: '헤더 버튼과 콘텐츠 영역이 aria-controls로 연결되어 관계를 명확히 합니다.',
+            description:
+              '헤더 버튼과 콘텐츠 영역이 aria-controls로 연결되어 관계를 명확히 합니다.',
           },
           {
             attribute: 'role="region"',
             effect: '콘텐츠 영역을 랜드마크로 인식시킵니다.',
-            description: '펼쳐지는 콘텐츠에 role="region"이 설정되어 스크린 리더 사용자가 영역을 파악할 수 있습니다.',
+            description:
+              '펼쳐지는 콘텐츠에 role="region"이 설정되어 스크린 리더 사용자가 영역을 파악할 수 있습니다.',
           },
           {
             attribute: 'aria-labelledby',
             effect: '콘텐츠 영역의 제목을 스크린 리더에 알립니다.',
-            description: '콘텐츠가 헤더와 aria-labelledby로 연결되어 영역의 용도를 설명합니다.',
+            description:
+              '콘텐츠가 헤더와 aria-labelledby로 연결되어 영역의 용도를 설명합니다.',
           },
           {
             attribute: 'disabled',
             effect: '비활성화 상태를 스크린 리더에 알립니다.',
-            description: '헤더 버튼에 disabled가 설정되어 상호작용 불가 상태임을 전달합니다.',
+            description:
+              '헤더 버튼에 disabled가 설정되어 상호작용 불가 상태임을 전달합니다.',
           },
         ]}
         additionalGuidance={[
@@ -346,13 +350,15 @@ const items = [
 <BoardRow title="더 보기">
   <p>배송 관련 내용...</p>
 </BoardRow>`,
-                explanation: '제목만으로 콘텐츠의 내용을 예측할 수 있어야 합니다.',
+                explanation:
+                  '제목만으로 콘텐츠의 내용을 예측할 수 있어야 합니다.',
               },
             ],
           },
           {
             title: '아코디언 패턴에서 키보드 접근성',
-            description: '여러 BoardRow를 묶어 사용할 때 Tab 키로 각 헤더 사이를 이동할 수 있습니다.',
+            description:
+              '여러 BoardRow를 묶어 사용할 때 Tab 키로 각 헤더 사이를 이동할 수 있습니다.',
             examples: [
               {
                 code: `// Good ✓ - 각 헤더가 button이므로 Tab 순서 자동 관리
@@ -362,7 +368,8 @@ const items = [
 <BoardRow title="질문 2" variant="outlined">
   <p>답변 2</p>
 </BoardRow>`,
-                explanation: '각 헤더가 button 요소이므로 키보드 내비게이션이 기본 지원됩니다.',
+                explanation:
+                  '각 헤더가 button 요소이므로 키보드 내비게이션이 기본 지원됩니다.',
               },
             ],
           },
