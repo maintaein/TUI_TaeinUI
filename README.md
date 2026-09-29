@@ -35,8 +35,8 @@ yarn add @taein-ui/core
 
 ### 요구 사항
 
-- `react` ^19.0.0 이상
-- `react-dom` ^19.0.0 이상 (react와 같은 메이저 버전)
+- `react` ^18.2.0 또는 ^19.0.0
+- `react-dom` ^18.2.0 또는 ^19.0.0 (react와 같은 메이저 버전)
 
 ## 사용법
 

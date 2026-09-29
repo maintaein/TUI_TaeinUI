@@ -125,9 +125,9 @@ export function Header({ onMenuClick, showMenuButton = false }: HeaderProps) {
           </IconButton>
         )}
         <picture>
-          <source srcSet="/images/TDSlogo.webp" type="image/webp" />
+          <source srcSet="/images/TUIlogo.webp" type="image/webp" />
           <img
-            src="/images/TDSlogo.png"
+            src="/images/TUIlogo.png"
             alt="TUI 로고"
             width={40}
             height={26}

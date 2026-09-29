@@ -47,7 +47,7 @@ function LoginForm() {
 
 ### 버튼
 
-- **Button** — 기본 버튼 (primary, secondary, light, danger, ghost)
+- **Button** — 기본 버튼 (variant: primary, dark, danger, light / buttonStyle: fill, weak)
 - **IconButton** — 아이콘 전용 버튼
 - **SegmentedButtons** — 세그먼트 선택 버튼 그룹
 
@@ -78,7 +78,7 @@ function LoginForm() {
 
 ### 오버레이
 
-- **Modal** — 모달 다이얼로그 (Header, Body, Footer 서브컴포넌트)
+- **Modal** — 모달 다이얼로그 (Header, Title, Content, Footer 서브컴포넌트)
 - **BottomSheet** — 하단 시트 (모바일)
 - **SideSheet** — 사이드 패널
 - **Popover** — 팝오버 (위치 자동 조정)
@@ -86,7 +86,7 @@ function LoginForm() {
 ### 레이아웃
 
 - **Card** — 카드 컨테이너 (Header, Body, Footer 서브컴포넌트)
-- **List** — 리스트 (Item, ItemButton, Divider 서브컴포넌트)
+- **List** — 리스트 (Item 서브컴포넌트, divider 옵션)
 - **BoardRow** — 게시판 행
 - **Divider** — 구분선
 - **Border** — 테두리 래퍼
@@ -161,4 +161,4 @@ pnpm typecheck        # 타입 체크
 
 ## 라이선스
 
-[MIT](../../LICENSE) © Taein
+[MIT](./LICENSE) © Taein

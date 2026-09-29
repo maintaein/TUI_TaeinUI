@@ -209,7 +209,7 @@ export function PopoverPage() {
           <h3 className={styles.exampleTitle}>Rich Content</h3>
           <LivePreview
             title="풍부한 콘텐츠"
-            description="Popover의 content에 디자인 시스템 컴포넌트를 조합하여 메뉴, 카드, 폼 등 다양한 콘텐츠를 담을 수 있습니다."
+            description="Popover의 content에 TUI 컴포넌트를 조합하여 메뉴, 카드, 폼 등 다양한 콘텐츠를 담을 수 있습니다."
             editable
             code={`const [open, setOpen] = useState(false);
 const menu = (

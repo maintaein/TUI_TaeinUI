@@ -37,7 +37,7 @@ export default defineConfig({
             id.includes('packages/core') ||
             id.includes('packages\\core')
           ) {
-            return 'design-system';
+            return 'tui-core';
           }
         },
       },
