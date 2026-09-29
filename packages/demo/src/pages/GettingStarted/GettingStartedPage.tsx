@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { Button, Card, Text } from '@taein-ui/core';
-import { LayoutGrid } from 'lucide-react';
+import { LayoutGrid, Sparkles, Eye } from 'lucide-react';
 import { CodeBlock } from '../../components/CodeBlock';
 import * as styles from './GettingStartedPage.css';
 
@@ -189,8 +189,44 @@ function Example() {
               </div>
               <h3 className={styles.nextStepTitle}>컴포넌트</h3>
               <p className={styles.nextStepDescription}>
-                컴포넌트 패밀리 30개(top-level export 48개)와 사용 예시를
+                컴포넌트 패밀리 30개(top-level export 49개)와 사용 예시를
                 확인하세요.
+              </p>
+              <div className={styles.nextStepArrow}>&rarr;</div>
+            </Card.Body>
+          </Card>
+          <Card
+            variant="interactive"
+            accentColor="#2563eb"
+            onClick={() => navigate('/components/bottom-sheet')}
+            className={styles.nextStepCard}
+          >
+            <Card.Body padding="lg">
+              <div className={styles.nextStepIcon} aria-hidden="true">
+                <Sparkles size={32} color="#2563eb" strokeWidth={2} />
+              </div>
+              <h3 className={styles.nextStepTitle}>모션 만져보기</h3>
+              <p className={styles.nextStepDescription}>
+                BottomSheet를 드래그해 보세요. GSAP이 손가락을 1:1로 따라오는
+                컴포넌트입니다.
+              </p>
+              <div className={styles.nextStepArrow}>&rarr;</div>
+            </Card.Body>
+          </Card>
+          <Card
+            variant="interactive"
+            accentColor="#16a34a"
+            onClick={() => navigate('/')}
+            className={styles.nextStepCard}
+          >
+            <Card.Body padding="lg">
+              <div className={styles.nextStepIcon} aria-hidden="true">
+                <Eye size={32} color="#16a34a" strokeWidth={2} />
+              </div>
+              <h3 className={styles.nextStepTitle}>TUI가 무엇인지</h3>
+              <p className={styles.nextStepDescription}>
+                왜 컴포넌트마다 모션을 다르게 가져가는지, 그러고도 무엇을 안
+                깎는지 읽어보세요.
               </p>
               <div className={styles.nextStepArrow}>&rarr;</div>
             </Card.Body>

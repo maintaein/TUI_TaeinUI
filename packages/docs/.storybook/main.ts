@@ -18,7 +18,7 @@ const config: StorybookConfig = {
     config.plugins = config.plugins || [];
     config.plugins.push(vanillaExtractPlugin());
 
-    // @designsystem/core의 소스 파일을 직접 사용하도록 resolve 설정
+    // @taein-ui/core의 소스 파일을 직접 사용하도록 resolve 설정
     config.resolve = config.resolve || {};
     config.resolve.alias = {
       ...config.resolve.alias,

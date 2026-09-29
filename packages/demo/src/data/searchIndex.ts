@@ -20,17 +20,17 @@ export const searchIndex: SearchEntry[] = [
     path: '/',
     category: '시작하기',
     description:
-      'TUI(TaeinUI) 소개. 가볍고 배우기 쉽고 AI와 함께 쓸 수 있는 React 디자인 시스템.',
+      'TUI(TaeinUI) 소개. 컴포넌트마다 다른 움직임을 갖는 React UI 컴포넌트 라이브러리.',
     sections: [
       {
-        title: '왜 TUI인가?',
+        title: 'TUI의 목표',
         content:
-          '일관성과 효율, 초심자 친화, AI 친화, 경량 번들. 디자인 토큰, 일관된 API, CLAUDE.md, llms.txt 제공',
+          '컴포넌트마다 다른 움직임, 시인성·가독성·가시성은 협상 대상이 아님, AI 친화, 정적 CSS와 분리된 모듈. GSAP 모션, prefers-reduced-motion, llms.txt 제공',
       },
       {
-        title: '한눈에 보는 TUI',
+        title: '빠른 미리보기',
         content:
-          '컴포넌트 패밀리 30개(top-level export 48개), ~23KB 번들, 런타임 의존성 2개, Zero-runtime CSS',
+          '컴포넌트 패밀리 30개(top-level export 49개), GSAP 모션 12개 컴포넌트, Zero-runtime CSS, Tree-shakable',
       },
     ],
   },

@@ -1,14 +1,17 @@
 {
   "name": "@taein-ui/core",
   "version": "0.3.0",
-  "description": "TUI_TaeinUI - React 기반 — 컴포넌트 패밀리 30개, Zero-runtime CSS, Tree-shakable, RSC 호환",
+  "description": "A React UI component library where every component has its own motion — GSAP-driven, zero-runtime CSS, tree-shakable, RSC-ready, WCAG 2.2 AA.",
   "keywords": [
-    "design-system",
+    "component-library",
     "react",
     "typescript",
     "vanilla-extract",
     "components",
     "ui",
+    "motion",
+    "animation",
+    "gsap",
     "accessible"
   ],
   "author": "Taein <daumdaum005@gmail.com>",

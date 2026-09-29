@@ -10,8 +10,8 @@ import {
   Chip,
 } from '@taein-ui/core';
 import {
-  Component,
-  CheckCircle2,
+  Sparkles,
+  Eye,
   Bot,
   Package,
   ArrowRight,
@@ -36,10 +36,9 @@ export function IntroductionPage() {
             <span className={styles.heroTitleSub}>TaeinUI</span>
           </h1>
           <p className={styles.heroDescription}>
-            일관된 UI와 효율적인 개발을 위해 만든 React 기반 디자인
-            시스템입니다.
-            <br />
-            가볍고, 배우기 쉽고, AI 친화적인 라이브러리를 지향합니다.
+            컴포넌트마다 다른 움직임을 갖는 React UI 컴포넌트 라이브러리입니다.
+            <br />전 컴포넌트에 같은 전환 하나를 입히지 않는 대신,
+            시인성·가독성· 가시성은 어디서도 낮추지 않습니다.
           </p>
           <div className={styles.heroActions}>
             <Button
@@ -75,62 +74,68 @@ export function IntroductionPage() {
           TUI의 목표
         </Text>
         <div className={styles.goalList}>
-          {/* 일관성과 효율 */}
+          {/* 컴포넌트별 모션 */}
           <div className={styles.goalRow}>
             <div
               className={styles.goalIcon}
               style={{ backgroundColor: '#eff6ff' }}
               aria-hidden="true"
             >
-              <Component size={24} color="#2563eb" strokeWidth={2.5} />
+              <Sparkles size={24} color="#2563eb" strokeWidth={2.5} />
             </div>
             <div className={styles.goalContent}>
-              <h3 className={styles.goalTitle}>작고 예측 가능한 API</h3>
+              <h3 className={styles.goalTitle}>컴포넌트마다 다른 움직임</h3>
               <p className={styles.goalDescription}>
-                빠르게 같은 방식으로 UI를 만들 수 있도록 컴포넌트 표면적을 작고
-                일관되게 유지합니다.
+                전 컴포넌트에 같은 전환 하나를 입히지 않습니다.
+                열림·전환·되먹임을 컴포넌트마다 따로 설계해, 어떤 컴포넌트를
+                집어도 그 컴포넌트만의 움직임이 남게 합니다.
               </p>
               <ul className={styles.goalDetails}>
                 <li className={styles.goalDetailItem}>
-                  주요 컴포넌트에서 variant, size, disabled 같은 공통 네이밍을
-                  일관되게 사용합니다
+                  <strong>GSAP이 모션의 메인 런타임</strong> — 현재 12개
+                  컴포넌트가 GSAP으로 움직입니다
                 </li>
                 <li className={styles.goalDetailItem}>
-                  색상, 간격, 타이포그래피를 디자인 토큰으로 통합 관리합니다
+                  CSS로는 못 하는 일이 있는 자리에만 씁니다 — 트리거 좌표 읽기,
+                  제스처 1:1 추적, 여러 목표를 동시에 중단
                 </li>
                 <li className={styles.goalDetailItem}>
-                  단순한 사용은 Flat API로, 세밀한 조합은 Compound API로 확장할
-                  수 있습니다
+                  나머지 컴포넌트는 CSS 트랜지션으로 둡니다. 쓸 수 있으니 쓰는
+                  것이 아니라 GSAP만 할 수 있는 것을 GSAP이 합니다
                 </li>
               </ul>
             </div>
           </div>
 
-          {/* 초심자 친화 */}
+          {/* 시인성 */}
           <div className={styles.goalRow}>
             <div
               className={styles.goalIcon}
               style={{ backgroundColor: '#f0fdf4' }}
               aria-hidden="true"
             >
-              <CheckCircle2 size={24} color="#16a34a" strokeWidth={2.5} />
+              <Eye size={24} color="#16a34a" strokeWidth={2.5} />
             </div>
             <div className={styles.goalContent}>
-              <h3 className={styles.goalTitle}>낮은 학습 비용</h3>
+              <h3 className={styles.goalTitle}>
+                시인성은 협상 대상이 아닙니다
+              </h3>
               <p className={styles.goalDescription}>
-                거대한 범용 UI 프레임워크보다 좁은 범위에 집중해 처음 접하는
-                개발자도 빠르게 사용법을 익힐 수 있도록 합니다.
+                통일성을 내려놓는 범위는 모션까지입니다. 모션이 시인성·가독성·
+                가시성 중 하나라도 깎으면 틀린 쪽은 모션입니다.
               </p>
               <ul className={styles.goalDetails}>
                 <li className={styles.goalDetailItem}>
-                  컴포넌트 문서에서 사용법, Props 설명, 접근성 고려사항을 함께
-                  확인할 수 있습니다
+                  WCAG 2.2 AA — 본문 대비 4.5:1, 비텍스트 대비 3:1을 테스트로
+                  잠가 두었습니다
                 </li>
                 <li className={styles.goalDetailItem}>
-                  Best Practices와 주의사항을 함께 안내합니다
+                  <strong>prefers-reduced-motion</strong> — CSS 전역 규칙이
+                  트랜지션을 끄고, 규칙이 닿지 않는 GSAP 트윈은 끝 상태로 확정한
+                  뒤 멈춥니다
                 </li>
                 <li className={styles.goalDetailItem}>
-                  라이브 프리뷰로 코드와 결과를 동시에 확인할 수 있습니다
+                  시맨틱 HTML, ARIA, 키보드 네비게이션, 오버레이 포커스 트랩
                 </li>
               </ul>
             </div>
@@ -190,8 +195,8 @@ export function IntroductionPage() {
               </p>
               <ul className={styles.goalDetails}>
                 <li className={styles.goalDetailItem}>
-                  peer dependency는 React와 ReactDOM이며, 런타임 유틸 의존성은
-                  clsx입니다.
+                  peer dependency는 React와 ReactDOM이고, 런타임 의존성은
+                  vanilla-extract(css·recipes), clsx, gsap 넷입니다
                 </li>
                 <li className={styles.goalDetailItem}>
                   Vanilla Extract로 컴포넌트 스타일을 정적 CSS로 생성합니다
@@ -212,8 +217,9 @@ export function IntroductionPage() {
           빠른 미리보기
         </Text>
         <p className={styles.sectionDescription}>
-          TUI 컴포넌트를 직접 체험해보세요. 다양한 컴포넌트를 조합하여 UI를
-          구성할 수 있습니다.
+          직접 눌러 보세요. 아래 Switch는 GSAP으로, Button과 Chip은 CSS
+          트랜지션으로 움직입니다 — 같은 화면 안에서도 서로 다른 손맛을
+          갖습니다.
         </p>
         <div className={styles.preview}>
           <LivePreview
@@ -324,8 +330,26 @@ function Example() {
               </div>
               <h3 className={styles.nextStepTitle}>컴포넌트</h3>
               <p className={styles.nextStepDescription}>
-                컴포넌트 패밀리 30개(top-level export 48개)와 사용 예시를
+                컴포넌트 패밀리 30개(top-level export 49개)와 사용 예시를
                 확인하세요.
+              </p>
+              <div className={styles.nextStepArrow}>&rarr;</div>
+            </Card.Body>
+          </Card>
+          <Card
+            variant="interactive"
+            accentColor="#2563eb"
+            onClick={() => navigate('/components/bottom-sheet')}
+            className={styles.nextStepCard}
+          >
+            <Card.Body padding="lg">
+              <div className={styles.nextStepIcon} aria-hidden="true">
+                <Sparkles size={32} color="#2563eb" strokeWidth={2} />
+              </div>
+              <h3 className={styles.nextStepTitle}>모션 만져보기</h3>
+              <p className={styles.nextStepDescription}>
+                BottomSheet를 드래그해 보세요. GSAP이 손가락을 1:1로 따라오는
+                컴포넌트입니다.
               </p>
               <div className={styles.nextStepArrow}>&rarr;</div>
             </Card.Body>

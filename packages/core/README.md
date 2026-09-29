@@ -1,7 +1,10 @@
 # @taein-ui/core
 
-TUI(TaeinUI)의 핵심 컴포넌트 라이브러리입니다.
-30개의 React UI 컴포넌트와 디자인 토큰을 제공합니다.
+컴포넌트마다 다른 움직임을 갖는 React UI 컴포넌트 라이브러리, TUI(TaeinUI)의 본체입니다.
+컴포넌트 패밀리 30개(top-level export 49개)를 제공하고, 모션은 GSAP이 주도합니다.
+
+전 컴포넌트에 같은 전환 하나를 입히지 않는 대신, 시인성·가독성·가시성은 어디서도 낮추지
+않습니다. 모션이 이 셋 중 하나라도 깎으면 틀린 쪽은 모션입니다.
 
 [![npm version](https://img.shields.io/npm/v/@taein-ui/core)](https://www.npmjs.com/package/@taein-ui/core)
 
@@ -93,20 +96,37 @@ function LoginForm() {
 
 - **FormField** — 폼 필드 래퍼 (render prop 패턴)
 
-## 디자인 토큰
+## 모션
+
+현재 GSAP 런타임이 붙어 있는 컴포넌트는 12개입니다 — Modal, BottomSheet, SideSheet,
+Snackbar, Checkbox, Switch, SegmentedButtons, NumericSpinner, Slider, HeaderBarNav,
+TextField, TextArea. 여기 없는 컴포넌트는 CSS 트랜지션만 씁니다. GSAP은 "쓸 수 있으니
+쓴다"가 아니라 CSS로는 못 하는 일(트리거 좌표 읽기, 제스처 1:1 추적, 여러 목표를 동시에
+중단)이 있는 자리에만 들어갑니다. 최신 목록과 각자 쓰는 능력은 `llms.txt`의
+"Motion (GSAP Runtime)" 절에 있습니다.
+
+`prefers-reduced-motion: reduce`에서는 CSS 전역 규칙이 트랜지션·애니메이션을 끄고,
+전역 규칙이 닿지 않는 GSAP 트윈은 각 훅이 끝 상태로 확정한 뒤 멈춥니다.
+
+## 테마 토큰
+
+색·간격·타이포·이징은 `themeContract` 하나로 모이고, 공개 API로 열려 있습니다.
+테마는 `:root`에 선언된 라이트 하나뿐이라 Provider도 훅도 필요 없습니다.
 
 ```tsx
 import { themeContract } from '@taein-ui/core';
 ```
 
-| 토큰          | 경로 예시                                 |
-| ------------- | ----------------------------------------- |
-| Colors        | `themeContract.color.primary.main`        |
-| Typography    | `themeContract.font.size.md`              |
-| Spacing       | `themeContract.spacing[4]`                |
-| Shadows       | `themeContract.shadow.md`                 |
-| Border Radius | `themeContract.borderRadius.md`           |
-| Animation     | `themeContract.animation.duration.normal` |
+| 토큰          | 경로 예시                               |
+| ------------- | --------------------------------------- |
+| Colors        | `themeContract.color.primary.main`      |
+| Typography    | `themeContract.font.size.md`            |
+| Spacing       | `themeContract.spacing[4]`              |
+| Shadows       | `themeContract.shadow.md`               |
+| Border Radius | `themeContract.borderRadius.md`         |
+| Animation     | `themeContract.animation.duration.base` |
+
+전체 경로와 실측 대비비는 `llms-full.txt`의 Design Tokens 절에 있습니다.
 
 ## API 패턴
 

@@ -1,7 +1,7 @@
 # @taein-ui/demo
 
 TUI(TaeinUI)의 데모 및 문서 웹 애플리케이션입니다.
-컴포넌트 사용법, 디자인 토큰, 접근성 가이드라인 등을 확인할 수 있습니다.
+컴포넌트별 모션을 직접 만져 보고, 사용법과 Props, 접근성 고려사항을 확인할 수 있습니다.
 
 ## 실행
 
@@ -23,14 +23,12 @@ pnpm preview
 
 ## 페이지 구성
 
-| 경로                   | 페이지        | 설명                                         |
-| ---------------------- | ------------- | -------------------------------------------- |
-| `/`                    | 소개          | TUI 개요, 핵심 목표, 빠른 미리보기           |
-| `/getting-started`     | 시작하기      | 설치 방법, 사용법, 테마 설정                 |
-| `/design-tokens/*`     | 디자인 토큰   | 색상, 타이포그래피, 간격, 그림자, 애니메이션 |
-| `/components/overview` | 컴포넌트 개요 | 전체 컴포넌트 목록                           |
-| `/components/:name`    | 컴포넌트 상세 | Props 표, 라이브 프리뷰, 접근성, 코드 예제   |
-| `/guidelines/*`        | 가이드라인    | 접근성, 디자인 원칙                          |
+| 경로                   | 페이지        | 설명                                       |
+| ---------------------- | ------------- | ------------------------------------------ |
+| `/`                    | 소개          | TUI가 무엇인지, 빠른 미리보기              |
+| `/getting-started`     | 시작하기      | 설치 방법, 사용법, 테마 설정               |
+| `/components/overview` | 컴포넌트 개요 | 전체 컴포넌트 목록                         |
+| `/components/:name`    | 컴포넌트 상세 | Props 표, 라이브 프리뷰, 접근성, 코드 예제 |
 
 ## 구조
 
@@ -42,7 +40,6 @@ packages/demo/
 │   │   ├── CodeBlock/        # 코드 하이라이팅
 │   │   ├── LivePreview/      # 라이브 프리뷰 + 코드 표시
 │   │   ├── PropsTable/       # Props 문서 테이블
-│   │   ├── ColorPalette/     # 색상 팔레트 표시
 │   │   ├── SearchDialog/     # 검색 다이얼로그
 │   │   └── EditableCodeBlock/# 편집 가능한 코드 블록
 │   ├── layouts/              # 레이아웃
@@ -52,9 +49,7 @@ packages/demo/
 │   ├── pages/                # 페이지 컴포넌트
 │   │   ├── Introduction/
 │   │   ├── GettingStarted/
-│   │   ├── DesignTokens/
-│   │   ├── Components/       # 컴포넌트별 상세 페이지 (30개)
-│   │   └── Guidelines/
+│   │   └── Components/       # 컴포넌트별 상세 페이지 (30개)
 │   ├── routes/               # React Router 설정
 │   ├── data/                 # 네비게이션, 검색 인덱스 등
 │   └── styles/               # 글로벌 스타일

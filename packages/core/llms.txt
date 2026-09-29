@@ -1,6 +1,9 @@
 # TUI (TaeinUI)
 
-> A lightweight (~23KB gzip), beginner-friendly, AI-ready React + TypeScript design system built with Vanilla Extract CSS (zero-runtime). Only 2 runtime dependencies.
+> A React + TypeScript UI component library where each component carries its own motion.
+> GSAP is the motion runtime (12 components today); visibility, legibility and readability
+> are never traded for it. Zero-runtime CSS via Vanilla Extract, tree-shakable, WCAG 2.2 AA.
+> Runtime dependencies: @vanilla-extract/css, @vanilla-extract/recipes, clsx, gsap.
 
 ## Installation
 
@@ -166,5 +169,6 @@ M3에서 GSAP 런타임이 실제로 붙은 컴포넌트와 그 능력. 계획�
 - [Full API Reference](/llms-full.txt)
 - [Getting Started](/getting-started)
 - [Components Overview](/components)
-- [Design Tokens — Colors](/design-tokens/colors)
-- [Accessibility Guide](/guidelines/accessibility)
+
+Token values and measured contrast ratios live in the Design Tokens section of
+llms-full.txt; accessibility rules are in the Accessibility section above.

@@ -4,20 +4,26 @@ import { Meta } from '@storybook/blocks';
 
 # TUI - TaeinUI
 
-> React + TypeScript 기반의 현대적인 디자인 시스템
+> 컴포넌트마다 다른 움직임을 갖는 React UI 컴포넌트 라이브러리
 
-## 🎯 프로젝트 개요
+## 무엇을 파는가
 
-이 디자인 시스템은 일관된 사용자 경험과 개발 생산성을 위해 만들어진 재사용 가능한 컴포넌트 라이브러리입니다.
+MUI·Radix·shadcn은 전 컴포넌트에 같은 전환 하나를 적용합니다. 예측 가능성이 그들의
+가치이기 때문입니다. TUI는 반대쪽을 택합니다 — 컴포넌트 각각이 자기 성격에 맞는 모션을
+갖고, 그래서 어떤 컴포넌트를 집어도 그 컴포넌트만의 움직임이 남습니다.
 
-### 주요 특징
+통일성을 내려놓는 범위는 **모션까지**입니다. 색·간격·타이포·접근성의 통일성은 그대로
+지키고, **시인성·가독성·가시성은 협상 대상이 아닙니다** — 모션이 이 셋 중 하나라도 깎으면
+틀린 쪽은 모션입니다.
 
-- ✅ **27개 핵심 컴포넌트**: 폼, 버튼, 피드백, 오버레이, 레이아웃 컴포넌트
-- ✅ **Atomic Design 원칙**: Atoms → Molecules → Organisms 계층 구조
-- ✅ **TypeScript 우선**: 완벽한 타입 안전성과 IntelliSense 지원
-- ✅ **접근성 준수**: WCAG 2.2 AA 완벽 준수
-- ✅ **높은 테스트 커버리지**: 924 tests, 99%+ 커버리지
-- ✅ **최적화된 번들**: ~23KB (gzipped), Tree-shaking 지원
+### 사실 확인
+
+- **컴포넌트 패밀리 30개** (top-level export 49개 — 차이는 `ModalHeader`·`CardBody`처럼 개별 import도 되는 하위 컴포넌트)
+- **GSAP이 모션의 메인 런타임** — 현재 12개 컴포넌트가 GSAP으로 움직입니다
+- **Zero-runtime CSS** — Vanilla Extract, 빌드 타임에 CSS 생성. Tree-shaking 지원
+- **TypeScript 엄격 모드**, `any` 미사용
+- **WCAG 2.2 AA** — 대비·포커스 폭·타깃 크기를 테스트로 잠가 두었습니다
+- **런타임 의존성 4개** — `@vanilla-extract/css`, `@vanilla-extract/recipes`, `clsx`, `gsap`
 
 ---
 
@@ -49,7 +55,7 @@ pnpm add @taein-ui/core
 
 ```tsx
 import { Button, TextField, Card } from '@taein-ui/core';
-import '@taein-ui/core/dist/style.css';
+import '@taein-ui/core/styles.css';
 
 function App() {
   return (
@@ -70,7 +76,7 @@ function App() {
 ### 2. 폼 컴포넌트
 
 ```tsx
-import { TextField, TextArea, Checkbox, Switch, Button } from '@designsystem/core';
+import { TextField, TextArea, Checkbox, Switch, Button } from '@taein-ui/core';
 import { useState } from 'react';
 
 function ContactForm() {
@@ -121,76 +127,53 @@ function ContactForm() {
 
 ---
 
-## 📚 컴포넌트 카테고리
+## 🎬 모션
 
-### 폼 컴포넌트 (7개)
-- **TextField** - 텍스트 입력 (email, password, text 등)
-- **TextArea** - 다중 라인 입력 (autoResize 지원)
-- **Checkbox** - 체크박스 (indeterminate 상태 지원)
-- **Switch** - 토글 스위치
-- **NumericSpinner** - 숫자 증감 입력
-- **SegmentedButtons** - 세그먼트 버튼 (단일/다중 선택)
-- **Slider** - 범위 슬라이더
+GSAP 런타임이 실제로 붙어 있는 컴포넌트입니다. 계획이 아니라 코드에서 읽은 목록이고,
+여기 없는 컴포넌트는 CSS 트랜지션만 씁니다.
 
-### 버튼 및 인터랙션 (3개)
-- **Button** - 기본 버튼 (5가지 variant, loading 상태)
-- **IconButton** - 아이콘 버튼
-- **Text** - 타이포그래피 (9가지 variant)
+| 컴포넌트 | GSAP이 맡는 일 |
+|---|---|
+| Modal | 타임라인 상대 위치 · 트리거 좌표 읽기 |
+| BottomSheet | 타임라인 상대 위치 · 터치 드래그 1:1 추적 |
+| SideSheet | 타임라인 상대 위치 |
+| Snackbar | 카운트다운 진행률 read-back |
+| Checkbox | 모양 변형(checked ↔ indeterminate) · 다중 목표 중단 |
+| Switch | 타임라인 상대 위치 · 다중 목표 중단 |
+| SegmentedButtons | 인디케이터 좌표 읽기 · 다중 목표 중단 |
+| NumericSpinner | 다중 목표 중단 |
+| Slider | 드래그 중 값 따라붙기 |
+| HeaderBarNav | 포인터 근접 추적 · 컨테이너 좌표 읽기 |
+| TextField, TextArea | 줄바꿈 감지용 offsetTop 읽기 |
 
-### 피드백 컴포넌트 (5개)
-- **Badge** - 뱃지 (숫자, 점 표시)
-- **Loader** - 로딩 스피너 (3가지 타입)
-- **Skeleton** - 스켈레톤 (4가지 variant)
-- **Snackbar** - 스낵바 (4가지 severity)
-- **Tooltip** - 툴팁 (4방향 위치)
+GSAP은 "쓸 수 있으니 쓴다"가 아니라 CSS로는 못 하는 일이 있는 자리에만 들어갑니다.
 
-### 오버레이 컴포넌트 (3개)
-- **Modal** - 모달 다이얼로그 (포커스 트랩, ESC 키)
-- **BottomSheet** - 하단 시트 (드래그 인터랙션)
-- **SideSheet** - 측면 시트 (좌/우 슬라이드)
+`prefers-reduced-motion: reduce`에서는 CSS 전역 규칙이 트랜지션·애니메이션을 끄고,
+전역 규칙이 닿지 않는 GSAP 트윈은 각 훅이 끝 상태로 확정한 뒤 멈춥니다. 중간 프레임에
+멈추는 경우가 구조적으로 없습니다.
 
-### 레이아웃 컴포넌트 (5개)
-- **HeaderBar** - 헤더 바 (3가지 variant, sticky)
-- **Divider** - 구분선 (수평/수직, 텍스트 포함)
-- **Border** - 테두리 (7가지 방향)
-- **List** - 리스트 (label-value 쌍)
-- **BoardRow** - 아코디언 (슬라이드 애니메이션)
-
-### 기타 컴포넌트 (4개)
-- **Avatar** - 아바타 (fallback, status, AvatarGroup)
-- **Chip** - 칩/태그 (삭제 가능, 선택 가능)
-- **Card** - 카드 (header, footer, image)
-- **FormField** - 폼 필드 래퍼 (render prop 패턴)
+왼쪽 사이드바에서 컴포넌트를 골라 컨트롤을 바꿔 보면 각자의 움직임을 확인할 수 있습니다.
 
 ---
 
-## 🎨 디자인 원칙
+## ♿ 접근성
 
-### Atomic Design
-- **Atoms**: LoadingSpinner, Icon, FormField, useClickable
-- **Molecules**: TextField, TextArea, Button, IconButton, Chip
-- **Organisms**: Loader, BottomSheet, SideSheet
-
-### 일관성
-- 모든 컴포넌트는 동일한 props 패턴 사용 (size, variant, disabled 등)
-- 일관된 색상, 간격, 타이포그래피 시스템
-- 통일된 키보드 인터랙션 (Tab, Enter, Space, ESC)
-
-### 접근성
-- WCAG 2.2 AA 완벽 준수
-- 시맨틱 HTML 사용
-- ARIA 속성 완비
-- 키보드 네비게이션 지원
-- 스크린 리더 호환
+- WCAG 2.2 AA 기준. 모션을 강하게 쓰는 라이브러리일수록 여기서 무너지기 쉽기 때문에
+  장식이 아니라 전제로 둡니다
+- 본문 대비 4.5:1, 비텍스트 대비 3:1 — 흰 배경이 아니라 더 불리한 `background.paper`
+  기준으로 판정합니다
+- 시맨틱 HTML, ARIA 속성, 키보드 네비게이션, 오버레이 포커스 트랩
+- 포인터 타깃 24×24 CSS px(2.5.8) 하한, 기본은 44×44
 
 ---
 
 ## 🛠️ 기술 스택
 
-- **React 18** - UI 라이브러리
-- **TypeScript** - 타입 안전성
-- **Vanilla Extract** - CSS-in-TypeScript 스타일링
-- **Vite** - 빌드 도구
+- **React 18/19** - UI 라이브러리
+- **TypeScript 5.9 (strict)** - 타입 안전성
+- **Vanilla Extract** - CSS-in-TypeScript 스타일링 (zero-runtime)
+- **GSAP 3.15** - 모션 런타임
+- **Vite 7** - 빌드 도구
 - **Vitest** - 테스트 프레임워크
 - **Storybook 8** - 컴포넌트 문서화
 
@@ -200,20 +183,21 @@ function ContactForm() {
 
 | 지표 | 목표 | 달성 |
 |------|------|------|
-| 테스트 커버리지 | 80% | **99%+** ✅ |
-| 번들 크기 | < 100KB | **~23KB** ✅ |
+| 테스트 | — | **1,627개 통과** ✅ |
+| 구문 커버리지 | 90% | **96%** ✅ |
 | 접근성 | WCAG 2.2 AA | **AA 준수** ✅ |
 | TypeScript 에러 | 0건 | **0건** ✅ |
 | ESLint 에러 | 0건 | **0건** ✅ |
+
+번들 크기는 주장하지 않습니다. 모듈이 컴포넌트 단위로 쪼개져 나가므로 실제 크기는 무엇을
+import하는지에 달려 있고, 재보지 않은 숫자를 적는 것보다 비워 두는 편이 정직합니다.
 
 ---
 
 ## 🔗 유용한 링크
 
-- [GitHub Repository](https://github.com/yourusername/designsystem)
-- [디자인 토큰](/?path=/docs/소개-designtokens--docs)
-- [접근성 가이드](https://www.w3.org/WAI/WCAG22/quickref/)
-- [Atomic Design](https://atomicdesign.bradfrost.com/)
+- [WCAG 2.2 Quick Reference](https://www.w3.org/WAI/WCAG22/quickref/)
+- [GSAP 문서](https://gsap.com/docs/v3/)
 
 ---
 

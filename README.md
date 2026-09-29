@@ -1,7 +1,9 @@
 # TUI — TaeinUI
 
-일관된 UI와 효율적인 개발을 위해 만든 React 디자인 시스템입니다.
-가볍고, 배우기 쉽고, AI 친화적인 컴포넌트 라이브러리를 지향합니다.
+컴포넌트마다 다른 움직임을 갖는 React UI 컴포넌트 라이브러리입니다.
+전 컴포넌트에 같은 전환 하나를 입히는 대신, 컴포넌트 각각이 자기 성격에 맞는 모션을 갖습니다.
+통일성을 내려놓는 범위는 모션까지이고, 시인성·가독성·가시성은 그 밖입니다 — 모션이 이 셋 중
+하나라도 깎으면 틀린 쪽은 모션입니다.
 
 https://tds-taein-design-system.vercel.app/
 
@@ -10,13 +12,16 @@ https://tds-taein-design-system.vercel.app/
 
 ## 특징
 
-- **컴포넌트 패밀리 30개** — Button, Modal, Card 등 실무에 필요한 UI 컴포넌트. 패키지의 top-level export는 48개로, 차이는 개별 import도 가능한 하위 컴포넌트입니다(`ModalHeader`, `CardBody`, `AvatarGroup`, `ListItem` 등)
-- **~23KB 번들** — 런타임 의존성 2개(vanilla-extract, clsx)만 사용
+- **컴포넌트별 모션** — 열림·전환·되먹임을 컴포넌트마다 따로 설계합니다. 같은 이징 하나를 전부에 바르지 않습니다
+- **GSAP이 모션의 메인 런타임** — 현재 12개 컴포넌트가 GSAP으로 움직입니다. CSS가 못 하는 것(트리거 좌표 읽기, 제스처 1:1 추적, 여러 목표를 동시에 중단)이 있는 자리에만 쓰고, 나머지는 CSS 트랜지션으로 둡니다. 최신 목록은 [`packages/core/llms.txt`](./packages/core/llms.txt)의 "Motion (GSAP Runtime)" 절
+- **시인성은 협상 대상이 아님** — WCAG 2.2 AA를 테스트로 잠가 두었고, `prefers-reduced-motion`에서는 CSS 전역 규칙과 GSAP 트윈 게이트가 함께 움직임을 끕니다
+- **컴포넌트 패밀리 30개** — Button, Modal, Card 등 실무에 필요한 UI 컴포넌트. 패키지의 top-level export는 49개로, 차이는 개별 import도 가능한 하위 컴포넌트입니다(`ModalHeader`, `CardBody`, `AvatarGroup`, `ListItem` 등)
 - **Zero-runtime CSS** — Vanilla Extract 기반, 빌드 타임에 CSS 생성
 - **Tree-shakable** — 사용하는 컴포넌트만 번들에 포함
 - **TypeScript** — 엄격 모드, `any` 미사용, 완전한 타입 지원
-- **접근성** — 시맨틱 HTML, ARIA, 키보드 네비게이션, 포커스 관리
 - **AI 친화** — llms.txt 제공, 일관된 API 패턴, JS doc 주석
+
+런타임 의존성은 `@vanilla-extract/css`, `@vanilla-extract/recipes`, `clsx`, `gsap` 넷입니다.
 
 ## 설치
 
@@ -72,26 +77,30 @@ function LoginForm() {
 | **레이아웃** | Card, List, BoardRow, Divider, Border, HeaderBar              |
 | **폼**       | FormField                                                     |
 
-## 디자인 토큰
+## 모션
 
-Vanilla Extract 기반의 디자인 토큰 시스템을 제공합니다. 테마는 `:root`에 선언된
-라이트 테마 하나뿐이며, Provider나 훅 없이 CSS import만으로 적용됩니다.
+GSAP 런타임이 실제로 붙어 있는 컴포넌트입니다. 계획이 아니라 코드에서 읽은 목록이고,
+여기 없는 컴포넌트는 CSS 트랜지션만 씁니다.
 
-| 토큰              | 설명                                                                                                           |
-| ----------------- | -------------------------------------------------------------------------------------------------------------- |
-| **Colors**        | Primary, Gray, Semantic (success, warning, error, info) — 각 semantic은 main/light/dark/contrast 4슬롯         |
-| **Typography**    | Font family, size, weight, line-height, variantNumeric (tabular-nums)                                          |
-| **Spacing**       | 8pt Grid 기반 (4px 단위). 12단계로 닫혀 있음 (0~20, 중간 번호는 미정의)                                        |
-| **Shadows**       | 8단계 (none, sm, base, md, lg, xl, 2xl, inner)                                                                 |
-| **Animation**     | Duration, Easing                                                                                               |
-| **Border Radius** | 7단계 (none ~ full)                                                                                            |
-| **Z-Index**       | 층 이름 스케일 (base, dropdown, sticky, overlay, modal, popover, toast, tooltip)                               |
-| **Breakpoints**   | sm 360 / md 768 / lg 1024 / xl 1280 (px). `@media`에 CSS 변수를 쓸 수 없어 `themeContract` 밖의 빌드 타임 상수 |
+| 컴포넌트                                           | GSAP이 맡는 일                                    |
+| -------------------------------------------------- | ------------------------------------------------- |
+| Modal, BottomSheet, SideSheet                      | 타임라인 상대 위치, 트리거 좌표 읽기, 드래그 추적 |
+| Checkbox, Switch, SegmentedButtons, NumericSpinner | 모양 변형, 여러 목표를 동시에 중단                |
+| Slider, HeaderBarNav                               | 제스처·포인터 추적                                |
+| Snackbar, TextField, TextArea                      | CSS가 못 보는 값 읽기(진행률·줄바꿈 위치)         |
+
+`prefers-reduced-motion: reduce`에서는 CSS 전역 규칙이 트랜지션·애니메이션을 끄고,
+GSAP으로 도는 트윈은 인라인 스타일이라 그 규칙이 안 닿으므로 각 훅이 `gateMotion`으로
+끝 상태에 확정한 뒤 멈춥니다. 중간 프레임에 멈추는 경우가 구조적으로 없습니다.
+
+## 테마 토큰
+
+색·간격·타이포·이징은 `themeContract` 하나로 모여 있고 공개 API입니다. 모션을 컴포넌트마다
+다르게 가져가는 대신, 대비와 읽기 쉬움을 소비자가 직접 조일 수 있게 남겨 둔 손잡이입니다.
+테마는 `:root`에 선언된 라이트 하나뿐이라 Provider도 훅도 없습니다.
 
 ```tsx
 import { themeContract } from '@taein-ui/core';
-
-// 커스텀 스타일에서 토큰 사용
 import { style } from '@vanilla-extract/css';
 
 const customStyle = style({
@@ -101,12 +110,15 @@ const customStyle = style({
 });
 ```
 
+전체 토큰 경로와 실측 대비비는 [`packages/core/llms-full.txt`](./packages/core/llms-full.txt)의
+Design Tokens 절에 있습니다 — 토큰 소스에서 생성되므로 문서와 코드가 어긋날 수 없습니다.
+
 ## 프로젝트 구조
 
 ```
 designsystem/
 ├── packages/
-│   ├── core/          # 디자인 시스템 라이브러리 (@taein-ui/core)
+│   ├── core/          # 컴포넌트 라이브러리 (@taein-ui/core)
 │   ├── demo/          # 데모 및 문서 앱
 │   └── docs/          # Storybook
 ├── LICENSE
