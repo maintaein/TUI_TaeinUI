@@ -3,13 +3,6 @@
   <url><loc>https://tds-demo.vercel.app/</loc><changefreq>monthly</changefreq><priority>1.0</priority></url>
   <url><loc>https://tds-demo.vercel.app/getting-started</loc><changefreq>monthly</changefreq><priority>0.9</priority></url>
 
-  <!-- Design Tokens -->
-  <url><loc>https://tds-demo.vercel.app/design-tokens/colors</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
-  <url><loc>https://tds-demo.vercel.app/design-tokens/typography</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
-  <url><loc>https://tds-demo.vercel.app/design-tokens/spacing</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
-  <url><loc>https://tds-demo.vercel.app/design-tokens/shadows</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
-  <url><loc>https://tds-demo.vercel.app/design-tokens/animation</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
-
   <!-- Components -->
   <url><loc>https://tds-demo.vercel.app/components/overview</loc><changefreq>monthly</changefreq><priority>0.9</priority></url>
   <url><loc>https://tds-demo.vercel.app/components/button</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
@@ -42,14 +35,4 @@
   <url><loc>https://tds-demo.vercel.app/components/border</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
   <url><loc>https://tds-demo.vercel.app/components/header-bar</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
   <url><loc>https://tds-demo.vercel.app/components/form-field</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
-
-  <!-- Patterns -->
-  <url><loc>https://tds-demo.vercel.app/patterns/overview</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
-  <url><loc>https://tds-demo.vercel.app/patterns/login-form</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
-  <url><loc>https://tds-demo.vercel.app/patterns/dashboard</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
-
-  <!-- Guidelines -->
-  <url><loc>https://tds-demo.vercel.app/guidelines/design-principles</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
-  <url><loc>https://tds-demo.vercel.app/guidelines/accessibility</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
-  <url><loc>https://tds-demo.vercel.app/guidelines/performance</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
 </urlset>
