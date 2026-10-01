@@ -45,7 +45,6 @@ export const statCard = style({
   border: '1px solid #e5e7eb',
 });
 
-
 export const statNumber = style({
   fontSize: '2.5rem',
   fontWeight: 800,
@@ -96,13 +95,12 @@ export const componentsGrid = style({
 });
 
 export const componentIcon = style({
-  fontSize: '3rem',
   marginBottom: '1rem',
   transition: 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
   transformOrigin: 'top left',
   transform: 'translateY(0) translateX(0) scale(1)',
-  willChange: 'transform', 
-  backfaceVisibility: 'hidden', 
+  willChange: 'transform',
+  backfaceVisibility: 'hidden',
 });
 
 export const componentName = style({
@@ -129,7 +127,6 @@ export const componentDescription = style({
 });
 
 export const componentArrow = style({
-  fontSize: '1.5rem',
   color: '#6b7280',
   opacity: 0,
   transform: 'translateX(-10px)',

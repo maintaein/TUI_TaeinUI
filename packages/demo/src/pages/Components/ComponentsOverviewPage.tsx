@@ -72,7 +72,7 @@ export function ComponentsOverviewPage() {
               >
                 <Card.Body padding="lg">
                   <div className={styles.componentIcon}>
-                    <component.icon size={24} />
+                    <component.icon size={48} />
                   </div>
                   <h3 className={styles.componentName}>{component.name}</h3>
                   <p className={styles.componentDescription}>
