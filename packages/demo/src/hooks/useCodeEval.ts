@@ -9,6 +9,42 @@ import {
 } from 'react';
 import { transform } from 'sucrase';
 import * as Core from '@taein-ui/core';
+import {
+  AlignCenter,
+  AlignLeft,
+  AlignRight,
+  ArrowRight,
+  Bell,
+  Check,
+  CircleAlert,
+  CircleCheck,
+  ClipboardList,
+  Download,
+  Ellipsis,
+  Hourglass,
+  House,
+  Info,
+  LayoutDashboard,
+  LayoutGrid,
+  LayoutList,
+  Link,
+  Mail,
+  Menu,
+  MessageCircle,
+  Minus,
+  Package,
+  Palette,
+  Pencil,
+  Plus,
+  RotateCw,
+  Search,
+  Settings,
+  ShoppingCart,
+  Star,
+  TriangleAlert,
+  User,
+  X,
+} from 'lucide-react';
 
 /**
  * 코드 스니펫에서 마지막 JSX 표현식을 찾아 함수 컴포넌트 본문으로 변환한다.
@@ -73,6 +109,42 @@ const scopeMap: Record<string, unknown> = {
   useEffect,
   useRef,
   useMemo,
+  // LivePreview code 문자열이 쓰는 lucide 아이콘만 주입 (번들 크기 때문에 쓰는 것만).
+  // core와 이름이 겹치면 core가 이기도록 ...Core보다 앞에 둔다. lucide의 Icon·List는 core와 겹쳐 넣지 않는다.
+  AlignCenter,
+  AlignLeft,
+  AlignRight,
+  ArrowRight,
+  Bell,
+  Check,
+  CircleAlert,
+  CircleCheck,
+  ClipboardList,
+  Download,
+  Ellipsis,
+  Hourglass,
+  House,
+  Info,
+  LayoutDashboard,
+  LayoutGrid,
+  LayoutList,
+  Link,
+  Mail,
+  Menu,
+  MessageCircle,
+  Minus,
+  Package,
+  Palette,
+  Pencil,
+  Plus,
+  RotateCw,
+  Search,
+  Settings,
+  ShoppingCart,
+  Star,
+  TriangleAlert,
+  User,
+  X,
   // core 컴포넌트 전부 주입
   ...Core,
 };
@@ -88,7 +160,7 @@ interface UseCodeEvalResult {
 /**
  * new Function 실행 시 위험한 전역을 undefined로 shadowing.
  * 데모 코드가 window/document/localStorage 등에 접근하는 것을 차단한다.
- * scopeMap에 명시된 React + Core API만 사용 가능.
+ * scopeMap에 명시된 React + Core + 주입한 lucide 아이콘만 사용 가능.
  */
 const BLOCKED_GLOBALS = [
   'window',
