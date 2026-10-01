@@ -196,9 +196,9 @@ export function ChipPage() {
             description="icon prop으로 라벨 앞에 아이콘을 표시합니다."
             editable
             code={`<div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', alignItems: 'center' }}>
-  <Chip label="추가" icon={<Icon name="plus" size="sm" />} color="primary" />
-  <Chip label="추가" icon={<Icon name="plus" size="sm" />} variant="outlined" color="primary" />
-  <Chip label="닫기" icon={<Icon name="close" size="sm" />} color="error" />
+  <Chip label="추가" icon={<Plus size={16} />} color="primary" />
+  <Chip label="추가" icon={<Plus size={16} />} variant="outlined" color="primary" />
+  <Chip label="닫기" icon={<X size={16} />} color="error" />
 </div>`}
           />
         </div>
