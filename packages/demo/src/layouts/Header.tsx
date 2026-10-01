@@ -8,6 +8,7 @@ import {
 } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { IconButton } from '@taein-ui/core';
+import { Menu, Search } from 'lucide-react';
 import { SearchDropdown } from '../components/SearchDialog';
 import { useSearch } from '../hooks/useSearch';
 import * as styles from './Header.css';
@@ -108,20 +109,7 @@ export function Header({ onMenuClick, showMenuButton = false }: HeaderProps) {
             size="md"
             ghost
           >
-            <svg
-              width="24"
-              height="24"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M4 6h16M4 12h16M4 18h16"
-              />
-            </svg>
+            <Menu size={24} />
           </IconButton>
         )}
         <picture>
@@ -142,21 +130,7 @@ export function Header({ onMenuClick, showMenuButton = false }: HeaderProps) {
       <div className={styles.rightSection}>
         <div ref={wrapperRef} className={styles.searchWrapper}>
           <div className={styles.searchInputWrapper}>
-            <svg
-              className={styles.searchIcon}
-              width="16"
-              height="16"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-              />
-            </svg>
+            <Search className={styles.searchIcon} size={16} />
             <input
               ref={inputRef}
               type="text"

@@ -1,60 +1,16 @@
 import type { Meta, StoryObj } from '@storybook/react';
 import { SegmentedButtons } from '@taein-ui/core';
 import { useState } from 'react';
+import { House, Search, Star, User } from 'lucide-react';
 
 // 아이콘 컴포넌트들
-const HomeIcon = () => (
-  <svg
-    width="20"
-    height="20"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-  >
-    <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" strokeWidth="2" />
-  </svg>
-);
+const HomeIcon = () => <House size={20} />;
 
-const SearchIcon = () => (
-  <svg
-    width="20"
-    height="20"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-  >
-    <circle cx="11" cy="11" r="8" strokeWidth="2" />
-    <path d="m21 21-4.35-4.35" strokeWidth="2" />
-  </svg>
-);
+const SearchIcon = () => <Search size={20} />;
 
-const StarIcon = () => (
-  <svg
-    width="20"
-    height="20"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-  >
-    <path
-      d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"
-      strokeWidth="2"
-    />
-  </svg>
-);
+const StarIcon = () => <Star size={20} />;
 
-const UserIcon = () => (
-  <svg
-    width="20"
-    height="20"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-  >
-    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" strokeWidth="2" />
-    <circle cx="12" cy="7" r="4" strokeWidth="2" />
-  </svg>
-);
+const UserIcon = () => <User size={20} />;
 
 const meta = {
   title: 'Components/SegmentedButtons',

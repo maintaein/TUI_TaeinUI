@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import clsx from 'clsx';
+import { ChevronDown } from 'lucide-react';
 import type { NavigationItem } from '../data/navigation';
 import { navigationData } from '../data/navigation';
 import * as styles from './Sidebar.css';
@@ -37,7 +38,7 @@ export function Sidebar({ isOpen, overlay, onClose }: SidebarProps) {
           <div
             className={clsx(
               styles.navItem,
-              (active || childActive) && styles.navItemActive,
+              (active || childActive) && styles.navItemActive
             )}
             onClick={() => toggleExpand(item.path)}
             role="button"
@@ -50,19 +51,12 @@ export function Sidebar({ isOpen, overlay, onClose }: SidebarProps) {
             }}
           >
             <span>{item.label}</span>
-            <svg
-              className={clsx(styles.chevron, isExpanded && styles.chevronExpanded)}
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M19 9l-7 7-7-7"
-              />
-            </svg>
+            <ChevronDown
+              className={clsx(
+                styles.chevron,
+                isExpanded && styles.chevronExpanded
+              )}
+            />
           </div>
           {isExpanded && item.children && (
             <div className={styles.navChildren}>
@@ -72,7 +66,7 @@ export function Sidebar({ isOpen, overlay, onClose }: SidebarProps) {
                   to={child.path}
                   className={clsx(
                     styles.navItem,
-                    isActive(child.path) && styles.navItemActive,
+                    isActive(child.path) && styles.navItemActive
                   )}
                   onClick={onClose}
                 >
@@ -89,10 +83,7 @@ export function Sidebar({ isOpen, overlay, onClose }: SidebarProps) {
       <Link
         key={item.path}
         to={item.path}
-        className={clsx(
-          styles.navItem,
-          active && styles.navItemActive,
-        )}
+        className={clsx(styles.navItem, active && styles.navItemActive)}
         onClick={onClose}
       >
         {item.label}
@@ -103,12 +94,14 @@ export function Sidebar({ isOpen, overlay, onClose }: SidebarProps) {
   const sidebarClass = clsx(
     styles.sidebar,
     overlay && styles.sidebarOverlay,
-    overlay && !isOpen && styles.sidebarHidden,
+    overlay && !isOpen && styles.sidebarHidden
   );
 
   return (
     <aside className={sidebarClass} aria-label="사이드바 네비게이션">
-      <nav className={styles.nav} aria-label="사이드바 네비게이션">{navigationData.map(renderNavItem)}</nav>
+      <nav className={styles.nav} aria-label="사이드바 네비게이션">
+        {navigationData.map(renderNavItem)}
+      </nav>
     </aside>
   );
 }

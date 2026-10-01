@@ -1,4 +1,5 @@
 import { useState, Component, type ReactNode } from 'react';
+import { Info } from 'lucide-react';
 import { EditableCodeBlock } from '../EditableCodeBlock';
 import { useCodeEval } from '../../hooks/useCodeEval';
 import * as styles from './LivePreview.css';
@@ -78,13 +79,7 @@ export function EditableLivePreview({
       </div>
       {hasError && (
         <div className={styles.errorBar}>
-          <svg
-            className={styles.errorIcon}
-            viewBox="0 0 16 16"
-            fill="currentColor"
-          >
-            <path d="M8 1a7 7 0 100 14A7 7 0 008 1zm-.75 3.75a.75.75 0 011.5 0v4a.75.75 0 01-1.5 0v-4zM8 12a1 1 0 110-2 1 1 0 010 2z" />
-          </svg>
+          <Info className={styles.errorIcon} />
           {error}
         </div>
       )}
