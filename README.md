@@ -5,10 +5,12 @@
 통일성을 내려놓는 범위는 모션까지이고, 시인성·가독성·가시성은 그 밖입니다 — 모션이 이 셋 중
 하나라도 깎으면 틀린 쪽은 모션입니다.
 
-https://tds-taein-design-system.vercel.app/
+https://tui-taein-ui.vercel.app/
 
 [![npm version](https://img.shields.io/npm/v/@taein-ui/core)](https://www.npmjs.com/package/@taein-ui/core)
 [![license](https://img.shields.io/npm/l/@taein-ui/core)](./LICENSE)
+
+변경 기록은 [CHANGELOG.md](./CHANGELOG.md)에 있습니다.
 
 ## 특징
 

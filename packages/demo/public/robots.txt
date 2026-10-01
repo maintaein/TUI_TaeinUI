@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://tds-demo.vercel.app/sitemap.xml
+Sitemap: https://tui-taein-ui.vercel.app/sitemap.xml
