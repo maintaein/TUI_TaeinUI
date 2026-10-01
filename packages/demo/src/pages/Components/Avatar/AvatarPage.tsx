@@ -227,7 +227,7 @@ export function AvatarPage() {
   <Avatar alt="김 영수" size="lg" />
   <Avatar alt="단일" size="lg" />
   <Avatar alt="커스텀" size="lg">
-    <span style={{ fontSize: '1.25rem' }}>🎨</span>
+    <Palette size={20} />
   </Avatar>
   <Avatar src="https://invalid-url.com/404.jpg" alt="로드 실패" size="lg" />
 </div>`}

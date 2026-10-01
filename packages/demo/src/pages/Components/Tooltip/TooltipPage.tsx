@@ -144,7 +144,7 @@ arrow: 화살표 표시/숨김
     <Button size="sm" variant="danger">삭제</Button>
   </Tooltip>
   <Tooltip content="설정 페이지로 이동합니다">
-    <Button size="sm" variant="light">⚙</Button>
+    <Button size="sm" variant="light"><Settings size={16} /></Button>
   </Tooltip>
 </div>`}
           />
@@ -337,10 +337,10 @@ arrow: 화살표 표시/숨김
             description="content에 JSX를 전달하여 아이콘, 강조 텍스트 등을 포함할 수 있습니다."
             editable
             code={`<div style={{ display: 'flex', gap: '1.5rem', flexWrap: 'wrap', padding: '1.5rem' }}>
-  <Tooltip content={<span>⚠️ <strong>주의:</strong> 되돌릴 수 없습니다</span>} position="bottom">
+  <Tooltip content={<span><TriangleAlert size={16} style={{ verticalAlign: 'text-bottom' }} /> <strong>주의:</strong> 되돌릴 수 없습니다</span>} position="bottom">
     <Button size="sm" variant="danger">삭제</Button>
   </Tooltip>
-  <Tooltip content={<span>✅ 변경사항이 <strong>자동 저장</strong>됩니다</span>} position="right">
+  <Tooltip content={<span><CircleCheck size={16} style={{ verticalAlign: 'text-bottom' }} /> 변경사항이 <strong>자동 저장</strong>됩니다</span>} position="right">
     <Button size="sm">편집</Button>
   </Tooltip>
 </div>`}
@@ -374,7 +374,7 @@ arrow: 화살표 표시/숨김
     <Button size="sm" variant="light"><u>U</u></Button>
   </Tooltip>
   <Tooltip content="링크 삽입" position="bottom" delay={0}>
-    <Button size="sm" variant="light">🔗</Button>
+    <Button size="sm" variant="light"><Link size={16} /></Button>
   </Tooltip>
 </div>`}
           />

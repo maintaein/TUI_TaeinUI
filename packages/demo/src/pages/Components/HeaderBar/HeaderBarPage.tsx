@@ -127,7 +127,7 @@ export function HeaderBarPage() {
             description="logo prop으로 로고 이미지나 아이콘을 배치할 수 있습니다."
             editable
             code={`<HeaderBar
-  logo={<span style={{ fontSize: '1.5rem' }}>🎨</span>}
+  logo={<Palette size={24} />}
   title="TUI"
   actions={<Button size="sm" variant="dark">시작하기</Button>}
 />`}
@@ -142,9 +142,9 @@ export function HeaderBarPage() {
             description="children 영역에 네비게이션 링크를 배치합니다. 중앙에 정렬됩니다."
             editable
             code={`<HeaderBar
-  logo={<span style={{ fontSize: '1.5rem' }}>🎨</span>}
+  logo={<Palette size={24} />}
   title="TUI"
-  actions={<IconButton ghost aria-label="메뉴" size="sm">☰</IconButton>}
+  actions={<IconButton ghost aria-label="메뉴" size="sm"><Menu size={18} /></IconButton>}
 >
   <div style={{ display: 'flex', gap: '1.5rem', fontSize: '0.875rem' }}>
     <a href="#" style={{ fontWeight: 600, color: 'inherit', textDecoration: 'none', padding: '0.5rem' }}>Components</a>
@@ -258,13 +258,13 @@ export function HeaderBarPage() {
             description="actions 영역은 검색, 알림, 사용자 메뉴 등 기능적 버튼을 배치하는 우측 영역입니다. children(네비게이션)이 페이지 이동 링크라면, actions는 앱 전역에서 동작하는 기능 버튼입니다."
             editable
             code={`<HeaderBar
-  logo={<span style={{ fontSize: '1.5rem' }}>📦</span>}
+  logo={<Package size={24} />}
   title="Store"
   actions={
     <div style={{ display: 'flex', gap: '0.25rem', alignItems: 'center' }}>
-      <IconButton ghost aria-label="검색" size="sm">🔍</IconButton>
-      <IconButton ghost aria-label="알림" size="sm">🔔</IconButton>
-      <IconButton ghost aria-label="장바구니" size="sm">🛒</IconButton>
+      <IconButton ghost aria-label="검색" size="sm"><Search size={18} /></IconButton>
+      <IconButton ghost aria-label="알림" size="sm"><Bell size={18} /></IconButton>
+      <IconButton ghost aria-label="장바구니" size="sm"><ShoppingCart size={18} /></IconButton>
       <Button size="sm">로그인</Button>
     </div>
   }
@@ -288,12 +288,12 @@ export function HeaderBarPage() {
             code={`<div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
   {/* 일반 웹 앱 헤더 */}
   <HeaderBar
-    logo={<span style={{ fontSize: '1.25rem' }}>📦</span>}
+    logo={<Package size={20} />}
     title="Store"
     actions={
       <div style={{ display: 'flex', gap: '0.25rem', alignItems: 'center' }}>
-        <IconButton ghost aria-label="검색" size="sm">🔍</IconButton>
-        <IconButton ghost aria-label="장바구니" size="sm">🛒</IconButton>
+        <IconButton ghost aria-label="검색" size="sm"><Search size={18} /></IconButton>
+        <IconButton ghost aria-label="장바구니" size="sm"><ShoppingCart size={18} /></IconButton>
         <Button size="sm">로그인</Button>
       </div>
     }
@@ -307,12 +307,12 @@ export function HeaderBarPage() {
   {/* 관리자 대시보드 헤더 */}
   <HeaderBar
     variant="dark"
-    logo={<span style={{ fontSize: '1.25rem' }}>⚙️</span>}
+    logo={<Settings size={20} />}
     title="Admin"
     actions={
       <div style={{ display: 'flex', gap: '0.25rem', alignItems: 'center' }}>
         <Badge variant="danger" size="sm">3</Badge>
-        <IconButton ghost aria-label="알림" size="sm">🔔</IconButton>
+        <IconButton ghost aria-label="알림" size="sm"><Bell size={18} /></IconButton>
       </div>
     }
   />

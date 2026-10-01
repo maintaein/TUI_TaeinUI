@@ -253,7 +253,7 @@ const items = [
             code={`<BoardRow
   title={
     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-      <span style={{ fontSize: '1.25rem' }}>📋</span>
+      <ClipboardList size={20} />
       <span>주문 상세 정보</span>
       <span style={{
         padding: '0.125rem 0.5rem',

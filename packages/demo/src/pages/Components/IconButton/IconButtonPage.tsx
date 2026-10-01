@@ -127,10 +127,10 @@ export function IconButtonPage() {
             description="아이콘과 aria-label을 함께 제공하는 가장 기본적인 사용법입니다."
             editable
             code={`<div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
-  <IconButton aria-label="홈">🏠</IconButton>
-  <IconButton aria-label="검색">🔍</IconButton>
-  <IconButton aria-label="알림">🔔</IconButton>
-  <IconButton aria-label="설정">⚙</IconButton>
+  <IconButton aria-label="홈"><House size={22} /></IconButton>
+  <IconButton aria-label="검색"><Search size={22} /></IconButton>
+  <IconButton aria-label="알림"><Bell size={22} /></IconButton>
+  <IconButton aria-label="설정"><Settings size={22} /></IconButton>
 </div>`}
           />
         </div>
@@ -143,10 +143,10 @@ export function IconButtonPage() {
             description="buttonStyle='fill' (기본값)일 때 4가지 variant입니다. Button과 동일한 색상 체계를 사용합니다."
             editable
             code={`<div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
-  <IconButton variant="primary" aria-label="추가">+</IconButton>
-  <IconButton variant="dark" aria-label="메뉴">☰</IconButton>
-  <IconButton variant="danger" aria-label="삭제">✕</IconButton>
-  <IconButton variant="light" aria-label="즐겨찾기">★</IconButton>
+  <IconButton variant="primary" aria-label="추가"><Plus size={22} /></IconButton>
+  <IconButton variant="dark" aria-label="메뉴"><Menu size={22} /></IconButton>
+  <IconButton variant="danger" aria-label="삭제"><X size={22} /></IconButton>
+  <IconButton variant="light" aria-label="즐겨찾기"><Star size={22} /></IconButton>
 </div>`}
           />
         </div>
@@ -159,10 +159,10 @@ export function IconButtonPage() {
             description="buttonStyle='weak'는 채도가 낮은 배경색으로 시각적 위계를 낮춥니다. 툴바나 보조 액션에 적합합니다."
             editable
             code={`<div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
-  <IconButton variant="primary" buttonStyle="weak" aria-label="추가">+</IconButton>
-  <IconButton variant="dark" buttonStyle="weak" aria-label="메뉴">☰</IconButton>
-  <IconButton variant="danger" buttonStyle="weak" aria-label="삭제">✕</IconButton>
-  <IconButton variant="light" buttonStyle="weak" aria-label="즐겨찾기">★</IconButton>
+  <IconButton variant="primary" buttonStyle="weak" aria-label="추가"><Plus size={22} /></IconButton>
+  <IconButton variant="dark" buttonStyle="weak" aria-label="메뉴"><Menu size={22} /></IconButton>
+  <IconButton variant="danger" buttonStyle="weak" aria-label="삭제"><X size={22} /></IconButton>
+  <IconButton variant="light" buttonStyle="weak" aria-label="즐겨찾기"><Star size={22} /></IconButton>
 </div>`}
           />
         </div>
@@ -175,10 +175,10 @@ export function IconButtonPage() {
             description="sm(36px), md(44px), lg(52px), xl(60px) 네 가지 정사각형 크기를 제공합니다."
             editable
             code={`<div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
-  <IconButton size="sm" aria-label="Small">✎</IconButton>
-  <IconButton size="md" aria-label="Medium">✎</IconButton>
-  <IconButton size="lg" aria-label="Large">✎</IconButton>
-  <IconButton size="xl" aria-label="X-Large">✎</IconButton>
+  <IconButton size="sm" aria-label="Small"><Pencil size={18} /></IconButton>
+  <IconButton size="md" aria-label="Medium"><Pencil size={22} /></IconButton>
+  <IconButton size="lg" aria-label="Large"><Pencil size={26} /></IconButton>
+  <IconButton size="xl" aria-label="X-Large"><Pencil size={30} /></IconButton>
 </div>`}
           />
         </div>
@@ -197,9 +197,9 @@ const handleClick = () => {
 };
 
 <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
-  <IconButton loading={loading} onClick={handleClick} aria-label="새로고침">↻</IconButton>
-  <IconButton loading variant="dark" aria-label="로딩 중">⏳</IconButton>
-  <IconButton loading variant="danger" aria-label="로딩 중">⏳</IconButton>
+  <IconButton loading={loading} onClick={handleClick} aria-label="새로고침"><RotateCw size={22} /></IconButton>
+  <IconButton loading variant="dark" aria-label="로딩 중"><Hourglass size={22} /></IconButton>
+  <IconButton loading variant="danger" aria-label="로딩 중"><Hourglass size={22} /></IconButton>
 </div>`}
           />
         </div>
@@ -212,10 +212,10 @@ const handleClick = () => {
             description="disabled prop으로 버튼을 비활성화합니다. 클릭 이벤트가 발생하지 않습니다."
             editable
             code={`<div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
-  <IconButton disabled aria-label="추가">+</IconButton>
-  <IconButton variant="dark" disabled aria-label="메뉴">☰</IconButton>
-  <IconButton variant="danger" disabled aria-label="삭제">✕</IconButton>
-  <IconButton variant="light" disabled aria-label="즐겨찾기">★</IconButton>
+  <IconButton disabled aria-label="추가"><Plus size={22} /></IconButton>
+  <IconButton variant="dark" disabled aria-label="메뉴"><Menu size={22} /></IconButton>
+  <IconButton variant="danger" disabled aria-label="삭제"><X size={22} /></IconButton>
+  <IconButton variant="light" disabled aria-label="즐겨찾기"><Star size={22} /></IconButton>
 </div>`}
           />
         </div>
@@ -232,11 +232,11 @@ const handleClick = () => {
   <IconButton size="sm" buttonStyle="weak" variant="dark" aria-label="Italic">I</IconButton>
   <IconButton size="sm" buttonStyle="weak" variant="dark" aria-label="Underline">U</IconButton>
   <div style={{ width: '1px', height: '24px', backgroundColor: '#d1d5db', margin: '0 0.25rem' }} />
-  <IconButton size="sm" buttonStyle="weak" variant="dark" aria-label="왼쪽 정렬">≡</IconButton>
-  <IconButton size="sm" buttonStyle="weak" variant="dark" aria-label="가운데 정렬">≡</IconButton>
-  <IconButton size="sm" buttonStyle="weak" variant="dark" aria-label="오른쪽 정렬">≡</IconButton>
+  <IconButton size="sm" buttonStyle="weak" variant="dark" aria-label="왼쪽 정렬"><AlignLeft size={18} /></IconButton>
+  <IconButton size="sm" buttonStyle="weak" variant="dark" aria-label="가운데 정렬"><AlignCenter size={18} /></IconButton>
+  <IconButton size="sm" buttonStyle="weak" variant="dark" aria-label="오른쪽 정렬"><AlignRight size={18} /></IconButton>
   <div style={{ width: '1px', height: '24px', backgroundColor: '#d1d5db', margin: '0 0.25rem' }} />
-  <IconButton size="sm" buttonStyle="weak" variant="danger" aria-label="삭제">✕</IconButton>
+  <IconButton size="sm" buttonStyle="weak" variant="danger" aria-label="삭제"><X size={18} /></IconButton>
 </div>`}
           />
         </div>
@@ -250,16 +250,16 @@ const handleClick = () => {
             editable
             code={`<div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
   <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
-    <Button variant="primary" leftIcon="+" size="md">추가</Button>
-    <IconButton variant="primary" size="md" aria-label="추가">+</IconButton>
+    <Button variant="primary" leftIcon={<Plus size={16} />} size="md">추가</Button>
+    <IconButton variant="primary" size="md" aria-label="추가"><Plus size={22} /></IconButton>
   </div>
   <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
-    <Button variant="danger" leftIcon="✕" size="md">삭제</Button>
-    <IconButton variant="danger" size="md" aria-label="삭제">✕</IconButton>
+    <Button variant="danger" leftIcon={<X size={16} />} size="md">삭제</Button>
+    <IconButton variant="danger" size="md" aria-label="삭제"><X size={22} /></IconButton>
   </div>
   <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
     <Button variant="dark" buttonStyle="weak" size="sm">메뉴</Button>
-    <IconButton variant="dark" buttonStyle="weak" size="sm" aria-label="메뉴">☰</IconButton>
+    <IconButton variant="dark" buttonStyle="weak" size="sm" aria-label="메뉴"><Menu size={18} /></IconButton>
   </div>
 </div>`}
           />
@@ -285,10 +285,10 @@ const handleClick = () => {
             description="ghost prop만 추가하면 배경 없는 아이콘 버튼이 됩니다. 호버 시 미세한 배경이 나타나 인터랙션 영역을 알려줍니다."
             editable
             code={`<div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-  <IconButton ghost aria-label="닫기">✕</IconButton>
-  <IconButton ghost aria-label="설정">⚙</IconButton>
-  <IconButton ghost aria-label="더보기">⋯</IconButton>
-  <IconButton ghost aria-label="새로고침">↻</IconButton>
+  <IconButton ghost aria-label="닫기"><X size={22} /></IconButton>
+  <IconButton ghost aria-label="설정"><Settings size={22} /></IconButton>
+  <IconButton ghost aria-label="더보기"><Ellipsis size={22} /></IconButton>
+  <IconButton ghost aria-label="새로고침"><RotateCw size={22} /></IconButton>
 </div>`}
           />
         </div>
@@ -303,15 +303,15 @@ const handleClick = () => {
             code={`<div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
   <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
     <span style={{ width: '100px', fontSize: '0.875rem', color: '#6b7280' }}>Contained</span>
-    <IconButton aria-label="닫기">✕</IconButton>
-    <IconButton aria-label="설정">⚙</IconButton>
-    <IconButton aria-label="더보기">⋯</IconButton>
+    <IconButton aria-label="닫기"><X size={22} /></IconButton>
+    <IconButton aria-label="설정"><Settings size={22} /></IconButton>
+    <IconButton aria-label="더보기"><Ellipsis size={22} /></IconButton>
   </div>
   <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
     <span style={{ width: '100px', fontSize: '0.875rem', color: '#6b7280' }}>Ghost</span>
-    <IconButton ghost aria-label="닫기">✕</IconButton>
-    <IconButton ghost aria-label="설정">⚙</IconButton>
-    <IconButton ghost aria-label="더보기">⋯</IconButton>
+    <IconButton ghost aria-label="닫기"><X size={22} /></IconButton>
+    <IconButton ghost aria-label="설정"><Settings size={22} /></IconButton>
+    <IconButton ghost aria-label="더보기"><Ellipsis size={22} /></IconButton>
   </div>
 </div>`}
           />
@@ -328,14 +328,14 @@ const handleClick = () => {
   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem', backgroundColor: '#f9fafb', borderRadius: '0.75rem' }}>
     <span style={{ fontWeight: 600 }}>알림 설정</span>
     <div style={{ display: 'flex', gap: '0.25rem' }}>
-      <IconButton ghost aria-label="편집">✎</IconButton>
-      <IconButton ghost aria-label="닫기">✕</IconButton>
+      <IconButton ghost aria-label="편집"><Pencil size={22} /></IconButton>
+      <IconButton ghost aria-label="닫기"><X size={22} /></IconButton>
     </div>
   </div>
   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem', backgroundColor: '#f9fafb', borderRadius: '0.75rem' }}>
     <span style={{ fontWeight: 600 }}>프로필 사진</span>
     <div style={{ display: 'flex', gap: '0.25rem' }}>
-      <IconButton ghost aria-label="더보기">⋯</IconButton>
+      <IconButton ghost aria-label="더보기"><Ellipsis size={22} /></IconButton>
     </div>
   </div>
 </div>`}
@@ -356,9 +356,9 @@ const handleClick = () => {
 };
 
 <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-  <IconButton ghost loading={loading} onClick={handleClick} aria-label="새로고침">↻</IconButton>
-  <IconButton ghost loading aria-label="로딩 중">⏳</IconButton>
-  <IconButton ghost disabled aria-label="비활성화">✕</IconButton>
+  <IconButton ghost loading={loading} onClick={handleClick} aria-label="새로고침"><RotateCw size={22} /></IconButton>
+  <IconButton ghost loading aria-label="로딩 중"><Hourglass size={22} /></IconButton>
+  <IconButton ghost disabled aria-label="비활성화"><X size={22} /></IconButton>
 </div>`}
           />
         </div>
@@ -428,11 +428,11 @@ const handleClick = () => {
             examples: [
               {
                 code: `// Good
-<IconButton aria-label="닫기">✕</IconButton>
-<IconButton aria-label="새로고침">↻</IconButton>
+<IconButton aria-label="닫기"><X /></IconButton>
+<IconButton aria-label="새로고침"><RotateCw /></IconButton>
 
 // Bad - aria-label 없음
-<IconButton>✕</IconButton>`,
+<IconButton><X /></IconButton>`,
                 explanation:
                   'aria-label이 없으면 스크린 리더 사용자가 버튼의 용도를 알 수 없습니다. 개발 환경에서 콘솔 경고가 표시됩니다.',
               },
@@ -445,10 +445,10 @@ const handleClick = () => {
             examples: [
               {
                 code: `// 아이콘만으로 충분한 경우 → IconButton
-<IconButton aria-label="닫기">✕</IconButton>
+<IconButton aria-label="닫기"><X /></IconButton>
 
 // 텍스트가 필요한 경우 → Button
-<Button leftIcon="✕">삭제하기</Button>`,
+<Button leftIcon={<X />}>삭제하기</Button>`,
                 explanation:
                   '닫기(✕), 메뉴(☰) 같은 범용 아이콘은 IconButton으로 충분하지만, 구체적인 행동은 텍스트가 필요합니다.',
               },

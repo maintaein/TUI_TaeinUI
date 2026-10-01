@@ -185,10 +185,10 @@ export function ButtonPage() {
             description="leftIcon, rightIcon prop으로 버튼 좌우에 아이콘을 배치할 수 있습니다."
             editable
             code={`<div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem', alignItems: 'center' }}>
-  <Button leftIcon="+" variant="primary">추가</Button>
-  <Button rightIcon="→" variant="dark">다음</Button>
-  <Button rightIcon="↓" variant="light">다운로드</Button>
-  <Button leftIcon="✕" variant="danger">삭제</Button>
+  <Button leftIcon={<Plus size={16} />} variant="primary">추가</Button>
+  <Button rightIcon={<ArrowRight size={16} />} variant="dark">다음</Button>
+  <Button rightIcon={<Download size={16} />} variant="light">다운로드</Button>
+  <Button leftIcon={<X size={16} />} variant="danger">삭제</Button>
 </div>`}
           />
         </div>
@@ -284,20 +284,20 @@ const handleClick = () => {
   {/* 폼 하단 버튼 그룹 */}
   <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
     <Button variant="light" size="md">취소</Button>
-    <Button variant="primary" size="md" leftIcon="✓">저장</Button>
+    <Button variant="primary" size="md" leftIcon={<Check size={16} />}>저장</Button>
   </div>
 
   {/* 위험 행동 확인 */}
   <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
     <Button variant="danger" buttonStyle="weak" size="sm">비활성화</Button>
-    <Button variant="danger" size="sm" leftIcon="✕">계정 삭제</Button>
+    <Button variant="danger" size="sm" leftIcon={<X size={16} />}>계정 삭제</Button>
   </div>
 
   {/* 다양한 크기 조합 */}
   <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
     <Button size="sm" buttonStyle="weak">필터</Button>
-    <Button size="md" variant="dark" leftIcon="↻">새로고침</Button>
-    <Button size="lg" rightIcon="→">시작하기</Button>
+    <Button size="md" variant="dark" leftIcon={<RotateCw size={16} />}>새로고침</Button>
+    <Button size="lg" rightIcon={<ArrowRight size={18} />}>시작하기</Button>
   </div>
 </div>`}
           />
@@ -386,10 +386,10 @@ const handleClick = () => {
             examples: [
               {
                 code: `// Good - IconButton 사용
-<IconButton icon="✕" aria-label="닫기" />
+<IconButton aria-label="닫기"><X /></IconButton>
 
 // Bad - 텍스트 없는 Button
-<Button leftIcon="✕">{""}</Button>`,
+<Button leftIcon={<X />}>{""}</Button>`,
                 explanation:
                   '스크린 리더 사용자가 버튼의 용도를 알 수 없게 됩니다.',
               },

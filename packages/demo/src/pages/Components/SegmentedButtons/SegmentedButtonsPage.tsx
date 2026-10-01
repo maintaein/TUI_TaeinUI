@@ -256,9 +256,9 @@ export function SegmentedButtonsPage() {
 
 <SegmentedButtons
   options={[
-    { value: 'list', label: '리스트', icon: '☰' },
-    { value: 'grid', label: '그리드', icon: '⊞' },
-    { value: 'card', label: '카드', icon: '▦' },
+    { value: 'list', label: '리스트', icon: <LayoutList size={18} /> },
+    { value: 'grid', label: '그리드', icon: <LayoutGrid size={18} /> },
+    { value: 'card', label: '카드', icon: <LayoutDashboard size={18} /> },
   ]}
   value={selected}
   onChange={setSelected}
@@ -278,9 +278,9 @@ export function SegmentedButtonsPage() {
 
 <SegmentedButtons
   options={[
-    { value: 'left', label: '왼쪽 정렬', icon: '⫷', iconOnly: true },
-    { value: 'center', label: '가운데 정렬', icon: '⫿', iconOnly: true },
-    { value: 'right', label: '오른쪽 정렬', icon: '⫸', iconOnly: true },
+    { value: 'left', label: '왼쪽 정렬', icon: <AlignLeft size={18} />, iconOnly: true },
+    { value: 'center', label: '가운데 정렬', icon: <AlignCenter size={18} />, iconOnly: true },
+    { value: 'right', label: '오른쪽 정렬', icon: <AlignRight size={18} />, iconOnly: true },
   ]}
   value={align}
   onChange={setAlign}
@@ -432,10 +432,10 @@ export function SegmentedButtonsPage() {
             examples: [
               {
                 code: `// Good ✓
-{ value: 'left', label: '왼쪽 정렬', icon: '⫷', iconOnly: true }
+{ value: 'left', label: '왼쪽 정렬', icon: <AlignLeft />, iconOnly: true }
 
 // Bad ✗
-{ value: 'left', label: '', icon: '⫷', iconOnly: true }`,
+{ value: 'left', label: '', icon: <AlignLeft />, iconOnly: true }`,
                 explanation:
                   '시각적으로 보이지 않더라도 label은 접근성을 위해 필수입니다.',
               },

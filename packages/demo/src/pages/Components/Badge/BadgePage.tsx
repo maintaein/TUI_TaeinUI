@@ -271,19 +271,19 @@ export function BadgePage() {
   {/* 알림 아이콘 + 배지 */}
   <div style={{ display: 'flex', gap: '2rem', alignItems: 'center' }}>
     <div style={{ position: 'relative', display: 'inline-flex' }}>
-      <span style={{ fontSize: '1.5rem' }}>🔔</span>
+      <Bell size={24} />
       <span style={{ position: 'absolute', top: '-4px', right: '-8px' }}>
         <Badge variant="error" size="sm">{3}</Badge>
       </span>
     </div>
     <div style={{ position: 'relative', display: 'inline-flex' }}>
-      <span style={{ fontSize: '1.5rem' }}>💬</span>
+      <MessageCircle size={24} />
       <span style={{ position: 'absolute', top: '-4px', right: '-8px' }}>
         <Badge variant="primary" size="sm">{12}</Badge>
       </span>
     </div>
     <div style={{ position: 'relative', display: 'inline-flex' }}>
-      <span style={{ fontSize: '1.5rem' }}>📧</span>
+      <Mail size={24} />
       <span style={{ position: 'absolute', top: '-2px', right: '-2px' }}>
         <Badge dot variant="error" />
       </span>

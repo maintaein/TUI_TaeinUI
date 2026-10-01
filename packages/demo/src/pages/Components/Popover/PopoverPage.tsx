@@ -335,7 +335,7 @@ const menu = (
 
 // Tooltip: 호버 인터랙션, 텍스트 정보
 <Tooltip content="삭제합니다">
-  <IconButton icon="✕" aria-label="삭제" />
+  <IconButton aria-label="삭제"><X /></IconButton>
 </Tooltip>`,
                 explanation:
                   'Popover는 버튼, 링크, 폼 등 인터랙티브 요소를 포함할 수 있습니다.',
