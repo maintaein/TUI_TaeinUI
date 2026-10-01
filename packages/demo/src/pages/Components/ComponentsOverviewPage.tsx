@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import type { CSSProperties } from 'react';
+import { ArrowRight } from 'lucide-react';
 import { Card, Divider, Badge, Text } from '@taein-ui/core';
 import {
   componentsData,
@@ -70,12 +71,16 @@ export function ComponentsOverviewPage() {
                 className={styles.componentCardCustom}
               >
                 <Card.Body padding="lg">
-                  <div className={styles.componentIcon}>{component.icon}</div>
+                  <div className={styles.componentIcon}>
+                    <component.icon size={24} />
+                  </div>
                   <h3 className={styles.componentName}>{component.name}</h3>
                   <p className={styles.componentDescription}>
                     {component.description}
                   </p>
-                  <div className={styles.componentArrow}>→</div>
+                  <div className={styles.componentArrow}>
+                    <ArrowRight size={24} />
+                  </div>
                 </Card.Body>
               </Card>
             ))}

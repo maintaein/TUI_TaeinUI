@@ -1,9 +1,43 @@
+import {
+  Badge,
+  Bone,
+  ChevronsUpDown,
+  CirclePlus,
+  CircleUser,
+  ClipboardList,
+  Columns3,
+  FileText,
+  Hash,
+  Info,
+  LayoutPanelTop,
+  List,
+  Loader,
+  LoaderCircle,
+  MessageCircle,
+  MessageSquare,
+  Minus,
+  MousePointerClick,
+  PanelBottom,
+  PanelRight,
+  PanelTop,
+  SlidersHorizontal,
+  Sparkles,
+  Square,
+  SquareCheck,
+  SquareDashed,
+  Tag,
+  TextCursorInput,
+  ToggleLeft,
+  Type,
+  type LucideIcon,
+} from 'lucide-react';
+
 export interface ComponentInfo {
   name: string;
   path: string;
   description: string;
   category: 'form' | 'button' | 'feedback' | 'overlay' | 'layout' | 'data';
-  icon: string;
+  icon: LucideIcon;
 }
 
 export const componentsData: ComponentInfo[] = [
@@ -14,7 +48,7 @@ export const componentsData: ComponentInfo[] = [
     description:
       '이름, 이메일, 비밀번호 등 한 줄 텍스트를 입력받을 때 사용합니다.',
     category: 'form',
-    icon: '📝',
+    icon: TextCursorInput,
   },
   {
     name: 'TextArea',
@@ -22,7 +56,7 @@ export const componentsData: ComponentInfo[] = [
     description:
       '후기, 메모, 설명 등 여러 줄의 텍스트를 입력받을 때 사용합니다.',
     category: 'form',
-    icon: '📃',
+    icon: FileText,
   },
   {
     name: 'Checkbox',
@@ -30,21 +64,21 @@ export const componentsData: ComponentInfo[] = [
     description:
       '약관 동의, 다중 선택 등 사용자가 항목을 체크할 때 사용합니다.',
     category: 'form',
-    icon: '☑️',
+    icon: SquareCheck,
   },
   {
     name: 'Switch',
     path: '/components/switch',
     description: '알림, 자동 저장 등 설정을 켜거나 끌 때 사용합니다.',
     category: 'form',
-    icon: '🔘',
+    icon: ToggleLeft,
   },
   {
     name: 'NumericSpinner',
     path: '/components/numeric-spinner',
     description: '수량, 인원수 등 숫자를 버튼으로 조절할 때 사용합니다.',
     category: 'form',
-    icon: '🔢',
+    icon: Hash,
   },
   {
     name: 'SegmentedButtons',
@@ -52,7 +86,7 @@ export const componentsData: ComponentInfo[] = [
     description:
       '보기 모드, 정렬 방식 등 여러 옵션 중 하나를 선택할 때 사용합니다.',
     category: 'form',
-    icon: '🎛️',
+    icon: Columns3,
   },
   {
     name: 'Slider',
@@ -60,7 +94,7 @@ export const componentsData: ComponentInfo[] = [
     description:
       '볼륨, 가격 범위 등 연속적인 값을 드래그로 조절할 때 사용합니다.',
     category: 'form',
-    icon: '🎚️',
+    icon: SlidersHorizontal,
   },
   {
     name: 'FormField',
@@ -68,7 +102,7 @@ export const componentsData: ComponentInfo[] = [
     description:
       '입력 필드에 라벨, 에러 메시지, 도움말을 일관되게 붙일 때 사용합니다.',
     category: 'form',
-    icon: '📋',
+    icon: ClipboardList,
   },
 
   // Button Components (3개)
@@ -78,14 +112,14 @@ export const componentsData: ComponentInfo[] = [
     description:
       '폼 제출, 모달 열기, 삭제 등 사용자 액션을 실행할 때 사용합니다.',
     category: 'button',
-    icon: '🔵',
+    icon: MousePointerClick,
   },
   {
     name: 'IconButton',
     path: '/components/icon-button',
     description: '닫기, 메뉴 열기 등 아이콘만으로 액션을 표현할 때 사용합니다.',
     category: 'button',
-    icon: '⚪',
+    icon: CirclePlus,
   },
   {
     name: 'Text',
@@ -93,7 +127,7 @@ export const componentsData: ComponentInfo[] = [
     description:
       '제목, 본문, 캡션 등 텍스트의 스타일과 크기를 통일할 때 사용합니다.',
     category: 'button',
-    icon: '📄',
+    icon: Type,
   },
 
   // Feedback Components (6개)
@@ -103,21 +137,21 @@ export const componentsData: ComponentInfo[] = [
     description:
       '읽지 않은 알림 수, 새 메시지 표시 등 상태를 알려줄 때 사용합니다.',
     category: 'feedback',
-    icon: '🔴',
+    icon: Badge,
   },
   {
     name: 'Loader',
     path: '/components/loader',
     description: '페이지 전체나 특정 영역이 로딩 중일 때 사용합니다.',
     category: 'feedback',
-    icon: '⏳',
+    icon: Loader,
   },
   {
     name: 'LoadingSpinner',
     path: '/components/loading-spinner',
     description: '버튼이나 카드 안에 작은 로딩 표시를 넣을 때 사용합니다.',
     category: 'feedback',
-    icon: '🔄',
+    icon: LoaderCircle,
   },
   {
     name: 'Skeleton',
@@ -125,7 +159,7 @@ export const componentsData: ComponentInfo[] = [
     description:
       '콘텐츠가 로딩되기 전에 레이아웃 윤곽을 미리 보여줄 때 사용합니다.',
     category: 'feedback',
-    icon: '💀',
+    icon: Bone,
   },
   {
     name: 'Snackbar',
@@ -133,7 +167,7 @@ export const componentsData: ComponentInfo[] = [
     description:
       '저장 완료, 에러 발생 등 짧은 알림을 화면 하단에 띄울 때 사용합니다.',
     category: 'feedback',
-    icon: '💬',
+    icon: MessageSquare,
   },
   {
     name: 'Tooltip',
@@ -141,7 +175,7 @@ export const componentsData: ComponentInfo[] = [
     description:
       '아이콘이나 버튼 위에 마우스를 올렸을 때 부가 설명을 보여줄 때 사용합니다.',
     category: 'feedback',
-    icon: '💡',
+    icon: Info,
   },
 
   // Overlay Components (4개)
@@ -151,7 +185,7 @@ export const componentsData: ComponentInfo[] = [
     description:
       '확인 대화상자, 폼 입력 등 사용자의 주의가 필요한 작업에 사용합니다.',
     category: 'overlay',
-    icon: '🪟',
+    icon: Square,
   },
   {
     name: 'BottomSheet',
@@ -159,7 +193,7 @@ export const componentsData: ComponentInfo[] = [
     description:
       '모바일에서 옵션 선택, 필터 등을 화면 아래에서 올릴 때 사용합니다.',
     category: 'overlay',
-    icon: '⬆️',
+    icon: PanelBottom,
   },
   {
     name: 'SideSheet',
@@ -167,7 +201,7 @@ export const componentsData: ComponentInfo[] = [
     description:
       '상세 정보, 설정 패널 등을 화면 옆에서 슬라이드로 열 때 사용합니다.',
     category: 'overlay',
-    icon: '➡️',
+    icon: PanelRight,
   },
   {
     name: 'Popover',
@@ -175,7 +209,7 @@ export const componentsData: ComponentInfo[] = [
     description:
       '프로필 메뉴, 날짜 선택기 등 특정 요소 근처에 패널을 띄울 때 사용합니다.',
     category: 'overlay',
-    icon: '🗯️',
+    icon: MessageCircle,
   },
 
   // Layout Components (5개)
@@ -184,35 +218,35 @@ export const componentsData: ComponentInfo[] = [
     path: '/components/header-bar',
     description: '페이지 상단에 로고, 제목, 액션 버튼을 배치할 때 사용합니다.',
     category: 'layout',
-    icon: '📌',
+    icon: PanelTop,
   },
   {
     name: 'Divider',
     path: '/components/divider',
     description: '콘텐츠 사이를 시각적으로 구분할 때 사용합니다.',
     category: 'layout',
-    icon: '➖',
+    icon: Minus,
   },
   {
     name: 'Border',
     path: '/components/border',
     description: '콘텐츠 영역에 테두리를 넣어 구분하거나 강조할 때 사용합니다.',
     category: 'layout',
-    icon: '🔲',
+    icon: SquareDashed,
   },
   {
     name: 'List',
     path: '/components/list',
     description: '설정 항목, 주문 내역 등 정보를 세로로 나열할 때 사용합니다.',
     category: 'layout',
-    icon: '📜',
+    icon: List,
   },
   {
     name: 'BoardRow',
     path: '/components/board-row',
     description: 'FAQ, 상세 정보 등 콘텐츠를 접었다 펼칠 때 사용합니다.',
     category: 'layout',
-    icon: '🪗',
+    icon: ChevronsUpDown,
   },
 
   // Data Components (4개)
@@ -221,14 +255,14 @@ export const componentsData: ComponentInfo[] = [
     path: '/components/avatar',
     description: '사용자 프로필 사진이나 이니셜을 표시할 때 사용합니다.',
     category: 'data',
-    icon: '👤',
+    icon: CircleUser,
   },
   {
     name: 'Chip',
     path: '/components/chip',
     description: '태그, 필터, 카테고리 등을 작은 라벨로 표시할 때 사용합니다.',
     category: 'data',
-    icon: '🏷️',
+    icon: Tag,
   },
   {
     name: 'Card',
@@ -236,14 +270,14 @@ export const componentsData: ComponentInfo[] = [
     description:
       '상품, 글, 프로필 등 관련 정보를 하나의 영역으로 묶을 때 사용합니다.',
     category: 'data',
-    icon: '🃏',
+    icon: LayoutPanelTop,
   },
   {
     name: 'Icon',
     path: '/components/icon',
     description: '닫기, 화살표 등 UI에 필요한 아이콘을 표시할 때 사용합니다.',
     category: 'data',
-    icon: '✦',
+    icon: Sparkles,
   },
 ];
 
