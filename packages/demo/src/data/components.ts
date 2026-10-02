@@ -12,7 +12,6 @@ import {
   LayoutPanelTop,
   List,
   Loader,
-  LoaderCircle,
   MessageCircle,
   MessageSquare,
   Minus,
@@ -145,13 +144,6 @@ export const componentsData: ComponentInfo[] = [
     description: '페이지 전체나 특정 영역이 로딩 중일 때 사용합니다.',
     category: 'feedback',
     icon: Loader,
-  },
-  {
-    name: 'LoadingSpinner',
-    path: '/components/loading-spinner',
-    description: '버튼이나 카드 안에 작은 로딩 표시를 넣을 때 사용합니다.',
-    category: 'feedback',
-    icon: LoaderCircle,
   },
   {
     name: 'Skeleton',

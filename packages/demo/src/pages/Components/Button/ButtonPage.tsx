@@ -42,7 +42,7 @@ export function ButtonPage() {
       name: 'loading',
       type: 'boolean',
       default: 'false',
-      description: '로딩 상태 (LoadingSpinner 표시)',
+      description: '로딩 상태 (Loader 표시)',
     },
     {
       name: 'disabled',

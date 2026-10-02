@@ -309,3 +309,9 @@ globalStyle(
     transitionTimingFunction: themeContract.animation.easing.exit,
   }
 );
+
+// Loader는 바깥에 블록 div를 하나 두므로 flex 아이템으로 만들어 줄 상자(baseline)
+// 정렬을 없앤다. 그대로 두면 점·스피너가 글자 baseline으로 내려앉는다.
+export const loadingSlot = style({
+  display: 'flex',
+});

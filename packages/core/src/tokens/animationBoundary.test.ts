@@ -62,7 +62,7 @@ const INLINE_FILES = findFiles(
  * 경계가 다스리는 속성. `animationName`·`animationIterationCount`는 시간이 아니라
  * 선택 항목이 아니다.
  *
- * **줄 머리에 고정하면 안 된다.** `LoadingSpinner.css.ts:77`의
+ * **줄 머리에 고정하면 안 된다.** `Loader.css.ts`의
  * `first: { animationDelay: '0s' },`처럼 한 줄 객체 안에 들어앉은 선언이 있어서,
  * `^\s*`로 고정한 첫 판은 지연 5건 중 3건을 조용히 놓쳤다. 앞의 `(?<![\w.'"])`가
  * `themeContract.animation.duration`류 참조와 문자열 안을 걸러낸다.
@@ -548,7 +548,7 @@ interface Exception {
 
 /**
  * 리터럴 이징 8줄 15건 4파일(`.css.ts`) + 인라인 현재 0건 — 양성 표본 상실은 M7 항목(`.tsx`).
- * BoardRow·Card·Chip은 M2 T3가, Loader·LoadingSpinner·Skeleton은 M2 T3c가
+ * BoardRow·Card·Chip은 M2 T3가, Loader·Skeleton은 M2 T3c가
  * 갚아 토큰으로 옮겨져 이 목록에서 빠졌다.
  *
  * **여기서 토큰으로 바꾸지 않는다.** `cubic-bezier(0.4, 0, 0.2, 1)`(Material
@@ -633,19 +633,19 @@ const LITERAL_DELAY_EXCEPTIONS: Exception[] = [
       '아이콘이 몸통보다 늦게 따라오는 지연. stagger 토큰이 없어 리터럴로 적는다',
   },
   {
-    at: 'components/LoadingSpinner/LoadingSpinner.css.ts',
+    at: 'components/Loader/Loader.css.ts',
     values: ['0s'],
     owner: '-',
     reason: '점 스태거 1번. duration.base(200ms) × 0',
   },
   {
-    at: 'components/LoadingSpinner/LoadingSpinner.css.ts',
+    at: 'components/Loader/Loader.css.ts',
     values: ['0.2s'],
     owner: '-',
     reason: '점 스태거 2번. duration.base(200ms) × 1',
   },
   {
-    at: 'components/LoadingSpinner/LoadingSpinner.css.ts',
+    at: 'components/Loader/Loader.css.ts',
     values: ['0.4s'],
     owner: '-',
     reason: '점 스태거 3번. duration.base(200ms) × 2',
@@ -675,8 +675,8 @@ const INLINE_MECHANISM_EXCEPTIONS: Exception[] = [];
 /**
  * 저장소 소비자가 0인 채로 살려 두는 easing 토큰과 그 소유 마일스톤.
  *
- * `linear`·`drift` 둘 다 M2 T3c가 갚아 빠졌다: `linear`는 `LoadingSpinner`
- * 회전이 토큰으로, `drift`는 `Loader`·`LoadingSpinner`(점 페이드)·`Skeleton`
+ * `linear`·`drift` 둘 다 M2 T3c가 갚아 빠졌다: `linear`는 `Loader`
+ * 회전이 토큰으로, `drift`는 `Loader`(스윕·점 페이드)·`Skeleton`
  * (pulse·wave)의 자율 루프가 공유 자산 `loopRhythmEasing`을 거쳐 소비한다
  * — 지금은 소유자를 적어 둘 예외가 없어 빈 객체다.
  */
@@ -1167,7 +1167,7 @@ describe('하드코딩 시간 잠금 (T5 · R35)', () => {
     );
   });
 
-  it('리터럴 지연 6건을 정확히 집어낸다 (IconButton 1 + LoadingSpinner 3 + Skeleton 2)', () => {
+  it('리터럴 지연 6건을 정확히 집어낸다 (IconButton 1 + Loader 3 + Skeleton 2)', () => {
     expect(groupByFile(delays)).toEqual(expectedMap(LITERAL_DELAY_EXCEPTIONS));
     expect(delays).toHaveLength(6);
   });
@@ -1423,7 +1423,7 @@ describe('easing 토큰 소유자 (R5)', () => {
 
   it('허용 목록에 오른 토큰은 실재하고 아직 소비자가 0이다', () => {
     // M2의 이징 완결 신호: linear·drift 둘 다 M2 T3c가 소비자를 만들어
-    // 목록에서 지웠다(LoadingSpinner 회전 → linear, Skeleton·Loader
+    // 목록에서 지웠다(Loader 회전 → linear, Skeleton·Loader
     // 루프 커브 → drift). 지금 목록이 빈 게 우연이 아니라는 걸 여기서
     // 단언해 둔다 — 이 줄이 깨지면 누군가 목록을 다시 채운 것이고, 그건
     // 정리가 아니라 결정이니 이유를 남겨야 한다. M3가 새 토큰을 등록하며

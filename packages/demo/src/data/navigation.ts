@@ -34,7 +34,6 @@ export const navigationData: NavigationItem[] = [
       { label: 'IconButton', path: '/components/icon-button' },
       { label: 'List', path: '/components/list' },
       { label: 'Loader', path: '/components/loader' },
-      { label: 'LoadingSpinner', path: '/components/loading-spinner' },
       { label: 'Modal', path: '/components/modal' },
       { label: 'NumericSpinner', path: '/components/numeric-spinner' },
       { label: 'Popover', path: '/components/popover' },

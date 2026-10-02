@@ -42,7 +42,7 @@ export function IconButtonPage() {
       name: 'loading',
       type: 'boolean',
       default: 'false',
-      description: '로딩 상태 (LoadingSpinner 표시)',
+      description: '로딩 상태 (Loader 표시)',
     },
     {
       name: 'disabled',
@@ -188,7 +188,7 @@ export function IconButtonPage() {
           <h3 className={styles.exampleTitle}>Loading</h3>
           <LivePreview
             title="로딩 상태"
-            description="loading prop으로 LoadingSpinner를 표시합니다. 로딩 중에는 버튼이 자동으로 비활성화됩니다."
+            description="loading prop으로 Loader를 표시합니다. 로딩 중에는 버튼이 자동으로 비활성화됩니다."
             editable
             code={`const [loading, setLoading] = useState(false);
 const handleClick = () => {

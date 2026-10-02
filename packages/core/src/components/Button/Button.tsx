@@ -5,8 +5,9 @@ import {
   customVariant,
   customOutlineVariant,
   fullWidth,
+  loadingSlot,
 } from './Button.css';
-import { LoadingSpinner } from '../LoadingSpinner';
+import { Loader } from '../Loader';
 
 type ButtonVariant = 'primary' | 'dark' | 'danger' | 'light';
 type ButtonStyle = 'fill' | 'weak';
@@ -112,8 +113,9 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         {...props}
       >
         {loading && (
-          <LoadingSpinner
+          <Loader
             type="dots"
+            className={loadingSlot}
             size="sm"
             color="currentColor"
             aria-label="로딩 중"

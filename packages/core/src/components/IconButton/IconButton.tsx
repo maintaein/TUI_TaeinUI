@@ -6,8 +6,9 @@ import {
   ghostBase,
   ghostSizeVariants,
   iconMotion,
+  loadingSlot,
 } from './IconButton.css';
-import { LoadingSpinner } from '../LoadingSpinner';
+import { Loader } from '../Loader';
 
 type IconButtonVariant = 'primary' | 'dark' | 'danger' | 'light';
 type IconButtonStyle = 'fill' | 'weak';
@@ -80,8 +81,9 @@ export const IconButton = forwardRef<HTMLButtonElement, IconButtonProps>(
         {...props}
       >
         {loading ? (
-          <LoadingSpinner
+          <Loader
             type="spinner"
+            className={loadingSlot}
             size="sm"
             color="currentColor"
             aria-label="로딩 중"

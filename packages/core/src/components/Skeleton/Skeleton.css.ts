@@ -3,7 +3,7 @@ import { themeContract } from '../../tokens/theme.css';
 import { loopRhythmEasing } from '../../tokens/loopRhythm.css';
 
 // 애니메이션 정의
-// wave의 방향(좌→우)이 상태계 계열 기준이다(S1) — Loader 스윕·LoadingSpinner가
+// wave의 방향(좌→우)이 상태계 계열 기준이다(S1) — Loader 스윕·점 페이드가
 // 이 방향·리듬을 따른다. 커브는 T5 공유 자산(loopRhythm)에서, 주기는
 // loop.base 토큰을 직접 받는다(이유는 loopRhythm.css.ts 주석 참고).
 const wave = keyframes({

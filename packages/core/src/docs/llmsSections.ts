@@ -300,7 +300,7 @@ export function renderTokenReference(): string {
     `- \`animation.easing\` — ${scaleLines(animation.easing)}`,
     '- **토큰 경계** — 여러 컴포넌트가 공유하는 의미(전이 속도, 반복 주기,',
     '  등장·퇴장 커브)만 토큰이다. 한 컴포넌트에만 있는 연출의 내부 타이밍',
-    '  (Skeleton wave 시작 지연, LoadingSpinner 점 스태거 같은 delay)은 토큰이 아니고,',
+    '  (Skeleton wave 시작 지연, Loader 점 스태거 같은 delay)은 토큰이 아니고,',
     '  그래도 duration·loop 토큰의 배수로 적는다. `.css.ts`에 duration을 리터럴로 박지 않는다.',
     '- 오버슈트 이징 `snap`(피크 1.0998)·`spring`(피크 1.2044)은 `transform`에만 건다.',
     '  값이 1을 넘어야 튕김이 보이는데 `opacity`·색은 1에서 잘려 인공물만 남는다.',

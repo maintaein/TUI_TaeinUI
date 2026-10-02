@@ -22,9 +22,10 @@ export function LoaderPage() {
     },
     {
       name: 'color',
-      type: "'primary' | 'secondary' | 'white'",
+      type: "'primary' | 'secondary' | 'white' | string",
       default: "'primary'",
-      description: '로더 색상',
+      description:
+        '로더 색상. preset 또는 임의의 CSS 색상값 (예: "#8b5cf6", "currentColor")',
     },
     {
       name: 'label',
@@ -66,13 +67,13 @@ export function LoaderPage() {
         </p>
       </header>
 
-      {/* Loader vs LoadingSpinner */}
+      {/* 저수준·고수준 사용 */}
       <section className={styles.section}>
         <div className={styles.sectionHeader}>
-          <h2 className={styles.sectionTitle}>Loader vs LoadingSpinner</h2>
+          <h2 className={styles.sectionTitle}>저수준으로도, 고수준으로도</h2>
           <p className={styles.sectionDescription}>
-            TUI는 로딩 인디케이터를 두 계층으로 나누어 제공합니다. 목적에 맞는
-            컴포넌트를 선택하세요.
+            하나의 Loader가 type과 color로 두 가지 쓰임을 모두 덮습니다. 목적에
+            맞게 props를 고르세요.
           </p>
         </div>
 
@@ -81,18 +82,23 @@ export function LoaderPage() {
             <Card.Body padding="lg">
               <div className={styles.practiceHeader}>
                 <h3 className={styles.practiceTitle}>
-                  LoadingSpinner (저수준)
+                  저수준 (인라인 인디케이터)
                 </h3>
               </div>
               <List spacing="sm" className={styles.practiceList}>
-                <ListItem>순수한 스피너/점 애니메이션만 렌더링</ListItem>
                 <ListItem>
-                  CSS 색상 문자열로 색상 직접 지정 (예: "#8b5cf6")
+                  type="spinner" 또는 "dots"만 단독으로 렌더링
                 </ListItem>
                 <ListItem>
-                  inline-flex — 텍스트, 버튼 옆에 자연스럽게 배치
+                  color에 CSS 색상 문자열을 직접 지정 (예: "#8b5cf6",
+                  "currentColor")
                 </ListItem>
-                <ListItem>라벨, 오버레이, 전체 화면 기능 없음</ListItem>
+                <ListItem>
+                  텍스트, 버튼 옆에 자연스럽게 배치되는 작은 크기
+                </ListItem>
+                <ListItem>
+                  label, overlay, fullScreen을 생략하면 껍데기 없음
+                </ListItem>
                 <ListItem>커스텀 로딩 UI를 직접 조합할 때 사용</ListItem>
               </List>
             </Card.Body>
@@ -102,18 +108,17 @@ export function LoaderPage() {
             <Card.Body padding="lg">
               <div className={styles.practiceHeader}>
                 <h3 className={styles.practiceTitle}>
-                  Loader (고수준) ← 현재 페이지
+                  고수준 (앱 수준 로딩 UI)
                 </h3>
               </div>
               <List spacing="sm" className={styles.practiceList}>
-                <ListItem>내부에서 LoadingSpinner를 사용하여 구현</ListItem>
                 <ListItem>
                   디자인 토큰 기반 색상 프리셋 (primary / secondary / white)
                 </ListItem>
                 <ListItem>
                   label, overlay, fullScreen 등 앱 수준 기능 내장
                 </ListItem>
-                <ListItem>bar 타입 (프로그레스 바) 추가 지원</ListItem>
+                <ListItem>bar 타입 (프로그레스 바) 지원</ListItem>
                 <ListItem>빠르게 로딩 UI를 완성하고 싶을 때 사용</ListItem>
               </List>
             </Card.Body>
@@ -121,22 +126,22 @@ export function LoaderPage() {
         </div>
 
         <div className={styles.example} style={{ marginTop: '1.5rem' }}>
-          <h3 className={styles.exampleTitle}>언제 어떤 걸 쓸까?</h3>
+          <h3 className={styles.exampleTitle}>언제 어떤 props를 쓸까?</h3>
           <CodeBlock
             language="tsx"
-            code={`// 1. 간단한 로딩 UI → Loader 사용
+            code={`// 1. 간단한 로딩 UI → label, overlay, fullScreen
 <Loader label="불러오는 중..." />
 <Loader overlay />
 <Loader fullScreen />
 
-// 2. 커스텀 로딩 UI를 직접 만들 때 → LoadingSpinner 사용
+// 2. 커스텀 로딩 UI를 직접 만들 때 → type, size, color만 지정
 <div className={myCustomOverlay}>
-  <LoadingSpinner size="xl" color="#8b5cf6" />
+  <Loader size="xl" color="#8b5cf6" />
   <p>커스텀 레이아웃의 로딩 화면</p>
 </div>
 
-// 3. 브랜드 색상이 아닌 임의의 색상 → LoadingSpinner 사용
-<LoadingSpinner color="#ea580c" />`}
+// 3. 브랜드 색상이 아닌 임의의 색상 → color에 CSS 색상 문자열
+<Loader color="#ea580c" />`}
           />
         </div>
       </section>

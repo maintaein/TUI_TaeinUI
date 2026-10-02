@@ -73,7 +73,6 @@ function LoginForm() {
 ### 피드백
 
 - **Loader** — 로딩 바/스피너
-- **LoadingSpinner** — 회전 로딩 인디케이터
 - **Skeleton** — 콘텐츠 로딩 플레이스홀더
 - **Snackbar** — 알림 토스트
 - **Tooltip** — 호버/포커스 시 툴팁

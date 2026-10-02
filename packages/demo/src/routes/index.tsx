@@ -142,11 +142,6 @@ const FormFieldPage = lazy(() =>
     default: m.FormFieldPage,
   }))
 );
-const LoadingSpinnerPage = lazy(() =>
-  import('../pages/Components/LoadingSpinner').then((m) => ({
-    default: m.LoadingSpinnerPage,
-  }))
-);
 
 // ─── Suspense wrapper ──────────────────────────────────────────────
 
@@ -444,14 +439,6 @@ const router = createBrowserRouter([
             element: (
               <LazyPage>
                 <FormFieldPage />
-              </LazyPage>
-            ),
-          },
-          {
-            path: 'loading-spinner',
-            element: (
-              <LazyPage>
-                <LoadingSpinnerPage />
               </LazyPage>
             ),
           },

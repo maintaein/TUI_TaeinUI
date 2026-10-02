@@ -286,19 +286,6 @@ export const searchIndex: SearchEntry[] = [
     ],
   },
   {
-    id: 'loading-spinner',
-    pageTitle: 'LoadingSpinner',
-    path: '/components/loading-spinner',
-    category: '피드백 & 상태',
-    description:
-      '저수준 로딩 인디케이터. 커스텀 색상과 인라인 배치를 지원합니다.',
-    sections: [
-      { title: 'Basic LoadingSpinner', content: '기본 로딩 스피너' },
-      { title: 'Sizes', content: 'sm, md, lg 크기를 지원합니다' },
-      { title: 'Custom Color', content: 'color prop으로 스피너 색상 변경' },
-    ],
-  },
-  {
     id: 'skeleton',
     pageTitle: 'Skeleton',
     path: '/components/skeleton',

@@ -23,7 +23,7 @@ const meta = {
     color: {
       control: 'select',
       options: ['primary', 'secondary', 'white'],
-      description: 'Color',
+      description: 'Color preset 또는 임의의 CSS 색상값 (예: #43A047)',
     },
     label: {
       control: 'text',
@@ -170,6 +170,63 @@ export const Colors: Story = {
       </div>
     </div>
   ),
+};
+
+/**
+ * color에 임의의 CSS 색상값을 넘길 수 있다. spinner와 dots 모두 적용된다.
+ */
+const CUSTOM_COLORS = [
+  ['Primary', '#1E88E5'],
+  ['Success', '#43A047'],
+  ['Error', '#E53935'],
+  ['Warning', '#FB8C00'],
+] as const;
+
+export const CustomColors: Story = {
+  render: () => (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+      {(['spinner', 'dots'] as const).map((type) => (
+        <div
+          key={type}
+          style={{ display: 'flex', alignItems: 'center', gap: '2rem' }}
+        >
+          {CUSTOM_COLORS.map(([name, hex]) => (
+            <div key={name} style={{ textAlign: 'center' }}>
+              <Loader type={type} color={hex} />
+              <p
+                style={{
+                  marginTop: '0.5rem',
+                  fontSize: '0.875rem',
+                  color: '#666',
+                }}
+              >
+                {name}
+              </p>
+            </div>
+          ))}
+        </div>
+      ))}
+      <div
+        style={{
+          padding: '3rem',
+          backgroundColor: '#1a1a1a',
+          borderRadius: '8px',
+          display: 'flex',
+          gap: '2rem',
+          alignItems: 'center',
+        }}
+      >
+        <Loader color="#FFFFFF" />
+        <Loader type="dots" color="#FFFFFF" />
+      </div>
+    </div>
+  ),
+};
+
+export const WithCustomAriaLabel: Story = {
+  args: {
+    'aria-label': '데이터 불러오는 중',
+  },
 };
 
 export const WithLabel: Story = {

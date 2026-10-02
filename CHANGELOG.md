@@ -19,5 +19,9 @@
 
 ## [Unreleased]
 
-아직 없습니다. [M5(컴포넌트 리뷰 반영)](<./.claude/고도화/plan/M5(컴포넌트-리뷰-반영).md>)의 각
-패스가 공개 표면을 바꿀 때 그 패스 안에서 여기에 항목을 추가합니다.
+[M5(컴포넌트 리뷰 반영)](<./.claude/고도화/plan/M5(컴포넌트-리뷰-반영).md>)의 각 패스가 공개
+표면을 바꿀 때 그 패스 안에서 여기에 항목을 추가합니다.
+
+### Removed
+
+- **BREAKING CHANGE:** `LoadingSpinner`를 제거했습니다. `Loader`가 같은 기능을 덮습니다. `<LoadingSpinner type="dots" size="sm" color="#f00" />` → `<Loader type="dots" size="sm" color="#f00" />`

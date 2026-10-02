@@ -11,7 +11,6 @@ export * from './SegmentedButtons';
 export * from './Slider';
 export * from './Badge';
 export * from './Loader';
-export * from './LoadingSpinner';
 export * from './Icon';
 export * from './Skeleton';
 export * from './Snackbar';
