@@ -14,6 +14,8 @@ import { createRef } from 'react';
 import { Button } from './Button';
 import * as styles from './Button.css'; // 클래스명 검증을 위해 스타일 임포트
 import { themeContract } from '../../tokens/theme.css';
+import { themeTokens } from '../../tokens/contract';
+import { contrastRatio, relativeLuminance } from '../../docs/llmsSections';
 
 describe('Button', () => {
   describe('렌더링 및 기본 설정', () => {
@@ -165,7 +167,7 @@ describe('Button', () => {
 
       const button = screen.getByRole('button');
       button.focus();
-      await userEvent.keyboard('{Enter}');
+      await act(() => userEvent.keyboard('{Enter}'));
 
       expect(handleClick).toHaveBeenCalledTimes(1);
     });
@@ -402,14 +404,75 @@ describe('Button 누름 효과는 입력 시간과 무관하게 완주한다', (
     expect(button).not.toHaveAttribute('data-pressed');
   });
 
-  it('Enter·Space 키보드 활성화는 data-pressed를 걸지 않는다', () => {
+  it.each([
+    ['Space', ' '],
+    ['Enter', 'Enter'],
+  ])('%s 30ms 탭도 90ms까지 data-pressed가 남고 그 뒤 사라진다', (_n, key) => {
+    vi.useFakeTimers();
     render(<Button>키보드</Button>);
     const button = screen.getByRole('button');
 
-    fireEvent.keyDown(button, { key: 'Enter' });
+    fireEvent.keyDown(button, { key });
+    expect(button).toHaveAttribute('data-pressed');
+    wait(30);
+    fireEvent.keyUp(button, { key });
+
+    wait(59);
+    expect(button).toHaveAttribute('data-pressed');
+    wait(1);
     expect(button).not.toHaveAttribute('data-pressed');
+  });
+
+  it('키를 길게 눌러 keydown이 반복돼도 타이머를 다시 시작하지 않는다', () => {
+    vi.useFakeTimers();
+    render(<Button>반복</Button>);
+    const button = screen.getByRole('button');
+
     fireEvent.keyDown(button, { key: ' ' });
+    wait(80);
+    fireEvent.keyDown(button, { key: ' ', repeat: true });
+    wait(10); // 첫 keydown 기준 t=90
+    fireEvent.keyUp(button, { key: ' ' });
     expect(button).not.toHaveAttribute('data-pressed');
+  });
+
+  it('키를 누른 채 포커스가 떠나면(blur) 누름 상태가 풀린다', () => {
+    vi.useFakeTimers();
+    render(<Button>블러</Button>);
+    const button = screen.getByRole('button');
+
+    fireEvent.keyDown(button, { key: ' ' });
+    wait(100);
+    fireEvent.blur(button);
+    expect(button).not.toHaveAttribute('data-pressed');
+  });
+
+  it('다른 키(Tab)는 누름 상태를 만들지 않는다', () => {
+    render(<Button>탭키</Button>);
+    const button = screen.getByRole('button');
+
+    fireEvent.keyDown(button, { key: 'Tab' });
+    expect(button).not.toHaveAttribute('data-pressed');
+  });
+
+  it('호출자의 키보드·blur 핸들러도 그대로 호출된다', () => {
+    const onKeyDown = vi.fn();
+    const onKeyUp = vi.fn();
+    const onBlur = vi.fn();
+    render(
+      <Button onKeyDown={onKeyDown} onKeyUp={onKeyUp} onBlur={onBlur}>
+        핸들러
+      </Button>
+    );
+    const button = screen.getByRole('button');
+
+    fireEvent.keyDown(button, { key: 'a' });
+    fireEvent.keyUp(button, { key: 'a' });
+    fireEvent.blur(button);
+
+    expect(onKeyDown).toHaveBeenCalledTimes(1);
+    expect(onKeyUp).toHaveBeenCalledTimes(1);
+    expect(onBlur).toHaveBeenCalledTimes(1);
   });
 
   it('호출자의 포인터 핸들러도 그대로 호출된다', () => {
@@ -441,14 +504,11 @@ describe('Button 누름 효과는 입력 시간과 무관하게 완주한다', (
   });
 });
 
-describe('Button 모션 잠금', () => {
-  // 소스 텍스트로 확인하는 것: base transition 숏핸드와 customOutline 토큰.
-  // vanilla-extract가 만든 CSS를 읽는 검사는 아래 'Button 생성 CSS'에 있다.
-  const cssSource = readFileSync(
-    resolve(__dirname, './Button.css.ts'),
-    'utf-8'
-  );
+// 소스 텍스트로 확인하는 것: base transition 숏핸드와 customOutline 토큰.
+// vanilla-extract가 만든 CSS를 읽는 검사는 'Button 생성 CSS'에 있다.
+const cssSource = readFileSync(resolve(__dirname, './Button.css.ts'), 'utf-8');
 
+describe('Button 모션 잠금', () => {
   it('base transition의 transform 구간이 fast 길이의 snap을 쓴다(해제 오버슛)', () => {
     const transitionLine = cssSource.match(/transition: `([^`]*)`,/)?.[1];
     expect(transitionLine, 'base transition 선언을 찾지 못했다').toBeDefined();
@@ -568,16 +628,26 @@ describe('Button 생성 CSS', () => {
     expect(scaled[0].rule.selectorText).toMatch(/^\.Button_button__\w+\[/);
   });
 
-  it('press-in은 fast 길이의 settle이고 ease-in(exit)이 아니다', () => {
+  it('press-in은 base 길이의 settle이고 ease-in(exit)이 아니다', () => {
     const base = basePressed();
     expect(base).toBeDefined();
     const { style } = base!.rule;
     expect(style.getPropertyValue('transition-duration')).toBe(
-      themeContract.animation.duration.fast
+      themeContract.animation.duration.base
     );
     expect(style.getPropertyValue('transition-timing-function')).toBe(
       themeContract.animation.easing.settle
     );
+  });
+
+  it('press-in(base)이 release(base 숏핸드의 fast)보다 길다: 누름·해제가 비대칭이다', () => {
+    const shorthand = cssSource.match(/transition: `([^`]*)`,/)?.[1] ?? '';
+    expect(shorthand).toContain(
+      'transform ${themeContract.animation.duration.fast}'
+    );
+    expect(
+      basePressed()!.rule.style.getPropertyValue('transition-duration')
+    ).toBe(themeContract.animation.duration.base);
   });
 
   it('축소 모드에서 data-pressed의 transform만 none이고 색 변화는 남는다', () => {
@@ -593,4 +663,80 @@ describe('Button 생성 CSS', () => {
     // 같은 특정도라 base의 scale(0.98)보다 문서 순서가 늦어야 이긴다.
     expect(order).toBeGreaterThan(basePressed()!.order);
   });
+});
+
+describe('Button fill 변형의 색 단조성 (조항 2: rest < hover < pressed)', () => {
+  const source = readFileSync(resolve(__dirname, './Button.css.ts'), 'utf-8');
+
+  function tokenValue(ref: string): string {
+    const value = ref
+      .replace(/\[(\w+)\]/g, '.$1')
+      .split('.')
+      .reduce<unknown>(
+        (node, key) => (node as Record<string, unknown>)[key],
+        themeTokens as unknown
+      );
+    expect(typeof value, `themeContract.${ref}가 토큰에 없다`).toBe('string');
+    return value as string;
+  }
+
+  const start = source.indexOf('compoundVariants: [');
+  const compound = source.slice(start, source.indexOf('\n  ],', start));
+  const fills: Record<
+    string,
+    { color: string; rest: string; hover: string; pressed: string }
+  > = {};
+  for (const chunk of compound.split('variants: { buttonStyle: ').slice(1)) {
+    const head = chunk.match(/^'(\w+)', variant: '(\w+)' \}/);
+    if (head?.[1] !== 'fill') continue;
+    const ref = (re: RegExp) => chunk.match(re)?.[1] ?? '';
+    fills[head[2]] = {
+      color: ref(/\n\s+color: themeContract\.([\w.[\]]+)/),
+      rest: ref(/\n\s+backgroundColor: themeContract\.([\w.[\]]+)/),
+      hover: ref(
+        /&:hover[^']*': \{\s*backgroundColor: themeContract\.([\w.[\]]+)/
+      ),
+      pressed: ref(
+        /&\[data-pressed\][^']*': \{\s*backgroundColor: themeContract\.([\w.[\]]+)/
+      ),
+    };
+  }
+
+  it('fill 변형 네 곳 모두 눌린 색을 팔레트 단계로 갖는다', () => {
+    expect(Object.keys(fills).sort()).toEqual([
+      'danger',
+      'dark',
+      'light',
+      'primary',
+    ]);
+    for (const [name, f] of Object.entries(fills)) {
+      expect(f.rest, `${name} rest`).not.toBe('');
+      expect(f.hover, `${name} hover`).not.toBe('');
+      expect(f.pressed, `${name} pressed`).not.toBe('');
+    }
+  });
+
+  it.each(['primary', 'dark', 'danger', 'light'])(
+    'fill %s는 rest보다 hover가, hover보다 pressed가 어둡다',
+    (name) => {
+      const f = fills[name];
+      const lum = (ref: string) => relativeLuminance(tokenValue(ref));
+      expect(lum(f.hover), `${name} hover < rest`).toBeLessThan(lum(f.rest));
+      expect(lum(f.pressed), `${name} pressed < hover`).toBeLessThan(
+        lum(f.hover)
+      );
+    }
+  );
+
+  // light는 제외한다: 기존 눌린 색(primary[100]) 위 primary.main이 3.27:1로 이미
+  // AA 밖이다(이 패스 이전부터). 별도 판정 대상이라 리포트에 남겼다.
+  it.each(['primary', 'dark', 'danger'])(
+    'fill %s의 글자색은 눌린 배경 위에서 AA(4.5:1)를 만족한다',
+    (name) => {
+      const f = fills[name];
+      expect(
+        contrastRatio(tokenValue(f.color), tokenValue(f.pressed))
+      ).toBeGreaterThanOrEqual(4.5);
+    }
+  );
 });

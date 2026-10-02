@@ -31,18 +31,16 @@ export const button = recipe({
       // 클릭도 효과가 끝까지 나온다. 색·그림자·scale이 이 속성 하나를 같이 따른다.
       // 들어갈 때만 settle로 덮는다. 누른 순간 등록돼야 해서 ease-in(exit)은 쓰지
       // 않는다. 속성이 떨어지면 base의 snap이 돌아와 해제 때 오버슛한다.
-      //
-      // 호버는 배경색만 바뀐다. 이동(float)을 더하지 않는다. 호버는 정보가 아니라
-      // 중복 어포던스다(이미 <button>이고 라벨·커서·포커스 링이 있다). 조항 4의
-      // 색 단독 금지는 색이 정보를 나르는 유일한 수단일 때(Snackbar severity)의
-      // 규칙이라 여기에 적용하지 않는다. 이 자리에 float을 다시 넣지 마라.
-      // 호버 규칙은 각 variant에서 (hover: hover) and (pointer: fine)으로 감싼다.
-      // 터치는 탭하면 호버가 발생해 색이 들러붙는다.
+      // 길이는 들어갈 때 base(200ms), 나올 때 base 숏핸드의 fast(150ms)다.
+      // 누름·해제를 같은 길이로 두지 않는다(의도한 행동은 느리게, 응답은 즉각).
+      // 호버 규칙(variant별 10곳)의 설명은 아래 compoundVariants 머리말에 있다.
       // 호버 규칙은 :not([data-pressed])를 단다. vanilla-extract가 @media를 selectors
       // 뒤에 내보내 특정도가 같은 호버가 누름 색을 덮기 때문이다.
       '&[data-pressed]:not(:disabled)': {
+        // 리터럴 근거: 누름 scale은 토큰 스케일이 없다. emil-design-eng 권장 대역
+        // 0.95~0.98 중 가장 절제된 끝이다. 라벨과 아이콘이 함께 눌리는 것은 기능이다.
         transform: 'scale(0.98)',
-        transitionDuration: themeContract.animation.duration.fast,
+        transitionDuration: themeContract.animation.duration.base,
         transitionTimingFunction: themeContract.animation.easing.settle,
       },
     },
@@ -111,6 +109,12 @@ export const button = recipe({
     },
   },
 
+  // 호버는 배경색만 바뀐다. 이동(float)을 더하지 않는다. 호버는 정보가 아니라
+  // 중복 어포던스다(이미 <button>이고 라벨·커서·포커스 링이 있다). 조항 4의
+  // 색 단독 금지는 색이 정보를 나르는 유일한 수단일 때(Snackbar severity)의
+  // 규칙이라 여기에 적용하지 않는다. 이 자리에 float을 다시 넣지 마라.
+  // 호버 규칙은 각 variant에서 (hover: hover) and (pointer: fine)으로 감싼다.
+  // 터치는 탭하면 호버가 발생해 색이 들러붙는다.
   compoundVariants: [
     {
       variants: { buttonStyle: 'fill', variant: 'primary' },
@@ -169,7 +173,9 @@ export const button = recipe({
           },
         },
         selectors: {
-          '&[data-pressed]:not(:disabled)': { opacity: 0.9 },
+          '&[data-pressed]:not(:disabled)': {
+            backgroundColor: themeContract.palette.error[900],
+          },
         },
       },
     },
