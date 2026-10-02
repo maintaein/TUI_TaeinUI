@@ -188,7 +188,7 @@ export function ButtonPage() {
   <Button leftIcon={<Plus size={16} />} variant="primary">추가</Button>
   <Button rightIcon={<ArrowRight size={16} />} variant="dark">다음</Button>
   <Button rightIcon={<Download size={16} />} variant="light">다운로드</Button>
-  <Button leftIcon={<X size={16} />} variant="danger">삭제</Button>
+  <Button leftIcon={<Trash size={16} />} variant="danger">삭제</Button>
 </div>`}
           />
         </div>
@@ -290,7 +290,7 @@ const handleClick = () => {
   {/* 위험 행동 확인 */}
   <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
     <Button variant="danger" buttonStyle="weak" size="sm">비활성화</Button>
-    <Button variant="danger" size="sm" leftIcon={<X size={16} />}>계정 삭제</Button>
+    <Button variant="danger" size="sm" leftIcon={<Trash size={16} />}>계정 삭제</Button>
   </div>
 
   {/* 다양한 크기 조합 */}

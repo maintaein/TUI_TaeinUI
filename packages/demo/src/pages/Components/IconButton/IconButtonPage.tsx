@@ -90,7 +90,7 @@ export function IconButtonPage() {
             <CodeBlock
               language="tsx"
               code={`<IconButton aria-label="설정">
-  ⚙
+  <Settings />
 </IconButton>`}
             />
           </Card.Body>
@@ -101,7 +101,7 @@ export function IconButtonPage() {
             <CodeBlock
               language="tsx"
               code={`<IconButton ghost aria-label="닫기">
-  ✕
+  <X />
 </IconButton>`}
             />
           </Card.Body>
@@ -145,7 +145,7 @@ export function IconButtonPage() {
             code={`<div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
   <IconButton variant="primary" aria-label="추가"><Plus size={22} /></IconButton>
   <IconButton variant="dark" aria-label="메뉴"><Menu size={22} /></IconButton>
-  <IconButton variant="danger" aria-label="삭제"><X size={22} /></IconButton>
+  <IconButton variant="danger" aria-label="삭제"><Trash size={22} /></IconButton>
   <IconButton variant="light" aria-label="즐겨찾기"><Star size={22} /></IconButton>
 </div>`}
           />
@@ -161,7 +161,7 @@ export function IconButtonPage() {
             code={`<div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
   <IconButton variant="primary" buttonStyle="weak" aria-label="추가"><Plus size={22} /></IconButton>
   <IconButton variant="dark" buttonStyle="weak" aria-label="메뉴"><Menu size={22} /></IconButton>
-  <IconButton variant="danger" buttonStyle="weak" aria-label="삭제"><X size={22} /></IconButton>
+  <IconButton variant="danger" buttonStyle="weak" aria-label="삭제"><Trash size={22} /></IconButton>
   <IconButton variant="light" buttonStyle="weak" aria-label="즐겨찾기"><Star size={22} /></IconButton>
 </div>`}
           />
@@ -214,7 +214,7 @@ const handleClick = () => {
             code={`<div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
   <IconButton disabled aria-label="추가"><Plus size={22} /></IconButton>
   <IconButton variant="dark" disabled aria-label="메뉴"><Menu size={22} /></IconButton>
-  <IconButton variant="danger" disabled aria-label="삭제"><X size={22} /></IconButton>
+  <IconButton variant="danger" disabled aria-label="삭제"><Trash size={22} /></IconButton>
   <IconButton variant="light" disabled aria-label="즐겨찾기"><Star size={22} /></IconButton>
 </div>`}
           />
@@ -236,7 +236,7 @@ const handleClick = () => {
   <IconButton size="sm" buttonStyle="weak" variant="dark" aria-label="가운데 정렬"><AlignCenter size={18} /></IconButton>
   <IconButton size="sm" buttonStyle="weak" variant="dark" aria-label="오른쪽 정렬"><AlignRight size={18} /></IconButton>
   <div style={{ width: '1px', height: '24px', backgroundColor: '#d1d5db', margin: '0 0.25rem' }} />
-  <IconButton size="sm" buttonStyle="weak" variant="danger" aria-label="삭제"><X size={18} /></IconButton>
+  <IconButton size="sm" buttonStyle="weak" variant="danger" aria-label="삭제"><Trash size={18} /></IconButton>
 </div>`}
           />
         </div>
@@ -254,8 +254,8 @@ const handleClick = () => {
     <IconButton variant="primary" size="md" aria-label="추가"><Plus size={22} /></IconButton>
   </div>
   <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
-    <Button variant="danger" leftIcon={<X size={16} />} size="md">삭제</Button>
-    <IconButton variant="danger" size="md" aria-label="삭제"><X size={22} /></IconButton>
+    <Button variant="danger" leftIcon={<Trash size={16} />} size="md">삭제</Button>
+    <IconButton variant="danger" size="md" aria-label="삭제"><Trash size={22} /></IconButton>
   </div>
   <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
     <Button variant="dark" buttonStyle="weak" size="sm">메뉴</Button>
@@ -448,9 +448,9 @@ const handleClick = () => {
 <IconButton aria-label="닫기"><X /></IconButton>
 
 // 텍스트가 필요한 경우 → Button
-<Button leftIcon={<X />}>삭제하기</Button>`,
+<Button leftIcon={<Trash />}>삭제하기</Button>`,
                 explanation:
-                  '닫기(✕), 메뉴(☰) 같은 범용 아이콘은 IconButton으로 충분하지만, 구체적인 행동은 텍스트가 필요합니다.',
+                  '닫기(X) 같은 범용 아이콘은 IconButton으로 충분하지만, 삭제(Trash) 같은 구체적인 행동은 텍스트가 필요합니다.',
               },
             ],
           },
