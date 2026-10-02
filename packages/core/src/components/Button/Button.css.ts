@@ -183,7 +183,12 @@ export const button = recipe({
       variants: { buttonStyle: 'fill', variant: 'light' },
       style: {
         backgroundColor: themeContract.color.background.default,
-        color: themeContract.color.primary.main,
+        // primary.main(#1976D2)은 rest(4.60)만 간신히 AA(4.5:1)를 넘고 hover
+        // primary[50](4.03)·active primary[100](3.28)에서 깬다. weak primary와 같은
+        // 진단이다. 배경은 그대로 두고 글자를 primary[900]으로 한 단계 더 어둡게 한다
+        // (rest 8.63 / hover 7.56 / active 6.15). 테두리는 비텍스트 UI라 3:1 기준이고
+        // primary.main 그대로 4.60·4.03으로 통과하므로 건드리지 않는다.
+        color: themeContract.palette.primary[900],
         border: `2px solid ${themeContract.color.primary.main}`,
         '@media': {
           '(hover: hover) and (pointer: fine)': {

@@ -10,7 +10,7 @@ import {
 } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import '@testing-library/jest-dom';
-import { createRef } from 'react';
+import { createRef, useState } from 'react';
 import { Button } from './Button';
 import * as styles from './Button.css'; // 클래스명 검증을 위해 스타일 임포트
 import { themeContract } from '../../tokens/theme.css';
@@ -475,6 +475,44 @@ describe('Button 누름 효과는 입력 시간과 무관하게 완주한다', (
     expect(onBlur).toHaveBeenCalledTimes(1);
   });
 
+  it('Enter keydown 직후 loading이 켜지고 keyup이 오지 않아도 누름 상태가 풀린다', () => {
+    vi.useFakeTimers();
+    const Async = () => {
+      const [loading, setLoading] = useState(false);
+      return (
+        <Button loading={loading} onClick={() => setLoading(true)}>
+          제출
+        </Button>
+      );
+    };
+    render(<Async />);
+    const button = screen.getByRole('button');
+
+    // Enter는 keydown에서 click이 난다. keyup·blur는 오지 않는다.
+    fireEvent.keyDown(button, { key: 'Enter' });
+    fireEvent.click(button);
+    wait(200);
+
+    expect(button).toBeDisabled();
+    expect(button).not.toHaveAttribute('data-pressed');
+  });
+
+  it('disabled로 바뀌면 포인터 누름 상태도 풀리고 다시 활성화돼도 남지 않는다', () => {
+    vi.useFakeTimers();
+    const { rerender } = render(<Button>포인터</Button>);
+    const button = screen.getByRole('button');
+
+    pointerDown(button);
+    expect(button).toHaveAttribute('data-pressed');
+    rerender(<Button disabled>포인터</Button>);
+    expect(button).not.toHaveAttribute('data-pressed');
+
+    // pointerup이 유실됐고 체류 타이머가 만료돼도 다시 켜지지 않는다.
+    wait(200);
+    rerender(<Button>포인터</Button>);
+    expect(button).not.toHaveAttribute('data-pressed');
+  });
+
   it('호출자의 포인터 핸들러도 그대로 호출된다', () => {
     const onPointerDown = vi.fn();
     const onPointerUp = vi.fn();
@@ -728,9 +766,7 @@ describe('Button fill 변형의 색 단조성 (조항 2: rest < hover < pressed)
     }
   );
 
-  // light는 제외한다: 기존 눌린 색(primary[100]) 위 primary.main이 3.27:1로 이미
-  // AA 밖이다(이 패스 이전부터). 별도 판정 대상이라 리포트에 남겼다.
-  it.each(['primary', 'dark', 'danger'])(
+  it.each(['primary', 'dark', 'danger', 'light'])(
     'fill %s의 글자색은 눌린 배경 위에서 AA(4.5:1)를 만족한다',
     (name) => {
       const f = fills[name];

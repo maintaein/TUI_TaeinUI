@@ -101,6 +101,23 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
 
     useEffect(() => () => clearTimeout(holdTimerRef.current), []);
 
+    // 비활성이 되는 순간 누름 상태를 비운다. Enter는 keydown에서 click이 나서
+    // onClick이 loading을 켜면 버튼이 곧바로 disabled가 되고, 그러면 keyup과 blur가
+    // 오지 않아 눌린 모양이 다시 활성화된 뒤까지 남는다. 상태는 렌더 중에 맞추고
+    // (effect 안 setState는 연쇄 렌더라 lint가 막는다), ref와 타이머는 effect가 정리한다.
+    const [wasDisabled, setWasDisabled] = useState(isDisabled);
+    if (wasDisabled !== isDisabled) {
+      setWasDisabled(isDisabled);
+      if (isDisabled) setPressed(false);
+    }
+
+    useEffect(() => {
+      if (!isDisabled) return;
+      clearTimeout(holdTimerRef.current);
+      minHoldRef.current = false;
+      releaseAskedRef.current = false;
+    }, [isDisabled]);
+
     const press = () => {
       clearTimeout(holdTimerRef.current);
       minHoldRef.current = true;
