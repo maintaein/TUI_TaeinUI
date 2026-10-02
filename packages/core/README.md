@@ -8,6 +8,8 @@
 
 [![npm version](https://img.shields.io/npm/v/@taein-ui/core)](https://www.npmjs.com/package/@taein-ui/core)
 
+변경 기록은 [CHANGELOG.md](https://github.com/maintaein/TUI_TaeinUI/blob/main/CHANGELOG.md)에 있습니다.
+
 ## 설치
 
 ```bash
