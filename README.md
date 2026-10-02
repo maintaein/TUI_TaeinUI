@@ -1,9 +1,16 @@
 # TUI — TaeinUI
 
-컴포넌트마다 다른 움직임을 갖는 React UI 컴포넌트 라이브러리입니다.
-전 컴포넌트에 같은 전환 하나를 입히는 대신, 컴포넌트 각각이 자기 성격에 맞는 모션을 갖습니다.
-통일성을 내려놓는 범위는 모션까지이고, 시인성·가독성·가시성은 그 밖입니다 — 모션이 이 셋 중
-하나라도 깎으면 틀린 쪽은 모션입니다.
+재미있고 인터랙티브한 효과를 추구한 React UI 컴포넌트 라이브러리입니다.
+
+컴포넌트 각각이 자기 역할에 맞는 특별한 모션을 가지면서도, 시인성·가독성·가시성은 접근성 기준에 맞추어 구현했습니다.
+
+AI가 멋대로 만들어내는 이상한 UI 컴포넌트에 질리셨나요?
+
+밤티나는 애니메이션 효과를 보니 내 토큰이 아까워지진 않으셨나요?
+
+매번 "처음엔 이렇게 나왔다가 여기로 갔다가 bouncy한 느낌을 줘서..."라는 프롬프트를 입력하는 것이 지치진 않으신가요?
+
+그렇다면 TaeinUI가 무료로 해결해드릴 수 있습니다.
 
 https://tui-taein-ui.vercel.app/
 
@@ -12,18 +19,15 @@ https://tui-taein-ui.vercel.app/
 
 변경 기록은 [CHANGELOG.md](./CHANGELOG.md)에 있습니다.
 
-## 특징
+## 무엇으로 만들었나
 
-- **컴포넌트별 모션** — 열림·전환·되먹임을 컴포넌트마다 따로 설계합니다. 같은 이징 하나를 전부에 바르지 않습니다
-- **GSAP이 모션의 메인 런타임** — 현재 12개 컴포넌트가 GSAP으로 움직입니다. CSS가 못 하는 것(트리거 좌표 읽기, 제스처 1:1 추적, 여러 목표를 동시에 중단)이 있는 자리에만 쓰고, 나머지는 CSS 트랜지션으로 둡니다. 최신 목록은 [`packages/core/llms.txt`](./packages/core/llms.txt)의 "Motion (GSAP Runtime)" 절
-- **시인성은 협상 대상이 아님** — 본문 대비 4.5:1과 포커스 링 폭을 테스트로 잠가 두었고, `prefers-reduced-motion`에서는 CSS 전역 규칙과 GSAP 트윈 게이트가 함께 움직임을 끕니다
-- **컴포넌트 패밀리 30개** — Button, Modal, Card 등 실무에 필요한 UI 컴포넌트. 패키지의 top-level export는 49개로, 차이는 개별 import도 가능한 하위 컴포넌트입니다(`ModalHeader`, `CardBody`, `AvatarGroup`, `ListItem` 등)
-- **Zero-runtime CSS** — Vanilla Extract 기반, 빌드 타임에 CSS 생성
-- **Tree-shakable** — 사용하는 컴포넌트만 번들에 포함
-- **TypeScript** — 엄격 모드, `any` 미사용, 완전한 타입 지원
-- **AI 친화** — llms.txt 제공, 일관된 API 패턴, JS doc 주석
+주된 모션들은 GSAP으로 구현했습니다. 단 최대한 이해되기 쉬운 구현을 위해 CSS로 되는 건 CSS로 두고, CSS가 못 하는 것에만 GSAP을 사용했습니다. GSAP은 주로 트리거가 화면 어디 있는지 읽거나, 손가락을 1:1로 따라가거나, 여러 움직임을 동시에 멈춰야 하는 자리에 활용됐습니다.
 
-런타임 의존성은 `@vanilla-extract/css`, `@vanilla-extract/recipes`, `clsx`, `gsap` 넷입니다.
+CSS는 빌드할 때 다 만들어져 나오기 때문에 런타임에 스타일을 계산하지 않습니다. 쓰는 컴포넌트만 번들에 들어갑니다. 타입은 엄격 모드로 썼고 `any`는 없습니다.
+
+색·간격·타이포·이징은 `themeContract` 한 곳에 모여 있고 공개돼 있습니다. 모션은 컴포넌트마다 다르게 가져가지만 대비와 읽기 쉬움은 직접 조일 수 있게 했습니다.
+
+llms.txt도 같이 실어 보냅니다. AI한테 "이 라이브러리 어떻게 쓰냐"고 물어볼 때 쓰시면 됩니다. 요약은 `llms.txt`에 있고 npm 패키지에 같이 들어갑니다. Props 전체와 예제까지 필요하시면 [`llms-full.txt`](./packages/core/llms-full.txt)를 보시면 됩니다.
 
 ## 설치
 
@@ -69,20 +73,19 @@ function LoginForm() {
 
 ## 컴포넌트 목록
 
-| 카테고리     | 컴포넌트                                                      |
-| ------------ | ------------------------------------------------------------- |
-| **버튼**     | Button, IconButton, SegmentedButtons                          |
-| **입력**     | TextField, TextArea, Checkbox, Switch, Slider, NumericSpinner |
-| **표시**     | Text, Badge, Chip, Avatar, Icon                               |
-| **피드백**   | Loader, LoadingSpinner, Skeleton, Snackbar, Tooltip           |
-| **오버레이** | Modal, BottomSheet, SideSheet, Popover                        |
-| **레이아웃** | Card, List, BoardRow, Divider, Border, HeaderBar              |
-| **폼**       | FormField                                                     |
+| 카테고리     | 컴포넌트                                            |
+| ------------ | --------------------------------------------------- |
+| **버튼**     | Button, IconButton, SegmentedButtons                |
+| **입력**     | TextField, Checkbox, Switch, Slider, NumericSpinner |
+| **표시**     | Badge, Chip, Avatar                                 |
+| **피드백**   | Loader, Skeleton, Snackbar, Tooltip                 |
+| **오버레이** | Modal, BottomSheet, SideSheet, Popover              |
+| **레이아웃** | Card, List, BoardRow, Divider, Border, HeaderBar    |
+| **폼**       | FormField                                           |
 
 ## 모션
 
-GSAP 런타임이 실제로 붙어 있는 컴포넌트입니다. 계획이 아니라 코드에서 읽은 목록이고,
-여기 없는 컴포넌트는 CSS 트랜지션만 씁니다.
+GSAP 런타임이 붙어 있는 컴포넌트입니다. 여기 없는 컴포넌트는 CSS 트랜지션으로만 구현했습니다.
 
 | 컴포넌트                                           | GSAP이 맡는 일                                    |
 | -------------------------------------------------- | ------------------------------------------------- |
@@ -98,8 +101,8 @@ GSAP으로 도는 트윈은 인라인 스타일이라 그 규칙이 안 닿으�
 ## 테마 토큰
 
 색·간격·타이포·이징은 `themeContract` 하나로 모여 있고 공개 API입니다. 모션을 컴포넌트마다
-다르게 가져가는 대신, 대비와 읽기 쉬움을 소비자가 직접 조일 수 있게 남겨 둔 손잡이입니다.
-테마는 `:root`에 선언된 라이트 하나뿐이라 Provider도 훅도 없습니다.
+다르게 가져가는 대신, 대비와 읽기 쉬움을 소비자가 직접 조일 수 있게 남겨 둔 도구입니다.
+테마는 `:root`에 선언된 라이트 하나입니다.
 
 ```tsx
 import { themeContract } from '@taein-ui/core';
@@ -113,7 +116,7 @@ const customStyle = style({
 ```
 
 전체 토큰 경로와 실측 대비비는 [`packages/core/llms-full.txt`](./packages/core/llms-full.txt)의
-Design Tokens 절에 있습니다 — 토큰 소스에서 생성되므로 문서와 코드가 어긋날 수 없습니다.
+Design Tokens 절에 있습니다. 토큰 소스에서 생성되므로 문서와 코드가 어긋날 수 없습니다.
 
 ## 프로젝트 구조
 
@@ -157,13 +160,6 @@ pnpm typecheck
 # 데모 앱 실행
 cd packages/demo && pnpm dev
 ```
-
-## AI 지원
-
-TUI는 AI 도구와의 협업을 위해 다음을 제공합니다:
-
-- **llms.txt** — 컴포넌트 요약 정보 (NPM 패키지에 포함)
-- **llms-full.txt** — 전체 Props 인터페이스 및 예제 코드
 
 ## 라이선스
 
