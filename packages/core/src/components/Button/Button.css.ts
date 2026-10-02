@@ -14,7 +14,9 @@ export const button = recipe({
     border: 'none',
     cursor: 'pointer',
     touchAction: 'manipulation',
-    transition: `background-color ${themeContract.animation.duration.base} ${themeContract.animation.easing.settle}, box-shadow ${themeContract.animation.duration.base} ${themeContract.animation.easing.settle}, filter ${themeContract.animation.duration.base} ${themeContract.animation.easing.settle}, opacity ${themeContract.animation.duration.base} ${themeContract.animation.easing.settle}, transform ${themeContract.animation.duration.base} ${themeContract.animation.easing.spring}`,
+    // gap은 합성 속성이 아니라 레이아웃이다. loading이 라벨을 접는 동안 라벨 옆에
+    // 남는 gap을 같이 줄여 공백이 남지 않게 하려고 전이한다(아래 labelCollapsed).
+    transition: `background-color ${themeContract.animation.duration.base} ${themeContract.animation.easing.settle}, box-shadow ${themeContract.animation.duration.base} ${themeContract.animation.easing.settle}, filter ${themeContract.animation.duration.base} ${themeContract.animation.easing.settle}, opacity ${themeContract.animation.duration.base} ${themeContract.animation.easing.settle}, transform ${themeContract.animation.duration.base} ${themeContract.animation.easing.spring}, gap ${themeContract.animation.duration.base} ${themeContract.animation.easing.settle}`,
     userSelect: 'none',
     textDecoration: 'none',
     position: 'relative',
@@ -26,6 +28,10 @@ export const button = recipe({
     },
 
     selectors: {
+      '&[aria-busy="true"]': {
+        gap: 0,
+      },
+
       // 누름 상태. :active는 pointerup에 끝나서 30ms 탭이면 30ms만 보인다.
       // Button.tsx가 data-pressed를 걸고 최소 체류(90ms) 뒤에 지우므로 짧은
       // 클릭도 효과가 끝까지 나온다. 색·그림자·scale이 이 속성 하나를 같이 따른다.
@@ -44,6 +50,7 @@ export const button = recipe({
         // (snap 9.98%는 0.90이 필요해 너무 깊다). 0.98이면 되밀림이 0.09px라 안 보였다.
         // 라벨과 아이콘이 함께 눌리는 것은 기능이다.
         transform: 'scale(0.95)',
+        willChange: 'transform',
         transitionDuration: themeContract.animation.duration.fast,
         transitionTimingFunction: themeContract.animation.easing.settle,
       },
@@ -63,6 +70,9 @@ export const button = recipe({
 
     ':focus-visible': {
       ...focusRing(),
+      // 키보드 사용자는 누르기 전에 포커스한다. 전이가 시작되기 전에 레이어를 만들어
+      // 두면 끝에서 강등되며 텍스트가 다시 래스터화되는 튐이 없다.
+      willChange: 'transform',
     },
   },
 
@@ -119,6 +129,8 @@ export const button = recipe({
   // 규칙이라 여기에 적용하지 않는다. 이 자리에 float을 다시 넣지 마라.
   // 호버 규칙은 각 variant에서 (hover: hover) and (pointer: fine)으로 감싼다.
   // 터치는 탭하면 호버가 발생해 색이 들러붙는다.
+  // 호버 규칙의 will-change: transform은 누르기 전에 레이어를 만들어 두려는 것이다.
+  // base에 영구로 두면 버튼마다 레이어가 상주하므로 호버, 포커스, 눌림 중에만 둔다.
   compoundVariants: [
     {
       variants: { buttonStyle: 'fill', variant: 'primary' },
@@ -129,6 +141,7 @@ export const button = recipe({
           '(hover: hover) and (pointer: fine)': {
             selectors: {
               '&:hover:not(:disabled):not([data-pressed])': {
+                willChange: 'transform',
                 backgroundColor: themeContract.palette.primary[800],
               },
             },
@@ -150,6 +163,7 @@ export const button = recipe({
           '(hover: hover) and (pointer: fine)': {
             selectors: {
               '&:hover:not(:disabled):not([data-pressed])': {
+                willChange: 'transform',
                 backgroundColor: themeContract.palette.gray[800],
               },
             },
@@ -171,6 +185,7 @@ export const button = recipe({
           '(hover: hover) and (pointer: fine)': {
             selectors: {
               '&:hover:not(:disabled):not([data-pressed])': {
+                willChange: 'transform',
                 backgroundColor: themeContract.palette.error[800],
               },
             },
@@ -198,6 +213,7 @@ export const button = recipe({
           '(hover: hover) and (pointer: fine)': {
             selectors: {
               '&:hover:not(:disabled):not([data-pressed])': {
+                willChange: 'transform',
                 backgroundColor: themeContract.palette.primary[50],
               },
             },
@@ -221,6 +237,7 @@ export const button = recipe({
           '(hover: hover) and (pointer: fine)': {
             selectors: {
               '&:hover:not(:disabled):not([data-pressed])': {
+                willChange: 'transform',
                 backgroundColor: themeContract.palette.primary[100],
               },
             },
@@ -242,6 +259,7 @@ export const button = recipe({
           '(hover: hover) and (pointer: fine)': {
             selectors: {
               '&:hover:not(:disabled):not([data-pressed])': {
+                willChange: 'transform',
                 backgroundColor: themeContract.palette.gray[300],
               },
             },
@@ -265,6 +283,7 @@ export const button = recipe({
           '(hover: hover) and (pointer: fine)': {
             selectors: {
               '&:hover:not(:disabled):not([data-pressed])': {
+                willChange: 'transform',
                 backgroundColor: themeContract.palette.error[100],
               },
             },
@@ -292,6 +311,7 @@ export const button = recipe({
           '(hover: hover) and (pointer: fine)': {
             selectors: {
               '&:hover:not(:disabled):not([data-pressed])': {
+                willChange: 'transform',
                 backgroundColor: themeContract.palette.primary[200],
               },
             },
@@ -322,6 +342,7 @@ export const customVariant = style({
     '(hover: hover) and (pointer: fine)': {
       selectors: {
         '&:hover:not(:disabled):not([data-pressed])': {
+          willChange: 'transform',
           backgroundColor: 'var(--btn-hover-bg, var(--btn-bg))',
           filter: 'var(--btn-hover-filter, none)',
         },
@@ -347,6 +368,7 @@ export const customOutlineVariant = style({
         // T6b: 하드코딩 rgba 대신 기존 surface.hover/active 토큰을 var() 기본값으로
         // 쓴다(Modal·NumericSpinner와 같은 관례). --btn-hover-bg 자체는 유지된다.
         '&:hover:not(:disabled):not([data-pressed])': {
+          willChange: 'transform',
           backgroundColor: `var(--btn-hover-bg, ${themeContract.color.surface.hover})`,
         },
       },
@@ -367,4 +389,34 @@ export const fullWidth = style({
 // 정렬을 없앤다. 그대로 두면 점·스피너가 글자 baseline으로 내려앉는다.
 export const loadingSlot = style({
   display: 'flex',
+});
+
+// loading이 켜지면 라벨을 DOM에 둔 채 접는다. width: auto는 전이할 수 없어서
+// grid-template-columns의 fr 보간(1fr -> 0fr)을 쓴다.
+export const labelWrap = style({
+  display: 'grid',
+  gridTemplateColumns: '1fr',
+  // grid-template-columns는 합성 속성이 아니라 레이아웃이다. 버튼 폭이 줄어드는
+  // 전이 자체가 목적이라 근거가 있다. 새 토큰을 만들지 않고 base/settle을 쓴다.
+  transition: `grid-template-columns ${themeContract.animation.duration.base} ${themeContract.animation.easing.settle}`,
+  '@media': {
+    // 축소 모드는 이동이 아니라 레이아웃이지만 일관되게 즉시 접는다.
+    '(prefers-reduced-motion: reduce)': {
+      transition: 'none',
+    },
+  },
+});
+
+export const labelCollapsed = style({
+  gridTemplateColumns: '0fr',
+});
+
+export const labelInner = style({
+  // 접히는 동안 줄바꿈으로 높이가 튀지 않게 한다. 0fr 칸에서 줄어든 글자는 잘린다.
+  minWidth: 0,
+  overflow: 'hidden',
+});
+
+export const labelInnerCollapsed = style({
+  whiteSpace: 'nowrap',
 });

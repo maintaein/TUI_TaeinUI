@@ -13,11 +13,16 @@ import {
   customOutlineVariant,
   fullWidth,
   loadingSlot,
+  labelWrap,
+  labelCollapsed,
+  labelInner,
+  labelInnerCollapsed,
 } from './Button.css';
 import { Loader } from '../Loader';
 
-// 왜 90ms인가: press-in(200ms, power3.out)의 45%. 그 시점에 scale은 목표 거리의
-// 83%(1-(1-0.45)^3)에 닿아서 30ms 탭도 눌렸다는 것이 읽힌다. 이보다 길게
+// 왜 90ms인가: press-in(150ms, settle)의 60%. settle의 linear() 샘플을 보간해
+// 실측하면 그 시점에 scale이 목표 거리의 97.4%에 닿아서 30ms 탭도 눌렸다는 것이
+// 읽힌다(닫힌 식이 아니라 생성된 샘플이라 식으로 적지 않는다). 이보다 길게
 // 붙잡으면 빠른 연타가 굼떠 보인다.
 // 토큰 스케일(fast 150 / base 200 ...)에 대응 값이 없다. CSS가 아니라 JS가
 // 해제 시점을 정하는 값이라 duration 토큰이 아니고, 옵션으로 열지 않는다.
@@ -222,7 +227,16 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
           />
         )}
         {!loading && leftIcon && <span aria-hidden="true">{leftIcon}</span>}
-        {!loading && <span>{children}</span>}
+        {/* 라벨은 loading에도 DOM에 남겨 접는다(폭 전이의 시작값). 스크린 리더는
+            버튼의 aria-busy로 상태를 알므로 로딩 중 라벨은 읽지 않게 숨긴다. */}
+        <span
+          className={clsx(labelWrap, loading && labelCollapsed)}
+          aria-hidden={loading || undefined}
+        >
+          <span className={clsx(labelInner, loading && labelInnerCollapsed)}>
+            {children}
+          </span>
+        </span>
         {!loading && rightIcon && <span aria-hidden="true">{rightIcon}</span>}
       </button>
     );
