@@ -827,8 +827,8 @@ describe.each(['fill', 'weak'] as const)(
       }
     );
     // weak danger는 눌림이 filter: brightness(k)로 어두워진다. brightness는 배경과 글자를
-    // 같이 어둡게 하므로 그 값에서 계산한 대비가 AA를 지켜야 한다(0.95에서 4.51:1,
-    // 0.92부터 미달). k를 내리면 이 가드가 빨개진다.
+    // 같이 어둡게 하므로 그 값에서 계산한 대비가 AA를 지켜야 한다(0.96에서 4.546:1,
+    // 0.93부터 미달). k를 내리면 이 가드가 빨개진다.
     if (buttonStyle === 'weak')
       it('weak danger 눌림은 filter: brightness(k)이고 k를 곱한 대비가 4.5 이상이다', () => {
         const dangerChunk = compound
