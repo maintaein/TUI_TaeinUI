@@ -1,3 +1,4 @@
+import { themeContract } from '@taein-ui/core';
 import { style, globalStyle } from '@vanilla-extract/css';
 
 export const container = style({
@@ -134,7 +135,7 @@ export const nextStepCard = style({
 });
 
 export const nextStepIcon = style({
-  fontSize: '2.5rem',
+  color: themeContract.color.primary.main,
   marginBottom: '0.75rem',
   transition: 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
   transformOrigin: 'top left',

@@ -332,7 +332,7 @@ const handleLoad = () => {
   <div style={{ maxWidth: '400px', padding: '1rem', border: '1px solid #e5e7eb', borderRadius: '0.75rem' }}>
     {loaded ? (
       <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
-        <div style={{ width: '44px', height: '44px', borderRadius: '50%', backgroundColor: '#dbeafe', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.25rem' }}><User size={20} /></div>
+        <div style={{ width: '44px', height: '44px', borderRadius: '50%', backgroundColor: '#dbeafe', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><User size={20} /></div>
         <div>
           <p style={{ fontWeight: 600, margin: 0 }}>홍길동</p>
           <p style={{ fontSize: '0.875rem', color: '#6b7280', margin: 0 }}>Frontend Developer</p>

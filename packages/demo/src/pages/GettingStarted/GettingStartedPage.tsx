@@ -185,7 +185,7 @@ function Example() {
           >
             <Card.Body padding="lg">
               <div className={styles.nextStepIcon} aria-hidden="true">
-                <LayoutGrid size={32} color="#8b5cf6" strokeWidth={2} />
+                <LayoutGrid size={32} />
               </div>
               <h3 className={styles.nextStepTitle}>컴포넌트</h3>
               <p className={styles.nextStepDescription}>
@@ -203,7 +203,7 @@ function Example() {
           >
             <Card.Body padding="lg">
               <div className={styles.nextStepIcon} aria-hidden="true">
-                <Sparkles size={32} color="#2563eb" strokeWidth={2} />
+                <Sparkles size={32} />
               </div>
               <h3 className={styles.nextStepTitle}>모션 만져보기</h3>
               <p className={styles.nextStepDescription}>
@@ -221,7 +221,7 @@ function Example() {
           >
             <Card.Body padding="lg">
               <div className={styles.nextStepIcon} aria-hidden="true">
-                <Eye size={32} color="#16a34a" strokeWidth={2} />
+                <Eye size={32} />
               </div>
               <h3 className={styles.nextStepTitle}>TUI가 무엇인지</h3>
               <p className={styles.nextStepDescription}>

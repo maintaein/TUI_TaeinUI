@@ -228,9 +228,9 @@ const handleClick = () => {
             description="실제 툴바에서 IconButton을 조합하여 사용하는 패턴입니다."
             editable
             code={`<div style={{ display: 'flex', gap: '0.5rem', padding: '0.5rem', backgroundColor: '#f3f4f6', borderRadius: '0.75rem', alignItems: 'center' }}>
-  <IconButton size="sm" buttonStyle="weak" variant="dark" aria-label="Bold">B</IconButton>
-  <IconButton size="sm" buttonStyle="weak" variant="dark" aria-label="Italic">I</IconButton>
-  <IconButton size="sm" buttonStyle="weak" variant="dark" aria-label="Underline">U</IconButton>
+  <IconButton size="sm" buttonStyle="weak" variant="dark" aria-label="Bold"><Bold size={18} /></IconButton>
+  <IconButton size="sm" buttonStyle="weak" variant="dark" aria-label="Italic"><Italic size={18} /></IconButton>
+  <IconButton size="sm" buttonStyle="weak" variant="dark" aria-label="Underline"><Underline size={18} /></IconButton>
   <div style={{ width: '1px', height: '24px', backgroundColor: '#d1d5db', margin: '0 0.25rem' }} />
   <IconButton size="sm" buttonStyle="weak" variant="dark" aria-label="왼쪽 정렬"><AlignLeft size={18} /></IconButton>
   <IconButton size="sm" buttonStyle="weak" variant="dark" aria-label="가운데 정렬"><AlignCenter size={18} /></IconButton>

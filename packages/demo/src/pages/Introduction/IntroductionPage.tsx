@@ -76,12 +76,8 @@ export function IntroductionPage() {
         <div className={styles.goalList}>
           {/* 컴포넌트별 모션 */}
           <div className={styles.goalRow}>
-            <div
-              className={styles.goalIcon}
-              style={{ backgroundColor: '#eff6ff' }}
-              aria-hidden="true"
-            >
-              <Sparkles size={24} color="#2563eb" strokeWidth={2.5} />
+            <div className={styles.goalIcon} aria-hidden="true">
+              <Sparkles size={24} />
             </div>
             <div className={styles.goalContent}>
               <h3 className={styles.goalTitle}>컴포넌트마다 다른 움직임</h3>
@@ -109,12 +105,8 @@ export function IntroductionPage() {
 
           {/* 시인성 */}
           <div className={styles.goalRow}>
-            <div
-              className={styles.goalIcon}
-              style={{ backgroundColor: '#f0fdf4' }}
-              aria-hidden="true"
-            >
-              <Eye size={24} color="#16a34a" strokeWidth={2.5} />
+            <div className={styles.goalIcon} aria-hidden="true">
+              <Eye size={24} />
             </div>
             <div className={styles.goalContent}>
               <h3 className={styles.goalTitle}>
@@ -143,12 +135,8 @@ export function IntroductionPage() {
 
           {/* AI 친화 */}
           <div className={styles.goalRow}>
-            <div
-              className={styles.goalIcon}
-              style={{ backgroundColor: '#faf5ff' }}
-              aria-hidden="true"
-            >
-              <Bot size={24} color="#7c3aed" strokeWidth={2} />
+            <div className={styles.goalIcon} aria-hidden="true">
+              <Bot size={24} />
             </div>
             <div className={styles.goalContent}>
               <h3 className={styles.goalTitle}>AI 친화</h3>
@@ -180,12 +168,8 @@ export function IntroductionPage() {
 
           {/* 경량 번들 */}
           <div className={styles.goalRow}>
-            <div
-              className={styles.goalIcon}
-              style={{ backgroundColor: '#fefce8' }}
-              aria-hidden="true"
-            >
-              <Package size={24} color="#ca8a04" strokeWidth={2} />
+            <div className={styles.goalIcon} aria-hidden="true">
+              <Package size={24} />
             </div>
             <div className={styles.goalContent}>
               <h3 className={styles.goalTitle}>정적 CSS와 분리된 모듈</h3>
@@ -309,7 +293,7 @@ function Example() {
           >
             <Card.Body padding="lg">
               <div className={styles.nextStepIcon} aria-hidden="true">
-                <ArrowRight size={32} color="#2563eb" strokeWidth={2.5} />
+                <ArrowRight size={32} />
               </div>
               <h3 className={styles.nextStepTitle}>시작하기</h3>
               <p className={styles.nextStepDescription}>
@@ -326,7 +310,7 @@ function Example() {
           >
             <Card.Body padding="lg">
               <div className={styles.nextStepIcon} aria-hidden="true">
-                <LayoutGrid size={32} color="#2563eb" strokeWidth={2} />
+                <LayoutGrid size={32} />
               </div>
               <h3 className={styles.nextStepTitle}>컴포넌트</h3>
               <p className={styles.nextStepDescription}>
@@ -344,7 +328,7 @@ function Example() {
           >
             <Card.Body padding="lg">
               <div className={styles.nextStepIcon} aria-hidden="true">
-                <Sparkles size={32} color="#2563eb" strokeWidth={2} />
+                <Sparkles size={32} />
               </div>
               <h3 className={styles.nextStepTitle}>모션 만져보기</h3>
               <p className={styles.nextStepDescription}>

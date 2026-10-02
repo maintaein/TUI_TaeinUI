@@ -1,3 +1,4 @@
+import { themeContract } from '@taein-ui/core';
 import { style, globalStyle } from '@vanilla-extract/css';
 
 export const container = style({
@@ -138,6 +139,8 @@ export const goalRow = style({
 
 export const goalIcon = style({
   flexShrink: 0,
+  color: themeContract.color.primary.main,
+  backgroundColor: themeContract.palette.primary[50],
   width: '48px',
   height: '48px',
   borderRadius: '12px',
@@ -244,7 +247,7 @@ export const nextStepsGrid = style({
 });
 
 export const nextStepIcon = style({
-  fontSize: '2.5rem',
+  color: themeContract.color.primary.main,
   marginBottom: '0.75rem',
   transition: 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
   transformOrigin: 'top left',
