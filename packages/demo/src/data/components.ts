@@ -20,7 +20,6 @@ import {
   PanelRight,
   PanelTop,
   SlidersHorizontal,
-  Sparkles,
   Square,
   SquareCheck,
   SquareDashed,
@@ -263,13 +262,6 @@ export const componentsData: ComponentInfo[] = [
       '상품, 글, 프로필 등 관련 정보를 하나의 영역으로 묶을 때 사용합니다.',
     category: 'data',
     icon: LayoutPanelTop,
-  },
-  {
-    name: 'Icon',
-    path: '/components/icon',
-    description: '닫기, 화살표 등 UI에 필요한 아이콘을 표시할 때 사용합니다.',
-    category: 'data',
-    icon: Sparkles,
   },
 ];
 

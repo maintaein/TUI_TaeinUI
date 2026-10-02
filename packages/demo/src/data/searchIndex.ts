@@ -489,20 +489,4 @@ export const searchIndex: SearchEntry[] = [
       { title: 'Elevation', content: 'elevation prop으로 그림자 수준 설정' },
     ],
   },
-  {
-    id: 'icon',
-    pageTitle: 'Icon',
-    path: '/components/icon',
-    category: '데이터 표시',
-    description: 'SVG 아이콘. 5가지 내장 아이콘과 커스텀 색상을 지원합니다.',
-    sections: [
-      {
-        title: 'Built-in Icons',
-        content: 'check, close, chevron, arrow, search 내장 아이콘',
-      },
-      { title: 'Sizes', content: 'sm, md, lg 크기를 지원합니다' },
-      { title: 'Custom Color', content: 'color prop으로 아이콘 색상 변경' },
-      { title: 'Custom SVG', content: 'children으로 커스텀 SVG 전달' },
-    ],
-  },
 ];

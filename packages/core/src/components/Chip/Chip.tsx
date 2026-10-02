@@ -1,7 +1,7 @@
 import { useMemo, type ReactNode } from 'react';
 import clsx from 'clsx';
 import { useClickable } from '../../_internal/useClickable';
-import { Icon } from '../Icon';
+import { Glyph } from '../../_internal/glyph';
 import { themeContract } from '../../tokens/theme.css';
 import {
   chip,
@@ -124,7 +124,7 @@ export const Chip = ({
           className={deleteButton}
           aria-label={`${label} 삭제`}
         >
-          <Icon name="close" size="sm" />
+          <Glyph name="close" size="sm" />
         </span>
       )}
     </>

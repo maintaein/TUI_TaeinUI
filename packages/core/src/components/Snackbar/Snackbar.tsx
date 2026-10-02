@@ -20,7 +20,7 @@ import {
   bar,
 } from './Snackbar.css';
 import { IconButton } from '../IconButton';
-import { Icon, type IconName } from '../Icon';
+import { Glyph, type GlyphName } from '../../_internal/glyph';
 import { useOverlayTransition } from '../../_internal/useOverlayTransition';
 import { gsapDuration, gsapEasing } from '../../tokens/gsapEasing';
 import { useReducedMotion } from '../../hooks/useReducedMotion';
@@ -74,7 +74,7 @@ export interface SnackbarProps extends Omit<
 
 const SEVERITY_ICONS: Record<
   NonNullable<SnackbarProps['severity']>,
-  IconName
+  GlyphName
 > = {
   success: 'check-circle',
   error: 'alert-circle',
@@ -300,7 +300,7 @@ export const Snackbar = ({
           {...props}
         >
           <div className={content}>
-            <Icon name={SEVERITY_ICONS[severity]} size="sm" />
+            <Glyph name={SEVERITY_ICONS[severity]} size="sm" />
             <span className={messageClass}>{message}</span>
             <div className={actions}>
               {action}
@@ -312,7 +312,7 @@ export const Snackbar = ({
                 aria-label="닫기"
                 className={closeButton}
               >
-                <Icon name="close" size="sm" />
+                <Glyph name="close" size="sm" />
               </IconButton>
             </div>
           </div>

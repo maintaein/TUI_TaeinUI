@@ -68,7 +68,6 @@ function LoginForm() {
 - **Badge** — 상태/수량 배지
 - **Chip** — 태그/필터 칩
 - **Avatar** — 사용자 아바타 (이미지, 이니셜, 아이콘)
-- **Icon** — SVG 아이콘 래퍼
 
 ### 피드백
 

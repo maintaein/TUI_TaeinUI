@@ -264,7 +264,7 @@ import { Button } from '@taein-ui/core';
   저장하기
 </Button>
 
-<Button variant="dark" buttonStyle="weak" leftIcon={<Icon name="plus" />}>
+<Button variant="dark" buttonStyle="weak" leftIcon={<Plus />}>
   추가
 </Button>
 
@@ -298,14 +298,15 @@ import { Button } from '@taein-ui/core';
 Icon-only button. Requires `aria-label` for accessibility.
 
 ```tsx
-import { IconButton, Icon } from '@taein-ui/core';
+import { IconButton } from '@taein-ui/core';
+import { Plus, X } from 'lucide-react';
 
 <IconButton variant="primary" aria-label="닫기" onClick={handleClose}>
-  <Icon name="close" />
+  <X />
 </IconButton>
 
 <IconButton ghost aria-label="메뉴">
-  <Icon name="plus" />
+  <Plus />
 </IconButton>
 ```
 
@@ -503,28 +504,6 @@ import { Avatar, AvatarGroup } from '@taein-ui/core';
 | max | number | — | Max visible avatars |
 | size | 'xs' \| 'sm' \| 'md' \| 'lg' \| 'xl' | — | Avatar size |
 | spacing | 'sm' \| 'md' \| 'lg' | 'md' | Overlap spacing |
-| className | string | — | Additional CSS class |
-
----
-
-## Icon
-
-SVG icon component.
-
-```tsx
-import { Icon } from '@taein-ui/core';
-
-<Icon name="close" size="md" />
-<Icon name="plus" color="#2563eb" aria-label="추가" />
-```
-
-### Props (extends SVGAttributes<SVGSVGElement>)
-| Prop | Type | Default | Description |
-|------|------|---------|-------------|
-| name | 'close' \| 'plus' \| 'minus' \| 'chevron-down' \| 'chevron-up' | (required) | Icon name |
-| size | 'sm' \| 'md' \| 'lg' \| 'xl' | 'md' | Icon size |
-| color | string | 'currentColor' | Icon color |
-| aria-label | string | — | Accessibility label |
 | className | string | — | Additional CSS class |
 
 ---
@@ -988,7 +967,7 @@ import { HeaderBar, IconButton, Icon } from '@taein-ui/core';
   title="My App"
   actions={
     <IconButton ghost aria-label="설정">
-      <Icon name="plus" />
+      <Plus />
     </IconButton>
   }
   sticky
@@ -1019,7 +998,8 @@ grow from rest (never shrink below it), and the hit area is a fixed
 so layout never recalculates.
 
 ```tsx
-import { HeaderBar, HeaderBarNav, Icon } from '@taein-ui/core';
+import { HeaderBar, HeaderBarNav } from '@taein-ui/core';
+import { CircleCheck, Info, Plus } from 'lucide-react';
 
 <HeaderBar
   title="My App"
@@ -1027,9 +1007,9 @@ import { HeaderBar, HeaderBarNav, Icon } from '@taein-ui/core';
     <HeaderBarNav
       aria-label="주요 메뉴"
       items={[
-        { icon: <Icon name="info" />, label: '홈', href: '/' },
-        { icon: <Icon name="plus" />, label: '새로 만들기', onClick: () => {} },
-        { icon: <Icon name="check-circle" />, label: '완료함' },
+        { icon: <Info />, label: '홈', href: '/' },
+        { icon: <Plus />, label: '새로 만들기', onClick: () => {} },
+        { icon: <CircleCheck />, label: '완료함' },
       ]}
     />
   }
@@ -1258,7 +1238,7 @@ zero-runtime이라 빌드 결과는 정적 CSS 파일 하나다.
 소비자가 래퍼 파일을 만들 필요 없이 서버 컴포넌트에서 바로 import할 수 있다.
 
 지시문이 **없는**(= 서버 컴포넌트로 렌더되는) 컴포넌트:
-`Text`, `Divider`, `Border`, `Badge`, `Icon`, `List`, `Skeleton`, `HeaderBar`,
+`Text`, `Divider`, `Border`, `Badge`, `List`, `Skeleton`, `HeaderBar`,
 `Loader`, 그리고 `Button` · `IconButton`.
 뒤의 둘은 훅 없이 `forwardRef`만 쓰는데, `forwardRef`는 React의 서버 빌드에도
 있으므로 RSC에서 유효하다.

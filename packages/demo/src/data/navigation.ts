@@ -30,7 +30,6 @@ export const navigationData: NavigationItem[] = [
       { label: 'Divider', path: '/components/divider' },
       { label: 'FormField', path: '/components/form-field' },
       { label: 'HeaderBar', path: '/components/header-bar' },
-      { label: 'Icon', path: '/components/icon' },
       { label: 'IconButton', path: '/components/icon-button' },
       { label: 'List', path: '/components/list' },
       { label: 'Loader', path: '/components/loader' },

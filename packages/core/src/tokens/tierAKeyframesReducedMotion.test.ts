@@ -1,5 +1,5 @@
 /**
- * M2 T4 — Tier-A 13개의 `@keyframes`가 축소 모드에서 「멈춘다」와 「보인다」를
+ * M2 T4 — Tier-A 12개의 `@keyframes`가 축소 모드에서 「멈춘다」와 「보인다」를
  * 둘 다 지키는지 원문으로 잠근다 (공통 제약 §6, task-4-brief.md 산출물 1).
  *
  * `animationBoundary.test.ts`가 `transition:`/`animation:` 선언의 속성
@@ -21,8 +21,8 @@ const COMPONENTS = resolve(SRC, 'components');
 
 /**
  * M2 계획서(`.claude/고도화/plan/M2(Tier-A-CSS-모션).md`) 「대상」 14개
- * 에서 M5 Task 1이 스피너 하나를 `Loader`로 흡수해 뺀 13개다(점 페이드·회전
- * 키프레임은 `Loader` 디렉터리로 옮겨졌다). `HeaderBar`·`NumericSpinner`·정적 3개(`FormField`·`List`·`Text`)·
+ * 에서 M5 Task 1이 스피너 하나를 `Loader`로 흡수해 뺀 13개에서 M5 Task 2가 `Icon`(공개 컴포넌트 삭제, `draw`
+ * 폐기)을 더 빼 12개다(점 페이드·회전 키프레임은 `Loader` 디렉터리로 옮겨졌다). `HeaderBar`·`NumericSpinner`·정적 3개(`FormField`·`List`·`Text`)·
  * `SegmentedButtons`·`Slider`·오버레이 4종(`BottomSheet`·`Modal`·`SideSheet`·
  * `Snackbar`)은 M2 밖이다 — 저장소 전체로 스캔하면 M3에 넘긴 오버레이 등장
  * 키프레임이 끌려온다(task-4-brief.md 경고).
@@ -35,7 +35,6 @@ const TIER_A = [
   'Card',
   'Chip',
   'Divider',
-  'Icon',
   'IconButton',
   'Loader',
   'Popover',
@@ -160,12 +159,12 @@ function usagesOf(fileText: string, name: string): Usage[] {
   return out;
 }
 
-/** 선언된 `transform`·`opacity`·`strokeDashoffset`만 뽑는다 — 이 가드가 다스리는
- * 세 속성 밖은 대상이 아니다. */
+/** 선언된 `transform`·`opacity`만 뽑는다 — 이 가드가 다스리는
+ * 두 속성 밖은 대상이 아니다. */
 function declaredProps(block: string): Record<string, string> {
   const props: Record<string, string> = {};
   const RE =
-    /(?:^|[,{])\s*(transform|opacity|strokeDashoffset)\s*:\s*(?:'([^']*)'|(-?\d+(?:\.\d+)?))/g;
+    /(?:^|[,{])\s*(transform|opacity)\s*:\s*(?:'([^']*)'|(-?\d+(?:\.\d+)?))/g;
   for (const m of block.matchAll(RE)) props[m[1]] = m[2] ?? m[3];
   return props;
 }
@@ -187,7 +186,7 @@ function hasZeroScale(transform: string): boolean {
   return false;
 }
 
-/** opacity 0, `scale(0)`류, 초기화 안 된 stroke — 요소를 완전히 안 보이게
+/** opacity 0, `scale(0)`류 — 요소를 완전히 안 보이게
  * 만드는 값만 대상이다. `translateX(±100%)`류는 대상이 아니다 — Loader의
  * progress·Skeleton의 wave처럼 막대/셰이머가 트랙 밖으로 이동하는 것은
  * 의도된 스윕이지 숨김이 아니다(검사 1의 범위는 완료 조건이 명시한
@@ -195,18 +194,12 @@ function hasZeroScale(transform: string): boolean {
 function isHidden(props: Record<string, string>): boolean {
   if (props.opacity !== undefined && Number(props.opacity) === 0) return true;
   if (props.transform && hasZeroScale(props.transform)) return true;
-  if (
-    props.strokeDashoffset !== undefined &&
-    Number(props.strokeDashoffset) !== 0
-  )
-    return true;
   return false;
 }
 
 const DEFAULTS: Record<string, string> = {
   transform: 'none',
   opacity: '1',
-  strokeDashoffset: '0',
 };
 
 /** `frameProps`에 있는 속성 중 하나라도 `baseProps`(없으면 CSS 초기값)와 다르면 true. */
@@ -228,12 +221,12 @@ const CLASSIFIED = KEYFRAMES.map((k) => {
 const LOOP = CLASSIFIED.filter((k) => k.loop);
 const ONCE = CLASSIFIED.filter((k) => !k.loop);
 
-describe('Tier-A 13개 @keyframes 소스 열거 (M2 T4)', () => {
-  it('TIER_A 13개 디렉터리를 전부 읽었다 — 스캔 대상이 0개로 줄면 아래 모든 검사가 진공이 된다', () => {
-    // 무엇을 뒤집으면 빨개지는가: TIER_A에서 이름 하나를 빼면 13개가 되어
+describe('Tier-A 12개 @keyframes 소스 열거 (M2 T4)', () => {
+  it('TIER_A 12개 디렉터리를 전부 읽었다 — 스캔 대상이 0개로 줄면 아래 모든 검사가 진공이 된다', () => {
+    // 무엇을 뒤집으면 빨개지는가: TIER_A에서 이름 하나를 빼면 11개가 되어
     // 여기가 빨개진다(오타를 내면 findFiles가 그 자리에서 던진다). 한
     // 컴포넌트가 .css.ts를 둘로 쪼개도 개수가 바뀌어 잡힌다.
-    expect(CSS_FILES.map(rel)).toHaveLength(13);
+    expect(CSS_FILES.map(rel)).toHaveLength(12);
   });
 
   it('모든 keyframes 참조가 최소 한 곳에서 쓰인다 — 죽은 키프레임이 없다', () => {
@@ -243,14 +236,14 @@ describe('Tier-A 13개 @keyframes 소스 열거 (M2 T4)', () => {
     expect(unused.map((k) => `${k.file}:${k.name}`)).toEqual([]);
   });
 
-  it('소스에서 찾은 keyframes 총량이 10개다 — 늘거나 줄면 이 파일의 분류를 다시 본다', () => {
-    // 무엇을 뒤집으면 빨개지는가: 13개 파일 중 하나에 keyframes를 새로 추가하거나
+  it('소스에서 찾은 keyframes 총량이 9개다 — 늘거나 줄면 이 파일의 분류를 다시 본다', () => {
+    // 무엇을 뒤집으면 빨개지는가: 12개 파일 중 하나에 keyframes를 새로 추가하거나
     // 지우면 총량이 바뀐다. (예상 자리 확인용 — 브리프의 「예상되는 자리」는 참고이지
     // 여기서 실제로 세는 것이 진실이다.)
-    expect(KEYFRAMES).toHaveLength(10);
+    expect(KEYFRAMES).toHaveLength(9);
   });
 
-  it('keyframes가 있는 파일은 Badge·Border·Divider·Icon·Loader·Skeleton 6개뿐이다 — Popover·Tooltip은 0건이다', () => {
+  it('keyframes가 있는 파일은 Badge·Border·Divider·Loader·Skeleton 5개뿐이다 — Popover·Tooltip은 0건이다', () => {
     // 무엇을 뒤집으면 빨개지는가: Popover.css.ts나 Tooltip.css.ts에 fadeIn류
     // keyframes를 다시 넣으면(=상태 전이에 @keyframes로 회귀) 여기가 잡는다.
     // Button·Card·Chip·IconButton·BoardRow도 같은 이유로 0건이어야 한다.
@@ -259,13 +252,12 @@ describe('Tier-A 13개 @keyframes 소스 열거 (M2 T4)', () => {
       'components/Badge/Badge.css.ts',
       'components/Border/Border.css.ts',
       'components/Divider/Divider.css.ts',
-      'components/Icon/Icon.css.ts',
       'components/Loader/Loader.css.ts',
       'components/Skeleton/Skeleton.css.ts',
     ]);
   });
 
-  it('무한 루프 6개 · 마운트 1회 4개로 분류된다', () => {
+  it('무한 루프 6개 · 마운트 1회 3개로 분류된다', () => {
     // 무엇을 뒤집으면 빨개지는가: 루프에서 infinite를 빼거나 마운트 1회에
     // infinite를 붙이면(잘못된 도구 선택, 공통 제약 §2) 분류가 바뀌어 잡힌다.
     expect(LOOP.map((k) => `${k.file}:${k.name}`).sort()).toEqual([
@@ -280,7 +272,6 @@ describe('Tier-A 13개 @keyframes 소스 열거 (M2 T4)', () => {
       'components/Badge/Badge.css.ts:valueEnter',
       'components/Badge/Badge.css.ts:valueExit',
       'components/Divider/Divider.css.ts:grow',
-      'components/Icon/Icon.css.ts:draw',
     ]);
   });
 
@@ -356,16 +347,16 @@ describe('검사 1 — 무한 루프 6개가 축소 모드(iteration 1)에서 �
     expect(offenders).toEqual([]);
   });
 
-  it('13개 파일 어디에도 animationFillMode 롱핸드가 없다 — 바로 위 검사가 숏핸드 꼬리만 보기 때문이다', () => {
+  it('12개 파일 어디에도 animationFillMode 롱핸드가 없다 — 바로 위 검사가 숏핸드 꼬리만 보기 때문이다', () => {
     // 위 it은 `animation:` 숏핸드에서 키프레임명 뒤 꼬리(`rest`)만 읽는다.
     // 같은 fill-mode를 `animationFillMode: 'forwards'` 롱핸드로 따로 쓰면
     // 그 스캔에 안 걸리고, Loader.css.ts의 dotDelayStyles처럼 소비처
     // 블록 밖에 놓이면 enclosingBlock도 못 닿는다. 그래서 롱핸드 자체를
-    // 13개 파일 전역에서 금지한다 — fill-mode는 숏핸드 꼬리에만 적는다.
+    // 12개 파일 전역에서 금지한다 — fill-mode는 숏핸드 꼬리에만 적는다.
     // 무엇을 뒤집으면 빨개지는가: 아무 .css.ts에나 `animationFillMode:
-    // 'forwards'` 한 줄을 넣으면 여기가 빨개진다. 파일 수가 13에서 줄어도
+    // 'forwards'` 한 줄을 넣으면 여기가 빨개진다. 파일 수가 12에서 줄어도
     // 마찬가지다 — 목록이 비면 아래 루프가 0번 돌고 조용히 초록이 된다.
-    expect(Object.keys(FILE_TEXT)).toHaveLength(13);
+    expect(Object.keys(FILE_TEXT)).toHaveLength(12);
     const offenders: string[] = [];
     for (const [file, text] of Object.entries(FILE_TEXT)) {
       for (const line of text.split('\n')) {
@@ -406,9 +397,9 @@ describe('검사 2 — 마운트 1회 키프레임은 base가 최종 표시 상�
   });
 
   it('0% 프레임이 소비자 base와 다르다 — 같으면 애니메이션이 무의미해진 것이다', () => {
-    // 무엇을 뒤집으면 빨개지는가: Icon.css.ts iconPath의 strokeDashoffset: 0을
-    // 지우고 keyframes의 0% 값(1)과 같게 만들면(즉 애니메이션이 아무것도 안
-    // 바꾸면) 여기가 빨개진다.
+    // 무엇을 뒤집으면 빨개지는가: Divider.css.ts grow의 0% 프레임 transform을
+    // 소비자 base와 같은 값으로 바꾸면(즉 애니메이션이 아무것도 안 바꾸면)
+    // 여기가 빨개진다.
     const offenders: string[] = [];
     for (const k of ONCE) {
       const fileText = FILE_TEXT[k.file];
@@ -517,16 +508,16 @@ describe('검사 3 — keyframes 소비의 duration 자리가 리터럴이 아�
   });
 });
 
-describe('검사 4 — keyframes 본문이 transform·opacity·(Icon 한정) strokeDashoffset 밖을 안 건드린다', () => {
-  it('10개 전체에서 프레임 19개·프레임 속성 22개를 실제로 순회한다 — 파싱이 비면 화이트리스트 검사가 진공이다', () => {
+describe('검사 4 — keyframes 본문이 transform·opacity 밖을 안 건드린다', () => {
+  it('9개 전체에서 프레임 18개·프레임 속성 21개를 실제로 순회한다 — 파싱이 비면 화이트리스트 검사가 진공이다', () => {
     // 무엇을 뒤집으면 빨개지는가: 프레임 값 하나를 백틱 보간(`\`${x}\``)으로
     // 바꾸면 PROP 정규식이 그 속성을 못 읽어 속성 수가 줄고, 프레임 키를
     // `from`/`to`로 바꾸면 FRAME 정규식이 그 프레임을 통째로 놓쳐 프레임 수가
     // 준다 — 둘 다 여기가 먼저 잡는다.
-    expect(KEYFRAMES.flatMap((k) => k.frames)).toHaveLength(19);
+    expect(KEYFRAMES.flatMap((k) => k.frames)).toHaveLength(18);
     expect(
       KEYFRAMES.flatMap((k) => k.frames).flatMap((f) => Object.keys(f.props))
-    ).toHaveLength(22);
+    ).toHaveLength(21);
   });
 
   it('프레임 속성이 화이트리스트 안이다', () => {
@@ -537,11 +528,7 @@ describe('검사 4 — keyframes 본문이 transform·opacity·(Icon 한정) str
     for (const k of KEYFRAMES) {
       for (const frame of k.frames) {
         for (const prop of Object.keys(frame.props)) {
-          const allowed =
-            prop === 'transform' ||
-            prop === 'opacity' ||
-            (prop === 'strokeDashoffset' &&
-              k.file === 'components/Icon/Icon.css.ts');
+          const allowed = prop === 'transform' || prop === 'opacity';
           if (!allowed)
             offenders.push(`${k.file}:${k.name}@${frame.key} (${prop})`);
         }
@@ -667,7 +654,7 @@ describe('검사 7 — 팔레트 밖 하드코딩 색상이 색상 3채널에 0�
    * `var(--...)`로 들어오므로 이 셋만 걸러내면 된다. */
   const RAW_COLOR = /#[0-9a-fA-F]{3,8}\b|\b(?:rgba?|hsla?)\(/;
 
-  it('TIER_A 13개 파일 전체에서 색상 3채널 선언을 실제로 순회한다', () => {
+  it('TIER_A 12개 파일 전체에서 색상 3채널 선언을 실제로 순회한다', () => {
     // 무엇을 뒤집으면 빨개지는가: CHANNEL 정규식이 아무것도 못 잡게 되면
     // (속성 이름 철자가 바뀌거나 포매팅이 달라지면) 아래 `it`이 진공으로
     // 초록이 된다 — 그 전에 여기가 잡는다. 실측 하한이다.

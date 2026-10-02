@@ -1,6 +1,6 @@
 import { useState, useId, type HTMLAttributes, type ReactNode } from 'react';
 import clsx from 'clsx';
-import { Icon } from '../Icon';
+import { Glyph } from '../../_internal/glyph';
 import {
   boardRow,
   rowExpanded,
@@ -89,7 +89,7 @@ export const BoardRow = ({
       >
         <div className={titleStyle}>{title}</div>
         <div className={clsx(iconContainer, isExpanded && iconExpanded)}>
-          <Icon name="chevron-down" size="md" />
+          <Glyph name="chevron-down" size="md" />
         </div>
       </button>
 

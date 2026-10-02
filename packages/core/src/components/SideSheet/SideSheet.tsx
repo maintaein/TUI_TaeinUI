@@ -20,7 +20,7 @@ import {
   content,
 } from './SideSheet.css';
 import { IconButton } from '../IconButton';
-import { Icon } from '../Icon';
+import { Glyph } from '../../_internal/glyph';
 import { useFocusTrap } from '../../_internal/useFocusTrap';
 import { createOverlayContext } from '../../_internal/createOverlayContext';
 import { useOverlayTransition } from '../../_internal/useOverlayTransition';
@@ -169,7 +169,7 @@ const SideSheetRoot = ({
                     aria-label="닫기"
                     className={closeButton}
                   >
-                    <Icon name="close" size="sm" />
+                    <Glyph name="close" size="sm" />
                   </IconButton>
                 )}
               </div>
@@ -215,7 +215,7 @@ export const SideSheetHeader = forwardRef<HTMLElement, SideSheetHeaderProps>(
             aria-label="닫기"
             className={closeButton}
           >
-            <Icon name="close" size="sm" />
+            <Glyph name="close" size="sm" />
           </IconButton>
         )}
       </header>

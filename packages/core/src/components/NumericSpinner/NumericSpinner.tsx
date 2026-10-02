@@ -12,7 +12,7 @@ import { flushSync } from 'react-dom';
 import { clsx } from 'clsx';
 import { gsap } from 'gsap';
 import * as styles from './NumericSpinner.css';
-import { Icon } from '../Icon';
+import { Glyph } from '../../_internal/glyph';
 import { FormField } from '../FormField';
 import { gateMotion } from '../../hooks/gateMotion';
 import { useReducedMotion } from '../../hooks/useReducedMotion';
@@ -559,7 +559,7 @@ export const NumericSpinner = forwardRef<HTMLInputElement, NumericSpinnerProps>(
                 styles.buttonSize[size]
               )}
             >
-              <Icon name="minus" size="sm" />
+              <Glyph name="minus" size="sm" />
             </button>
 
             {/* Number Input */}
@@ -608,7 +608,7 @@ export const NumericSpinner = forwardRef<HTMLInputElement, NumericSpinnerProps>(
                 styles.buttonSize[size]
               )}
             >
-              <Icon name="plus" size="sm" />
+              <Glyph name="plus" size="sm" />
             </button>
           </div>
         )}

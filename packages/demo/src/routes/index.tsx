@@ -57,9 +57,6 @@ const SliderPage = lazy(() =>
 const ButtonPage = lazy(() =>
   import('../pages/Components/Button').then((m) => ({ default: m.ButtonPage }))
 );
-const IconPage = lazy(() =>
-  import('../pages/Components/Icon').then((m) => ({ default: m.IconPage }))
-);
 const IconButtonPage = lazy(() =>
   import('../pages/Components/IconButton').then((m) => ({
     default: m.IconButtonPage,
@@ -271,14 +268,6 @@ const router = createBrowserRouter([
             element: (
               <LazyPage>
                 <ButtonPage />
-              </LazyPage>
-            ),
-          },
-          {
-            path: 'icon',
-            element: (
-              <LazyPage>
-                <IconPage />
               </LazyPage>
             ),
           },

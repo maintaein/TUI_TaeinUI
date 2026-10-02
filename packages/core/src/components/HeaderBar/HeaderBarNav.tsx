@@ -22,7 +22,7 @@ import {
 
 /** 근접 확대가 켜진 헤더 nav 항목 하나. */
 export interface HeaderBarNavItem {
-  /** 알약 안에 들어가는 내용. Icon 컴포넌트를 넣는 것이 일반적이다. */
+  /** 알약 안에 들어가는 내용. 아이콘 요소를 넣는 것이 일반적이다. */
   icon: ReactNode;
   /** 접근성 이름. 시각적으로는 보이지 않는다. React key로도 쓴다. */
   label: string;
