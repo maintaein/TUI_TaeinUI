@@ -307,7 +307,7 @@ describe('Tier-A 13개 @keyframes 소스 열거 (M2 T4)', () => {
  * 오버라이드가 `animation-duration: 0.01ms !important`와
  * `animation-iteration-count: 1 !important`를 강제하므로, 무한 루프는 1회
  * 돌고 끝난 뒤 fill-mode에 따라 (a) base로 복귀하거나 (b) 마지막 프레임에
- * 고착한다. M1의 `Loader` 점 페이드 `opacity: 0.2` 고착이 바로 (b)였다 —
+ * 고착한다. M1의 `LoadingSpinner`(지금은 `Loader`에 흡수됐다) 점 페이드 `opacity: 0.2` 고착이 바로 (b)였다 —
  * `both`가 `'0%, 100%'` 프레임을 붙들었다.
  *
  * 그 성질은 지금까지 `theme.reducedMotion.test.ts`의 `dot` 한 자리에만
@@ -363,7 +363,7 @@ describe('검사 1 — 무한 루프 6개가 축소 모드(iteration 1)에서 �
     // 블록 밖에 놓이면 enclosingBlock도 못 닿는다. 그래서 롱핸드 자체를
     // 13개 파일 전역에서 금지한다 — fill-mode는 숏핸드 꼬리에만 적는다.
     // 무엇을 뒤집으면 빨개지는가: 아무 .css.ts에나 `animationFillMode:
-    // 'forwards'` 한 줄을 넣으면 여기가 빨개진다. 파일 수가 14에서 줄어도
+    // 'forwards'` 한 줄을 넣으면 여기가 빨개진다. 파일 수가 13에서 줄어도
     // 마찬가지다 — 목록이 비면 아래 루프가 0번 돌고 조용히 초록이 된다.
     expect(Object.keys(FILE_TEXT)).toHaveLength(13);
     const offenders: string[] = [];

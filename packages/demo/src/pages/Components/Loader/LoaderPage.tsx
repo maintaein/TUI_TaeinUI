@@ -292,6 +292,37 @@ export function LoaderPage() {
 </div>`}
           />
         </div>
+
+        <div className={styles.example}>
+          <h3 className={styles.exampleTitle}>Custom Color</h3>
+          <LivePreview
+            title="커스텀 색상"
+            description="color에 CSS 색상 문자열을 넘기면 spinner와 dots 모두 그 색으로 그려집니다. 어두운 배경에서는 밝은 색을 지정하세요."
+            editable
+            code={`<div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+  <div style={{ display: 'flex', gap: '2rem', alignItems: 'center' }}>
+    <Loader color="#8b5cf6" />
+    <Loader color="#059669" />
+    <Loader color="#ea580c" />
+    <Loader color="#dc2626" />
+    <Loader color="#0ea5e9" />
+  </div>
+  <div style={{ display: 'flex', gap: '2rem', alignItems: 'center' }}>
+    <Loader type="dots" color="#8b5cf6" />
+    <Loader type="dots" color="#059669" />
+    <Loader type="dots" color="#ea580c" />
+    <Loader type="dots" color="#dc2626" />
+    <Loader type="dots" color="#0ea5e9" />
+  </div>
+  <div style={{ display: 'flex', gap: '2rem', alignItems: 'center', backgroundColor: '#1f2937', padding: '2rem', borderRadius: '0.75rem' }}>
+    <Loader color="#ffffff" />
+    <Loader color="#f59e0b" />
+    <Loader type="dots" color="#ffffff" />
+    <Loader type="dots" color="#f59e0b" />
+  </div>
+</div>`}
+          />
+        </div>
       </section>
 
       {/* Label */}

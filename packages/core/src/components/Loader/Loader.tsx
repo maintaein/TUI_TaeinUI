@@ -51,6 +51,15 @@ type ColorPreset = keyof typeof colorStyles;
 const isPreset = (value: string): value is ColorPreset =>
   value === 'primary' || value === 'secondary' || value === 'white';
 
+// 접근성 계약(role, aria-live, aria-busy)은 안쪽 status 요소가 쥔다. 소비자가
+// ...props로 바깥 래퍼에 같은 속성을 얹어 status를 이중으로 만들지 못하게,
+// props 펼침 뒤에 undefined로 덮는다(React는 undefined 속성을 렌더하지 않는다).
+const a11yLocked = {
+  role: undefined,
+  'aria-live': undefined,
+  'aria-busy': undefined,
+} as const;
+
 export const Loader = ({
   type = 'spinner',
   size = 'md',
@@ -60,6 +69,7 @@ export const Loader = ({
   overlay = false,
   'aria-label': ariaLabel,
   className,
+  ...props
 }: LoaderProps) => {
   // color preset을 실제 색상 값으로 변환. preset이 아니면 CSS 색상값이므로 그대로 쓴다
   const getColorValue = (value: string) => {
@@ -144,11 +154,17 @@ export const Loader = ({
   const loaderElement = renderLoader();
 
   if (!label && !fullScreen && !overlay) {
-    return <div className={className}>{loaderElement}</div>;
+    return (
+      <div {...props} {...a11yLocked} className={className}>
+        {loaderElement}
+      </div>
+    );
   }
 
   return (
     <div
+      {...props}
+      {...a11yLocked}
       className={clsx(
         loaderContainer,
         fullScreen && fullScreenStyles,

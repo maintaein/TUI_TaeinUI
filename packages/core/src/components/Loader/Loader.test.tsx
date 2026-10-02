@@ -127,6 +127,55 @@ describe('Loader', () => {
     });
   });
 
+  describe('임의 색상 통과 (색상 확장)', () => {
+    it('bar는 preset이 아닌 색을 fill에 --loader-color 인라인으로 붙인다', () => {
+      render(<Loader type="bar" color="#f00" />);
+      const fill = screen
+        .getByRole('status')
+        .querySelector(':scope > div > div');
+      expect(fill).toHaveStyle({ '--loader-color': '#f00' });
+    });
+
+    it('bar는 preset이면 인라인 style 없이 colorStyles 클래스를 붙인다', () => {
+      render(<Loader type="bar" color="primary" />);
+      const fill = screen
+        .getByRole('status')
+        .querySelector(':scope > div > div');
+      expect(fill).not.toHaveAttribute('style');
+      expect(fill?.className).toContain('colorStyles_primary');
+    });
+
+    it('currentColor가 --spinner-color로 그대로 통과한다 (Button이 쓰는 경로)', () => {
+      render(<Loader color="currentColor" />);
+      expect(
+        screen.getByRole('status').style.getPropertyValue('--spinner-color')
+      ).toBe('currentColor');
+    });
+
+    it('dots도 임의 색을 --spinner-color로 받는다', () => {
+      render(<Loader type="dots" color="#0f0" />);
+      expect(screen.getByRole('status')).toHaveStyle({
+        '--spinner-color': '#0f0',
+      });
+    });
+  });
+
+  describe('HTMLAttributes 전달', () => {
+    it('data-testid 같은 속성이 바깥 요소에 도달한다', () => {
+      render(<Loader data-testid="loader-root" id="loader-id" />);
+      expect(screen.getByTestId('loader-root')).toHaveAttribute(
+        'id',
+        'loader-id'
+      );
+    });
+
+    it('role을 인자로 덮으려 해도 status는 하나만 남는다', () => {
+      render(<Loader role="alert" label="로딩 중..." />);
+      expect(screen.getAllByRole('status')).toHaveLength(1);
+      expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    });
+  });
+
   describe('접근성 테스트', () => {
     it('role="status"를 가진다', () => {
       render(<Loader />);
