@@ -14,7 +14,7 @@ export const button = recipe({
     border: 'none',
     cursor: 'pointer',
     touchAction: 'manipulation',
-    transition: `background-color ${themeContract.animation.duration.base} ${themeContract.animation.easing.settle}, box-shadow ${themeContract.animation.duration.base} ${themeContract.animation.easing.settle}, filter ${themeContract.animation.duration.base} ${themeContract.animation.easing.settle}, opacity ${themeContract.animation.duration.base} ${themeContract.animation.easing.settle}, transform ${themeContract.animation.duration.fast} ${themeContract.animation.easing.snap}`,
+    transition: `background-color ${themeContract.animation.duration.base} ${themeContract.animation.easing.settle}, box-shadow ${themeContract.animation.duration.base} ${themeContract.animation.easing.settle}, filter ${themeContract.animation.duration.base} ${themeContract.animation.easing.settle}, opacity ${themeContract.animation.duration.base} ${themeContract.animation.easing.settle}, transform ${themeContract.animation.duration.base} ${themeContract.animation.easing.spring}`,
     userSelect: 'none',
     textDecoration: 'none',
     position: 'relative',
@@ -30,17 +30,21 @@ export const button = recipe({
       // Button.tsx가 data-pressed를 걸고 최소 체류(90ms) 뒤에 지우므로 짧은
       // 클릭도 효과가 끝까지 나온다. 색·그림자·scale이 이 속성 하나를 같이 따른다.
       // 들어갈 때만 settle로 덮는다. 누른 순간 등록돼야 해서 ease-in(exit)은 쓰지
-      // 않는다. 속성이 떨어지면 base의 snap이 돌아와 해제 때 오버슛한다.
-      // 길이는 들어갈 때 base(200ms), 나올 때 base 숏핸드의 fast(150ms)다.
-      // 누름·해제를 같은 길이로 두지 않는다(의도한 행동은 느리게, 응답은 즉각).
+      // 않는다. 누르는 동작은 흔들리지 않게 짧고 단단하게(fast+settle) 간다.
+      // 속성이 떨어지면 base 숏핸드의 spring(200ms)이 돌아와 해제 때 되밀린다.
+      // 들어갈 때가 150ms, 나올 때가 200ms다. 단순 복귀가 아니라 되밀림과 정착이라는
+      // 2상 물리라 흔들림에 시간이 필요하다(모션 명제가 일반론보다 앞선다).
       // 호버 규칙(variant별 10곳)의 설명은 아래 compoundVariants 머리말에 있다.
       // 호버 규칙은 :not([data-pressed])를 단다. vanilla-extract가 @media를 selectors
       // 뒤에 내보내 특정도가 같은 호버가 누름 색을 덮기 때문이다.
       '&[data-pressed]:not(:disabled)': {
         // 리터럴 근거: 누름 scale은 토큰 스케일이 없다. emil-design-eng 권장 대역
-        // 0.95~0.98 중 가장 절제된 끝이다. 라벨과 아이콘이 함께 눌리는 것은 기능이다.
-        transform: 'scale(0.98)',
-        transitionDuration: themeContract.animation.duration.base,
+        // 0.95~0.98의 깊은 끝이다. 오버슛은 이동거리 x 커브 오버슛이라 spring
+        // (20.44%)으로 휴지보다 약 1% 되밀리려면 이동거리 0.049, 즉 0.951이 필요하다
+        // (snap 9.98%는 0.90이 필요해 너무 깊다). 0.98이면 되밀림이 0.09px라 안 보였다.
+        // 라벨과 아이콘이 함께 눌리는 것은 기능이다.
+        transform: 'scale(0.95)',
+        transitionDuration: themeContract.animation.duration.fast,
         transitionTimingFunction: themeContract.animation.easing.settle,
       },
     },
@@ -269,7 +273,7 @@ export const button = recipe({
         selectors: {
           '&[data-pressed]:not(:disabled)': {
             // hover와 배경이 같아 색으로는 상태를 구분할 수 없다. 실제로
-            // 상태를 가르는 건 base의 data-pressed scale(0.98)이고, shadow.inner(6% 알파)는
+            // 상태를 가르는 건 base의 data-pressed scale(0.95)이고, shadow.inner(6% 알파)는
             // error[100] 위에서 거의 안 보이는 보조 신호다.
             backgroundColor: themeContract.palette.error[100],
             boxShadow: themeContract.shadow.inner,

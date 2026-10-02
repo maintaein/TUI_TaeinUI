@@ -547,11 +547,11 @@ describe('Button 누름 효과는 입력 시간과 무관하게 완주한다', (
 const cssSource = readFileSync(resolve(__dirname, './Button.css.ts'), 'utf-8');
 
 describe('Button 모션 잠금', () => {
-  it('base transition의 transform 구간이 fast 길이의 snap을 쓴다(해제 오버슛)', () => {
+  it('base transition의 transform 구간이 base 길이의 spring을 쓴다(해제 되밀림)', () => {
     const transitionLine = cssSource.match(/transition: `([^`]*)`,/)?.[1];
     expect(transitionLine, 'base transition 선언을 찾지 못했다').toBeDefined();
     expect(transitionLine).toContain(
-      'transform ${themeContract.animation.duration.fast} ${themeContract.animation.easing.snap}'
+      'transform ${themeContract.animation.duration.base} ${themeContract.animation.easing.spring}'
     );
   });
 
@@ -609,7 +609,7 @@ describe('Button 생성 CSS', () => {
     withSelector('[data-pressed]').find(
       ({ media, rule }) =>
         media === null &&
-        rule.style.getPropertyValue('transform') === 'scale(0.98)'
+        rule.style.getPropertyValue('transform') === 'scale(0.95)'
     );
 
   it('호버 규칙 10곳 전부에 transform이 없다(float 재도입 가드)', () => {
@@ -658,34 +658,37 @@ describe('Button 생성 CSS', () => {
     expect(pressed).toHaveLength(11);
   });
 
-  it('scale(0.98)은 base의 data-pressed 한 곳에만 있다', () => {
+  it('scale(0.95)은 base의 data-pressed 한 곳에만 있다', () => {
     const scaled = withSelector('[data-pressed]').filter(
-      ({ rule }) => rule.style.getPropertyValue('transform') === 'scale(0.98)'
+      ({ rule }) => rule.style.getPropertyValue('transform') === 'scale(0.95)'
     );
     expect(scaled).toHaveLength(1);
     expect(scaled[0].rule.selectorText).toMatch(/^\.Button_button__\w+\[/);
   });
 
-  it('press-in은 base 길이의 settle이고 ease-in(exit)이 아니다', () => {
-    const base = basePressed();
-    expect(base).toBeDefined();
-    const { style } = base!.rule;
-    expect(style.getPropertyValue('transition-duration')).toBe(
-      themeContract.animation.duration.base
+  it('진입은 fast+settle로 단단하고, 해제는 base+spring으로 되밀린다', () => {
+    const entry = basePressed()!.rule.style;
+    expect(entry.getPropertyValue('transition-duration')).toBe(
+      themeContract.animation.duration.fast
     );
-    expect(style.getPropertyValue('transition-timing-function')).toBe(
+    // ease-in(exit)이나 흔들리는 커브(spring·snap)를 진입에 쓰면 안 된다.
+    expect(entry.getPropertyValue('transition-timing-function')).toBe(
       themeContract.animation.easing.settle
     );
-  });
 
-  it('press-in(base)이 release(base 숏핸드의 fast)보다 길다: 누름·해제가 비대칭이다', () => {
-    const shorthand = cssSource.match(/transition: `([^`]*)`,/)?.[1] ?? '';
-    expect(shorthand).toContain(
-      'transform ${themeContract.animation.duration.fast}'
+    // 해제는 [data-pressed]가 떨어진 뒤 base 숏핸드의 transform 항이 정한다.
+    // jsdom은 중간 프레임을 계산하지 못해 커브가 걸려 있다는 선까지만 확인한다.
+    const baseRule = buttonRules().find(
+      ({ media, rule }) =>
+        media === null &&
+        /^\.Button_button__\w+$/.test(rule.selectorText) &&
+        rule.style.getPropertyValue('transition') !== ''
     );
-    expect(
-      basePressed()!.rule.style.getPropertyValue('transition-duration')
-    ).toBe(themeContract.animation.duration.base);
+    expect(baseRule, 'base 규칙을 찾지 못했다').toBeDefined();
+    const transition = baseRule!.rule.style.getPropertyValue('transition');
+    expect(transition).toContain(
+      `transform ${themeContract.animation.duration.base} ${themeContract.animation.easing.spring}`
+    );
   });
 
   it('축소 모드에서 data-pressed의 transform만 none이고 색 변화는 남는다', () => {
@@ -698,7 +701,7 @@ describe('Button 생성 CSS', () => {
     // 색·불투명도·그림자를 건드리면 "이동 없음"이 아니라 "효과 없음"이 된다.
     expect(rule.style.length).toBe(1);
 
-    // 같은 특정도라 base의 scale(0.98)보다 문서 순서가 늦어야 이긴다.
+    // 같은 특정도라 base의 scale(0.95)보다 문서 순서가 늦어야 이긴다.
     expect(order).toBeGreaterThan(basePressed()!.order);
   });
 });
