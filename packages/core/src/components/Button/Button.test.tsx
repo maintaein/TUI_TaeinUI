@@ -745,76 +745,104 @@ describe('Button 생성 CSS: 합성 레이어', () => {
   });
 });
 
-describe('Button fill 변형의 색 단조성 (조항 2: rest < hover < pressed)', () => {
-  const source = readFileSync(resolve(__dirname, './Button.css.ts'), 'utf-8');
+describe.each(['fill', 'weak'] as const)(
+  'Button %s 변형의 색 단조성 (조항 2: rest < hover < pressed)',
+  (buttonStyle) => {
+    const source = readFileSync(resolve(__dirname, './Button.css.ts'), 'utf-8');
 
-  function tokenValue(ref: string): string {
-    const value = ref
-      .replace(/\[(\w+)\]/g, '.$1')
-      .split('.')
-      .reduce<unknown>(
-        (node, key) => (node as Record<string, unknown>)[key],
-        themeTokens as unknown
-      );
-    expect(typeof value, `themeContract.${ref}가 토큰에 없다`).toBe('string');
-    return value as string;
+    function tokenValue(ref: string): string {
+      const value = ref
+        .replace(/\[(\w+)\]/g, '.$1')
+        .split('.')
+        .reduce<unknown>(
+          (node, key) => (node as Record<string, unknown>)[key],
+          themeTokens as unknown
+        );
+      expect(typeof value, `themeContract.${ref}가 토큰에 없다`).toBe('string');
+      return value as string;
+    }
+
+    const start = source.indexOf('compoundVariants: [');
+    const compound = source.slice(start, source.indexOf('\n  ],', start));
+    const fills: Record<
+      string,
+      { color: string; rest: string; hover: string; pressed: string }
+    > = {};
+    for (const chunk of compound.split('variants: { buttonStyle: ').slice(1)) {
+      const head = chunk.match(/^'(\w+)', variant: '(\w+)' \}/);
+      if (head?.[1] !== buttonStyle) continue;
+      const ref = (re: RegExp) => chunk.match(re)?.[1] ?? '';
+      fills[head[2]] = {
+        color: ref(/\n\s+color: themeContract\.([\w.[\]]+)/),
+        rest: ref(/\n\s+backgroundColor: themeContract\.([\w.[\]]+)/),
+        hover: ref(
+          /&:hover[^']*': \{\s*backgroundColor: themeContract\.([\w.[\]]+)/
+        ),
+        pressed: ref(
+          /&\[data-pressed\][^']*': \{(?:\s*\/\/[^\n]*)*\s*backgroundColor: themeContract\.([\w.[\]]+)/
+        ),
+      };
+    }
+
+    it('네 곳 모두 눌린 색을 팔레트 단계로 갖는다', () => {
+      expect(Object.keys(fills).sort()).toEqual([
+        'danger',
+        'dark',
+        'light',
+        'primary',
+      ]);
+      for (const [name, f] of Object.entries(fills)) {
+        expect(f.rest, `${name} rest`).not.toBe('');
+        expect(f.hover, `${name} hover`).not.toBe('');
+        expect(f.pressed, `${name} pressed`).not.toBe('');
+      }
+    });
+
+    // weak danger는 색으로 단조성을 만들 수 없다: error에는 200~400이 없고(50, 100,
+    // 500, 700, 800, 900) 글자가 이미 900이라, error[100]보다 어두우면서 AA를 지키는
+    // 배경이 없다(휘도 창 0.6687~0.6958, 호버와 구별 안 됨). 눌림은 그림자로 가른다.
+    const colorStepped = (name: string) =>
+      !(buttonStyle === 'weak' && name === 'danger');
+
+    it.each(['primary', 'dark', 'danger', 'light'])(
+      `${buttonStyle} %s는 rest보다 hover가, hover보다 pressed가 어둡다`,
+      (name) => {
+        const f = fills[name];
+        const lum = (ref: string) => relativeLuminance(tokenValue(ref));
+        expect(lum(f.hover), `${name} hover < rest`).toBeLessThan(lum(f.rest));
+        if (!colorStepped(name)) return;
+        expect(lum(f.pressed), `${name} pressed < hover`).toBeLessThan(
+          lum(f.hover)
+        );
+      }
+    );
+
+    it.each(['primary', 'dark', 'danger', 'light'])(
+      `${buttonStyle} %s의 글자색은 눌린 배경 위에서 AA(4.5:1)를 만족한다`,
+      (name) => {
+        const f = fills[name];
+        expect(
+          contrastRatio(tokenValue(f.color), tokenValue(f.pressed))
+        ).toBeGreaterThanOrEqual(4.5);
+      }
+    );
+    // weak 블록에서만 등록한다(fill에서 skip으로 남기지 않는다).
+    if (buttonStyle === 'weak')
+      it('weak danger는 색 대신 눌림 그림자(shadow.inner)를 갖고 그 알파가 0.1 이상이다', () => {
+        const dangerChunk = compound
+          .split('variants: { buttonStyle: ')
+          .find((chunk) => chunk.startsWith("'weak', variant: 'danger'"))!;
+        const pressed = dangerChunk.match(
+          /&\[data-pressed\][^']*': \{([\s\S]*?)\n\s*\},/
+        )?.[1];
+        expect(pressed, 'weak danger 눌림 규칙을 찾지 못했다').toBeDefined();
+        expect(pressed).toContain('boxShadow: themeContract.shadow.inner');
+
+        // 6%는 error[100] 위에서 안 보였다. 알파가 다시 내려가면 빨개진다.
+        const alpha = Number(
+          tokenValue('shadow.inner').match(/rgba\([^)]*,\s*([\d.]+)\)/)?.[1]
+        );
+        expect(alpha).toBeGreaterThanOrEqual(0.1);
+      });
   }
-
-  const start = source.indexOf('compoundVariants: [');
-  const compound = source.slice(start, source.indexOf('\n  ],', start));
-  const fills: Record<
-    string,
-    { color: string; rest: string; hover: string; pressed: string }
-  > = {};
-  for (const chunk of compound.split('variants: { buttonStyle: ').slice(1)) {
-    const head = chunk.match(/^'(\w+)', variant: '(\w+)' \}/);
-    if (head?.[1] !== 'fill') continue;
-    const ref = (re: RegExp) => chunk.match(re)?.[1] ?? '';
-    fills[head[2]] = {
-      color: ref(/\n\s+color: themeContract\.([\w.[\]]+)/),
-      rest: ref(/\n\s+backgroundColor: themeContract\.([\w.[\]]+)/),
-      hover: ref(
-        /&:hover[^']*': \{\s*backgroundColor: themeContract\.([\w.[\]]+)/
-      ),
-      pressed: ref(
-        /&\[data-pressed\][^']*': \{\s*backgroundColor: themeContract\.([\w.[\]]+)/
-      ),
-    };
-  }
-
-  it('fill 변형 네 곳 모두 눌린 색을 팔레트 단계로 갖는다', () => {
-    expect(Object.keys(fills).sort()).toEqual([
-      'danger',
-      'dark',
-      'light',
-      'primary',
-    ]);
-    for (const [name, f] of Object.entries(fills)) {
-      expect(f.rest, `${name} rest`).not.toBe('');
-      expect(f.hover, `${name} hover`).not.toBe('');
-      expect(f.pressed, `${name} pressed`).not.toBe('');
-    }
-  });
-
-  it.each(['primary', 'dark', 'danger', 'light'])(
-    'fill %s는 rest보다 hover가, hover보다 pressed가 어둡다',
-    (name) => {
-      const f = fills[name];
-      const lum = (ref: string) => relativeLuminance(tokenValue(ref));
-      expect(lum(f.hover), `${name} hover < rest`).toBeLessThan(lum(f.rest));
-      expect(lum(f.pressed), `${name} pressed < hover`).toBeLessThan(
-        lum(f.hover)
-      );
-    }
-  );
-
-  it.each(['primary', 'dark', 'danger', 'light'])(
-    'fill %s의 글자색은 눌린 배경 위에서 AA(4.5:1)를 만족한다',
-    (name) => {
-      const f = fills[name];
-      expect(
-        contrastRatio(tokenValue(f.color), tokenValue(f.pressed))
-      ).toBeGreaterThanOrEqual(4.5);
-    }
-  );
-});
+);

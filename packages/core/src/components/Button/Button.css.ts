@@ -284,9 +284,12 @@ export const button = recipe({
         },
         selectors: {
           '&[data-pressed]:not(:disabled)': {
-            // hover와 배경이 같아 색으로는 상태를 구분할 수 없다. 실제로
-            // 상태를 가르는 건 base의 data-pressed scale(0.95)이고, shadow.inner(6% 알파)는
-            // error[100] 위에서 거의 안 보이는 보조 신호다.
+            // hover와 배경이 같아 색으로 상태를 가를 수 없다. error에는 200~400이
+            // 없고(50, 100, 500, 700, 800, 900) 글자가 이미 팔레트에서 가장 어두운
+            // 900이라, error[100](#FFCDD2, 4.67:1)보다 어두우면서 AA를 지키는 배경이
+            // 없다(휘도 창 0.6687~0.6958, 호버와 구별 안 됨. Red 200 #EF9A9A는 3.05).
+            // 그래서 색이 아니라 base의 scale(0.95)과 shadow.inner(알파 0.14)로
+            // 가른다. filter는 쓰지 않는다: 레이어 내용을 다시 그려 글자가 튄다.
             backgroundColor: themeContract.palette.error[100],
             boxShadow: themeContract.shadow.inner,
           },
