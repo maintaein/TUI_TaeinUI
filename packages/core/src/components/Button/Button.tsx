@@ -13,10 +13,6 @@ import {
   customOutlineVariant,
   fullWidth,
   loadingSlot,
-  labelWrap,
-  labelCollapsed,
-  labelInner,
-  labelInnerCollapsed,
 } from './Button.css';
 import { Loader } from '../Loader';
 
@@ -227,16 +223,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
           />
         )}
         {!loading && leftIcon && <span aria-hidden="true">{leftIcon}</span>}
-        {/* 라벨은 loading에도 DOM에 남겨 접는다(폭 전이의 시작값). 스크린 리더는
-            버튼의 aria-busy로 상태를 알므로 로딩 중 라벨은 읽지 않게 숨긴다. */}
-        <span
-          className={clsx(labelWrap, loading && labelCollapsed)}
-          aria-hidden={loading || undefined}
-        >
-          <span className={clsx(labelInner, loading && labelInnerCollapsed)}>
-            {children}
-          </span>
-        </span>
+        {!loading && <span>{children}</span>}
         {!loading && rightIcon && <span aria-hidden="true">{rightIcon}</span>}
       </button>
     );

@@ -100,10 +100,8 @@ describe('Button', () => {
       // Loader가 렌더링되는지 확인 (role="status"로 찾기)
       expect(screen.getByRole('status')).toBeInTheDocument();
       expect(screen.getByLabelText('로딩 중')).toBeInTheDocument();
-      // 라벨은 폭 전이의 시작값이라 DOM에 남기고 접는다. 스크린 리더에는 숨긴다.
-      // (이전엔 DOM에서 제거했다: 의도적 변경, 사용자 판정 H2)
-      const label = screen.getByText('저장 중');
-      expect(label.parentElement).toHaveAttribute('aria-hidden', 'true');
+      // 구현상 !loading && children 이므로 텍스트는 없어야 함
+      expect(screen.queryByText('저장 중')).not.toBeInTheDocument();
     });
 
     it('loading 속성이 true일 때 버튼이 비활성화된다', () => {
@@ -515,18 +513,6 @@ describe('Button 누름 효과는 입력 시간과 무관하게 완주한다', (
     expect(button).not.toHaveAttribute('data-pressed');
   });
 
-  it('loading이 꺼지면 라벨의 aria-hidden이 사라지고 접힘 클래스가 빠진다', () => {
-    const { rerender } = render(<Button loading>저장</Button>);
-    const wrap = screen.getByText('저장').parentElement!;
-    expect(wrap).toHaveAttribute('aria-hidden', 'true');
-    expect(wrap).toHaveClass(styles.labelCollapsed);
-
-    rerender(<Button>저장</Button>);
-    expect(wrap).not.toHaveAttribute('aria-hidden');
-    expect(wrap).not.toHaveClass(styles.labelCollapsed);
-    expect(wrap).toHaveClass(styles.labelWrap);
-  });
-
   it('호출자의 포인터 핸들러도 그대로 호출된다', () => {
     const onPointerDown = vi.fn();
     const onPointerUp = vi.fn();
@@ -720,84 +706,36 @@ describe('Button 생성 CSS', () => {
   });
 });
 
-describe('Button 생성 CSS: will-change와 loading 접힘', () => {
+describe('Button 생성 CSS: 합성 레이어', () => {
   const rules = () => buttonRules();
-
-  it('will-change: transform이 호버 10곳, :focus-visible, [data-pressed]에만 있고 base에는 없다', () => {
-    const withWillChange = rules().filter(
-      ({ rule }) => rule.style.getPropertyValue('will-change') === 'transform'
-    );
-    const selectors = withWillChange.map(({ rule }) => rule.selectorText);
-
-    expect(selectors.filter((sel) => sel.includes(':hover'))).toHaveLength(10);
-    expect(
-      selectors.filter((sel) => sel.includes(':focus-visible'))
-    ).toHaveLength(1);
-    expect(
-      selectors.filter(
-        (sel) => sel.includes('[data-pressed]') && !sel.includes(':hover')
-      )
-    ).toHaveLength(1);
-    expect(selectors).toHaveLength(12);
-
-    // 버튼마다 레이어가 상주하지 않는다.
-    const baseRule = rules().find(
+  const baseRule = () =>
+    rules().find(
       ({ media, rule }) =>
         media === null && /^\.Button_button__\w+$/.test(rule.selectorText)
+    )!;
+
+  it('레이어는 base의 backface-visibility: hidden 하나가 만든다', () => {
+    expect(baseRule().rule.style.getPropertyValue('backface-visibility')).toBe(
+      'hidden'
     );
-    expect(baseRule!.rule.style.getPropertyValue('will-change')).toBe('');
   });
 
-  it('호버의 will-change는 포인터 게이트 안에 있다', () => {
-    for (const { media } of rules().filter(
-      ({ rule }) =>
-        rule.selectorText.includes(':hover') &&
-        rule.style.getPropertyValue('will-change') === 'transform'
-    )) {
-      expect(media).toBe('(hover: hover) and (pointer: fine)');
-    }
+  it('will-change를 어느 자리에도 걸지 않는다(호버, 포커스, 눌림에서 레이어가 생기면 글자가 튄다)', () => {
+    const offenders = rules().filter(
+      ({ rule }) => rule.style.getPropertyValue('will-change') !== ''
+    );
+    expect(offenders.map(({ rule }) => rule.selectorText)).toEqual([]);
   });
 
-  it('라벨 접힘: 1fr에서 0fr로 base+settle 전이하고 축소 모드에서는 전이가 없다', () => {
-    const wrap = rules().find(
-      ({ media, rule }) =>
-        media === null && /\.Button_labelWrap__/.test(rule.selectorText)
-    )!.rule.style;
-    expect(wrap.getPropertyValue('grid-template-columns')).toBe('1fr');
-    expect(wrap.getPropertyValue('transition')).toBe(
-      `grid-template-columns ${themeContract.animation.duration.base} ${themeContract.animation.easing.settle}`
-    );
-
-    const collapsed = rules().find(({ rule }) =>
-      /\.Button_labelCollapsed__/.test(rule.selectorText)
-    )!.rule.style;
-    expect(collapsed.getPropertyValue('grid-template-columns')).toBe('0fr');
-
+  it('축소 모드에서는 레이어를 되돌린다(transform이 none이라 필요 없다)', () => {
     const reduced = rules().find(
       ({ media, rule }) =>
         media === '(prefers-reduced-motion: reduce)' &&
-        /\.Button_labelWrap__/.test(rule.selectorText)
+        /^\.Button_button__\w+$/.test(rule.selectorText)
     );
-    expect(reduced!.rule.style.getPropertyValue('transition')).toBe('none');
-  });
-
-  it('라벨 안쪽은 minWidth 0과 overflow hidden으로 0fr 칸에서 접힌다', () => {
-    const inner = rules().find(
-      ({ media, rule }) =>
-        media === null && /\.Button_labelInner__/.test(rule.selectorText)
-    )!.rule.style;
-    expect(inner.getPropertyValue('min-width')).toBe('0');
-    expect(inner.getPropertyValue('overflow')).toBe('hidden');
-  });
-
-  it('loading(aria-busy) 중 gap이 0으로 전이돼 접힌 라벨 옆에 공백이 남지 않는다', () => {
-    const busy = rules().find(({ rule }) =>
-      rule.selectorText.includes('[aria-busy="true"]')
-    );
-    expect(busy, 'aria-busy 규칙을 찾지 못했다').toBeDefined();
-    expect(busy!.rule.style.getPropertyValue('gap')).toBe('0');
-    expect(cssSource).toMatch(
-      /gap \$\{themeContract\.animation\.duration\.base\}/
+    expect(reduced, '축소 모드 base 규칙을 찾지 못했다').toBeDefined();
+    expect(reduced!.rule.style.getPropertyValue('backface-visibility')).toBe(
+      'visible'
     );
   });
 });
@@ -831,7 +769,7 @@ describe('Button fill 변형의 색 단조성 (조항 2: rest < hover < pressed)
       color: ref(/\n\s+color: themeContract\.([\w.[\]]+)/),
       rest: ref(/\n\s+backgroundColor: themeContract\.([\w.[\]]+)/),
       hover: ref(
-        /&:hover[^']*': \{\s*(?:willChange: 'transform',\s*)?backgroundColor: themeContract\.([\w.[\]]+)/
+        /&:hover[^']*': \{\s*backgroundColor: themeContract\.([\w.[\]]+)/
       ),
       pressed: ref(
         /&\[data-pressed\][^']*': \{\s*backgroundColor: themeContract\.([\w.[\]]+)/
