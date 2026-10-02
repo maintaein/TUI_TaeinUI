@@ -19,14 +19,15 @@ export const button = recipe({
     textDecoration: 'none',
     position: 'relative',
     overflow: 'hidden',
-    // 합성 레이어를 첫 페인트에 만들어 두고 이후 바꾸지 않는다. will-change를 호버나
-    // 포커스에 걸면 레이어가 생기는 순간 글자가 그레이스케일 안티앨리어싱과 정수
-    // 픽셀 반올림으로 움직이고, 레이어 없이 두면 누름 전이 끝에 강등되며 글자가
-    // 튄다. 수명을 상호작용과 분리하려고 base에 둔다.
-    // 대가: 버튼마다 레이어가 하나 상주한다(버튼 크기라 작다). 전이 중 글자가
-    // 비트맵 스케일로 약간 무를 수 있으나 움직이는 중이라 정지 상태의 튐보다
-    // 덜 거슬린다.
-    backfaceVisibility: 'hidden',
+    // 합성 레이어를 첫 페인트부터 영구로 둔다. 레이어 유무에 따라 글자가 래스터되는
+    // 세로 위치가 1px 다르다(실측: 레이어가 없으면 글자가 1px 위, 레이어가 있으면
+    // 1px 아래). 누르는 동안만 레이어가 생기면 전이가 끝나 레이어가 사라지는 순간
+    // 글자가 1px 튀고, 호버에 걸면 호버마다 튄다. 처음부터 레이어 안에 두면 어느
+    // 순간에도 같은 위치다. 단 backface-visibility: hidden은 이 레이어를 만들지
+    // 못한다(실측: will-change 없이는 끝에서 1px 튄다). e2e/buttonPressText.spec.ts.
+    // 대가: 버튼마다 합성 레이어가 하나 상주한다(버튼 크기라 작지만 버튼이 많은
+    // 화면에서는 메모리를 쓴다). 클릭마다 글자가 튀는 것보다 낫다고 판단했다.
+    willChange: 'transform',
 
     ':disabled': {
       cursor: 'not-allowed',
@@ -61,8 +62,9 @@ export const button = recipe({
       // 축소 모드는 "모션 없음"이 아니라 "이동 없음"이다. 색·불투명도 변화는 둔다.
       // 전역 규칙은 전이 시간만 0으로 만들 뿐 속성 토글은 남기므로 명시한다.
       '(prefers-reduced-motion: reduce)': {
-        // transform이 none이라 레이어가 필요 없다.
-        backfaceVisibility: 'visible',
+        // transform이 none이라 레이어가 필요 없다. 전이도 없어 레이어가 생기고
+        // 사라지는 순간이 없으므로 글자가 튀지 않는다.
+        willChange: 'auto',
         selectors: {
           '&[data-pressed]:not(:disabled)': {
             transform: 'none',

@@ -708,35 +708,40 @@ describe('Button 생성 CSS', () => {
 
 describe('Button 생성 CSS: 합성 레이어', () => {
   const rules = () => buttonRules();
-  const baseRule = () =>
+  const baseRule = (media: string | null) =>
     rules().find(
-      ({ media, rule }) =>
-        media === null && /^\.Button_button__\w+$/.test(rule.selectorText)
-    )!;
+      (r) =>
+        r.media === media && /^\.Button_button__\w+$/.test(r.rule.selectorText)
+    );
 
-  it('레이어는 base의 backface-visibility: hidden 하나가 만든다', () => {
-    expect(baseRule().rule.style.getPropertyValue('backface-visibility')).toBe(
-      'hidden'
+  it('레이어는 base의 will-change: transform 하나가 영구로 만든다', () => {
+    expect(baseRule(null)!.rule.style.getPropertyValue('will-change')).toBe(
+      'transform'
     );
   });
 
-  it('will-change를 어느 자리에도 걸지 않는다(호버, 포커스, 눌림에서 레이어가 생기면 글자가 튄다)', () => {
+  it('will-change는 base 밖(호버, 포커스, 눌림)에 걸지 않는다: 중간에 레이어가 생기면 글자가 튄다', () => {
     const offenders = rules().filter(
-      ({ rule }) => rule.style.getPropertyValue('will-change') !== ''
+      ({ rule, media }) =>
+        rule.style.getPropertyValue('will-change') !== '' &&
+        !(media === null && baseRule(null)!.rule === rule) &&
+        !(media === '(prefers-reduced-motion: reduce)')
     );
     expect(offenders.map(({ rule }) => rule.selectorText)).toEqual([]);
   });
 
-  it('축소 모드에서는 레이어를 되돌린다(transform이 none이라 필요 없다)', () => {
-    const reduced = rules().find(
-      ({ media, rule }) =>
-        media === '(prefers-reduced-motion: reduce)' &&
-        /^\.Button_button__\w+$/.test(rule.selectorText)
-    );
-    expect(reduced, '축소 모드 base 규칙을 찾지 못했다').toBeDefined();
-    expect(reduced!.rule.style.getPropertyValue('backface-visibility')).toBe(
-      'visible'
-    );
+  it('backface-visibility는 쓰지 않는다: 레이어를 못 만든다(실측)', () => {
+    for (const { rule } of rules()) {
+      expect(rule.style.getPropertyValue('backface-visibility')).toBe('');
+    }
+  });
+
+  it('축소 모드에서는 레이어를 두지 않는다(transform이 none이라 필요 없다)', () => {
+    expect(
+      baseRule('(prefers-reduced-motion: reduce)')!.rule.style.getPropertyValue(
+        'will-change'
+      )
+    ).toBe('auto');
   });
 });
 
