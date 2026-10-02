@@ -13,5 +13,5 @@ export {
   getFocusableElements,
   lockBodyScroll,
 } from './dom';
-export { Glyph, GLYPH_PATHS } from './glyph';
+export { Glyph } from './glyph';
 export type { GlyphName, GlyphProps } from './glyph';

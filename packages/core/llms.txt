@@ -36,7 +36,7 @@ All components follow consistent patterns:
 
 ## Components (28 families, 47 exports)
 
-세는 규칙: 아래 목록은 컴포넌트 **계열** 29개다. 최상위 export는 48개인데,
+세는 규칙: 아래 목록은 컴포넌트 **계열** 28개다. 최상위 export는 47개인데,
 차이는 개별로도 import할 수 있는 합성 하위 컴포넌트(`ModalHeader`,
 `CardBody`, `AvatarGroup`, `ListItem` 등)다. 두 숫자 모두 소스에서 검증된다.
 

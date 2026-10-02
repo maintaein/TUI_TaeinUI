@@ -116,6 +116,22 @@ describe('발행 문서와 소스 일치 검사', () => {
     expect(Number(heading?.[2])).toBe(exportedComponentNames().length);
   });
 
+  it('llms.txt의 헤드라인 숫자가 같은 절 산문의 "계열 N개 · export는 M개"와 일치한다', () => {
+    // 헤드라인만 검사하면 산문의 숫자가 낡아도 통과한다. 컴포넌트를 지울
+    // 때마다 두 숫자가 바뀌므로 둘을 서로 묶어 둔다.
+    const text = read(FILES.summary);
+    const heading = text.match(
+      /^## Components \((\d+) families, (\d+) exports\)$/m
+    );
+    const families = text.match(/계열\*\* (\d+)개/);
+    const exportCount = text.match(/최상위 export는 (\d+)개/);
+    expect(heading).not.toBeNull();
+    expect(families).not.toBeNull();
+    expect(exportCount).not.toBeNull();
+    expect(Number(families?.[1])).toBe(Number(heading?.[1]));
+    expect(Number(exportCount?.[1])).toBe(Number(heading?.[2]));
+  });
+
   it('새로 만든 토큰(overlay.focusHalo·errorHalo·text.inverse)이 llms-full.txt에 나타난다', () => {
     // S1·S4가 만든 토큰이 발행 문서에 안 나타나던 문제(overlay.scrim)가
     // 여기서 같이 닫힌다. 참조가 생긴 scrim도 함께 확인한다.

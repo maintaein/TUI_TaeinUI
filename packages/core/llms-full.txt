@@ -259,6 +259,7 @@ Primary action button with variants, loading, and icons.
 
 ```tsx
 import { Button } from '@taein-ui/core';
+import { Plus } from 'lucide-react';
 
 <Button variant="primary" size="md" onClick={handleClick}>
   저장하기
@@ -960,7 +961,8 @@ import { Border } from '@taein-ui/core';
 Application header bar.
 
 ```tsx
-import { HeaderBar, IconButton, Icon } from '@taein-ui/core';
+import { HeaderBar, IconButton } from '@taein-ui/core';
+import { Plus } from 'lucide-react';
 
 <HeaderBar
   logo={<img src="/logo.svg" alt="Logo" />}
