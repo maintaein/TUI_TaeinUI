@@ -1,12 +1,19 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { describe, it, expect, vi } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { describe, it, expect, vi, afterEach } from 'vitest';
+import {
+  render,
+  screen,
+  fireEvent,
+  act,
+  waitFor,
+} from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import '@testing-library/jest-dom';
 import { createRef } from 'react';
 import { Button } from './Button';
 import * as styles from './Button.css'; // 클래스명 검증을 위해 스타일 임포트
+import { themeContract } from '../../tokens/theme.css';
 
 describe('Button', () => {
   describe('렌더링 및 기본 설정', () => {
@@ -143,8 +150,13 @@ describe('Button', () => {
       const handleClick = vi.fn();
       render(<Button onClick={handleClick}>클릭</Button>);
 
-      await userEvent.click(screen.getByRole('button'));
+      // userEvent의 포인터 이벤트가 data-pressed 상태를 갱신하므로 act로 감싼다.
+      await act(() => userEvent.click(screen.getByRole('button')));
       expect(handleClick).toHaveBeenCalledTimes(1);
+      // 실제 타이머로도 최소 체류 뒤 누름 상태가 풀린다(act 밖 갱신을 기다려 준다).
+      await waitFor(() =>
+        expect(screen.getByRole('button')).not.toHaveAttribute('data-pressed')
+      );
     });
 
     it('Enter 키 입력 시 동작한다', async () => {
@@ -301,62 +313,147 @@ describe('Button', () => {
   });
 });
 
+describe('Button 누름 효과는 입력 시간과 무관하게 완주한다', () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  // jsdom에는 PointerEvent가 없어 fireEvent.pointerDown은 button 값을 못 싣는다.
+  // React는 이름이 pointerdown인 이벤트면 클래스와 무관하게 받으므로 MouseEvent로 쏜다.
+  const pointerDown = (el: HTMLElement, button = 0) =>
+    act(() => {
+      el.dispatchEvent(
+        new MouseEvent('pointerdown', { bubbles: true, button })
+      );
+    });
+  const wait = (ms: number) => act(() => vi.advanceTimersByTime(ms));
+
+  it('30ms 탭이어도 90ms까지 data-pressed가 남고 그 뒤 사라진다', () => {
+    vi.useFakeTimers();
+    render(<Button>탭</Button>);
+    const button = screen.getByRole('button');
+
+    pointerDown(button);
+    expect(button).toHaveAttribute('data-pressed');
+    wait(30);
+    fireEvent.pointerUp(button);
+
+    // 떼었지만 설정 후 89ms까지는 남아 있다.
+    wait(59);
+    expect(button).toHaveAttribute('data-pressed');
+    wait(1);
+    expect(button).not.toHaveAttribute('data-pressed');
+  });
+
+  it('길게(200ms) 누르면 pointerup 직후 사라진다', () => {
+    vi.useFakeTimers();
+    render(<Button>길게</Button>);
+    const button = screen.getByRole('button');
+
+    pointerDown(button);
+    wait(200);
+    expect(button).toHaveAttribute('data-pressed');
+    fireEvent.pointerUp(button);
+    expect(button).not.toHaveAttribute('data-pressed');
+  });
+
+  it.each([
+    ['pointerleave', fireEvent.pointerLeave],
+    ['pointercancel', fireEvent.pointerCancel],
+  ])('%s도 같은 최소 체류를 따른다', (_name, fire) => {
+    vi.useFakeTimers();
+    render(<Button>이탈</Button>);
+    const button = screen.getByRole('button');
+
+    pointerDown(button);
+    wait(30);
+    fire(button);
+    wait(59);
+    expect(button).toHaveAttribute('data-pressed');
+    wait(1);
+    expect(button).not.toHaveAttribute('data-pressed');
+  });
+
+  it('체류 중에 다시 누르면 새로 90ms를 센다(연타)', () => {
+    vi.useFakeTimers();
+    render(<Button>연타</Button>);
+    const button = screen.getByRole('button');
+
+    pointerDown(button);
+    wait(30);
+    fireEvent.pointerUp(button);
+    wait(10); // t=40, 첫 체류가 끝나기 전
+    pointerDown(button);
+    wait(10);
+    fireEvent.pointerUp(button); // t=50
+
+    // 첫 누름 기준(90)이 아니라 두 번째 누름 기준(130)까지 남는다.
+    wait(79);
+    expect(button).toHaveAttribute('data-pressed');
+    wait(1);
+    expect(button).not.toHaveAttribute('data-pressed');
+  });
+
+  it('보조 버튼(우클릭)은 누름 상태를 만들지 않는다', () => {
+    render(<Button>우클릭</Button>);
+    const button = screen.getByRole('button');
+
+    pointerDown(button, 2);
+    expect(button).not.toHaveAttribute('data-pressed');
+  });
+
+  it('Enter·Space 키보드 활성화는 data-pressed를 걸지 않는다', () => {
+    render(<Button>키보드</Button>);
+    const button = screen.getByRole('button');
+
+    fireEvent.keyDown(button, { key: 'Enter' });
+    expect(button).not.toHaveAttribute('data-pressed');
+    fireEvent.keyDown(button, { key: ' ' });
+    expect(button).not.toHaveAttribute('data-pressed');
+  });
+
+  it('호출자의 포인터 핸들러도 그대로 호출된다', () => {
+    const onPointerDown = vi.fn();
+    const onPointerUp = vi.fn();
+    const onPointerLeave = vi.fn();
+    const onPointerCancel = vi.fn();
+    render(
+      <Button
+        onPointerDown={onPointerDown}
+        onPointerUp={onPointerUp}
+        onPointerLeave={onPointerLeave}
+        onPointerCancel={onPointerCancel}
+      >
+        핸들러
+      </Button>
+    );
+    const button = screen.getByRole('button');
+
+    pointerDown(button);
+    fireEvent.pointerUp(button);
+    fireEvent.pointerLeave(button);
+    fireEvent.pointerCancel(button);
+
+    expect(onPointerDown).toHaveBeenCalledTimes(1);
+    expect(onPointerUp).toHaveBeenCalledTimes(1);
+    expect(onPointerLeave).toHaveBeenCalledTimes(1);
+    expect(onPointerCancel).toHaveBeenCalledTimes(1);
+  });
+});
+
 describe('Button 모션 잠금', () => {
-  // vanilla-extract가 스타일을 클래스로 직렬화해서 jsdom에서 계산값을 못
-  // 읽는다. Button.css.ts 소스 텍스트에서 직접 확인한다(Card·Chip 관례).
+  // 소스 텍스트로 확인하는 것: base transition 숏핸드와 customOutline 토큰.
+  // vanilla-extract가 만든 CSS를 읽는 검사는 아래 'Button 생성 CSS'에 있다.
   const cssSource = readFileSync(
     resolve(__dirname, './Button.css.ts'),
     'utf-8'
   );
 
-  /**
-   * `:not(:disabled)` 가드가 붙은 상태 블록 하나를 꺼낸다. 파일 첫 매치를 그냥
-   * 쓰면 앞에 블록이 하나 끼어드는 날 조용히 엉뚱한 곳을 검사하므로, 그런
-   * 블록이 몇 개인지까지 같이 고정한다(리뷰 F4).
-   */
-  const guardedBlock = (state: 'hover' | 'active'): string => {
-    const blocks = [
-      ...cssSource.matchAll(
-        new RegExp(
-          `['&]*:${state}:not\\(:disabled\\)'?: \\{([\\s\\S]*?)\\n\\s*\\},`,
-          'g'
-        )
-      ),
-    ];
-    // recipe base 1 + variant 오버라이드 8 + custom 2 = 11. 첫 매치가 base다.
-    expect(blocks, `:${state} 블록 개수가 달라졌다`).toHaveLength(11);
-    return blocks[0][1];
-  };
-
-  it('base transition의 transform 구간이 snap을 쓴다(해제 오버슛)', () => {
+  it('base transition의 transform 구간이 fast 길이의 snap을 쓴다(해제 오버슛)', () => {
     const transitionLine = cssSource.match(/transition: `([^`]*)`,/)?.[1];
     expect(transitionLine, 'base transition 선언을 찾지 못했다').toBeDefined();
     expect(transitionLine).toContain(
-      'transform ${themeContract.animation.duration.base} ${themeContract.animation.easing.snap}'
-    );
-  });
-
-  it(':hover:not(:disabled)이 translateY(-1px)를 새로 만든다(조항 4: 색 단독 금지)', () => {
-    const hover = guardedBlock('hover');
-    expect(hover).toContain("transform: 'translateY(-1px)'");
-    expect(hover).toContain('themeContract.animation.duration.fast');
-  });
-
-  it(':hover 블록에 transitionTimingFunction이 없다 — 있으면 해제 오버슛이 죽는다(리뷰 C3)', () => {
-    // 포인터를 떼도 요소는 여전히 :hover에 매치된다. (0,3,0)인 이 블록의
-    // 롱핸드가 base(0,1,0)의 transition 숏핸드를 이기고, 게다가 속성별
-    // 목록을 값 하나로 무너뜨려 transform에도 같은 커브를 먹인다 —
-    // 되돌아오는 전이까지 이 커브가 지배해서 base의 snap 오버슛이 포인터
-    // 사용자에게 한 번도 재생되지 않았다(크로미엄 실측).
-    // 무엇을 뒤집으면 빨개지는가: 이 블록에
-    // transitionTimingFunction: settle을 되돌려 놓으면 여기가 빨개진다.
-    // transitionDuration은 대상이 아니다 — 진입만 짧게 하는 것은 의도다.
-    expect(guardedBlock('hover')).not.toContain('transitionTimingFunction');
-  });
-
-  it(':active:not(:disabled)이 exit 한 줄로 변형 10곳의 커브를 덮는다', () => {
-    expect(guardedBlock('active')).toContain(
-      'themeContract.animation.easing.exit'
+      'transform ${themeContract.animation.duration.fast} ${themeContract.animation.easing.snap}'
     );
   });
 
@@ -371,5 +468,129 @@ describe('Button 모션 잠금', () => {
     ).toBeDefined();
     expect(outlineBlock).toContain('themeContract.color.surface.hover');
     expect(outlineBlock).toContain('themeContract.color.surface.active');
+  });
+});
+
+/**
+ * vanilla-extract가 실제로 만든 CSS(jsdom에 주입된 <style>)를 CSSOM으로 읽는다.
+ * @media 안의 규칙까지 펼쳐 문서 순서와 감싼 미디어 조건을 함께 들고 있다.
+ */
+interface FlatRule {
+  rule: CSSStyleRule;
+  media: string | null;
+  order: number;
+}
+
+function buttonRules(): FlatRule[] {
+  const sheet = Array.from(document.styleSheets).find((candidate) =>
+    Array.from(candidate.cssRules).some((rule) =>
+      rule.cssText.includes('Button_button')
+    )
+  );
+  if (!sheet) throw new Error('Button.css.ts가 만든 스타일시트를 찾지 못했다');
+
+  const flat: FlatRule[] = [];
+  const walk = (rules: CSSRuleList, media: string | null) => {
+    for (const rule of Array.from(rules)) {
+      if (rule instanceof CSSMediaRule) {
+        walk(rule.cssRules, rule.media.mediaText);
+      } else if (rule instanceof CSSStyleRule) {
+        flat.push({ rule, media, order: flat.length });
+      }
+    }
+  };
+  walk(sheet.cssRules, null);
+  return flat;
+}
+
+describe('Button 생성 CSS', () => {
+  const withSelector = (part: string) =>
+    buttonRules().filter(({ rule }) => rule.selectorText.includes(part));
+
+  const basePressed = () =>
+    withSelector('[data-pressed]').find(
+      ({ media, rule }) =>
+        media === null &&
+        rule.style.getPropertyValue('transform') === 'scale(0.98)'
+    );
+
+  it('호버 규칙 10곳 전부에 transform이 없다(float 재도입 가드)', () => {
+    const hovers = withSelector(':hover');
+    expect(hovers).toHaveLength(10);
+    for (const { rule } of hovers) {
+      expect(rule.style.getPropertyValue('transform'), rule.selectorText).toBe(
+        ''
+      );
+    }
+  });
+
+  it('호버 규칙은 transition 타이밍 함수를 얹지 않는다(리뷰 C3: 목록을 무너뜨린다)', () => {
+    for (const { rule } of withSelector(':hover')) {
+      expect(rule.style.getPropertyValue('transition-timing-function')).toBe(
+        ''
+      );
+    }
+  });
+
+  it('호버 규칙 전부가 (hover: hover) and (pointer: fine)으로 감싸여 있다', () => {
+    const hovers = withSelector(':hover');
+    expect(hovers).toHaveLength(10);
+    for (const { media, rule } of hovers) {
+      expect(media, rule.selectorText).toBe(
+        '(hover: hover) and (pointer: fine)'
+      );
+    }
+  });
+
+  it('호버 규칙은 :not([data-pressed])를 달아 같은 특정도의 누름 색을 덮지 않는다', () => {
+    // vanilla-extract는 @media를 selectors 뒤에 내보내 호버가 문서 순서에서 늦다.
+    for (const { rule } of withSelector(':hover')) {
+      expect(rule.selectorText).toContain(':not([data-pressed])');
+    }
+  });
+
+  it(':active 셀렉터를 더 쓰지 않는다(누름 상태는 data-pressed 하나가 가진다)', () => {
+    expect(withSelector(':active')).toHaveLength(0);
+  });
+
+  it('data-pressed 규칙이 base 1 + variant 8 + custom 2 = 11곳이다', () => {
+    const pressed = withSelector('[data-pressed]:not(:disabled)').filter(
+      ({ media }) => media === null
+    );
+    expect(pressed).toHaveLength(11);
+  });
+
+  it('scale(0.98)은 base의 data-pressed 한 곳에만 있다', () => {
+    const scaled = withSelector('[data-pressed]').filter(
+      ({ rule }) => rule.style.getPropertyValue('transform') === 'scale(0.98)'
+    );
+    expect(scaled).toHaveLength(1);
+    expect(scaled[0].rule.selectorText).toMatch(/^\.Button_button__\w+\[/);
+  });
+
+  it('press-in은 fast 길이의 settle이고 ease-in(exit)이 아니다', () => {
+    const base = basePressed();
+    expect(base).toBeDefined();
+    const { style } = base!.rule;
+    expect(style.getPropertyValue('transition-duration')).toBe(
+      themeContract.animation.duration.fast
+    );
+    expect(style.getPropertyValue('transition-timing-function')).toBe(
+      themeContract.animation.easing.settle
+    );
+  });
+
+  it('축소 모드에서 data-pressed의 transform만 none이고 색 변화는 남는다', () => {
+    const reduced = withSelector('[data-pressed]').filter(
+      ({ media }) => media === '(prefers-reduced-motion: reduce)'
+    );
+    expect(reduced).toHaveLength(1);
+    const { rule, order } = reduced[0];
+    expect(rule.style.getPropertyValue('transform')).toBe('none');
+    // 색·불투명도·그림자를 건드리면 "이동 없음"이 아니라 "효과 없음"이 된다.
+    expect(rule.style.length).toBe(1);
+
+    // 같은 특정도라 base의 scale(0.98)보다 문서 순서가 늦어야 이긴다.
+    expect(order).toBeGreaterThan(basePressed()!.order);
   });
 });

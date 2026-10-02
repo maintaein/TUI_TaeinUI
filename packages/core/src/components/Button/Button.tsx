@@ -1,4 +1,11 @@
-import { forwardRef, type ButtonHTMLAttributes, type ReactNode } from 'react';
+import {
+  forwardRef,
+  useEffect,
+  useRef,
+  useState,
+  type ButtonHTMLAttributes,
+  type ReactNode,
+} from 'react';
 import clsx from 'clsx';
 import {
   button,
@@ -8,6 +15,12 @@ import {
   loadingSlot,
 } from './Button.css';
 import { Loader } from '../Loader';
+
+// 왜 90ms인가: 누름 효과(press-in 150ms)의 60%. 30ms 탭도 scale이 목표치의
+// 대부분에 닿는 시간이고, 이보다 길게 붙잡으면 빠른 연타가 굼떠 보인다.
+// 토큰 스케일(fast 150 / base 200 ...)에 대응 값이 없다. CSS가 아니라 JS가
+// 해제 시점을 정하는 값이라 duration 토큰이 아니고, 옵션으로 열지 않는다.
+const MIN_PRESS_MS = 90;
 
 type ButtonVariant = 'primary' | 'dark' | 'danger' | 'light';
 type ButtonStyle = 'fill' | 'weak';
@@ -63,11 +76,42 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       children,
       className,
       style,
+      onPointerDown,
+      onPointerUp,
+      onPointerLeave,
+      onPointerCancel,
       ...props
     },
     ref
   ) => {
     const isDisabled = disabled || loading;
+
+    // data-pressed는 :active 대신 누름 상태의 수명을 JS가 정하게 하는 손잡이다.
+    // 해제 요청이 설정 후 MIN_PRESS_MS 안에 오면 남은 시간만큼 미룬다.
+    // 키보드(Enter/Space)에는 걸지 않는다: 키보드 활성화는 접촉 은유가 없고
+    // 브라우저마다 :active 처리가 달라 엔진 차이만 만든다.
+    const [pressed, setPressed] = useState(false);
+    const minHoldRef = useRef(false);
+    const releaseAskedRef = useRef(false);
+    const holdTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
+
+    useEffect(() => () => clearTimeout(holdTimerRef.current), []);
+
+    const press = () => {
+      clearTimeout(holdTimerRef.current);
+      minHoldRef.current = true;
+      releaseAskedRef.current = false;
+      setPressed(true);
+      holdTimerRef.current = setTimeout(() => {
+        minHoldRef.current = false;
+        if (releaseAskedRef.current) setPressed(false);
+      }, MIN_PRESS_MS);
+    };
+
+    const release = () => {
+      if (minHoldRef.current) releaseAskedRef.current = true;
+      else setPressed(false);
+    };
 
     const isOutlineCustom = customColor && variant === 'light';
 
@@ -110,6 +154,25 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         aria-busy={loading}
         className={clsx(variantClass, isFullWidth && fullWidth, className)}
         style={mergedStyle}
+        data-pressed={pressed ? '' : undefined}
+        onPointerDown={(event) => {
+          onPointerDown?.(event);
+          // 보조 버튼(우클릭)은 pointerup이 안 올 수 있어 누름 상태가 남는다.
+          if (event.button !== 0) return;
+          press();
+        }}
+        onPointerUp={(event) => {
+          onPointerUp?.(event);
+          release();
+        }}
+        onPointerLeave={(event) => {
+          onPointerLeave?.(event);
+          release();
+        }}
+        onPointerCancel={(event) => {
+          onPointerCancel?.(event);
+          release();
+        }}
         {...props}
       >
         {loading && (

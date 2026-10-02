@@ -13,11 +13,18 @@ export default defineConfig({
     // Slider.css.ts만 범위를 좁혀 처리한다(다른 컴포넌트는 그대로 목킹됨).
     // HeaderBarNav도 같은 이유(가드 2 — 히트 영역에 transform이 없음을 CSSOM으로
     // 잠근다, Task 8)로 추가한다.
+    // Button도 같은 이유다. 호버 포인터 게이트와 축소 모드 규칙이 @media 안에
+    // 있는지를 CSSOM으로 잠근다.
     // mirrorOverlay도 같은 이유다 — hiddenText가 실제 input에 붙는데 color만
     // transparent로 두면 캐럿까지 같이 투명해진다(F1). 캐럿 색이 따로 살아 있는지를
     // CSSOM 규칙으로 잠근다.
     css: {
-      include: [/Slider\.css/, /HeaderBarNav\.css/, /mirrorOverlay\.css/],
+      include: [
+        /Slider\.css/,
+        /\/Button\.css/,
+        /HeaderBarNav\.css/,
+        /mirrorOverlay\.css/,
+      ],
     },
     coverage: {
       provider: 'v8',
