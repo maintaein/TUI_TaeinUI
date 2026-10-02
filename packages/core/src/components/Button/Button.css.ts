@@ -284,14 +284,17 @@ export const button = recipe({
         },
         selectors: {
           '&[data-pressed]:not(:disabled)': {
-            // hover와 배경이 같아 색으로 상태를 가를 수 없다. error에는 200~400이
-            // 없고(50, 100, 500, 700, 800, 900) 글자가 이미 팔레트에서 가장 어두운
-            // 900이라, error[100](#FFCDD2, 4.67:1)보다 어두우면서 AA를 지키는 배경이
-            // 없다(휘도 창 0.6687~0.6958, 호버와 구별 안 됨. Red 200 #EF9A9A는 3.05).
-            // 그래서 색이 아니라 base의 scale(0.95)과 shadow.inner(알파 0.14)로
-            // 가른다. filter는 쓰지 않는다: 레이어 내용을 다시 그려 글자가 튄다.
+            // hover와 배경이 같은 error[100]이라 색 단계로 상태를 가를 수 없다.
+            // error에는 200~400이 없고(50, 100, 500, 700, 800, 900) 글자가 이미 가장
+            // 어두운 900이라, 배경만 어둡게 하면 AA가 깨진다(Red 200 #EF9A9A 위에서
+            // 3.05:1). 그림자도 안 된다(실측: inset 알파 0.20에서 눌림이 호버보다
+            // 1.17% 어두울 뿐, 호버 단계 19.9%의 20분의 1).
+            // brightness(0.95)는 배경과 글자를 같이 어둡게 해 대비를 지킨다
+            // (#F2C3C8 위 #AE1B1B, 4.51:1, 10.8% 어두워짐). 0.92부터 AA 미달이라
+            // 0.95가 한계선이다. 눌림에 filter를 거는 것이 글자를 튀게 하지 않는지는
+            // e2e/buttonPressText.spec.ts(Weak Danger)가 잰다.
             backgroundColor: themeContract.palette.error[100],
-            boxShadow: themeContract.shadow.inner,
+            filter: 'brightness(0.95)',
           },
         },
       },

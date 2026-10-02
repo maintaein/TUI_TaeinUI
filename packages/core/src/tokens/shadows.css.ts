@@ -8,7 +8,6 @@ export const shadows = {
   lg: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
   xl: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
   '2xl': '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
-  // 소비처는 Button의 weak danger 눌림 하나다. 그 배경이 호버와 같은 error[100]이라
-  // 눌린 깊이를 이 그림자가 혼자 나른다. 6%는 #FFCDD2 위에서 안 보여 0.14로 올렸다.
-  inner: 'inset 0 2px 4px 0 rgba(0, 0, 0, 0.14)',
+  // 소비처가 없다(Button의 weak danger 눌림이 쓰다가 filter로 바꿨다). 공개 토큰이라 둔다.
+  inner: 'inset 0 2px 4px 0 rgba(0, 0, 0, 0.06)',
 } as const;

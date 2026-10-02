@@ -826,9 +826,11 @@ describe.each(['fill', 'weak'] as const)(
         ).toBeGreaterThanOrEqual(4.5);
       }
     );
-    // weak 블록에서만 등록한다(fill에서 skip으로 남기지 않는다).
+    // weak danger는 눌림이 filter: brightness(k)로 어두워진다. brightness는 배경과 글자를
+    // 같이 어둡게 하므로 그 값에서 계산한 대비가 AA를 지켜야 한다(0.95에서 4.51:1,
+    // 0.92부터 미달). k를 내리면 이 가드가 빨개진다.
     if (buttonStyle === 'weak')
-      it('weak danger는 색 대신 눌림 그림자(shadow.inner)를 갖고 그 알파가 0.1 이상이다', () => {
+      it('weak danger 눌림은 filter: brightness(k)이고 k를 곱한 대비가 4.5 이상이다', () => {
         const dangerChunk = compound
           .split('variants: { buttonStyle: ')
           .find((chunk) => chunk.startsWith("'weak', variant: 'danger'"))!;
@@ -836,13 +838,28 @@ describe.each(['fill', 'weak'] as const)(
           /&\[data-pressed\][^']*': \{([\s\S]*?)\n\s*\},/
         )?.[1];
         expect(pressed, 'weak danger 눌림 규칙을 찾지 못했다').toBeDefined();
-        expect(pressed).toContain('boxShadow: themeContract.shadow.inner');
-
-        // 6%는 error[100] 위에서 안 보였다. 알파가 다시 내려가면 빨개진다.
-        const alpha = Number(
-          tokenValue('shadow.inner').match(/rgba\([^)]*,\s*([\d.]+)\)/)?.[1]
+        expect(pressed).not.toContain('boxShadow');
+        const k = Number(
+          pressed!.match(/filter: 'brightness\(([\d.]+)\)'/)?.[1]
         );
-        expect(alpha).toBeGreaterThanOrEqual(0.1);
+        expect(k, 'filter: brightness(k)를 찾지 못했다').toBeGreaterThan(0);
+
+        const f = fills.danger;
+        const darken = (hex: string) =>
+          '#' +
+          [1, 3, 5]
+            .map((i) =>
+              Math.round(parseInt(hex.slice(i, i + 2), 16) * k)
+                .toString(16)
+                .padStart(2, '0')
+            )
+            .join('');
+        expect(
+          contrastRatio(
+            darken(tokenValue(f.color)),
+            darken(tokenValue(f.pressed))
+          )
+        ).toBeGreaterThanOrEqual(4.5);
       });
   }
 );
