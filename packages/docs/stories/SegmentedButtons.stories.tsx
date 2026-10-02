@@ -1,16 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react';
 import { SegmentedButtons } from '@taein-ui/core';
 import { useState } from 'react';
-import { House, Search, Star, User } from 'lucide-react';
-
-// 아이콘 컴포넌트들
-const HomeIcon = () => <House size={20} />;
-
-const SearchIcon = () => <Search size={20} />;
-
-const StarIcon = () => <Star size={20} />;
-
-const UserIcon = () => <User size={20} />;
+import { House, Search, Settings, Star, User } from 'lucide-react';
 
 const meta = {
   title: 'Components/SegmentedButtons',
@@ -167,10 +158,10 @@ const WithIconsComponent = () => {
   return (
     <SegmentedButtons
       options={[
-        { value: 'home', label: '홈', icon: <HomeIcon /> },
-        { value: 'search', label: '검색', icon: <SearchIcon /> },
-        { value: 'favorites', label: '즐겨찾기', icon: <StarIcon /> },
-        { value: 'profile', label: '프로필', icon: <UserIcon /> },
+        { value: 'home', label: '홈', icon: <House size={18} /> },
+        { value: 'search', label: '검색', icon: <Search size={18} /> },
+        { value: 'favorites', label: '즐겨찾기', icon: <Star size={18} /> },
+        { value: 'profile', label: '프로필', icon: <User size={18} /> },
       ]}
       value={value}
       onChange={setValue}
@@ -189,23 +180,28 @@ const IconOnlyComponent = () => {
   return (
     <SegmentedButtons
       options={[
-        { value: 'home', label: '홈', icon: <HomeIcon />, iconOnly: true },
+        {
+          value: 'home',
+          label: '홈',
+          icon: <House size={18} />,
+          iconOnly: true,
+        },
         {
           value: 'search',
           label: '검색',
-          icon: <SearchIcon />,
+          icon: <Search size={18} />,
           iconOnly: true,
         },
         {
           value: 'favorites',
           label: '즐겨찾기',
-          icon: <StarIcon />,
+          icon: <Star size={18} />,
           iconOnly: true,
         },
         {
           value: 'profile',
           label: '프로필',
-          icon: <UserIcon />,
+          icon: <User size={18} />,
           iconOnly: true,
         },
       ]}
@@ -468,10 +464,10 @@ const TabNavigationExample = () => {
     <div style={{ width: '700px' }}>
       <SegmentedButtons
         options={[
-          { value: 'overview', label: '개요', icon: <HomeIcon /> },
-          { value: 'analytics', label: '분석', icon: <SearchIcon /> },
-          { value: 'favorites', label: '즐겨찾기', icon: <StarIcon /> },
-          { value: 'settings', label: '설정', icon: <UserIcon /> },
+          { value: 'overview', label: '개요', icon: <House size={18} /> },
+          { value: 'analytics', label: '분석', icon: <Search size={18} /> },
+          { value: 'favorites', label: '즐겨찾기', icon: <Star size={18} /> },
+          { value: 'settings', label: '설정', icon: <Settings size={18} /> },
         ]}
         value={tab}
         onChange={setTab}
@@ -595,9 +591,9 @@ const AllVariantsComponents = () => {
         </h3>
         <SegmentedButtons
           options={[
-            { value: 'home', label: '홈', icon: <HomeIcon /> },
-            { value: 'search', label: '검색', icon: <SearchIcon /> },
-            { value: 'favorites', label: '즐겨찾기', icon: <StarIcon /> },
+            { value: 'home', label: '홈', icon: <House size={18} /> },
+            { value: 'search', label: '검색', icon: <Search size={18} /> },
+            { value: 'favorites', label: '즐겨찾기', icon: <Star size={18} /> },
           ]}
           value={value4}
           onChange={setValue4}
@@ -611,23 +607,28 @@ const AllVariantsComponents = () => {
         </h3>
         <SegmentedButtons
           options={[
-            { value: 'home', label: '홈', icon: <HomeIcon />, iconOnly: true },
+            {
+              value: 'home',
+              label: '홈',
+              icon: <House size={18} />,
+              iconOnly: true,
+            },
             {
               value: 'search',
               label: '검색',
-              icon: <SearchIcon />,
+              icon: <Search size={18} />,
               iconOnly: true,
             },
             {
               value: 'favorites',
               label: '즐겨찾기',
-              icon: <StarIcon />,
+              icon: <Star size={18} />,
               iconOnly: true,
             },
             {
               value: 'profile',
               label: '프로필',
-              icon: <UserIcon />,
+              icon: <User size={18} />,
               iconOnly: true,
             },
           ]}
