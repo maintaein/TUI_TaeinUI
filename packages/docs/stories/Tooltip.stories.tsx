@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react';
 import { Tooltip } from '@taein-ui/core';
+import { CircleHelp, Info, Settings } from 'lucide-react';
 
 const meta = {
   title: 'Components/Tooltip',
@@ -145,7 +146,7 @@ export const OnIcons: Story = {
             justifyContent: 'center',
           }}
         >
-          ℹ️
+          <Info size={16} />
         </button>
       </Tooltip>
       <Tooltip content="도움말">
@@ -162,7 +163,7 @@ export const OnIcons: Story = {
             justifyContent: 'center',
           }}
         >
-          ❓
+          <CircleHelp size={16} />
         </button>
       </Tooltip>
       <Tooltip content="설정">
@@ -179,7 +180,7 @@ export const OnIcons: Story = {
             justifyContent: 'center',
           }}
         >
-          ⚙️
+          <Settings size={16} />
         </button>
       </Tooltip>
     </div>

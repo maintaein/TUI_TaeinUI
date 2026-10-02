@@ -1,6 +1,14 @@
 import type { Meta, StoryObj } from '@storybook/react';
 import { BottomSheet, BottomSheetProps } from '@taein-ui/core';
 import { useState } from 'react';
+import {
+  Bell,
+  House,
+  MessageCircle,
+  Search,
+  Settings,
+  User,
+} from 'lucide-react';
 
 const meta = {
   title: 'Components/BottomSheet',
@@ -361,12 +369,12 @@ export const MobileMenu: Story = {
     <BottomSheetWrapper title="메뉴" showClose>
       <div>
         {[
-          { icon: '🏠', label: '홈' },
-          { icon: '🔍', label: '검색' },
-          { icon: '💬', label: '메시지' },
-          { icon: '🔔', label: '알림' },
-          { icon: '⚙️', label: '설정' },
-          { icon: '👤', label: '프로필' },
+          { icon: House, label: '홈' },
+          { icon: Search, label: '검색' },
+          { icon: MessageCircle, label: '메시지' },
+          { icon: Bell, label: '알림' },
+          { icon: Settings, label: '설정' },
+          { icon: User, label: '프로필' },
         ].map((item, index) => (
           <div
             key={index}
@@ -380,7 +388,7 @@ export const MobileMenu: Story = {
             }}
             onClick={() => console.log(item.label)}
           >
-            <span style={{ fontSize: '24px' }}>{item.icon}</span>
+            <item.icon size={24} />
             <span style={{ fontSize: '16px' }}>{item.label}</span>
           </div>
         ))}

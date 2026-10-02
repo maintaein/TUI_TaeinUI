@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react';
 import { Slider } from '@taein-ui/core';
 import { useState } from 'react';
+import { Volume, Volume1, Volume2, VolumeX } from 'lucide-react';
 
 const meta = {
   title: 'Components/Slider',
@@ -275,12 +276,14 @@ export const Required: Story = {
 const VolumeControlExample = () => {
   const [volume, setVolume] = useState(70);
 
-  const getVolumeIcon = (vol: number) => {
-    if (vol === 0) return '🔇';
-    if (vol < 30) return '🔈';
-    if (vol < 70) return '🔉';
-    return '🔊';
-  };
+  const VolumeIcon =
+    volume === 0
+      ? VolumeX
+      : volume < 30
+        ? Volume
+        : volume < 70
+          ? Volume1
+          : Volume2;
 
   return (
     <div style={{ width: '400px' }}>
@@ -299,7 +302,7 @@ const VolumeControlExample = () => {
             marginBottom: '1rem',
           }}
         >
-          <span style={{ fontSize: '2rem' }}>{getVolumeIcon(volume)}</span>
+          <VolumeIcon size={32} />
           <h3 style={{ margin: 0 }}>볼륨 조절</h3>
         </div>
         <Slider
