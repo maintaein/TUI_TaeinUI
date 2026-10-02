@@ -170,11 +170,11 @@ export function HeaderBarPage() {
     <HeaderBarNav
       aria-label="주요 메뉴"
       items={[
-        { icon: <Info size={20} />, label: '홈', href: '#' },
+        { icon: <House size={20} />, label: '홈', href: '#' },
         { icon: <Plus size={20} />, label: '새로 만들기' },
         { icon: <CircleCheck size={20} />, label: '완료함' },
-        { icon: <CircleAlert size={20} />, label: '알림' },
-        { icon: <Minus size={20} />, label: '설정' },
+        { icon: <Bell size={20} />, label: '알림' },
+        { icon: <Settings size={20} />, label: '설정' },
       ]}
     />
   }

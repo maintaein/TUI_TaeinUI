@@ -1,5 +1,5 @@
 import { useState, Component, type ReactNode } from 'react';
-import { Info } from 'lucide-react';
+import { CircleAlert } from 'lucide-react';
 import { EditableCodeBlock } from '../EditableCodeBlock';
 import { useCodeEval } from '../../hooks/useCodeEval';
 import * as styles from './LivePreview.css';
@@ -79,7 +79,7 @@ export function EditableLivePreview({
       </div>
       {hasError && (
         <div className={styles.errorBar}>
-          <Info className={styles.errorIcon} />
+          <CircleAlert className={styles.errorIcon} />
           {error}
         </div>
       )}
