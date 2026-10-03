@@ -3,7 +3,6 @@ import {
   forwardRef,
   useId,
   useRef,
-  useLayoutEffect,
   type ReactNode,
   type HTMLAttributes,
   type RefObject,
@@ -43,6 +42,7 @@ const CENTER_START = { opacity: 0, x: 0, y: -20, scale: 0.95 } as const;
  * 통째로 사라진다(실측: 그림자가 닿는 행 0/46, 최저 명도 255). `-20px`은 20/46으로
  * 아직 잘리고, `-50px`에서 32/46 · 명도 224로 클립 없음과 픽셀 단위로 같아진다.
  * 그림자는 아래로 32px 뻗는다. `shadow.xl` 토큰이 바뀌면 이 값을 다시 재야 한다.
+ * 이 값은 애니메이션 중의 그림자를 위한 것이고, 쉬는 동안은 `clearProps`로 걷는다.
  */
 const CLIP_BLEED = 50;
 
@@ -187,7 +187,7 @@ export interface ModalProps extends Omit<
   showClose?: boolean;
   /** Flat: 모달 푸터 영역 */
   footer?: ReactNode;
-  /** Flat: 푸터 버튼 정렬 @default 'right' */
+  /** Flat: 푸터 버튼 정렬 @default 'left' */
   footerAlign?: 'left' | 'center' | 'right';
 }
 
@@ -215,7 +215,7 @@ const ModalRoot = ({
 
   // 백드롭과 다이얼로그를 **한 타임라인**에 넣는다. 따로 두면 여는 도중 닫았을 때
   // 둘의 progress가 갈라져 배경만 남거나 판만 남는 프레임이 생긴다.
-  const { shouldRender, timelineRef } = useOverlayTransition({
+  const { shouldRender } = useOverlayTransition({
     open,
     buildTimeline: (timeline) => {
       const backdropEl = backdropRef.current;
@@ -234,6 +234,8 @@ const ModalRoot = ({
         );
       }
       if (dialog) {
+        // 테스트 손잡이. 타임라인을 만드는 자리에서 얹는다(SegmentedButtons와 같다).
+        (dialog as ModalTimelineHost).__modalTimeline = timeline;
         const start = triggerStart(
           dialog,
           triggerRef?.current ?? activeTrigger(dialog)
@@ -274,6 +276,10 @@ const ModalRoot = ({
               x: 0,
               y: 0,
               clipPath: end,
+              // 쉬는 동안은 걷는다. 영구 inset(-50px)가 남으면 모달 밖 50px 너머
+              // (푸터에 단 Popover 등)를 자른다. 완료 시 걷히고 역재생하면 GSAP이
+              // 보간값을 다시 칠한다. x·y에는 걸지 않는다(transform을 걷으면 안 된다).
+              clearProps: 'clipPath',
               duration: gsapDuration.slower,
               // 화면 안에서의 변형은 ease-in-out이다. settle(power3.out)은 거리의 94%를
               // 앞 절반에 쓰고 나머지를 기어가서, 상자가 먼저 열리고 내용이 뒤따른다.
@@ -310,12 +316,6 @@ const ModalRoot = ({
         }
       }
     },
-  });
-
-  // 훅의 타임라인 생성 layout effect 뒤에 선언되어 같은 커밋에서 그 결과를 본다.
-  useLayoutEffect(() => {
-    const dialog = dialogRef.current as ModalTimelineHost | null;
-    if (dialog) dialog.__modalTimeline = timelineRef.current ?? undefined;
   });
 
   useFocusTrap({ open, onClose, closeOnEscape, containerRef: dialogRef });

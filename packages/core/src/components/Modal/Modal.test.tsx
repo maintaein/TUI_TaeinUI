@@ -479,8 +479,43 @@ describe('Modal', () => {
       expect(screen.getByRole('dialog').style.clipPath).toMatch(/round 4px\)$/);
     });
 
-    it('끝 상태 clip-path의 inset은 음수다. 그림자가 잘리지 않는다', () => {
-      // 축소 선호면 gateMotion이 타임라인을 끝 상태로 확정한다.
+    it('트리거 반경이 %면 트리거 폭 기준 px로 환산한다', () => {
+      // 40x40 트리거, 30%: (30/100) * 40 = 12px. 짧은 변의 절반(20px)보다 작아 누르지 않는다.
+      // 날것 30을 px로 읽었다면 min(30, 20) = 20이 되어 이 단정이 깨진다.
+      installLayout(
+        { left: 100, top: 200, width: 40, height: 40 },
+        { left: 200, top: 100, width: 600, height: 400 }
+      );
+
+      const { rerender } = render(<TriggeredModal open={false} />);
+      screen.getByRole('button', { name: '열기' }).style.borderTopLeftRadius =
+        '30%';
+      rerender(<TriggeredModal open />);
+
+      expect(screen.getByRole('dialog').style.clipPath).toMatch(
+        /round 12px\)$/
+      );
+    });
+
+    it('원형 아이콘 버튼(40x40, 50%)의 시작 round는 20px다', () => {
+      // (50/100) * 40 = 20px = min(40, 40) / 2
+      installLayout(
+        { left: 100, top: 200, width: 40, height: 40 },
+        { left: 200, top: 100, width: 600, height: 400 }
+      );
+
+      const { rerender } = render(<TriggeredModal open={false} />);
+      screen.getByRole('button', { name: '열기' }).style.borderTopLeftRadius =
+        '50%';
+      rerender(<TriggeredModal open />);
+
+      expect(screen.getByRole('dialog').style.clipPath).toMatch(
+        /round 20px\)$/
+      );
+    });
+
+    it('축소 선호면 clip-path가 걷힌 채 끝 상태로 열린다', () => {
+      // 축소 선호면 gateMotion이 타임라인을 끝으로 확정하고, 끝에서는 clearProps가 걷는다.
       vi.stubGlobal(
         'matchMedia',
         (media: string): MediaQueryList =>
@@ -499,9 +534,7 @@ describe('Modal', () => {
       render(<TriggeredModal open />);
 
       const dialog = screen.getByRole('dialog');
-      expect(dialog.style.clipPath).toMatch(
-        /^inset\(-50px -50px -50px -50px round /
-      );
+      expect(dialog.style.clipPath).toBe('');
       expect(dialog.style.opacity).toBe('1');
       expect(dialog.style.transform).not.toContain('scale');
       vi.unstubAllGlobals();
@@ -585,6 +618,27 @@ describe('Modal', () => {
               'y' in (t as gsap.core.Tween).vars &&
               !('clipPath' in (t as gsap.core.Tween).vars)
           ) as gsap.core.Tween | undefined;
+
+      it('박스 트윈의 끝 clip-path는 음수 inset이다. 그림자가 잘리지 않는다', () => {
+        expect(boxTween()!.vars.clipPath).toMatch(
+          /^inset\(-50px -50px -50px -50px round /
+        );
+      });
+
+      it('끝나면 패널의 clip-path가 걷히고, 되감으면 다시 칠해진다', () => {
+        const timeline = openTimeline();
+        const dialog = screen.getByRole('dialog');
+
+        timeline.progress(1);
+        expect(dialog.style.clipPath).toBe('');
+
+        timeline.progress(0.5);
+        expect(dialog.style.clipPath).toMatch(/^inset\(/);
+      });
+
+      it('clearProps는 clipPath만 걷는다. transform은 건드리지 않는다', () => {
+        expect(boxTween()!.vars.clearProps).toBe('clipPath');
+      });
 
       it('박스 트윈 duration은 slower다', () => {
         expect(boxTween()!.duration()).toBeCloseTo(gsapDuration.slower, 5);

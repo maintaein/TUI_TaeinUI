@@ -335,7 +335,7 @@ export const searchIndex: SearchEntry[] = [
       { title: 'Sizes', content: 'sm, md, lg 크기를 지원합니다' },
       {
         title: 'With Header/Footer',
-        content: 'Modal.Header, Modal.Body, Modal.Footer 컴파운드 패턴',
+        content: 'Modal.Header, Modal.Content, Modal.Footer 컴파운드 패턴',
       },
       { title: 'Focus Trap', content: '포커스 트랩으로 키보드 접근성 보장' },
     ],

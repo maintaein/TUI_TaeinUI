@@ -654,6 +654,7 @@ import { Modal, Button } from '@taein-ui/core';
 | size | 'sm' \| 'md' \| 'lg' \| 'xl' \| 'full' | 'md' | Modal size |
 | closeOnBackdropClick | boolean | true | Close on backdrop click |
 | closeOnEscape | boolean | true | Close on ESC key |
+| triggerRef | RefObject<HTMLElement \| null> | - | 안 주면 열 때 포커스된 요소에서 자란다. Safari·Firefox(macOS)는 버튼 클릭에 포커스를 주지 않아 가운데에서 열린다. 주면 모든 브라우저에서 그 요소 자리에서 자란다. |
 | title | string | — | Title (Flat mode) |
 | showClose | boolean | false | Show close button (Flat mode) |
 | footer | ReactNode | — | Footer (Flat mode) |

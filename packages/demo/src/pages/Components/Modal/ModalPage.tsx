@@ -46,6 +46,12 @@ export function ModalPage() {
       description: 'Escape 키 입력 시 닫힘 여부',
     },
     {
+      name: 'triggerRef',
+      type: 'RefObject<HTMLElement | null>',
+      description:
+        '안 주면 열 때 포커스된 요소에서 자란다. Safari·Firefox(macOS)는 버튼 클릭에 포커스를 주지 않아 가운데에서 열린다. 주면 모든 브라우저에서 그 요소 자리에서 자란다.',
+    },
+    {
       name: 'title',
       type: 'string',
       description: 'Flat: 모달 제목 — 자동으로 Header + Title 구조 생성',
@@ -660,21 +666,24 @@ export function ProductDetailModal({ open, onClose, product }) {
           {
             title: 'aria-labelledby 연결하기',
             description:
-              'Modal.Title의 id를 Modal의 aria-labelledby에 연결하면 스크린 리더가 모달 열림 시 제목을 읽어줍니다.',
+              'Modal.Title을 쓰면 Modal의 aria-labelledby에 자동으로 연결되어 스크린 리더가 모달 열림 시 제목을 읽어줍니다. aria-labelledby는 제목이 Modal.Title 밖에 있을 때만 직접 줍니다.',
             examples: [
               {
-                code: `<Modal
-  open={open}
-  onClose={onClose}
-  aria-labelledby="modal-title"
->
+                code: `// Modal.Title은 id를 직접 관리한다. id를 주지 않아도 연결된다.
+<Modal open={open} onClose={onClose}>
   <Modal.Header>
-    <Modal.Title id="modal-title">설정 저장</Modal.Title>
+    <Modal.Title>설정 저장</Modal.Title>
   </Modal.Header>
+  <Modal.Content>...</Modal.Content>
+</Modal>
+
+// 제목이 Modal.Title 밖에 있을 때만 직접 연결한다.
+<Modal open={open} onClose={onClose} aria-labelledby="custom-title">
+  <h2 id="custom-title">설정 저장</h2>
   <Modal.Content>...</Modal.Content>
 </Modal>`,
                 explanation:
-                  '모달 제목 요소에 id를 부여하고 aria-labelledby로 연결합니다.',
+                  'Modal.Title을 쓰면 연결이 자동입니다. Modal.Title에 준 id는 내부 id로 덮어쓰이므로 aria-labelledby에 쓰지 마세요.',
               },
             ],
           },
@@ -705,7 +714,9 @@ export function ProductDetailModal({ open, onClose, product }) {
                 </ListItem>
                 <ListItem>명확한 제목으로 목적을 즉시 파악 가능하게</ListItem>
                 <ListItem>취소/확인 버튼을 함께 제공</ListItem>
-                <ListItem>aria-labelledby로 제목 요소 연결</ListItem>
+                <ListItem>
+                  Modal.Title로 제목 두기 (aria-labelledby 자동 연결)
+                </ListItem>
               </List>
             </Card.Body>
           </Card>
