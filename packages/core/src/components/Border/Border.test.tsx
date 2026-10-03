@@ -3,6 +3,8 @@ import { resolve } from 'node:path';
 import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { Border } from './Border';
+import { themeContract } from '../../tokens/theme.css';
+import { loop } from '../../tokens/animation.css';
 
 const BORDER_CSS = readFileSync(resolve(__dirname, './Border.css.ts'), 'utf-8');
 
@@ -23,6 +25,23 @@ function commentBlockAbove(source: string, anchor: string): string {
     `'${anchor}' 위에 근거 주석 블록이 없다`
   ).toBeGreaterThan(0);
   return comments.join('\n');
+}
+
+/** 루프(animation·will-change)는 한 번 선언한 `glowLoop`를 :hover와
+ * :focus-within 트리거 규칙 둘에만 펼친다. :hover는 포인터 게이트 때문에
+ * 규칙이 갈라져서 선언이 두 번 쓰이면 tierA 소비처 수(6)가 7이 된다. */
+function expectGlowLoopOnlyInTriggers() {
+  const spreads = [...BORDER_CSS.matchAll(/\.\.\.glowLoop/g)];
+  expect(spreads).toHaveLength(2);
+
+  const triggers = spreads.map((spread) => {
+    const ruleStart = BORDER_CSS.lastIndexOf('globalStyle(', spread.index);
+    expect(ruleStart).toBeGreaterThan(-1);
+    const selector = BORDER_CSS.slice(ruleStart, spread.index);
+    expect(selector).toContain('::before');
+    return selector.includes(':hover') ? ':hover' : ':focus-within';
+  });
+  expect(triggers.sort()).toEqual([':focus-within', ':hover']);
 }
 
 describe('Border', () => {
@@ -242,11 +261,11 @@ describe('Border', () => {
       expect(border.className).toMatch(/roundedStyles_full/);
     });
 
-    it('기본 rounded는 none이다', () => {
+    it('기본 rounded는 md이다', () => {
       const { container } = render(<Border>콘텐츠</Border>);
       const border = container.firstChild as HTMLElement;
 
-      expect(border.className).toMatch(/roundedStyles_none/);
+      expect(border.className).toMatch(/roundedStyles_md/);
     });
   });
 
@@ -308,7 +327,11 @@ describe('Border', () => {
 
   describe('빛 루프 (장식계)', () => {
     it('sides가 all일 때만 장식용 glowRing span이 들어간다', () => {
-      const { container } = render(<Border sides="all">콘텐츠</Border>);
+      const { container } = render(
+        <Border sides="all" glow>
+          콘텐츠
+        </Border>
+      );
       const ring = container.querySelector('span[aria-hidden="true"]');
 
       expect(ring).not.toBeNull();
@@ -316,7 +339,23 @@ describe('Border', () => {
     });
 
     it('sides가 all이 아니면 glowRing span이 없다', () => {
-      const { container } = render(<Border sides="top">콘텐츠</Border>);
+      const { container } = render(
+        <Border sides="top" glow>
+          콘텐츠
+        </Border>
+      );
+
+      expect(container.querySelector('span[aria-hidden="true"]')).toBeNull();
+    });
+
+    it('glow 기본값은 false라서 장식용 span이 렌더되지 않는다', () => {
+      const { container } = render(<Border>콘텐츠</Border>);
+
+      expect(container.querySelector('span[aria-hidden="true"]')).toBeNull();
+    });
+
+    it('glow={false}를 명시해도 span이 없다', () => {
+      const { container } = render(<Border glow={false}>콘텐츠</Border>);
 
       expect(container.querySelector('span[aria-hidden="true"]')).toBeNull();
     });
@@ -331,12 +370,9 @@ describe('Border', () => {
       const hits = [...BORDER_CSS.matchAll(/willChange/g)];
       expect(hits).toHaveLength(1);
 
-      const ruleStart = BORDER_CSS.lastIndexOf('globalStyle(', hits[0].index);
-      expect(ruleStart).toBeGreaterThan(-1);
-      const selector = BORDER_CSS.slice(ruleStart, hits[0].index);
-      expect(selector).toContain(':hover');
-      expect(selector).toContain(':focus-within');
-      expect(selector).toContain('::before');
+      const decl = BORDER_CSS.lastIndexOf('const glowLoop', hits[0].index);
+      expect(decl).toBeGreaterThan(-1);
+      expectGlowLoopOnlyInTriggers();
     });
 
     it('conic-gradient + rotate + mask 숏핸드로 빛을 구현한다 (@property 없이)', () => {
@@ -387,12 +423,9 @@ describe('Border', () => {
       const hits = [...BORDER_CSS.matchAll(/\$\{rotate\}/g)];
       expect(hits).toHaveLength(1);
 
-      const ruleStart = BORDER_CSS.lastIndexOf('globalStyle(', hits[0].index);
-      expect(ruleStart).toBeGreaterThan(-1);
-      const selector = BORDER_CSS.slice(ruleStart, hits[0].index);
-      expect(selector).toContain(':hover');
-      expect(selector).toContain(':focus-within');
-      expect(selector).toContain('::before');
+      const decl = BORDER_CSS.lastIndexOf('const glowLoop', hits[0].index);
+      expect(decl).toBeGreaterThan(-1);
+      expectGlowLoopOnlyInTriggers();
     });
 
     it('빛 색이 color prop을 따라간다 — default만 강조색을 유지한다', () => {
@@ -426,8 +459,8 @@ describe('Border', () => {
       expect(BORDER_CSS).toMatch(/conic-gradient\([^)]*\$\{glowColor\}/);
     });
 
-    it('루프 주기·커브가 loop.base·easing.linear 토큰이다', () => {
-      expect(BORDER_CSS).toContain('${themeContract.animation.loop.base}');
+    it('루프 주기·커브가 loop.slow·easing.linear 토큰이다', () => {
+      expect(BORDER_CSS).toContain('${themeContract.animation.loop.slow}');
       expect(BORDER_CSS).toContain('${themeContract.animation.easing.linear}');
     });
 
@@ -443,6 +476,81 @@ describe('Border', () => {
     it('이 파일에 keyframes 정의가 하나뿐이다', () => {
       const count = (BORDER_CSS.match(/= keyframes\(/g) ?? []).length;
       expect(count).toBe(1);
+    });
+  });
+
+  describe('빛 루프 생성 CSS (CSSOM)', () => {
+    const HOVER_GATE = '(hover: hover) and (pointer: fine)';
+
+    /** 최상위 스타일 규칙과 @media 안의 스타일 규칙을 게이트와 함께 평탄화한다. */
+    function flatRules(sheet: CSSStyleSheet) {
+      const out: { rule: CSSStyleRule; media: string | null }[] = [];
+      for (const rule of Array.from(sheet.cssRules)) {
+        if (rule instanceof CSSStyleRule) {
+          out.push({ rule, media: null });
+        } else if (rule instanceof CSSMediaRule) {
+          for (const inner of Array.from(rule.cssRules)) {
+            if (inner instanceof CSSStyleRule) {
+              out.push({ rule: inner, media: rule.conditionText });
+            }
+          }
+        }
+      }
+      return out;
+    }
+
+    function borderRules() {
+      const sheet = Array.from(document.styleSheets).find((candidate) =>
+        Array.from(candidate.cssRules).some((rule) =>
+          rule.cssText.includes('Border_')
+        )
+      );
+      if (!sheet) throw new Error('Border.css.ts의 스타일시트를 찾지 못했다');
+      return flatRules(sheet);
+    }
+
+    it('호버 규칙(opacity·애니메이션)은 (hover: hover) and (pointer: fine) 안에 있다', () => {
+      const hover = borderRules().filter(({ rule }) =>
+        rule.selectorText.includes(':hover')
+      );
+
+      // opacity 트리거 + ::before 애니메이션 부착, 둘이다.
+      expect(hover).toHaveLength(2);
+      for (const { media } of hover) {
+        expect(media).toBe(HOVER_GATE);
+      }
+    });
+
+    it(':focus-within 규칙은 포인터 게이트 밖에 있다', () => {
+      const focus = borderRules().filter(({ rule }) =>
+        rule.selectorText.includes(':focus-within')
+      );
+
+      expect(focus).toHaveLength(2);
+      for (const { media } of focus) {
+        expect(media).toBeNull();
+      }
+    });
+
+    it('rotate 애니메이션 길이가 loop.slow다 (loop.base가 아니다)', () => {
+      const looping = borderRules().filter(({ rule }) =>
+        rule.style.getPropertyValue('animation').includes('rotate')
+      );
+
+      // 트리거마다 하나(:hover, :focus-within).
+      expect(looping).toHaveLength(2);
+      for (const { rule } of looping) {
+        const animation = rule.style.getPropertyValue('animation');
+        expect(animation).toContain(themeContract.animation.loop.slow);
+        expect(animation).not.toContain(themeContract.animation.loop.base);
+        expect(animation).toContain('infinite');
+        expect(animation).not.toMatch(/\b(forwards|both)\b/);
+      }
+    });
+
+    it('loop.slow는 6000ms다 (StarBorder speed 6s, loop.base의 4배)', () => {
+      expect(loop.slow).toBe('6000ms');
+      expect(parseInt(loop.slow) / parseInt(loop.base)).toBe(4);
     });
   });
 });

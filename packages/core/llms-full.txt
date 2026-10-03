@@ -950,8 +950,9 @@ import { Border } from '@taein-ui/core';
 | variant | 'solid' \| 'dashed' \| 'dotted' | 'solid' | Border style |
 | width | 'thin' \| 'medium' \| 'thick' | 'thin' | Border width |
 | color | 'default' \| 'primary' \| 'success' \| 'error' \| 'warning' | 'default' | Border color |
-| rounded | 'none' \| 'sm' \| 'md' \| 'lg' \| 'full' | 'none' | Border radius |
+| rounded | 'none' \| 'sm' \| 'md' \| 'lg' \| 'full' | 'md' | Border radius |
 | padding | 'none' \| 'sm' \| 'md' \| 'lg' | 'none' | Inner padding |
+| glow | boolean | false | Light that circles the border on hover/focus. Only with sides='all'. Hover is gated to (hover: hover) and (pointer: fine) |
 | className | string | — | Additional CSS class |
 
 ---
@@ -1154,7 +1155,7 @@ Semantic 색상은 역할별 4슬롯이다. 슬롯을 바꿔 쓰면 대비가 �
 
 ### Animation
 - `animation.duration` — fast (150ms), base (200ms), slow (300ms), slower (500ms)
-- `animation.loop` — fast (800ms), base (1500ms)
+- `animation.loop` — fast (800ms), base (1500ms), slow (6000ms)
   전이(A→B)가 아니라 무한 반복 한 바퀴의 길이라 duration과 다른 양이다.
   같은 스케일에 끼우면 전이를 느리게 만드는 압력이 된다.
 - `animation.easing` — settle (linear(0.0000,0.1565,0.2939,0.4138,0.5177,0.6072,0.6836,0.7483,0.8025,0.8474,0.8842,0.9139,0.9375,0.9559,0.9699,0.9802,0.9877,0.9928,0.9961,0.9981,0.9992,0.9998,1.0000,1.0000,1.0000)), snap (linear(0.0000,0.1849,0.3488,0.4928,0.6181,0.7258,0.8172,0.8934,0.9556,1.0049,1.0425,1.0697,1.0875,1.0972,1.0998,1.0967,1.0889,1.0776,1.0641,1.0494,1.0347,1.0213,1.0102,1.0028,1.0000)), spring (linear(0.0000,0.3512,0.7194,1.0000,1.1575,1.2044,1.1768,1.1147,1.0496,1.0000,0.9722,0.9639,0.9688,0.9797,0.9912,1.0000,1.0049,1.0064,1.0055,1.0036,1.0016,1.0000,0.9991,0.9989,1.0000)), exit (linear(0.0000,0.0001,0.0006,0.0020,0.0046,0.0090,0.0156,0.0248,0.0370,0.0527,0.0723,0.0963,0.1250,0.1589,0.1985,0.2441,0.2963,0.3554,0.4219,0.4962,0.5787,0.6699,0.7703,0.8801,1.0000)), linear (linear(0.0000,0.0417,0.0833,0.1250,0.1667,0.2083,0.2500,0.2917,0.3333,0.3750,0.4167,0.4583,0.5000,0.5417,0.5833,0.6250,0.6667,0.7083,0.7500,0.7917,0.8333,0.8750,0.9167,0.9583,1.0000)), drift (linear(0.0000,0.0043,0.0170,0.0381,0.0670,0.1033,0.1464,0.1956,0.2500,0.3087,0.3706,0.4347,0.5000,0.5653,0.6294,0.6913,0.7500,0.8044,0.8536,0.8967,0.9330,0.9619,0.9830,0.9957,1.0000))
@@ -1167,7 +1168,7 @@ Semantic 색상은 역할별 4슬롯이다. 슬롯을 바꿔 쓰면 대비가 �
 - `transition: all`을 쓰지 않는다. 전이할 속성을 적는다 — 합성·페인트 속성
   (transform/opacity/filter/색/box-shadow/text-shadow) 밖을 전이하려면 근거를 남긴다.
 - 이 경계는 `src/tokens/animationBoundary.test.ts`가 소스 스캔으로 잠근다.
-- `prefers-reduced-motion: reduce`이면 duration 넷과 loop 둘, 여섯 개가 모두 `0.01ms`로
+- `prefers-reduced-motion: reduce`이면 duration 넷과 loop 셋, 일곱 개가 모두 `0.01ms`로
   덮어써지고, 전역 규칙이 `*, *::before, *::after`의 animation/transition duration·delay와
   반복 횟수까지 함께 내린다. 토큰을 안 쓰고 초를 리터럴로 박은 애니메이션
   (Skeleton의 무한 wave/pulse 등)도 멈춘다.
@@ -1297,7 +1298,7 @@ All components follow WCAG 2.2 AA standards:
 ### Reduced motion
 
 - `prefers-reduced-motion: reduce`에서 두 겹으로 처리된다.
-  1. `animation`의 duration 넷과 loop 둘, 여섯 개 변수가 모두 `0.01ms`로
+  1. `animation`의 duration 넷과 loop 셋, 일곱 개 변수가 모두 `0.01ms`로
      덮어써진다. 토큰을 쓰는 컴포넌트와, 그 토큰을 참조하는 소비자 스타일이
      함께 따라온다.
   2. 전역 규칙이 `*, *::before, *::after`에 여섯 줄을 `!important`로 건다 —

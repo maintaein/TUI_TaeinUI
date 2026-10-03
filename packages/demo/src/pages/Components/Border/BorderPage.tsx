@@ -41,7 +41,7 @@ export function BorderPage() {
     {
       name: 'rounded',
       type: "'none' | 'sm' | 'md' | 'lg' | 'full'",
-      default: "'none'",
+      default: "'md'",
       description: '모서리 둥글기',
     },
     {
@@ -49,6 +49,13 @@ export function BorderPage() {
       type: "'none' | 'sm' | 'md' | 'lg'",
       default: "'none'",
       description: '내부 여백',
+    },
+    {
+      name: 'glow',
+      type: 'boolean',
+      default: 'false',
+      description:
+        "호버·포커스 시 테두리를 따라 도는 빛. sides='all'일 때만 나타난다",
     },
   ];
 

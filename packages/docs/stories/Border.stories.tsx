@@ -45,6 +45,7 @@ const meta = {
       control: 'select',
       options: ['none', 'sm', 'md', 'lg'],
     },
+    glow: { control: 'boolean' },
   },
 } satisfies Meta<typeof Border>;
 
@@ -59,7 +60,7 @@ export const Default: Story = {
     variant: 'solid',
     width: 'thin',
     color: 'default',
-    rounded: 'none',
+    rounded: 'md',
     padding: 'md',
   },
 };

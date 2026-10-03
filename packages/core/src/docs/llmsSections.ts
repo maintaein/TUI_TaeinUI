@@ -307,7 +307,7 @@ export function renderTokenReference(): string {
     '- `transition: all`을 쓰지 않는다. 전이할 속성을 적는다 — 합성·페인트 속성',
     '  (transform/opacity/filter/색/box-shadow/text-shadow) 밖을 전이하려면 근거를 남긴다.',
     '- 이 경계는 `src/tokens/animationBoundary.test.ts`가 소스 스캔으로 잠근다.',
-    '- `prefers-reduced-motion: reduce`이면 duration 넷과 loop 둘, 여섯 개가 모두 `0.01ms`로',
+    '- `prefers-reduced-motion: reduce`이면 duration 넷과 loop 셋, 일곱 개가 모두 `0.01ms`로',
     '  덮어써지고, 전역 규칙이 `*, *::before, *::after`의 animation/transition duration·delay와',
     '  반복 횟수까지 함께 내린다. 토큰을 안 쓰고 초를 리터럴로 박은 애니메이션',
     '  (Skeleton의 무한 wave/pulse 등)도 멈춘다.',

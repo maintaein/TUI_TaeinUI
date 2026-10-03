@@ -12,6 +12,7 @@ export const duration = {
 export const loop = {
   fast: '800ms',
   base: '1500ms',
+  slow: '6000ms',
 } as const;
 
 // scripts/build-easing.mjs가 GSAP 이징을 샘플링해 생성한다. 직접 고치지 말 것.

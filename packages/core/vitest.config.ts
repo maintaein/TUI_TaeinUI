@@ -18,10 +18,13 @@ export default defineConfig({
     // mirrorOverlay도 같은 이유다 — hiddenText가 실제 input에 붙는데 color만
     // transparent로 두면 캐럿까지 같이 투명해진다(F1). 캐럿 색이 따로 살아 있는지를
     // CSSOM 규칙으로 잠근다.
+    // Border도 같은 이유다. 호버 포인터 게이트와 :focus-within이 @media 안팎
+    // 어디에 있는지, rotate 길이가 loop.slow인지를 CSSOM으로 잠근다.
     css: {
       include: [
         /Slider\.css/,
         /\/Button\.css/,
+        /\/Border\.css/,
         /HeaderBarNav\.css/,
         /mirrorOverlay\.css/,
       ],

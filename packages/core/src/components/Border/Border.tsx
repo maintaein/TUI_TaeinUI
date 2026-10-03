@@ -30,10 +30,12 @@ export interface BorderProps extends HTMLAttributes<HTMLDivElement> {
   width?: 'thin' | 'medium' | 'thick';
   /** 테두리 색상 @default 'default' */
   color?: 'default' | 'primary' | 'success' | 'error' | 'warning';
-  /** 모서리 둥글기 @default 'none' */
+  /** 모서리 둥글기 @default 'md' */
   rounded?: 'none' | 'sm' | 'md' | 'lg' | 'full';
   /** 내부 여백 @default 'none' */
   padding?: 'none' | 'sm' | 'md' | 'lg';
+  /** 호버·포커스 시 테두리를 따라 도는 빛. `sides='all'`일 때만 나타난다 @default false */
+  glow?: boolean;
   /** 추가 CSS 클래스 */
   className?: string;
 }
@@ -44,8 +46,9 @@ export const Border = ({
   variant = 'solid',
   width = 'thin',
   color = 'default',
-  rounded = 'none',
+  rounded = 'md',
   padding = 'none',
+  glow = false,
   className,
   ...props
 }: BorderProps) => {
@@ -63,10 +66,12 @@ export const Border = ({
       )}
       {...props}
     >
-      {/* 빛 루프는 닫힌 테두리(sides='all')에서만 "한 바퀴"가 성립한다.
+      {/* glow는 선택 기능이다(기본 off). 빛 루프는 닫힌 테두리(sides='all')에서만 "한 바퀴"가 성립한다.
           회전하는 그라디언트를 가둘 그릇이라 실제 DOM 노드여야 한다
           (pseudo-element는 자기 자식 pseudo-element를 못 갖는다 — 리뷰 C2). */}
-      {sides === 'all' && <span className={glowRing} aria-hidden="true" />}
+      {glow && sides === 'all' && (
+        <span className={glowRing} aria-hidden="true" />
+      )}
       {children}
     </div>
   );

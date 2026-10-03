@@ -188,20 +188,43 @@ globalStyle(`${glowRing}::before`, {
 
 // 트리거는 루트의 :hover·:focus-within이다(Border에는 상태 prop이 없다 —
 // 감싼 콘텐츠에 초점 가능한 요소가 없으면 :hover만 남는다, 장식이라 손실
-// 없음).
-globalStyle(`${border}:hover ${glowRing}, ${border}:focus-within ${glowRing}`, {
+// 없음). 링 자체가 glow prop을 켠 Border에만 렌더되므로 여기는 그 선택
+// 기능의 트리거다.
+//
+// :hover만 포인터 게이트 안에 둔다. 터치 기기는 탭하면 :hover가 발생해 빛이
+// 들러붙고, 자율 루프라 한 번 붙으면 계속 돈다. :focus-within은 포인터
+// 종류와 무관하다(터치 기기에도 외부 키보드가 있다) — 게이트 밖이다.
+const hoverGate = '(hover: hover) and (pointer: fine)';
+
+globalStyle(`${border}:focus-within ${glowRing}`, {
   opacity: 1,
 });
+globalStyle(`${border}:hover ${glowRing}`, {
+  '@media': {
+    [hoverGate]: {
+      opacity: 1,
+    },
+  },
+});
 
-// 루프와 will-change 둘 다 트리거 상태에서만 붙는다. 링이 이제 항상
+// 루프와 will-change 둘 다 트리거 상태에서만 붙는다. 링이 켜진 Border마다
 // 존재하므로(예전엔 ::before가 :hover 선택자 안에서만 정의돼 비활성 시 통째로
-// 사라졌다) 여기 두지 않으면 페이지의 모든 Border가 안 보이는 채로 영원히
-// 회전을 틱한다 — sides 기본값이 'all'이라 그게 사실상 전부다. 상주
-// will-change도 같은 이유로 여기에만 둔다(HeaderBar의 상주 will-change 반례).
-globalStyle(
-  `${border}:hover ${glowRing}::before, ${border}:focus-within ${glowRing}::before`,
-  {
-    animation: `${rotate} ${themeContract.animation.loop.base} ${themeContract.animation.easing.linear} infinite`,
-    willChange: 'transform',
-  }
-);
+// 사라졌다) 여기 두지 않으면 켜진 모든 Border가 안 보이는 채로 영원히
+// 회전을 틱한다. 상주 will-change도 같은 이유로 여기에만 둔다(HeaderBar의
+// 상주 will-change 반례).
+//
+// 길이는 loop.slow(6000ms)다: 빠른 기계적 회전이 아니라 느린 환경광. 커브는
+// linear 그대로다 — 닫힌 회전에 sine.inOut을 걸면 빛이 매 바퀴 같은 각도에서
+// 멈춰 고장으로 읽힌다(alternate의 정지와 달리 납득할 되돌림 지점이 없다).
+// StarBorder의 opacity 0 키프레임은 가져오지 않는다: LOOP 키프레임의
+// 0%·100%에 opacity 0을 두면 축소 모드에서 반복이 1회로 접혀 마지막 프레임에
+// 고착한다. rotate는 opacity가 없고 360도는 0도와 같은 자리라 안전하다.
+const glowLoop = {
+  animation: `${rotate} ${themeContract.animation.loop.slow} ${themeContract.animation.easing.linear} infinite`,
+  willChange: 'transform',
+};
+
+globalStyle(`${border}:focus-within ${glowRing}::before`, { ...glowLoop });
+globalStyle(`${border}:hover ${glowRing}::before`, {
+  '@media': { [hoverGate]: { ...glowLoop } },
+});
