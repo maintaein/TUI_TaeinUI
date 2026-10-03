@@ -125,25 +125,25 @@ export function BorderPage() {
             description="sides prop으로 테두리를 표시할 방향을 지정합니다. all, top, right, bottom, left, horizontal, vertical을 지원합니다."
             editable
             code={`<div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '1.5rem' }}>
-  <Border sides="all" padding="sm">
+  <Border sides="all" padding="sm" rounded="none">
     <div style={{ textAlign: 'center', fontSize: '0.875rem' }}>all</div>
   </Border>
-  <Border sides="top" padding="sm">
+  <Border sides="top" padding="sm" rounded="none">
     <div style={{ textAlign: 'center', fontSize: '0.875rem' }}>top</div>
   </Border>
-  <Border sides="right" padding="sm">
+  <Border sides="right" padding="sm" rounded="none">
     <div style={{ textAlign: 'center', fontSize: '0.875rem' }}>right</div>
   </Border>
-  <Border sides="bottom" padding="sm">
+  <Border sides="bottom" padding="sm" rounded="none">
     <div style={{ textAlign: 'center', fontSize: '0.875rem' }}>bottom</div>
   </Border>
-  <Border sides="left" padding="sm">
+  <Border sides="left" padding="sm" rounded="none">
     <div style={{ textAlign: 'center', fontSize: '0.875rem' }}>left</div>
   </Border>
-  <Border sides="horizontal" padding="sm">
+  <Border sides="horizontal" padding="sm" rounded="none">
     <div style={{ textAlign: 'center', fontSize: '0.875rem' }}>horizontal</div>
   </Border>
-  <Border sides="vertical" padding="sm">
+  <Border sides="vertical" padding="sm" rounded="none">
     <div style={{ textAlign: 'center', fontSize: '0.875rem' }}>vertical</div>
   </Border>
 </div>`}
@@ -270,6 +270,33 @@ export function BorderPage() {
           />
         </div>
 
+        {/* Glow */}
+        <div className={styles.example}>
+          <h3 className={styles.exampleTitle}>Glow</h3>
+          <LivePreview
+            title="호버 빛 (선택 기능)"
+            description="glow를 켜면 호버나 키보드 포커스(Tab) 시 빛이 테두리를 따라 6초에 한 바퀴 돕니다. 기본은 꺼져 있습니다. sides가 'all'일 때만 나타나고, 그 외 sides에서는 glow를 줘도 조용히 무시됩니다. 호버는 마우스 같은 정밀 포인터에서만 동작하고, 포커스는 입력 기기와 무관하게 동작합니다. color가 primary·success·error이면 빛이 그 색을 따라가고, default는 빛이 primary 색입니다."
+            editable
+            code={`<div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '1.5rem' }}>
+  <Border glow color="default" padding="md">
+    <button type="button">default (Tab으로 포커스)</button>
+  </Border>
+  <Border glow color="primary" padding="md">
+    <button type="button">primary</button>
+  </Border>
+  <Border glow color="success" padding="md">
+    <button type="button">success</button>
+  </Border>
+  <Border glow color="error" padding="md">
+    <button type="button">error</button>
+  </Border>
+  <Border glow sides="top" color="primary" padding="md">
+    <div style={{ fontSize: '0.875rem' }}>sides="top": 빛 없음</div>
+  </Border>
+</div>`}
+          />
+        </div>
+
         {/* Combination */}
         <div className={styles.example}>
           <h3 className={styles.exampleTitle}>Combination</h3>
@@ -287,7 +314,7 @@ export function BorderPage() {
   </Border>
 
   {/* 강조 영역 */}
-  <Border sides="left" width="thick" color="primary" padding="md">
+  <Border sides="left" width="thick" color="primary" padding="md" rounded="none">
     <div style={{ fontSize: '0.875rem' }}>
       <strong>인용/강조 영역</strong>
       <p style={{ marginTop: '0.5rem', color: '#6b7280' }}>왼쪽 두꺼운 테두리로 인용문이나 중요 정보를 강조할 수 있습니다.</p>
@@ -304,7 +331,7 @@ export function BorderPage() {
   {/* 구분선 역할 */}
   <div>
     <div style={{ fontSize: '0.875rem', marginBottom: '0.5rem' }}>섹션 A 콘텐츠</div>
-    <Border sides="bottom" color="default" />
+    <Border sides="bottom" color="default" rounded="none" />
     <div style={{ fontSize: '0.875rem', marginTop: '0.5rem' }}>섹션 B 콘텐츠</div>
   </div>
 

@@ -27,6 +27,24 @@ function commentBlockAbove(source: string, anchor: string): string {
   return comments.join('\n');
 }
 
+/** `glowLoop` 선언 블록(`const glowLoop = {` ~ 닫는 `};`)의 범위. */
+function glowLoopRange(): [number, number] {
+  const start = BORDER_CSS.indexOf('const glowLoop = {');
+  expect(start, 'const glowLoop 선언을 찾지 못했다').toBeGreaterThan(-1);
+  const end = BORDER_CSS.indexOf('};', start);
+  expect(end, 'glowLoop의 닫는 };를 찾지 못했다').toBeGreaterThan(start);
+  return [start, end];
+}
+
+/** 인덱스가 `glowLoop` 블록 안에 든다. "선언이 앞에 있기만 하면" 통과하는
+ * lastIndexOf 판정은 glowLoop 뒤에 willChange를 단 별도 globalStyle을 두는
+ * 상주 회귀를 못 잡는다. 위치 자체를 범위로 잠근다. */
+function expectInsideGlowLoop(index: number) {
+  const [start, end] = glowLoopRange();
+  expect(index).toBeGreaterThan(start);
+  expect(index).toBeLessThan(end);
+}
+
 /** 루프(animation·will-change)는 한 번 선언한 `glowLoop`를 :hover와
  * :focus-within 트리거 규칙 둘에만 펼친다. :hover는 포인터 게이트 때문에
  * 규칙이 갈라져서 선언이 두 번 쓰이면 tierA 소비처 수(6)가 7이 된다. */
@@ -370,8 +388,7 @@ describe('Border', () => {
       const hits = [...BORDER_CSS.matchAll(/willChange/g)];
       expect(hits).toHaveLength(1);
 
-      const decl = BORDER_CSS.lastIndexOf('const glowLoop', hits[0].index);
-      expect(decl).toBeGreaterThan(-1);
+      expectInsideGlowLoop(hits[0].index);
       expectGlowLoopOnlyInTriggers();
     });
 
@@ -423,8 +440,7 @@ describe('Border', () => {
       const hits = [...BORDER_CSS.matchAll(/\$\{rotate\}/g)];
       expect(hits).toHaveLength(1);
 
-      const decl = BORDER_CSS.lastIndexOf('const glowLoop', hits[0].index);
-      expect(decl).toBeGreaterThan(-1);
+      expectInsideGlowLoop(hits[0].index);
       expectGlowLoopOnlyInTriggers();
     });
 

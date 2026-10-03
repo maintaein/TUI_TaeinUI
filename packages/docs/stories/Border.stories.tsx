@@ -100,6 +100,32 @@ export const Sides: Story = {
   ),
 };
 
+// 호버·포커스 시 테두리를 따라 도는 빛(선택 기능, sides='all'일 때만)
+export const Glow: Story = {
+  render: () => (
+    <div
+      style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(2, 1fr)',
+        gap: '2rem',
+      }}
+    >
+      <Border glow color="primary" padding="md">
+        <button type="button">primary (호버 또는 Tab)</button>
+      </Border>
+      <Border glow color="success" padding="md">
+        <button type="button">success</button>
+      </Border>
+      <Border glow color="error" padding="md">
+        <button type="button">error</button>
+      </Border>
+      <Border glow sides="top" color="primary" padding="md">
+        sides=&quot;top&quot;: 빛 없음
+      </Border>
+    </div>
+  ),
+};
+
 // Variant 예시
 export const Variants: Story = {
   render: () => (

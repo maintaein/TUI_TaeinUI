@@ -193,7 +193,7 @@ globalStyle(`${glowRing}::before`, {
 //
 // :hover만 포인터 게이트 안에 둔다. 터치 기기는 탭하면 :hover가 발생해 빛이
 // 들러붙고, 자율 루프라 한 번 붙으면 계속 돈다. :focus-within은 포인터
-// 종류와 무관하다(터치 기기에도 외부 키보드가 있다) — 게이트 밖이다.
+// 종류와 무관하다(터치 기기에도 외부 키보드가 있다). 그래서 게이트 밖이다.
 const hoverGate = '(hover: hover) and (pointer: fine)';
 
 globalStyle(`${border}:focus-within ${glowRing}`, {
@@ -214,7 +214,7 @@ globalStyle(`${border}:hover ${glowRing}`, {
 // 상주 will-change 반례).
 //
 // 길이는 loop.slow(6000ms)다: 빠른 기계적 회전이 아니라 느린 환경광. 커브는
-// linear 그대로다 — 닫힌 회전에 sine.inOut을 걸면 빛이 매 바퀴 같은 각도에서
+// linear 그대로다. 닫힌 회전에 sine.inOut을 걸면 빛이 매 바퀴 같은 각도에서
 // 멈춰 고장으로 읽힌다(alternate의 정지와 달리 납득할 되돌림 지점이 없다).
 // StarBorder의 opacity 0 키프레임은 가져오지 않는다: LOOP 키프레임의
 // 0%·100%에 opacity 0을 두면 축소 모드에서 반복이 1회로 접혀 마지막 프레임에
