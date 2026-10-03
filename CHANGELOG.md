@@ -37,6 +37,6 @@
 - `Button`의 호버 시 위로 뜨는(`translateY(-1px)`) 이동을 없앴습니다. 호버는 배경색만 바뀝니다. 호버 색은 `(hover: hover) and (pointer: fine)`일 때만 적용돼 터치 기기에서 탭 뒤 색이 들러붙지 않습니다.
 - `Button`의 누름 효과(`scale(0.95)`와 눌린 색)가 입력 시간과 무관하게 완주합니다. 30ms 탭도 최소 90ms 동안 눌린 상태를 유지하고, 포인터뿐 아니라 `Enter`·`Space`도 같은 효과를 냅니다. 누름은 150ms로 단단하게 들어가고, 뗄 때는 200ms 동안 휴지 크기를 약 1% 넘어갔다 정착합니다(이전 `scale(0.98)`은 되밀림이 0.1px라 보이지 않았습니다). `prefers-reduced-motion: reduce`에서는 `scale`만 끄고 색 변화는 남깁니다.
 - `Button`의 `weak` + `danger` 눌림이 호버와 구별되지 않던 것을 고쳤습니다. 호버와 같은 배경색 위에서 `filter: brightness(0.96)`로 배경과 글자를 함께 8.6% 어둡게 해 눌린 상태가 보이고 글자 대비는 AA(4.546:1)를 지킵니다.
-- **BREAKING CHANGE:** `Border`의 `rounded` 기본값이 `'none'`에서 `'md'`로 바뀌었습니다. 이전처럼 각진 모서리를 원하면 `<Border rounded="none">`으로 명시하세요.
+- **BREAKING CHANGE:** `Border`의 `rounded` 기본값이 `sides="all"`일 때 `'none'`에서 `'md'`로 바뀌었습니다. 부분 `sides`(`top`·`bottom` 등)는 선 끝이 휘지 않도록 `'none'`을 유지합니다. 이전처럼 각진 모서리를 원하면 `<Border rounded="none">`으로 명시하세요.
 - **BREAKING CHANGE:** `Border`의 호버·포커스 빛(glow)이 기본으로 꺼집니다. 이전에는 `sides="all"`이면 항상 렌더됐습니다. 켜려면 `<Border glow>`로 넘기세요.
 - `Border` 빛이 한 바퀴 도는 시간을 1500ms(`loop.base`)에서 6000ms(`loop.slow`)로 늘려 느린 환경광으로 바꿨습니다. 호버로 켜지는 빛은 `(hover: hover) and (pointer: fine)`일 때만 적용돼 터치 기기에서 탭 뒤 빛이 들러붙지 않습니다. 키보드 포커스(`:focus-within`)는 포인터 종류와 무관하게 켜집니다.

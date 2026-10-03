@@ -279,11 +279,31 @@ describe('Border', () => {
       expect(border.className).toMatch(/roundedStyles_full/);
     });
 
-    it('기본 rounded는 md이다', () => {
+    it('sides 미지정(all)이면 기본 rounded는 md이다', () => {
       const { container } = render(<Border>콘텐츠</Border>);
       const border = container.firstChild as HTMLElement;
 
       expect(border.className).toMatch(/roundedStyles_md/);
+    });
+
+    it('부분 sides이면 기본 rounded는 none이다', () => {
+      const { container } = render(<Border sides="bottom">콘텐츠</Border>);
+      const border = container.firstChild as HTMLElement;
+
+      expect(border.className).toMatch(/roundedStyles_none/);
+      expect(border.className).not.toMatch(/roundedStyles_md/);
+    });
+
+    it('부분 sides에서도 명시한 rounded가 이긴다', () => {
+      const { container } = render(
+        <Border sides="bottom" rounded="lg">
+          콘텐츠
+        </Border>
+      );
+      const border = container.firstChild as HTMLElement;
+
+      expect(border.className).toMatch(/roundedStyles_lg/);
+      expect(border.className).not.toMatch(/roundedStyles_none/);
     });
   });
 

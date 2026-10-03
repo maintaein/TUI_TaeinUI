@@ -76,7 +76,7 @@ All components follow consistent patterns:
 - **List** — Ordered list with spacing. Props: spacing, divider. Child: ListItem(label, value, layout)
 - **BoardRow** — Expandable row/accordion. Props: title, variant, expanded, onChange, disabled
 - **Divider** — Content separator. Props: orientation, variant('solid'|'dashed'|'dotted'), spacing, children(text)
-- **Border** — Border wrapper. Props: sides, variant, width, color, rounded('md' default), padding, glow(opt-in hover light)
+- **Border** — Border wrapper. Props: sides, variant, width, color, rounded('md' default for sides='all', 'none' for partial sides), padding, glow(opt-in hover light)
 - **HeaderBar** — App header bar. Props: logo, title, actions, sticky, variant, elevation
 - **FormField** — Form field wrapper (render props). Props: label, helperText, error, errorMessage, required, children(renderFn)
 

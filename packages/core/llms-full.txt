@@ -950,7 +950,7 @@ import { Border } from '@taein-ui/core';
 | variant | 'solid' \| 'dashed' \| 'dotted' | 'solid' | Border style |
 | width | 'thin' \| 'medium' \| 'thick' | 'thin' | Border width |
 | color | 'default' \| 'primary' \| 'success' \| 'error' \| 'warning' | 'default' | Border color |
-| rounded | 'none' \| 'sm' \| 'md' \| 'lg' \| 'full' | 'md' | Border radius |
+| rounded | 'none' \| 'sm' \| 'md' \| 'lg' \| 'full' | 'md' if sides='all', else 'none' | Border radius. An explicit value always wins |
 | padding | 'none' \| 'sm' \| 'md' \| 'lg' | 'none' | Inner padding |
 | glow | boolean | false | Light that circles the border on hover/focus. Only with sides='all'. Hover is gated to (hover: hover) and (pointer: fine) |
 | className | string | — | Additional CSS class |

@@ -41,8 +41,9 @@ export function BorderPage() {
     {
       name: 'rounded',
       type: "'none' | 'sm' | 'md' | 'lg' | 'full'",
-      default: "'md'",
-      description: '모서리 둥글기',
+      default: "sides='all'이면 'md', 그 외 'none'",
+      description:
+        '모서리 둥글기. 미지정이면 부분 sides는 선 끝이 휘지 않도록 none이다. 명시하면 항상 우선한다',
     },
     {
       name: 'padding',

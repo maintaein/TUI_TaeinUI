@@ -30,7 +30,7 @@ export interface BorderProps extends HTMLAttributes<HTMLDivElement> {
   width?: 'thin' | 'medium' | 'thick';
   /** 테두리 색상 @default 'default' */
   color?: 'default' | 'primary' | 'success' | 'error' | 'warning';
-  /** 모서리 둥글기 @default 'md' */
+  /** 모서리 둥글기. 미지정이면 `sides='all'`은 'md', 부분 sides는 'none'(선 끝이 휘지 않는다). 명시하면 항상 우선한다 */
   rounded?: 'none' | 'sm' | 'md' | 'lg' | 'full';
   /** 내부 여백 @default 'none' */
   padding?: 'none' | 'sm' | 'md' | 'lg';
@@ -46,12 +46,13 @@ export const Border = ({
   variant = 'solid',
   width = 'thin',
   color = 'default',
-  rounded = 'md',
+  rounded,
   padding = 'none',
   glow = false,
   className,
   ...props
 }: BorderProps) => {
+  const resolvedRounded = rounded ?? (sides === 'all' ? 'md' : 'none');
   return (
     <div
       className={clsx(
@@ -60,7 +61,7 @@ export const Border = ({
         variantStyles[variant],
         widthStyles[width],
         colorStyles[color],
-        roundedStyles[rounded],
+        roundedStyles[resolvedRounded],
         paddingStyles[padding],
         className
       )}
