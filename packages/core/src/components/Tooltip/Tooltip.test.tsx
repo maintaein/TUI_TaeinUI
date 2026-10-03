@@ -845,7 +845,7 @@ describe('Tooltip', () => {
       }
     );
 
-    it('O3 — Popover(scale 채널, duration.base)보다 채널·길이가 작다(오버레이계 최하한)', () => {
+    it('O3: Popover(scale 채널, duration.slow)보다 채널·길이가 작다(오버레이계 최하한)', () => {
       const popoverSource = readFileSync(
         resolve(__dirname, '../Popover/Popover.css.ts'),
         'utf-8'
@@ -853,11 +853,11 @@ describe('Tooltip', () => {
       // Tooltip은 scale 채널을 쓰지 않는다 — Popover보다 가벼운 채널(opacity+
       // translateY)만 쓴다.
       expect(cssSource).not.toContain('scale(');
-      expect(popoverSource).toContain('scale(0.95)');
-      // Tooltip은 duration.fast, Popover는 duration.base를 쓴다 — fast가
-      // base보다 짧다(150ms < 200ms).
+      expect(popoverSource).toContain('scale(0.6)');
+      // Tooltip은 duration.fast, Popover는 duration.slow를 쓴다. fast가
+      // slow보다 짧다(150ms < 300ms).
       expect(cssSource).toContain('duration.fast');
-      expect(popoverSource).toContain('duration.base');
+      expect(popoverSource).toContain('duration.slow');
     });
 
     it('M2→M3 계약 주석(O3 — 오버레이계 최하한)이 남아있다', () => {

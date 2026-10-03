@@ -21,11 +21,11 @@ import {
   getFirstFocusableElement,
 } from '../../_internal/dom';
 
-// 퇴장 전이(calc(duration.base * 0.65))와 맞춘 값이다 — Popover.css.ts의
-// closed 전이 길이(200ms * 0.65 = 130ms)를 바꾸면 이 상수도 같이 바꿔야
+// 퇴장 전이(calc(duration.slow * 0.65))와 맞춘 값이다. Popover.css.ts의
+// closed 전이 길이(300ms * 0.65 = 195ms)를 바꾸면 이 상수도 같이 바꿔야
 // CSS 전이가 끝나기 전에 DOM이 사라지거나 그 반대가 되지 않는다.
 // Modal.tsx의 EXIT_DURATION_MS(200)와 다른 값이다 — 그대로 베끼지 않는다.
-const EXIT_DURATION_MS = 130;
+const EXIT_DURATION_MS = 195;
 
 /** 트리거 요소 근처에 떠 있는 콘텐츠를 표시하는 팝오버 컴포넌트. 제어/비제어 모드 지원 */
 export interface PopoverProps extends Omit<
@@ -46,7 +46,7 @@ export interface PopoverProps extends Omit<
   closeOnOutsideClick?: boolean;
   /** ESC 키로 닫기 @default true */
   closeOnEscape?: boolean;
-  /** 화살표 표시 @default true */
+  /** 화살표 표시 @default false */
   arrow?: boolean;
   /** 팝오버 최대 너비 (CSS 단위) */
   maxWidth?: string;
@@ -79,7 +79,7 @@ export const Popover = ({
   const isControlled = controlledOpen !== undefined;
   const isOpen = isControlled ? controlledOpen : uncontrolledOpen;
 
-  // isOpen이 꺼져도 DOM을 즉시 지우지 않고 퇴장 전이가 재생될 자리를 130ms
+  // isOpen이 꺼져도 DOM을 즉시 지우지 않고 퇴장 전이가 재생될 자리를 195ms
   // 남겨 둔다(Modal.tsx의 shouldRender 패턴과 동일한 배선).
   const [shouldRender, setShouldRender] = useState(isOpen);
   // shouldRender와 별개로, 마운트 첫 프레임엔 닫힘 스타일을 칠하고 그 다음

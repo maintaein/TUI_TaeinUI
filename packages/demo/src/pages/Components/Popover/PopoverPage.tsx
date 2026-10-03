@@ -238,6 +238,30 @@ const menu = (
           />
         </div>
 
+        {/* IconButton Trigger */}
+        <div className={styles.example}>
+          <h3 className={styles.exampleTitle}>IconButton Trigger</h3>
+          <LivePreview
+            title="IconButton 트리거"
+            description="트리거는 Button에 한정되지 않습니다. 클릭 가능한 요소라면 IconButton처럼 아이콘만 있는 버튼도 감쌀 수 있습니다."
+            editable
+            code={`<Popover
+  position="bottom"
+  content={
+    <List spacing="sm" style={{ padding: '0.25rem 0.5rem', minWidth: '140px' }}>
+      <ListItem style={{ padding: '0.5rem', borderRadius: '6px', cursor: 'pointer' }}>편집</ListItem>
+      <ListItem style={{ padding: '0.5rem', borderRadius: '6px', cursor: 'pointer' }}>복제</ListItem>
+      <ListItem style={{ padding: '0.5rem', borderRadius: '6px', cursor: 'pointer' }}>
+        <Text variant="body2" color="error">삭제</Text>
+      </ListItem>
+    </List>
+  }
+>
+  <IconButton ghost aria-label="더보기"><Ellipsis size={22} /></IconButton>
+</Popover>`}
+          />
+        </div>
+
         {/* Close Options */}
         <div className={styles.example}>
           <h3 className={styles.exampleTitle}>Close Options</h3>

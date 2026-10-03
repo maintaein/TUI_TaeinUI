@@ -10,9 +10,9 @@ import {
 } from '@testing-library/react';
 import { Popover } from './Popover';
 
-// 조항 3: 퇴장 = 등장 * 0.65. calc(duration.base * 0.65) = 200ms * 0.65 = 130ms.
+// 조항 3: 퇴장 = 등장 * 0.65. calc(duration.slow * 0.65) = 300ms * 0.65 = 195ms.
 // Popover.tsx의 EXIT_DURATION_MS와 반드시 같은 값이어야 한다.
-const EXIT_DURATION_MS = 130;
+const EXIT_DURATION_MS = 195;
 
 describe('Popover', () => {
   describe('렌더링 테스트', () => {
@@ -70,12 +70,17 @@ describe('Popover', () => {
         expect(screen.getByText('팝오버 내용')).toBeInTheDocument();
 
         fireEvent.click(screen.getByText('트리거'));
-        // 퇴장 전이(130ms) 동안엔 DOM이 즉시 사라지지 않는다 — transition이
+        // 퇴장 전이(195ms) 동안엔 DOM이 즉시 사라지지 않는다. transition이
         // 재생될 자리가 있어야 한다(조항 1: 일회성 @keyframes 금지의 반대편).
         expect(screen.getByText('팝오버 내용')).toBeInTheDocument();
 
         act(() => {
-          vi.advanceTimersByTime(EXIT_DURATION_MS);
+          vi.advanceTimersByTime(EXIT_DURATION_MS - 1);
+        });
+        expect(screen.getByText('팝오버 내용')).toBeInTheDocument();
+
+        act(() => {
+          vi.advanceTimersByTime(1);
         });
         expect(screen.queryByText('팝오버 내용')).not.toBeInTheDocument();
       });
@@ -570,18 +575,34 @@ describe('Popover', () => {
       }
     );
 
-    it('퇴장 전이가 calc(duration.base * 0.65) / easing.exit이다(리터럴 ms 금지)', () => {
+    it('퇴장 전이가 calc(duration.slow * 0.65) / easing.exit이다(리터럴 ms 금지)', () => {
       expect(cssSource).toContain(
-        'calc(${themeContract.animation.duration.base} * 0.65) ${themeContract.animation.easing.exit}'
+        'calc(${themeContract.animation.duration.slow} * 0.65) ${themeContract.animation.easing.exit}'
       );
-      expect(cssSource).not.toMatch(/130ms/);
+      expect(cssSource).not.toMatch(/(130|195)ms/);
     });
 
-    it('등장 전이가 duration.base / easing.settle이다', () => {
-      expect(cssSource).toContain(
-        'opacity ${themeContract.animation.duration.base} ${themeContract.animation.easing.settle}'
-      );
-    });
+    it.each(['top', 'bottom', 'left', 'right'])(
+      'position="%s" 닫힘 transform에 scale(0.6)이 있다(오버슛이 보일 만큼 작게 시작)',
+      (position) => {
+        const closed = variantOf('positionStyles', position);
+        expect(closed).toMatch(/transform: '[^']*scale\(0\.6\)'/);
+        expect(closed).not.toContain('scale(0.95)');
+      }
+    );
+
+    it.each(['top', 'bottom', 'left', 'right'])(
+      'position="%s" 열림 transform은 slow/snap, opacity는 fast/settle이다(커브가 다르다)',
+      (position) => {
+        const list = transitionOf(variantOf('positionOpenStyles', position));
+        expect(list).toContain(
+          'transform ${themeContract.animation.duration.slow} ${themeContract.animation.easing.snap}'
+        );
+        expect(list).toContain(
+          'opacity ${themeContract.animation.duration.fast} ${themeContract.animation.easing.settle}'
+        );
+      }
+    );
 
     /** `styleVariants` 블록에서 방향 하나의 본문만 떼어낸다 — 파일 전체를
      * 훑으면 닫힘과 열림이 섞여 어느 쪽 값인지 못 가린다. */
@@ -613,7 +634,7 @@ describe('Popover', () => {
     it.each(['top', 'bottom', 'left', 'right'])(
       'position="%s" 닫힘 변형이 히트 테스트와 접근성 트리에서 빠진다(리뷰 I1)',
       (position) => {
-        // shouldRender가 닫은 뒤에도 노드를 130ms 더 남긴다. opacity: 0은
+        // shouldRender가 닫은 뒤에도 노드를 195ms 더 남긴다. opacity: 0은
         // 둘 중 어느 쪽에서도 요소를 빼지 않아서, 그 사이 클릭이 보이지 않는
         // 팝오버에 먹히고 Tab이 닫힌 dialog 안으로 들어간다.
         // 무엇을 뒤집으면 빨개지는가: 두 줄 중 하나라도 지우면.
@@ -631,7 +652,7 @@ describe('Popover', () => {
         // 무엇을 뒤집으면 빨개지는가: 길이를 0s로 바꾸면(= 페이드가 통째로 죽는다).
         const list = transitionOf(variantOf('positionStyles', position));
         expect(list).toContain(
-          'visibility calc(${themeContract.animation.duration.base} * 0.65) ${themeContract.animation.easing.exit}'
+          'visibility calc(${themeContract.animation.duration.slow} * 0.65) ${themeContract.animation.easing.exit}'
         );
         expect(list).not.toContain('visibility 0s');
       }
@@ -669,13 +690,13 @@ describe('Popover', () => {
       fireEvent.click(screen.getByText('트리거'));
       expect(screen.getByText('팝오버 내용')).toBeInTheDocument();
 
-      // 닫는다 — 퇴장 타이머(130ms)가 예약된다.
+      // 닫는다. 퇴장 타이머(195ms)가 예약된다.
       fireEvent.click(screen.getByText('트리거'));
 
-      // 타이머가 끝나기 전에(예: 65ms) 다시 연다 — 처음부터 다시 마운트되는
+      // 타이머가 끝나기 전에(예: 100ms) 다시 연다. 처음부터 다시 마운트되는
       // 게 아니라 같은 DOM 노드가 계속 살아 있어야 한다(조항 1 ③).
       act(() => {
-        vi.advanceTimersByTime(65);
+        vi.advanceTimersByTime(100);
       });
       const popoverBeforeReopen = screen.getByText('팝오버 내용');
       fireEvent.click(screen.getByText('트리거'));
@@ -684,7 +705,7 @@ describe('Popover', () => {
       // 원래 퇴장 타이머가 그대로 발화했다면 이 시점에 사라졌을 것이다 —
       // 취소되지 않았다면 실패한다.
       act(() => {
-        vi.advanceTimersByTime(65);
+        vi.advanceTimersByTime(100);
       });
       expect(screen.getByText('팝오버 내용')).toBeInTheDocument();
     });
