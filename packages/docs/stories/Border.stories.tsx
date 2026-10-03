@@ -75,25 +75,25 @@ export const Sides: Story = {
         gap: '2rem',
       }}
     >
-      <Border sides="all" padding="md">
+      <Border sides="all" padding="md" rounded="none">
         <strong>All</strong> - 모든 방향
       </Border>
-      <Border sides="top" padding="md">
+      <Border sides="top" padding="md" rounded="none">
         <strong>Top</strong> - 상단만
       </Border>
-      <Border sides="right" padding="md">
+      <Border sides="right" padding="md" rounded="none">
         <strong>Right</strong> - 우측만
       </Border>
-      <Border sides="bottom" padding="md">
+      <Border sides="bottom" padding="md" rounded="none">
         <strong>Bottom</strong> - 하단만
       </Border>
-      <Border sides="left" padding="md">
+      <Border sides="left" padding="md" rounded="none">
         <strong>Left</strong> - 좌측만
       </Border>
-      <Border sides="horizontal" padding="md">
+      <Border sides="horizontal" padding="md" rounded="none">
         <strong>Horizontal</strong> - 상하
       </Border>
-      <Border sides="vertical" padding="md">
+      <Border sides="vertical" padding="md" rounded="none">
         <strong>Vertical</strong> - 좌우
       </Border>
     </div>
