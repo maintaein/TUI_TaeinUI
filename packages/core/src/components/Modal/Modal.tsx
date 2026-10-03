@@ -51,9 +51,9 @@ const GROW_SCALE = 0.8;
  * 당겨 두고(transform만 쓴다 — top/left/width/height는 건드리지 않아 레이아웃이
  * 다시 계산되지 않는다), 못 읽으면 조용히 `CENTER_START`로 물러난다.
  *
- * 못 읽는 경우: ref 미전달 · `.current`가 null · 문서에서 떼어진 요소 ·
- * 크기 0(숨겨졌거나 레이아웃 없는 환경). 어느 쪽도 예외를 던지지 않는다 —
- * 모달이 열리지 않는 것보다 가운데에서 자라는 게 낫다.
+ * 못 읽는 경우: 트리거가 없음(호출처가 `triggerRef.current`와 활성 요소를 모두
+ * 못 구함) · 문서에서 떼어진 요소 · 크기 0(숨겨졌거나 레이아웃 없는 환경).
+ * 어느 쪽도 예외를 던지지 않는다 — 모달이 열리지 않는 것보다 가운데에서 자라는 게 낫다.
  */
 const enterStart = (
   dialog: HTMLElement,
@@ -83,16 +83,23 @@ const enterStart = (
 };
 
 /**
- * `triggerRef`를 안 줬을 때의 트리거: 지금 포커스된 요소. 이 시점은 layout 단계라
+ * `triggerRef.current`가 없을 때(ref 미전달 포함)의 트리거: 지금 포커스된 요소. 이 시점은 layout 단계라
  * `useFocusTrap`이 포커스를 옮기기 전이므로 활성 요소가 아직 클릭된 버튼이다
  * (`useFocusTrap`의 `previousActiveElementRef`는 useEffect에서 채워져 여기선 비어 있다).
  * body·html은 연결돼 있고 크기도 있어 `enterStart`의 가드를 통과하지만 문서 전체
  * 기준 중심이라 모달이 엉뚱한 곳에서 날아온다. 트리거로 치지 않는다.
+ * 다이얼로그 자신의 자손도 치지 않는다. `autoFocus` 자식이 있거나 축소 선호가
+ * 뒤집혀 타임라인이 다시 만들어지면 포커스가 이미 다이얼로그 안이라, 모달이
+ * 자기 닫기 버튼 자리에서 자란다. 이 거절은 활성 요소 폴백에만 붙는다.
  * Safari·Firefox(macOS)는 버튼 클릭에 포커스를 주지 않아 body가 되고, 가운데에서 자란다.
  */
-const activeTrigger = () => {
+const activeTrigger = (dialog: HTMLElement) => {
   const el = getActiveHTMLElement();
-  return el === document.body || el === document.documentElement ? null : el;
+  return el === document.body ||
+    el === document.documentElement ||
+    dialog.contains(el)
+    ? null
+    : el;
 };
 
 // Context로 onClose·titleId 전달 (Header의 닫기 버튼, Title의 id 연결에서 사용)
@@ -120,8 +127,11 @@ export interface ModalProps extends Omit<
   /** 배경 클릭으로 닫기 허용 @default true */
   closeOnBackdropClick?: boolean;
   /**
-   * 모달을 연 버튼. 안 주면 열 때 포커스된 요소를 쓰고, 주면 그것이 이긴다.
-   * 다이얼로그가 그 버튼 자리에서 자라 나온다. 읽을 수 없으면 조용히 가운데에서 자란다.
+   * 모달을 연 버튼. 다이얼로그가 그 버튼 자리에서 자라 나온다.
+   * `.current`가 있으면 그것이 활성 요소를 이긴다. 그런데 분리됐거나 크기가 0이면
+   * 활성 요소로 내려가지 않고 가운데에서 자란다(명시한 ref가 유일한 의도 표명이다).
+   * 안 주거나 `.current`가 null이면 열 때 포커스된 요소를 쓴다.
+   * 그것도 못 읽으면(body, 다이얼로그 자손 등) 조용히 가운데에서 자란다.
    */
   triggerRef?: RefObject<HTMLElement | null>;
   /** ESC 키로 닫기 허용 @default true */
@@ -189,7 +199,7 @@ const ModalRoot = ({
       if (dialog) {
         timeline.fromTo(
           dialog,
-          enterStart(dialog, triggerRef?.current ?? activeTrigger()),
+          enterStart(dialog, triggerRef?.current ?? activeTrigger(dialog)),
           {
             opacity: 1,
             x: 0,

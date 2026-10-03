@@ -509,6 +509,101 @@ describe('Modal', () => {
       );
     });
 
+    it('활성 요소가 html이면 가운데에서 자란다. html도 트리거로 쓰지 않는다', () => {
+      installLayout(
+        { left: 0, top: 0, width: 1000, height: 3000 },
+        { left: 200, top: 100, width: 600, height: 400 }
+      );
+      vi.spyOn(document, 'activeElement', 'get').mockReturnValue(
+        document.documentElement
+      );
+
+      render(<TriggeredModal open withRef={false} />);
+
+      expect(screen.getByRole('dialog').style.transform).toBe(
+        'translate(0px, -20px) scale(0.95, 0.95)'
+      );
+    });
+
+    it('triggerRef로 다이얼로그 안의 요소를 명시하면 거절하지 않고 그 자리에서 자란다', () => {
+      // 거절은 활성 요소 폴백 경로에만 붙는다. 명시한 ref는 유일한 의도 표명이다.
+      installLayout(
+        { left: 100, top: 200, width: 80, height: 20 },
+        { left: 200, top: 100, width: 600, height: 400 }
+      );
+
+      const Inside = () => {
+        const innerRef = useRef<HTMLButtonElement>(null);
+        return (
+          <Modal open onClose={() => {}} triggerRef={innerRef}>
+            <button ref={innerRef} type="button">
+              안쪽
+            </button>
+          </Modal>
+        );
+      };
+      render(<Inside />);
+
+      expect(screen.getByRole('dialog').style.transform).toBe(
+        'translate(-360px, -90px) scale(0.8, 0.8)'
+      );
+    });
+
+    describe('축소 선호가 뒤집혀 타임라인이 다시 만들어질 때', () => {
+      // 이때 포커스는 이미 다이얼로그 안이다. 다이얼로그 자손을 트리거로 치면
+      // 열려 있던 모달이 자기 안의 버튼 자리로 접혔다 다시 자란다.
+      // jsdom은 matchMedia를 구현하지 않는다 — 선호를 바꿀 수 있게 깔아야 한다.
+      const listeners = new Set<() => void>();
+      let reduce = true;
+
+      beforeEach(() => {
+        reduce = true;
+        listeners.clear();
+        vi.stubGlobal(
+          'matchMedia',
+          (media: string): MediaQueryList =>
+            ({
+              get matches() {
+                return reduce;
+              },
+              media,
+              addEventListener: (_: string, fn: () => void) =>
+                listeners.add(fn),
+              removeEventListener: (_: string, fn: () => void) =>
+                listeners.delete(fn),
+            }) as unknown as MediaQueryList
+        );
+      });
+
+      afterEach(() => {
+        vi.unstubAllGlobals();
+      });
+
+      it('다이얼로그 안에 있는 활성 요소는 트리거로 쓰지 않고 가운데에서 자란다', () => {
+        installLayout(
+          { left: 100, top: 200, width: 80, height: 20 },
+          { left: 200, top: 100, width: 600, height: 400 }
+        );
+
+        render(
+          <Modal open onClose={() => {}}>
+            <button type="button">안쪽</button>
+          </Modal>
+        );
+        const dialog = screen.getByRole('dialog');
+        expect(dialog).toContainElement(document.activeElement as HTMLElement);
+
+        act(() => {
+          reduce = false;
+          listeners.forEach((fn) => fn());
+        });
+
+        expect(dialog.style.transform).toBe(
+          'translate(0px, -20px) scale(0.95, 0.95)'
+        );
+      });
+    });
+
     it('활성 요소를 못 읽으면 가운데에서 자란다. 예외를 던지지 않는다', () => {
       installLayout(
         { left: 100, top: 200, width: 80, height: 20 },
