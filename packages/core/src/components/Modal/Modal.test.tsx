@@ -552,7 +552,7 @@ describe('Modal', () => {
     describe('축소 선호가 뒤집혀 타임라인이 다시 만들어질 때', () => {
       // 이때 포커스는 이미 다이얼로그 안이다. 다이얼로그 자손을 트리거로 치면
       // 열려 있던 모달이 자기 안의 버튼 자리로 접혔다 다시 자란다.
-      // jsdom은 matchMedia를 구현하지 않는다 — 선호를 바꿀 수 있게 깔아야 한다.
+      // jsdom은 matchMedia를 구현하지 않는다. 선호를 바꿀 수 있게 깔아야 한다.
       const listeners = new Set<() => void>();
       let reduce = true;
 
