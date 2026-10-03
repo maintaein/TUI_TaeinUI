@@ -36,30 +36,48 @@ import { gsapDuration, gsapEasing } from '../../tokens/gsapEasing';
 const CENTER_START = { opacity: 0, x: 0, y: -20, scale: 0.95 } as const;
 
 /**
- * 트리거에서 자랄 때의 시작 배율.
+ * 끝 상태 `clip-path`의 여유. 패널 그림자가 잘리지 않을 만큼 넉넉한 음수 inset이다.
  *
- * 버튼 폭 / 다이얼로그 폭 비율(보통 0.15~0.25)을 그대로 쓰면 본문 16px이 3px로
- * 찌그러져 첫 프레임이 글자 뭉개진 판이 된다. 가독성이 유일한 하드 제약이므로
- * 배율을 고정하고, "저 버튼에서 나왔다"는 신호는 **위치**(중심 이동)가 맡는다 —
- * 실제로 출처를 읽히게 하는 채널도 크기보다 위치다. 0.8이면 16px 본문이 최악의
- * 프레임에서도 12.8px로, 정지 화면으로 얼려 놓아도 읽힌다.
+ * `clip-path`는 `box-shadow`도 자른다. 끝 상태를 `inset(0)`으로 두면 `shadow.xl`이
+ * 통째로 사라진다(실측: 그림자가 닿는 행 0/46, 최저 명도 255). `-20px`은 20/46으로
+ * 아직 잘리고, `-50px`에서 32/46 · 명도 224로 클립 없음과 픽셀 단위로 같아진다.
+ * 그림자는 아래로 32px 뻗는다. `shadow.xl` 토큰이 바뀌면 이 값을 다시 재야 한다.
  */
-const GROW_SCALE = 0.8;
+const CLIP_BLEED = 50;
+
+/** 자식 페이드가 시작하는 지점: 상자 트윈(`slow`)의 40%. 창이 열린 뒤에야 내용이 비친다. */
+const CHILD_FADE_AT = 0.4;
+
+/** 계산된 `border-radius`를 px로 읽는다. 읽을 수 없으면(jsdom의 var() 등) 0. */
+const radiusOf = (el: HTMLElement, width: number): number => {
+  const raw = getComputedStyle(el).borderTopLeftRadius;
+  const n = Number.parseFloat(raw);
+  if (Number.isNaN(n)) return 0;
+  return raw.endsWith('%') ? (n / 100) * width : n;
+};
 
 /**
- * 등장 시작 상태. 트리거를 읽을 수 있으면 다이얼로그 중심을 트리거 중심으로
- * 당겨 두고(transform만 쓴다 — top/left/width/height는 건드리지 않아 레이아웃이
- * 다시 계산되지 않는다), 못 읽으면 조용히 `CENTER_START`로 물러난다.
+ * 트리거를 읽을 수 있을 때의 시작 상태. 못 읽으면 `null`이고 호출처는
+ * `CENTER_START`로 물러난다.
+ *
+ * **`scale`을 쓰지 않는다.** 이전에는 `scale: 0.8`로 고정해 글자 가독성(이 모달의
+ * 유일한 하드 제약)을 지켰다. 이제는 배율을 아예 안 쓴다. 패널 박스는 그대로 두고
+ * `x`/`y`로 트리거에 겹친 뒤 `clip-path: inset()`으로 보이는 창만 트리거 크기로
+ * 좁힌다. 글자는 단 한 프레임도 찌그러지지 않으니 24px 아이콘 버튼에서도 읽힌다.
+ * 비율을 그대로 쓰면 본문 16px이 1px 미만이 되는 문제 자체가 없다.
+ * 창이 열리면서 패널이 드러나고, `round`도 트리거 반경에서 패널 반경으로 같이
+ * 보간된다(GSAP이 `inset()`을 `round`까지 선형 보간한다. 네 축 전부와 `round`
+ * 하나를 from·to에 똑같이 적어야 구조가 같아 보간된다).
  *
  * 못 읽는 경우: 트리거가 없음(호출처가 `triggerRef.current`와 활성 요소를 모두
  * 못 구함) · 문서에서 떼어진 요소 · 크기 0(숨겨졌거나 레이아웃 없는 환경).
  * 어느 쪽도 예외를 던지지 않는다. 모달이 열리지 않는 것보다 가운데에서 자라는 게 낫다.
  */
-const enterStart = (
+const triggerStart = (
   dialog: HTMLElement,
   trigger: HTMLElement | null | undefined
-): { opacity: number; x: number; y: number; scale: number } => {
-  if (!trigger?.isConnected) return CENTER_START;
+): { x: number; y: number; clipPath: string } | null => {
+  if (!trigger?.isConnected) return null;
 
   const from = trigger.getBoundingClientRect();
   const to = dialog.getBoundingClientRect();
@@ -69,16 +87,23 @@ const enterStart = (
     to.width === 0 ||
     to.height === 0
   ) {
-    return CENTER_START;
+    return null;
   }
 
-  // translate는 scale보다 먼저 적용되고(GSAP/CSS 합성 순서) 배율은 요소 중심을
-  // 기준으로 돈다 — 두 중심의 차이를 그대로 넣으면 중심이 정확히 겹친다.
+  // 트리거가 패널보다 큰 축은 음수 inset이 된다. 0으로 막아 그 축은 처음부터 다 보인다.
+  const insetY = Math.max(0, (to.height - from.height) / 2);
+  const insetX = Math.max(0, (to.width - from.width) / 2);
+  // 알약(9999px)이 타원이 되지 않게 트리거 짧은 변의 절반으로 누른다.
+  const round = Math.min(
+    radiusOf(trigger, from.width),
+    Math.min(from.width, from.height) / 2
+  );
+
+  // translate의 차이를 그대로 넣으면 두 중심이 정확히 겹친다.
   return {
-    opacity: 0,
     x: from.left + from.width / 2 - (to.left + to.width / 2),
     y: from.top + from.height / 2 - (to.top + to.height / 2),
-    scale: GROW_SCALE,
+    clipPath: `inset(${insetY}px ${insetX}px ${insetY}px ${insetX}px round ${round}px)`,
   };
 };
 
@@ -86,7 +111,7 @@ const enterStart = (
  * `triggerRef.current`가 없을 때(ref 미전달 포함)의 트리거: 지금 포커스된 요소. 이 시점은 layout 단계라
  * `useFocusTrap`이 포커스를 옮기기 전이므로 활성 요소가 아직 클릭된 버튼이다
  * (`useFocusTrap`의 `previousActiveElementRef`는 useEffect에서 채워져 여기선 비어 있다).
- * body·html은 연결돼 있고 크기도 있어 `enterStart`의 가드를 통과하지만 문서 전체
+ * body·html은 연결돼 있고 크기도 있어 `triggerStart`의 가드를 통과하지만 문서 전체
  * 기준 중심이라 모달이 엉뚱한 곳에서 날아온다. 트리거로 치지 않는다.
  * 다이얼로그 자신의 자손도 치지 않는다. `autoFocus` 자식이 있거나 축소 선호가
  * 뒤집혀 타임라인이 다시 만들어지면 포커스가 이미 다이얼로그 안이라, 모달이
@@ -197,19 +222,51 @@ const ModalRoot = ({
         );
       }
       if (dialog) {
-        timeline.fromTo(
+        const start = triggerStart(
           dialog,
-          enterStart(dialog, triggerRef?.current ?? activeTrigger(dialog)),
-          {
-            opacity: 1,
-            x: 0,
-            y: 0,
-            scale: 1,
-            duration: gsapDuration.slow,
-            ease: gsapEasing.settle,
-          },
-          0
+          triggerRef?.current ?? activeTrigger(dialog)
         );
+        if (!start) {
+          timeline.fromTo(
+            dialog,
+            CENTER_START,
+            {
+              opacity: 1,
+              x: 0,
+              y: 0,
+              scale: 1,
+              duration: gsapDuration.slow,
+              ease: gsapEasing.settle,
+            },
+            0
+          );
+        } else {
+          const ease = gsapEasing.settle;
+          const panelRadius = radiusOf(dialog, dialog.offsetWidth);
+          const end = `inset(-${CLIP_BLEED}px -${CLIP_BLEED}px -${CLIP_BLEED}px -${CLIP_BLEED}px round ${panelRadius}px)`;
+          // 패널 배경이 먼저 불투명해지는 동안 그 아래 트리거 글자가 흐려진다.
+          // 트리거 요소는 직접 건드리지 않는다(중단 시 opacity 0으로 남을 위험).
+          timeline.fromTo(
+            dialog,
+            { opacity: 0 },
+            { opacity: 1, duration: gsapDuration.fast, ease },
+            0
+          );
+          timeline.fromTo(
+            dialog,
+            { x: start.x, y: start.y, clipPath: start.clipPath },
+            { x: 0, y: 0, clipPath: end, duration: gsapDuration.slow, ease },
+            0
+          );
+          if (dialog.children.length > 0) {
+            timeline.fromTo(
+              Array.from(dialog.children),
+              { opacity: 0 },
+              { opacity: 1, duration: gsapDuration.base, ease },
+              gsapDuration.slow * CHILD_FADE_AT
+            );
+          }
+        }
       }
     },
   });

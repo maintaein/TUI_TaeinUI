@@ -390,9 +390,7 @@ describe('Modal', () => {
       render(<TriggeredModal open />);
 
       const dialog = screen.getByRole('dialog');
-      expect(dialog.style.transform).toBe(
-        'translate(-360px, -90px) scale(0.8, 0.8)'
-      );
+      expect(dialog.style.transform).toBe('translate(-360px, -90px)');
     });
 
     it('transform만 쓴다 — 레이아웃 속성은 건드리지 않는다', () => {
@@ -410,8 +408,22 @@ describe('Modal', () => {
       expect(dialog.style.height).toBe('');
     });
 
-    it('글자가 뭉개지지 않는 배율에서 시작한다 — 비율이 아무리 작아도 0.8이다', () => {
-      // 트리거 폭/다이얼로그 폭 = 8/600 ≈ 0.013. 비율을 그대로 쓰면 본문이 사라진다.
+    it('트리거 크기의 창으로 시작한다. clip-path inset이 (패널-트리거)/2다', () => {
+      // 패널 600x400, 트리거 80x20 → 가로 (600-80)/2=260, 세로 (400-20)/2=190
+      installLayout(
+        { left: 100, top: 200, width: 80, height: 20 },
+        { left: 200, top: 100, width: 600, height: 400 }
+      );
+
+      render(<TriggeredModal open />);
+
+      expect(screen.getByRole('dialog').style.clipPath).toMatch(
+        /^inset\(190px 260px 190px 260px round /
+      );
+    });
+
+    it('scale을 쓰지 않는다. 비율이 아무리 작아도 글자가 찌그러지지 않는다', () => {
+      // 8x8 트리거. 비율을 배율로 쓰면 본문이 사라진다.
       installLayout(
         { left: 0, top: 0, width: 8, height: 8 },
         { left: 200, top: 100, width: 600, height: 400 }
@@ -419,9 +431,121 @@ describe('Modal', () => {
 
       render(<TriggeredModal open />);
 
-      expect(screen.getByRole('dialog').style.transform).toContain(
-        'scale(0.8, 0.8)'
+      expect(screen.getByRole('dialog').style.transform).not.toContain('scale');
+    });
+
+    it('트리거가 패널보다 큰 축은 inset이 0이다', () => {
+      // 트리거 폭 800 > 패널 폭 600 → 가로 0. 높이 20 < 400 → 세로 190
+      installLayout(
+        { left: 0, top: 200, width: 800, height: 20 },
+        { left: 200, top: 100, width: 600, height: 400 }
       );
+
+      render(<TriggeredModal open />);
+
+      expect(screen.getByRole('dialog').style.clipPath).toMatch(
+        /^inset\(190px 0px 190px 0px round /
+      );
+    });
+
+    it('알약 트리거의 round는 짧은 변의 절반으로 누른다', () => {
+      installLayout(
+        { left: 100, top: 200, width: 80, height: 20 },
+        { left: 200, top: 100, width: 600, height: 400 }
+      );
+
+      const { rerender } = render(<TriggeredModal open={false} />);
+      screen.getByRole('button', { name: '열기' }).style.borderTopLeftRadius =
+        '9999px';
+      rerender(<TriggeredModal open />);
+
+      expect(screen.getByRole('dialog').style.clipPath).toMatch(
+        /round 10px\)$/
+      );
+    });
+
+    it('트리거 반경이 짧은 변의 절반보다 작으면 그대로 쓴다', () => {
+      installLayout(
+        { left: 100, top: 200, width: 80, height: 20 },
+        { left: 200, top: 100, width: 600, height: 400 }
+      );
+
+      const { rerender } = render(<TriggeredModal open={false} />);
+      screen.getByRole('button', { name: '열기' }).style.borderTopLeftRadius =
+        '4px';
+      rerender(<TriggeredModal open />);
+
+      expect(screen.getByRole('dialog').style.clipPath).toMatch(/round 4px\)$/);
+    });
+
+    it('끝 상태 clip-path의 inset은 음수다. 그림자가 잘리지 않는다', () => {
+      // 축소 선호면 gateMotion이 타임라인을 끝 상태로 확정한다.
+      vi.stubGlobal(
+        'matchMedia',
+        (media: string): MediaQueryList =>
+          ({
+            matches: true,
+            media,
+            addEventListener: () => {},
+            removeEventListener: () => {},
+          }) as unknown as MediaQueryList
+      );
+      installLayout(
+        { left: 100, top: 200, width: 80, height: 20 },
+        { left: 200, top: 100, width: 600, height: 400 }
+      );
+
+      render(<TriggeredModal open />);
+
+      const dialog = screen.getByRole('dialog');
+      expect(dialog.style.clipPath).toMatch(
+        /^inset\(-50px -50px -50px -50px round /
+      );
+      expect(dialog.style.opacity).toBe('1');
+      expect(dialog.style.transform).not.toContain('scale');
+      vi.unstubAllGlobals();
+    });
+
+    it('직계 자식은 패널과 따로 opacity 0에서 시작한다', () => {
+      installLayout(
+        { left: 100, top: 200, width: 80, height: 20 },
+        { left: 200, top: 100, width: 600, height: 400 }
+      );
+      const Wrapped = () => {
+        const ref = useRef<HTMLButtonElement>(null);
+        return (
+          <>
+            <button ref={ref} type="button">
+              열기
+            </button>
+            <Modal open onClose={() => {}} triggerRef={ref}>
+              <p>본문</p>
+            </Modal>
+          </>
+        );
+      };
+
+      render(<Wrapped />);
+
+      expect(screen.getByText('본문').style.opacity).toBe('0');
+    });
+
+    it('CENTER_START 폴백에는 clip-path가 붙지 않는다', () => {
+      installLayout(
+        { left: 0, top: 0, width: 1000, height: 3000 },
+        { left: 200, top: 100, width: 600, height: 400 }
+      );
+
+      const { rerender } = render(
+        <TriggeredModal open={false} withRef={false} />
+      );
+      rerender(<TriggeredModal open withRef={false} />);
+
+      const dialog = screen.getByRole('dialog');
+      expect(dialog.style.transform).toBe(
+        'translate(0px, -20px) scale(0.95, 0.95)'
+      );
+      expect(dialog.style.clipPath).toBe('');
     });
 
     it('triggerRef 없이 버튼에서 열면 그 버튼 자리에서 자란다', () => {
@@ -440,7 +564,7 @@ describe('Modal', () => {
       rerender(<TriggeredModal open withRef={false} />);
 
       expect(screen.getByRole('dialog').style.transform).toBe(
-        'translate(-360px, -90px) scale(0.8, 0.8)'
+        'translate(-360px, -90px)'
       );
     });
 
@@ -505,7 +629,7 @@ describe('Modal', () => {
 
       // 명시 버튼 중심 (140, 210) 기준. 활성 버튼 (925, 925)였다면 값이 다르다.
       expect(screen.getByRole('dialog').style.transform).toBe(
-        'translate(-360px, -90px) scale(0.8, 0.8)'
+        'translate(-360px, -90px)'
       );
     });
 
@@ -545,7 +669,7 @@ describe('Modal', () => {
       render(<Inside />);
 
       expect(screen.getByRole('dialog').style.transform).toBe(
-        'translate(-360px, -90px) scale(0.8, 0.8)'
+        'translate(-360px, -90px)'
       );
     });
 
