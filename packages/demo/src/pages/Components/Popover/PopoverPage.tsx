@@ -10,9 +10,10 @@ export function PopoverPage() {
   const propsData: PropDefinition[] = [
     {
       name: 'children',
-      type: 'ReactNode',
+      type: 'ReactElement',
       required: true,
-      description: '트리거 요소 (클릭 시 팝오버가 열리는 대상)',
+      description:
+        '트리거 요소. 상호작용 가능한 단일 요소여야 합니다 (Button, IconButton, Avatar 등). onClick과 aria-haspopup·aria-expanded·aria-controls가 이 요소에 직접 붙습니다.',
     },
     {
       name: 'content',
@@ -258,6 +259,36 @@ const menu = (
   }
 >
   <IconButton ghost aria-label="더보기"><Ellipsis size={22} /></IconButton>
+</Popover>`}
+          />
+        </div>
+
+        {/* Avatar Trigger */}
+        <div className={styles.example}>
+          <h3 className={styles.exampleTitle}>Avatar Trigger</h3>
+          <LivePreview
+            title="Avatar 트리거"
+            description="onClick을 따로 넘기지 않아도 Avatar가 버튼이 되어 클릭과 키보드(Enter·Space)로 열립니다."
+            editable
+            code={`<Popover
+  position="bottom"
+  content={
+    <div style={{ minWidth: '220px' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.125rem', padding: '0.75rem 1rem' }}>
+        <Text variant="body1" weight="semibold">홍길동</Text>
+        <Text variant="body3" color="secondary">hong@example.com</Text>
+      </div>
+      <Divider spacing="sm" />
+      <List spacing="sm" style={{ padding: '0.25rem 0.5rem 0.5rem' }}>
+        <ListItem style={{ padding: '0.5rem', borderRadius: '6px', cursor: 'pointer' }}>설정</ListItem>
+        <ListItem style={{ padding: '0.5rem', borderRadius: '6px', cursor: 'pointer' }}>
+          <Text variant="body2" color="error">로그아웃</Text>
+        </ListItem>
+      </List>
+    </div>
+  }
+>
+  <Avatar src="https://i.pravatar.cc/150?img=40" alt="프로필 메뉴" size="lg" />
 </Popover>`}
           />
         </div>

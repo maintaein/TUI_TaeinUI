@@ -117,6 +117,14 @@ export const Avatar = ({
       ? { type: 'button' as const, onClick, 'aria-label': alt }
       : {};
 
+  // 상호작용 루트(button/a)면 aria-* 는 포커스를 받는 루트로 보낸다(Popover가
+  // 넘기는 aria-expanded 등). <img>에 붙으면 스크린 리더가 읽지 못한다.
+  const rootAria: Record<string, unknown> = {};
+  const imgProps: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(props)) {
+    (isClickable && key.startsWith('aria-') ? rootAria : imgProps)[key] = value;
+  }
+
   return (
     <RootTag
       className={clsx(
@@ -127,6 +135,7 @@ export const Avatar = ({
         className
       )}
       {...rootProps}
+      {...rootAria}
     >
       {showImage ? (
         <img
@@ -134,7 +143,7 @@ export const Avatar = ({
           alt={alt}
           className={image}
           onError={handleImageError}
-          {...props}
+          {...imgProps}
         />
       ) : (
         <div role="img" aria-label={alt} className={fallbackText}>

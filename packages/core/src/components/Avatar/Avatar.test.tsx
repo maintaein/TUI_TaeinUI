@@ -297,6 +297,41 @@ describe('Avatar', () => {
       expect(container.firstChild).toHaveClass(/clickable/);
     });
 
+    it('onClick이 있으면 aria-* 가 버튼에 붙고 img에는 붙지 않는다', () => {
+      const { container } = render(
+        <Avatar
+          src="https://example.com/a.jpg"
+          alt="테스트"
+          onClick={() => {}}
+          aria-describedby="x"
+        />
+      );
+
+      expect(screen.getByRole('button')).toHaveAttribute(
+        'aria-describedby',
+        'x'
+      );
+      expect(container.querySelector('img')).not.toHaveAttribute(
+        'aria-describedby'
+      );
+    });
+
+    it('onClick이 없으면 aria-* 는 기존대로 img에 붙는다', () => {
+      const { container } = render(
+        <Avatar
+          src="https://example.com/a.jpg"
+          alt="테스트"
+          aria-describedby="x"
+        />
+      );
+
+      expect(container.querySelector('img')).toHaveAttribute(
+        'aria-describedby',
+        'x'
+      );
+      expect(container.firstChild).not.toHaveAttribute('aria-describedby');
+    });
+
     it('onClick/href가 없으면 div로 렌더링된다', () => {
       const { container } = render(<Avatar alt="테스트" />);
 

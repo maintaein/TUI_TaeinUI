@@ -8,6 +8,8 @@ import {
   screen,
   waitFor,
 } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { Avatar } from '../Avatar';
 import { Popover } from './Popover';
 
 // 조항 3: 퇴장 = 등장 * 0.65. calc(duration.slow * 0.65) = 300ms * 0.65 = 195ms.
@@ -361,39 +363,92 @@ describe('Popover', () => {
   });
 
   describe('접근성 테스트', () => {
-    it('트리거에 aria-haspopup="dialog"가 설정된다', () => {
-      const { container } = render(
+    it('트리거 버튼 자신에 aria-haspopup="dialog"가 설정된다', () => {
+      render(
         <Popover content={<div>팝오버 내용</div>}>
           <button>트리거</button>
         </Popover>
       );
 
-      const trigger = container.querySelector('[aria-haspopup="dialog"]');
-      expect(trigger).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: '트리거' })).toHaveAttribute(
+        'aria-haspopup',
+        'dialog'
+      );
     });
 
-    it('닫힌 상태에서 aria-expanded="false"이다', () => {
-      const { container } = render(
+    it('닫힌 상태에서 버튼이 expanded: false이다', () => {
+      render(
         <Popover content={<div>팝오버 내용</div>}>
           <button>트리거</button>
         </Popover>
       );
 
-      const trigger = container.querySelector('[aria-expanded="false"]');
-      expect(trigger).toBeInTheDocument();
+      expect(
+        screen.getByRole('button', { name: '트리거', expanded: false })
+      ).toBeInTheDocument();
     });
 
-    it('열린 상태에서 aria-expanded="true"이다', async () => {
-      const { container } = render(
+    it('열린 상태에서 버튼이 expanded: true이다', async () => {
+      render(
         <Popover content={<div>팝오버 내용</div>}>
           <button>트리거</button>
         </Popover>
       );
 
-      fireEvent.click(screen.getByText('트리거'));
+      fireEvent.click(screen.getByRole('button', { name: '트리거' }));
 
-      const trigger = container.querySelector('[aria-expanded="true"]');
-      expect(trigger).toBeInTheDocument();
+      expect(
+        screen.getByRole('button', { name: '트리거', expanded: true })
+      ).toBeInTheDocument();
+    });
+
+    it('안쪽 래퍼 div에는 트리거 속성이 없다(회귀 가드)', () => {
+      render(
+        <Popover content={<div>팝오버 내용</div>}>
+          <button>트리거</button>
+        </Popover>
+      );
+
+      const wrapper = screen.getByRole('button', { name: '트리거' })
+        .parentElement as HTMLElement;
+      expect(wrapper.tagName).toBe('DIV');
+      expect(wrapper).not.toHaveAttribute('aria-expanded');
+      expect(wrapper).not.toHaveAttribute('aria-haspopup');
+      expect(wrapper).not.toHaveAttribute('aria-controls');
+    });
+
+    it('자식의 기존 onClick이 불리고 팝오버도 열린다', () => {
+      const onClick = vi.fn();
+      render(
+        <Popover content={<div>팝오버 내용</div>}>
+          <button onClick={onClick}>트리거</button>
+        </Popover>
+      );
+
+      fireEvent.click(screen.getByRole('button', { name: '트리거' }));
+
+      expect(onClick).toHaveBeenCalledTimes(1);
+      expect(screen.getByText('팝오버 내용')).toBeInTheDocument();
+    });
+
+    it('Avatar 자식: onClick 없이도 버튼이고 Enter로 열리며 aria-expanded가 버튼에 있다', async () => {
+      const user = userEvent.setup();
+      render(
+        <Popover content={<div>팝오버 내용</div>}>
+          <Avatar alt="프로필" />
+        </Popover>
+      );
+
+      const button = screen.getByRole('button', { name: '프로필' });
+      expect(button).toHaveAttribute('aria-expanded', 'false');
+
+      button.focus();
+      await user.keyboard('{Enter}');
+
+      expect(screen.getByText('팝오버 내용')).toBeInTheDocument();
+      expect(button).toHaveAttribute('aria-expanded', 'true');
+      expect(button).toHaveAttribute('aria-haspopup', 'dialog');
+      expect(button.querySelector('[aria-expanded]')).toBeNull();
     });
 
     it('팝오버에 role="dialog"가 있다', async () => {
@@ -408,19 +463,21 @@ describe('Popover', () => {
       expect(screen.getByRole('dialog')).toBeInTheDocument();
     });
 
-    it('트리거의 aria-controls가 팝오버 id와 연결된다', async () => {
-      const { container } = render(
+    it('버튼의 aria-controls가 팝오버 id와 같다', async () => {
+      render(
         <Popover content={<div>팝오버 내용</div>}>
           <button>트리거</button>
         </Popover>
       );
 
-      fireEvent.click(screen.getByText('트리거'));
+      const button = screen.getByRole('button', { name: '트리거' });
+      expect(button).not.toHaveAttribute('aria-controls');
 
-      const popover = screen.getByRole('dialog');
-      const popoverId = popover.getAttribute('id');
-      const trigger = container.querySelector('[aria-controls]');
-      expect(trigger?.getAttribute('aria-controls')).toBe(popoverId);
+      fireEvent.click(button);
+
+      const popoverId = screen.getByRole('dialog').getAttribute('id');
+      expect(popoverId).toBeTruthy();
+      expect(button).toHaveAttribute('aria-controls', popoverId);
     });
   });
 

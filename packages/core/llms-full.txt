@@ -775,7 +775,7 @@ import { Popover, Button } from '@taein-ui/core';
 ### Props (extends HTMLAttributes<HTMLDivElement>)
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
-| children | ReactNode | (required) | Trigger element |
+| children | ReactElement | (required) | Single interactive trigger element (Button, IconButton, Avatar). onClick and aria-haspopup/expanded/controls are attached to it directly |
 | content | ReactNode | (required) | Popover content |
 | open | boolean | — | Controlled visibility |
 | onOpenChange | (open: boolean) => void | — | State change callback |

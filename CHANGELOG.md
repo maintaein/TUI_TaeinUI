@@ -39,4 +39,6 @@
 - `Button`의 `weak` + `danger` 눌림이 호버와 구별되지 않던 것을 고쳤습니다. 호버와 같은 배경색 위에서 `filter: brightness(0.96)`로 배경과 글자를 함께 8.6% 어둡게 해 눌린 상태가 보이고 글자 대비는 AA(4.546:1)를 지킵니다.
 - **BREAKING CHANGE:** `Border`의 `rounded` 기본값이 `sides="all"`일 때 `'none'`에서 `'md'`로 바뀌었습니다. 부분 `sides`(`top`·`bottom` 등)는 선 끝이 휘지 않도록 `'none'`을 유지합니다. 이전처럼 각진 모서리를 원하면 `<Border rounded="none">`으로 명시하세요.
 - **BREAKING CHANGE:** `Border`의 호버·포커스 빛(glow)이 기본으로 꺼집니다. 이전에는 `sides="all"`이면 항상 렌더됐습니다. 켜려면 `<Border glow>`로 넘기세요.
+- **BREAKING CHANGE:** `Popover`의 `children`이 단일 요소여야 합니다. 트리거 속성(`onClick`·`aria-haspopup`·`aria-expanded`·`aria-controls`)이 감싸는 `div`가 아니라 그 요소에 직접 붙습니다. 문자열이나 여러 요소를 넘겼다면 `Button` 같은 상호작용 요소 하나로 감싸세요: `<Popover content={...}><Button>열기</Button></Popover>`. `Avatar`는 `onClick` 없이도 트리거로 쓸 수 있습니다.
+- `Avatar`가 `button`·`a`로 렌더링될 때 `aria-*` 속성을 `<img>`가 아니라 루트 요소에 붙입니다.
 - `Border` 빛이 한 바퀴 도는 시간을 1500ms(`loop.base`)에서 6000ms(`loop.slow`)로 늘려 느린 환경광으로 바꿨습니다. 호버로 켜지는 빛은 `(hover: hover) and (pointer: fine)`일 때만 적용돼 터치 기기에서 탭 뒤 빛이 들러붙지 않습니다. 키보드 포커스(`:focus-within`)는 포인터 종류와 무관하게 켜집니다.

@@ -4,8 +4,11 @@ import {
   useEffect,
   useCallback,
   useId,
+  cloneElement,
+  type ReactElement,
   type ReactNode,
   type HTMLAttributes,
+  type MouseEvent as ReactMouseEvent,
 } from 'react';
 import clsx from 'clsx';
 import {
@@ -24,7 +27,6 @@ import {
 // 퇴장 전이(calc(duration.slow * 0.65))와 맞춘 값이다. Popover.css.ts의
 // closed 전이 길이(300ms * 0.65 = 195ms)를 바꾸면 이 상수도 같이 바꿔야
 // CSS 전이가 끝나기 전에 DOM이 사라지거나 그 반대가 되지 않는다.
-// Modal.tsx의 EXIT_DURATION_MS(200)와 다른 값이다 — 그대로 베끼지 않는다.
 const EXIT_DURATION_MS = 195;
 
 /** 트리거 요소 근처에 떠 있는 콘텐츠를 표시하는 팝오버 컴포넌트. 제어/비제어 모드 지원 */
@@ -32,8 +34,12 @@ export interface PopoverProps extends Omit<
   HTMLAttributes<HTMLDivElement>,
   'content'
 > {
-  /** 트리거 요소 (클릭 시 팝오버 표시) */
-  children: ReactNode;
+  /**
+   * 트리거 요소 (클릭 시 팝오버 표시). 상호작용 가능한 단일 요소여야 한다
+   * (`Button`, `IconButton`, `onClick`을 받는 `Avatar` 등). `onClick`과
+   * `aria-haspopup`·`aria-expanded`·`aria-controls`가 이 요소에 직접 붙는다.
+   */
+  children: ReactElement<HTMLAttributes<HTMLElement>>;
   /** 팝오버에 표시할 콘텐츠 */
   content: ReactNode;
   /** 제어 모드: 팝오버 표시 여부 */
@@ -180,15 +186,16 @@ export const Popover = ({
       className={clsx(popoverContainer, className)}
       {...props}
     >
-      {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions */}
-      <div
-        ref={triggerRef}
-        onClick={handleTriggerClick}
-        aria-haspopup="dialog"
-        aria-expanded={isOpen}
-        aria-controls={isOpen ? popoverId : undefined}
-      >
-        {children}
+      <div ref={triggerRef}>
+        {cloneElement(children, {
+          onClick: (event: ReactMouseEvent<HTMLElement>) => {
+            children.props.onClick?.(event);
+            handleTriggerClick();
+          },
+          'aria-haspopup': 'dialog',
+          'aria-expanded': isOpen,
+          'aria-controls': isOpen ? popoverId : undefined,
+        })}
       </div>
       {shouldRender && (
         <div
