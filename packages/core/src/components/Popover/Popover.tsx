@@ -35,9 +35,10 @@ export interface PopoverProps extends Omit<
   'content'
 > {
   /**
-   * 트리거 요소 (클릭 시 팝오버 표시). 상호작용 가능한 단일 요소여야 한다
-   * (`Button`, `IconButton`, `onClick`을 받는 `Avatar` 등). `onClick`과
-   * `aria-haspopup`·`aria-expanded`·`aria-controls`가 이 요소에 직접 붙는다.
+   * 트리거 요소 (클릭 시 팝오버 표시). 받은 `onClick`과 `aria-*`를 자기 루트의
+   * 상호작용 요소에 다는 단일 요소여야 한다 (`Button`, `IconButton`, `Avatar`).
+   * `onClick`과 `aria-haspopup`·`aria-expanded`·`aria-controls`가 이 요소에
+   * 직접 붙는다. 링크(`<a>`, `Avatar href`)는 트리거가 아니다. 누르면 이동한다.
    */
   children: ReactElement<HTMLAttributes<HTMLElement>>;
   /** 팝오버에 표시할 콘텐츠 */

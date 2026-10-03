@@ -234,7 +234,7 @@ const menu = (
 );
 
 <Popover open={open} onOpenChange={setOpen} content={menu}>
-  <Button variant="dark" onClick={() => setOpen(!open)}>설정</Button>
+  <Button variant="dark">설정</Button>
 </Popover>`}
           />
         </div>

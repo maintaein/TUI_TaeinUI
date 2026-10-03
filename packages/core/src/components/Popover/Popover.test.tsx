@@ -451,6 +451,25 @@ describe('Popover', () => {
       expect(button.querySelector('[aria-expanded]')).toBeNull();
     });
 
+    it('Avatar 자식: Escape로 닫으면 포커스가 그 Avatar 버튼으로 돌아온다', async () => {
+      const user = userEvent.setup();
+      render(
+        <Popover content={<div>팝오버 내용</div>}>
+          <Avatar alt="프로필" />
+        </Popover>
+      );
+
+      const button = screen.getByRole('button', { name: '프로필' });
+      button.focus();
+      await user.keyboard('{Enter}');
+      expect(screen.getByText('팝오버 내용')).toBeInTheDocument();
+
+      await user.keyboard('{Escape}');
+      await waitFor(() => {
+        expect(document.activeElement).toBe(button);
+      });
+    });
+
     it('팝오버에 role="dialog"가 있다', async () => {
       render(
         <Popover content={<div>팝오버 내용</div>}>

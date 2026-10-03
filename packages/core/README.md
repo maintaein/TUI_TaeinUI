@@ -81,7 +81,7 @@ function LoginForm() {
 - **Modal** — 모달 다이얼로그 (Header, Title, Content, Footer 서브컴포넌트)
 - **BottomSheet** — 하단 시트 (모바일)
 - **SideSheet** — 사이드 패널
-- **Popover** — 팝오버 (위치 자동 조정)
+- **Popover**: 클릭으로 여는 팝오버 (위·아래·좌·우 배치)
 
 ### 레이아웃
 

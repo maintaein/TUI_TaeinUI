@@ -316,6 +316,20 @@ describe('Avatar', () => {
       );
     });
 
+    it('onClick이 있으면 소비자의 aria-label이 alt 기반 기본 이름을 이긴다', () => {
+      render(<Avatar alt="테스트" onClick={() => {}} aria-label="내 프로필" />);
+
+      const button = screen.getByRole('button', { name: '내 프로필' });
+      expect(button).toHaveAttribute('aria-label', '내 프로필');
+    });
+
+    it('href가 있으면 소비자의 aria-label이 alt 기반 기본 이름을 이긴다', () => {
+      render(<Avatar alt="테스트" href="/profile" aria-label="내 프로필" />);
+
+      const link = screen.getByRole('link', { name: '내 프로필' });
+      expect(link).toHaveAttribute('aria-label', '내 프로필');
+    });
+
     it('onClick이 없으면 aria-* 는 기존대로 img에 붙는다', () => {
       const { container } = render(
         <Avatar
