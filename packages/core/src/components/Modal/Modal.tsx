@@ -47,11 +47,13 @@ const CENTER_START = { opacity: 0, x: 0, y: -20, scale: 0.95 } as const;
 const CLIP_BLEED = 50;
 
 /**
- * 자식 페이드가 시작하는 지점: 상자 트윈(`slow`)의 50%. 상자가 자라는 동안 내용이
- * 떠오르고, `fast` 페이드가 박스와 같은 시각(300ms)에 끝난다. 이 값과 페이드 duration의
- * 합이 `slow`를 넘으면 페이드가 박스보다 늦게 끝난다(테스트가 잠근다).
+ * 내용이 떠오르기 시작하는 지점: 상자 트윈(`slower`)의 45%. 내용(`slow`)은 상자보다
+ * 25ms 늦게 끝난다. 레퍼런스(`BubbleMenu`의 라벨)도 주연과 조연을 일부러 어긋나게 둔다.
  */
-const CHILD_FADE_AT = 0.5;
+const CHILD_RISE_AT = 0.45;
+
+/** 내용이 떠오르는 거리(px). `BubbleMenu`의 라벨 `y: 24`와 같다. */
+const CHILD_RISE_Y = 24;
 
 /** 테스트 전용: 열린 타임라인을 다이얼로그 노드에 얹는다(SegmentedButtons와 같은 모양). */
 type ModalTimelineHost = HTMLDivElement & {
@@ -225,7 +227,7 @@ const ModalRoot = ({
           { opacity: 0 },
           {
             opacity: 1,
-            duration: gsapDuration.base,
+            duration: gsapDuration.slow,
             ease: gsapEasing.settle,
           },
           0
@@ -260,7 +262,7 @@ const ModalRoot = ({
             { opacity: 0 },
             {
               opacity: 1,
-              duration: gsapDuration.fast,
+              duration: gsapDuration.slow,
               ease: gsapEasing.settle,
             },
             0
@@ -272,7 +274,7 @@ const ModalRoot = ({
               x: 0,
               y: 0,
               clipPath: end,
-              duration: gsapDuration.slow,
+              duration: gsapDuration.slower,
               // 화면 안에서의 변형은 ease-in-out이다. settle(power3.out)은 거리의 94%를
               // 앞 절반에 쓰고 나머지를 기어가서, 상자가 먼저 열리고 내용이 뒤따른다.
               ease: gsapEasing.drift,
@@ -280,15 +282,29 @@ const ModalRoot = ({
             0
           );
           if (dialog.children.length > 0) {
+            const children = Array.from(dialog.children);
+            const at = gsapDuration.slower * CHILD_RISE_AT;
+            // y와 opacity를 한 트윈에 묶지 않는다. snap(back.out)을 묶으면 불투명도도
+            // 1을 넘었다 돌아올 수 있다. 오버슛은 y에만 건다.
             timeline.fromTo(
-              Array.from(dialog.children),
+              children,
+              { y: CHILD_RISE_Y },
+              {
+                y: 0,
+                duration: gsapDuration.slow,
+                ease: gsapEasing.snap,
+              },
+              at
+            );
+            timeline.fromTo(
+              children,
               { opacity: 0 },
               {
                 opacity: 1,
-                duration: gsapDuration.fast,
+                duration: gsapDuration.slow,
                 ease: gsapEasing.settle,
               },
-              gsapDuration.slow * CHILD_FADE_AT
+              at
             );
           }
         }

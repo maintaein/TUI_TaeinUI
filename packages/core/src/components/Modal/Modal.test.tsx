@@ -571,8 +571,57 @@ describe('Modal', () => {
         expect(box!.vars.ease).not.toBe(gsapEasing.settle);
       });
 
-      it('타임라인 총 길이는 slow다. 자식 페이드가 박스보다 늦게 끝나지 않는다', () => {
-        expect(openTimeline().duration()).toBeCloseTo(gsapDuration.slow, 5);
+      const boxTween = () =>
+        openTimeline()
+          .getChildren()
+          .find((t) => 'clipPath' in (t as gsap.core.Tween).vars) as
+          | gsap.core.Tween
+          | undefined;
+      const riseTween = () =>
+        openTimeline()
+          .getChildren()
+          .find(
+            (t) =>
+              'y' in (t as gsap.core.Tween).vars &&
+              !('clipPath' in (t as gsap.core.Tween).vars)
+          ) as gsap.core.Tween | undefined;
+
+      it('박스 트윈 duration은 slower다', () => {
+        expect(boxTween()!.duration()).toBeCloseTo(gsapDuration.slower, 5);
+      });
+
+      it('자식 트윈은 y: 24에서 시작하고 이징은 snap이다', () => {
+        const rise = riseTween();
+        expect(rise).toBeDefined();
+        expect(rise!.vars.ease).toBe(gsapEasing.snap);
+        expect(rise!.duration()).toBeCloseTo(gsapDuration.slow, 5);
+        expect((rise!.targets()[0] as HTMLElement).style.transform).toContain(
+          'translate(0px, 24px)'
+        );
+      });
+
+      it('자식 트윈은 박스 duration의 45%에서 시작한다', () => {
+        expect(riseTween()!.startTime()).toBeCloseTo(
+          gsapDuration.slower * 0.45,
+          5
+        );
+      });
+
+      it('자식은 y로 지나쳤다 앉고(오버슛), 불투명도는 1을 넘지 않는다', () => {
+        const timeline = openTimeline();
+        const child = screen.getByText('본문');
+        let minY = 0;
+        let maxOpacity = 0;
+        for (let t = 0; t <= timeline.duration(); t += 0.005) {
+          timeline.time(t);
+          const y = /translate(?:3d)?\([^,]+, (-?[\d.]+)px/.exec(
+            child.style.transform
+          );
+          if (y) minY = Math.min(minY, Number(y[1]));
+          maxOpacity = Math.max(maxOpacity, Number(child.style.opacity));
+        }
+        expect(minY).toBeLessThan(-1);
+        expect(maxOpacity).toBeLessThanOrEqual(1);
       });
     });
 
