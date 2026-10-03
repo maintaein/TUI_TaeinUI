@@ -424,7 +424,92 @@ describe('Modal', () => {
       );
     });
 
-    it('triggerRef가 없으면 가운데에서 자란다 — 예외를 던지지 않는다', () => {
+    it('triggerRef 없이 버튼에서 열면 그 버튼 자리에서 자란다', () => {
+      // 트리거 중심 (140, 210), 다이얼로그 중심 (500, 300) → 차이 (-360, -90)
+      installLayout(
+        { left: 100, top: 200, width: 80, height: 20 },
+        { left: 200, top: 100, width: 600, height: 400 }
+      );
+
+      const { rerender } = render(
+        <TriggeredModal open={false} withRef={false} />
+      );
+      act(() => {
+        screen.getByRole('button', { name: '열기' }).focus();
+      });
+      rerender(<TriggeredModal open withRef={false} />);
+
+      expect(screen.getByRole('dialog').style.transform).toBe(
+        'translate(-360px, -90px) scale(0.8, 0.8)'
+      );
+    });
+
+    it('활성 요소가 body면 가운데에서 자란다. body는 트리거로 쓰지 않는다', () => {
+      // body는 연결돼 있고 크기도 있어 기존 가드를 다 통과한다. 막지 않으면
+      // 문서 전체 기준 중심에서 모달이 날아온다.
+      installLayout(
+        { left: 0, top: 0, width: 1000, height: 3000 },
+        { left: 200, top: 100, width: 600, height: 400 }
+      );
+
+      const { rerender } = render(
+        <TriggeredModal open={false} withRef={false} />
+      );
+      expect(document.activeElement).toBe(document.body);
+      rerender(<TriggeredModal open withRef={false} />);
+
+      expect(screen.getByRole('dialog').style.transform).toBe(
+        'translate(0px, -20px) scale(0.95, 0.95)'
+      );
+    });
+
+    it('triggerRef를 명시하면 활성 요소를 이긴다', () => {
+      const Both = ({ open }: { open: boolean }) => {
+        const explicitRef = useRef<HTMLButtonElement>(null);
+        return (
+          <>
+            <button type="button">활성</button>
+            <button ref={explicitRef} type="button" data-explicit>
+              명시
+            </button>
+            <Modal open={open} onClose={() => {}} triggerRef={explicitRef}>
+              Modal Content
+            </Modal>
+          </>
+        );
+      };
+      // 두 버튼이 같은 rect를 주면 구별이 안 된다. 명시 버튼만 다른 rect를 준다.
+      vi.spyOn(Element.prototype, 'getBoundingClientRect').mockImplementation(
+        function (this: Element) {
+          const box = this.matches('[role="dialog"]')
+            ? { left: 200, top: 100, width: 600, height: 400 }
+            : this.matches('[data-explicit]')
+              ? { left: 100, top: 200, width: 80, height: 20 }
+              : { left: 900, top: 900, width: 50, height: 50 };
+          return {
+            ...box,
+            x: box.left,
+            y: box.top,
+            right: box.left + box.width,
+            bottom: box.top + box.height,
+            toJSON: () => box,
+          } as DOMRect;
+        }
+      );
+
+      const { rerender } = render(<Both open={false} />);
+      act(() => {
+        screen.getByRole('button', { name: '활성' }).focus();
+      });
+      rerender(<Both open />);
+
+      // 명시 버튼 중심 (140, 210) 기준. 활성 버튼 (925, 925)였다면 값이 다르다.
+      expect(screen.getByRole('dialog').style.transform).toBe(
+        'translate(-360px, -90px) scale(0.8, 0.8)'
+      );
+    });
+
+    it('활성 요소를 못 읽으면 가운데에서 자란다. 예외를 던지지 않는다', () => {
       installLayout(
         { left: 100, top: 200, width: 80, height: 20 },
         { left: 200, top: 100, width: 600, height: 400 }
@@ -834,6 +919,33 @@ describe('Modal (Flat API)', () => {
       );
       expect(screen.getByText('직접 구성한 내용')).toBeInTheDocument();
       expect(screen.queryByRole('heading')).not.toBeInTheDocument();
+    });
+  });
+
+  describe('닫기 글리프', () => {
+    it('Flat과 Compound의 닫기 버튼이 둘 다 공유 Glyph를 렌더한다', () => {
+      const { unmount } = render(
+        <Modal {...defaultProps} title="설정" showClose>
+          내용
+        </Modal>
+      );
+      expect(
+        screen
+          .getByRole('button', { name: '닫기' })
+          .querySelector('[data-icon="close"]')
+      ).toBeInTheDocument();
+      unmount();
+
+      render(
+        <Modal {...defaultProps}>
+          <Modal.Header showClose>헤더</Modal.Header>
+        </Modal>
+      );
+      expect(
+        screen
+          .getByRole('button', { name: '닫기' })
+          .querySelector('[data-icon="close"]')
+      ).toBeInTheDocument();
     });
   });
 

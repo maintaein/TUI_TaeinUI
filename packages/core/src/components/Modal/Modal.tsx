@@ -23,6 +23,8 @@ import {
   footerAlignStyles,
 } from './Modal.css';
 import { useFocusTrap } from '../../_internal/useFocusTrap';
+import { Glyph } from '../../_internal/glyph';
+import { getActiveHTMLElement } from '../../_internal/dom';
 import { createOverlayContext } from '../../_internal/createOverlayContext';
 import { useOverlayTransition } from '../../_internal/useOverlayTransition';
 import { gsapDuration, gsapEasing } from '../../tokens/gsapEasing';
@@ -80,6 +82,19 @@ const enterStart = (
   };
 };
 
+/**
+ * `triggerRef`를 안 줬을 때의 트리거: 지금 포커스된 요소. 이 시점은 layout 단계라
+ * `useFocusTrap`이 포커스를 옮기기 전이므로 활성 요소가 아직 클릭된 버튼이다
+ * (`useFocusTrap`의 `previousActiveElementRef`는 useEffect에서 채워져 여기선 비어 있다).
+ * body·html은 연결돼 있고 크기도 있어 `enterStart`의 가드를 통과하지만 문서 전체
+ * 기준 중심이라 모달이 엉뚱한 곳에서 날아온다. 트리거로 치지 않는다.
+ * Safari·Firefox(macOS)는 버튼 클릭에 포커스를 주지 않아 body가 되고, 가운데에서 자란다.
+ */
+const activeTrigger = () => {
+  const el = getActiveHTMLElement();
+  return el === document.body || el === document.documentElement ? null : el;
+};
+
 // Context로 onClose·titleId 전달 (Header의 닫기 버튼, Title의 id 연결에서 사용)
 interface ModalContextValue {
   onClose: () => void;
@@ -105,8 +120,8 @@ export interface ModalProps extends Omit<
   /** 배경 클릭으로 닫기 허용 @default true */
   closeOnBackdropClick?: boolean;
   /**
-   * 모달을 연 버튼. 주면 다이얼로그가 그 버튼 자리에서 자라 나온다 —
-   * 어디서 열렸는지가 위치로 보인다. 읽을 수 없으면 조용히 가운데에서 자란다.
+   * 모달을 연 버튼. 안 주면 열 때 포커스된 요소를 쓰고, 주면 그것이 이긴다.
+   * 다이얼로그가 그 버튼 자리에서 자라 나온다. 읽을 수 없으면 조용히 가운데에서 자란다.
    */
   triggerRef?: RefObject<HTMLElement | null>;
   /** ESC 키로 닫기 허용 @default true */
@@ -174,7 +189,7 @@ const ModalRoot = ({
       if (dialog) {
         timeline.fromTo(
           dialog,
-          enterStart(dialog, triggerRef?.current),
+          enterStart(dialog, triggerRef?.current ?? activeTrigger()),
           {
             opacity: 1,
             x: 0,
@@ -226,22 +241,7 @@ const ModalRoot = ({
               onClick={onClose}
               aria-label="닫기"
             >
-              <svg
-                width="20"
-                height="20"
-                viewBox="0 0 20 20"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg"
-                aria-hidden="true"
-              >
-                <path
-                  d="M15 5L5 15M5 5L15 15"
-                  stroke="currentColor"
-                  strokeWidth="1.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
+              <Glyph name="close" />
             </button>
           )}
         </header>
@@ -325,22 +325,7 @@ export const ModalHeader = forwardRef<HTMLDivElement, ModalHeaderProps>(
             onClick={context?.onClose}
             aria-label="닫기"
           >
-            <svg
-              width="20"
-              height="20"
-              viewBox="0 0 20 20"
-              fill="none"
-              xmlns="http://www.w3.org/2000/svg"
-              aria-hidden="true"
-            >
-              <path
-                d="M15 5L5 15M5 5L15 15"
-                stroke="currentColor"
-                strokeWidth="1.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
+            <Glyph name="close" />
           </button>
         )}
       </header>
