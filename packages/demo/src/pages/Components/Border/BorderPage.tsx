@@ -126,25 +126,25 @@ export function BorderPage() {
             description="sides prop으로 테두리를 표시할 방향을 지정합니다. all, top, right, bottom, left, horizontal, vertical을 지원합니다."
             editable
             code={`<div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '1.5rem' }}>
-  <Border sides="all" padding="sm" rounded="none">
+  <Border sides="all" padding="sm">
     <div style={{ textAlign: 'center', fontSize: '0.875rem' }}>all</div>
   </Border>
-  <Border sides="top" padding="sm" rounded="none">
+  <Border sides="top" padding="sm">
     <div style={{ textAlign: 'center', fontSize: '0.875rem' }}>top</div>
   </Border>
-  <Border sides="right" padding="sm" rounded="none">
+  <Border sides="right" padding="sm">
     <div style={{ textAlign: 'center', fontSize: '0.875rem' }}>right</div>
   </Border>
-  <Border sides="bottom" padding="sm" rounded="none">
+  <Border sides="bottom" padding="sm">
     <div style={{ textAlign: 'center', fontSize: '0.875rem' }}>bottom</div>
   </Border>
-  <Border sides="left" padding="sm" rounded="none">
+  <Border sides="left" padding="sm">
     <div style={{ textAlign: 'center', fontSize: '0.875rem' }}>left</div>
   </Border>
-  <Border sides="horizontal" padding="sm" rounded="none">
+  <Border sides="horizontal" padding="sm">
     <div style={{ textAlign: 'center', fontSize: '0.875rem' }}>horizontal</div>
   </Border>
-  <Border sides="vertical" padding="sm" rounded="none">
+  <Border sides="vertical" padding="sm">
     <div style={{ textAlign: 'center', fontSize: '0.875rem' }}>vertical</div>
   </Border>
 </div>`}
@@ -332,7 +332,7 @@ export function BorderPage() {
   {/* 구분선 역할 */}
   <div>
     <div style={{ fontSize: '0.875rem', marginBottom: '0.5rem' }}>섹션 A 콘텐츠</div>
-    <Border sides="bottom" color="default" rounded="none" />
+    <Border sides="bottom" color="default" />
     <div style={{ fontSize: '0.875rem', marginTop: '0.5rem' }}>섹션 B 콘텐츠</div>
   </div>
 
