@@ -3,6 +3,7 @@ import {
   forwardRef,
   useId,
   useRef,
+  useLayoutEffect,
   type ReactNode,
   type HTMLAttributes,
   type RefObject,
@@ -45,8 +46,17 @@ const CENTER_START = { opacity: 0, x: 0, y: -20, scale: 0.95 } as const;
  */
 const CLIP_BLEED = 50;
 
-/** 자식 페이드가 시작하는 지점: 상자 트윈(`slow`)의 40%. 창이 열린 뒤에야 내용이 비친다. */
-const CHILD_FADE_AT = 0.4;
+/**
+ * 자식 페이드가 시작하는 지점: 상자 트윈(`slow`)의 50%. 상자가 자라는 동안 내용이
+ * 떠오르고, `fast` 페이드가 박스와 같은 시각(300ms)에 끝난다. 이 값과 페이드 duration의
+ * 합이 `slow`를 넘으면 페이드가 박스보다 늦게 끝난다(테스트가 잠근다).
+ */
+const CHILD_FADE_AT = 0.5;
+
+/** 테스트 전용: 열린 타임라인을 다이얼로그 노드에 얹는다(SegmentedButtons와 같은 모양). */
+type ModalTimelineHost = HTMLDivElement & {
+  __modalTimeline?: gsap.core.Timeline;
+};
 
 /** 계산된 `border-radius`를 px로 읽는다. 읽을 수 없으면(jsdom의 var() 등) 0. */
 const radiusOf = (el: HTMLElement, width: number): number => {
@@ -203,7 +213,7 @@ const ModalRoot = ({
 
   // 백드롭과 다이얼로그를 **한 타임라인**에 넣는다. 따로 두면 여는 도중 닫았을 때
   // 둘의 progress가 갈라져 배경만 남거나 판만 남는 프레임이 생긴다.
-  const { shouldRender } = useOverlayTransition({
+  const { shouldRender, timelineRef } = useOverlayTransition({
     open,
     buildTimeline: (timeline) => {
       const backdropEl = backdropRef.current;
@@ -241,7 +251,6 @@ const ModalRoot = ({
             0
           );
         } else {
-          const ease = gsapEasing.settle;
           const panelRadius = radiusOf(dialog, dialog.offsetWidth);
           const end = `inset(-${CLIP_BLEED}px -${CLIP_BLEED}px -${CLIP_BLEED}px -${CLIP_BLEED}px round ${panelRadius}px)`;
           // 패널 배경이 먼저 불투명해지는 동안 그 아래 트리거 글자가 흐려진다.
@@ -249,26 +258,48 @@ const ModalRoot = ({
           timeline.fromTo(
             dialog,
             { opacity: 0 },
-            { opacity: 1, duration: gsapDuration.fast, ease },
+            {
+              opacity: 1,
+              duration: gsapDuration.fast,
+              ease: gsapEasing.settle,
+            },
             0
           );
           timeline.fromTo(
             dialog,
             { x: start.x, y: start.y, clipPath: start.clipPath },
-            { x: 0, y: 0, clipPath: end, duration: gsapDuration.slow, ease },
+            {
+              x: 0,
+              y: 0,
+              clipPath: end,
+              duration: gsapDuration.slow,
+              // 화면 안에서의 변형은 ease-in-out이다. settle(power3.out)은 거리의 94%를
+              // 앞 절반에 쓰고 나머지를 기어가서, 상자가 먼저 열리고 내용이 뒤따른다.
+              ease: gsapEasing.drift,
+            },
             0
           );
           if (dialog.children.length > 0) {
             timeline.fromTo(
               Array.from(dialog.children),
               { opacity: 0 },
-              { opacity: 1, duration: gsapDuration.base, ease },
+              {
+                opacity: 1,
+                duration: gsapDuration.fast,
+                ease: gsapEasing.settle,
+              },
               gsapDuration.slow * CHILD_FADE_AT
             );
           }
         }
       }
     },
+  });
+
+  // 훅의 타임라인 생성 layout effect 뒤에 선언되어 같은 커밋에서 그 결과를 본다.
+  useLayoutEffect(() => {
+    const dialog = dialogRef.current as ModalTimelineHost | null;
+    if (dialog) dialog.__modalTimeline = timelineRef.current ?? undefined;
   });
 
   useFocusTrap({ open, onClose, closeOnEscape, containerRef: dialogRef });

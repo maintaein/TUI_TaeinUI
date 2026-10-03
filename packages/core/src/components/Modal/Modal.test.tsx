@@ -4,6 +4,7 @@ import { resolve } from 'node:path';
 import { useRef } from 'react';
 import { render, screen, fireEvent, act } from '@testing-library/react';
 import { Modal } from './index';
+import { gsapDuration, gsapEasing } from '../../tokens/gsapEasing';
 
 describe('Modal', () => {
   const defaultProps = {
@@ -528,6 +529,51 @@ describe('Modal', () => {
       render(<Wrapped />);
 
       expect(screen.getByText('본문').style.opacity).toBe('0');
+    });
+
+    describe('변형 타이밍', () => {
+      const openTimeline = () => {
+        installLayout(
+          { left: 100, top: 200, width: 80, height: 20 },
+          { left: 200, top: 100, width: 600, height: 400 }
+        );
+        const Wrapped = () => {
+          const ref = useRef<HTMLButtonElement>(null);
+          return (
+            <>
+              <button ref={ref} type="button">
+                열기
+              </button>
+              <Modal open onClose={() => {}} triggerRef={ref}>
+                <p>본문</p>
+              </Modal>
+            </>
+          );
+        };
+        render(<Wrapped />);
+        const dialog = screen.getByRole('dialog') as HTMLElement & {
+          __modalTimeline?: gsap.core.Timeline;
+        };
+        const timeline = dialog.__modalTimeline;
+        expect(timeline).toBeDefined();
+        return timeline!;
+      };
+
+      it('박스 트윈(x·y·clip-path)의 이징은 drift다. settle이 아니다', () => {
+        const box = openTimeline()
+          .getChildren()
+          .find((t) => 'clipPath' in (t as gsap.core.Tween).vars) as
+          | gsap.core.Tween
+          | undefined;
+
+        expect(box).toBeDefined();
+        expect(box!.vars.ease).toBe(gsapEasing.drift);
+        expect(box!.vars.ease).not.toBe(gsapEasing.settle);
+      });
+
+      it('타임라인 총 길이는 slow다. 자식 페이드가 박스보다 늦게 끝나지 않는다', () => {
+        expect(openTimeline().duration()).toBeCloseTo(gsapDuration.slow, 5);
+      });
     });
 
     it('CENTER_START 폴백에는 clip-path가 붙지 않는다', () => {
