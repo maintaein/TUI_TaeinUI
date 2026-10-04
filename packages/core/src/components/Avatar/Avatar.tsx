@@ -1,15 +1,25 @@
 import {
   useState,
   useMemo,
+  useRef,
+  useEffect,
+  useCallback,
   Children,
   cloneElement,
   isValidElement,
   type ImgHTMLAttributes,
+  type PointerEvent,
+  type FocusEvent,
+  type KeyboardEvent,
   type ReactNode,
   type ReactElement,
   type HTMLAttributes,
 } from 'react';
 import clsx from 'clsx';
+import { gsap } from 'gsap';
+import { gsapDuration, gsapEasing } from '../../tokens/gsapEasing';
+import { useReducedMotion } from '../../hooks/useReducedMotion';
+import { settleMotion } from '../../hooks/gateMotion';
 import {
   avatar,
   sizeStyles,
@@ -18,6 +28,7 @@ import {
   image,
   fallbackText,
   clickable,
+  bouncyStyle,
   statusBadge,
   statusOnline,
   statusOffline,
@@ -28,6 +39,17 @@ import {
   groupAvatar,
   excessAvatar,
 } from './Avatar.css';
+
+// 짧은 클릭에서도 확대가 보이게 해제를 미루는 최소 누름 시간. Button의
+// MIN_PRESS_MS와 같은 근거(30ms 탭이면 확대가 시작되자마자 해제가 이어받아
+// 거의 안 보인다)이고 값만 같다. 공유하지 않고 여기 둔다.
+const MIN_PRESS_MS = 90;
+
+// 테스트가 현재 트윈을 읽는 손잡이(NumericSpinner의 __pressTween과 같은 모양).
+type AvatarHost = HTMLElement & {
+  __avatarFloat?: gsap.core.Tween;
+  __avatarPress?: gsap.core.Tween;
+};
 
 /** 사용자 프로필 이미지 또는 이니셜을 표시하는 아바타 컴포넌트 */
 export interface AvatarProps extends Omit<
@@ -56,6 +78,12 @@ export interface AvatarProps extends Omit<
   href?: string;
   /** 링크 타겟 (href와 함께 사용) */
   target?: string;
+  /**
+   * 호버·키보드 포커스 시 살짝 튀며 떠오르고, 누르면 떠오른 채 커지는 선택 효과.
+   * `onClick` 또는 `href`가 있어 클릭할 수 있을 때만 동작하고, 아니면 무시된다.
+   * 모션 축소 선호에서는 움직이지 않는다. @default false
+   */
+  bouncy?: boolean;
 }
 
 // fallback 텍스트 생성 함수
@@ -84,9 +112,19 @@ export const Avatar = ({
   onClick,
   href,
   target,
+  bouncy = false,
   ...props
 }: AvatarProps) => {
   const [imageError, setImageError] = useState(false);
+  const reduced = useReducedMotion();
+  const rootRef = useRef<AvatarHost | null>(null);
+  const setRoot = useCallback((el: HTMLElement | null) => {
+    rootRef.current = el;
+  }, []);
+  // 떠 있어야 할 이유 둘. 하나라도 남아 있으면 뜬다.
+  const hoveredRef = useRef(false);
+  const focusVisibleRef = useRef(false);
+  const pressedAtRef = useRef<number | null>(null);
 
   const handleImageError = () => {
     setImageError(true);
@@ -118,6 +156,114 @@ export const Avatar = ({
       ? { type: 'button' as const, onClick, 'aria-label': alt }
       : {};
 
+  // 클릭할 수 없는 아바타가 떠오르면 누를 수 있다고 거짓말을 한다.
+  const live = bouncy && isClickable;
+
+  // 축소 모드에서는 트윈을 만들지 않는다. gateMotion은 끝 상태(떠오른 자리)로
+  // 확정하는데 STANDARDS는 위치 변화를 없애라고 한다. 대신 이미 떠 있던 것은 원위치로.
+  const float = () => {
+    const el = rootRef.current;
+    if (!el || reduced) return;
+    const up = hoveredRef.current || focusVisibleRef.current;
+    el.__avatarFloat = gsap.to(
+      el,
+      up
+        ? {
+            yPercent: -15,
+            duration: gsapDuration.slower,
+            ease: gsapEasing.spring,
+            overwrite: 'auto',
+          }
+        : {
+            yPercent: 0,
+            duration: gsapDuration.base,
+            ease: gsapEasing.settle,
+            overwrite: 'auto',
+          }
+    );
+  };
+
+  const press = () => {
+    const el = rootRef.current;
+    if (!el || reduced || pressedAtRef.current !== null) return;
+    pressedAtRef.current = performance.now();
+    el.__avatarPress = gsap.to(el, {
+      scale: 1.1,
+      duration: gsapDuration.slow,
+      ease: gsapEasing.spring,
+      overwrite: 'auto',
+    });
+  };
+
+  const release = () => {
+    const el = rootRef.current;
+    if (!el || pressedAtRef.current === null) return;
+    const heldMs = performance.now() - pressedAtRef.current;
+    pressedAtRef.current = null;
+    if (reduced) return;
+    el.__avatarPress = gsap.to(el, {
+      scale: 1,
+      duration: gsapDuration.base,
+      ease: gsapEasing.settle,
+      delay: Math.max(0, (MIN_PRESS_MS - heldMs) / 1000),
+      overwrite: 'auto',
+    });
+  };
+
+  const bouncyHandlers = live
+    ? {
+        onPointerEnter: (event: PointerEvent<HTMLElement>) => {
+          if (event.pointerType === 'touch') return;
+          hoveredRef.current = true;
+          float();
+        },
+        onPointerLeave: () => {
+          hoveredRef.current = false;
+          float();
+          release();
+        },
+        onPointerDown: (event: PointerEvent<HTMLElement>) => {
+          if (event.button === 0) press();
+        },
+        onPointerUp: release,
+        onPointerCancel: release,
+        // 마우스 클릭으로 생긴 포커스에는 떠오르지 않는다. 클릭 뒤 내려오지 않는다.
+        onFocus: (event: FocusEvent<HTMLElement>) => {
+          focusVisibleRef.current =
+            event.currentTarget.matches(':focus-visible');
+          float();
+        },
+        onBlur: () => {
+          focusVisibleRef.current = false;
+          float();
+          release();
+        },
+        onKeyDown: (event: KeyboardEvent<HTMLElement>) => {
+          if (!event.repeat && (event.key === 'Enter' || event.key === ' ')) {
+            press();
+          }
+        },
+        onKeyUp: (event: KeyboardEvent<HTMLElement>) => {
+          if (event.key === 'Enter' || event.key === ' ') release();
+        },
+      }
+    : {};
+
+  // 언마운트·bouncy 해제·축소 모드 진입 때 트윈을 죽이고, 떠 있던 자리는 원위치로.
+  useEffect(() => {
+    const el = rootRef.current;
+    if (!el) return;
+    const end = () => {
+      el.__avatarFloat?.kill();
+      el.__avatarPress?.kill();
+    };
+    if ((!live || reduced) && (el.__avatarFloat || el.__avatarPress)) {
+      end();
+      settleMotion(gsap.set(el, { yPercent: 0, scale: 1 }));
+    }
+    return end;
+  }, [live, reduced]);
+
   // 상호작용 루트(button/a)면 aria-* 는 포커스를 받는 루트로 보낸다(Popover가
   // 넘기는 aria-expanded 등). <img>에 붙으면 스크린 리더가 읽지 못한다.
   const rootAria: Record<string, unknown> = {};
@@ -133,10 +279,13 @@ export const Avatar = ({
         sizeStyles[size],
         variantStyles[variant],
         isClickable && clickable,
+        live && bouncyStyle,
         className
       )}
+      ref={setRoot}
       {...rootProps}
       {...rootAria}
+      {...bouncyHandlers}
     >
       <span className={avatarClip}>
         {showImage ? (

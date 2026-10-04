@@ -69,6 +69,13 @@ export function AvatarPage() {
       description: '링크 target 속성 (href와 함께 사용)',
     },
     {
+      name: 'bouncy',
+      type: 'boolean',
+      default: 'false',
+      description:
+        '호버·키보드 포커스에 튀며 떠오르고 누르면 커지는 선택 효과. onClick 또는 href가 있을 때만 동작하고 모션 축소 선호에서는 움직이지 않음',
+    },
+    {
       name: 'className',
       type: 'string',
       default: 'undefined',
@@ -345,8 +352,33 @@ const profileMenu = (
 );
 
 <Popover open={open} onOpenChange={setOpen} position="bottom" content={profileMenu}>
-  <Avatar src="https://i.pravatar.cc/150?img=40" alt="프로필 메뉴" size="lg" onClick={() => setOpen(!open)} />
+  <Avatar src="https://i.pravatar.cc/150?img=40" alt="프로필 메뉴" size="lg" />
 </Popover>`}
+          />
+        </div>
+
+        {/* Bouncy */}
+        <div className={styles.example}>
+          <h3 className={styles.exampleTitle}>Bouncy</h3>
+          <LivePreview
+            title="튀는 호버·누름 효과"
+            description="기본은 정적이고 bouncy를 켜야 움직입니다. 클릭 가능한 아바타(onClick 또는 href)에서만 동작합니다. 호버·키보드 포커스에 튀며 떠오르고, 누르면 떠오른 채 커집니다."
+            editable
+            code={`const [open, setOpen] = useState(false);
+
+<div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
+  <Avatar src="https://i.pravatar.cc/150?img=11" alt="작게" size="sm" bouncy onClick={() => {}} />
+  <Avatar src="https://i.pravatar.cc/150?img=12" alt="보통" size="md" bouncy onClick={() => {}} />
+  <Avatar src="https://i.pravatar.cc/150?img=13" alt="크게" size="xl" status="online" bouncy onClick={() => {}} />
+  <Popover
+    open={open}
+    onOpenChange={setOpen}
+    position="bottom"
+    content={<div style={{ padding: '1rem' }}>프로필 메뉴</div>}
+  >
+    <Avatar src="https://i.pravatar.cc/150?img=14" alt="프로필 메뉴" size="lg" bouncy />
+  </Popover>
+</div>`}
           />
         </div>
 

@@ -129,6 +129,27 @@ export const clickable = style({
   },
 });
 
+// bouncy(선택 효과). 위치·크기는 GSAP이 인라인 transform으로 쓰므로 CSS가
+// 같은 transform을 또 보간하거나(clickable의 transition) :active로 줄이면
+// (scale(0.95)) 움직임이 끌리고 확대와 싸운다. 둘만 빼고 filter 전이는 남긴다.
+// transitionProperty만 좁히면 clickable의 filter 길이·곡선이 그대로 남는다.
+// clickable 뒤에 두어 같은 특이도에서 이긴다.
+export const bouncyStyle = style({
+  transitionProperty: 'filter',
+
+  ':hover': {
+    zIndex: 1,
+  },
+
+  ':active': {
+    transform: 'none',
+  },
+
+  ':focus-visible': {
+    zIndex: 1,
+  },
+});
+
 export const avatarGroup = style({
   display: 'flex',
   alignItems: 'center',

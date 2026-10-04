@@ -495,6 +495,7 @@ import { Avatar, AvatarGroup } from '@taein-ui/core';
 | children | ReactNode | — | Fallback content |
 | onClick | () => void | — | Click handler |
 | href | string | — | Link URL |
+| bouncy | boolean | false | Springy float on hover/keyboard focus and a press scale-up. Static by default. Only works when onClick or href is set. No movement under prefers-reduced-motion |
 | onError | () => void | — | Image error callback |
 | className | string | — | Additional CSS class |
 

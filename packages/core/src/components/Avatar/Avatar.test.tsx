@@ -1,8 +1,15 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { describe, it, expect, vi } from 'vitest';
-import { act, render, screen, waitFor } from '@testing-library/react';
+import { afterEach, describe, it, expect, vi } from 'vitest';
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from '@testing-library/react';
 import { Avatar, AvatarGroup } from './Avatar';
+import { gsapDuration, gsapEasing } from '../../tokens/gsapEasing';
 
 const AVATAR_CSS = readFileSync(resolve(__dirname, './Avatar.css.ts'), 'utf-8');
 
@@ -529,5 +536,200 @@ describe('AvatarGroup', () => {
 
       expect(container.firstChild).toHaveClass('custom-group');
     });
+  });
+});
+
+describe('Avatar bouncy', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  // Avatar.tsx가 DOM 노드에 얹는 손잡이. gsap을 직접 import하지 않고 이걸로 읽는다.
+  type Tween = { vars: gsap.TweenVars; duration(): number };
+  type Host = HTMLElement & { __avatarFloat?: Tween; __avatarPress?: Tween };
+
+  // jsdom에는 PointerEvent가 없어 fireEvent.pointerDown은 button·pointerType을
+  // 못 싣는다. React는 이름이 맞으면 받으므로 MouseEvent에 값을 얹어 쏜다.
+  const pointer = (
+    el: HTMLElement,
+    type: string,
+    { button = 0, pointerType = 'mouse' } = {}
+  ) =>
+    act(() => {
+      const event = new MouseEvent(type, { bubbles: true, button });
+      Object.defineProperty(event, 'pointerType', { value: pointerType });
+      el.dispatchEvent(event);
+    });
+
+  const renderBouncy = (props: Partial<Parameters<typeof Avatar>[0]> = {}) => {
+    const { container } = render(
+      <Avatar alt="홍길동" bouncy onClick={() => {}} {...props} />
+    );
+    return container.firstChild as Host;
+  };
+
+  it('마우스 호버에 yPercent -15로 spring slower로 뜨고, 떠나면 0 settle base로 내려온다', () => {
+    const root = renderBouncy();
+
+    pointer(root, 'pointerover');
+    expect(root.__avatarFloat?.vars.yPercent).toBe(-15);
+    expect(root.__avatarFloat?.vars.ease).toBe(gsapEasing.spring);
+    expect(root.__avatarFloat?.duration()).toBe(gsapDuration.slower);
+
+    pointer(root, 'pointerout');
+    expect(root.__avatarFloat?.vars.yPercent).toBe(0);
+    expect(root.__avatarFloat?.vars.ease).toBe(gsapEasing.settle);
+    expect(root.__avatarFloat?.duration()).toBe(gsapDuration.base);
+  });
+
+  it('href만 있어도(a) 동작한다', () => {
+    const { container } = render(
+      <Avatar alt="홍길동" bouncy href="/profile" />
+    );
+    const root = container.firstChild as Host;
+
+    pointer(root, 'pointerover');
+    expect(root.__avatarFloat).toBeDefined();
+  });
+
+  it('클릭할 수 없으면 조용히 무시한다', () => {
+    const { container } = render(<Avatar alt="홍길동" bouncy />);
+    const root = container.firstChild as Host;
+
+    pointer(root, 'pointerover');
+    pointer(root, 'pointerdown');
+    fireEvent.keyDown(root, { key: 'Enter' });
+
+    expect(root.__avatarFloat).toBeUndefined();
+    expect(root.__avatarPress).toBeUndefined();
+    expect(root.style.transform).toBe('');
+  });
+
+  it('bouncy가 없으면 트윈도 인라인 transform도 없다', () => {
+    const root = renderBouncy({ bouncy: false });
+
+    pointer(root, 'pointerover');
+    pointer(root, 'pointerdown');
+    fireEvent.keyDown(root, { key: 'Enter' });
+
+    expect(root.__avatarFloat).toBeUndefined();
+    expect(root.__avatarPress).toBeUndefined();
+    expect(root.className).not.toMatch(/bouncyStyle/);
+  });
+
+  it('터치의 pointerenter는 떠오름을 만들지 않지만 누름 확대는 받는다', () => {
+    const root = renderBouncy();
+
+    pointer(root, 'pointerover', { pointerType: 'touch' });
+    expect(root.__avatarFloat).toBeUndefined();
+
+    pointer(root, 'pointerdown', { pointerType: 'touch' });
+    expect(root.__avatarPress?.vars.scale).toBe(1.1);
+  });
+
+  it('보조 버튼 누름은 확대하지 않는다', () => {
+    const root = renderBouncy();
+
+    pointer(root, 'pointerdown', { button: 2 });
+    expect(root.__avatarPress).toBeUndefined();
+  });
+
+  it('Enter keydown은 scale 1.1 spring slow로 확대하고 keyup은 1 settle base로 해제한다. repeat는 무시한다', () => {
+    const root = renderBouncy();
+
+    fireEvent.keyDown(root, { key: 'Enter' });
+    const first = root.__avatarPress;
+    expect(first?.vars.scale).toBe(1.1);
+    expect(first?.vars.ease).toBe(gsapEasing.spring);
+    expect(first?.duration()).toBe(gsapDuration.slow);
+
+    fireEvent.keyDown(root, { key: 'Enter', repeat: true });
+    expect(root.__avatarPress).toBe(first);
+
+    fireEvent.keyUp(root, { key: 'Enter' });
+    expect(root.__avatarPress).not.toBe(first);
+    expect(root.__avatarPress?.vars.scale).toBe(1);
+    expect(root.__avatarPress?.vars.ease).toBe(gsapEasing.settle);
+    expect(root.__avatarPress?.duration()).toBe(gsapDuration.base);
+  });
+
+  it('Space도 누름으로 친다', () => {
+    const root = renderBouncy();
+
+    fireEvent.keyDown(root, { key: ' ' });
+    expect(root.__avatarPress?.vars.scale).toBe(1.1);
+  });
+
+  it('짧게 눌렀다 떼면 해제 트윈이 delay로 최소 누름 시간을 채운다', () => {
+    const root = renderBouncy();
+
+    pointer(root, 'pointerdown');
+    pointer(root, 'pointerup');
+
+    const delay = root.__avatarPress?.vars.delay as number;
+    expect(delay).toBeGreaterThan(0);
+    expect(delay).toBeLessThanOrEqual(0.09);
+  });
+
+  it('호버가 풀려도 키보드 포커스가 남아 있으면 내려오지 않는다', () => {
+    const root = renderBouncy();
+    // jsdom은 :focus-visible 휴리스틱이 없어 항상 false다. 키보드 포커스를 흉내낸다.
+    Object.defineProperty(root, 'matches', { value: () => true });
+
+    pointer(root, 'pointerover');
+    act(() => root.focus());
+    pointer(root, 'pointerout');
+
+    expect(root.__avatarFloat?.vars.yPercent).toBe(-15);
+
+    act(() => root.blur());
+    expect(root.__avatarFloat?.vars.yPercent).toBe(0);
+  });
+
+  it('마우스 클릭으로 생긴 포커스(:focus-visible 아님)는 떠오르지 않는다', () => {
+    const root = renderBouncy();
+
+    act(() => root.focus());
+
+    expect(root.__avatarFloat?.vars.yPercent).toBe(0);
+  });
+
+  it('축소 모드에서는 트윈을 만들지 않는다', () => {
+    vi.stubGlobal(
+      'matchMedia',
+      (media: string): MediaQueryList =>
+        ({
+          matches: true,
+          media,
+          addEventListener: () => {},
+          removeEventListener: () => {},
+        }) as unknown as MediaQueryList
+    );
+    const root = renderBouncy();
+
+    pointer(root, 'pointerover');
+    pointer(root, 'pointerdown');
+    pointer(root, 'pointerup');
+    fireEvent.keyDown(root, { key: 'Enter' });
+
+    expect(root.__avatarFloat).toBeUndefined();
+    expect(root.__avatarPress).toBeUndefined();
+  });
+
+  it('bouncy 클래스는 clickable의 transform 트랜지션과 :active 축소를 뺀다', () => {
+    const root = renderBouncy();
+    const bouncy = cssBlock('bouncyStyle');
+    const clickable = cssBlock('clickable');
+
+    expect(root.className).toMatch(/bouncyStyle/);
+    // 기존 clickable은 그대로다.
+    expect(clickable).toMatch(/transform \$\{themeContract/);
+    expect(clickable).toMatch(/scale\(0\.95\)/);
+    // bouncy는 filter만 전이하고, :active의 transform을 없앤다.
+    expect(bouncy).toMatch(/transitionProperty: 'filter'/);
+    expect(bouncy).not.toMatch(/transition:/);
+    expect(bouncy).toMatch(/transform: 'none'/);
+    expect(bouncy).not.toMatch(/scale/);
+    expect(bouncy.match(/zIndex: 1/g)).toHaveLength(2);
   });
 });
