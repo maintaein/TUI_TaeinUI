@@ -7,7 +7,6 @@ export const avatar = style({
   display: 'inline-flex',
   alignItems: 'center',
   justifyContent: 'center',
-  overflow: 'hidden',
   backgroundColor: themeContract.color.background.paper,
   color: themeContract.color.text.primary,
   fontWeight: themeContract.font.weight.medium,
@@ -54,6 +53,18 @@ export const variantStyles = styleVariants({
   square: {
     borderRadius: '0',
   },
+});
+
+// 이미지·fallback을 모양대로 깎는 안쪽 래퍼. 클립을 루트에 두면 원형에서
+// 오른쪽 아래 상태 배지(루트 모서리 기준)가 같이 깎인다. 배지는 이 밖에 둔다.
+export const avatarClip = style({
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  width: '100%',
+  height: '100%',
+  borderRadius: 'inherit',
+  overflow: 'hidden',
 });
 
 export const image = style({

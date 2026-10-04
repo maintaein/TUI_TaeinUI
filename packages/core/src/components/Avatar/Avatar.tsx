@@ -14,6 +14,7 @@ import {
   avatar,
   sizeStyles,
   variantStyles,
+  avatarClip,
   image,
   fallbackText,
   clickable,
@@ -137,19 +138,21 @@ export const Avatar = ({
       {...rootProps}
       {...rootAria}
     >
-      {showImage ? (
-        <img
-          src={src}
-          alt={alt}
-          className={image}
-          onError={handleImageError}
-          {...imgProps}
-        />
-      ) : (
-        <div role="img" aria-label={alt} className={fallbackText}>
-          {children || getInitials(alt)}
-        </div>
-      )}
+      <span className={avatarClip}>
+        {showImage ? (
+          <img
+            src={src}
+            alt={alt}
+            className={image}
+            onError={handleImageError}
+            {...imgProps}
+          />
+        ) : (
+          <div role="img" aria-label={alt} className={fallbackText}>
+            {children || getInitials(alt)}
+          </div>
+        )}
+      </span>
 
       {status && (
         <span

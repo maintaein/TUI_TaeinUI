@@ -1,6 +1,16 @@
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { describe, it, expect, vi } from 'vitest';
 import { act, render, screen, waitFor } from '@testing-library/react';
 import { Avatar, AvatarGroup } from './Avatar';
+
+const AVATAR_CSS = readFileSync(resolve(__dirname, './Avatar.css.ts'), 'utf-8');
+
+/** `export const <name> = style({ ... });` 블록 본문을 돌려준다. */
+const cssBlock = (name: string): string => {
+  const start = AVATAR_CSS.indexOf(`export const ${name} = style({`);
+  return AVATAR_CSS.slice(start, AVATAR_CSS.indexOf('\n});', start));
+};
 
 describe('Avatar', () => {
   describe('렌더링 테스트', () => {
@@ -194,6 +204,41 @@ describe('Avatar', () => {
       const badge = container.querySelector('[class*="statusBadge"]');
       expect(badge).toBeInTheDocument();
       expect(badge).toHaveClass(/statusAway/);
+    });
+  });
+
+  describe('상태 배지는 원형 클립 밖에 있다', () => {
+    it('배지가 overflow: hidden 래퍼의 자손이 아니고 루트의 직계 자식이다', () => {
+      const { container } = render(<Avatar alt="테스트" status="online" />);
+      const root = container.firstChild as HTMLElement;
+      const badge = container.querySelector('[class*="statusBadge"]');
+
+      expect(badge?.closest('[class*="avatarClip"]')).toBeNull();
+      expect(badge?.parentElement).toBe(root);
+      expect(cssBlock('avatarClip')).toMatch(/overflow: 'hidden'/);
+      expect(cssBlock('avatarClip')).toMatch(/borderRadius: 'inherit'/);
+      // 루트가 클립하면 원형에서 모서리의 배지가 깎인다.
+      expect(cssBlock('avatar')).not.toMatch(/overflow/);
+    });
+
+    it('이니셜 fallback과 children은 클립 래퍼 안에 있다', () => {
+      const { rerender } = render(<Avatar alt="홍길동" />);
+      expect(
+        screen.getByText('홍').closest('[class*="avatarClip"]')
+      ).not.toBeNull();
+
+      rerender(<Avatar alt="홍길동">HG</Avatar>);
+      expect(
+        screen.getByText('HG').closest('[class*="avatarClip"]')
+      ).not.toBeNull();
+    });
+
+    it('이미지도 클립 래퍼 안에 있다', () => {
+      render(<Avatar src="https://example.com/a.jpg" alt="테스트" />);
+
+      expect(
+        screen.getByRole('img').closest('[class*="avatarClip"]')
+      ).not.toBeNull();
     });
   });
 
