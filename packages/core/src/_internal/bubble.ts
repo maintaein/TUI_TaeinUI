@@ -4,9 +4,9 @@ import { themeContract } from '../tokens/theme.css';
 export type BubblePosition = 'top' | 'bottom' | 'left' | 'right';
 type DurationName = keyof typeof themeContract.animation.duration;
 type EasingName = keyof typeof themeContract.animation.easing;
-interface Motion {
+interface Motion<E extends EasingName = EasingName> {
   duration: DurationName;
-  easing: EasingName;
+  easing: E;
 }
 
 /**
@@ -22,8 +22,12 @@ export interface BubbleSpec {
   openOffset: number;
   /** 등장 transform의 길이와 커브 */
   enterTransform: Motion;
-  /** 등장 opacity의 길이와 커브. transform과 일부러 다르게 둔다 */
-  enterOpacity: Motion;
+  /**
+   * 등장 opacity의 길이와 커브. transform과 일부러 다르게 둔다. 오버슛하는 커브
+   * (`snap`, `spring`)는 1을 넘는 값이 opacity에서 잘려 "떴다 꺼졌다 차오르는"
+   * 인공물이 되므로 타입이 막는다(animationBoundary.test.ts의 규칙).
+   */
+  enterOpacity: Motion<Exclude<EasingName, 'snap' | 'spring'>>;
   /** 퇴장 길이의 기준. 실제 퇴장은 이 길이의 0.65배 + exit 커브다(조항 3) */
   exitDuration: DurationName;
 }

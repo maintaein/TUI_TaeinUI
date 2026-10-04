@@ -729,12 +729,44 @@ describe('Popover', () => {
       fireEvent.click(screen.getByText('트리거'));
       expect(screen.getByText('팝오버 내용')).toBe(popoverBeforeReopen);
 
-      // 원래 퇴장 타이머가 그대로 발화했다면 이 시점에 사라졌을 것이다 —
-      // 취소되지 않았다면 실패한다.
+      // 이 단정만으로는 타이머 취소를 잠그지 못한다. 렌더 중 보정(열림이면
+      // 다시 렌더)이 있어서 낡은 타이머가 발화해도 DOM은 곧바로 되살아난다.
+      // 취소는 아래 이중 순환 테스트가 잠근다.
       act(() => {
         vi.advanceTimersByTime(100);
       });
       expect(screen.getByText('팝오버 내용')).toBeInTheDocument();
+    });
+
+    it('이중 순환: 퇴장 도중 다시 열었다 닫으면 두 번째 퇴장이 자기 길이를 다 채운 뒤에 사라진다', () => {
+      render(
+        <Popover content={<div>팝오버 내용</div>}>
+          <button>트리거</button>
+        </Popover>
+      );
+
+      fireEvent.click(screen.getByText('트리거'));
+      fireEvent.click(screen.getByText('트리거')); // 닫기: 첫 퇴장 타이머(195ms)
+      act(() => {
+        vi.advanceTimersByTime(100);
+      });
+      fireEvent.click(screen.getByText('트리거')); // 재진입: 첫 타이머가 취소돼야 한다
+      act(() => {
+        vi.advanceTimersByTime(5);
+      });
+      fireEvent.click(screen.getByText('트리거')); // 다시 닫기: 두 번째 퇴장 195ms
+
+      // 첫 타이머가 남아 있으면 닫은 지 90ms 뒤에 노드를 일찍 지운다. 사용자는
+      // 두 번째 퇴장 전이가 중간에 잘리는 것을 본다.
+      act(() => {
+        vi.advanceTimersByTime(EXIT_DURATION_MS - 1);
+      });
+      expect(screen.getByText('팝오버 내용')).toBeInTheDocument();
+
+      act(() => {
+        vi.advanceTimersByTime(1);
+      });
+      expect(screen.queryByText('팝오버 내용')).not.toBeInTheDocument();
     });
   });
 });

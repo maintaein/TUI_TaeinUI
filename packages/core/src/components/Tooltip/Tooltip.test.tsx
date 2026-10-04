@@ -388,6 +388,29 @@ describe('Tooltip', () => {
       );
     });
 
+    it('툴팁 노드를 눌러도 팝오버가 닫히지 않는다(툴팁이 Popover 루트의 DOM 자손이다)', () => {
+      render(
+        <Popover content={<div>메뉴 내용</div>}>
+          <Tooltip content="더보기 툴팁" delay={0}>
+            <button>더보기</button>
+          </Tooltip>
+        </Popover>
+      );
+
+      const button = screen.getByRole('button', { name: '더보기' });
+      fireEvent.mouseEnter(button);
+      fireEvent.click(button);
+      const tooltipNode = screen.getByRole('tooltip');
+
+      // Popover의 바깥 클릭 감지는 mousedown이 루트 밖일 때만 닫는다.
+      fireEvent.mouseDown(tooltipNode);
+      fireEvent.mouseUp(tooltipNode);
+      fireEvent.click(tooltipNode);
+
+      expect(screen.getByText('메뉴 내용')).toBeInTheDocument();
+      expect(button).toHaveAttribute('aria-expanded', 'true');
+    });
+
     it('aria-expanded·aria-haspopup·aria-controls가 어떤 div에도 붙지 않는다', () => {
       const { container } = render(
         <Popover content={<div>메뉴 내용</div>}>
@@ -1148,12 +1171,44 @@ describe('Tooltip', () => {
       // 있으므로, 취소는 남은 타이머 수로만 보인다. delay={0}이라 다른 타이머는 없다.
       expect(vi.getTimerCount()).toBe(0);
 
-      // 원래 퇴장 타이머가 그대로 발화했다면 이 시점에 사라졌을 것이다 —
-      // 취소되지 않았다면 실패한다.
+      // DOM으로는 타이머 취소가 관찰되지 않는다(렌더 중 보정이 되살린다). 위
+      // `getTimerCount`와 아래 이중 순환 테스트가 취소를 잠근다.
       act(() => {
         vi.advanceTimersByTime(EXIT_DURATION_MS / 2);
       });
       expect(screen.getByRole('tooltip')).toBeInTheDocument();
+    });
+
+    it('이중 순환: 퇴장 도중 다시 열었다 닫으면 두 번째 퇴장이 자기 길이를 다 채운 뒤에 사라진다', () => {
+      render(
+        <Tooltip content="툴팁 내용" delay={0}>
+          <button>호버하세요</button>
+        </Tooltip>
+      );
+
+      const button = screen.getByRole('button');
+      fireEvent.focus(button);
+      fireEvent.blur(button); // 닫기: 첫 퇴장 타이머(130ms)
+      act(() => {
+        vi.advanceTimersByTime(EXIT_DURATION_MS / 2);
+      });
+      fireEvent.focus(button); // 재진입: 첫 타이머가 취소돼야 한다
+      act(() => {
+        vi.advanceTimersByTime(5);
+      });
+      fireEvent.blur(button); // 다시 닫기: 두 번째 퇴장 130ms
+
+      // 첫 타이머가 남아 있으면 닫은 지 60ms 뒤에 노드를 일찍 지운다. 사용자는
+      // 두 번째 퇴장 전이가 중간에 잘리는 것을 본다.
+      act(() => {
+        vi.advanceTimersByTime(EXIT_DURATION_MS - 1);
+      });
+      expect(screen.getByRole('tooltip')).toBeInTheDocument();
+
+      act(() => {
+        vi.advanceTimersByTime(1);
+      });
+      expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
     });
   });
 

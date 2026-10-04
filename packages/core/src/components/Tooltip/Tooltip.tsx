@@ -19,6 +19,7 @@ import {
   arrowPositionStyles,
 } from './Tooltip.css';
 import { addDocumentListener } from '../../_internal/dom';
+import { useBubblePresence } from '../../_internal/useBubblePresence';
 
 // 마우스가 트리거 → 툴팁 사이 8px 간격(positionStyles)을 건너가는 동안
 // 닫히지 않도록 두는 유예 시간(ms). delay(오픈 지연, 기본 200)는 "열기까지
@@ -85,42 +86,20 @@ export const Tooltip = ({
   // Escape로 닫힌 뒤, 포인터/포커스가 실제로 벗어나기 전까지는 재개방을 막는다.
   const escapeClosedRef = useRef(false);
   const tooltipId = useId();
+  const tooltipRef = useRef<HTMLDivElement>(null);
 
   // 제어/비제어 판단
   const isControlled = controlledOpen !== undefined;
   const isOpen = isControlled ? controlledOpen : uncontrolledOpen;
 
-  // isOpen이 꺼져도 DOM을 즉시 지우지 않고 퇴장 전이가 재생될 자리를
-  // 130ms 남겨 둔다(Popover.tsx와 같은 shouldRender 배선). 유예
-  // (HIDE_GRACE_MS) 타이머는 isOpen 자체를 바꾸지 않으므로 이 타이머와는
-  // 서로 간섭하지 않는다 — 유예 중엔 isOpen이 그대로라 전이도 돌지 않는다.
-  const [shouldRender, setShouldRender] = useState(isOpen);
-  // shouldRender와 별개로, 마운트 첫 프레임엔 닫힘 스타일을 칠하고 그 다음
-  // 프레임(페인트 이후 useEffect)에서 열림 스타일로 넘어가야 전이가 실제로
-  // 재생된다 — Popover.tsx와 동일한 이유.
-  const [visible, setVisible] = useState(false);
-
-  if (isOpen && !shouldRender) {
-    setShouldRender(true);
-  }
-
-  useEffect(() => {
-    if (isOpen || !shouldRender) return;
-
-    const timer = setTimeout(() => {
-      setShouldRender(false);
-    }, EXIT_DURATION_MS);
-
-    return () => clearTimeout(timer);
-  }, [isOpen, shouldRender]);
-
-  useEffect(() => {
-    // 렌더 중에 바로 open 스타일을 칠하면 닫힘→열림의 "변화"가 없어 전이가
-    // 재생되지 않는다. 페인트 이후 한 틱 늦게 넘어가는 것이 목적이라
-    // 의도적으로 effect에서 setState한다(Snackbar.tsx의 liveMessage와 같은
-    // 이유).
-    setVisible(isOpen);
-  }, [isOpen]);
+  // isOpen이 꺼져도 DOM을 즉시 지우지 않고 퇴장 전이가 재생될 자리를 130ms
+  // 남겨 둔다. 유예(HIDE_GRACE_MS) 타이머는 isOpen 자체를 바꾸지 않으므로
+  // 이 퇴장과 간섭하지 않는다. 유예 중엔 isOpen이 그대로라 전이도 돌지 않는다.
+  const { shouldRender, visible } = useBubblePresence(
+    isOpen,
+    EXIT_DURATION_MS,
+    tooltipRef
+  );
 
   useEffect(() => {
     return () => {
@@ -275,6 +254,7 @@ export const Tooltip = ({
       })}
       {shouldRender && (
         <div
+          ref={tooltipRef}
           id={tooltipId}
           role="tooltip"
           className={clsx(

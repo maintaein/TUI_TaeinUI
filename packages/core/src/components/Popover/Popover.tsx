@@ -23,6 +23,7 @@ import {
   addDocumentListener,
   getFirstFocusableElement,
 } from '../../_internal/dom';
+import { useBubblePresence } from '../../_internal/useBubblePresence';
 
 // 퇴장 전이(calc(duration.slow * 0.65))와 맞춘 값이다. Popover.css.ts의
 // closed 전이 길이(300ms * 0.65 = 195ms)를 바꾸면 이 상수도 같이 바꿔야
@@ -86,35 +87,12 @@ export const Popover = ({
   const isControlled = controlledOpen !== undefined;
   const isOpen = isControlled ? controlledOpen : uncontrolledOpen;
 
-  // isOpen이 꺼져도 DOM을 즉시 지우지 않고 퇴장 전이가 재생될 자리를 195ms
-  // 남겨 둔다(Modal.tsx의 shouldRender 패턴과 동일한 배선).
-  const [shouldRender, setShouldRender] = useState(isOpen);
-  // shouldRender와 별개로, 마운트 첫 프레임엔 닫힘 스타일을 칠하고 그 다음
-  // 프레임(페인트 이후 useEffect)에서 열림 스타일로 넘어가야 전이가 실제로
-  // 재생된다 — 처음부터 열림 클래스를 주면 "변화"가 없어 전이가 안 돈다.
-  const [visible, setVisible] = useState(false);
-
-  if (isOpen && !shouldRender) {
-    setShouldRender(true);
-  }
-
-  useEffect(() => {
-    if (isOpen || !shouldRender) return;
-
-    const timer = setTimeout(() => {
-      setShouldRender(false);
-    }, EXIT_DURATION_MS);
-
-    return () => clearTimeout(timer);
-  }, [isOpen, shouldRender]);
-
-  useEffect(() => {
-    // 렌더 중에 바로 open 스타일을 칠하면 닫힘→열림의 "변화"가 없어 전이가
-    // 재생되지 않는다(마운트 첫 프레임과 목표 프레임이 같은 값이 되어 버림).
-    // 페인트 이후 한 틱 늦게 넘어가는 것이 목적이라 의도적으로 effect에서
-    // setState한다(Snackbar.tsx의 liveMessage와 같은 이유).
-    setVisible(isOpen);
-  }, [isOpen]);
+  // isOpen이 꺼져도 DOM을 즉시 지우지 않고 퇴장 전이가 재생될 자리를 남겨 둔다.
+  const { shouldRender, visible } = useBubblePresence(
+    isOpen,
+    EXIT_DURATION_MS,
+    popoverRef
+  );
 
   const setOpen = useCallback(
     (newOpen: boolean) => {
