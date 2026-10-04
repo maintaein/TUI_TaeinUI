@@ -611,7 +611,7 @@ import { Tooltip, Button } from '@taein-ui/core';
 | open | boolean | — | Controlled visibility |
 | onOpenChange | (open: boolean) => void | — | State change callback |
 | position | 'top' \| 'bottom' \| 'left' \| 'right' | 'top' | Position |
-| delay | number | 200 | Show delay (ms) |
+| delay | number | 200 | Show delay (ms). Skipped while another tooltip is open or closed within 300ms |
 | disabled | boolean | false | Disable tooltip |
 | arrow | boolean | true | Show arrow |
 | className | string | — | Additional CSS class |

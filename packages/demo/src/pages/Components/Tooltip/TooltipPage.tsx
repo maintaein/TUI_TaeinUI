@@ -31,7 +31,8 @@ export function TooltipPage() {
       name: 'delay',
       type: 'number',
       default: '200',
-      description: '툴팁 표시까지 지연 시간(ms)',
+      description:
+        '툴팁 표시까지 지연 시간(ms). 다른 툴팁이 열려 있거나 닫힌 지 300ms 이내면 건너뛰고 바로 표시한다',
     },
     {
       name: 'disabled',
@@ -225,7 +226,7 @@ arrow: 화살표 표시/숨김
           <h3 className={styles.exampleTitle}>Delay Options</h3>
           <LivePreview
             title="지연 시간 비교"
-            description="delay prop에 밀리초 단위 값을 전달합니다. 기본값은 200ms입니다."
+            description="delay prop에 밀리초 단위 값을 전달합니다. 기본값은 200ms입니다. 버튼 사이를 바로 옮겨 다니면 두 번째 툴팁부터는 지연 없이 바로 뜹니다. 각 버튼의 지연을 보려면 버튼마다 포인터를 잠깐 치웠다 올리세요."
             editable
             code={`<div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', padding: '1.5rem' }}>
   <Tooltip content="즉시 나타납니다" delay={0}>

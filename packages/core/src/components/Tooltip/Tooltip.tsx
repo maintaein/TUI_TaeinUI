@@ -62,7 +62,10 @@ export interface TooltipProps extends Omit<
   // 공통 props
   /** 툴팁 위치 @default 'top' */
   position?: 'top' | 'bottom' | 'left' | 'right';
-  /** 표시 지연 시간(ms) @default 200 */
+  /**
+   * 표시 지연 시간(ms). 다른 툴팁이 열려 있거나 닫힌 지 300ms 이내면 건너뛰고
+   * 바로 표시한다(툴바를 훑을 때 매번 기다리지 않게). @default 200
+   */
   delay?: number;
   /** 비활성화 상태 @default false */
   disabled?: boolean;
