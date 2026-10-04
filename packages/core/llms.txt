@@ -57,7 +57,7 @@ All components follow consistent patterns:
 - **Text** — Typography component. Props: variant('h1'-'h6'|'body1'-'body3'), as, color('primary'|'secondary'|'success'|'warning'|'error'|'info'), weight, align, truncate, tabularNums
 - **Badge** — Status/count indicator. Props: variant('primary'|'secondary'|'success'|'error'|'warning'|'info'), size, max, dot, showZero
 - **Chip** — Tag/filter chip. Props: label, variant('filled'|'outlined'), color, icon, avatar, onDelete, clickable, selected
-- **Avatar** — User avatar with image, fallback, status. Props: src, alt, size, variant('circular'|'rounded'|'square'), status
+- **Avatar** - User avatar with image, fallback, status. Props: src, alt, size, variant('circular'|'rounded'|'square'), status, bouncy(opt-in hover/focus float + press grow, needs onClick or href)
 
 ### Feedback & Status
 - **Loader** — Loading indicator (spinner/dots/bar), preset or any CSS color. Props: type, size, color, label, fullScreen, overlay

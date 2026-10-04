@@ -164,23 +164,16 @@ export const Avatar = ({
   const float = () => {
     const el = rootRef.current;
     if (!el || reduced) return;
-    const up = hoveredRef.current || focusVisibleRef.current;
-    el.__avatarFloat = gsap.to(
-      el,
-      up
-        ? {
-            yPercent: -15,
-            duration: gsapDuration.slower,
-            ease: gsapEasing.spring,
-            overwrite: 'auto',
-          }
-        : {
-            yPercent: 0,
-            duration: gsapDuration.base,
-            ease: gsapEasing.settle,
-            overwrite: 'auto',
-          }
-    );
+    const hovered = hoveredRef.current;
+    const up = hovered || focusVisibleRef.current;
+    // 키보드 포커스만으로 뜰 때는 튀지 않는다. 키보드로 시작한 움직임은 줄인다
+    // (Tab으로 그룹을 훑을 때마다 넘침과 되튐이 반복되지 않게).
+    el.__avatarFloat = gsap.to(el, {
+      yPercent: up ? -15 : 0,
+      duration: hovered ? gsapDuration.slower : gsapDuration.base,
+      ease: hovered ? gsapEasing.spring : gsapEasing.settle,
+      overwrite: 'auto',
+    });
   };
 
   const press = () => {
@@ -239,9 +232,9 @@ export const Avatar = ({
           release();
         },
         onKeyDown: (event: KeyboardEvent<HTMLElement>) => {
-          if (!event.repeat && (event.key === 'Enter' || event.key === ' ')) {
-            press();
-          }
+          // 링크는 Space로 활성화되지 않는다(페이지가 스크롤된다).
+          const isSpace = event.key === ' ' && RootTag !== 'a';
+          if (!event.repeat && (event.key === 'Enter' || isSpace)) press();
         },
         onKeyUp: (event: KeyboardEvent<HTMLElement>) => {
           if (event.key === 'Enter' || event.key === ' ') release();
@@ -259,7 +252,12 @@ export const Avatar = ({
     };
     if ((!live || reduced) && (el.__avatarFloat || el.__avatarPress)) {
       end();
-      settleMotion(gsap.set(el, { yPercent: 0, scale: 1 }));
+      hoveredRef.current = false;
+      focusVisibleRef.current = false;
+      pressedAtRef.current = null;
+      // clearProps가 인라인 transform과 GSAP 변환 캐시를 같이 지운다. 값만 0으로
+      // 두면 translate(0px, 0px)가 남아 clickable의 :active 축소를 이긴다.
+      settleMotion(gsap.set(el, { clearProps: 'transform' }));
     }
     return end;
   }, [live, reduced]);

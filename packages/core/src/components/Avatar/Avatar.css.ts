@@ -7,7 +7,6 @@ export const avatar = style({
   display: 'inline-flex',
   alignItems: 'center',
   justifyContent: 'center',
-  backgroundColor: themeContract.color.background.paper,
   color: themeContract.color.text.primary,
   fontWeight: themeContract.font.weight.medium,
   userSelect: 'none',
@@ -65,6 +64,9 @@ export const avatarClip = style({
   height: '100%',
   borderRadius: 'inherit',
   overflow: 'hidden',
+  // 배경은 루트가 아니라 여기서 그린다. 루트(overflow 없음)와 이 클립이 같은 반경으로
+  // 겹쳐 그려지면 안티에일리어싱 가장자리에 루트 배경이 비쳐 번진다.
+  backgroundColor: themeContract.color.background.paper,
 });
 
 export const image = style({

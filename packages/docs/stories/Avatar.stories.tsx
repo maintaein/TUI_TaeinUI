@@ -398,3 +398,14 @@ export const Interactive: Story = {
     status: 'online',
   },
 };
+
+// 호버·키보드 포커스에 튀며 떠오르고 누르면 커지는 효과(선택 기능, 클릭 가능할 때만)
+export const Bouncy: Story = {
+  args: {
+    src: 'https://i.pravatar.cc/150?img=12',
+    alt: '홍길동',
+    size: 'lg',
+    bouncy: true,
+    onClick: () => {},
+  },
+};

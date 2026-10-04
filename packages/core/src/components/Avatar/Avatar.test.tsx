@@ -228,6 +228,15 @@ describe('Avatar', () => {
       expect(cssBlock('avatar')).not.toMatch(/overflow/);
     });
 
+    it('배경은 루트가 아니라 클립 래퍼가 그린다(가장자리에 루트 배경이 번지지 않게)', () => {
+      expect(cssBlock('avatar')).not.toMatch(/backgroundColor/);
+      expect(cssBlock('avatarClip')).toMatch(
+        /backgroundColor: themeContract\.color\.background\.paper/
+      );
+      // 클립 없이 루트에 직접 칠하는 +N 아바타는 자기 배경을 가진다.
+      expect(cssBlock('excessAvatar')).toMatch(/backgroundColor/);
+    });
+
     it('이니셜 fallback과 children은 클립 래퍼 안에 있다', () => {
       const { rerender } = render(<Avatar alt="홍길동" />);
       expect(
@@ -542,10 +551,16 @@ describe('AvatarGroup', () => {
 describe('Avatar bouncy', () => {
   afterEach(() => {
     vi.unstubAllGlobals();
+    vi.useRealTimers();
   });
 
   // Avatar.tsx가 DOM 노드에 얹는 손잡이. gsap을 직접 import하지 않고 이걸로 읽는다.
-  type Tween = { vars: gsap.TweenVars; duration(): number };
+  type Tween = {
+    vars: gsap.TweenVars;
+    duration(): number;
+    // 죽은 트윈은 타임라인에서 떨어진다.
+    parent: unknown;
+  };
   type Host = HTMLElement & { __avatarFloat?: Tween; __avatarPress?: Tween };
 
   // jsdom에는 PointerEvent가 없어 fireEvent.pointerDown은 button·pointerType을
@@ -559,6 +574,44 @@ describe('Avatar bouncy', () => {
       const event = new MouseEvent(type, { bubbles: true, button });
       Object.defineProperty(event, 'pointerType', { value: pointerType });
       el.dispatchEvent(event);
+    });
+
+  // jsdom은 :focus-visible 휴리스틱이 없다. 그 선택자에만 값을 돌려주는 스텁으로
+  // 키보드(true)·마우스(false) 포커스를 흉내낸다. 다른 선택자를 부르면 반대로 답한다.
+  const stubFocusVisible = (root: HTMLElement, focusVisible: boolean) =>
+    Object.defineProperty(root, 'matches', {
+      value: (selector: string) =>
+        selector === ':focus-visible' ? focusVisible : !focusVisible,
+    });
+
+  // 모션 축소 선호를 켜고 끌 수 있는 matchMedia. 바뀌면 구독자에게 알린다.
+  const installMotionPreference = (initial: boolean) => {
+    let matches = initial;
+    const listeners = new Set<() => void>();
+    vi.stubGlobal(
+      'matchMedia',
+      (media: string): MediaQueryList =>
+        ({
+          get matches() {
+            return matches;
+          },
+          media,
+          addEventListener: (_: string, fn: () => void) => listeners.add(fn),
+          removeEventListener: (_: string, fn: () => void) =>
+            listeners.delete(fn),
+        }) as unknown as MediaQueryList
+    );
+    return (next: boolean) =>
+      act(() => {
+        matches = next;
+        listeners.forEach((fn) => fn());
+      });
+  };
+
+  // 떠오르는 트윈을 끝까지 돌려 인라인 transform이 실제로 써지게 한다.
+  const settleFloat = (root: Host) =>
+    act(() => {
+      (root.__avatarFloat as unknown as gsap.core.Tween).progress(1);
     });
 
   const renderBouncy = (props: Partial<Parameters<typeof Avatar>[0]> = {}) => {
@@ -615,6 +668,7 @@ describe('Avatar bouncy', () => {
     expect(root.__avatarFloat).toBeUndefined();
     expect(root.__avatarPress).toBeUndefined();
     expect(root.className).not.toMatch(/bouncyStyle/);
+    expect(root.style.transform).toBe('');
   });
 
   it('터치의 pointerenter는 떠오름을 만들지 않지만 누름 확대는 받는다', () => {
@@ -673,8 +727,7 @@ describe('Avatar bouncy', () => {
 
   it('호버가 풀려도 키보드 포커스가 남아 있으면 내려오지 않는다', () => {
     const root = renderBouncy();
-    // jsdom은 :focus-visible 휴리스틱이 없어 항상 false다. 키보드 포커스를 흉내낸다.
-    Object.defineProperty(root, 'matches', { value: () => true });
+    stubFocusVisible(root, true);
 
     pointer(root, 'pointerover');
     act(() => root.focus());
@@ -686,12 +739,193 @@ describe('Avatar bouncy', () => {
     expect(root.__avatarFloat?.vars.yPercent).toBe(0);
   });
 
+  it('포커스가 풀려도 호버가 남아 있으면 내려오지 않는다', () => {
+    const root = renderBouncy();
+    stubFocusVisible(root, true);
+
+    pointer(root, 'pointerover');
+    act(() => root.focus());
+    act(() => root.blur());
+    // blur는 포커스 이유만 걷는다. blur가 호버까지 걷으면 여기서 0이 된다.
+    expect(root.__avatarFloat?.vars.yPercent).toBe(-15);
+
+    pointer(root, 'pointerout');
+    expect(root.__avatarFloat?.vars.yPercent).toBe(0);
+  });
+
   it('마우스 클릭으로 생긴 포커스(:focus-visible 아님)는 떠오르지 않는다', () => {
     const root = renderBouncy();
+    stubFocusVisible(root, false);
 
     act(() => root.focus());
 
     expect(root.__avatarFloat?.vars.yPercent).toBe(0);
+  });
+
+  it('마우스 클릭 → 포인터 이탈 → 내려온다', () => {
+    const root = renderBouncy();
+    stubFocusVisible(root, false);
+
+    pointer(root, 'pointerover');
+    pointer(root, 'pointerdown');
+    act(() => root.focus());
+    pointer(root, 'pointerup');
+    expect(root.__avatarFloat?.vars.yPercent).toBe(-15);
+
+    pointer(root, 'pointerout');
+    expect(root.__avatarFloat?.vars.yPercent).toBe(0);
+  });
+
+  it('키보드 포커스만으로 뜰 때는 튀지 않는다(settle, base). 호버가 끼면 spring, slower', () => {
+    const root = renderBouncy();
+    stubFocusVisible(root, true);
+
+    act(() => root.focus());
+    expect(root.__avatarFloat?.vars.yPercent).toBe(-15);
+    expect(root.__avatarFloat?.vars.ease).toBe(gsapEasing.settle);
+    expect(root.__avatarFloat?.duration()).toBe(gsapDuration.base);
+
+    pointer(root, 'pointerover');
+    expect(root.__avatarFloat?.vars.yPercent).toBe(-15);
+    expect(root.__avatarFloat?.vars.ease).toBe(gsapEasing.spring);
+    expect(root.__avatarFloat?.duration()).toBe(gsapDuration.slower);
+  });
+
+  describe('누름 해제 경로', () => {
+    const expectReleased = (root: Host) => {
+      expect(root.__avatarPress?.vars.scale).toBe(1);
+      expect(root.__avatarPress?.vars.ease).toBe(gsapEasing.settle);
+    };
+
+    it('누른 채 포인터가 떠나면 확대를 푼다', () => {
+      const root = renderBouncy();
+
+      pointer(root, 'pointerdown');
+      expect(root.__avatarPress?.vars.scale).toBe(1.1);
+      pointer(root, 'pointerout');
+
+      expectReleased(root);
+    });
+
+    it('누르지 않은 채 포인터가 떠나면 확대 트윈을 만들지 않는다', () => {
+      const root = renderBouncy();
+
+      pointer(root, 'pointerover');
+      pointer(root, 'pointerout');
+
+      expect(root.__avatarPress).toBeUndefined();
+    });
+
+    it('누른 채 blur되면 확대를 푼다(Popover가 포커스를 가져가도 1.1배로 굳지 않는다)', () => {
+      const root = renderBouncy();
+
+      act(() => root.focus());
+      fireEvent.keyDown(root, { key: 'Enter' });
+      expect(root.__avatarPress?.vars.scale).toBe(1.1);
+      act(() => root.blur());
+
+      expectReleased(root);
+    });
+
+    it('누르지 않은 채 blur되면 확대 트윈을 만들지 않는다', () => {
+      const root = renderBouncy();
+
+      act(() => root.focus());
+      act(() => root.blur());
+
+      expect(root.__avatarPress).toBeUndefined();
+    });
+
+    it('pointercancel은 확대를 푼다', () => {
+      const root = renderBouncy();
+
+      pointer(root, 'pointerdown');
+      pointer(root, 'pointercancel');
+
+      expectReleased(root);
+    });
+
+    it('Space keyup은 확대를 푼다', () => {
+      const root = renderBouncy();
+
+      fireEvent.keyDown(root, { key: ' ' });
+      fireEvent.keyUp(root, { key: ' ' });
+
+      expectReleased(root);
+    });
+
+    it('90ms를 넘게 눌렀으면 해제 delay가 0이다', () => {
+      vi.useFakeTimers({ toFake: ['performance'] });
+      const root = renderBouncy();
+
+      pointer(root, 'pointerdown');
+      vi.advanceTimersByTime(120);
+      pointer(root, 'pointerup');
+
+      expect(root.__avatarPress?.vars.delay).toBe(0);
+    });
+  });
+
+  it('<a>에서 Space는 누름을 일으키지 않고 Enter는 일으킨다', () => {
+    const { container } = render(
+      <Avatar alt="홍길동" bouncy href="/profile" />
+    );
+    const root = container.firstChild as Host;
+
+    fireEvent.keyDown(root, { key: ' ' });
+    expect(root.__avatarPress).toBeUndefined();
+
+    fireEvent.keyDown(root, { key: 'Enter' });
+    expect(root.__avatarPress?.vars.scale).toBe(1.1);
+  });
+
+  describe('원위치 리셋', () => {
+    it('마운트 뒤 축소 모드로 바뀌면 인라인 transform 없이 원위치로 돌아간다', () => {
+      const setReduced = installMotionPreference(false);
+      const root = renderBouncy();
+
+      pointer(root, 'pointerover');
+      settleFloat(root);
+      expect(root.style.transform).not.toBe('');
+
+      setReduced(true);
+
+      expect(root.style.transform).toBe('');
+    });
+
+    it('bouncy를 true에서 false로 바꾸면 인라인 transform 없이 원위치로 돌아간다', () => {
+      const { container, rerender } = render(
+        <Avatar alt="홍길동" bouncy onClick={() => {}} />
+      );
+      const root = container.firstChild as Host;
+
+      pointer(root, 'pointerover');
+      settleFloat(root);
+      expect(root.style.transform).not.toBe('');
+
+      rerender(<Avatar alt="홍길동" onClick={() => {}} />);
+
+      expect(root.style.transform).toBe('');
+    });
+
+    it('언마운트하면 트윈이 죽는다', () => {
+      const { container, unmount } = render(
+        <Avatar alt="홍길동" bouncy onClick={() => {}} />
+      );
+      const root = container.firstChild as Host;
+
+      pointer(root, 'pointerover');
+      pointer(root, 'pointerdown');
+      const float = root.__avatarFloat;
+      const press = root.__avatarPress;
+      expect(float?.parent).toBeTruthy();
+      expect(press?.parent).toBeTruthy();
+
+      unmount();
+
+      expect(float?.parent).toBeFalsy();
+      expect(press?.parent).toBeFalsy();
+    });
   });
 
   it('축소 모드에서는 트윈을 만들지 않는다', () => {

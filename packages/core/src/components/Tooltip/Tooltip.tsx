@@ -301,10 +301,15 @@ export const Tooltip = ({
     >
       {cloneElement(children, {
         ...triggerAria,
-        onClick: (event: ReactMouseEvent<HTMLElement>) => {
-          children.props.onClick?.(event);
-          onClick?.(event);
-        },
+        // 둘 다 없으면 키를 넘기지 않는다. 동작 없는 onClick이 자식을 버튼으로 만든다.
+        ...(children.props.onClick || onClick
+          ? {
+              onClick: (event: ReactMouseEvent<HTMLElement>) => {
+                children.props.onClick?.(event);
+                onClick?.(event);
+              },
+            }
+          : {}),
         'aria-describedby': describedBy,
       })}
       {shouldRender && (

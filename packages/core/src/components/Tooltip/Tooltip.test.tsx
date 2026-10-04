@@ -4,6 +4,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, act } from '@testing-library/react';
 import { Tooltip } from './Tooltip';
 import { Popover } from '../Popover';
+import { Avatar } from '../Avatar';
 import { bubbleSpec as popoverBubbleSpec } from '../Popover/Popover.css';
 import { bubbleSpec } from './Tooltip.css';
 import { bubbleStyles } from '../../_internal/bubble';
@@ -444,6 +445,58 @@ describe('Tooltip', () => {
       fireEvent.click(screen.getByRole('button'));
 
       expect(calls).toEqual(['자식', '받은 것']);
+    });
+
+    it('아무도 onClick을 주지 않으면 자식에 onClick을 넘기지 않는다', () => {
+      const { container } = render(
+        <Tooltip content="툴팁">
+          <Avatar alt="홍길동" />
+        </Tooltip>
+      );
+
+      // 동작 없는 onClick이 Avatar를 button으로 만들던 결함
+      expect(screen.queryByRole('button')).toBeNull();
+      expect(container.querySelector('button')).toBeNull();
+    });
+
+    it('자식의 onClick만 있어도 클릭하면 호출된다', () => {
+      const fn = vi.fn();
+      render(
+        <Tooltip content="툴팁">
+          <button onClick={fn}>버튼</button>
+        </Tooltip>
+      );
+
+      fireEvent.click(screen.getByRole('button'));
+
+      expect(fn).toHaveBeenCalledTimes(1);
+    });
+
+    it('Tooltip의 onClick만 있어도 클릭하면 호출된다', () => {
+      const fn = vi.fn();
+      render(
+        <Tooltip content="툴팁" onClick={fn}>
+          <button>버튼</button>
+        </Tooltip>
+      );
+
+      fireEvent.click(screen.getByRole('button'));
+
+      expect(fn).toHaveBeenCalledTimes(1);
+    });
+
+    it('Popover 안의 Tooltip은 Popover가 넘긴 onClick으로 계속 팝오버를 연다', () => {
+      render(
+        <Popover content={<div>메뉴 내용</div>}>
+          <Tooltip content="툴팁">
+            <Avatar alt="홍길동" />
+          </Tooltip>
+        </Popover>
+      );
+
+      fireEvent.click(screen.getByRole('button', { name: '홍길동' }));
+
+      expect(screen.getByText('메뉴 내용')).toBeInTheDocument();
     });
 
     it('aria-가 아닌 props(data-*)는 래퍼에 남는다', () => {
