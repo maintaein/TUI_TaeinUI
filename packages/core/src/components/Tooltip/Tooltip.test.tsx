@@ -3,6 +3,7 @@ import { resolve } from 'node:path';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, act } from '@testing-library/react';
 import { Tooltip } from './Tooltip';
+import { bubbleSpec as popoverBubbleSpec } from '../Popover/Popover.css';
 
 // Tooltip.tsx의 EXIT_DURATION_MS와 반드시 같은 값이어야 한다. isOpen이
 // false가 된 뒤 DOM이 실제로 사라지기까지 퇴장 전이 재생 시간만큼 더
@@ -846,18 +847,14 @@ describe('Tooltip', () => {
     );
 
     it('O3: Popover(scale 채널, duration.slow)보다 채널·길이가 작다(오버레이계 최하한)', () => {
-      const popoverSource = readFileSync(
-        resolve(__dirname, '../Popover/Popover.css.ts'),
-        'utf-8'
-      );
-      // Tooltip은 scale 채널을 쓰지 않는다 — Popover보다 가벼운 채널(opacity+
+      // Tooltip은 scale 채널을 쓰지 않는다. Popover보다 가벼운 채널(opacity+
       // translateY)만 쓴다.
       expect(cssSource).not.toContain('scale(');
-      expect(popoverSource).toContain('scale(0.6)');
+      expect(popoverBubbleSpec.scale).toBe(0.6);
       // Tooltip은 duration.fast, Popover는 duration.slow를 쓴다. fast가
       // slow보다 짧다(150ms < 300ms).
       expect(cssSource).toContain('duration.fast');
-      expect(popoverSource).toContain('duration.slow');
+      expect(popoverBubbleSpec.enterTransform.duration).toBe('slow');
     });
 
     it('M2→M3 계약 주석(O3 — 오버레이계 최하한)이 남아있다', () => {
