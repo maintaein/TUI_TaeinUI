@@ -42,4 +42,6 @@
 - **BREAKING CHANGE:** `Popover`의 `children`이 단일 요소여야 합니다. 트리거 속성(`onClick`·`aria-haspopup`·`aria-expanded`·`aria-controls`)이 감싸는 `div`가 아니라 그 요소에 직접 붙습니다. 문자열이나 여러 요소를 넘겼다면 `Button` 같은 상호작용 요소 하나로 감싸세요: `<Popover content={...}><Button>열기</Button></Popover>`. `Avatar`는 `onClick` 없이도 트리거로 쓸 수 있습니다.
 - `Avatar`가 `onClick`이나 `href`가 있어 `button`·`a`로 렌더링될 때, `aria-*` 속성이 안쪽 `<img>`가 아니라 그 버튼·링크에 붙습니다. 소비자가 넘긴 `aria-label`이 `alt`로 만든 기본 이름을 덮습니다.
 - `Popover`가 `scale(0.6)`에서 300ms 동안 살짝 넘쳤다 정착하며 튀어 오릅니다(이전에는 `scale(0.95)`에서 시작했습니다). 불투명도는 150ms에 먼저 끝나고, 퇴장은 195ms입니다.
+- **BREAKING CHANGE:** `Tooltip`의 `children`이 단일 요소여야 합니다. `aria-describedby`가 감싸는 `div`가 아니라 그 요소에 직접 붙어, 스크린 리더가 버튼에서 툴팁을 읽습니다. 요소가 이미 `aria-describedby`를 가졌다면 공백으로 합쳐집니다. `Popover` 안에 넣으면 `Popover`가 단 `onClick`과 `aria-*`가 `div`가 아니라 그 요소로 넘어갑니다: `<Popover content={...}><Tooltip content="더보기"><IconButton aria-label="더보기" /></Tooltip></Popover>`. 문자열이나 여러 요소를 넘겼다면 요소 하나로 감싸세요. 호버·포커스 핸들러는 계속 감싸는 `div`에 있어, 포인터를 툴팁 위로 옮겨도 닫히지 않습니다.
+- `Tooltip`이 `scale(0.8)`에서 200ms 동안 살짝 넘쳤다 정착하며 튀어 오릅니다(이전에는 크기 변화 없이 `translateY` 2px만 움직였습니다). 불투명도는 150ms에 먼저 끝나고, 퇴장은 130ms입니다. `Popover`보다 작고 짧게 움직입니다.
 - `Border` 빛이 한 바퀴 도는 시간을 1500ms(`loop.base`)에서 6000ms(`loop.slow`)로 늘려 느린 환경광으로 바꿨습니다. 호버로 켜지는 빛은 `(hover: hover) and (pointer: fine)`일 때만 적용돼 터치 기기에서 탭 뒤 빛이 들러붙지 않습니다. 키보드 포커스(`:focus-within`)는 포인터 종류와 무관하게 켜집니다.

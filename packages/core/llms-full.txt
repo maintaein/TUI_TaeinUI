@@ -603,10 +603,10 @@ import { Tooltip, Button } from '@taein-ui/core';
 </Tooltip>
 ```
 
-### Props (extends HTMLAttributes<HTMLDivElement>)
+### Props (extends HTMLAttributes<HTMLElement>)
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
-| children | ReactNode | (required) | Trigger element |
+| children | ReactElement | (required) | Single trigger element. aria-describedby is attached to it directly. Received aria-* and onClick are forwarded to it, so a Tooltip can sit inside a Popover |
 | content | ReactNode | (required) | Tooltip content |
 | open | boolean | — | Controlled visibility |
 | onOpenChange | (open: boolean) => void | — | State change callback |

@@ -3,8 +3,11 @@ import {
   useRef,
   useEffect,
   useId,
+  cloneElement,
+  type ReactElement,
   type ReactNode,
   type HTMLAttributes,
+  type MouseEvent as ReactMouseEvent,
 } from 'react';
 import clsx from 'clsx';
 import {
@@ -22,19 +25,23 @@ import { addDocumentListener } from '../../_internal/dom';
 // 기다리는 시간"이라 성격이 달라 별도 상수로 둔다.
 const HIDE_GRACE_MS = 300;
 
-// 퇴장 전이(calc(duration.fast * 0.65))와 맞춘 값이다 — Tooltip.css.ts의
-// closed 전이 길이(150ms * 0.65 = 97.5ms)를 바꾸면 이 상수도 같이 바꿔야
+// 퇴장 전이(calc(duration.base * 0.65))와 맞춘 값이다. Tooltip.css.ts의
+// closed 전이 길이(200ms * 0.65 = 130ms)를 바꾸면 이 상수도 같이 바꿔야
 // CSS 전이가 끝나기 전에 DOM이 사라지거나 그 반대가 되지 않는다. Popover의
-// EXIT_DURATION_MS(130)와 다른 값이다 — Tooltip은 duration.fast를 쓴다.
-const EXIT_DURATION_MS = 97.5;
+// EXIT_DURATION_MS(195)보다 짧다. Tooltip은 duration.base를 쓴다.
+const EXIT_DURATION_MS = 130;
 
 /** 호버/포커스 시 추가 정보를 표시하는 툴팁 컴포넌트. 제어/비제어 모드 지원 */
 export interface TooltipProps extends Omit<
-  HTMLAttributes<HTMLDivElement>,
+  HTMLAttributes<HTMLElement>,
   'content'
 > {
-  /** 트리거 요소 (호버/포커스 시 툴팁 표시) */
-  children: ReactNode;
+  /**
+   * 트리거 요소 (호버/포커스 시 툴팁 표시). 단일 요소여야 한다.
+   * `aria-describedby`가 이 요소에 직접 붙는다. 받은 `aria-*`와 `onClick`도
+   * 이 요소로 넘어간다 (`<Popover><Tooltip>...</Tooltip></Popover>` 중첩용).
+   */
+  children: ReactElement<HTMLAttributes<HTMLElement>>;
   /** 툴팁에 표시할 내용 */
   content: ReactNode;
 
@@ -66,7 +73,8 @@ export const Tooltip = ({
   disabled = false,
   arrow: showArrow = true,
   className,
-  ...props
+  onClick,
+  ...restProps
 }: TooltipProps) => {
   // 비제어 모드용 내부 상태
   const [uncontrolledOpen, setUncontrolledOpen] = useState(false);
@@ -83,7 +91,7 @@ export const Tooltip = ({
   const isOpen = isControlled ? controlledOpen : uncontrolledOpen;
 
   // isOpen이 꺼져도 DOM을 즉시 지우지 않고 퇴장 전이가 재생될 자리를
-  // 97.5ms 남겨 둔다(Popover.tsx와 같은 shouldRender 배선). 유예
+  // 130ms 남겨 둔다(Popover.tsx와 같은 shouldRender 배선). 유예
   // (HIDE_GRACE_MS) 타이머는 isOpen 자체를 바꾸지 않으므로 이 타이머와는
   // 서로 간섭하지 않는다 — 유예 중엔 isOpen이 그대로라 전이도 돌지 않는다.
   const [shouldRender, setShouldRender] = useState(isOpen);
@@ -223,17 +231,48 @@ export const Tooltip = ({
     setOpen(false);
   };
 
+  // Popover 안에 들어가면 Popover가 이 컴포넌트에 onClick·aria-haspopup·
+  // aria-expanded·aria-controls를 단다. 그것들은 포커스되는 요소에 붙어야 해서
+  // 래퍼가 아니라 자식으로 보낸다. 나머지는 래퍼로 간다.
+  const triggerAria: Record<string, unknown> = {};
+  const wrapperProps: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(restProps)) {
+    (key.startsWith('aria-') ? triggerAria : wrapperProps)[key] = value;
+  }
+
+  // 자식이 이미 가진 aria-describedby, 받은 것, 자기 것을 공백으로 합친다.
+  const describedBy =
+    [
+      children.props['aria-describedby'],
+      triggerAria['aria-describedby'],
+      isOpen ? tooltipId : undefined,
+    ]
+      .filter(Boolean)
+      .join(' ') || undefined;
+
   return (
+    // 호버·포커스 핸들러는 자식이 아니라 래퍼에 둔다. 래퍼는 툴팁 노드까지 DOM
+    // 자손으로 감싸서, 포인터가 트리거 → 틈 → 툴팁으로 넘어갈 때 mouseenter가
+    // 래퍼에 다시 걸려 닫기 유예(HIDE_GRACE_MS)를 취소한다. 툴팁 위에 포인터를
+    // 둘 수 있어야 한다는 WCAG 1.4.13(호버 가능)이다. 핸들러를 자식으로 옮기면
+    // 포인터가 툴팁에 올라가는 순간 닫힌다. Popover는 반대로 자식에 직접 단다.
+    // onFocus·onBlur는 버블링되므로 래퍼에서도 자식의 포커스를 받는다.
     <div
       className={clsx(tooltipContainer, className)}
       onMouseEnter={handleShow}
       onMouseLeave={handleMouseLeave}
       onFocus={handleShow}
       onBlur={handleBlur}
-      aria-describedby={isOpen ? tooltipId : undefined}
-      {...props}
+      {...wrapperProps}
     >
-      {children}
+      {cloneElement(children, {
+        ...triggerAria,
+        onClick: (event: ReactMouseEvent<HTMLElement>) => {
+          children.props.onClick?.(event);
+          onClick?.(event);
+        },
+        'aria-describedby': describedBy,
+      })}
       {shouldRender && (
         <div
           id={tooltipId}

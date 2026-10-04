@@ -10,9 +10,10 @@ export function TooltipPage() {
   const propsData: PropDefinition[] = [
     {
       name: 'children',
-      type: 'ReactNode',
+      type: 'ReactElement',
       required: true,
-      description: '툴팁을 트리거할 요소',
+      description:
+        '툴팁을 트리거할 단일 요소. aria-describedby가 이 요소에 직접 붙습니다. 받은 aria-*와 onClick도 이 요소로 넘어가므로 Popover 안에 넣을 수 있습니다.',
     },
     {
       name: 'content',
@@ -381,6 +382,31 @@ arrow: 화살표 표시/숨김
         </div>
 
         <div className={styles.example}>
+          <h3 className={styles.exampleTitle}>Tooltip + Popover</h3>
+          <LivePreview
+            title="아이콘 버튼에 툴팁과 메뉴를 같이 달기"
+            description="호버하면 이름을 알려 주는 툴팁이 뜨고, 누르면 메뉴가 열립니다. Popover 안에 Tooltip을 넣으면 aria-expanded와 aria-describedby가 같은 버튼에 붙습니다."
+            editable
+            code={`<Popover
+  position="bottom"
+  content={
+    <List spacing="sm" style={{ padding: '0.25rem 0.5rem', minWidth: '140px' }}>
+      <ListItem style={{ padding: '0.5rem', borderRadius: '6px', cursor: 'pointer' }}>편집</ListItem>
+      <ListItem style={{ padding: '0.5rem', borderRadius: '6px', cursor: 'pointer' }}>복제</ListItem>
+      <ListItem style={{ padding: '0.5rem', borderRadius: '6px', cursor: 'pointer' }}>
+        <Text variant="body2" color="error">삭제</Text>
+      </ListItem>
+    </List>
+  }
+>
+  <Tooltip content="더보기" position="top">
+    <IconButton ghost aria-label="더보기"><Ellipsis size={22} /></IconButton>
+  </Tooltip>
+</Popover>`}
+          />
+        </div>
+
+        <div className={styles.example}>
           <h3 className={styles.exampleTitle}>Form Field Help</h3>
           <LivePreview
             title="폼 필드 도움말"
@@ -427,7 +453,7 @@ arrow: 화살표 표시/숨김
               attribute: 'aria-describedby',
               effect: '연관 요소 연결',
               description:
-                '트리거 요소가 툴팁 내용을 설명으로 참조합니다. 툴팁이 열릴 때만 설정됩니다.',
+                '트리거 요소 자체가 툴팁 내용을 설명으로 참조합니다. 툴팁이 열릴 때만 설정되고, 요소가 이미 가진 값과는 공백으로 합쳐집니다.',
             },
             {
               attribute: 'onFocus / onBlur',
@@ -441,10 +467,10 @@ arrow: 화살표 표시/숨김
                 '지연 시간으로 빠른 마우스 이동 시 불필요한 툴팁 표시를 방지합니다.',
             },
             {
-              attribute: 'pointerEvents: none',
-              effect: '인터랙션 차단 방지',
+              attribute: 'onMouseEnter / onMouseLeave',
+              effect: '호버 가능 (WCAG 1.4.13)',
               description:
-                '툴팁 자체는 클릭/hover 이벤트를 받지 않아 레이아웃 간섭이 없습니다.',
+                '포인터를 트리거에서 툴팁으로 옮겨도 닫히지 않습니다. 툴팁 위에 포인터를 둔 채 내용을 읽을 수 있습니다.',
             },
           ]}
         />
