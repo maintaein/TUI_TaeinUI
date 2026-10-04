@@ -243,6 +243,29 @@ arrow: 화살표 표시/숨김
 </div>`}
           />
         </div>
+
+        <div className={styles.example}>
+          <h3 className={styles.exampleTitle}>Toolbar</h3>
+          <LivePreview
+            title="연달아 보는 툴팁"
+            description="첫 툴팁만 기다렸다 튀어 오르고, 옆 버튼으로 옮기면 바로 바뀝니다. 툴팁이 열려 있거나 닫힌 지 300ms 이내면 다음 툴팁은 delay와 등장 전이를 건너뛰고, 열려 있던 툴팁은 곧바로 사라집니다."
+            editable
+            code={`<div style={{ display: 'flex', gap: '0.5rem', padding: '1.5rem' }}>
+  <Tooltip content="굵게">
+    <IconButton ghost aria-label="굵게" size="sm"><Bold size={18} /></IconButton>
+  </Tooltip>
+  <Tooltip content="기울임">
+    <IconButton ghost aria-label="기울임" size="sm"><Italic size={18} /></IconButton>
+  </Tooltip>
+  <Tooltip content="밑줄">
+    <IconButton ghost aria-label="밑줄" size="sm"><Underline size={18} /></IconButton>
+  </Tooltip>
+  <Tooltip content="링크">
+    <IconButton ghost aria-label="링크" size="sm"><Link size={18} /></IconButton>
+  </Tooltip>
+</div>`}
+          />
+        </div>
       </section>
 
       {/* Disabled */}

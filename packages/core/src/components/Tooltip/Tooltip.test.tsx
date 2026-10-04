@@ -9,6 +9,7 @@ import { bubbleSpec } from './Tooltip.css';
 import { bubbleStyles } from '../../_internal/bubble';
 import { themeContract } from '../../tokens/theme.css';
 import { duration } from '../../tokens/animation.css';
+import { WARM_MS, resetTooltipWarmth } from '../../_internal/tooltipWarmth';
 
 // Tooltip.tsx의 EXIT_DURATION_MS와 반드시 같은 값이어야 한다. isOpen이
 // false가 된 뒤 DOM이 실제로 사라지기까지 퇴장 전이 재생 시간만큼 더
@@ -20,6 +21,8 @@ const EXIT_DURATION_MS = 130;
 describe('Tooltip', () => {
   beforeEach(() => {
     vi.useFakeTimers();
+    // 연달아 보는 상태는 모듈 범위라 앞 테스트에서 새 나올 수 있다
+    resetTooltipWarmth();
   });
 
   afterEach(() => {
@@ -1284,6 +1287,189 @@ describe('Tooltip', () => {
         vi.advanceTimersByTime(2000);
       });
       expect(screen.getByRole('tooltip')).toBeInTheDocument();
+    });
+  });
+
+  describe('연달아 보는 툴팁 (사용자 결정 A)', () => {
+    const renderToolbar = () =>
+      render(
+        <>
+          <Tooltip content="가 툴팁">
+            <button>가</button>
+          </Tooltip>
+          <Tooltip content="나 툴팁">
+            <button>나</button>
+          </Tooltip>
+        </>
+      );
+
+    // 포인터가 가 → 나로 옮겨 간다: 가의 mouseleave 뒤 나의 mouseenter
+    const openFirst = () => {
+      fireEvent.mouseEnter(screen.getByRole('button', { name: '가' }));
+      act(() => {
+        vi.advanceTimersByTime(200);
+      });
+    };
+
+    it('차가움: 첫 툴팁은 delay를 기다린 뒤 뜬다(기존 동작)', () => {
+      renderToolbar();
+
+      fireEvent.mouseEnter(screen.getByRole('button', { name: '가' }));
+      act(() => {
+        vi.advanceTimersByTime(199);
+      });
+      expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
+
+      act(() => {
+        vi.advanceTimersByTime(1);
+      });
+      expect(screen.getByText('가 툴팁')).toBeInTheDocument();
+    });
+
+    it('따뜻함: 열린 툴팁이 있으면 다음 툴팁이 같은 틱에 뜨고 이전 툴팁은 즉시 사라진다', () => {
+      renderToolbar();
+      openFirst();
+
+      // 가의 닫기 유예(300ms)가 도는 중이다. 기다리지 않고 나로 옮겨 간다.
+      fireEvent.mouseLeave(screen.getByRole('button', { name: '가' }));
+      fireEvent.mouseEnter(screen.getByRole('button', { name: '나' }));
+
+      expect(screen.getByText('나 툴팁')).toBeInTheDocument();
+      // 퇴장 전이(130ms)도 없이 DOM에서 사라진다. 동시에 둘이 보이는 순간이 없다.
+      expect(screen.queryByText('가 툴팁')).not.toBeInTheDocument();
+      expect(screen.getAllByRole('tooltip')).toHaveLength(1);
+    });
+
+    it('즉시 모드로 뜬 툴팁은 처음 커밋부터 열림 클래스다(닫힘 클래스를 거치지 않는다)', () => {
+      const { container } = renderToolbar();
+      openFirst();
+
+      const observer = new MutationObserver(() => {});
+      observer.observe(container, {
+        subtree: true,
+        childList: true,
+        attributes: true,
+        attributeOldValue: true,
+      });
+
+      fireEvent.mouseEnter(screen.getByRole('button', { name: '나' }));
+      const classRecords = observer
+        .takeRecords()
+        .filter((r) => r.type === 'attributes' && r.target !== container);
+      const tooltipNode = screen.getByText('나 툴팁');
+      expect(tooltipNode.className).toContain('positionOpenStyles');
+      // 닫힘 → 열림 클래스 전환이 한 번도 없었다. 있었다면 oldValue가 닫힘 클래스다.
+      expect(
+        classRecords.filter((r) => r.oldValue?.includes('positionStyles'))
+      ).toHaveLength(0);
+
+      // 대조: 차가운 상태의 등장은 닫힘 → 열림 전환을 거친다
+      act(() => {
+        vi.advanceTimersByTime(WARM_MS + 1000);
+      });
+      fireEvent.mouseLeave(screen.getByRole('button', { name: '나' }));
+      // 닫힘과 퇴장과 WARM_MS가 각자 act 경계를 넘어야 효과가 플러시된다
+      act(() => {
+        vi.advanceTimersByTime(300);
+      });
+      act(() => {
+        vi.advanceTimersByTime(EXIT_DURATION_MS);
+      });
+      act(() => {
+        vi.advanceTimersByTime(WARM_MS + 1);
+      });
+      expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
+      observer.takeRecords();
+      fireEvent.mouseEnter(screen.getByRole('button', { name: '가' }));
+      act(() => {
+        vi.advanceTimersByTime(200);
+      });
+      const cold = observer
+        .takeRecords()
+        .filter((r) => r.oldValue?.includes('positionStyles'));
+      expect(cold.length).toBeGreaterThan(0);
+      observer.disconnect();
+    });
+
+    it('닫힌 지 WARM_MS 이내면 즉시, 지났으면 delay를 기다린다', () => {
+      renderToolbar();
+      const first = screen.getByRole('button', { name: '가' });
+      const second = screen.getByRole('button', { name: '나' });
+
+      // 블러는 유예 없이 즉시 닫는다
+      fireEvent.focus(first);
+      act(() => {
+        vi.advanceTimersByTime(200);
+      });
+      fireEvent.blur(first);
+      act(() => {
+        vi.advanceTimersByTime(EXIT_DURATION_MS);
+      });
+      expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
+
+      act(() => {
+        vi.advanceTimersByTime(WARM_MS - EXIT_DURATION_MS - 1);
+      });
+      fireEvent.mouseEnter(second);
+      expect(screen.getByText('나 툴팁')).toBeInTheDocument();
+
+      // 처음으로 돌아가 WARM_MS가 지난 뒤에 호버한다
+      fireEvent.blur(second);
+      fireEvent.mouseLeave(second);
+      act(() => {
+        vi.advanceTimersByTime(WARM_MS + 1000);
+      });
+      expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
+      fireEvent.mouseEnter(first);
+      act(() => {
+        vi.advanceTimersByTime(199);
+      });
+      expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
+      act(() => {
+        vi.advanceTimersByTime(1);
+      });
+      expect(screen.getByText('가 툴팁')).toBeInTheDocument();
+    });
+
+    it('제어 모드 툴팁이 열려 있을 때 다른 툴팁이 열리면 onOpenChange(false)로 요청만 한다', () => {
+      const onOpenChange = vi.fn();
+      render(
+        <>
+          <Tooltip content="제어 툴팁" open onOpenChange={onOpenChange}>
+            <button>제어</button>
+          </Tooltip>
+          <Tooltip content="나 툴팁">
+            <button>나</button>
+          </Tooltip>
+        </>
+      );
+
+      fireEvent.mouseEnter(screen.getByRole('button', { name: '나' }));
+
+      expect(onOpenChange).toHaveBeenCalledWith(false);
+      expect(onOpenChange).toHaveBeenCalledTimes(1);
+      expect(screen.getByText('나 툴팁')).toBeInTheDocument();
+      // 부모가 따르지 않았으니 상태를 덮어쓰지 않는다
+      expect(screen.getByText('제어 툴팁')).toBeInTheDocument();
+    });
+
+    it('같은 트리거에서 자기 툴팁으로 옮겨 가는 것은 다른 툴팁이 열린 것이 아니다', () => {
+      renderToolbar();
+      openFirst();
+
+      const first = screen.getByRole('button', { name: '가' });
+      const tooltipNode = screen.getByText('가 툴팁');
+      fireEvent.mouseLeave(first);
+      act(() => {
+        vi.advanceTimersByTime(100);
+      });
+      fireEvent.mouseEnter(tooltipNode);
+      act(() => {
+        vi.advanceTimersByTime(2000);
+      });
+
+      expect(screen.getByText('가 툴팁')).toBe(tooltipNode);
+      expect(screen.getAllByRole('tooltip')).toHaveLength(1);
     });
   });
 });

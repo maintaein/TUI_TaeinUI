@@ -20,10 +20,17 @@ import {
 } from './Tooltip.css';
 import { addDocumentListener } from '../../_internal/dom';
 import { useBubblePresence } from '../../_internal/useBubblePresence';
+import {
+  closeOtherTooltip,
+  isTooltipWarm,
+  markTooltipClosed,
+  registerTooltip,
+} from '../../_internal/tooltipWarmth';
 
 // 마우스가 트리거 → 툴팁 사이 8px 간격(positionStyles)을 건너가는 동안
 // 닫히지 않도록 두는 유예 시간(ms). delay(오픈 지연, 기본 200)는 "열기까지
-// 기다리는 시간"이라 성격이 달라 별도 상수로 둔다.
+// 기다리는 시간"이라 성격이 달라 별도 상수로 둔다. 닫힌 뒤 다음 툴팁이 지연
+// 없이 뜨는 시간(WARM_MS)과는 값이 같아도 뜻이 달라 상수를 나눈다.
 const HIDE_GRACE_MS = 300;
 
 // 퇴장 전이(calc(duration.base * 0.65))와 맞춘 값이다. Tooltip.css.ts의
@@ -87,6 +94,8 @@ export const Tooltip = ({
   const escapeClosedRef = useRef(false);
   const tooltipId = useId();
   const tooltipRef = useRef<HTMLDivElement>(null);
+  // 따뜻한 상태에서 열릴 때만 true. 등장 전이 없이 열림 클래스로 처음부터 뜬다.
+  const [instantEnter, setInstantEnter] = useState(false);
 
   // 제어/비제어 판단
   const isControlled = controlledOpen !== undefined;
@@ -95,10 +104,11 @@ export const Tooltip = ({
   // isOpen이 꺼져도 DOM을 즉시 지우지 않고 퇴장 전이가 재생될 자리를 130ms
   // 남겨 둔다. 유예(HIDE_GRACE_MS) 타이머는 isOpen 자체를 바꾸지 않으므로
   // 이 퇴장과 간섭하지 않는다. 유예 중엔 isOpen이 그대로라 전이도 돌지 않는다.
-  const { shouldRender, visible } = useBubblePresence(
+  const { shouldRender, visible, unmountNow } = useBubblePresence(
     isOpen,
     EXIT_DURATION_MS,
-    tooltipRef
+    tooltipRef,
+    instantEnter
   );
 
   useEffect(() => {
@@ -112,7 +122,9 @@ export const Tooltip = ({
     };
   }, []);
 
-  const setOpen = (newOpen: boolean) => {
+  const setOpen = (newOpen: boolean, instant = false) => {
+    setInstantEnter(newOpen && instant);
+
     // 비제어 모드: 내부 상태 업데이트
     if (!isControlled) {
       setUncontrolledOpen(newOpen);
@@ -140,6 +152,40 @@ export const Tooltip = ({
     };
   });
 
+  // 다른 툴팁이 열리면 이 툴팁은 유예도 퇴장 전이도 없이 사라진다. 열려 있는
+  // 툴팁과 새 툴팁이 동시에 보이는 순간이 없어야 한다. 제어 모드에서는
+  // onOpenChange(false)로 요청만 하고 상태를 덮어쓰지 않는다. 부모가 따르지
+  // 않으면 unmountNow를 렌더 중 보정이 되살린다.
+  const forceCloseRef = useRef<() => void>(() => {});
+  useEffect(() => {
+    forceCloseRef.current = () => {
+      if (showTimerRef.current) {
+        clearTimeout(showTimerRef.current);
+        showTimerRef.current = null;
+      }
+      if (hideTimerRef.current) {
+        clearTimeout(hideTimerRef.current);
+        hideTimerRef.current = null;
+      }
+      if (isOpen) setOpen(false);
+      unmountNow();
+    };
+  });
+  const [self] = useState(() => ({ close: () => forceCloseRef.current() }));
+
+  // DOM이 남아 있는 동안(퇴장 중 포함) 연달아 보는 상태에 참여한다. disabled는
+  // 참여하지 않는다.
+  useEffect(() => {
+    if (!shouldRender || disabled) return;
+    return registerTooltip(self);
+  }, [shouldRender, disabled, self]);
+
+  // 닫힌 시각만 남긴다. "방금 닫혔다"는 퇴장이 끝난 때가 아니라 닫힌 때 기준이다.
+  useEffect(() => {
+    if (!isOpen || disabled) return;
+    return markTooltipClosed;
+  }, [isOpen, disabled]);
+
   // Escape로 닫힌 동안 열려 있었으면, 열려 있는 동안만 document에 Escape
   // 리스너를 건다 — 호버만 된 상태(포커스 없음)에서는 Escape가 document로 간다.
   useEffect(() => {
@@ -153,6 +199,13 @@ export const Tooltip = ({
 
     return addDocumentListener('keydown', handleKeyDown);
   }, [isOpen]);
+
+  // 지연이 끝난 시점에도 다시 본다. 기다리는 사이 다른 툴팁이 열렸을 수 있다.
+  const openNow = () => {
+    const warm = isTooltipWarm();
+    closeOtherTooltip(self);
+    setOpen(true, warm);
+  };
 
   const handleShow = () => {
     if (disabled || escapeClosedRef.current) return;
@@ -169,12 +222,11 @@ export const Tooltip = ({
       clearTimeout(showTimerRef.current);
     }
 
-    if (delay === 0) {
-      setOpen(true);
+    // 다른 툴팁이 열려 있거나 방금 닫혔으면(따뜻함) 지연도 등장 전이도 건너뛴다.
+    if (delay === 0 || isTooltipWarm()) {
+      openNow();
     } else {
-      showTimerRef.current = setTimeout(() => {
-        setOpen(true);
-      }, delay);
+      showTimerRef.current = setTimeout(openNow, delay);
     }
   };
 

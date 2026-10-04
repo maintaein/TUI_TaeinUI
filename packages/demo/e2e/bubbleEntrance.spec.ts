@@ -17,6 +17,11 @@ import { test, expect, type Page } from '@playwright/test';
  * 빌드 후 `vite preview`에서 0/12. 어느 쪽이든 재현되므로 기본 설정(dev)으로 돈다.
  * Popover는 둘 다 고치기 전에도 12/12였다. 클릭 경로는 이 환경에서 경쟁에서
  * 이기므로 Popover 시나리오는 훅을 거치는 배선이 유지되는지만 지킨다.
+ *
+ * Tooltip 시나리오는 매 회 포인터를 치우고 SETTLE_MS + 300ms(900ms)를 기다린다.
+ * _internal/tooltipWarmth.ts의 WARM_MS(300)보다 길어서 매 회 차가운 상태다.
+ * 연달아 보는 툴팁은 따뜻한 상태에서 등장을 정당하게 건너뛰므로, 대기를
+ * WARM_MS 이하로 줄이면 이 spec이 거짓으로 실패한다.
  */
 
 const RUNS = 12;
