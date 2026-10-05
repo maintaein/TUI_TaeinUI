@@ -203,15 +203,17 @@ export function ModalPage() {
         <div className={styles.example}>
           <LivePreview
             title="기본 모달"
-            description="title과 footer를 props로 전달하는 가장 간단한 방식입니다."
+            description="title과 footer를 props로 전달하는 가장 간단한 방식입니다. triggerRef를 주면 모든 브라우저에서 누른 버튼 자리에서 자라 나옵니다(Safari·Firefox는 버튼 클릭에 포커스를 주지 않아 생략하면 가운데에서 열립니다)."
             editable
             code={`const [open, setOpen] = useState(false);
+const triggerRef = useRef(null);
 
 <div>
-  <Button size="sm" onClick={() => setOpen(true)}>모달 열기</Button>
+  <Button size="sm" ref={triggerRef} onClick={() => setOpen(true)}>모달 열기</Button>
   <Modal
     open={open}
     onClose={() => setOpen(false)}
+    triggerRef={triggerRef}
     title="알림"
     showClose
     footer={
@@ -236,12 +238,13 @@ export function ModalPage() {
             editable
             code={`const [size, setSize] = useState('md');
 const [open, setOpen] = useState(false);
+const triggerRef = useRef(null);
 const sizes = ['sm', 'md', 'lg', 'xl', 'full'];
 
 <div>
   <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
     {sizes.map((s) => (
-      <Button key={s} size="sm" variant={s === size ? 'primary' : 'light'} onClick={() => { setSize(s); setOpen(true); }}>
+      <Button key={s} size="sm" variant={s === size ? 'primary' : 'light'} onClick={(e) => { triggerRef.current = e.currentTarget; setSize(s); setOpen(true); }}>
         {s}
       </Button>
     ))}
@@ -249,6 +252,7 @@ const sizes = ['sm', 'md', 'lg', 'xl', 'full'];
   <Modal
     open={open}
     onClose={() => setOpen(false)}
+    triggerRef={triggerRef}
     size={size}
     title={'size="' + size + '"'}
     showClose
@@ -269,16 +273,18 @@ const sizes = ['sm', 'md', 'lg', 'xl', 'full'];
             editable
             code={`const [align, setAlign] = useState('left');
 const [open, setOpen] = useState(false);
+const triggerRef = useRef(null);
 
 <div>
   <div style={{ display: 'flex', gap: '0.5rem' }}>
     {['left', 'center', 'right'].map((a) => (
-      <Button key={a} size="sm" variant={a === align ? 'primary' : 'light'} onClick={() => { setAlign(a); setOpen(true); }}>{a}</Button>
+      <Button key={a} size="sm" variant={a === align ? 'primary' : 'light'} onClick={(e) => { triggerRef.current = e.currentTarget; setAlign(a); setOpen(true); }}>{a}</Button>
     ))}
   </div>
   <Modal
     open={open}
     onClose={() => setOpen(false)}
+    triggerRef={triggerRef}
     size="sm"
     title={'footerAlign="' + align + '"'}
     showClose
@@ -303,12 +309,14 @@ const [open, setOpen] = useState(false);
             description="백드롭 클릭 · Esc 키 닫힘을 개별적으로 비활성화할 수 있습니다."
             editable
             code={`const [open, setOpen] = useState(false);
+const triggerRef = useRef(null);
 
 <div>
-  <Button size="sm" onClick={() => setOpen(true)}>백드롭 비활성 모달</Button>
+  <Button size="sm" ref={triggerRef} onClick={() => setOpen(true)}>백드롭 비활성 모달</Button>
   <Modal
     open={open}
     onClose={() => setOpen(false)}
+    triggerRef={triggerRef}
     closeOnBackdropClick={false}
     title="설정 변경"
     showClose
@@ -334,13 +342,15 @@ const [open, setOpen] = useState(false);
             editable
             code={`const [open, setOpen] = useState(false);
 const [deleted, setDeleted] = useState(false);
+const triggerRef = useRef(null);
 
 <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
-  <Button size="sm" variant="danger" onClick={() => setOpen(true)} disabled={deleted}>삭제</Button>
+  <Button size="sm" variant="danger" ref={triggerRef} onClick={() => setOpen(true)} disabled={deleted}>삭제</Button>
   {deleted && <span style={{ color: '#10b981', fontSize: '0.875rem' }}>삭제되었습니다</span>}
   <Modal
     open={open}
     onClose={() => setOpen(false)}
+    triggerRef={triggerRef}
     size="sm"
     closeOnBackdropClick={false}
     title="항목 삭제"
@@ -366,12 +376,14 @@ const [deleted, setDeleted] = useState(false);
             editable
             code={`const [open, setOpen] = useState(false);
 const [name, setName] = useState('');
+const triggerRef = useRef(null);
 
 <div>
-  <Button size="sm" onClick={() => setOpen(true)}>프로필 수정</Button>
+  <Button size="sm" ref={triggerRef} onClick={() => setOpen(true)}>프로필 수정</Button>
   <Modal
     open={open}
     onClose={() => setOpen(false)}
+    triggerRef={triggerRef}
     closeOnBackdropClick={false}
     title="프로필 수정"
     showClose
