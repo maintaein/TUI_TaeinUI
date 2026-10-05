@@ -41,6 +41,32 @@ const [BottomSheetContext, useBottomSheetContext] =
 /** 이 거리보다 아래로 끌고 놓으면 닫는다. */
 const DRAG_CLOSE_THRESHOLD_PX = 100;
 
+/**
+ * 시트가 올라와 목표를 지나치는 거리(px). 고정 px인 이유: 시트 이동거리는 시트
+ * 높이와 같아서 `snap`(넘침 10%)을 그대로 걸면 240px 시트는 24px, 600px 시트는
+ * 61px로 들쭉날쭉하고 큰 시트는 만화처럼 튄다. 높이와 무관하게 같은 크기로 튀게
+ * 비율(`yPercent`)로 환산해 건다.
+ */
+const BOUNCE_OVERSHOOT_PX = 16;
+
+/** 내용이 떠오르는 거리(px). `Modal`·`BubbleMenu`와 같은 24. */
+const STAGGER_RISE_Y = 24;
+/** 내용 항목 사이의 시차(초). folderfloat `stagger = 45`ms. */
+const STAGGER_STEP = 0.045;
+/** 시차를 받는 항목 수. 9번째부터는 8번째와 같이 뜬다(긴 목록이 늦게 끝나지 않게). */
+const STAGGER_MAX = 8;
+/** 내용이 뜨기 시작하는 지점: 시트 1단(`slow`)의 60%. 시트가 거의 올라왔을 때다. */
+const STAGGER_AT = 0.6;
+
+/** 열린 동안의 float 루프를 켜고 끈다. CSS가 `data-floating`을 보고 건다. */
+const setFloating = (sheet: HTMLElement | null, on: boolean) =>
+  sheet?.toggleAttribute('data-floating', on);
+
+/** 테스트 전용: 등장 타임라인을 시트 노드에 얹는다(Modal과 같은 모양). */
+type BottomSheetTimelineHost = HTMLDivElement & {
+  __bottomSheetTimeline?: gsap.core.Timeline;
+};
+
 /** 화면 하단에서 올라오는 시트 컴포넌트. Compound 패턴(BottomSheet.Header/Content) 또는 Flat 패턴(title prop) 지원 */
 export interface BottomSheetProps extends Omit<
   HTMLAttributes<HTMLDivElement>,
@@ -109,6 +135,7 @@ const BottomSheetRoot = ({
   // 백드롭과 시트를 한 타임라인에 넣는다. 시트는 `yPercent`(시트 높이 기준)를
   // 쓰고 드래그는 `y`(px)를 쓴다 — GSAP이 두 채널을 하나의 transform으로
   // 합성하므로 손가락과 타임라인이 같은 속성을 놓고 다투지 않는다.
+  // float 루프는 CSS `translate`라 이 둘과도 따로 합성된다.
   const { shouldRender } = useOverlayTransition({
     open,
     buildTimeline: (timeline) => {
@@ -124,16 +151,92 @@ const BottomSheetRoot = ({
         );
       }
       if (sheet) {
-        timeline.fromTo(
-          sheet,
-          { yPercent: 100 },
-          { yPercent: 0, duration: gsapDuration.slow, ease: gsapEasing.settle },
-          0
+        (sheet as BottomSheetTimelineHost).__bottomSheetTimeline = timeline;
+        // 높이를 읽을 수 없으면(0, jsdom) 넘침 없이 곧장 앉는다. 0으로 나누지 않는다.
+        const height = sheet.offsetHeight;
+        const overshoot = height > 0 ? (BOUNCE_OVERSHOOT_PX / height) * 100 : 0;
+        if (overshoot > 0) {
+          // 1단: 목표를 지나쳐 오르고, 2단: 앉는다. 두 단의 이음매는 속도가 0이다.
+          timeline.fromTo(
+            sheet,
+            { yPercent: 100 },
+            {
+              yPercent: -overshoot,
+              duration: gsapDuration.slow,
+              ease: gsapEasing.settle,
+            },
+            0
+          );
+          timeline.fromTo(
+            sheet,
+            { yPercent: -overshoot },
+            {
+              yPercent: 0,
+              duration: gsapDuration.base,
+              ease: gsapEasing.drift,
+              immediateRender: false,
+            },
+            gsapDuration.slow
+          );
+        } else {
+          timeline.fromTo(
+            sheet,
+            { yPercent: 100 },
+            {
+              yPercent: 0,
+              duration: gsapDuration.slow,
+              ease: gsapEasing.settle,
+            },
+            0
+          );
+        }
+
+        // 내용은 시트가 거의 올라왔을 때 시차를 두고 뜬다. 헤더·핸들은 시트와 같이
+        // 올라오므로 대상이 아니다. y와 opacity를 한 트윈에 묶지 않는다: snap은
+        // 넘치는 커브라 불투명도에 걸면 1을 넘었다 돌아온다.
+        const items = Array.from(
+          sheet.querySelector(`.${content}`)?.children ?? []
         );
+        if (items.length > 0) {
+          // 처음 8개만 시차를 받는다. GSAP의 `stagger`는 항목 수에 따라 간격을
+          // 나누므로 쓰지 않고 항목별 시작 시각을 직접 준다.
+          const at = gsapDuration.slow * STAGGER_AT;
+          items.forEach((item, i) => {
+            const start = at + Math.min(i, STAGGER_MAX - 1) * STAGGER_STEP;
+            timeline.fromTo(
+              item,
+              { y: STAGGER_RISE_Y },
+              { y: 0, duration: gsapDuration.slow, ease: gsapEasing.snap },
+              start
+            );
+            timeline.fromTo(
+              item,
+              { opacity: 0 },
+              {
+                opacity: 1,
+                duration: gsapDuration.fast,
+                ease: gsapEasing.settle,
+              },
+              start
+            );
+          });
+        }
+
+        // 등장이 끝나면 둥실거리기 시작한다. 축소 선호면 게이트가 타임라인을
+        // 끝 상태로 확정하면서 이것도 켜지는데, 전역 규칙이 루프를 접는다.
+        timeline.eventCallback('onComplete', () => {
+          // 등장이 끝나기 전에 손가락이 먼저 잡았다면 놓을 때 켠다.
+          if (!isDraggingRef.current) setFloating(sheetRef.current, true);
+        });
       }
     },
     onExited: () => previousActiveElementRef.current?.focus(),
   });
+
+  // 닫기가 시작되면 둥실거림을 멈춘다.
+  useEffect(() => {
+    if (!open) setFloating(sheetRef.current, false);
+  }, [open]);
 
   //드래그 제어 로직
   useEffect(() => {
@@ -149,13 +252,18 @@ const BottomSheetRoot = ({
       value: number
     ) => void;
 
-    /** 쉬는 자리(y=0)로 되돌린다. 축소 선호면 트윈 없이 즉시 붙는다. */
-    const restToY0 = () => {
+    /**
+     * 쉬는 자리(y=0)로 되돌린다. 축소 선호면 트윈 없이 즉시 붙는다.
+     * `resumeFloat`면 도착한 뒤 둥실거림을 다시 켠다. 열릴 때의 첫 호출은 등장이
+     * 아직 진행 중이라 켜지 않는다(등장 타임라인이 끝나면 켠다).
+     */
+    const restToY0 = (resumeFloat: boolean) => {
       restTweenRef.current = gateMotion(reduced, () =>
         gsap.to(sheet, {
           y: 0,
           duration: gsapDuration.fast,
           ease: gsapEasing.settle,
+          onComplete: resumeFloat ? () => setFloating(sheet, true) : undefined,
         })
       );
     };
@@ -165,7 +273,7 @@ const BottomSheetRoot = ({
     // 눈에 보이는 변화가 없다). 단, 손가락이 내려가 있는 동안은 건드리지 않는다:
     // deps의 `onClose`가 인라인 화살표면 부모 리렌더마다 이 effect가 다시 돌고,
     // 그때 복귀 트윈을 걸면 `quickSetter`와 같은 `y`를 놓고 서로 되돌린다.
-    if (!isDraggingRef.current) restToY0();
+    if (!isDraggingRef.current) restToY0(false);
 
     const finishDrag = (diff: number) => {
       isDraggingRef.current = false;
@@ -178,7 +286,7 @@ const BottomSheetRoot = ({
         onClose();
         return;
       }
-      restToY0();
+      restToY0(true);
     };
 
     const handleTouchStart = (e: TouchEvent) => {
@@ -189,6 +297,7 @@ const BottomSheetRoot = ({
       if (isInteractive) return;
       startYRef.current = e.touches[0].clientY;
       isDraggingRef.current = true;
+      setFloating(sheet, false);
       restTweenRef.current?.kill();
       restTweenRef.current = null;
     };
@@ -217,6 +326,7 @@ const BottomSheetRoot = ({
       if (isInteractive) return;
       startYRef.current = e.clientY;
       isDraggingRef.current = true;
+      setFloating(sheet, false);
       restTweenRef.current?.kill();
       restTweenRef.current = null;
     };

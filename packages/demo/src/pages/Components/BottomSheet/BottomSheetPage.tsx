@@ -265,6 +265,28 @@ const actions = ['사진 촬영', '갤러리에서 선택', '파일에서 선택
         </div>
 
         <div className={styles.example}>
+          <h3 className={styles.exampleTitle}>시차 등장</h3>
+          <LivePreview
+            title="목록이 차례로 떠오른다"
+            description="시트가 튀며 올라온 뒤 내용의 직계 자식이 0.045초 간격으로 떠오릅니다(처음 8개까지). 목록을 한 요소로 감싸면 하나로 떠오르니 항목을 직접 children으로 넘기세요. 열린 동안에는 시트가 가볍게 둥실거리고, 드래그하는 동안은 멈춥니다."
+            editable
+            code={`const [open, setOpen] = useState(false);
+const options = ['최신순', '인기순', '가격 낮은순', '가격 높은순', '평점순', '리뷰 많은순'];
+
+<div>
+  <Button size="sm" onClick={() => setOpen(true)}>정렬</Button>
+  <BottomSheet open={open} onClose={() => setOpen(false)} title="정렬 기준">
+    {options.map((option) => (
+      <button key={option} onClick={() => setOpen(false)} style={{ display: 'block', width: '100%', padding: '0.875rem 0', border: 'none', background: 'transparent', fontSize: '1rem', textAlign: 'left', cursor: 'pointer', color: '#374151' }}>
+        {option}
+      </button>
+    ))}
+  </BottomSheet>
+</div>`}
+          />
+        </div>
+
+        <div className={styles.example}>
           <h3 className={styles.exampleTitle}>폼 바텀시트</h3>
           <LivePreview
             title="Form BottomSheet"

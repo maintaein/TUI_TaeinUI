@@ -9,6 +9,7 @@ import {
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { BottomSheet } from './BottomSheet';
+import { gsapDuration, gsapEasing } from '../../tokens/gsapEasing';
 
 describe('BottomSheet', () => {
   const defaultProps = {
@@ -499,8 +500,11 @@ describe('BottomSheet', () => {
         'utf-8'
       );
 
-      expect(source).not.toMatch(/keyframes/);
-      expect(source).not.toMatch(/animation:/);
+      // 허용되는 CSS 모션은 열린 동안의 float 루프 하나뿐이다. 등장·퇴장이 아니라
+      // 쉬는 자리 주변의 반복이라 되돌릴 상태가 없다.
+      expect(source.match(/keyframes\(/g)).toHaveLength(1);
+      expect(source.match(/animation:/g)).toHaveLength(1);
+      expect(source).toMatch(/&\[data-floating\]'?:\s*\{\s*animation:/);
       expect(source).not.toMatch(/export const \w*Exit\w* = style/);
     });
 
@@ -594,6 +598,251 @@ describe('BottomSheet', () => {
       fireEvent.touchMove(sheet, { touches: [{ clientY: 100 }] });
 
       expect(sheet.style.transform).toBe(before);
+    });
+  });
+
+  describe('등장: bounce · stagger · float', () => {
+    type Host = HTMLElement & { __bottomSheetTimeline?: gsap.core.Timeline };
+    type TweenLike = gsap.core.Tween & {
+      vars: gsap.TweenVars & { startAt?: gsap.TweenVars };
+    };
+
+    const timelineOf = (sheet: HTMLElement) => {
+      const timeline = (sheet as Host).__bottomSheetTimeline;
+      expect(timeline).toBeDefined();
+      return timeline!;
+    };
+    const tweensOn = (timeline: gsap.core.Timeline, target: Element) =>
+      (timeline.getChildren() as TweenLike[]).filter(
+        (t) => t.targets()[0] === target
+      );
+
+    const items = Array.from({ length: 10 }, (_, i) => <p key={i}>항목 {i}</p>);
+
+    describe('bounce', () => {
+      afterEach(() => {
+        vi.restoreAllMocks();
+      });
+
+      it('시트 트윈이 둘이다. 1단 settle·slow로 지나치고, 2단 drift·base로 앉는다', () => {
+        vi.spyOn(HTMLElement.prototype, 'offsetHeight', 'get').mockReturnValue(
+          400
+        );
+        render(<BottomSheet {...defaultProps} />);
+        const sheet = screen.getByRole('dialog');
+        const [up, settle, ...rest] = tweensOn(timelineOf(sheet), sheet);
+
+        expect(rest).toHaveLength(0);
+        expect(up.vars.ease).toBe(gsapEasing.settle);
+        expect(up.duration()).toBeCloseTo(gsapDuration.slow, 5);
+        expect(up.startTime()).toBe(0);
+        expect(settle.vars.ease).toBe(gsapEasing.drift);
+        expect(settle.duration()).toBeCloseTo(gsapDuration.base, 5);
+        expect(settle.startTime()).toBeCloseTo(gsapDuration.slow, 5);
+        expect(settle.vars.yPercent).toBe(0);
+        // 16px / 400px = 4%
+        expect(up.vars.yPercent).toBeCloseTo(-4, 5);
+      });
+
+      it('시트 높이가 0이면 넘침 없이 yPercent 100 → 0이다', () => {
+        render(<BottomSheet {...defaultProps} />);
+        const sheet = screen.getByRole('dialog');
+        const tweens = tweensOn(timelineOf(sheet), sheet);
+
+        expect(tweens).toHaveLength(1);
+        expect(tweens[0].vars.yPercent).toBe(0);
+        expect(tweens[0].vars.ease).toBe(gsapEasing.settle);
+      });
+
+      it('등장 타임라인은 y(px)를 쓰지 않는다. 드래그와 restToY0의 채널이다', () => {
+        vi.spyOn(HTMLElement.prototype, 'offsetHeight', 'get').mockReturnValue(
+          400
+        );
+        render(
+          <BottomSheet {...defaultProps} title="제목">
+            {items}
+          </BottomSheet>
+        );
+        const sheet = screen.getByRole('dialog');
+
+        const tweens = tweensOn(timelineOf(sheet), sheet);
+        expect(tweens).toHaveLength(2);
+        for (const t of tweens) {
+          expect(t.vars).not.toHaveProperty('y');
+          expect(t.vars.startAt).not.toHaveProperty('y');
+        }
+      });
+    });
+
+    describe('stagger', () => {
+      const renderItems = () => {
+        render(
+          <BottomSheet {...defaultProps} title="제목">
+            {items}
+          </BottomSheet>
+        );
+        const sheet = screen.getByRole('dialog');
+        return { sheet, timeline: timelineOf(sheet) };
+      };
+
+      it('내용의 직계 자식에 y 24 → 0은 snap·slow, opacity는 settle·fast로 분리해 건다', () => {
+        const { timeline } = renderItems();
+        const first = screen.getByText('항목 0');
+        const [rise, fade] = tweensOn(timeline, first);
+
+        expect(rise.vars.startAt?.y).toBe(24);
+        expect(rise.vars.y).toBe(0);
+        expect(rise.vars.ease).toBe(gsapEasing.snap);
+        expect(rise.duration()).toBeCloseTo(gsapDuration.slow, 5);
+        expect(fade.vars.startAt?.opacity).toBe(0);
+        expect(fade.vars.opacity).toBe(1);
+        expect(fade.vars.ease).toBe(gsapEasing.settle);
+        expect(fade.duration()).toBeCloseTo(gsapDuration.fast, 5);
+        // 1단의 60% 지점에서 시작한다
+        expect(rise.startTime()).toBeCloseTo(gsapDuration.slow * 0.6, 5);
+      });
+
+      it('시차는 0.045초이고 9번째부터는 8번째와 같은 시각에 시작한다', () => {
+        const { timeline } = renderItems();
+        const startOf = (i: number) =>
+          tweensOn(timeline, screen.getByText(`항목 ${i}`))[0].startTime();
+
+        expect(startOf(1) - startOf(0)).toBeCloseTo(0.045, 5);
+        expect(startOf(7) - startOf(0)).toBeCloseTo(0.045 * 7, 5);
+        expect(startOf(8)).toBeCloseTo(startOf(7), 5);
+        expect(startOf(9)).toBeCloseTo(startOf(7), 5);
+      });
+
+      it('헤더와 핸들은 대상이 아니다', () => {
+        const { sheet, timeline } = renderItems();
+
+        expect(tweensOn(timeline, screen.getByRole('heading'))).toHaveLength(0);
+        expect(
+          tweensOn(timeline, screen.getByTestId('bottomsheet-handle'))
+        ).toHaveLength(0);
+        expect(tweensOn(timeline, sheet).length).toBeGreaterThan(0);
+      });
+
+      it('자식 요소가 없으면(문자열 children) 이 단계를 건너뛴다', () => {
+        render(<BottomSheet {...defaultProps} title="제목" />);
+        const sheet = screen.getByRole('dialog');
+        const targets = (timelineOf(sheet).getChildren() as TweenLike[]).map(
+          (t) => t.targets()[0]
+        );
+
+        // 시트 안쪽 요소에는 아무것도 걸리지 않는다(시트 자신과 백드롭뿐)
+        expect(targets.some((t) => t !== sheet && sheet.contains(t))).toBe(
+          false
+        );
+      });
+
+      it('Compound의 BottomSheet.Content 직계 자식에도 걸린다', () => {
+        render(
+          <BottomSheet {...defaultProps}>
+            <BottomSheet.Content>
+              <p>가</p>
+              <p>나</p>
+            </BottomSheet.Content>
+          </BottomSheet>
+        );
+        const sheet = screen.getByRole('dialog');
+
+        expect(
+          tweensOn(timelineOf(sheet), screen.getByText('나'))
+        ).toHaveLength(2);
+      });
+    });
+
+    describe('float', () => {
+      it('등장이 끝나면 켜지고, 드래그 시작에 꺼진다', () => {
+        render(<BottomSheet {...defaultProps} enableDrag />);
+        const sheet = screen.getByRole('dialog');
+
+        expect(sheet).not.toHaveAttribute('data-floating');
+
+        act(() => {
+          timelineOf(sheet).progress(1);
+        });
+        expect(sheet).toHaveAttribute('data-floating');
+
+        fireEvent.touchStart(sheet, { touches: [{ clientY: 100 }] });
+        expect(sheet).not.toHaveAttribute('data-floating');
+      });
+
+      it('닫기를 시작하면 꺼진다', () => {
+        const { rerender } = render(<BottomSheet {...defaultProps} />);
+        const sheet = screen.getByRole('dialog');
+        act(() => {
+          timelineOf(sheet).progress(1);
+        });
+        expect(sheet).toHaveAttribute('data-floating');
+
+        rerender(<BottomSheet {...defaultProps} open={false} />);
+
+        expect(sheet).not.toHaveAttribute('data-floating');
+      });
+
+      describe('축소 선호(트윈이 즉시 확정된다)', () => {
+        beforeEach(() => {
+          vi.stubGlobal(
+            'matchMedia',
+            (media: string): MediaQueryList =>
+              ({
+                matches: true,
+                media,
+                addEventListener: () => {},
+                removeEventListener: () => {},
+              }) as unknown as MediaQueryList
+          );
+        });
+
+        afterEach(() => {
+          vi.unstubAllGlobals();
+        });
+
+        it('게이트가 끝 상태로 확정하면 켜지고, 드래그가 쉬는 자리로 돌아오면 다시 켜진다', () => {
+          render(<BottomSheet {...defaultProps} enableDrag />);
+          const sheet = screen.getByRole('dialog');
+          expect(sheet).toHaveAttribute('data-floating');
+
+          fireEvent.touchStart(sheet, { touches: [{ clientY: 100 }] });
+          expect(sheet).not.toHaveAttribute('data-floating');
+
+          fireEvent.touchMove(sheet, { touches: [{ clientY: 160 }] });
+          expect(sheet).not.toHaveAttribute('data-floating');
+
+          fireEvent.touchEnd(sheet, { changedTouches: [{ clientY: 160 }] });
+          expect(sheet).toHaveAttribute('data-floating');
+        });
+
+        it('문턱을 넘겨 놓아 닫으면 다시 켜지지 않는다', () => {
+          render(<BottomSheet {...defaultProps} enableDrag />);
+          const sheet = screen.getByRole('dialog');
+
+          fireEvent.touchStart(sheet, { touches: [{ clientY: 100 }] });
+          fireEvent.touchMove(sheet, { touches: [{ clientY: 300 }] });
+          fireEvent.touchEnd(sheet, { changedTouches: [{ clientY: 300 }] });
+
+          expect(sheet).not.toHaveAttribute('data-floating');
+        });
+      });
+
+      it('CSS의 float keyframes는 translate만 쓰고 0%·100%가 쉬는 자리(0 0)다', () => {
+        const source = readFileSync(
+          resolve(__dirname, 'BottomSheet.css.ts'),
+          'utf-8'
+        );
+        const body = /keyframes\(\{([\s\S]*?)\n\}\);/.exec(source)![1];
+        const frames = [...body.matchAll(/'([^']+)':\s*\{([^}]*)\}/g)];
+        const declared = frames.flatMap((f) =>
+          [...f[2].matchAll(/(\w+):/g)].map((m) => m[1])
+        );
+
+        expect(declared.length).toBeGreaterThan(0);
+        expect(new Set(declared)).toEqual(new Set(['translate']));
+        const rest = frames.find((f) => f[1] === '0%, 100%');
+        expect(rest?.[2]).toMatch(/translate:\s*'0 0'/);
+      });
     });
   });
 

@@ -1,10 +1,21 @@
-import { style, styleVariants } from '@vanilla-extract/css';
+import { keyframes, style, styleVariants } from '@vanilla-extract/css';
 import { themeContract } from '../../tokens/theme.css';
 import { focusRing } from '../../tokens/focusRing.css';
 
 // 등장·퇴장은 CSS가 아니라 GSAP 타임라인이 소유한다(M3 T2). 키프레임은 진행 중
 // progress를 읽을 수도 되돌릴 수도 없어서 여는 도중 닫으면 시트가 점프했고,
 // 드래그는 같은 transform을 놓고 키프레임과 다퉜다.
+//
+// 유일한 예외가 열린 동안의 float 루프다. 이건 등장·퇴장이 아니라 쉬는 자리
+// 주변의 반복이고 되돌릴 상태가 없어서 @keyframes가 맞는 도구다(공통 제약 §2).
+// GSAP이 쓰는 `transform`(yPercent·y)과 부딪치지 않도록 개별 `translate` 속성만
+// 쓴다. 두 속성은 따로 합성된다.
+
+/** 0%·100%가 쉬는 자리다. 축소 모드에서 루프가 1회로 접혀도 그 자리에 멈춘다. */
+const float = keyframes({
+  '0%, 100%': { translate: '0 0' },
+  '50%': { translate: '0 -3px' },
+});
 
 export const bottomSheetContainer = style({
   position: 'fixed',
@@ -43,6 +54,27 @@ export const bottomSheet = style({
 
   ':focus': {
     outline: 'none',
+  },
+
+  selectors: {
+    // 등장이 끝난 뒤에만 `data-floating`이 붙는다. 드래그와 닫기가 시작되면 뗀다.
+    // 주기는 `loop.base`의 두 배(3s)다. 한 바퀴가 전이가 아니라서 loop 토큰을 쓴다.
+    '&[data-floating]': {
+      animation: `${float} calc(${themeContract.animation.loop.base} * 2) ${themeContract.animation.easing.drift} infinite`,
+    },
+    // 시트가 뜨는 동안(등장 bounce 16px + float 3px) 바닥에 비는 틈을 같은 배경으로
+    // 가린다. 32px는 둘의 합에 여유를 더한 값이다. 시트에 overflow가 없어서 잘리지 않고,
+    // 클릭을 가로채지 않는다.
+    '&::after': {
+      content: '""',
+      position: 'absolute',
+      top: '100%',
+      left: 0,
+      right: 0,
+      height: '32px',
+      backgroundColor: themeContract.color.background.default,
+      pointerEvents: 'none',
+    },
   },
 });
 
