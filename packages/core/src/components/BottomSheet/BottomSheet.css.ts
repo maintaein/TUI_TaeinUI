@@ -57,10 +57,16 @@ export const bottomSheet = style({
   },
 
   selectors: {
-    // 등장이 끝난 뒤에만 `data-floating`이 붙는다. 드래그와 닫기가 시작되면 뗀다.
+    // 등장이 끝난 뒤에만 `data-floating`이 붙고 시트가 사라질 때까지 그대로다
+    // (떼면 `translate`가 0으로 돌아가 시트가 툭 떨어진다). 드래그 중·닫는 중에는
+    // 아래 `data-float-paused`가 그 자리에 세운다.
     // 주기는 `loop.base`의 두 배(3s)다. 한 바퀴가 전이가 아니라서 loop 토큰을 쓴다.
     '&[data-floating]': {
       animation: `${float} calc(${themeContract.animation.loop.base} * 2) ${themeContract.animation.easing.drift} infinite`,
+    },
+    // `animation` 단축 속성이 play-state를 리셋하므로 반드시 위 규칙 **뒤에** 둔다.
+    '&[data-float-paused]': {
+      animationPlayState: 'paused',
     },
     // 시트가 뜨는 동안(등장 bounce 16px + float 3px) 바닥에 비는 틈을 같은 배경으로
     // 가린다. 32px는 둘의 합에 여유를 더한 값이다. 시트에 overflow가 없어서 잘리지 않고,

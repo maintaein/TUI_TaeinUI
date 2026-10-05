@@ -675,6 +675,15 @@ describe('BottomSheet', () => {
     });
 
     describe('stagger', () => {
+      type StaggerHost = HTMLElement & {
+        __bottomSheetStagger?: gsap.core.Timeline;
+      };
+      /** 내용 시차는 등장 타임라인 밖의 별도 타임라인이다(닫을 때 되감지 않으려고). */
+      const staggerOf = (sheet: HTMLElement) => {
+        const stagger = (sheet as StaggerHost).__bottomSheetStagger;
+        expect(stagger).toBeDefined();
+        return stagger!;
+      };
       const renderItems = () => {
         render(
           <BottomSheet {...defaultProps} title="제목">
@@ -682,13 +691,17 @@ describe('BottomSheet', () => {
           </BottomSheet>
         );
         const sheet = screen.getByRole('dialog');
-        return { sheet, timeline: timelineOf(sheet) };
+        return {
+          sheet,
+          timeline: timelineOf(sheet),
+          stagger: staggerOf(sheet),
+        };
       };
 
       it('내용의 직계 자식에 y 24 → 0은 snap·slow, opacity는 settle·fast로 분리해 건다', () => {
-        const { timeline } = renderItems();
+        const { stagger } = renderItems();
         const first = screen.getByText('항목 0');
-        const [rise, fade] = tweensOn(timeline, first);
+        const [rise, fade] = tweensOn(stagger, first);
 
         expect(rise.vars.startAt?.y).toBe(24);
         expect(rise.vars.y).toBe(0);
@@ -698,15 +711,28 @@ describe('BottomSheet', () => {
         expect(fade.vars.opacity).toBe(1);
         expect(fade.vars.ease).toBe(gsapEasing.settle);
         expect(fade.duration()).toBeCloseTo(gsapDuration.fast, 5);
-        // 1단의 60% 지점에서 시작한다
-        expect(rise.startTime()).toBeCloseTo(gsapDuration.slow * 0.6, 5);
+      });
+
+      it('시차 타임라인은 등장이 1단(slow)의 60% 지점을 정방향으로 지날 때 처음부터 돈다', () => {
+        const { timeline, stagger } = renderItems();
+
+        act(() => {
+          timeline.time(gsapDuration.slow * 0.6 - 0.05);
+        });
+        expect(stagger.paused()).toBe(true);
+
+        act(() => {
+          timeline.time(gsapDuration.slow * 0.6 + 0.05);
+        });
+        expect(stagger.paused()).toBe(false);
       });
 
       it('시차는 0.045초이고 9번째부터는 8번째와 같은 시각에 시작한다', () => {
-        const { timeline } = renderItems();
+        const { stagger } = renderItems();
         const startOf = (i: number) =>
-          tweensOn(timeline, screen.getByText(`항목 ${i}`))[0].startTime();
+          tweensOn(stagger, screen.getByText(`항목 ${i}`))[0].startTime();
 
+        expect(startOf(0)).toBe(0);
         expect(startOf(1) - startOf(0)).toBeCloseTo(0.045, 5);
         expect(startOf(7) - startOf(0)).toBeCloseTo(0.045 * 7, 5);
         expect(startOf(8)).toBeCloseTo(startOf(7), 5);
@@ -714,12 +740,14 @@ describe('BottomSheet', () => {
       });
 
       it('헤더와 핸들은 대상이 아니다', () => {
-        const { sheet, timeline } = renderItems();
+        const { sheet, timeline, stagger } = renderItems();
 
-        expect(tweensOn(timeline, screen.getByRole('heading'))).toHaveLength(0);
-        expect(
-          tweensOn(timeline, screen.getByTestId('bottomsheet-handle'))
-        ).toHaveLength(0);
+        for (const tl of [timeline, stagger]) {
+          expect(tweensOn(tl, screen.getByRole('heading'))).toHaveLength(0);
+          expect(
+            tweensOn(tl, screen.getByTestId('bottomsheet-handle'))
+          ).toHaveLength(0);
+        }
         expect(tweensOn(timeline, sheet).length).toBeGreaterThan(0);
       });
 
@@ -734,6 +762,7 @@ describe('BottomSheet', () => {
         expect(targets.some((t) => t !== sheet && sheet.contains(t))).toBe(
           false
         );
+        expect((sheet as StaggerHost).__bottomSheetStagger).toBeUndefined();
       });
 
       it('Compound의 BottomSheet.Content 직계 자식에도 걸린다', () => {
@@ -747,14 +776,127 @@ describe('BottomSheet', () => {
         );
         const sheet = screen.getByRole('dialog');
 
-        expect(
-          tweensOn(timelineOf(sheet), screen.getByText('나'))
-        ).toHaveLength(2);
+        expect(tweensOn(staggerOf(sheet), screen.getByText('나'))).toHaveLength(
+          2
+        );
+      });
+
+      describe('닫기', () => {
+        afterEach(() => {
+          vi.restoreAllMocks();
+        });
+
+        const openAndClose = () => {
+          vi.spyOn(
+            HTMLElement.prototype,
+            'offsetHeight',
+            'get'
+          ).mockReturnValue(400);
+          const view = render(
+            <BottomSheet {...defaultProps} title="제목">
+              {items}
+            </BottomSheet>
+          );
+          const sheet = screen.getByRole('dialog');
+          const timeline = timelineOf(sheet);
+          const stagger = staggerOf(sheet);
+          act(() => {
+            timeline.progress(1);
+          });
+          const close = () =>
+            view.rerender(
+              <BottomSheet {...defaultProps} title="제목" open={false}>
+                {items}
+              </BottomSheet>
+            );
+          const reopen = () =>
+            view.rerender(
+              <BottomSheet {...defaultProps} title="제목">
+                {items}
+              </BottomSheet>
+            );
+          return { sheet, timeline, stagger, close, reopen };
+        };
+
+        it('역재생되는 등장 타임라인은 시트 구간(500ms)이고 내용 시차가 안에 없다', () => {
+          const { sheet, timeline } = openAndClose();
+
+          expect(timeline.duration()).toBeCloseTo(
+            gsapDuration.slow + gsapDuration.base,
+            5
+          );
+          expect(tweensOn(timeline, screen.getByText('항목 0'))).toHaveLength(
+            0
+          );
+          expect(tweensOn(timeline, sheet).length).toBeGreaterThan(0);
+        });
+
+        it('닫으면 내용은 되감기지 않고 끝 상태로 확정되어 시트에 실려 내려간다', () => {
+          const { timeline, stagger, close } = openAndClose();
+          const first = screen.getByText('항목 0');
+          // 시차 도중에 닫는다
+          act(() => {
+            stagger.progress(0.3);
+          });
+
+          close();
+
+          expect(timeline.reversed()).toBe(true);
+          expect(stagger.progress()).toBe(1);
+          expect(first.style.opacity).toBe('1');
+          expect(first.style.transform).not.toContain('24');
+        });
+
+        it('역재생이 시차 지점을 지나도 시차가 다시 돌지 않는다', () => {
+          const { timeline, stagger, close } = openAndClose();
+          close();
+
+          act(() => {
+            timeline.progress(0.2);
+          });
+
+          expect(stagger.progress()).toBe(1);
+        });
+
+        it('시차 지점 아래까지 내려갔다가 다시 열면 지점을 지날 때 시차가 다시 돈다', () => {
+          const { timeline, stagger, close, reopen } = openAndClose();
+          close();
+          act(() => {
+            timeline.progress(0.2);
+          });
+
+          reopen();
+          expect(timeline.reversed()).toBe(false);
+          act(() => {
+            timeline.progress(1);
+          });
+
+          expect(stagger.progress()).toBe(0);
+          expect(stagger.paused()).toBe(false);
+          expect(screen.getByText('항목 0').style.opacity).toBe('0');
+        });
+
+        it('시차 지점 위에서 다시 열면 시차가 다시 돌지 않고 내용이 그대로 있다', () => {
+          // 이유: 시트가 이미 시차 지점을 지난 높이라 내용이 사라졌다 다시 뜨면 번쩍인다
+          const { timeline, stagger, close, reopen } = openAndClose();
+          close();
+          act(() => {
+            timeline.progress(0.8);
+          });
+
+          reopen();
+          act(() => {
+            timeline.progress(1);
+          });
+
+          expect(stagger.progress()).toBe(1);
+          expect(screen.getByText('항목 0').style.opacity).toBe('1');
+        });
       });
     });
 
     describe('float', () => {
-      it('등장이 끝나면 켜지고, 드래그 시작에 꺼진다', () => {
+      it('등장이 끝나면 data-floating이 붙는다', () => {
         render(<BottomSheet {...defaultProps} enableDrag />);
         const sheet = screen.getByRole('dialog');
 
@@ -764,12 +906,85 @@ describe('BottomSheet', () => {
           timelineOf(sheet).progress(1);
         });
         expect(sheet).toHaveAttribute('data-floating');
-
-        fireEvent.touchStart(sheet, { touches: [{ clientY: 100 }] });
-        expect(sheet).not.toHaveAttribute('data-floating');
+        expect(sheet).not.toHaveAttribute('data-float-paused');
       });
 
-      it('닫기를 시작하면 꺼진다', () => {
+      it('잡으면 data-floating은 남고 멈춤이 붙는다. 놓는 이벤트에서 바로 풀린다', () => {
+        render(<BottomSheet {...defaultProps} enableDrag />);
+        const sheet = screen.getByRole('dialog');
+        act(() => {
+          timelineOf(sheet).progress(1);
+        });
+
+        fireEvent.mouseDown(sheet, { button: 0, clientY: 100 });
+        expect(sheet).toHaveAttribute('data-floating');
+        expect(sheet).toHaveAttribute('data-float-paused');
+
+        // 복귀 트윈(150ms)이 끝나기 전에 풀린다
+        fireEvent.mouseUp(document, { clientY: 110 });
+        expect(sheet).toHaveAttribute('data-floating');
+        expect(sheet).not.toHaveAttribute('data-float-paused');
+      });
+
+      it('터치도 같다', () => {
+        render(<BottomSheet {...defaultProps} enableDrag />);
+        const sheet = screen.getByRole('dialog');
+        act(() => {
+          timelineOf(sheet).progress(1);
+        });
+
+        fireEvent.touchStart(sheet, { touches: [{ clientY: 100 }] });
+        expect(sheet).toHaveAttribute('data-floating');
+        expect(sheet).toHaveAttribute('data-float-paused');
+
+        fireEvent.touchEnd(sheet, { changedTouches: [{ clientY: 110 }] });
+        expect(sheet).not.toHaveAttribute('data-float-paused');
+      });
+
+      it('놓은 직후 부모가 리렌더해 복귀 트윈이 죽어도 멈춤이 풀려 있다 (M1)', () => {
+        const { rerender } = render(
+          <BottomSheet {...defaultProps} onClose={() => {}} enableDrag />
+        );
+        const sheet = screen.getByRole('dialog');
+        act(() => {
+          timelineOf(sheet).progress(1);
+        });
+
+        fireEvent.touchStart(sheet, { touches: [{ clientY: 100 }] });
+        fireEvent.touchEnd(sheet, { changedTouches: [{ clientY: 110 }] });
+        // 새 onClose 함수: 드래그 effect가 정리되며 복귀 트윈을 죽인다
+        rerender(
+          <BottomSheet {...defaultProps} onClose={() => {}} enableDrag />
+        );
+
+        expect(sheet).toHaveAttribute('data-floating');
+        expect(sheet).not.toHaveAttribute('data-float-paused');
+      });
+
+      it('드래그 도중 닫혔다 다시 열려도 등장이 끝나면 float이 돌고 멈춤이 없다 (M2)', () => {
+        const { rerender } = render(
+          <BottomSheet {...defaultProps} enableDrag />
+        );
+        const sheet = screen.getByRole('dialog');
+        const timeline = timelineOf(sheet);
+        act(() => {
+          timeline.progress(0.5);
+        });
+
+        fireEvent.mouseDown(sheet, { button: 0, clientY: 100 });
+        // 놓는 이벤트 없이 닫힌다
+        rerender(<BottomSheet {...defaultProps} enableDrag open={false} />);
+        expect(sheet).toHaveAttribute('data-float-paused');
+        rerender(<BottomSheet {...defaultProps} enableDrag />);
+        act(() => {
+          timeline.progress(1);
+        });
+
+        expect(sheet).toHaveAttribute('data-floating');
+        expect(sheet).not.toHaveAttribute('data-float-paused');
+      });
+
+      it('닫기를 시작하면 data-floating은 남고 멈춤이 붙는다', () => {
         const { rerender } = render(<BottomSheet {...defaultProps} />);
         const sheet = screen.getByRole('dialog');
         act(() => {
@@ -779,7 +994,8 @@ describe('BottomSheet', () => {
 
         rerender(<BottomSheet {...defaultProps} open={false} />);
 
-        expect(sheet).not.toHaveAttribute('data-floating');
+        expect(sheet).toHaveAttribute('data-floating');
+        expect(sheet).toHaveAttribute('data-float-paused');
       });
 
       describe('축소 선호(트윈이 즉시 확정된다)', () => {
@@ -800,30 +1016,46 @@ describe('BottomSheet', () => {
           vi.unstubAllGlobals();
         });
 
-        it('게이트가 끝 상태로 확정하면 켜지고, 드래그가 쉬는 자리로 돌아오면 다시 켜진다', () => {
+        it('게이트가 끝 상태로 확정하면 켜지고, 잡으면 멈추고, 놓으면 풀린다', () => {
           render(<BottomSheet {...defaultProps} enableDrag />);
           const sheet = screen.getByRole('dialog');
           expect(sheet).toHaveAttribute('data-floating');
 
           fireEvent.touchStart(sheet, { touches: [{ clientY: 100 }] });
-          expect(sheet).not.toHaveAttribute('data-floating');
+          expect(sheet).toHaveAttribute('data-floating');
+          expect(sheet).toHaveAttribute('data-float-paused');
 
           fireEvent.touchMove(sheet, { touches: [{ clientY: 160 }] });
-          expect(sheet).not.toHaveAttribute('data-floating');
+          expect(sheet).toHaveAttribute('data-float-paused');
 
           fireEvent.touchEnd(sheet, { changedTouches: [{ clientY: 160 }] });
-          expect(sheet).toHaveAttribute('data-floating');
+          expect(sheet).not.toHaveAttribute('data-float-paused');
         });
 
-        it('문턱을 넘겨 놓아 닫으면 다시 켜지지 않는다', () => {
-          render(<BottomSheet {...defaultProps} enableDrag />);
+        it('문턱을 넘겨 놓아 부모가 닫으면 멈춘다', () => {
+          const { rerender } = render(
+            <BottomSheet {...defaultProps} enableDrag />
+          );
           const sheet = screen.getByRole('dialog');
 
           fireEvent.touchStart(sheet, { touches: [{ clientY: 100 }] });
           fireEvent.touchMove(sheet, { touches: [{ clientY: 300 }] });
           fireEvent.touchEnd(sheet, { changedTouches: [{ clientY: 300 }] });
+          expect(defaultProps.onClose).toHaveBeenCalledTimes(1);
+          rerender(<BottomSheet {...defaultProps} enableDrag open={false} />);
 
-          expect(sheet).not.toHaveAttribute('data-floating');
+          expect(sheet).toHaveAttribute('data-floating');
+          expect(sheet).toHaveAttribute('data-float-paused');
+        });
+
+        it('내용 시차도 끝 상태로 확정된다', () => {
+          render(
+            <BottomSheet {...defaultProps} title="제목">
+              {items}
+            </BottomSheet>
+          );
+
+          expect(screen.getByText('항목 0').style.opacity).toBe('1');
         });
       });
 
@@ -842,6 +1074,19 @@ describe('BottomSheet', () => {
         expect(new Set(declared)).toEqual(new Set(['translate']));
         const rest = frames.find((f) => f[1] === '0%, 100%');
         expect(rest?.[2]).toMatch(/translate:\s*'0 0'/);
+      });
+
+      it('멈춤 규칙은 animation 단축 속성 뒤에 있어 play-state를 리셋당하지 않는다', () => {
+        const source = readFileSync(
+          resolve(__dirname, 'BottomSheet.css.ts'),
+          'utf-8'
+        );
+        const floating = source.indexOf("'&[data-floating]'");
+        const paused = source.indexOf("'&[data-float-paused]'");
+
+        expect(floating).toBeGreaterThan(-1);
+        expect(paused).toBeGreaterThan(floating);
+        expect(source).toMatch(/animationPlayState:\s*'paused'/);
       });
     });
   });
