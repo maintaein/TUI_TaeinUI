@@ -40,7 +40,8 @@ export default defineConfig({
         'dist/',
         '**/index.ts',
       ],
-      all: true,
+      // vitest 4에서 coverage.all이 사라졌다. include를 명시해야 로드되지 않은 파일도 집계된다.
+      include: ['src/**/*.{ts,tsx}'],
       thresholds: {
         lines: 80,
         functions: 80,
