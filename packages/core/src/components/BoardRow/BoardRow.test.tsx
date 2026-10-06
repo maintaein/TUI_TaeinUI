@@ -628,6 +628,15 @@ describe('BoardRow 펼침·접힘 모션', () => {
       (t) => t.targets()[0] === target
     );
 
+  // 전역 루트 타임라인을 손으로 조금씩 민다(jsdom엔 rAF 티커가 없다). 살아 있는
+  // 타임라인은 시작 순서대로 끝까지 흐른다. 죽은 것은 흐르지 않는다: 늦게 끼어드는
+  // 콜백이 있다면 여기서 새 타임라인의 끝 상태를 덮어쓴다.
+  const runToEnd = (root: gsap.core.Timeline) => {
+    act(() => {
+      for (let i = 0; i < 200; i++) root.totalTime(root.totalTime() + 0.02);
+    });
+  };
+
   const stubReduced = () =>
     vi.stubGlobal(
       'matchMedia',
@@ -807,8 +816,118 @@ describe('BoardRow 펼침·접힘 모션', () => {
       expect((item as HTMLElement).style.opacity).toBe('1');
     }
 
-    // 다시 펼치면 새 시차다.
+    // 완전히 접힌 뒤 다시 펼치면 새 시차다.
+    act(() => {
+      timelineOf(wrapper).progress(1);
+    });
     fireEvent.click(button);
     expect(wrapper.__boardRowStagger).not.toBe(stagger);
+  });
+
+  it('접히는 도중 다시 펼치면 시차를 돌리지 않는다. 내용이 opacity 1·y 0 그대로다(번쩍임 방지)', () => {
+    const { button, region, wrapper } = renderRow();
+    const items = Array.from(region.firstElementChild!.children);
+    fireEvent.click(button);
+    act(() => {
+      timelineOf(wrapper).progress(1);
+    });
+    const stagger = wrapper.__boardRowStagger;
+
+    // 접히는 도중(높이가 0이 아니다)에 다시 펼친다.
+    fireEvent.click(button);
+    act(() => {
+      timelineOf(wrapper).pause().progress(0.3);
+    });
+    expect(Number.parseFloat(wrapper.style.height)).toBeGreaterThan(1);
+    fireEvent.click(button);
+
+    expect(wrapper.__boardRowStagger).toBe(stagger);
+    for (const item of items) {
+      expect((item as HTMLElement).style.opacity).toBe('1');
+      expect((item as HTMLElement).style.transform).not.toContain('24');
+    }
+  });
+
+  it('펼침 중간에 접고 끝까지 진행하면 높이 0·inert다(이전 펼침의 clearProps가 늦게 끼어들지 않는다)', () => {
+    const { button, region, wrapper } = renderRow();
+    fireEvent.click(button);
+    const expand = timelineOf(wrapper);
+    const root = expand.parent!;
+    act(() => {
+      expand.progress(0.1);
+    });
+
+    fireEvent.click(button);
+    expect(timelineOf(wrapper)).not.toBe(expand);
+    runToEnd(root);
+
+    expect(wrapper.style.height).toBe('0px');
+    expect(region).toHaveAttribute('inert');
+  });
+
+  it('접힘 중간에 펼치고 끝까지 진행하면 인라인 height·inert가 없다(이전 접힘의 onComplete가 늦게 끼어들지 않는다)', () => {
+    const { button, region, wrapper } = renderRow({ defaultExpanded: true });
+    fireEvent.click(button);
+    const collapse = timelineOf(wrapper);
+    const root = collapse.parent!;
+    act(() => {
+      collapse.progress(0.3);
+    });
+
+    fireEvent.click(button);
+    expect(timelineOf(wrapper)).not.toBe(collapse);
+    runToEnd(root);
+
+    expect(wrapper.style.height).toBe('');
+    expect(region).not.toHaveAttribute('inert');
+  });
+
+  it('도는 도중 축소 선호가 켜지면 진행 중 트윈을 끝 상태로 확정한다', () => {
+    let matches = false;
+    const listeners = new Set<() => void>();
+    vi.stubGlobal(
+      'matchMedia',
+      (media: string): MediaQueryList =>
+        ({
+          get matches() {
+            return matches;
+          },
+          media,
+          addEventListener: (_: string, l: () => void) => listeners.add(l),
+          removeEventListener: (_: string, l: () => void) =>
+            listeners.delete(l),
+        }) as unknown as MediaQueryList
+    );
+    const { button, region, wrapper } = renderRow();
+
+    // 펼침 도중
+    fireEvent.click(button);
+    act(() => {
+      timelineOf(wrapper).pause().progress(0.3);
+    });
+    expect(wrapper.style.height).not.toBe('');
+    act(() => {
+      matches = true;
+      listeners.forEach((l) => l());
+    });
+    expect(wrapper.style.height).toBe('');
+    expect(wrapper.__boardRowStagger!.progress()).toBe(1);
+
+    // 접힘 도중
+    matches = false;
+    act(() => {
+      listeners.forEach((l) => l());
+    });
+    fireEvent.click(button);
+    act(() => {
+      timelineOf(wrapper).pause().progress(0.3);
+    });
+    expect(region).not.toHaveAttribute('inert');
+    act(() => {
+      matches = true;
+      listeners.forEach((l) => l());
+    });
+    expect(wrapper.style.height).toBe('0px');
+    expect(region).toHaveAttribute('inert');
   });
 });

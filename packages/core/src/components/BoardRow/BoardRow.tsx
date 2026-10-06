@@ -153,11 +153,13 @@ export const BoardRow = ({
           gsapDuration.slow
         );
         // 내용은 직계 자식마다 시차를 두고 뜬다. 세 번째 소비자다(시트 둘 다음).
-        staggerRef.current = addSheetStagger(
-          tl,
-          Array.from(inner.children),
-          reduced
-        );
+        // 접히던 도중(from이 0이 아니면) 다시 펼치는 거라면 내용은 접힐 때 이미
+        // 끝 상태로 확정돼 보이고 있다. 시차가 opacity 0으로 리셋하면 번쩍인다.
+        // 0과의 비교는 부동소수점이라 1 미만으로 본다.
+        staggerRef.current =
+          from < 1
+            ? addSheetStagger(tl, Array.from(inner.children), reduced)
+            : null;
         return tl;
       });
       wrapper.__boardRowTimeline = timeline;
@@ -198,6 +200,14 @@ export const BoardRow = ({
     wrapper.__boardRowTimeline = timeline;
     timelineRef.current = timeline;
   }, [isExpanded, reduced]);
+
+  // 도는 도중 축소 선호가 켜지면 진행 중인 트윈을 끝 상태로 확정한다.
+  // 토글 effect는 이 변화를 토글이 아니라며 건너뛴다.
+  useEffect(() => {
+    if (!reduced) return;
+    if (timelineRef.current) settleMotion(timelineRef.current);
+    if (staggerRef.current) settleMotion(staggerRef.current);
+  }, [reduced]);
 
   useEffect(
     () => () => {
