@@ -375,6 +375,11 @@ export const disabled = style({
   pointerEvents: 'none',
 });
 
+// 퇴장 중에는 포인터를 받지 않는다(키보드는 inert가 막는다).
+export const exiting = style({
+  pointerEvents: 'none',
+});
+
 export const label = style({
   lineHeight: 1,
 });

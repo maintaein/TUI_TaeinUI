@@ -1,18 +1,26 @@
-import { useMemo, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import clsx from 'clsx';
+import { gsap } from 'gsap';
 import { useClickable } from '../../_internal/useClickable';
 import { useClickRebound } from '../../_internal/useClickRebound';
 import { Glyph } from '../../_internal/glyph';
 import { themeContract } from '../../tokens/theme.css';
+import { gsapDuration, gsapEasing } from '../../tokens/gsapEasing';
+import { useReducedMotion } from '../../hooks/useReducedMotion';
+import { gateMotion } from '../../hooks/gateMotion';
 import {
   chip,
   clickable as clickableStyle,
   selected as selectedStyle,
   disabled as disabledStyle,
+  exiting as exitingStyle,
   label as labelStyle,
   iconContainer,
   deleteButton,
 } from './Chip.css';
+
+// 테스트가 현재 퇴장 트윈을 읽는 손잡이(Avatar의 __avatarPress와 같은 모양).
+type ChipHost = HTMLElement & { __chipExitTween?: gsap.core.Tween };
 
 /** 태그, 필터, 선택 항목 등을 표시하는 칩 컴포넌트 */
 export interface ChipProps {
@@ -74,13 +82,44 @@ export const Chip = ({
     '--chip-marker-color': markerColor,
   } as React.CSSProperties;
 
-  // 삭제 버튼 클릭 핸들러
+  const reduced = useReducedMotion();
+  const rootRef = useRef<ChipHost | null>(null);
+  // 퇴장 중 다시 눌러도 onDelete는 한 번이다. state는 렌더 뒤에야 바뀌므로 ref로 막는다.
+  const exitingRef = useRef(false);
+  const [exiting, setExiting] = useState(false);
+
+  // 언마운트 때 ref는 이미 비어 있어서 노드를 미리 잡아 둔다.
+  useEffect(() => {
+    const el = rootRef.current;
+    return () => {
+      el?.__chipExitTween?.kill();
+    };
+  }, []);
+
+  // 삭제 버튼 클릭 핸들러. onDelete는 퇴장이 끝난 뒤 부른다. 부모가 칩을 바로
+  // 지우면 애니메이션할 시간이 없다(BubbleMenu도 끝난 뒤 닫는다). 가속하며
+  // 빨려 들어가는 것이 bubble이 사라지는 느낌이다(scale 1 -> 0, ease-in).
+  // 축소 모드는 gateMotion이 끝 상태로 확정해 onComplete가 즉시 불린다.
   const handleDelete = (
     e: React.MouseEvent<HTMLElement> | React.KeyboardEvent<HTMLElement>
   ) => {
     e.stopPropagation();
-    if (disabled) return;
-    onDelete?.();
+    const el = rootRef.current;
+    if (disabled || exitingRef.current || !el) return;
+    exitingRef.current = true;
+    setExiting(true);
+    // CSS transition이 transform·opacity를 따라가면 GSAP이 매 프레임 쓰는 값과 다툰다.
+    el.style.transition = 'none';
+    el.__chipExitTween = gateMotion(reduced, () =>
+      gsap.to(el, {
+        scale: 0,
+        opacity: 0,
+        transformOrigin: '50% 50%',
+        duration: gsapDuration.base,
+        ease: gsapEasing.exit,
+        onComplete: () => onDelete?.(),
+      })
+    );
   };
 
   // 클릭 가능 여부에 따라 button 또는 div로 렌더링
@@ -115,6 +154,7 @@ export const Chip = ({
     {
       [selectedStyle]: selected,
       [disabledStyle]: disabled,
+      [exitingStyle]: exiting,
     },
     className
   );
@@ -141,7 +181,9 @@ export const Chip = ({
   if (isClickable) {
     return (
       <button
+        ref={rootRef as React.Ref<HTMLButtonElement>}
         type="button"
+        inert={exiting}
         className={chipClasses}
         onClick={clickableProps.onClick}
         {...handlers}
@@ -158,7 +200,12 @@ export const Chip = ({
   }
 
   return (
-    <div className={chipClasses} style={markerStyle}>
+    <div
+      ref={rootRef as React.Ref<HTMLDivElement>}
+      inert={exiting}
+      className={chipClasses}
+      style={markerStyle}
+    >
       {chipContent}
     </div>
   );

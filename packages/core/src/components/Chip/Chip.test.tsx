@@ -1,10 +1,17 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { act, fireEvent, render, screen } from '@testing-library/react';
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { Chip } from './Chip';
 import * as styles from './Chip.css';
+import { gsapDuration, gsapEasing } from '../../tokens/gsapEasing';
 
 describe('Chip', () => {
   describe('렌더링 테스트', () => {
@@ -167,7 +174,8 @@ describe('Chip', () => {
       const deleteButton = screen.getByRole('button', { name: /삭제/i });
       await user.click(deleteButton);
 
-      expect(handleDelete).toHaveBeenCalledTimes(1);
+      // 퇴장이 끝난 뒤에 불린다.
+      await waitFor(() => expect(handleDelete).toHaveBeenCalledTimes(1));
     });
 
     it('삭제 버튼은 aria-label을 가진다', () => {
@@ -341,7 +349,7 @@ describe('Chip', () => {
 
       const deleteButton = screen.getByRole('button', { name: /삭제/i });
       await user.click(deleteButton);
-      expect(handleDelete).toHaveBeenCalledTimes(1);
+      await waitFor(() => expect(handleDelete).toHaveBeenCalledTimes(1));
     });
 
     it('다양한 색상과 크기 조합이 정상 동작한다', () => {
@@ -422,6 +430,118 @@ describe('Chip 누름과 선택 상태', () => {
     const { container } = render(<Chip label="테스트" selected />);
 
     expect(container.firstChild).not.toHaveAttribute('aria-pressed');
+  });
+});
+
+describe('Chip 삭제 퇴장', () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  // Chip.tsx가 DOM 노드에 얹는 손잡이. gsap을 직접 import하지 않고 이걸로 읽는다.
+  type ExitTween = {
+    vars: { scale?: number; opacity?: number; ease?: string };
+    duration(): number;
+    progress(value: number): unknown;
+    // 죽은 트윈은 타임라인에서 떨어진다.
+    parent: unknown;
+  };
+  type Host = HTMLElement & { __chipExitTween?: ExitTween };
+
+  const stubReducedMotion = () =>
+    vi.stubGlobal(
+      'matchMedia',
+      (media: string): MediaQueryList =>
+        ({
+          matches: true,
+          media,
+          addEventListener: () => {},
+          removeEventListener: () => {},
+        }) as unknown as MediaQueryList
+    );
+
+  it('삭제를 눌러도 onDelete는 바로 불리지 않고, 퇴장이 끝난 뒤 한 번 불린다', async () => {
+    const user = userEvent.setup();
+    const onDelete = vi.fn();
+    const { container } = render(<Chip label="테스트" onDelete={onDelete} />);
+    const root = container.firstChild as Host;
+
+    await user.click(screen.getByRole('button', { name: /삭제/i }));
+
+    expect(onDelete).not.toHaveBeenCalled();
+    const tween = root.__chipExitTween as ExitTween;
+    expect(tween.vars.scale).toBe(0);
+    expect(tween.vars.opacity).toBe(0);
+    expect(tween.vars.ease).toBe(gsapEasing.exit);
+    expect(tween.duration()).toBe(gsapDuration.base);
+
+    act(() => {
+      tween.progress(1);
+    });
+    expect(onDelete).toHaveBeenCalledTimes(1);
+  });
+
+  it('퇴장 중 다시 눌러도 onDelete는 한 번이다', async () => {
+    const onDelete = vi.fn();
+    const { container } = render(<Chip label="테스트" onDelete={onDelete} />);
+    const root = container.firstChild as Host;
+    const del = screen.getByRole('button', { name: /삭제/i });
+
+    fireEvent.click(del);
+    const first = root.__chipExitTween;
+    fireEvent.click(del);
+    expect(root.__chipExitTween).toBe(first);
+
+    act(() => {
+      first?.progress(1);
+    });
+    fireEvent.click(del);
+    expect(onDelete).toHaveBeenCalledTimes(1);
+  });
+
+  it('퇴장 중에는 칩 전체가 입력을 받지 않는다', () => {
+    const { container } = render(<Chip label="테스트" onDelete={() => {}} />);
+    const root = container.firstChild as HTMLElement;
+
+    fireEvent.click(screen.getByRole('button', { name: /삭제/i }));
+
+    expect(root).toHaveAttribute('inert');
+    expect(root).toHaveClass(styles.exiting);
+  });
+
+  it('축소 모드면 퇴장 없이 즉시 onDelete를 부른다', async () => {
+    stubReducedMotion();
+    const user = userEvent.setup();
+    const onDelete = vi.fn();
+    render(<Chip label="테스트" onDelete={onDelete} />);
+
+    await user.click(screen.getByRole('button', { name: /삭제/i }));
+
+    expect(onDelete).toHaveBeenCalledTimes(1);
+  });
+
+  it('disabled면 아무것도 하지 않는다', () => {
+    const onDelete = vi.fn();
+    const { container } = render(
+      <Chip label="테스트" onDelete={onDelete} disabled />
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /삭제/i }));
+
+    expect((container.firstChild as Host).__chipExitTween).toBeUndefined();
+    expect(onDelete).not.toHaveBeenCalled();
+  });
+
+  it('퇴장 중 언마운트하면 트윈을 죽인다', () => {
+    const { container, unmount } = render(
+      <Chip label="테스트" onDelete={() => {}} />
+    );
+    const root = container.firstChild as Host;
+
+    fireEvent.click(screen.getByRole('button', { name: /삭제/i }));
+    const tween = root.__chipExitTween as ExitTween;
+    expect(tween.parent).toBeTruthy();
+    unmount();
+
+    expect(tween.parent).toBeFalsy();
   });
 });
 
