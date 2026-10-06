@@ -9,7 +9,7 @@ import {
 import clsx from 'clsx';
 import { gsap } from 'gsap';
 import { Glyph } from '../../_internal/glyph';
-import { addSheetStagger } from '../../_internal/sheetFloat';
+import { addSheetStagger, STAGGER_RISE_Y } from '../../_internal/sheetFloat';
 import { gateMotion, settleMotion } from '../../hooks/gateMotion';
 import { useReducedMotion } from '../../hooks/useReducedMotion';
 import { gsapDuration, gsapEasing } from '../../tokens/gsapEasing';
@@ -28,9 +28,12 @@ import {
 /**
  * 펼칠 때 목표 높이를 지나치는 거리(px). 이동거리 × 커브 정점이 2px 미만이면
  * 안 보이고 24px를 넘으면 만화가 된다. 시트는 16px였는데, 행은 넘친 높이가
- * 아래 행들을 같이 밀어서 같은 px라도 더 크게 읽히므로 12로 낮춘다.
+ * 아래 행들을 같이 밀어서 같은 px라도 더 크게 읽히므로 낮춘다. 8은 사용자 판정으로
+ * 12에서 줄였다.
  */
-const OVERSHOOT_PX = 12;
+const EXPAND_OVERSHOOT_PX = 8;
+/** 접힐 때 예비동작으로 부푸는 거리(px). 판정 대상이 아니었으므로 12 그대로다. */
+const COLLAPSE_SWELL_PX = 12;
 /** 접힘의 길이 비율. 물러날 때는 진입 길이의 60~70%로 짧다(조항 3). */
 const EXIT_RATIO = 0.65;
 
@@ -132,7 +135,7 @@ export const BoardRow = ({
           wrapper,
           { height: from },
           {
-            height: target + OVERSHOOT_PX,
+            height: target + EXPAND_OVERSHOOT_PX,
             duration: gsapDuration.slow,
             ease: gsapEasing.settle,
           },
@@ -141,7 +144,7 @@ export const BoardRow = ({
         // 끝나면 auto로 되돌린다. 고정 px로 두면 내용이나 폭이 바뀔 때 잘린다.
         tl.fromTo(
           wrapper,
-          { height: target + OVERSHOOT_PX },
+          { height: target + EXPAND_OVERSHOOT_PX },
           {
             height: target,
             duration: gsapDuration.base,
@@ -151,13 +154,20 @@ export const BoardRow = ({
           },
           gsapDuration.slow
         );
-        // 내용은 직계 자식마다 시차를 두고 뜬다. 세 번째 소비자다(시트 둘 다음).
+        // 내용은 직계 자식마다 시차를 두고 위에서 내려온다(시트는 아래에서 뜬다).
+        // contentWrapper가 overflow: hidden이라 위로 올라간 항목은 헤더 밑에서
+        // 잘려 있다가 빠져나오듯 보인다. 세 번째 소비자다(시트 둘 다음).
         // 접히던 도중(from이 0이 아니면) 다시 펼치는 거라면 내용은 접힐 때 이미
         // 끝 상태로 확정돼 보이고 있다. 시차가 opacity 0으로 리셋하면 번쩍인다.
         // 0과의 비교는 부동소수점이라 1 미만으로 본다.
         staggerRef.current =
           from < 1
-            ? addSheetStagger(tl, Array.from(inner.children), reduced)
+            ? addSheetStagger(
+                tl,
+                Array.from(inner.children),
+                reduced,
+                -STAGGER_RISE_Y
+              )
             : null;
         return tl;
       });
@@ -177,7 +187,7 @@ export const BoardRow = ({
         wrapper,
         { height: from },
         {
-          height: from + OVERSHOOT_PX,
+          height: from + COLLAPSE_SWELL_PX,
           duration: gsapDuration.base * EXIT_RATIO,
           ease: gsapEasing.drift,
         },
@@ -185,7 +195,7 @@ export const BoardRow = ({
       );
       tl.fromTo(
         wrapper,
-        { height: from + OVERSHOOT_PX },
+        { height: from + COLLAPSE_SWELL_PX },
         {
           height: 0,
           duration: gsapDuration.slow * EXIT_RATIO,

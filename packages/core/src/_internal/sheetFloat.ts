@@ -16,7 +16,7 @@ import { gateMotion } from '../hooks/gateMotion';
 const BOUNCE_OVERSHOOT_PX = 16;
 
 /** 내용이 떠오르는 거리(px). `Modal`·`BubbleMenu`와 같은 24. */
-const STAGGER_RISE_Y = 24;
+export const STAGGER_RISE_Y = 24;
 /** 내용 항목 사이의 시차(초). folderfloat `stagger = 45`ms. */
 const STAGGER_STEP = 0.045;
 /** 시차를 받는 항목 수. 9번째부터는 8번째와 같이 뜬다(긴 목록이 늦게 끝나지 않게). */
@@ -93,11 +93,15 @@ export const addSheetOvershoot = (
  * 않고 항목별 시작 시각을 직접 준다(처음 8개만 시차를 받는다).
  * 시트가 옆에서 와도 항목은 위로 뜬다: 시트(옆)와 내용(위)이 다른 움직임으로
  * 읽혀야 한 덩어리로 뭉개지지 않는다.
+ *
+ * `rise`는 항목의 시작 `y`(px). 기본은 아래에서 뜨는 24이고, 음수를 주면 위에서
+ * 내려온다(BoardRow).
  */
 export const addSheetStagger = (
   timeline: gsap.core.Timeline,
   items: Element[],
-  reduced: boolean
+  reduced: boolean,
+  rise = STAGGER_RISE_Y
 ): gsap.core.Timeline | null => {
   if (items.length === 0) return null;
 
@@ -107,7 +111,7 @@ export const addSheetStagger = (
       const start = Math.min(i, STAGGER_MAX - 1) * STAGGER_STEP;
       t.fromTo(
         item,
-        { y: STAGGER_RISE_Y },
+        { y: rise },
         { y: 0, duration: gsapDuration.slow, ease: gsapEasing.snap },
         start
       );

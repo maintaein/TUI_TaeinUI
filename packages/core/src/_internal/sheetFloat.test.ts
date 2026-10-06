@@ -70,6 +70,22 @@ describe('addSheetStagger', () => {
     expect(timeline.getChildren()).toHaveLength(0);
   });
 
+  it('시작 오프셋을 넘기면 그 값에서 0으로, 안 넘기면 24에서 0으로 뜬다', () => {
+    const own = document.createElement('p');
+    const dflt = document.createElement('p');
+    const fromAbove = addSheetStagger(newTimeline(), [own], false, -24)!;
+    const fromBelow = addSheetStagger(newTimeline(), [dflt], false)!;
+    const yOf = (t: gsap.core.Timeline) =>
+      (
+        tweensOf(t).find((x) => x.vars.y === 0)!.vars as gsap.TweenVars & {
+          startAt?: gsap.TweenVars;
+        }
+      ).startAt?.y;
+
+    expect(yOf(fromAbove)).toBe(-24);
+    expect(yOf(fromBelow)).toBe(24);
+  });
+
   it('축소 선호면 만들자마자 끝으로 확정되고, 등장이 시차 지점을 지나도 아무것도 하지 않는다', () => {
     const timeline = newTimeline();
     const item = document.createElement('p');

@@ -582,7 +582,8 @@ describe('BoardRow 펼침·접힘 모션', () => {
   };
 
   const CONTENT_HEIGHT = 120;
-  const OVERSHOOT = 12;
+  const EXPAND_OVERSHOOT = 8;
+  const COLLAPSE_SWELL = 12;
 
   // jsdom은 레이아웃이 없다. 내용 높이(scrollHeight)는 보급하고, 지금 높이는
   // 인라인 height가 있으면 그 값(GSAP이 실제로 쓴 값)을, 없으면(auto) 내용
@@ -649,7 +650,7 @@ describe('BoardRow 펼침·접힘 모션', () => {
         }) as unknown as MediaQueryList
     );
 
-  it('펼침: 높이 트윈 둘. 1단은 h+12까지 settle·slow, 2단은 h로 drift·base. 끝에 인라인 height가 없다', () => {
+  it('펼침: 높이 트윈 둘. 1단은 h+8까지 settle·slow, 2단은 h로 drift·base. 끝에 인라인 height가 없다', () => {
     const { button, wrapper } = renderRow();
     fireEvent.click(button);
 
@@ -657,7 +658,7 @@ describe('BoardRow 펼침·접힘 모션', () => {
     const [over, settle, ...rest] = tweensOn(timeline, wrapper);
     expect(rest).toHaveLength(0);
     expect(over.vars.startAt?.height).toBe(0);
-    expect(over.vars.height).toBe(CONTENT_HEIGHT + OVERSHOOT);
+    expect(over.vars.height).toBe(CONTENT_HEIGHT + EXPAND_OVERSHOOT);
     expect(over.vars.ease).toBe(gsapEasing.settle);
     expect(over.duration()).toBeCloseTo(gsapDuration.slow, 5);
     expect(over.startTime()).toBe(0);
@@ -688,7 +689,7 @@ describe('BoardRow 펼침·접힘 모션', () => {
     const [swell, fold, ...rest] = tweensOn(collapse, wrapper);
     expect(rest).toHaveLength(0);
     expect(swell.vars.startAt?.height).toBe(CONTENT_HEIGHT);
-    expect(swell.vars.height).toBe(CONTENT_HEIGHT + OVERSHOOT);
+    expect(swell.vars.height).toBe(CONTENT_HEIGHT + COLLAPSE_SWELL);
     expect(swell.vars.ease).toBe(gsapEasing.drift);
     expect(swell.duration()).toBeCloseTo(gsapDuration.base * 0.65, 5);
     expect(fold.vars.height).toBe(0);
@@ -707,7 +708,7 @@ describe('BoardRow 펼침·접힘 모션', () => {
     fireEvent.click(button);
     const expand = timelineOf(wrapper);
     act(() => {
-      expand.pause().progress(0.3);
+      expand.pause().progress(0.2);
     });
     const mid = Number.parseFloat(wrapper.style.height);
     expect(mid).toBeGreaterThan(0);
@@ -718,7 +719,7 @@ describe('BoardRow 펼침·접힘 모션', () => {
     expect(collapse).not.toBe(expand);
     const [swell] = tweensOn(collapse, wrapper);
     expect(swell.vars.startAt?.height).toBe(mid);
-    expect(swell.vars.height).toBe(mid + OVERSHOOT);
+    expect(swell.vars.height).toBe(mid + COLLAPSE_SWELL);
   });
 
   it('마운트 시에는 트윈이 없다. 닫힌 채 시작하면 높이 0, 열린 채 시작하면 auto', () => {
@@ -793,7 +794,7 @@ describe('BoardRow 펼침·접힘 모션', () => {
     expect(region).not.toHaveAttribute('inert');
   });
 
-  it('내용 시차: contentInner의 직계 자식이 y 24 → 0을 snap으로 뜨고, 접을 때는 끝 상태로 확정된다', () => {
+  it('내용 시차: contentInner의 직계 자식이 위에서(y -24) 0으로 snap으로 내려오고, 접을 때는 끝 상태로 확정된다', () => {
     const { button, region, wrapper } = renderRow();
     const inner = region.firstElementChild as HTMLElement;
     fireEvent.click(button);
@@ -805,7 +806,7 @@ describe('BoardRow 펼침·접힘 모션', () => {
     for (const item of items) {
       const rise = tweensOn(stagger!, item).find((t) => t.vars.y === 0);
       expect(rise, '직계 자식마다 y 트윈이 있어야 한다').toBeDefined();
-      expect(rise!.vars.startAt?.y).toBe(24);
+      expect(rise!.vars.startAt?.y).toBe(-24);
       expect(rise!.vars.ease).toBe(gsapEasing.snap);
     }
 
