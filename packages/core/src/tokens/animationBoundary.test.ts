@@ -1305,20 +1305,13 @@ interface OvershootException {
 }
 
 /**
- * 손으로 확인한 안전한 bare 오버라이드 2곳(F6 스캔 결과 전부) — 둘 다 자기
+ * 손으로 확인한 안전한 bare 오버라이드 1곳(F6 스캔 결과 전부. BoardRow의 것은
+ * M5 task-11에서 막대와 함께 사라져 2곳에서 1곳이 됐다). 자기
  * own 규칙이 단일 속성(`transform`) transition만 선언하는 `::before`
  * globalStyle이라, bare `transitionTimingFunction`이 상속할 수 있는 속성이
  * transform 하나뿐이다. 새 자리가 여기 없이 생기면 위 `it`이 실패한다.
  */
 const OVERSHOOT_TIMING_EXCEPTIONS: OvershootException[] = [
-  {
-    at: 'components/BoardRow/BoardRow.css.ts',
-    line: 42,
-    owner: '-',
-    reason:
-      '`${rowExpanded}::before` 진입 — boardRow base의 ::before(BoardRow.css.ts:28)가 ' +
-      'transform 단일 속성 transition만 선언해 bare snap이 샐 다른 속성이 없다.',
-  },
   {
     at: 'components/Chip/Chip.css.ts',
     line: 223,

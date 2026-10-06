@@ -4,7 +4,6 @@ import { describe, it, expect, vi } from 'vitest';
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { BoardRow } from './BoardRow';
-import { rowExpanded } from './BoardRow.css';
 
 describe('BoardRow', () => {
   describe('렌더링 테스트', () => {
@@ -472,36 +471,18 @@ describe('BoardRow 모션 잠금', () => {
     return blocks[0][1];
   };
 
-  it('boardRow가 position: relative와 좌측 막대 ::before(scaleY(0)/exit/calc(base*0.65))를 갖는다', () => {
+  it('좌측 막대가 없다: boardRow에 ::before·position: relative가 없고 rowExpanded도 없다', () => {
+    // 리뷰 1번: 펼쳤을 때 왼쪽에 생기는 파란선을 지운다(사용자 결정 (A)).
+    // 무엇을 뒤집으면 빨개지는가: ::before 막대나 그 짝 rowExpanded를 되살리면.
+    // position: relative는 막대(absolute)만을 위한 것이었다.
+    expect(cssSource).not.toContain('::before');
+    expect(cssSource).not.toContain('rowExpanded');
+    expect(cssSource).not.toContain('globalStyle');
     const rootBlock = cssSource.match(
       /export const boardRow = style\(\{([\s\S]*?)\n\}\);/
     )?.[1];
     expect(rootBlock, 'boardRow 블록을 찾지 못했다').toBeDefined();
-    expect(rootBlock).toContain("position: 'relative'");
-
-    const beforeBlock = (rootBlock as string).match(
-      /'::before': \{([\s\S]*?)\n {2}\},/
-    )?.[1];
-    expect(beforeBlock, 'boardRow ::before 블록을 찾지 못했다').toBeDefined();
-    expect(beforeBlock).toContain("transformOrigin: 'top'");
-    expect(beforeBlock).toContain("transform: 'scaleY(0)'");
-    expect(beforeBlock).toContain(
-      'transform calc(${themeContract.animation.duration.base} * 0.65) ${themeContract.animation.easing.exit}'
-    );
-  });
-
-  it('rowExpanded와 결합한 ::before가 scaleY(1)/base/snap로 그어져 내려온다', () => {
-    expect(cssSource).toContain('export const rowExpanded = style({});');
-    const globalBlock = cssSource.match(
-      /globalStyle\(`\$\{rowExpanded\}::before`, \{([\s\S]*?)\n\}\);/
-    )?.[1];
-    expect(
-      globalBlock,
-      'rowExpanded::before globalStyle을 찾지 못했다'
-    ).toBeDefined();
-    expect(globalBlock).toContain("transform: 'scaleY(1)'");
-    expect(globalBlock).toContain('themeContract.animation.duration.base');
-    expect(globalBlock).toContain('themeContract.animation.easing.snap');
+    expect(rootBlock).not.toContain("position: 'relative'");
   });
 
   it('header hover가 fast/settle을, 새로 생긴 :active가 fast/exit를 쓴다(리터럴 ease 없음)', () => {
@@ -577,7 +558,7 @@ describe('BoardRow 모션 잠금', () => {
     expect(wrapperBlock, 'contentWrapper 블록을 찾지 못했다').toBeDefined();
     expect(wrapperBlock).not.toContain('ease-in-out');
     // 조항 3은 길이에도 걸린다(리뷰 F8) — 물러날 때(접힘)는 진입(slow)의
-    // 60~70%로 짧다. ::before 막대와 같은 calc(* 0.65) 비율이다.
+    // 60~70%로 짧다. calc(* 0.65) 비율이다.
     expect(wrapperBlock).toContain(
       'grid-template-rows calc(${themeContract.animation.duration.slow} * 0.65) ${themeContract.animation.easing.exit}'
     );
@@ -593,27 +574,5 @@ describe('BoardRow 모션 잠금', () => {
     expect(expandedBlock).toContain(
       'transitionTimingFunction: themeContract.animation.easing.settle'
     );
-  });
-
-  it('isExpanded일 때 루트에 rowExpanded 클래스가 붙어 좌측 막대가 내려온다', () => {
-    render(
-      <BoardRow title="제목" defaultExpanded>
-        <div>내용</div>
-      </BoardRow>
-    );
-    const button = screen.getByRole('button');
-    const root = button.parentElement as HTMLElement;
-    expect(root.className).toContain(rowExpanded);
-  });
-
-  it('isExpanded가 아니면 루트에 rowExpanded 클래스가 붙지 않는다', () => {
-    render(
-      <BoardRow title="제목">
-        <div>내용</div>
-      </BoardRow>
-    );
-    const button = screen.getByRole('button');
-    const root = button.parentElement as HTMLElement;
-    expect(root.className).not.toContain(rowExpanded);
   });
 });

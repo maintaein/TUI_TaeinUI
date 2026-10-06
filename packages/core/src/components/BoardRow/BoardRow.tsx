@@ -3,7 +3,6 @@ import clsx from 'clsx';
 import { Glyph } from '../../_internal/glyph';
 import {
   boardRow,
-  rowExpanded,
   variantStyles,
   header,
   title as titleStyle,
@@ -70,12 +69,7 @@ export const BoardRow = ({
 
   return (
     <div
-      className={clsx(
-        boardRow,
-        variantStyles[variant],
-        isExpanded && rowExpanded,
-        className
-      )}
+      className={clsx(boardRow, variantStyles[variant], className)}
       {...props}
     >
       <button

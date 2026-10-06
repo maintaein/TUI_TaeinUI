@@ -1,4 +1,4 @@
-import { style, styleVariants, globalStyle } from '@vanilla-extract/css';
+import { style, styleVariants } from '@vanilla-extract/css';
 import { themeContract } from '../../tokens/theme.css';
 import { focusRing } from '../../tokens/focusRing.css';
 
@@ -8,38 +8,6 @@ export const boardRow = style({
   borderRadius: themeContract.borderRadius.md,
   overflow: 'hidden',
   boxSizing: 'border-box',
-  position: 'relative',
-
-  // 좌측 3px 막대(B2 — 선택/펼침 상태는 계열 안에서 갈린다. BoardRow는 좌측
-  // 막대다). Table.md §2.1 좌측 표식과 같은 언어라 형태를 바꾸지 않는다(M7
-  // 제약 4). 항상 존재하되 scaleY(0)로 숨어 있다가 펼쳐지면만 자란다.
-  '::before': {
-    content: '""',
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    bottom: 0,
-    width: '3px',
-    backgroundColor: themeContract.color.primary.main,
-    transformOrigin: 'top',
-    transform: 'scaleY(0)',
-    pointerEvents: 'none',
-    // 물러날 때(article 3): 진입(base)의 60~70%로 짧고, 가속 커브로 뺀다.
-    transition: `transform calc(${themeContract.animation.duration.base} * 0.65) ${themeContract.animation.easing.exit}`,
-  },
-});
-
-// 펼침 상태를 나타내는 빈 placeholder — List.css.ts의 globalStyle(두 독립
-// 클래스 결합) 관례로 boardRow의 ::before 막대와 결합한다(Chip의 selected와
-// 동일 패턴).
-export const rowExpanded = style({});
-
-// 펼쳐지면 막대가 위에서 아래로 그어져 내려온다 — base 소유의 짧은 퇴장
-// 전이와 달리 진입은 base 길이 그대로에 snap으로 긋는다.
-globalStyle(`${rowExpanded}::before`, {
-  transform: 'scaleY(1)',
-  transitionDuration: themeContract.animation.duration.base,
-  transitionTimingFunction: themeContract.animation.easing.snap,
 });
 
 export const variantStyles = styleVariants({
@@ -139,7 +107,7 @@ export const contentWrapper = style({
   // 기존 커브 자리는 상태 전이라 조항 3이 지배한다 — 접힘(rest)은 exit,
   // 펼침(wrapperExpanded 오버라이드)은 settle. drift(자율 루프 전용)로 가지
   // 않는다. 조항 3은 길이에도 걸린다(리뷰 F8) — 물러날 때는 진입(slow)의
-  // 60~70%로 짧게, 위 ::before 막대의 calc(base * 0.65)와 같은 비율이다.
+  // 60~70%로 짧게, calc(slow * 0.65)다.
   transition: `grid-template-rows calc(${themeContract.animation.duration.slow} * 0.65) ${themeContract.animation.easing.exit}`,
 });
 
