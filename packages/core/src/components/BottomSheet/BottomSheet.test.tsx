@@ -496,7 +496,7 @@ describe('BottomSheet', () => {
     // transform을 놓고 다투게 된다.
     it('CSS가 등장·퇴장 모션을 갖지 않는다 (명제 조항 1)', () => {
       const source = readFileSync(
-        resolve(__dirname, 'BottomSheet.css.ts'),
+        resolve(__dirname, '../../_internal/sheetFloat.css.ts'),
         'utf-8'
       );
 
@@ -1061,7 +1061,7 @@ describe('BottomSheet', () => {
 
       it('CSS의 float keyframes는 translate만 쓰고 0%·100%가 쉬는 자리(0 0)다', () => {
         const source = readFileSync(
-          resolve(__dirname, 'BottomSheet.css.ts'),
+          resolve(__dirname, '../../_internal/sheetFloat.css.ts'),
           'utf-8'
         );
         const body = /keyframes\(\{([\s\S]*?)\n\}\);/.exec(source)![1];
@@ -1078,7 +1078,7 @@ describe('BottomSheet', () => {
 
       it('멈춤 규칙은 animation 단축 속성 뒤에 있어 play-state를 리셋당하지 않는다', () => {
         const source = readFileSync(
-          resolve(__dirname, 'BottomSheet.css.ts'),
+          resolve(__dirname, '../../_internal/sheetFloat.css.ts'),
           'utf-8'
         );
         const floating = source.indexOf("'&[data-floating]'");

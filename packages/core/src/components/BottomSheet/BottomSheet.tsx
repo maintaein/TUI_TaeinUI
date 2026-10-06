@@ -28,6 +28,13 @@ import { createOverlayContext } from '../../_internal/createOverlayContext';
 import { useOverlayTransition } from '../../_internal/useOverlayTransition';
 import { gateMotion } from '../../hooks/gateMotion';
 import { useReducedMotion } from '../../hooks/useReducedMotion';
+import {
+  addSheetOvershoot,
+  addSheetStagger,
+  setFloating,
+  setFloatPaused,
+} from '../../_internal/sheetFloat';
+import { sheetFloat, floatFrom } from '../../_internal/sheetFloat.css';
 import { gsapDuration, gsapEasing } from '../../tokens/gsapEasing';
 
 interface BottomSheetContextValue {
@@ -40,33 +47,6 @@ const [BottomSheetContext, useBottomSheetContext] =
 
 /** 이 거리보다 아래로 끌고 놓으면 닫는다. */
 const DRAG_CLOSE_THRESHOLD_PX = 100;
-
-/**
- * 시트가 올라와 목표를 지나치는 거리(px). 고정 px인 이유: 시트 이동거리는 시트
- * 높이와 같아서 `snap`(넘침 10%)을 그대로 걸면 240px 시트는 24px, 600px 시트는
- * 61px로 들쭉날쭉하고 큰 시트는 만화처럼 튄다. 높이와 무관하게 같은 크기로 튀게
- * 비율(`yPercent`)로 환산해 건다.
- */
-const BOUNCE_OVERSHOOT_PX = 16;
-
-/** 내용이 떠오르는 거리(px). `Modal`·`BubbleMenu`와 같은 24. */
-const STAGGER_RISE_Y = 24;
-/** 내용 항목 사이의 시차(초). folderfloat `stagger = 45`ms. */
-const STAGGER_STEP = 0.045;
-/** 시차를 받는 항목 수. 9번째부터는 8번째와 같이 뜬다(긴 목록이 늦게 끝나지 않게). */
-const STAGGER_MAX = 8;
-/** 내용이 뜨기 시작하는 지점: 시트 1단(`slow`)의 60%. 시트가 거의 올라왔을 때다. */
-const STAGGER_AT = 0.6;
-
-/**
- * float 루프는 등장이 끝나면 `data-floating`이 붙고 시트가 사라질 때까지 그대로다.
- * 떼면 `translate`가 0으로 돌아가며 시트가 툭 떨어지므로 떼지 않는다. 멈춤은
- * 별도 표시 `data-float-paused`(`animation-play-state: paused`)가 맡아 그 자리에 세운다.
- */
-const setFloating = (sheet: HTMLElement | null) =>
-  sheet?.toggleAttribute('data-floating', true);
-const setFloatPaused = (sheet: HTMLElement | null, on: boolean) =>
-  sheet?.toggleAttribute('data-float-paused', on);
 
 /** 테스트 전용: 등장 타임라인과 내용 시차 타임라인을 시트 노드에 얹는다(Modal과 같은 모양). */
 type BottomSheetTimelineHost = HTMLDivElement & {
@@ -126,11 +106,7 @@ const BottomSheetRoot = ({
   const isDraggingRef = useRef(false);
   /** 놓은 뒤 쉬는 자리로 돌아가는 트윈. 다시 잡으면 죽인다. */
   const restTweenRef = useRef<gsap.core.Tween | null>(null);
-  /**
-   * 내용 시차. 등장 타임라인 **밖**의 별도 타임라인이다. 안에 두면 등장 길이가
-   * 시차 꼬리만큼 늘고(항목 6개에 705ms), 훅이 퇴장을 역재생할 때 그 꼬리부터
-   * 풀어서 시트가 100ms 넘게 가만히 있는다. 밖에 두면 되감기지 않는다.
-   */
+  /** 내용 시차. 등장 타임라인 **밖**의 별도 타임라인이다(이유는 `addSheetStagger`). */
   const staggerRef = useRef<gsap.core.Timeline | null>(null);
   const reduced = useReducedMotion();
 
@@ -165,92 +141,19 @@ const BottomSheetRoot = ({
       }
       if (sheet) {
         (sheet as BottomSheetTimelineHost).__bottomSheetTimeline = timeline;
-        // 높이를 읽을 수 없으면(0, jsdom) 넘침 없이 곧장 앉는다. 0으로 나누지 않는다.
-        const height = sheet.offsetHeight;
-        const overshoot = height > 0 ? (BOUNCE_OVERSHOOT_PX / height) * 100 : 0;
-        if (overshoot > 0) {
-          // 1단: 목표를 지나쳐 오르고, 2단: 앉는다. 두 단의 이음매는 속도가 0이다.
-          timeline.fromTo(
-            sheet,
-            { yPercent: 100 },
-            {
-              yPercent: -overshoot,
-              duration: gsapDuration.slow,
-              ease: gsapEasing.settle,
-            },
-            0
-          );
-          timeline.fromTo(
-            sheet,
-            { yPercent: -overshoot },
-            {
-              yPercent: 0,
-              duration: gsapDuration.base,
-              ease: gsapEasing.drift,
-              immediateRender: false,
-            },
-            gsapDuration.slow
-          );
-        } else {
-          timeline.fromTo(
-            sheet,
-            { yPercent: 100 },
-            {
-              yPercent: 0,
-              duration: gsapDuration.slow,
-              ease: gsapEasing.settle,
-            },
-            0
-          );
-        }
+        addSheetOvershoot(timeline, sheet, 'yPercent', 100);
 
         // 내용은 시트가 거의 올라왔을 때 시차를 두고 뜬다. 헤더·핸들은 시트와 같이
-        // 올라오므로 대상이 아니다. y와 opacity를 한 트윈에 묶지 않는다: snap은
-        // 넘치는 커브라 불투명도에 걸면 1을 넘었다 돌아온다.
+        // 올라오므로 대상이 아니다.
         const items = Array.from(
           sheet.querySelector(`.${content}`)?.children ?? []
         );
         // 다시 만들 때(축소 선호가 뒤집힐 때) 낡은 시차가 같은 대상을 놓고 다투지 않게 한다.
         staggerRef.current?.kill();
-        staggerRef.current = null;
-        if (items.length > 0) {
-          // 처음 8개만 시차를 받는다. GSAP의 `stagger`는 항목 수에 따라 간격을
-          // 나누므로 쓰지 않고 항목별 시작 시각을 직접 준다.
-          const stagger = gsap.timeline({ paused: true });
-          items.forEach((item, i) => {
-            const start = Math.min(i, STAGGER_MAX - 1) * STAGGER_STEP;
-            stagger.fromTo(
-              item,
-              { y: STAGGER_RISE_Y },
-              { y: 0, duration: gsapDuration.slow, ease: gsapEasing.snap },
-              start
-            );
-            stagger.fromTo(
-              item,
-              { opacity: 0 },
-              {
-                opacity: 1,
-                duration: gsapDuration.fast,
-                ease: gsapEasing.settle,
-              },
-              start
-            );
-          });
-          staggerRef.current = stagger;
-          (sheet as BottomSheetTimelineHost).__bottomSheetStagger = stagger;
-
-          // 등장이 정방향으로 이 지점을 지날 때 시차를 처음부터 돌린다. `call`은
-          // 역재생이 이 지점을 지날 때도 불리므로 방향을 확인한다. 축소 선호면
-          // 게이트가 등장을 끝 상태로 확정하며 이것도 불리는데, 시차도 끝으로 확정한다.
-          timeline.call(
-            () => {
-              if (timeline.reversed()) return;
-              if (reduced) stagger.progress(1);
-              else stagger.restart();
-            },
-            [],
-            gsapDuration.slow * STAGGER_AT
-          );
+        staggerRef.current = addSheetStagger(timeline, items, reduced);
+        if (staggerRef.current) {
+          (sheet as BottomSheetTimelineHost).__bottomSheetStagger =
+            staggerRef.current;
         }
 
         // 등장이 끝나면 둥실거리기 시작한다. 이후 시트가 사라질 때까지 붙어 있다.
@@ -452,7 +355,13 @@ const BottomSheetRoot = ({
           // 퇴장 중(open=false, shouldRender=true)엔 DOM이 잠깐 더 남아있어도
           // 포커스가 그 안으로 들어가거나 클릭될 수 없게 inert로 막는다.
           inert={!open}
-          className={clsx(bottomSheetStyle, heightStyles[height], className)}
+          className={clsx(
+            bottomSheetStyle,
+            sheetFloat,
+            floatFrom.bottom,
+            heightStyles[height],
+            className
+          )}
           onClick={(e) => e.stopPropagation()}
           {...props}
         >
