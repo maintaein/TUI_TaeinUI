@@ -196,13 +196,15 @@ globalStyle(`${selected}::before`, {
 });
 
 // 선택 glow: 칩의 오른쪽 위와 왼쪽 아래 모서리에 고정된 빛(회전·맥박 없음).
-// BorderGlow의 두 겹 구조다. 바깥 상자(.glow)를 빛이 퍼지는 거리만큼 키워 가림막을
-// 씌우고, 안쪽 상자(::before, 칩 크기)에 그림자를 여러 겹 단다. 바깥으로 번진 빛이
-// 가림막에 잘리지 않으려면 가림막이 그림자보다 커야 한다. 칩은 가상 요소를 중첩할 수
-// 없어서 실제 span 하나와 그 ::before를 쓴다(Border의 glowRing과 같은 이유).
+// BorderGlow의 두 겹 구조다. 바깥 상자(.glow)에 가림막을 씌우고, 안쪽 상자(::before)에
+// 그림자를 여러 겹 단다. 두 상자 모두 칩 크기다. 바깥으로 번진 빛이 가림막에 잘리지
+// 않도록 가림막 그림만 상자 밖까지 넓게 칠한다(mask-clip: no-clip). 칩은 가상 요소를
+// 중첩할 수 없어서 실제 span 하나와 그 ::before를 쓴다(Border의 glowRing과 같은 이유).
 // 2px 고리와 --chip-scale은 그대로고 빛만 얹는다(색만으로는 선택을 알릴 수 없다, WCAG 1.4.1).
 
-// 빛이 번지는 거리. 그림자 최대 흐림(12px)에 여유를 둔 값이다.
+// 가림막 그림을 상자 밖으로 넓히는 거리. 그림자 최대 흐림(12px)에 여유를 둔 값이다.
+// 상자 자체를 키우지는 않는다. opacity 0이어도 부모의 스크롤 영역에 들어가
+// 선택하지 않은 칩 때문에 가로세로 이 거리만큼 스크롤이 생긴다.
 const GLOW_REACH = 14;
 // 가림막 원의 반지름. 시제품에서 24는 모서리에 바짝 붙어 작았고, 44는 짧은 칩에서
 // 칩 전체를 덮어 대각선이 흐려졌다. 32가 긴 칩에서 두 모서리가 따로 보이는 최소다.
@@ -212,10 +214,13 @@ const GLOW_RADIUS = 32;
 
 // 모서리 원 하나. 중심 안쪽 25%까지 꽉 차고 가장자리로 투명해진다.
 const cornerSpot = (at: string) =>
-  `radial-gradient(circle ${GLOW_RADIUS}px at ${at}, #000 0%, #000 25%, transparent 100%)`;
+  `radial-gradient(circle ${GLOW_RADIUS}px at ${at}, #000 0%, #000 25%, transparent 100%) -${GLOW_REACH}px -${GLOW_REACH}px / calc(100% + ${GLOW_REACH * 2}px) calc(100% + ${GLOW_REACH * 2}px) no-repeat no-clip`;
 
 // mask는 반드시 단축 속성이다. 롱핸드(mask-image)에 문법이 안 맞는 값이 들어가면
 // 선언이 통째로 버려진다(Border.css.ts의 glowRing 주석, 리뷰 C1). 두 장은 더해진다.
+// 각 장은 그림 크기를 상자보다 가로세로 2*REACH 크게 잡고 -REACH 위치에 놓아 예전 바깥
+// 상자와 같은 좌표계를 만든다(원 중심 좌표는 그대로). no-clip이 없으면 상자 경계에서
+// 잘려 선택된 칩의 빛이 11,295픽셀 달라진다(컨트롤러 실측).
 const glowMask = [
   cornerSpot(`calc(100% - ${GLOW_REACH}px) ${GLOW_REACH}px`),
   cornerSpot(`${GLOW_REACH}px calc(100% - ${GLOW_REACH}px)`),
@@ -243,7 +248,7 @@ const glowShadow = [
 // 같은 규약(base의 65%, exit)이다.
 export const glow = style({
   position: 'absolute',
-  inset: `-${GLOW_REACH}px`,
+  inset: 0,
   borderRadius: themeContract.borderRadius.full,
   pointerEvents: 'none',
   zIndex: -1,
@@ -256,7 +261,7 @@ export const glow = style({
 globalStyle(`${glow}::before`, {
   content: '""',
   position: 'absolute',
-  inset: `${GLOW_REACH}px`,
+  inset: 0,
   borderRadius: themeContract.borderRadius.full,
   boxShadow: glowShadow,
 });
@@ -287,7 +292,8 @@ const tint = (hover: StyleRule, pressed: StyleRule): StyleRule => ({
 // 호버는 모션 없이 색만 바꾼다(Button 승인 #6). 떠오름·그림자는 걷었다.
 // 색 고르기는 Button의 각 변형처럼 팔레트 한 단계를 오르내리되, 토큰에 팔레트가 없는
 // success·warning(filled)은 filter brightness로, 연한 배경에서 AA가 깨지는 outlined의
-// primary·error 글자는 hover·pressed에서 더 진한 색으로 바꾼다(success·warning은 평소부터 .dark). 글자색 전이가 필요해 color가 목록에 있다.
+// primary·error 글자는 hover·pressed에서 더 진한 색으로 바꾼다(success·warning은
+// 평소부터 .dark). 글자색 전이가 필요해 color가 목록에 있다.
 export const clickable = recipe({
   base: {
     cursor: 'pointer',

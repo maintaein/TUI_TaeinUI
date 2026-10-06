@@ -858,7 +858,7 @@ describe('Chip 선택 glow', () => {
     const pseudo = cssSource.match(
       /globalStyle\(`\$\{glow\}::before`, \{([\s\S]*?)\n\}\);/
     )?.[1];
-    expect(pseudo).toContain('inset: `${GLOW_REACH}px`');
+    expect(pseudo).toContain('inset: 0,');
     expect(pseudo).toContain('boxShadow: glowShadow');
   });
 
@@ -876,6 +876,34 @@ describe('Chip 선택 glow', () => {
       'opacity ${themeContract.animation.duration.base} ${themeContract.animation.easing.settle}'
     );
     expect(glowBlock + on).not.toMatch(/easing\.(snap|spring)/);
+  });
+
+  it('glow는 z-index -1이고, 그 전제로 선택된 칩이 transform(쌓임 맥락)을 가진다', () => {
+    const glowBlock = cssSource.match(
+      /export const glow = style\(\{([\s\S]*?)\n\}\);/
+    )?.[1] as string;
+    expect(glowBlock).toContain('zIndex: -1,');
+    // selected에 transform이 없으면 쌓임 맥락이 사라져 z-index -1이 빛을 부모 뒤로 보낸다.
+    const selectedBlock = cssSource.match(
+      /export const selected = style\(\{([\s\S]*?)\n\}\);/
+    )?.[1] as string;
+    expect(selectedBlock, 'selected 블록을 찾지 못했다').toBeDefined();
+    expect(selectedBlock).toContain("transform: 'scale(var(--chip-scale))'");
+  });
+
+  it('glow 상자는 칩 크기이고(부모 스크롤을 키우지 않는다) 가림막 그림만 상자 밖까지 칠한다', () => {
+    const glowBlock = cssSource.match(
+      /export const glow = style\(\{([\s\S]*?)\n\}\);/
+    )?.[1] as string;
+    expect(glowBlock).toContain('inset: 0,');
+    expect(glowBlock).not.toContain('GLOW_REACH');
+    const spot = cssSource.match(/const cornerSpot[\s\S]*?;\n/)?.[0] as string;
+    // 그림을 -REACH에 놓고 가로세로 2*REACH 크게 잡아 예전 바깥 상자와 같은 좌표계를 쓴다.
+    expect(spot).toContain(
+      '-${GLOW_REACH}px -${GLOW_REACH}px / calc(100% + ${GLOW_REACH * 2}px) calc(100% + ${GLOW_REACH * 2}px) no-repeat no-clip'
+    );
+    // 원의 정지점(꽉 참 25%, 가장자리 투명)
+    expect(spot).toContain('#000 0%, #000 25%, transparent 100%');
   });
 
   it('고리(::before)와 --chip-scale은 그대로다', () => {
