@@ -1,9 +1,17 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { describe, it, expect, vi } from 'vitest';
-import { act, fireEvent, render, screen } from '@testing-library/react';
+import { StrictMode } from 'react';
+import { afterEach, beforeEach, describe, it, expect, vi } from 'vitest';
+import {
+  act,
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+} from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { BoardRow } from './BoardRow';
+import { gsapDuration, gsapEasing } from '../../tokens/gsapEasing';
 
 describe('BoardRow', () => {
   describe('렌더링 테스트', () => {
@@ -533,7 +541,9 @@ describe('BoardRow 모션 잠금', () => {
     expect(guardedBlock('hover')).not.toContain('transitionTimingFunction');
   });
 
-  it('iconContainer(쉐브론) 회전이 리터럴 ease 대신 settle을 쓴다', () => {
+  it('iconContainer(쉐브론) 회전이 snap을 쓴다. 198°까지 갔다 180°에 앉는다', () => {
+    // 무엇을 뒤집으면 빨개지는가: transition의 easing을 settle이나 리터럴 ease로
+    // 되돌리면. 오버슈트 이징은 transform에만 건다(animationBoundary 규칙).
     const iconBlock = cssSource.match(
       /export const iconContainer = style\(\{([\s\S]*?)\n\}\);/
     )?.[1];
@@ -541,38 +551,264 @@ describe('BoardRow 모션 잠금', () => {
     expect(iconBlock).not.toMatch(
       /transition: `transform \$\{themeContract\.animation\.duration\.base\} ease`/
     );
-    expect(iconBlock).toContain('themeContract.animation.easing.settle');
+    expect(iconBlock).toContain(
+      'transition: `transform ${themeContract.animation.duration.base} ${themeContract.animation.easing.snap}`'
+    );
+    expect(iconBlock).not.toContain('easing.settle');
   });
 
-  it('contentWrapper의 grid-template-rows가 ease-in-out 대신 exit(접힘)/settle(펼침, wrapperExpanded 오버라이드)로 쪼개진다 — M1 근거 주석 유지', () => {
-    expect(cssSource).toContain(
-      'grid-template-rows는 transform·opacity가 아니라 레이아웃 속성이라 매 프레임'
-    );
-    expect(cssSource).toContain(
-      '미리 알 수 없어서다 — max-height 근사는 점프하거나 늦게 끝나고, 높이를'
-    );
-
+  it('contentWrapper는 grid·전이 없이 overflow: hidden만 갖는다(높이는 GSAP이 쓴다)', () => {
+    // 무엇을 뒤집으면 빨개지는가: grid-template-rows 전이를 되살리면. 1fr을 넘는
+    // 값은 내용 높이에서 잘려 넘침(bouncy)이 원리적으로 불가능했다.
     const wrapperBlock = cssSource.match(
       /export const contentWrapper = style\(\{([\s\S]*?)\n\}\);/
     )?.[1];
     expect(wrapperBlock, 'contentWrapper 블록을 찾지 못했다').toBeDefined();
-    expect(wrapperBlock).not.toContain('ease-in-out');
-    // 조항 3은 길이에도 걸린다(리뷰 F8) — 물러날 때(접힘)는 진입(slow)의
-    // 60~70%로 짧다. calc(* 0.65) 비율이다.
-    expect(wrapperBlock).toContain(
-      'grid-template-rows calc(${themeContract.animation.duration.slow} * 0.65) ${themeContract.animation.easing.exit}'
+    expect(wrapperBlock).toContain("overflow: 'hidden'");
+    expect(wrapperBlock).not.toContain('grid');
+    expect(wrapperBlock).not.toContain('transition');
+    expect(cssSource).not.toContain('wrapperExpanded');
+    expect(cssSource).not.toContain('gridTemplateRows');
+  });
+});
+
+describe('BoardRow 펼침·접힘 모션', () => {
+  type Host = HTMLElement & {
+    __boardRowTimeline?: gsap.core.Timeline;
+    __boardRowStagger?: gsap.core.Timeline;
+  };
+  type TweenLike = gsap.core.Tween & {
+    vars: gsap.TweenVars & { startAt?: gsap.TweenVars };
+  };
+
+  const CONTENT_HEIGHT = 120;
+  const OVERSHOOT = 12;
+
+  // jsdom은 레이아웃이 없다. 내용 높이(scrollHeight)는 보급하고, 지금 높이는
+  // 인라인 height가 있으면 그 값(GSAP이 실제로 쓴 값)을, 없으면(auto) 내용
+  // 높이를 돌려준다. GSAP과 컴포넌트 코드는 실제 그대로 돈다.
+  beforeEach(() => {
+    vi.spyOn(Element.prototype, 'scrollHeight', 'get').mockReturnValue(
+      CONTENT_HEIGHT
+    );
+    vi.spyOn(Element.prototype, 'getBoundingClientRect').mockImplementation(
+      function (this: Element) {
+        const inline = (this as HTMLElement).style.height;
+        const height = inline ? Number.parseFloat(inline) : CONTENT_HEIGHT;
+        return { height } as DOMRect;
+      }
+    );
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
+  });
+
+  const renderRow = (props: { defaultExpanded?: boolean } = {}) => {
+    render(
+      <BoardRow title="제목" {...props}>
+        <p>첫째</p>
+        <p>둘째</p>
+        <p>셋째</p>
+      </BoardRow>
+    );
+    const button = screen.getByRole('button', { name: /제목/ });
+    const region = screen.getByRole('region', { hidden: true });
+    const wrapper = region.parentElement as Host;
+    return { button, region, wrapper };
+  };
+
+  const timelineOf = (wrapper: Host) => {
+    expect(wrapper.__boardRowTimeline).toBeDefined();
+    return wrapper.__boardRowTimeline!;
+  };
+  const tweensOn = (timeline: gsap.core.Timeline, target: Element) =>
+    (timeline.getChildren() as TweenLike[]).filter(
+      (t) => t.targets()[0] === target
     );
 
-    const expandedBlock = cssSource.match(
-      /export const wrapperExpanded = style\(\{([\s\S]*?)\n\}\);/
-    )?.[1];
-    expect(expandedBlock, 'wrapperExpanded 블록을 찾지 못했다').toBeDefined();
-    // 펼침(진입)은 단축 없이 slow 전체 길이를 되찾는다(리뷰 F8).
-    expect(expandedBlock).toContain(
-      'transitionDuration: themeContract.animation.duration.slow'
+  const stubReduced = () =>
+    vi.stubGlobal(
+      'matchMedia',
+      (media: string): MediaQueryList =>
+        ({
+          matches: true,
+          media,
+          addEventListener: () => {},
+          removeEventListener: () => {},
+        }) as unknown as MediaQueryList
     );
-    expect(expandedBlock).toContain(
-      'transitionTimingFunction: themeContract.animation.easing.settle'
+
+  it('펼침: 높이 트윈 둘. 1단은 h+12까지 settle·slow, 2단은 h로 drift·base. 끝에 인라인 height가 없다', () => {
+    const { button, wrapper } = renderRow();
+    fireEvent.click(button);
+
+    const timeline = timelineOf(wrapper);
+    const [over, settle, ...rest] = tweensOn(timeline, wrapper);
+    expect(rest).toHaveLength(0);
+    expect(over.vars.startAt?.height).toBe(0);
+    expect(over.vars.height).toBe(CONTENT_HEIGHT + OVERSHOOT);
+    expect(over.vars.ease).toBe(gsapEasing.settle);
+    expect(over.duration()).toBeCloseTo(gsapDuration.slow, 5);
+    expect(over.startTime()).toBe(0);
+    expect(settle.vars.height).toBe(CONTENT_HEIGHT);
+    expect(settle.vars.ease).toBe(gsapEasing.drift);
+    expect(settle.duration()).toBeCloseTo(gsapDuration.base, 5);
+    expect(settle.startTime()).toBeCloseTo(gsapDuration.slow, 5);
+
+    // 끝나면 auto로 돌아간다. 고정 px로 남으면 내용이 바뀔 때 잘린다.
+    act(() => {
+      timeline.progress(1);
+    });
+    expect(wrapper.style.height).toBe('');
+  });
+
+  it('접힘: 1단은 지금값+12까지 drift, 2단은 0까지 exit. 길이는 펼침의 0.65배다', () => {
+    const { button, wrapper } = renderRow();
+    fireEvent.click(button);
+    const expand = timelineOf(wrapper);
+    const expandDuration = expand.duration();
+    act(() => {
+      expand.progress(1);
+    });
+
+    fireEvent.click(button);
+    const collapse = timelineOf(wrapper);
+    expect(collapse).not.toBe(expand);
+    const [swell, fold, ...rest] = tweensOn(collapse, wrapper);
+    expect(rest).toHaveLength(0);
+    expect(swell.vars.startAt?.height).toBe(CONTENT_HEIGHT);
+    expect(swell.vars.height).toBe(CONTENT_HEIGHT + OVERSHOOT);
+    expect(swell.vars.ease).toBe(gsapEasing.drift);
+    expect(swell.duration()).toBeCloseTo(gsapDuration.base * 0.65, 5);
+    expect(fold.vars.height).toBe(0);
+    expect(fold.vars.ease).toBe(gsapEasing.exit);
+    expect(fold.duration()).toBeCloseTo(gsapDuration.slow * 0.65, 5);
+    expect(collapse.duration()).toBeCloseTo(expandDuration * 0.65, 5);
+
+    act(() => {
+      collapse.progress(1);
+    });
+    expect(wrapper.style.height).toBe('0px');
+  });
+
+  it('펼치는 도중 접으면 새 접힘의 시작값이 그 순간의 높이다(0도 h도 아니다)', () => {
+    const { button, wrapper } = renderRow();
+    fireEvent.click(button);
+    const expand = timelineOf(wrapper);
+    act(() => {
+      expand.pause().progress(0.3);
+    });
+    const mid = Number.parseFloat(wrapper.style.height);
+    expect(mid).toBeGreaterThan(0);
+    expect(mid).not.toBe(CONTENT_HEIGHT);
+
+    fireEvent.click(button);
+    const collapse = timelineOf(wrapper);
+    expect(collapse).not.toBe(expand);
+    const [swell] = tweensOn(collapse, wrapper);
+    expect(swell.vars.startAt?.height).toBe(mid);
+    expect(swell.vars.height).toBe(mid + OVERSHOOT);
+  });
+
+  it('마운트 시에는 트윈이 없다. 닫힌 채 시작하면 높이 0, 열린 채 시작하면 auto', () => {
+    const closed = renderRow();
+    expect(closed.wrapper.__boardRowTimeline).toBeUndefined();
+    expect(closed.wrapper.style.height).toBe('0px');
+    cleanup();
+
+    const open = renderRow({ defaultExpanded: true });
+    expect(open.wrapper.__boardRowTimeline).toBeUndefined();
+    expect(open.wrapper.style.height).toBe('');
+  });
+
+  it('StrictMode가 effect를 다시 돌려도 마운트 때 트윈이 없다', () => {
+    render(
+      <StrictMode>
+        <BoardRow title="제목">
+          <p>내용</p>
+        </BoardRow>
+      </StrictMode>
     );
+    const wrapper = screen.getByRole('region', { hidden: true })
+      .parentElement as Host;
+    expect(wrapper.__boardRowTimeline).toBeUndefined();
+  });
+
+  it('축소 선호: 트윈 없이 끝 상태다. 펼침은 인라인 height 없음, 접힘은 0', () => {
+    stubReduced();
+    const { button, wrapper } = renderRow();
+
+    fireEvent.click(button);
+    expect(wrapper.style.height).toBe('');
+
+    fireEvent.click(button);
+    expect(wrapper.style.height).toBe('0px');
+  });
+
+  it('inert: 처음 닫힘이면 있고, 펼치기 시작하면 바로 떼고, 접힘이 끝나면 다시 붙는다', () => {
+    const { button, region, wrapper } = renderRow();
+    expect(region).toHaveAttribute('inert');
+
+    fireEvent.click(button);
+    expect(region).not.toHaveAttribute('inert');
+    act(() => {
+      timelineOf(wrapper).progress(1);
+    });
+    expect(region).not.toHaveAttribute('inert');
+
+    fireEvent.click(button);
+    // 접히는 중에는 아직 안 붙는다.
+    expect(region).not.toHaveAttribute('inert');
+    act(() => {
+      timelineOf(wrapper).progress(1);
+    });
+    expect(region).toHaveAttribute('inert');
+
+    // 다시 펼치기 시작하면 즉시 뗀다.
+    fireEvent.click(button);
+    expect(region).not.toHaveAttribute('inert');
+  });
+
+  it('inert: 처음부터 열려 있으면 없고, 축소 선호에서는 접히자마자 붙는다', () => {
+    const open = renderRow({ defaultExpanded: true });
+    expect(open.region).not.toHaveAttribute('inert');
+    cleanup();
+
+    stubReduced();
+    const { button, region } = renderRow({ defaultExpanded: true });
+    fireEvent.click(button);
+    expect(region).toHaveAttribute('inert');
+    fireEvent.click(button);
+    expect(region).not.toHaveAttribute('inert');
+  });
+
+  it('내용 시차: contentInner의 직계 자식이 y 24 → 0을 snap으로 뜨고, 접을 때는 끝 상태로 확정된다', () => {
+    const { button, region, wrapper } = renderRow();
+    const inner = region.firstElementChild as HTMLElement;
+    fireEvent.click(button);
+
+    const stagger = wrapper.__boardRowStagger;
+    expect(stagger).toBeDefined();
+    const items = Array.from(inner.children);
+    expect(items).toHaveLength(3);
+    for (const item of items) {
+      const rise = tweensOn(stagger!, item).find((t) => t.vars.y === 0);
+      expect(rise, '직계 자식마다 y 트윈이 있어야 한다').toBeDefined();
+      expect(rise!.vars.startAt?.y).toBe(24);
+      expect(rise!.vars.ease).toBe(gsapEasing.snap);
+    }
+
+    // 접으면 시차가 끝 상태로 확정된다(내용이 그대로 높이에 잘린다).
+    fireEvent.click(button);
+    expect(stagger!.progress()).toBe(1);
+    for (const item of items) {
+      expect((item as HTMLElement).style.opacity).toBe('1');
+    }
+
+    // 다시 펼치면 새 시차다.
+    fireEvent.click(button);
+    expect(wrapper.__boardRowStagger).not.toBe(stagger);
   });
 });

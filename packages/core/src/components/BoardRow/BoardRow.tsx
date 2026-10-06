@@ -1,6 +1,18 @@
-import { useState, useId, type HTMLAttributes, type ReactNode } from 'react';
+import {
+  useState,
+  useId,
+  useRef,
+  useEffect,
+  type HTMLAttributes,
+  type ReactNode,
+} from 'react';
 import clsx from 'clsx';
+import { gsap } from 'gsap';
 import { Glyph } from '../../_internal/glyph';
+import { addSheetStagger } from '../../_internal/sheetFloat';
+import { gateMotion, settleMotion } from '../../hooks/gateMotion';
+import { useReducedMotion } from '../../hooks/useReducedMotion';
+import { gsapDuration, gsapEasing } from '../../tokens/gsapEasing';
 import {
   boardRow,
   variantStyles,
@@ -9,10 +21,27 @@ import {
   iconContainer,
   iconExpanded,
   contentWrapper,
-  wrapperExpanded,
   content,
   contentInner,
 } from './BoardRow.css';
+
+/**
+ * 펼칠 때 목표 높이를 지나치는 거리(px). 이동거리 × 커브 정점이 2px 미만이면
+ * 안 보이고 24px를 넘으면 만화가 된다. 시트는 16px였는데, 행은 넘친 높이가
+ * 아래 행들을 같이 밀어서 같은 px라도 더 크게 읽히므로 12로 낮춘다.
+ */
+const OVERSHOOT_PX = 12;
+/** 접힘의 길이 비율. 물러날 때는 진입 길이의 60~70%로 짧다(조항 3). */
+const EXIT_RATIO = 0.65;
+
+/**
+ * 테스트 전용: 현재 높이 타임라인과 내용 시차 타임라인을 래퍼 노드에 얹는다
+ * (BottomSheet의 `__bottomSheetTimeline`과 같은 모양).
+ */
+type BoardRowTimelineHost = HTMLDivElement & {
+  __boardRowTimeline?: gsap.core.Timeline;
+  __boardRowStagger?: gsap.core.Timeline;
+};
 
 /** 접을 수 있는 아코디언 행 컴포넌트. 제어/비제어 모드 지원 */
 export interface BoardRowProps extends Omit<
@@ -57,6 +86,127 @@ export const BoardRow = ({
     useState(defaultExpanded);
   const isExpanded = isControlled ? controlledExpanded : uncontrolledExpanded;
 
+  const reduced = useReducedMotion();
+  const wrapperRef = useRef<HTMLDivElement>(null);
+  const regionRef = useRef<HTMLDivElement>(null);
+  const innerRef = useRef<HTMLDivElement>(null);
+  const timelineRef = useRef<gsap.core.Timeline | null>(null);
+  const staggerRef = useRef<gsap.core.Timeline | null>(null);
+  const lastExpandedRef = useRef(isExpanded);
+  // 처음 그릴 때의 모습(닫힘이면 높이 0과 inert)은 마크업에 박아 두고 이후엔
+  // 건드리지 않는다. 이 값은 바뀌지 않으므로 React가 다시 쓰지 않아 GSAP이
+  // 쓰는 인라인 height·inert와 다투지 않는다. 마운트 때는 애니메이션하지 않는다.
+  const [initial] = useState(() => ({
+    style: isExpanded ? undefined : { height: 0 },
+    inert: !isExpanded,
+  }));
+
+  // 펼침·접힘은 토글마다 지금 높이에서 새 타임라인을 만든다. 역재생에 기대지
+  // 않는다: 내용 높이는 열린 동안 바뀔 수 있어 열 때 잰 h로 되감으면 틀리다.
+  useEffect(() => {
+    // 마운트(StrictMode의 재실행 포함)와 축소 선호 변경은 토글이 아니다.
+    if (lastExpandedRef.current === isExpanded) return;
+    lastExpandedRef.current = isExpanded;
+
+    const wrapper = wrapperRef.current as BoardRowTimelineHost | null;
+    const region = regionRef.current;
+    const inner = innerRef.current;
+    if (!wrapper || !region || !inner) return;
+
+    // 트윈 중이면 중간값이다. 죽이기 전에 읽는다.
+    const from = wrapper.getBoundingClientRect().height;
+    timelineRef.current?.kill();
+    // 펼칠 때는 낡은 시차를 죽이고 새로 만든다. 접을 때는 끝 상태로 확정해
+    // 내용이 그대로 높이에 잘리며 사라지게 한다(시트와 같다).
+    if (staggerRef.current) {
+      if (isExpanded) staggerRef.current.kill();
+      else settleMotion(staggerRef.current);
+    }
+    staggerRef.current = null;
+
+    if (isExpanded) {
+      region.removeAttribute('inert');
+      const target = region.scrollHeight;
+      const timeline = gateMotion(reduced, () => {
+        const tl = gsap.timeline();
+        tl.fromTo(
+          wrapper,
+          { height: from },
+          {
+            height: target + OVERSHOOT_PX,
+            duration: gsapDuration.slow,
+            ease: gsapEasing.settle,
+          },
+          0
+        );
+        // 끝나면 auto로 되돌린다. 고정 px로 두면 내용이나 폭이 바뀔 때 잘린다.
+        tl.fromTo(
+          wrapper,
+          { height: target + OVERSHOOT_PX },
+          {
+            height: target,
+            duration: gsapDuration.base,
+            ease: gsapEasing.drift,
+            clearProps: 'height',
+            immediateRender: false,
+          },
+          gsapDuration.slow
+        );
+        // 내용은 직계 자식마다 시차를 두고 뜬다. 세 번째 소비자다(시트 둘 다음).
+        staggerRef.current = addSheetStagger(
+          tl,
+          Array.from(inner.children),
+          reduced
+        );
+        return tl;
+      });
+      wrapper.__boardRowTimeline = timeline;
+      if (staggerRef.current) wrapper.__boardRowStagger = staggerRef.current;
+      timelineRef.current = timeline;
+      return;
+    }
+
+    const timeline = gateMotion(reduced, () => {
+      // 접힘이 끝나면 내용 영역을 inert로 막는다(Tab이 들어가지 못하게).
+      const tl = gsap.timeline({
+        onComplete: () => region.setAttribute('inert', ''),
+      });
+      // 살짝 부풀었다가(예비동작) 접힌다.
+      tl.fromTo(
+        wrapper,
+        { height: from },
+        {
+          height: from + OVERSHOOT_PX,
+          duration: gsapDuration.base * EXIT_RATIO,
+          ease: gsapEasing.drift,
+        },
+        0
+      );
+      tl.fromTo(
+        wrapper,
+        { height: from + OVERSHOOT_PX },
+        {
+          height: 0,
+          duration: gsapDuration.slow * EXIT_RATIO,
+          ease: gsapEasing.exit,
+          immediateRender: false,
+        },
+        gsapDuration.base * EXIT_RATIO
+      );
+      return tl;
+    });
+    wrapper.__boardRowTimeline = timeline;
+    timelineRef.current = timeline;
+  }, [isExpanded, reduced]);
+
+  useEffect(
+    () => () => {
+      timelineRef.current?.kill();
+      staggerRef.current?.kill();
+    },
+    []
+  );
+
   const handleToggle = () => {
     if (disabled) return;
 
@@ -87,14 +237,18 @@ export const BoardRow = ({
         </div>
       </button>
 
-      <div className={clsx(contentWrapper, isExpanded && wrapperExpanded)}>
+      <div ref={wrapperRef} className={contentWrapper} style={initial.style}>
         <div
+          ref={regionRef}
           id={contentId}
           role="region"
           aria-labelledby={headerId}
           className={content}
+          inert={initial.inert}
         >
-          <div className={contentInner}>{children}</div>
+          <div ref={innerRef} className={contentInner}>
+            {children}
+          </div>
         </div>
       </div>
     </div>

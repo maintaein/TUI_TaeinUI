@@ -90,37 +90,30 @@ export const iconContainer = style({
   width: '24px',
   height: '24px',
   flexShrink: 0,
-  transition: `transform ${themeContract.animation.duration.base} ${themeContract.animation.easing.settle}`,
+  // 펼침·접힘의 넘침과 같은 결로 snap을 건다. 198°까지 갔다 180°에 앉고
+  // 접을 때는 -18°까지 갔다 0°에 앉는다. 오버슈트 이징은 transform에만 건다.
+  transition: `transform ${themeContract.animation.duration.base} ${themeContract.animation.easing.snap}`,
 });
 
 export const iconExpanded = style({
   transform: 'rotate(180deg)',
 });
 
+// 높이는 GSAP이 인라인 `height`로 움직인다(BoardRow.tsx). 예전의
+// `grid-template-rows: 0fr → 1fr` 전이는 1fr을 넘는 값이 내용 높이에서 잘려
+// 넘침(bouncy)이 원리적으로 불가능했다(실측: 내용 120px에서 1.1fr·2fr 모두
+// 120px). 높이는 레이아웃 속성이지만 grid 전이도 같은 등급이었고, 높이를 미리
+// 알 수 없는 아코디언은 이 예외만 허용된다.
+// 넘친 12px가 잘리지 않고 아래 행을 밀려면 넘침이 래퍼 안에서 일어나야 하므로
+// 래퍼가 `overflow: hidden`으로 내용을 자른다.
 export const contentWrapper = style({
-  display: 'grid',
-  gridTemplateRows: '0fr',
-  // grid-template-rows는 transform·opacity가 아니라 레이아웃 속성이라 매 프레임
-  // 리플로우가 난다. 그래도 여기서만 쓰는 이유는 아코디언이 펼칠 콘텐츠의 높이를
-  // 미리 알 수 없어서다 — max-height 근사는 점프하거나 늦게 끝나고, 높이를
-  // 모르고도 자연 높이까지 여는 방법은 grid-template-rows의 0fr→1fr뿐이다.
-  // 기존 커브 자리는 상태 전이라 조항 3이 지배한다 — 접힘(rest)은 exit,
-  // 펼침(wrapperExpanded 오버라이드)은 settle. drift(자율 루프 전용)로 가지
-  // 않는다. 조항 3은 길이에도 걸린다(리뷰 F8) — 물러날 때는 진입(slow)의
-  // 60~70%로 짧게, calc(slow * 0.65)다.
-  transition: `grid-template-rows calc(${themeContract.animation.duration.slow} * 0.65) ${themeContract.animation.easing.exit}`,
+  overflow: 'hidden',
 });
 
-export const wrapperExpanded = style({
-  gridTemplateRows: '1fr',
-  // 펼침은 진입이라 물러날 때의 단축 없이 slow 전체 길이를 되찾는다.
-  transitionDuration: themeContract.animation.duration.slow,
-  transitionTimingFunction: themeContract.animation.easing.settle,
-});
-
+// 내용 상자. 래퍼가 높이를 줄여도 이 상자는 자연 높이를 유지하고, GSAP이 그
+// `scrollHeight`를 재서 펼칠 목표 높이로 쓴다. 접힌 동안에는 `inert`가 붙는다.
 export const content = style({
   overflow: 'hidden',
-  minHeight: 0,
 });
 
 // 내부 콘텐츠 패딩

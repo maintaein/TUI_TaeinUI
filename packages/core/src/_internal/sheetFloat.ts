@@ -5,6 +5,7 @@ import { gateMotion } from '../hooks/gateMotion';
 // BottomSheet와 SideSheet가 나눠 쓰는 "튀며 들어오고, 내용이 떠오르고, 둥실거리는"
 // 등장의 공통부. 시트마다 다른 것은 축과 시작 부호, 둥실거림 방향뿐이다.
 // 둥실거림의 CSS 쪽은 `sheetFloat.css.ts`.
+// 세 번째 소비자: BoardRow가 펼칠 때 `addSheetStagger`만 가져다 쓴다(이름은 그대로 둔다).
 
 /**
  * 시트가 들어와 목표를 지나치는 거리(px). 고정 px인 이유: 시트 이동거리는 시트
