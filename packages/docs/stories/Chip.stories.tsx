@@ -392,46 +392,50 @@ export const FilterChips: Story = {
   render: () => <FilterChipsComponent />,
 };
 
+const ContactChipsComponent = () => {
+  const [contacts, setContacts] = useState([
+    { id: 1, name: '홍길동', avatar: 'https://i.pravatar.cc/40?img=1' },
+    { id: 2, name: '김철수', avatar: 'https://i.pravatar.cc/40?img=2' },
+    { id: 3, name: '이영희', avatar: 'https://i.pravatar.cc/40?img=3' },
+    { id: 4, name: '박민수', avatar: 'https://i.pravatar.cc/40?img=4' },
+    { id: 5, name: '정수진', avatar: 'https://i.pravatar.cc/40?img=5' },
+  ]);
+
+  return (
+    <div
+      style={{
+        padding: '24px',
+        backgroundColor: '#f5f5f5',
+        borderRadius: '8px',
+      }}
+    >
+      <h3 style={{ marginTop: 0, marginBottom: '16px' }}>참여자</h3>
+      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+        {contacts.map((contact) => (
+          <Chip
+            key={contact.id}
+            label={contact.name}
+            avatar={
+              <img
+                src={contact.avatar}
+                alt={contact.name}
+                style={{ width: '24px', height: '24px', borderRadius: '50%' }}
+              />
+            }
+            onDelete={() =>
+              setContacts((prev) => prev.filter((c) => c.id !== contact.id))
+            }
+            color="primary"
+          />
+        ))}
+      </div>
+    </div>
+  );
+};
+
 // 사용 예시: 연락처 칩
 export const ContactChips: Story = {
-  render: () => {
-    const contacts = [
-      { id: 1, name: '홍길동', avatar: 'https://i.pravatar.cc/40?img=1' },
-      { id: 2, name: '김철수', avatar: 'https://i.pravatar.cc/40?img=2' },
-      { id: 3, name: '이영희', avatar: 'https://i.pravatar.cc/40?img=3' },
-      { id: 4, name: '박민수', avatar: 'https://i.pravatar.cc/40?img=4' },
-      { id: 5, name: '정수진', avatar: 'https://i.pravatar.cc/40?img=5' },
-    ];
-
-    return (
-      <div
-        style={{
-          padding: '24px',
-          backgroundColor: '#f5f5f5',
-          borderRadius: '8px',
-        }}
-      >
-        <h3 style={{ marginTop: 0, marginBottom: '16px' }}>참여자</h3>
-        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-          {contacts.map((contact) => (
-            <Chip
-              key={contact.id}
-              label={contact.name}
-              avatar={
-                <img
-                  src={contact.avatar}
-                  alt={contact.name}
-                  style={{ width: '24px', height: '24px', borderRadius: '50%' }}
-                />
-              }
-              onDelete={() => console.log(`Remove ${contact.name}`)}
-              color="primary"
-            />
-          ))}
-        </div>
-      </div>
-    );
-  },
+  render: () => <ContactChipsComponent />,
 };
 
 // Interactive Playground

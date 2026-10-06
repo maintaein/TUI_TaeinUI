@@ -308,7 +308,9 @@ const toggle = (tag) => {
             title="조합 예제"
             description="다양한 prop을 조합한 실제 사용 예시입니다."
             editable
-            code={`<div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            code={`const [users, setUsers] = useState(['홍길동', '김철수']);
+
+<div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
   {/* 태그 목록 */}
   <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
     <Chip label="디자인 시스템" color="primary" size="sm" />
@@ -318,8 +320,12 @@ const toggle = (tag) => {
 
   {/* 사용자 칩 */}
   <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
-    <Chip label="홍길동" avatar={<Avatar alt="홍길동" size="xs" />} onDelete={() => {}} />
-    <Chip label="김철수" avatar={<Avatar src="https://i.pravatar.cc/150?img=5" alt="김철수" size="xs" />} onDelete={() => {}} />
+    {users.includes('홍길동') && (
+      <Chip label="홍길동" avatar={<Avatar alt="홍길동" size="xs" />} onDelete={() => setUsers((prev) => prev.filter((u) => u !== '홍길동'))} />
+    )}
+    {users.includes('김철수') && (
+      <Chip label="김철수" avatar={<Avatar src="https://i.pravatar.cc/150?img=5" alt="김철수" size="xs" />} onDelete={() => setUsers((prev) => prev.filter((u) => u !== '김철수'))} />
+    )}
   </div>
 
   {/* 상태 칩 */}

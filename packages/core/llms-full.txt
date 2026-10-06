@@ -441,10 +441,19 @@ import { Badge } from '@taein-ui/core';
 Tag or filter chip.
 
 ```tsx
+import { useState } from 'react';
 import { Chip } from '@taein-ui/core';
 
+const [tags, setTags] = useState(['React', 'Vite']);
+
 <Chip label="React" />
-<Chip label="삭제 가능" onDelete={() => {}} />
+{tags.map((tag) => (
+  <Chip
+    key={tag}
+    label={tag}
+    onDelete={() => setTags((prev) => prev.filter((t) => t !== tag))}
+  />
+))}
 <Chip label="선택됨" clickable selected onClick={() => {}} />
 ```
 
