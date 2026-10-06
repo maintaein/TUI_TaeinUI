@@ -116,12 +116,11 @@ export const BoardRow = ({
     // 트윈 중이면 중간값이다. 죽이기 전에 읽는다.
     const from = wrapper.getBoundingClientRect().height;
     timelineRef.current?.kill();
-    // 펼칠 때는 낡은 시차를 죽이고 새로 만든다. 접을 때는 끝 상태로 확정해
-    // 내용이 그대로 높이에 잘리며 사라지게 한다(시트와 같다).
-    if (staggerRef.current) {
-      if (isExpanded) staggerRef.current.kill();
-      else settleMotion(staggerRef.current);
-    }
+    // 접을 때는 시차를 끝 상태로 확정해 내용이 그대로 높이에 잘리며 사라지게
+    // 한다(시트와 같다). 펼칠 때 살아 있는 시차는 없다. 펼침은 언제나 접힘(시차를
+    // 확정하고 비운다) 뒤에 오고, 열린 채 마운트하거나 덜 접힌 채 다시 펼치면
+    // 시차를 만들지 않는다.
+    if (staggerRef.current) settleMotion(staggerRef.current);
     staggerRef.current = null;
 
     if (isExpanded) {
