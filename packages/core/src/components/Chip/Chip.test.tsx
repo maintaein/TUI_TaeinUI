@@ -733,3 +733,104 @@ describe('Chip 모션 잠금', () => {
     expect(root.style.boxShadow).toBe('');
   });
 });
+
+describe('Chip 선택 glow', () => {
+  const cssSource = readFileSync(resolve(__dirname, './Chip.css.ts'), 'utf-8');
+
+  it('칩마다 aria-hidden glow span이 있다', () => {
+    const { container, rerender } = render(<Chip label="a" />);
+    const glow = container.querySelector(`.${styles.glow}`);
+    expect(glow).toBeInTheDocument();
+    expect(glow).toHaveAttribute('aria-hidden', 'true');
+    expect(glow?.tagName).toBe('SPAN');
+
+    rerender(<Chip label="a" clickable onClick={() => {}} />);
+    expect(container.querySelector(`.${styles.glow}`)).toHaveAttribute(
+      'aria-hidden',
+      'true'
+    );
+  });
+
+  it('선택 여부와 상관없이 항상 렌더하고, 켜는 규칙은 selected와 결합한다', () => {
+    const { container } = render(<Chip label="a" />);
+    expect(container.querySelector(`.${styles.glow}`)).toBeInTheDocument();
+    const on = cssSource.match(
+      /globalStyle\(`\$\{selected\} > \$\{glow\}`, \{([\s\S]*?)\n\}\);/
+    )?.[1];
+    expect(on, 'selected > glow 규칙을 찾지 못했다').toBeDefined();
+    expect(on).toContain('opacity: 1');
+    // 기본은 꺼져 있다.
+    const glowBlock = cssSource.match(
+      /export const glow = style\(\{([\s\S]*?)\n\}\);/
+    )?.[1] as string;
+    expect(glowBlock).toContain('opacity: 0');
+    expect(glowBlock).toContain('pointerEvents');
+  });
+
+  it('가림막은 mask 단축 속성이고 모서리 좌표에 중심을 둔 원 둘이다(반지름 32px)', () => {
+    expect(cssSource).toContain('const GLOW_RADIUS = 32;');
+    expect(cssSource).toContain('const GLOW_REACH = 14;');
+    const spot = cssSource.match(/const cornerSpot[\s\S]*?;\n/)?.[0];
+    expect(spot).toContain('radial-gradient(circle ${GLOW_RADIUS}px at ${at}');
+    const mask = cssSource.match(/const glowMask = \[([\s\S]*?)\]\.join/)?.[1];
+    expect(mask, 'glowMask를 찾지 못했다').toBeDefined();
+    // 오른쪽 위: x가 calc(100% - r), y가 r. 왼쪽 아래: x가 r, y가 calc(100% - r).
+    expect(mask).toContain(
+      'cornerSpot(`calc(100% - ${GLOW_REACH}px) ${GLOW_REACH}px`)'
+    );
+    expect(mask).toContain(
+      'cornerSpot(`${GLOW_REACH}px calc(100% - ${GLOW_REACH}px)`)'
+    );
+    expect((mask as string).match(/cornerSpot\(/g)).toHaveLength(2);
+
+    const glowBlock = cssSource.match(
+      /export const glow = style\(\{([\s\S]*?)\n\}\);/
+    )?.[1] as string;
+    expect(glowBlock).toContain('mask: glowMask,');
+    expect(glowBlock).toContain('WebkitMask: glowMask,');
+    // 롱핸드는 문법이 어긋나면 선언이 통째로 버려진다(Border.css.ts glowRing 주석).
+    expect(glowBlock).not.toMatch(/maskImage|WebkitMaskImage/);
+  });
+
+  it('그림자는 9겹(안쪽 5, 바깥 4)이고 색은 --chip-marker-color다', () => {
+    expect(cssSource).toContain(
+      'color-mix(in srgb, var(--chip-marker-color) ${n}%, transparent)'
+    );
+    const shadow = cssSource.match(
+      /const glowShadow = \[([\s\S]*?)\]\.join/
+    )?.[1] as string;
+    expect(shadow, 'glowShadow를 찾지 못했다').toBeDefined();
+    const layers = shadow.match(/`[^`]*`/g) as string[];
+    expect(layers).toHaveLength(9);
+    expect(layers.filter((l) => l.startsWith('`inset'))).toHaveLength(5);
+    expect(layers.every((l) => l.includes('glowAlpha('))).toBe(true);
+    const pseudo = cssSource.match(
+      /globalStyle\(`\$\{glow\}::before`, \{([\s\S]*?)\n\}\);/
+    )?.[1];
+    expect(pseudo).toContain('inset: `${GLOW_REACH}px`');
+    expect(pseudo).toContain('boxShadow: glowShadow');
+  });
+
+  it('opacity 전이는 켤 때 base/settle, 끌 때 base*0.65/exit다(넘치는 커브 없음)', () => {
+    const glowBlock = cssSource.match(
+      /export const glow = style\(\{([\s\S]*?)\n\}\);/
+    )?.[1] as string;
+    expect(glowBlock).toContain(
+      'opacity calc(${themeContract.animation.duration.base} * 0.65) ${themeContract.animation.easing.exit}'
+    );
+    const on = cssSource.match(
+      /globalStyle\(`\$\{selected\} > \$\{glow\}`, \{([\s\S]*?)\n\}\);/
+    )?.[1] as string;
+    expect(on).toContain(
+      'opacity ${themeContract.animation.duration.base} ${themeContract.animation.easing.settle}'
+    );
+    expect(glowBlock + on).not.toMatch(/easing\.(snap|spring)/);
+  });
+
+  it('고리(::before)와 --chip-scale은 그대로다', () => {
+    expect(cssSource).toContain(
+      "border: '2px solid var(--chip-marker-color, transparent)'"
+    );
+    expect(cssSource).toContain("'--chip-scale': '1.03'");
+  });
+});

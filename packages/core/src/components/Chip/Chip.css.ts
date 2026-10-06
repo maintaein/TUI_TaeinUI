@@ -195,6 +195,77 @@ globalStyle(`${selected}::before`, {
   transitionTimingFunction: themeContract.animation.easing.spring,
 });
 
+// 선택 glow: 칩의 오른쪽 위와 왼쪽 아래 모서리에 고정된 빛(회전·맥박 없음).
+// BorderGlow의 두 겹 구조다. 바깥 상자(.glow)를 빛이 퍼지는 거리만큼 키워 가림막을
+// 씌우고, 안쪽 상자(::before, 칩 크기)에 그림자를 여러 겹 단다. 바깥으로 번진 빛이
+// 가림막에 잘리지 않으려면 가림막이 그림자보다 커야 한다. 칩은 가상 요소를 중첩할 수
+// 없어서 실제 span 하나와 그 ::before를 쓴다(Border의 glowRing과 같은 이유).
+// 2px 고리와 --chip-scale은 그대로고 빛만 얹는다(색만으로는 선택을 알릴 수 없다, WCAG 1.4.1).
+
+// 빛이 번지는 거리. 그림자 최대 흐림(12px)에 여유를 둔 값이다.
+const GLOW_REACH = 14;
+// 가림막 원의 반지름. 시제품에서 24는 모서리에 바짝 붙어 작았고, 44는 짧은 칩에서
+// 칩 전체를 덮어 대각선이 흐려졌다. 32가 긴 칩에서 두 모서리가 따로 보이는 최소다.
+// 원의 중심은 원뿔 각도가 아니라 칩의 실제 모서리 좌표에 둔다. 칩은 가로로 길어서
+// 45도가 모서리를 가리키지 않기 때문이다(120x28 칩의 모서리는 약 77도 방향).
+const GLOW_RADIUS = 32;
+
+// 모서리 원 하나. 중심 안쪽 25%까지 꽉 차고 가장자리로 투명해진다.
+const cornerSpot = (at: string) =>
+  `radial-gradient(circle ${GLOW_RADIUS}px at ${at}, #000 0%, #000 25%, transparent 100%)`;
+
+// mask는 반드시 단축 속성이다. 롱핸드(mask-image)에 문법이 안 맞는 값이 들어가면
+// 선언이 통째로 버려진다(Border.css.ts의 glowRing 주석, 리뷰 C1). 두 장은 더해진다.
+const glowMask = [
+  cornerSpot(`calc(100% - ${GLOW_REACH}px) ${GLOW_REACH}px`),
+  cornerSpot(`${GLOW_REACH}px calc(100% - ${GLOW_REACH}px)`),
+].join(', ');
+
+// 알파는 BorderGlow의 단계에 1.6을 곱해 100에서 자른 값이다. 색은 칩의 표식 색이라
+// color 축을 따라간다(default는 border.default 회색이다).
+const glowAlpha = (n: number) =>
+  `color-mix(in srgb, var(--chip-marker-color) ${n}%, transparent)`;
+
+const glowShadow = [
+  `inset 0 0 0 1px ${glowAlpha(100)}`,
+  `inset 0 0 1px 0 ${glowAlpha(96)}`,
+  `inset 0 0 3px 0 ${glowAlpha(80)}`,
+  `inset 0 0 6px 0 ${glowAlpha(64)}`,
+  `inset 0 0 12px 0 ${glowAlpha(40)}`,
+  `0 0 1px 0 ${glowAlpha(96)}`,
+  `0 0 3px 0 ${glowAlpha(80)}`,
+  `0 0 6px 0 ${glowAlpha(64)}`,
+  `0 0 12px 0 ${glowAlpha(40)}`,
+].join(', ');
+
+// 항상 렌더하고 opacity로 켠다(전이가 있어야 한다). 선택된 칩은 transform으로 쌓임
+// 맥락을 가지므로 z-index -1이 빛을 배경 위, 글자 아래에 둔다. 물러날 때는 고리와
+// 같은 규약(base의 65%, exit)이다.
+export const glow = style({
+  position: 'absolute',
+  inset: `-${GLOW_REACH}px`,
+  borderRadius: themeContract.borderRadius.full,
+  pointerEvents: 'none',
+  zIndex: -1,
+  opacity: 0,
+  mask: glowMask,
+  WebkitMask: glowMask,
+  transition: `opacity calc(${themeContract.animation.duration.base} * 0.65) ${themeContract.animation.easing.exit}`,
+});
+
+globalStyle(`${glow}::before`, {
+  content: '""',
+  position: 'absolute',
+  inset: `${GLOW_REACH}px`,
+  borderRadius: themeContract.borderRadius.full,
+  boxShadow: glowShadow,
+});
+
+globalStyle(`${selected} > ${glow}`, {
+  opacity: 1,
+  transition: `opacity ${themeContract.animation.duration.base} ${themeContract.animation.easing.settle}`,
+});
+
 // 호버·누름의 색 한 쌍. 호버는 (hover: hover) and (pointer: fine) 안에서만 걸린다
 // (터치는 탭하면 호버가 발생해 색이 들러붙는다). :not([data-pressed])는 vanilla-extract가
 // @media를 selectors 뒤에 내보내 특정도가 같은 호버가 누름 색을 덮는 것을 막는다.

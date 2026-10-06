@@ -14,6 +14,7 @@ import {
   selected as selectedStyle,
   disabled as disabledStyle,
   exiting as exitingStyle,
+  glow as glowStyle,
   label as labelStyle,
   iconContainer,
   deleteButton,
@@ -161,6 +162,7 @@ export const Chip = ({
 
   const chipContent = (
     <>
+      <span className={glowStyle} aria-hidden="true" />
       {avatar && <span className={iconContainer}>{avatar}</span>}
       {icon && <span className={iconContainer}>{icon}</span>}
       <span className={labelStyle}>{label}</span>
