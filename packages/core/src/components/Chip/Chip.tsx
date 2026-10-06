@@ -1,6 +1,7 @@
 import { useMemo, type ReactNode } from 'react';
 import clsx from 'clsx';
 import { useClickable } from '../../_internal/useClickable';
+import { useClickRebound } from '../../_internal/useClickRebound';
 import { Glyph } from '../../_internal/glyph';
 import { themeContract } from '../../tokens/theme.css';
 import {
@@ -103,10 +104,15 @@ export const Chip = ({
     role: 'button',
   });
 
+  // 누름 상태(data-pressed)와 Enter/Space 누름. 클릭 가능한 칩에만 건다.
+  const { pressed, handlers } = useClickRebound<HTMLButtonElement>(disabled, {
+    onKeyDown: clickableProps.onKeyDown,
+  });
+
   const chipClasses = clsx(
     chip({ size, variant, color }),
+    isClickable && clickableStyle({ variant, color }),
     {
-      [clickableStyle]: isClickable,
       [selectedStyle]: selected,
       [disabledStyle]: disabled,
     },
@@ -121,6 +127,8 @@ export const Chip = ({
       {onDelete && (
         <span
           {...deleteButtonProps}
+          // 삭제 버튼을 누를 때 칩 전체가 눌려 보이지 않게 한다.
+          onPointerDown={(e) => e.stopPropagation()}
           className={deleteButton}
           aria-label={`${label} 삭제`}
         >
@@ -136,10 +144,12 @@ export const Chip = ({
         type="button"
         className={chipClasses}
         onClick={clickableProps.onClick}
-        onKeyDown={clickableProps.onKeyDown}
+        {...handlers}
         disabled={disabled}
         aria-disabled={disabled}
+        aria-pressed={selected}
         aria-label={label}
+        data-pressed={pressed ? '' : undefined}
         style={markerStyle}
       >
         {chipContent}

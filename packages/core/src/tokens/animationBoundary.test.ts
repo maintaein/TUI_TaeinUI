@@ -1314,7 +1314,7 @@ interface OvershootException {
 const OVERSHOOT_TIMING_EXCEPTIONS: OvershootException[] = [
   {
     at: 'components/Chip/Chip.css.ts',
-    line: 223,
+    line: 193,
     owner: '-',
     reason:
       '`${selected}::before` 진입 — chip base의 ::before(Chip.css.ts:43)가 transform ' +

@@ -1,4 +1,4 @@
-import { style, globalStyle } from '@vanilla-extract/css';
+import { style, globalStyle, type StyleRule } from '@vanilla-extract/css';
 import { recipe } from '@vanilla-extract/recipes';
 import { themeContract } from '../../tokens/theme.css';
 import { focusRing } from '../../tokens/focusRing.css';
@@ -21,7 +21,7 @@ export const chip = recipe({
     whiteSpace: 'nowrap',
 
     // 선택 배율 합성용 변수(리뷰 F1) — 기본 1, .selected가 1.03으로 올린다.
-    // hover/active는 이 값을 곱해 자기 이동/축소와 합성한다 — transform은
+    // 누름([data-pressed])은 이 값을 곱해 자기 축소와 합성한다. transform은
     // 단일 속성이라 예전엔 .selected의 scale(1.03)이 :hover/:active의
     // scale(1)/scale(0.97)에 통째로 덮여 선택된 칩에 마우스를 올리면
     // 1.03→1.0으로 줄었다.
@@ -168,36 +168,6 @@ export const chip = recipe({
   },
 });
 
-export const clickable = style({
-  cursor: 'pointer',
-  touchAction: 'manipulation',
-
-  // 불투명도로 hover/active를 표현하면 대비가 같이 떨어진다(4.60→3.47:1).
-  // 색을 건드리지 않는 채널(이동·그림자·스케일)로 바꾼다. shadow.sm(5% 알파
-  // 2px 블러)만으로는 색 있는 칩 위에서 지각 한계 아래라, :active의 scale과
-  // 같은 축인 1px 들어올림을 주 채널로 쓴다. scale은 --chip-scale을 곱해
-  // 선택 배율과 합성한다(리뷰 F1) — 선택 안 된 칩은 1을 곱해 그대로다.
-  // 타이밍 함수는 얹지 않는다(리뷰 C3). 포인터를 떼도 :hover는 계속
-  // 매치되므로 여기 롱핸드를 두면 속성별 목록이 값 하나로 무너져 해제
-  // 오버슛이 죽고, 덤으로 selected의 spring까지 settle로 눌린다.
-  ':hover': {
-    transform: 'translateY(-1px) scale(var(--chip-scale))',
-    boxShadow: themeContract.shadow.base,
-    transitionDuration: themeContract.animation.duration.fast,
-  },
-
-  ':active': {
-    boxShadow: 'none',
-    transform: 'scale(calc(var(--chip-scale) * 0.97))',
-    transitionDuration: themeContract.animation.duration.fast,
-    transitionTimingFunction: themeContract.animation.easing.exit,
-  },
-
-  ':focus-visible': {
-    ...focusRing(),
-  },
-});
-
 // 선택된 본체 — "표식이 꽂히듯 박히고 칩이 그 충격에 한 번 흔들린다"를 키프레임
 // 없이 표현한다. spring(감쇠 진동) 커브 자체가 scale(1)→1.03 전이 중간에
 // 1.03을 넘겼다 살짝 되돌아오는 흔들림을 만든다(article 1: 상태 전이는 커브로).
@@ -221,6 +191,182 @@ globalStyle(`${selected}::before`, {
   transform: 'scale(1)',
   transitionDuration: themeContract.animation.duration.base,
   transitionTimingFunction: themeContract.animation.easing.spring,
+});
+
+// 호버·누름의 색 한 쌍. 호버는 (hover: hover) and (pointer: fine) 안에서만 걸린다
+// (터치는 탭하면 호버가 발생해 색이 들러붙는다). :not([data-pressed])는 vanilla-extract가
+// @media를 selectors 뒤에 내보내 특정도가 같은 호버가 누름 색을 덮는 것을 막는다.
+const tint = (hover: StyleRule, pressed: StyleRule): StyleRule => ({
+  '@media': {
+    '(hover: hover) and (pointer: fine)': {
+      selectors: {
+        '&:hover:not(:disabled):not([data-pressed])': hover,
+      },
+    },
+  },
+  selectors: {
+    '&[data-pressed]:not(:disabled)': pressed,
+  },
+});
+
+// 클릭 가능한 칩(Button의 누름·호버와 같은 규칙). selected 뒤에 선언해야 같은 특정도의
+// transition 선언이 selected의 것을 이긴다(여기에 색 전이가 들어 있다).
+// 호버는 모션 없이 색만 바꾼다(Button 승인 #6). 떠오름·그림자는 걷었다.
+// 색 고르기는 Button의 각 변형처럼 팔레트 한 단계를 오르내리되, 토큰에 팔레트가 없는
+// success·warning(filled)은 filter brightness로, 연한 배경에서 AA가 깨지는 outlined의
+// 글자는 hover·pressed에서 더 진한 색으로 바꾼다. 글자색 전이가 필요해 color가 목록에 있다.
+export const clickable = recipe({
+  base: {
+    cursor: 'pointer',
+    touchAction: 'manipulation',
+    // 합성 레이어를 첫 페인트부터 영구로 둔다. 레이어 수명이 바뀌는 순간 글자가
+    // 1px 튄다(Button.css.ts의 will-change 주석과 같은 근거, e2e/buttonPressText.spec.ts).
+    willChange: 'transform',
+    // 누름에서 뗄 때 spring이 transform에만 걸리게 통째로 적는다(리뷰 F6). 색은 settle.
+    transition: `transform ${themeContract.animation.duration.base} ${themeContract.animation.easing.spring}, background-color ${themeContract.animation.duration.base} ${themeContract.animation.easing.settle}, color ${themeContract.animation.duration.base} ${themeContract.animation.easing.settle}, filter ${themeContract.animation.duration.base} ${themeContract.animation.easing.settle}, opacity ${themeContract.animation.duration.base} ${themeContract.animation.easing.settle}`,
+
+    selectors: {
+      // useClickRebound가 data-pressed를 걸고 최소 체류(90ms) 뒤에 지운다.
+      // 누를 때는 fast + settle로 단단하게, 뗄 때는 위 transition의 spring(200ms)이
+      // 돌아와 되밀린다. 0.95는 Button과 같다(근거는 Button.css.ts의 같은 규칙).
+      // --chip-scale을 곱해 선택 배율(1.03) 위에서 눌린다.
+      '&[data-pressed]:not(:disabled)': {
+        transform: 'scale(calc(var(--chip-scale) * 0.95))',
+        transitionDuration: themeContract.animation.duration.fast,
+        transitionTimingFunction: themeContract.animation.easing.settle,
+      },
+    },
+
+    '@media': {
+      // 축소 모드는 이동 없음이다. 눌러도 선택 배율 그대로 두고 색은 남긴다.
+      '(prefers-reduced-motion: reduce)': {
+        willChange: 'auto',
+        selectors: {
+          '&[data-pressed]:not(:disabled)': {
+            transform: 'scale(var(--chip-scale))',
+          },
+        },
+      },
+    },
+
+    ':focus-visible': {
+      ...focusRing(),
+    },
+  },
+
+  variants: {
+    variant: { filled: {}, outlined: {} },
+    color: { default: {}, primary: {}, success: {}, error: {}, warning: {} },
+  },
+
+  compoundVariants: [
+    {
+      variants: { variant: 'filled', color: 'default' },
+      style: tint(
+        { backgroundColor: themeContract.palette.gray[200] },
+        { backgroundColor: themeContract.palette.gray[300] }
+      ),
+    },
+    {
+      variants: { variant: 'filled', color: 'primary' },
+      style: tint(
+        { backgroundColor: themeContract.palette.primary[800] },
+        { backgroundColor: themeContract.palette.primary[900] }
+      ),
+    },
+    {
+      // success·warning은 팔레트가 계약에 없고 글자가 어두워서(gray[900]) 배경만
+      // 어둡게 하면 대비가 깎인다. brightness는 둘을 같이 어둡게 한다(Button weak danger와
+      // 같은 방식). success 5.79 -> 5.24 -> 4.78, warning 7.47 -> 6.78 -> 6.08.
+      variants: { variant: 'filled', color: 'success' },
+      style: tint(
+        { filter: 'brightness(0.94)' },
+        { filter: 'brightness(0.88)' }
+      ),
+    },
+    {
+      variants: { variant: 'filled', color: 'error' },
+      style: tint(
+        { backgroundColor: themeContract.palette.error[800] },
+        { backgroundColor: themeContract.palette.error[900] }
+      ),
+    },
+    {
+      variants: { variant: 'filled', color: 'warning' },
+      style: tint(
+        { filter: 'brightness(0.94)' },
+        { filter: 'brightness(0.88)' }
+      ),
+    },
+    {
+      variants: { variant: 'outlined', color: 'default' },
+      style: tint(
+        { backgroundColor: themeContract.palette.gray[100] },
+        { backgroundColor: themeContract.palette.gray[200] }
+      ),
+    },
+    {
+      // 글자 primary.main은 primary[50] 위에서 4.03, primary[100] 위에서 3.28로 AA를
+      // 깬다. 글자를 primary[900]으로 한 단계 더 어둡게 한다(7.56 / 6.15).
+      variants: { variant: 'outlined', color: 'primary' },
+      style: tint(
+        {
+          backgroundColor: themeContract.palette.primary[50],
+          color: themeContract.palette.primary[900],
+        },
+        {
+          backgroundColor: themeContract.palette.primary[100],
+          color: themeContract.palette.primary[900],
+        }
+      ),
+    },
+    {
+      // 글자 error.main은 error[50]에서 4.36, error[100]에서 3.54다. error[900]으로
+      // 5.75 / 4.67.
+      variants: { variant: 'outlined', color: 'error' },
+      style: tint(
+        {
+          backgroundColor: themeContract.palette.error[50],
+          color: themeContract.palette.error[900],
+        },
+        {
+          backgroundColor: themeContract.palette.error[100],
+          color: themeContract.palette.error[900],
+        }
+      ),
+    },
+    {
+      // 선재: 이 글자(success.main)는 흰 배경에서 이미 2.78이다. 팔레트 단계가 계약에
+      // 없어 light 토큰(연한 배경)에 text.primary로 바꿔 호버·누름에서는 AA를 넘긴다.
+      variants: { variant: 'outlined', color: 'success' },
+      style: tint(
+        {
+          backgroundColor: themeContract.color.success.light,
+          color: themeContract.color.text.primary,
+        },
+        {
+          backgroundColor: themeContract.color.success.light,
+          color: themeContract.color.text.primary,
+          filter: 'brightness(0.94)',
+        }
+      ),
+    },
+    {
+      // 선재: warning.main 글자는 흰 배경에서 이미 2.16이다. success와 같은 처방.
+      variants: { variant: 'outlined', color: 'warning' },
+      style: tint(
+        {
+          backgroundColor: themeContract.color.warning.light,
+          color: themeContract.color.text.primary,
+        },
+        {
+          backgroundColor: themeContract.color.warning.light,
+          color: themeContract.color.text.primary,
+          filter: 'brightness(0.94)',
+        }
+      ),
+    },
+  ],
 });
 
 export const disabled = style({

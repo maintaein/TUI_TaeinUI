@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { describe, it, expect, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { describe, it, expect, vi, afterEach } from 'vitest';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { Chip } from './Chip';
 import * as styles from './Chip.css';
@@ -356,21 +356,79 @@ describe('Chip', () => {
   });
 });
 
+describe('Chip 누름과 선택 상태', () => {
+  afterEach(() => vi.useRealTimers());
+
+  // jsdom에는 PointerEvent가 없어 fireEvent.pointerDown은 button을 못 싣는다.
+  const pointer = (el: HTMLElement, type: string, button = 0) =>
+    act(() => {
+      el.dispatchEvent(new MouseEvent(type, { bubbles: true, button }));
+    });
+
+  it('pointerdown에 data-pressed가 붙는다', () => {
+    render(<Chip label="테스트" clickable onClick={() => {}} />);
+    const chip = screen.getByRole('button');
+
+    pointer(chip, 'pointerdown');
+    expect(chip).toHaveAttribute('data-pressed');
+  });
+
+  it('짧은 누름도 90ms는 유지한다', () => {
+    vi.useFakeTimers();
+    render(<Chip label="테스트" clickable onClick={() => {}} />);
+    const chip = screen.getByRole('button');
+
+    pointer(chip, 'pointerdown');
+    pointer(chip, 'pointerup');
+    expect(chip).toHaveAttribute('data-pressed');
+    act(() => {
+      vi.advanceTimersByTime(90);
+    });
+    expect(chip).not.toHaveAttribute('data-pressed');
+  });
+
+  it('Enter 누름에도 data-pressed가 붙고 onClick은 한 번이다', () => {
+    const onClick = vi.fn();
+    render(<Chip label="테스트" clickable onClick={onClick} />);
+    const chip = screen.getByRole('button');
+
+    fireEvent.keyDown(chip, { key: 'Enter' });
+    expect(chip).toHaveAttribute('data-pressed');
+    expect(onClick).toHaveBeenCalledTimes(1);
+  });
+
+  it('삭제 버튼을 눌러도 칩이 눌리지 않는다', () => {
+    render(
+      <Chip label="테스트" clickable onClick={() => {}} onDelete={() => {}} />
+    );
+
+    pointer(screen.getByRole('button', { name: /삭제/i }), 'pointerdown');
+    expect(screen.getByRole('button', { name: '테스트' })).not.toHaveAttribute(
+      'data-pressed'
+    );
+  });
+
+  it('클릭 가능한 칩은 selected를 aria-pressed로 알린다', () => {
+    const { rerender } = render(
+      <Chip label="테스트" clickable onClick={() => {}} selected />
+    );
+    expect(screen.getByRole('button')).toHaveAttribute('aria-pressed', 'true');
+
+    rerender(<Chip label="테스트" clickable onClick={() => {}} />);
+    expect(screen.getByRole('button')).toHaveAttribute('aria-pressed', 'false');
+  });
+
+  it('클릭 불가 칩에는 aria-pressed가 없다', () => {
+    const { container } = render(<Chip label="테스트" selected />);
+
+    expect(container.firstChild).not.toHaveAttribute('aria-pressed');
+  });
+});
+
 describe('Chip 소스 잠금', () => {
   // vanilla-extract가 스타일을 클래스로 직렬화해서 jsdom에서 계산값을 못
   // 읽는다. Chip.css.ts 소스 텍스트에서 직접 확인한다(Card·HeaderBar 관례).
   const cssSource = readFileSync(resolve(__dirname, './Chip.css.ts'), 'utf-8');
-
-  it('clickable hover가 지각되는 채널을 쓴다', () => {
-    // shadow.sm은 5% 알파 2px 블러라 색 있는 칩 위에서 지각 한계 아래다.
-    // hover는 "누를 수 있다"를 알리는 가장 기본 어포던스다.
-    const hover = cssSource.match(/':hover': \{([\s\S]*?)\n {2}\},/)?.[1];
-    expect(hover, ':hover 블록을 찾지 못했다').toBeDefined();
-    expect(hover).toContain(
-      "transform: 'translateY(-1px) scale(var(--chip-scale))'"
-    );
-    expect(hover).toContain('themeContract.shadow.base');
-  });
 
   it('탭 가능한 size 변형이 24px 최소 높이를 갖는다 (WCAG 2.5.8)', () => {
     // lg는 padding 8×2 + 16px 글자로 이미 32px라 명시가 필요 없다.
@@ -396,36 +454,72 @@ describe('Chip 모션 잠금', () => {
     );
   });
 
-  it('clickable :hover에 fast 길이 오버라이드가 붙는다', () => {
-    const hover = cssSource.match(/':hover': \{([\s\S]*?)\n {2}\},/)?.[1];
-    expect(hover, ':hover 블록을 찾지 못했다').toBeDefined();
-    expect(hover).toContain(
-      "transform: 'translateY(-1px) scale(var(--chip-scale))'"
+  // clickable 레시피 소스(base + compoundVariants). selected 뒤에 선언된다.
+  const clickableSource = cssSource.match(
+    /export const clickable = recipe\(\{([\s\S]*?)\n\}\);/
+  )?.[1] as string;
+
+  it('clickable이 selected 뒤에 선언된다(같은 특정도의 transition이 selected를 이긴다)', () => {
+    expect(clickableSource, 'clickable 레시피를 찾지 못했다').toBeDefined();
+    expect(cssSource.indexOf('export const clickable')).toBeGreaterThan(
+      cssSource.indexOf('export const selected')
     );
-    expect(hover).toContain('themeContract.animation.duration.fast');
   });
 
-  it(':hover 블록에 transitionTimingFunction이 없다(리뷰 C3)', () => {
-    // 포인터를 떼도 요소는 여전히 :hover에 매치된다. 이 블록의 타이밍 함수
-    // 롱핸드가 chip base의 transition 숏핸드를 이기고 속성별 목록을 값
-    // 하나로 무너뜨려서, 되돌아오는 전이까지 그 커브가 지배했다(크로미엄
-    // 실측). 그 사이 selected의 spring도 같이 죽는다 — clickable:hover가
-    // 타이밍 함수를 쏘면 선택 표식의 탄성이 settle로 눌린다.
-    // 무엇을 뒤집으면 빨개지는가: clickable의 ':hover'에
-    // transitionTimingFunction: settle을 되돌려 놓으면 여기가 빨개진다.
-    const hover = cssSource.match(/':hover': \{([\s\S]*?)\n {2}\},/)?.[1];
-    expect(hover, ':hover 블록을 찾지 못했다').toBeDefined();
-    expect(hover).not.toContain('transitionTimingFunction');
+  it('호버는 (hover: hover) and (pointer: fine) 안에 있고 :not([data-pressed])를 단다', () => {
+    const tint = cssSource.match(/const tint = [\s\S]*?\n\}\);/)?.[0];
+    expect(tint, 'tint 헬퍼를 찾지 못했다').toBeDefined();
+    expect(tint).toContain("'(hover: hover) and (pointer: fine)'");
+    expect(tint).toContain(
+      "'&:hover:not(:disabled):not([data-pressed])': hover"
+    );
   });
 
-  it('clickable :active에 fast/exit 커브 오버라이드가 붙는다 — --chip-scale과 합성(리뷰 F1)', () => {
-    const active = cssSource.match(/':active': \{([\s\S]*?)\n {2}\},/)?.[1];
-    expect(active, ':active 블록을 찾지 못했다').toBeDefined();
-    expect(active).toContain(
-      "transform: 'scale(calc(var(--chip-scale) * 0.97))'"
+  it('호버·누름 색 규칙은 transform을 바꾸지 않고 떠오름·그림자가 없다', () => {
+    const tint = cssSource.match(/const tint = [\s\S]*?\n\}\);/)?.[0] as string;
+    expect(tint).not.toContain('transform');
+    // 예전 호버: translateY(-1px) + shadow.base. 둘 다 걷었다.
+    expect(clickableSource).not.toContain('translateY');
+    expect(clickableSource).not.toContain('boxShadow');
+    expect(clickableSource).not.toContain("':hover'");
+    expect(clickableSource).not.toContain("':active'");
+  });
+
+  it('[data-pressed]가 --chip-scale에 0.95를 곱하고 fast/settle로 들어간다', () => {
+    const pressed = clickableSource.match(
+      /'&\[data-pressed\]:not\(:disabled\)': \{([\s\S]*?)\n {6}\},/
+    )?.[1];
+    expect(pressed, '[data-pressed] 블록을 찾지 못했다').toBeDefined();
+    expect(pressed).toContain(
+      "transform: 'scale(calc(var(--chip-scale) * 0.95))'"
     );
-    expect(active).toContain('themeContract.animation.duration.fast');
-    expect(active).toContain('themeContract.animation.easing.exit');
+    expect(pressed).toContain(
+      'transitionDuration: themeContract.animation.duration.fast'
+    );
+    expect(pressed).toContain(
+      'transitionTimingFunction: themeContract.animation.easing.settle'
+    );
+  });
+
+  it('뗄 때는 base spring이 transform에만 걸린다(색은 settle)', () => {
+    const transition = clickableSource.match(/transition: `([^`]*)`,/)?.[1];
+    expect(transition).toContain(
+      'transform ${themeContract.animation.duration.base} ${themeContract.animation.easing.spring}'
+    );
+    expect(transition).toContain(
+      'background-color ${themeContract.animation.duration.base} ${themeContract.animation.easing.settle}'
+    );
+  });
+
+  it("will-change: 'transform'이 상시이고 축소 모드에서 auto가 된다", () => {
+    expect(clickableSource).toContain("willChange: 'transform'");
+    const reduced = clickableSource.match(
+      /'\(prefers-reduced-motion: reduce\)': \{([\s\S]*?)\n {6}\},/
+    )?.[1];
+    expect(reduced, '축소 모드 블록을 찾지 못했다').toBeDefined();
+    expect(reduced).toContain("willChange: 'auto'");
+    // 누름 scale을 끈다. 선택 배율(1.03)은 남긴다.
+    expect(reduced).toContain("transform: 'scale(var(--chip-scale))'");
   });
 
   it('chip 베이스가 --chip-scale을 1로 선언한다(선택 안 된 칩은 hover/active가 그대로 유지)', () => {
