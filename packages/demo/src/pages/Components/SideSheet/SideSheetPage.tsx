@@ -194,6 +194,31 @@ const [open, setOpen] = useState(false);
         </div>
 
         <div className={styles.example}>
+          <h3 className={styles.exampleTitle}>시차 등장</h3>
+          <LivePreview
+            title="목록이 떠오르며 등장"
+            description="시트가 옆에서 튀며 들어온 뒤, 내용의 직계 자식이 45ms 간격으로 위로 떠오르고 열린 동안 붙은 가장자리에서 안쪽으로 둥실거립니다. 항목을 하나의 래퍼로 감싸면 시차가 한 덩어리가 됩니다."
+            editable
+            code={`const [open, setOpen] = useState(false);
+const [position, setPosition] = useState('right');
+const rows = ['받은 알림', '멘션', '초대', '공지', '시스템', '업데이트'];
+
+<div style={{ display: 'flex', gap: '0.5rem' }}>
+  {['left', 'right'].map((p) => (
+    <Button key={p} size="sm" onClick={() => { setPosition(p); setOpen(true); }}>
+      {p}에서 열기
+    </Button>
+  ))}
+  <SideSheet open={open} onClose={() => setOpen(false)} title="알림" showClose position={position}>
+    {rows.map((r) => (
+      <p key={r} style={{ padding: '0.75rem 0', borderBottom: '1px solid #e5e7eb' }}>{r}</p>
+    ))}
+  </SideSheet>
+</div>`}
+          />
+        </div>
+
+        <div className={styles.example}>
           <h3 className={styles.exampleTitle}>Width</h3>
           <LivePreview
             title="width 옵션"

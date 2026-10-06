@@ -28,7 +28,6 @@ export const backdrop = style({
 export const sideSheet = style({
   position: 'relative',
   backgroundColor: themeContract.color.background.default,
-  boxShadow: themeContract.shadow['2xl'],
   height: '100vh',
   outline: 'none',
   display: 'flex',
@@ -40,12 +39,21 @@ export const sideSheet = style({
   },
 });
 
+// 시트가 뜨는 동안(등장 넘침 16px + 둥실거림 3px) 붙은 가장자리에 비는 틈을 시트
+// 배경과 같은 단색 그림자로 가린다. 32px는 둘의 합에 여유를 더한 값이다. 이 시트는
+// 자신이 스크롤 컨테이너(`overflowY: 'auto'`)라 `::after`를 밖에 두면 잘린다. 요소
+// 자신의 그림자는 자기 overflow에 잘리지 않는다. 번지지 않아야 하므로 blur는 0이다.
+const gapCover = (offset: string) =>
+  `${themeContract.shadow['2xl']}, ${offset} 0 0 0 ${themeContract.color.background.default}`;
+
 export const positionStyles = styleVariants({
   right: {
     marginLeft: 'auto',
+    boxShadow: gapCover('32px'),
   },
   left: {
     marginRight: 'auto',
+    boxShadow: gapCover('-32px'),
   },
 });
 

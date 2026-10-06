@@ -9,6 +9,7 @@ import {
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { SideSheet } from './SideSheet';
+import { gsapDuration, gsapEasing } from '../../tokens/gsapEasing';
 
 describe('SideSheet', () => {
   const defaultProps = {
@@ -402,6 +403,250 @@ describe('SideSheet', () => {
       expect(screen.getByRole('dialog').style.transform).toBe(
         'translate(-100%, 0%)'
       );
+    });
+  });
+
+  describe('등장: 넘침 · 시차 · float', () => {
+    type Host = HTMLElement & {
+      __sideSheetTimeline?: gsap.core.Timeline;
+      __sideSheetStagger?: gsap.core.Timeline;
+    };
+    type TweenLike = gsap.core.Tween & {
+      vars: gsap.TweenVars & { startAt?: gsap.TweenVars };
+    };
+
+    const timelineOf = (sheet: HTMLElement) => {
+      const timeline = (sheet as Host).__sideSheetTimeline;
+      expect(timeline).toBeDefined();
+      return timeline!;
+    };
+    const staggerOf = (sheet: HTMLElement) => {
+      const stagger = (sheet as Host).__sideSheetStagger;
+      expect(stagger).toBeDefined();
+      return stagger!;
+    };
+    const tweensOn = (timeline: gsap.core.Timeline, target: Element) =>
+      (timeline.getChildren() as TweenLike[]).filter(
+        (t) => t.targets()[0] === target
+      );
+    const items = Array.from({ length: 10 }, (_, i) => <p key={i}>항목 {i}</p>);
+
+    afterEach(() => {
+      vi.restoreAllMocks();
+    });
+
+    describe('넘침', () => {
+      it('오른쪽: 시트 트윈이 둘이다. 1단은 폭 기준 음수 xPercent, 2단은 drift로 0', () => {
+        vi.spyOn(HTMLElement.prototype, 'offsetWidth', 'get').mockReturnValue(
+          400
+        );
+        render(<SideSheet {...defaultProps} position="right" />);
+        const sheet = screen.getByRole('dialog');
+        const [up, settle, ...rest] = tweensOn(timelineOf(sheet), sheet);
+
+        expect(rest).toHaveLength(0);
+        // 16px / 400px = 4%
+        expect(up.vars.xPercent).toBeCloseTo(-4, 5);
+        expect(up.vars.ease).toBe(gsapEasing.settle);
+        expect(up.duration()).toBeCloseTo(gsapDuration.slow, 5);
+        expect(settle.vars.xPercent).toBe(0);
+        expect(settle.vars.ease).toBe(gsapEasing.drift);
+        expect(settle.duration()).toBeCloseTo(gsapDuration.base, 5);
+        expect(settle.startTime()).toBeCloseTo(gsapDuration.slow, 5);
+      });
+
+      it('왼쪽: 1단 끝값이 양수 xPercent다', () => {
+        vi.spyOn(HTMLElement.prototype, 'offsetWidth', 'get').mockReturnValue(
+          300
+        );
+        render(<SideSheet {...defaultProps} position="left" />);
+        const sheet = screen.getByRole('dialog');
+        const [up] = tweensOn(timelineOf(sheet), sheet);
+
+        expect(up.vars.xPercent).toBeCloseTo((16 / 300) * 100, 5);
+      });
+
+      it('폭이 0이면 넘침 없이 100 → 0 하나다', () => {
+        render(<SideSheet {...defaultProps} />);
+        const sheet = screen.getByRole('dialog');
+        const tweens = tweensOn(timelineOf(sheet), sheet);
+
+        expect(tweens).toHaveLength(1);
+        expect(tweens[0].vars.xPercent).toBe(0);
+      });
+    });
+
+    describe('내용 시차', () => {
+      const renderItems = () => {
+        render(
+          <SideSheet {...defaultProps} title="제목">
+            {items}
+          </SideSheet>
+        );
+        const sheet = screen.getByRole('dialog');
+        return {
+          sheet,
+          timeline: timelineOf(sheet),
+          stagger: staggerOf(sheet),
+        };
+      };
+
+      it('내용 직계 자식이 위로 떠오른다. y 24 → 0 snap, x는 쓰지 않는다', () => {
+        const { stagger } = renderItems();
+        const [rise, fade] = tweensOn(stagger, screen.getByText('항목 0'));
+
+        expect(rise.vars.startAt?.y).toBe(24);
+        expect(rise.vars.y).toBe(0);
+        expect(rise.vars.ease).toBe(gsapEasing.snap);
+        expect(rise.vars).not.toHaveProperty('x');
+        expect(fade.vars.startAt?.opacity).toBe(0);
+        expect(fade.vars.ease).toBe(gsapEasing.settle);
+      });
+
+      it('시차는 0.045초이고 9번째부터는 8번째와 같은 시각에 시작한다', () => {
+        const { stagger } = renderItems();
+        const startOf = (i: number) =>
+          tweensOn(stagger, screen.getByText(`항목 ${i}`))[0].startTime();
+
+        expect(startOf(1) - startOf(0)).toBeCloseTo(0.045, 5);
+        expect(startOf(8)).toBeCloseTo(startOf(7), 5);
+        expect(startOf(9)).toBeCloseTo(startOf(7), 5);
+      });
+
+      it('시차 타임라인은 등장이 1단의 60% 지점을 정방향으로 지날 때 돈다', () => {
+        const { timeline, stagger } = renderItems();
+
+        act(() => {
+          timeline.time(gsapDuration.slow * 0.6 - 0.05);
+        });
+        expect(stagger.paused()).toBe(true);
+        act(() => {
+          timeline.time(gsapDuration.slow * 0.6 + 0.05);
+        });
+        expect(stagger.paused()).toBe(false);
+      });
+
+      it('Compound의 SideSheet.Content 직계 자식에도 걸린다', () => {
+        render(
+          <SideSheet {...defaultProps}>
+            <SideSheet.Content>
+              <p>가</p>
+              <p>나</p>
+            </SideSheet.Content>
+          </SideSheet>
+        );
+        const sheet = screen.getByRole('dialog');
+
+        expect(tweensOn(staggerOf(sheet), screen.getByText('나'))).toHaveLength(
+          2
+        );
+      });
+
+      it('닫으면 되감기지 않고 끝으로 확정되어 인라인 y가 0으로 돌아온다', () => {
+        const view = render(
+          <SideSheet {...defaultProps} title="제목">
+            {items}
+          </SideSheet>
+        );
+        const sheet = screen.getByRole('dialog');
+        const stagger = staggerOf(sheet);
+        act(() => {
+          timelineOf(sheet).progress(1);
+          stagger.progress(0.3);
+        });
+
+        view.rerender(
+          <SideSheet {...defaultProps} title="제목" open={false}>
+            {items}
+          </SideSheet>
+        );
+
+        const first = screen.getByText('항목 0');
+        expect(stagger.progress()).toBe(1);
+        expect(first.style.opacity).toBe('1');
+        expect(first.style.transform).not.toContain('24');
+      });
+
+      it('자식 요소가 없으면(문자열 children) 시차가 없다', () => {
+        render(<SideSheet {...defaultProps} title="제목" />);
+
+        expect(
+          (screen.getByRole('dialog') as Host).__sideSheetStagger
+        ).toBeUndefined();
+      });
+    });
+
+    describe('float', () => {
+      it('등장이 끝나면 data-floating이 붙는다. 처음엔 없다', () => {
+        render(<SideSheet {...defaultProps} />);
+        const sheet = screen.getByRole('dialog');
+
+        expect(sheet).not.toHaveAttribute('data-floating');
+        act(() => {
+          timelineOf(sheet).progress(1);
+        });
+        expect(sheet).toHaveAttribute('data-floating');
+        expect(sheet).not.toHaveAttribute('data-float-paused');
+      });
+
+      it('닫는 중이면 data-floating은 남고 멈춤이 붙는다', () => {
+        const { rerender } = render(<SideSheet {...defaultProps} />);
+        const sheet = screen.getByRole('dialog');
+        act(() => {
+          timelineOf(sheet).progress(1);
+        });
+
+        rerender(<SideSheet {...defaultProps} open={false} />);
+
+        expect(sheet).toHaveAttribute('data-floating');
+        expect(sheet).toHaveAttribute('data-float-paused');
+      });
+
+      it('닫는 도중 다시 열면 멈춤이 풀린다', () => {
+        const { rerender } = render(<SideSheet {...defaultProps} />);
+        const sheet = screen.getByRole('dialog');
+        act(() => {
+          timelineOf(sheet).progress(1);
+        });
+        rerender(<SideSheet {...defaultProps} open={false} />);
+        rerender(<SideSheet {...defaultProps} />);
+
+        expect(sheet).not.toHaveAttribute('data-float-paused');
+      });
+    });
+
+    describe('CSS', () => {
+      const read = (path: string) =>
+        readFileSync(resolve(__dirname, path), 'utf-8');
+
+      it('둥실거림은 붙은 가장자리에서 안쪽으로다. 오른쪽 시트는 x 음수, 왼쪽 시트는 x 양수', () => {
+        const source = read('../../_internal/sheetFloat.css.ts');
+        const xOf = (name: string) =>
+          new RegExp(
+            `${name}:\\s*\\{\\s*vars:\\s*\\{\\s*\\[floatX\\]:\\s*'([^']+)'`
+          ).exec(source)?.[1];
+
+        expect(xOf('right')).toMatch(/^-\d+px$/);
+        expect(xOf('left')).toMatch(/^\d+px$/);
+      });
+
+      it('boxShadow에 번지지 않는 단색 확장이 있다. 오른쪽은 +32px, 왼쪽은 -32px', () => {
+        const source = read('SideSheet.css.ts');
+
+        expect(source).toMatch(/gapCover\('32px'\)/);
+        expect(source).toMatch(/gapCover\('-32px'\)/);
+        expect(source).toMatch(
+          /\$\{offset\} 0 0 0 \$\{themeContract\.color\.background\.default\}/
+        );
+        expect(source).toMatch(/themeContract\.shadow\['2xl'\]/);
+      });
+
+      it('시트 자신이 스크롤 컨테이너라 ::after를 쓰지 않는다', () => {
+        const source = read('SideSheet.css.ts');
+
+        expect(source).toMatch(/overflowY:\s*'auto'/);
+        expect(source).not.toMatch(/&::after/);
+      });
     });
   });
 
