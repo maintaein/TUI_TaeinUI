@@ -48,7 +48,8 @@ export function ChipPage() {
       name: 'onDelete',
       type: '() => void',
       default: 'undefined',
-      description: '삭제 핸들러 (설정 시 삭제 아이콘 표시)',
+      description:
+        '삭제 핸들러 (설정 시 삭제 아이콘 표시). 퇴장 애니메이션이 끝난 뒤 불린다. 칩을 목록에서 지우지 않으면 보이지 않는 채로 남는다',
     },
     {
       name: 'clickable',

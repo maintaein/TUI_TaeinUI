@@ -2,6 +2,8 @@ import { style, globalStyle, type StyleRule } from '@vanilla-extract/css';
 import { recipe } from '@vanilla-extract/recipes';
 import { themeContract } from '../../tokens/theme.css';
 import { focusRing } from '../../tokens/focusRing.css';
+// themeContract.palette에는 success·warning 스케일이 없다(Loader도 원본을 직접 읽는다).
+import { success, warning } from '../../tokens/colors.css';
 
 export const chip = recipe({
   base: {
@@ -139,7 +141,7 @@ export const chip = recipe({
       variants: { variant: 'outlined', color: 'success' },
       style: {
         backgroundColor: 'transparent',
-        color: themeContract.color.success.main,
+        color: themeContract.color.success.dark,
         border: `1px solid ${themeContract.color.success.main}`,
       },
     },
@@ -155,7 +157,7 @@ export const chip = recipe({
       variants: { variant: 'outlined', color: 'warning' },
       style: {
         backgroundColor: 'transparent',
-        color: themeContract.color.warning.main,
+        color: themeContract.color.warning.dark,
         border: `1px solid ${themeContract.color.warning.main}`,
       },
     },
@@ -214,7 +216,7 @@ const tint = (hover: StyleRule, pressed: StyleRule): StyleRule => ({
 // 호버는 모션 없이 색만 바꾼다(Button 승인 #6). 떠오름·그림자는 걷었다.
 // 색 고르기는 Button의 각 변형처럼 팔레트 한 단계를 오르내리되, 토큰에 팔레트가 없는
 // success·warning(filled)은 filter brightness로, 연한 배경에서 AA가 깨지는 outlined의
-// 글자는 hover·pressed에서 더 진한 색으로 바꾼다. 글자색 전이가 필요해 color가 목록에 있다.
+// primary·error 글자는 hover·pressed에서 더 진한 색으로 바꾼다(success·warning은 평소부터 .dark). 글자색 전이가 필요해 color가 목록에 있다.
 export const clickable = recipe({
   base: {
     cursor: 'pointer',
@@ -336,34 +338,23 @@ export const clickable = recipe({
       ),
     },
     {
-      // 선재: 이 글자(success.main)는 흰 배경에서 이미 2.78이다. 팔레트 단계가 계약에
-      // 없어 light 토큰(연한 배경)에 text.primary로 바꿔 호버·누름에서는 AA를 넘긴다.
+      // 선재: 글자 success.main은 흰 배경에서 이미 2.78이라 평소 글자를 success.dark(800)로
+      // 바꿨다(흰 배경 5.13, success[50] 위 4.56). 호버·누름에서도 글자가 같아
+      // 초록이 검정으로 바뀌지 않는다. 테두리는 .main 그대로.
+      // 누름도 [50]이다. [100] 위에서는 success.dark가 3.81이라 AA를 깬다(누름 표시는 배율이 한다).
       variants: { variant: 'outlined', color: 'success' },
       style: tint(
-        {
-          backgroundColor: themeContract.color.success.light,
-          color: themeContract.color.text.primary,
-        },
-        {
-          backgroundColor: themeContract.color.success.light,
-          color: themeContract.color.text.primary,
-          filter: 'brightness(0.94)',
-        }
+        { backgroundColor: success[50] },
+        { backgroundColor: success[50] }
       ),
     },
     {
-      // 선재: warning.main 글자는 흰 배경에서 이미 2.16이다. success와 같은 처방.
+      // warning도 같은 처방이다. warning.main 글자는 흰 배경에서 2.16이었고
+      // warning.dark(800)는 흰 배경 5.49, warning[50] 위 5.00이다([100] 위 4.32라 누름도 [50]).
       variants: { variant: 'outlined', color: 'warning' },
       style: tint(
-        {
-          backgroundColor: themeContract.color.warning.light,
-          color: themeContract.color.text.primary,
-        },
-        {
-          backgroundColor: themeContract.color.warning.light,
-          color: themeContract.color.text.primary,
-          filter: 'brightness(0.94)',
-        }
+        { backgroundColor: warning[50] },
+        { backgroundColor: warning[50] }
       ),
     },
   ],

@@ -457,7 +457,7 @@ import { Chip } from '@taein-ui/core';
 | color | 'default' \| 'primary' \| 'success' \| 'error' \| 'warning' | 'default' | Color |
 | icon | ReactNode | — | Leading icon |
 | avatar | ReactNode | — | Avatar element |
-| onDelete | () => void | — | Delete callback |
+| onDelete | () => void | - | Delete callback. Called after the exit animation ends; if you do not remove the chip from your list it stays in place, invisible |
 | clickable | boolean | false | Make clickable |
 | selected | boolean | false | Selected state |
 | disabled | boolean | false | Disabled state |

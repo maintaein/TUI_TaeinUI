@@ -1314,10 +1314,10 @@ interface OvershootException {
 const OVERSHOOT_TIMING_EXCEPTIONS: OvershootException[] = [
   {
     at: 'components/Chip/Chip.css.ts',
-    line: 193,
+    line: 195,
     owner: '-',
     reason:
-      '`${selected}::before` 진입 — chip base의 ::before(Chip.css.ts:43)가 transform ' +
+      '`${selected}::before` 진입. chip base의 ::before(Chip.css.ts:45)가 transform ' +
       '단일 속성 transition만 선언해 bare spring이 샐 다른 속성이 없다.',
   },
 ];

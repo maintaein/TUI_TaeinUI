@@ -34,9 +34,9 @@ export interface ChipProps {
   color?: 'default' | 'primary' | 'success' | 'error' | 'warning';
   /** 레이블 왼쪽에 표시할 아이콘 */
   icon?: ReactNode;
-  /** 레이블 왼쪽에 표시할 아바타 (icon보다 우선) */
+  /** 레이블 왼쪽에 표시할 아바타. icon과 함께 주면 둘 다 그려진다(아바타가 먼저) */
   avatar?: ReactNode;
-  /** 삭제(X) 버튼 클릭 핸들러. 설정 시 삭제 버튼 표시 */
+  /** 삭제(X) 버튼 핸들러. 설정 시 삭제 버튼 표시. 퇴장 애니메이션이 끝난 뒤 불린다. 칩을 목록에서 지우지 않으면 보이지 않는 채로 남는다 */
   onDelete?: () => void;
   /** 클릭 가능 여부. true면 호버/포커스 효과 추가 @default false */
   clickable?: boolean;

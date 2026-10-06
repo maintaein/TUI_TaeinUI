@@ -561,6 +561,23 @@ describe('Chip 소스 잠금', () => {
       .map((m) => m[1]);
     expect(withMinHeight).toEqual(['sm', 'md']);
   });
+
+  it('테두리형 success·warning은 평소 글자가 .dark이고 호버·누름에서 글자를 바꾸지 않는다', () => {
+    for (const name of ['success', 'warning']) {
+      const head = `variants: { variant: 'outlined', color: '${name}' },`;
+      const parts = cssSource.split(head);
+      // [0] 앞, [1] chip 본체 규칙, [2] clickable의 호버 규칙
+      expect(parts.length, `${name} 규칙이 둘이어야 한다`).toBe(3);
+      const base = parts[1].slice(0, parts[1].indexOf('\n    },'));
+      expect(base).toContain(`color: themeContract.color.${name}.dark`);
+      expect(base).toContain(
+        `border: \`1px solid \${themeContract.color.${name}.main}\``
+      );
+      const tinted = parts[2].slice(0, parts[2].indexOf('\n    },'));
+      expect(tinted).toContain(`backgroundColor: ${name}[50]`);
+      expect(tinted).not.toContain('color: themeContract');
+    }
+  });
 });
 
 describe('Chip 모션 잠금', () => {
