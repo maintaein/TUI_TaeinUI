@@ -28,14 +28,7 @@ const float = keyframes({
   '50%': { translate: `${floatX} ${floatY}` },
 });
 
-/** 시트가 붙은 가장자리에서 3px 떨어지는 방향. 아래 시트는 위로, 오른쪽 시트는 왼쪽으로. */
-export const floatFrom = styleVariants({
-  bottom: { vars: { [floatX]: '0', [floatY]: '-3px' } },
-  right: { vars: { [floatX]: '-3px', [floatY]: '0' } },
-  left: { vars: { [floatX]: '3px', [floatY]: '0' } },
-});
-
-export const sheetFloat = style({
+const sheetFloat = style({
   selectors: {
     // 등장이 끝난 뒤에만 `data-floating`이 붙고 시트가 사라질 때까지 그대로다
     // (떼면 `translate`가 0으로 돌아가 시트가 툭 떨어진다). 드래그 중·닫는 중에는
@@ -50,3 +43,18 @@ export const sheetFloat = style({
     },
   },
 });
+
+/**
+ * 시트가 붙은 가장자리에서 3px 떨어지는 방향. 아래 시트는 위로, 오른쪽 시트는 왼쪽으로.
+ * `sheetFloat`와 방향 변수는 반드시 짝으로 붙어야 한다(방향이 빠지면 `translate`가
+ * 계산 시점에 무효가 되어 둥실거림이 조용히 죽는다). 그래서 둘을 합친 하나를 내보내
+ * 소비자가 이것만 붙이게 한다.
+ */
+export const floatClass = styleVariants(
+  {
+    bottom: { vars: { [floatX]: '0', [floatY]: '-3px' } },
+    right: { vars: { [floatX]: '-3px', [floatY]: '0' } },
+    left: { vars: { [floatX]: '3px', [floatY]: '0' } },
+  },
+  (direction) => [sheetFloat, direction]
+);

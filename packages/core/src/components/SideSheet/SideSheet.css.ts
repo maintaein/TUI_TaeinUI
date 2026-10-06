@@ -43,8 +43,10 @@ export const sideSheet = style({
 // 배경과 같은 단색 그림자로 가린다. 32px는 둘의 합에 여유를 더한 값이다. 이 시트는
 // 자신이 스크롤 컨테이너(`overflowY: 'auto'`)라 `::after`를 밖에 두면 잘린다. 요소
 // 자신의 그림자는 자기 overflow에 잘리지 않는다. 번지지 않아야 하므로 blur는 0이다.
+// 순서가 중요하다: 여러 그림자 중 **앞에 쓴 것이 위에** 칠해진다. 덮개를 `2xl` 뒤에
+// 두면 덮개 위에 `2xl`이 칠해져 화면 끝 띠에 옅은 세로줄이 남는다. 덮개가 먼저다.
 const gapCover = (offset: string) =>
-  `${themeContract.shadow['2xl']}, ${offset} 0 0 0 ${themeContract.color.background.default}`;
+  `${offset} 0 0 0 ${themeContract.color.background.default}, ${themeContract.shadow['2xl']}`;
 
 export const positionStyles = styleVariants({
   right: {

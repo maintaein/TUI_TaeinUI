@@ -1,5 +1,6 @@
 import { gsap } from 'gsap';
 import { gsapDuration, gsapEasing } from '../tokens/gsapEasing';
+import { gateMotion } from '../hooks/gateMotion';
 
 // BottomSheet와 SideSheet가 나눠 쓰는 "튀며 들어오고, 내용이 떠오르고, 둥실거리는"
 // 등장의 공통부. 시트마다 다른 것은 축과 시작 부호, 둥실거림 방향뿐이다.
@@ -82,8 +83,9 @@ export const addSheetOvershoot = (
  * 가만히 있는다. 밖에 두면 되감기지 않는다.
  *
  * 등장이 정방향으로 시차 지점(1단의 60%)을 지날 때 처음부터 돌린다. `call`은
- * 역재생이 이 지점을 지날 때도 불리므로 방향을 확인한다. 축소 선호면 게이트가
- * 등장을 끝 상태로 확정하며 이것도 불리는데, 시차도 끝으로 확정한다.
+ * 역재생이 이 지점을 지날 때도 불리므로 방향을 확인한다. 축소 선호면 시차 자체를
+ * `gateMotion`이 만들자마자 끝 상태로 확정하고 죽이므로 `call`은 아무것도 하지
+ * 않는다(죽은 타임라인을 다시 돌리지 않는다). 재열림은 DOM을 새로 만들어 다시 빌드된다.
  *
  * `y`와 `opacity`를 한 트윈에 묶지 않는다: snap은 넘치는 커브라 불투명도에 걸면
  * 1을 넘었다 돌아온다. GSAP의 `stagger`는 항목 수에 따라 간격을 나누므로 쓰지
@@ -98,32 +100,34 @@ export const addSheetStagger = (
 ): gsap.core.Timeline | null => {
   if (items.length === 0) return null;
 
-  const stagger = gsap.timeline({ paused: true });
-  items.forEach((item, i) => {
-    const start = Math.min(i, STAGGER_MAX - 1) * STAGGER_STEP;
-    stagger.fromTo(
-      item,
-      { y: STAGGER_RISE_Y },
-      { y: 0, duration: gsapDuration.slow, ease: gsapEasing.snap },
-      start
-    );
-    stagger.fromTo(
-      item,
-      { opacity: 0 },
-      {
-        opacity: 1,
-        duration: gsapDuration.fast,
-        ease: gsapEasing.settle,
-      },
-      start
-    );
+  const stagger = gateMotion(reduced, () => {
+    const t = gsap.timeline({ paused: true });
+    items.forEach((item, i) => {
+      const start = Math.min(i, STAGGER_MAX - 1) * STAGGER_STEP;
+      t.fromTo(
+        item,
+        { y: STAGGER_RISE_Y },
+        { y: 0, duration: gsapDuration.slow, ease: gsapEasing.snap },
+        start
+      );
+      t.fromTo(
+        item,
+        { opacity: 0 },
+        {
+          opacity: 1,
+          duration: gsapDuration.fast,
+          ease: gsapEasing.settle,
+        },
+        start
+      );
+    });
+    return t;
   });
 
   timeline.call(
     () => {
-      if (timeline.reversed()) return;
-      if (reduced) stagger.progress(1);
-      else stagger.restart();
+      if (reduced || timeline.reversed()) return;
+      stagger.restart();
     },
     [],
     gsapDuration.slow * STAGGER_AT

@@ -500,6 +500,15 @@ describe('BottomSheet', () => {
         'utf-8'
       );
 
+      // BottomSheet.css.ts 자체는 모션을 갖지 않는다. float 루프는 _internal로 갔고
+      // 거기만 읽으면 여기에 keyframes가 되살아나도 못 잡는다.
+      const own = readFileSync(
+        resolve(__dirname, 'BottomSheet.css.ts'),
+        'utf-8'
+      );
+      expect(own).not.toMatch(/keyframes/);
+      expect(own).not.toMatch(/animation:/);
+
       // 허용되는 CSS 모션은 열린 동안의 float 루프 하나뿐이다. 등장·퇴장이 아니라
       // 쉬는 자리 주변의 반복이라 되돌릴 상태가 없다.
       expect(source.match(/keyframes\(/g)).toHaveLength(1);
@@ -1054,8 +1063,17 @@ describe('BottomSheet', () => {
               {items}
             </BottomSheet>
           );
+          const first = screen.getByText('항목 0');
 
-          expect(screen.getByText('항목 0').style.opacity).toBe('1');
+          expect(first.style.opacity).toBe('1');
+          expect(first.style.transform).toBe('translate(0, 0)');
+          expect(
+            (
+              screen.getByRole('dialog') as HTMLElement & {
+                __bottomSheetStagger?: gsap.core.Timeline;
+              }
+            ).__bottomSheetStagger!.progress()
+          ).toBe(1);
         });
       });
 
@@ -1088,6 +1106,17 @@ describe('BottomSheet', () => {
         expect(paused).toBeGreaterThan(floating);
         expect(source).toMatch(/animationPlayState:\s*'paused'/);
       });
+    });
+  });
+
+  describe('둥실거림 배선', () => {
+    it('아래 시트는 floatClass.bottom을 붙이고 옆 시트의 것은 안 붙인다', () => {
+      render(<BottomSheet {...defaultProps} />);
+      const sheet = screen.getByRole('dialog');
+
+      expect(sheet.className).toMatch(/floatClass_bottom__/);
+      expect(sheet.className).not.toMatch(/floatClass_(left|right)__/);
+      expect(sheet.className).toMatch(/sheetFloat_sheetFloat__/);
     });
   });
 

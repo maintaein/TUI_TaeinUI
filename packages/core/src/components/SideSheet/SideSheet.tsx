@@ -31,7 +31,7 @@ import {
   setFloating,
   setFloatPaused,
 } from '../../_internal/sheetFloat';
-import { sheetFloat, floatFrom } from '../../_internal/sheetFloat.css';
+import { floatClass } from '../../_internal/sheetFloat.css';
 import { useReducedMotion } from '../../hooks/useReducedMotion';
 import { gsapDuration, gsapEasing } from '../../tokens/gsapEasing';
 
@@ -70,7 +70,7 @@ export interface SideSheetProps extends Omit<
   closeOnBackdropClick?: boolean;
   /** ESC 키로 닫기 허용 @default true */
   closeOnEscape?: boolean;
-  /** 닫기(X) 버튼 표시 @default true */
+  /** 닫기(X) 버튼 표시 @default false */
   showClose?: boolean;
   className?: string;
 }
@@ -198,8 +198,7 @@ const SideSheetRoot = ({
           inert={!open}
           className={clsx(
             sideSheetStyle,
-            sheetFloat,
-            floatFrom[position],
+            floatClass[position],
             positionStyles[position],
             widthStyles[width],
             className

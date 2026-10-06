@@ -51,15 +51,6 @@ const GATE_ENFORCEMENT_EXCEPTIONS: GateEnforcementException[] = [
       '막대의 그림(연속→이산 단계)뿐이고 시계는 그대로 둔다. 등장·퇴장 타임라인은 ' +
       '같은 파일의 useOverlayTransition을 통해 이미 게이트를 거친다.',
   },
-  {
-    path: '_internal/sheetFloat.ts',
-    reason:
-      'BottomSheet·SideSheet가 나눠 쓰는 등장 원시요소다. 시트 넘침 트윈은 호출자의 ' +
-      'useOverlayTransition 타임라인에 붙고(이미 게이트를 거친다), 내용 시차 ' +
-      '타임라인은 그 등장 타임라인의 call()이 돌린다. 축소 선호면 게이트가 등장을 끝 ' +
-      '상태로 확정하며 그 call이 불려 시차도 progress(1)로 확정한다. settleMotion은 ' +
-      'kill까지 해서 재열림 때 시차를 다시 돌릴 수 없으므로 쓰지 않는다.',
-  },
 ];
 
 /** gsap을 import하는 소스가 게이트를 실제로 쓰지 않으면 위반이다. */
@@ -85,10 +76,9 @@ describe('GSAP 진입점은 게이트를 거친다 (T2 강제)', () => {
   it('예외 목록은 정확히 이 항목들이고, 이 개수다', () => {
     // 목록이 저절로 늘어나지 않게 길이와 내용을 같이 잠근다. 새 예외가
     // 필요해지면 여기부터 고쳐야 하고, 그 순간 이유를 적어야 한다.
-    expect(GATE_ENFORCEMENT_EXCEPTIONS).toHaveLength(2);
+    expect(GATE_ENFORCEMENT_EXCEPTIONS).toHaveLength(1);
     expect(GATE_ENFORCEMENT_EXCEPTIONS.map((e) => e.path)).toEqual([
       'components/Snackbar/Snackbar.tsx',
-      '_internal/sheetFloat.ts',
     ]);
     expect(
       GATE_ENFORCEMENT_EXCEPTIONS.every((e) => e.reason.trim().length > 0)

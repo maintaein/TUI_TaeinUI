@@ -34,7 +34,7 @@ import {
   setFloating,
   setFloatPaused,
 } from '../../_internal/sheetFloat';
-import { sheetFloat, floatFrom } from '../../_internal/sheetFloat.css';
+import { floatClass } from '../../_internal/sheetFloat.css';
 import { gsapDuration, gsapEasing } from '../../tokens/gsapEasing';
 
 interface BottomSheetContextValue {
@@ -357,8 +357,7 @@ const BottomSheetRoot = ({
           inert={!open}
           className={clsx(
             bottomSheetStyle,
-            sheetFloat,
-            floatFrom.bottom,
+            floatClass.bottom,
             heightStyles[height],
             className
           )}

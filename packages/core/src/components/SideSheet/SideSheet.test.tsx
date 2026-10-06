@@ -615,6 +615,61 @@ describe('SideSheet', () => {
       });
     });
 
+    describe('둥실거림 배선', () => {
+      it.each([
+        ['right', 'left'],
+        ['left', 'right'],
+      ] as const)(
+        'position="%s"는 그 방향 클래스를 붙이고 %s의 것은 안 붙인다',
+        (position, other) => {
+          render(<SideSheet {...defaultProps} position={position} />);
+          const sheet = screen.getByRole('dialog');
+
+          expect(sheet.className).toMatch(
+            new RegExp(`floatClass_${position}__`)
+          );
+          expect(sheet.className).not.toMatch(
+            new RegExp(`floatClass_${other}__`)
+          );
+          // 방향 변형은 둥실거림 규칙(sheetFloat)과 한 덩어리로 온다.
+          expect(sheet.className).toMatch(/sheetFloat_sheetFloat__/);
+        }
+      );
+    });
+
+    describe('축소 선호(게이트가 시차를 끝으로 확정한다)', () => {
+      beforeEach(() => {
+        vi.stubGlobal(
+          'matchMedia',
+          (media: string): MediaQueryList =>
+            ({
+              matches: true,
+              media,
+              addEventListener: () => {},
+              removeEventListener: () => {},
+            }) as unknown as MediaQueryList
+        );
+      });
+
+      afterEach(() => {
+        vi.unstubAllGlobals();
+      });
+
+      it('내용 직계 자식이 끝 상태(opacity 1, y 0)이고 시차 타임라인이 이미 끝났다', () => {
+        render(
+          <SideSheet {...defaultProps} title="제목">
+            {items}
+          </SideSheet>
+        );
+        const sheet = screen.getByRole('dialog');
+        const first = screen.getByText('항목 0');
+
+        expect(first.style.opacity).toBe('1');
+        expect(first.style.transform).toBe('translate(0, 0)');
+        expect(staggerOf(sheet).progress()).toBe(1);
+      });
+    });
+
     describe('CSS', () => {
       const read = (path: string) =>
         readFileSync(resolve(__dirname, path), 'utf-8');
@@ -630,15 +685,23 @@ describe('SideSheet', () => {
         expect(xOf('left')).toMatch(/^\d+px$/);
       });
 
-      it('boxShadow에 번지지 않는 단색 확장이 있다. 오른쪽은 +32px, 왼쪽은 -32px', () => {
+      it('boxShadow 덮개의 부호는 오른쪽 양수, 왼쪽 음수다', () => {
+        const source = read('SideSheet.css.ts');
+        const shadowOf = (name: string) =>
+          new RegExp(
+            String.raw`${name}:\s*\{[^}]*boxShadow:\s*gapCover\('([^']+)'\)`
+          ).exec(source)?.[1];
+
+        expect(shadowOf('right')).toBe('32px');
+        expect(shadowOf('left')).toBe('-32px');
+      });
+
+      it('덮개는 첫 번째 그림자다. 앞에 쓴 그림자가 위에 칠해지므로 2xl이 앞서면 덮개를 덮는다', () => {
         const source = read('SideSheet.css.ts');
 
-        expect(source).toMatch(/gapCover\('32px'\)/);
-        expect(source).toMatch(/gapCover\('-32px'\)/);
-        expect(source).toMatch(
-          /\$\{offset\} 0 0 0 \$\{themeContract\.color\.background\.default\}/
+        expect(source).toContain(
+          "`${offset} 0 0 0 ${themeContract.color.background.default}, ${themeContract.shadow['2xl']}`"
         );
-        expect(source).toMatch(/themeContract\.shadow\['2xl'\]/);
       });
 
       it('시트 자신이 스크롤 컨테이너라 ::after를 쓰지 않는다', () => {

@@ -70,14 +70,20 @@ describe('addSheetStagger', () => {
     expect(timeline.getChildren()).toHaveLength(0);
   });
 
-  it('축소 선호면 등장이 시차 지점을 지날 때 시차가 끝으로 확정된다', () => {
+  it('축소 선호면 만들자마자 끝으로 확정되고, 등장이 시차 지점을 지나도 아무것도 하지 않는다', () => {
     const timeline = newTimeline();
-    const items = [document.createElement('p')];
+    const item = document.createElement('p');
     timeline.to({}, { duration: 1 });
-    const stagger = addSheetStagger(timeline, items, true)!;
+    const stagger = addSheetStagger(timeline, [item], true)!;
+
+    expect(stagger.progress()).toBe(1);
+    expect(item.style.opacity).toBe('1');
+    expect(stagger.isActive()).toBe(false);
 
     timeline.time(gsapDuration.slow * 0.6 + 0.05);
 
+    // 죽은 타임라인을 다시 돌리지 않는다.
     expect(stagger.progress()).toBe(1);
+    expect(stagger.paused()).toBe(true);
   });
 });
