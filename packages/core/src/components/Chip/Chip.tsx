@@ -1,4 +1,11 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import {
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from 'react';
 import clsx from 'clsx';
 import { gsap } from 'gsap';
 import { useClickable } from '../../_internal/useClickable';
@@ -37,7 +44,7 @@ export interface ChipProps {
   icon?: ReactNode;
   /** 레이블 왼쪽에 표시할 아바타. icon과 함께 주면 둘 다 그려진다(아바타가 먼저) */
   avatar?: ReactNode;
-  /** 삭제(X) 버튼 핸들러. 설정 시 삭제 버튼 표시. 퇴장 애니메이션이 끝난 뒤 불린다. 칩을 목록에서 지우지 않으면 보이지 않는 채로 남는다 */
+  /** 삭제(X) 버튼 핸들러. 설정 시 삭제 버튼 표시. 퇴장 애니메이션이 끝난 뒤 불린다. 퇴장 중 칩이 언마운트되면 불리지 않는다. 칩을 목록에서 지우지 않으면 보이지 않는 채로 남는다 */
   onDelete?: () => void;
   /** 클릭 가능 여부. true면 호버/포커스 효과 추가 @default false */
   clickable?: boolean;
@@ -89,6 +96,14 @@ export const Chip = ({
   const exitingRef = useRef(false);
   const [exiting, setExiting] = useState(false);
 
+  // 퇴장 200ms 동안 부모가 다시 그려질 수 있다. 클릭한 렌더의 onDelete를 그대로 부르면
+  // 오래된 목록으로 setState해 앞서 지운 칩이 되살아나므로, 끝나는 시점의 최신 것을 부른다
+  // (렌더 중 ref 쓰기는 lint가 막아 의존성 없는 layout effect로 갱신한다, Snackbar와 같다).
+  const onDeleteRef = useRef(onDelete);
+  useLayoutEffect(() => {
+    onDeleteRef.current = onDelete;
+  });
+
   // 언마운트 때 ref는 이미 비어 있어서 노드를 미리 잡아 둔다.
   useEffect(() => {
     const el = rootRef.current;
@@ -118,7 +133,7 @@ export const Chip = ({
         transformOrigin: '50% 50%',
         duration: gsapDuration.base,
         ease: gsapEasing.exit,
-        onComplete: () => onDelete?.(),
+        onComplete: () => onDeleteRef.current?.(),
       })
     );
   };

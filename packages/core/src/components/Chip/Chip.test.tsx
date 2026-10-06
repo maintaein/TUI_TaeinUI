@@ -1,14 +1,9 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import {
-  act,
-  fireEvent,
-  render,
-  screen,
-  waitFor,
-} from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { useState } from 'react';
 import { Chip } from './Chip';
 import * as styles from './Chip.css';
 import { gsapDuration, gsapEasing } from '../../tokens/gsapEasing';
@@ -169,13 +164,22 @@ describe('Chip', () => {
     it('삭제 버튼 클릭 시 onDelete가 호출된다', async () => {
       const user = userEvent.setup();
       const handleDelete = vi.fn();
-      render(<Chip label="테스트" onDelete={handleDelete} />);
+      const { container } = render(
+        <Chip label="테스트" onDelete={handleDelete} />
+      );
 
       const deleteButton = screen.getByRole('button', { name: /삭제/i });
       await user.click(deleteButton);
 
       // 퇴장이 끝난 뒤에 불린다.
-      await waitFor(() => expect(handleDelete).toHaveBeenCalledTimes(1));
+      act(() => {
+        (
+          container.firstChild as HTMLElement & {
+            __chipExitTween?: { progress(value: number): unknown };
+          }
+        ).__chipExitTween?.progress(1);
+      });
+      expect(handleDelete).toHaveBeenCalledTimes(1);
     });
 
     it('삭제 버튼은 aria-label을 가진다', () => {
@@ -333,7 +337,7 @@ describe('Chip', () => {
       const user = userEvent.setup();
       const handleClick = vi.fn();
       const handleDelete = vi.fn();
-      render(
+      const { container } = render(
         <Chip
           label="테스트"
           clickable
@@ -349,7 +353,14 @@ describe('Chip', () => {
 
       const deleteButton = screen.getByRole('button', { name: /삭제/i });
       await user.click(deleteButton);
-      await waitFor(() => expect(handleDelete).toHaveBeenCalledTimes(1));
+      act(() => {
+        (
+          container.firstChild as HTMLElement & {
+            __chipExitTween?: { progress(value: number): unknown };
+          }
+        ).__chipExitTween?.progress(1);
+      });
+      expect(handleDelete).toHaveBeenCalledTimes(1);
     });
 
     it('다양한 색상과 크기 조합이 정상 동작한다', () => {
@@ -477,6 +488,46 @@ describe('Chip 삭제 퇴장', () => {
       tween.progress(1);
     });
     expect(onDelete).toHaveBeenCalledTimes(1);
+  });
+
+  it('연달아 지워도 완료 시점의 onDelete를 불러 앞선 칩이 되살아나지 않는다', async () => {
+    const user = userEvent.setup();
+    // 문서가 권하는 패턴 그대로다. updater 형태면 stale 클로저가 드러나지 않는다.
+    const Parent = () => {
+      const [chips, setChips] = useState(['A', 'B', 'C']);
+      return (
+        <>
+          {chips.map((c) => (
+            <Chip
+              key={c}
+              label={c}
+              onDelete={() => setChips(chips.filter((x) => x !== c))}
+            />
+          ))}
+        </>
+      );
+    };
+    render(<Parent />);
+    const host = (label: string) =>
+      screen
+        .getByRole('button', { name: `${label} 삭제` })
+        .closest('div') as Host;
+
+    const a = host('A');
+    const b = host('B');
+    await user.click(screen.getByRole('button', { name: 'A 삭제' }));
+    await user.click(screen.getByRole('button', { name: 'B 삭제' }));
+
+    act(() => {
+      a.__chipExitTween?.progress(1);
+    });
+    act(() => {
+      b.__chipExitTween?.progress(1);
+    });
+
+    expect(screen.queryByText('A')).not.toBeInTheDocument();
+    expect(screen.queryByText('B')).not.toBeInTheDocument();
+    expect(screen.getByText('C')).toBeInTheDocument();
   });
 
   it('퇴장 중 다시 눌러도 onDelete는 한 번이다', async () => {
