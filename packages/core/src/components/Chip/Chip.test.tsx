@@ -760,12 +760,20 @@ describe('Chip 모션 잠금', () => {
     expect(selectedBlock).not.toMatch(/transitionTimingFunction:/);
   });
 
-  it('삭제 버튼 hover가 translateX(1px)로 미는 방향 저항을 준다(settle)', () => {
-    const deleteHover = cssSource.match(
-      /export const deleteButton[\s\S]*?':hover': \{([\s\S]*?)\n {2}\},/
+  it('삭제 버튼 hover가 translateX(1px)로 미는 방향 저항을 준다(settle, 포인터 게이트 안)', () => {
+    const deleteBlock = cssSource.match(
+      /export const deleteButton = style\(\{([\s\S]*?)\n\}\);/
+    )?.[1] as string;
+    expect(deleteBlock, 'deleteButton 블록을 찾지 못했다').toBeDefined();
+    // 칩 호버(tint)와 같은 게이트다. 터치는 탭하면 호버가 발생해 이동이 들러붙는다.
+    const gated = deleteBlock.match(
+      /'@media': {\s*'\(hover: hover\) and \(pointer: fine\)': {([\s\S]*?)\n {4}},/
     )?.[1];
-    expect(deleteHover, 'deleteButton :hover 블록을 찾지 못했다').toBeDefined();
-    expect(deleteHover).toContain("transform: 'translateX(1px)'");
+    expect(gated, '게이트 안 호버 블록을 찾지 못했다').toBeDefined();
+    expect(gated).toContain("transform: 'translateX(1px)'");
+    // 게이트 밖 맨 :hover는 없다. :focus-visible의 opacity는 따로 남는다.
+    expect(deleteBlock).not.toMatch(/^ {2}':hover'/m);
+    expect(deleteBlock).toMatch(/':focus-visible': {[\s\S]*?opacity: 1/);
     const deleteTransition = cssSource.match(
       /export const deleteButton[\s\S]*?transition: `([^`]*)`,/
     )?.[1];

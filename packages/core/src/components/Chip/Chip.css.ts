@@ -475,10 +475,19 @@ export const deleteButton = style({
   transition: `opacity ${themeContract.animation.duration.base} ${themeContract.animation.easing.settle}, transform ${themeContract.animation.duration.base} ${themeContract.animation.easing.settle}`,
   flexShrink: 0,
 
-  // 미는 방향 저항(article 4: 색 단독 금지 — opacity에 이동을 더한다).
-  ':hover': {
-    opacity: 1,
-    transform: 'translateX(1px)',
+  // 미는 방향 저항(article 4: 색 단독 금지, opacity에 이동을 더한다). 칩 호버(tint)와
+  // 같은 게이트 안에서만 건다(터치는 탭하면 호버가 발생해 이동이 들러붙는다).
+  // @media는 selectors 뒤에 나와 같은 특정도의 aria-disabled 규칙을 덮으므로
+  // 비활성은 :not으로 뺀다.
+  '@media': {
+    '(hover: hover) and (pointer: fine)': {
+      selectors: {
+        '&:hover:not([aria-disabled="true"])': {
+          opacity: 1,
+          transform: 'translateX(1px)',
+        },
+      },
+    },
   },
 
   ':focus-visible': {
