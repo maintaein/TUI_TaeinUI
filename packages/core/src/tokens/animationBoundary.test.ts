@@ -629,13 +629,6 @@ const LITERAL_DURATION_EXCEPTIONS: Exception[] = [
  */
 const LITERAL_DELAY_EXCEPTIONS: Exception[] = [
   {
-    at: 'components/IconButton/IconButton.css.ts',
-    values: ['40ms'],
-    owner: '-',
-    reason:
-      '아이콘이 몸통보다 늦게 따라오는 지연. stagger 토큰이 없어 리터럴로 적는다',
-  },
-  {
     at: 'components/Loader/Loader.css.ts',
     values: ['0s'],
     owner: '-',
@@ -1170,9 +1163,9 @@ describe('하드코딩 시간 잠금 (T5 · R35)', () => {
     );
   });
 
-  it('리터럴 지연 6건을 정확히 집어낸다 (IconButton 1 + Loader 3 + Skeleton 2)', () => {
+  it('리터럴 지연 5건을 정확히 집어낸다 (Loader 3 + Skeleton 2)', () => {
     expect(groupByFile(delays)).toEqual(expectedMap(LITERAL_DELAY_EXCEPTIONS));
-    expect(delays).toHaveLength(6);
+    expect(delays).toHaveLength(5);
   });
 
   it('허용 목록의 모든 항목에 이유가 적혀 있다', () => {

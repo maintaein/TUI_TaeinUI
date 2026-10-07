@@ -1,7 +1,60 @@
-import { style, styleVariants, globalStyle } from '@vanilla-extract/css';
+import { style, styleVariants, type StyleRule } from '@vanilla-extract/css';
 import { recipe } from '@vanilla-extract/recipes';
 import { themeContract } from '../../tokens/theme.css';
 import { focusRing } from '../../tokens/focusRing.css';
+
+// 호버·누름의 색 한 쌍(Button·Chip의 규칙과 같다). 호버는 (hover: hover) and
+// (pointer: fine) 안에서만 걸린다(터치는 탭하면 호버가 발생해 색이 들러붙는다).
+// 호버는 배경색(과 글자색)만 바꾼다. 이동을 더하지 않는다(근거는 Button.css.ts의
+// compoundVariants 머리말). :not([data-pressed])는 vanilla-extract가 @media를
+// selectors 뒤에 내보내 특정도가 같은 호버가 누름 색을 덮는 것을 막는다.
+const tint = (hover: StyleRule, pressed: StyleRule): StyleRule => ({
+  '@media': {
+    '(hover: hover) and (pointer: fine)': {
+      selectors: {
+        '&:hover:not(:disabled):not([data-pressed])': hover,
+      },
+    },
+  },
+  selectors: {
+    '&[data-pressed]:not(:disabled)': pressed,
+  },
+});
+
+// 모든 모드(ghost·weak·strong)에 같이 붙는 누름 규칙. 모드마다 따로 쓰면 한쪽이
+// 어긋난다. 색은 각 모드가 tint로 갖고, 여기는 축소와 레이어만 맡는다.
+// Button.css.ts의 같은 규칙을 그대로 옮겼다.
+export const pressable = style({
+  // 합성 레이어를 첫 페인트부터 영구로 둔다. 레이어 유무에 따라 글자가 1px 튀는
+  // 문제의 근거는 Button.css.ts의 will-change 주석에 있다. 아이콘도 같은 레이어
+  // 안에서 래스터되므로 같은 이유로 둔다.
+  willChange: 'transform',
+
+  selectors: {
+    // 누름 상태. :active는 pointerup에 끝나서 짧은 탭은 안 보인다. IconButton.tsx가
+    // useClickRebound로 data-pressed를 걸고 최소 체류(90ms) 뒤에 지운다. 들어갈
+    // 때는 fast+settle로 단단하게, 뗄 때는 base 숏핸드의 transform spring이
+    // 돌아와 되밀린다. 0.95의 근거는 Button.css.ts의 같은 자리 주석이다.
+    '&[data-pressed]:not(:disabled)': {
+      transform: 'scale(0.95)',
+      transitionDuration: themeContract.animation.duration.fast,
+      transitionTimingFunction: themeContract.animation.easing.settle,
+    },
+  },
+
+  '@media': {
+    // 축소 모드는 이동 없음이다. 색 변화는 둔다. transform이 none이라 레이어도
+    // 필요 없다(Button.css.ts와 같다).
+    '(prefers-reduced-motion: reduce)': {
+      willChange: 'auto',
+      selectors: {
+        '&[data-pressed]:not(:disabled)': {
+          transform: 'none',
+        },
+      },
+    },
+  },
+});
 
 export const iconButton = recipe({
   base: {
@@ -12,7 +65,7 @@ export const iconButton = recipe({
     border: 'none',
     cursor: 'pointer',
     touchAction: 'manipulation',
-    transition: `background-color ${themeContract.animation.duration.base} ${themeContract.animation.easing.settle}, opacity ${themeContract.animation.duration.base} ${themeContract.animation.easing.settle}, transform ${themeContract.animation.duration.base} ${themeContract.animation.easing.snap}`,
+    transition: `background-color ${themeContract.animation.duration.base} ${themeContract.animation.easing.settle}, opacity ${themeContract.animation.duration.base} ${themeContract.animation.easing.settle}, transform ${themeContract.animation.duration.base} ${themeContract.animation.easing.spring}`,
     userSelect: 'none',
     position: 'relative',
     overflow: 'hidden',
@@ -21,26 +74,6 @@ export const iconButton = recipe({
     ':disabled': {
       cursor: 'not-allowed',
       opacity: 0.5,
-    },
-
-    selectors: {
-      // 새 hover(리뷰 F4) — 변형 8곳이 배경색(+색)만 바꿔 색 단독 채널이었다
-      // (article 4 위반). 이동을 더해 색과 위치가 함께 바뀌게 한다. 변형별
-      // 8개 compoundVariants는 열지 않고 이 한 줄로 전부 덮는다.
-      // 타이밍 함수는 얹지 않는다(리뷰 C3) — 자세한 이유는 Button.css.ts의
-      // 같은 자리 주석. 요약: 포인터를 떼도 :hover는 계속 매치되고, 여기
-      // 롱핸드가 있으면 속성별 목록이 값 하나로 무너져 해제 오버슛이 죽는다.
-      '&:hover:not(:disabled)': {
-        transform: 'translateY(-1px)',
-        transitionDuration: themeContract.animation.duration.fast,
-      },
-      // 배치 전체 ":active 해제 오버슛" 형태(T3a 공통) — 누를 때 exit로 가속해
-      // 들어가고, 떼면 위 base의 snap으로 브라우저가 오버슛해 돌아온다(:hover가
-      // 타이밍 함수를 쏘지 않으므로 실제로 그렇게 된다 — 리뷰 C3). 변형
-      // 8곳의 :active 블록은 값이 이미 맞아 건드리지 않는다 — 이 한 줄이 전부 덮는다.
-      '&:active:not(:disabled)': {
-        transitionTimingFunction: themeContract.animation.easing.exit,
-      },
     },
 
     ':focus-visible': {
@@ -93,15 +126,10 @@ export const iconButton = recipe({
         // 낮다. 세 상태를 한 단계씩 올려 4.60/5.74/8.63으로 맞춘다.
         backgroundColor: themeContract.color.primary.main,
         color: themeContract.color.primary.contrast,
-        selectors: {
-          '&:hover:not(:disabled)': {
-            backgroundColor: themeContract.palette.primary[800],
-          },
-          '&:active:not(:disabled)': {
-            backgroundColor: themeContract.palette.primary[900],
-            transform: 'scale(0.95)',
-          },
-        },
+        ...tint(
+          { backgroundColor: themeContract.palette.primary[800] },
+          { backgroundColor: themeContract.palette.primary[900] }
+        ),
       },
     },
     {
@@ -109,15 +137,10 @@ export const iconButton = recipe({
       style: {
         backgroundColor: themeContract.palette.gray[700],
         color: themeContract.color.text.inverse,
-        selectors: {
-          '&:hover:not(:disabled)': {
-            backgroundColor: themeContract.palette.gray[800],
-          },
-          '&:active:not(:disabled)': {
-            backgroundColor: themeContract.palette.gray[900],
-            transform: 'scale(0.95)',
-          },
-        },
+        ...tint(
+          { backgroundColor: themeContract.palette.gray[800] },
+          { backgroundColor: themeContract.palette.gray[900] }
+        ),
       },
     },
     {
@@ -125,12 +148,10 @@ export const iconButton = recipe({
       style: {
         backgroundColor: themeContract.palette.error[500],
         color: themeContract.color.error.contrast,
-        selectors: {
-          '&:hover:not(:disabled)': {
-            backgroundColor: themeContract.palette.error[700],
-          },
-          '&:active:not(:disabled)': { opacity: 0.9, transform: 'scale(0.95)' },
-        },
+        ...tint(
+          { backgroundColor: themeContract.palette.error[700] },
+          { opacity: 0.9 }
+        ),
       },
     },
     {
@@ -139,15 +160,10 @@ export const iconButton = recipe({
         backgroundColor: themeContract.color.background.default,
         color: themeContract.palette.primary[600],
         border: `2px solid ${themeContract.palette.primary[600]}`,
-        selectors: {
-          '&:hover:not(:disabled)': {
-            backgroundColor: themeContract.palette.primary[50],
-          },
-          '&:active:not(:disabled)': {
-            backgroundColor: themeContract.palette.primary[100],
-            transform: 'scale(0.95)',
-          },
-        },
+        ...tint(
+          { backgroundColor: themeContract.palette.primary[50] },
+          { backgroundColor: themeContract.palette.primary[100] }
+        ),
       },
     },
     {
@@ -155,15 +171,10 @@ export const iconButton = recipe({
       style: {
         backgroundColor: themeContract.palette.primary[50],
         color: themeContract.palette.primary[700],
-        selectors: {
-          '&:hover:not(:disabled)': {
-            backgroundColor: themeContract.palette.primary[100],
-          },
-          '&:active:not(:disabled)': {
-            backgroundColor: themeContract.palette.primary[200],
-            transform: 'scale(0.95)',
-          },
-        },
+        ...tint(
+          { backgroundColor: themeContract.palette.primary[100] },
+          { backgroundColor: themeContract.palette.primary[200] }
+        ),
       },
     },
     {
@@ -171,15 +182,10 @@ export const iconButton = recipe({
       style: {
         backgroundColor: themeContract.palette.gray[200],
         color: themeContract.palette.gray[800],
-        selectors: {
-          '&:hover:not(:disabled)': {
-            backgroundColor: themeContract.palette.gray[300],
-          },
-          '&:active:not(:disabled)': {
-            backgroundColor: themeContract.palette.gray[400],
-            transform: 'scale(0.95)',
-          },
-        },
+        ...tint(
+          { backgroundColor: themeContract.palette.gray[300] },
+          { backgroundColor: themeContract.palette.gray[400] }
+        ),
       },
     },
     {
@@ -187,15 +193,10 @@ export const iconButton = recipe({
       style: {
         backgroundColor: themeContract.palette.error[50],
         color: themeContract.palette.error[700],
-        selectors: {
-          '&:hover:not(:disabled)': {
-            backgroundColor: themeContract.palette.error[100],
-          },
-          '&:active:not(:disabled)': {
-            backgroundColor: themeContract.palette.error[100],
-            transform: 'scale(0.95)',
-          },
-        },
+        ...tint(
+          { backgroundColor: themeContract.palette.error[100] },
+          { backgroundColor: themeContract.palette.error[100] }
+        ),
       },
     },
     {
@@ -203,15 +204,10 @@ export const iconButton = recipe({
       style: {
         backgroundColor: themeContract.palette.primary[100],
         color: themeContract.palette.primary[700],
-        selectors: {
-          '&:hover:not(:disabled)': {
-            backgroundColor: themeContract.palette.primary[200],
-          },
-          '&:active:not(:disabled)': {
-            backgroundColor: themeContract.palette.primary[300],
-            transform: 'scale(0.95)',
-          },
-        },
+        ...tint(
+          { backgroundColor: themeContract.palette.primary[200] },
+          { backgroundColor: themeContract.palette.primary[300] }
+        ),
       },
     },
   ],
@@ -239,7 +235,7 @@ export const ghostBase = style({
   border: 'none',
   cursor: 'pointer',
   touchAction: 'manipulation',
-  transition: `background-color ${themeContract.animation.duration.base} ${themeContract.animation.easing.settle}, color ${themeContract.animation.duration.base} ${themeContract.animation.easing.settle}, opacity ${themeContract.animation.duration.base} ${themeContract.animation.easing.settle}, transform ${themeContract.animation.duration.base} ${themeContract.animation.easing.snap}`,
+  transition: `background-color ${themeContract.animation.duration.base} ${themeContract.animation.easing.settle}, color ${themeContract.animation.duration.base} ${themeContract.animation.easing.settle}, opacity ${themeContract.animation.duration.base} ${themeContract.animation.easing.settle}, transform ${themeContract.animation.duration.base} ${themeContract.animation.easing.spring}`,
   userSelect: 'none',
   borderRadius: themeContract.borderRadius.base,
   color: themeContract.palette.gray[600],
@@ -247,23 +243,16 @@ export const ghostBase = style({
   minWidth: '44px',
   minHeight: '44px',
 
-  selectors: {
-    // 색 단독 채널이었다(article 4 위반) — 이동을 더한다(리뷰 F4).
-    '&:hover:not(:disabled)': {
+  ...tint(
+    {
       color: themeContract.palette.gray[900],
       backgroundColor: themeContract.palette.gray[100],
-      transform: 'translateY(-1px)',
-      // 타이밍 함수는 얹지 않는다(리뷰 C3, 위 iconButton base와 같은 이유).
-      transitionDuration: themeContract.animation.duration.fast,
     },
-    // 배치 전체 ":active 해제 오버슛" 형태(T3a 공통, 위 iconButton base와 동일).
-    '&:active:not(:disabled)': {
+    {
       color: themeContract.palette.gray[900],
       backgroundColor: themeContract.palette.gray[200],
-      transform: 'scale(0.92)',
-      transitionTimingFunction: themeContract.animation.easing.exit,
-    },
-  },
+    }
+  ),
 
   ':disabled': {
     cursor: 'not-allowed',
@@ -281,34 +270,6 @@ export const ghostSizeVariants = styleVariants({
   lg: { padding: '0.5rem' },
   xl: { padding: '0.625rem' },
 });
-
-// 아이콘 스팬 전용 모션 — 몸통(iconButton/ghostBase)의 :active 전이보다 40ms
-// 늦게 눌림에 들어가, 몸통이 먼저 반응하고 아이콘이 뒤따르는 느낌을 만든다.
-// contract.ts에는 이 지연 전용 stagger 토큰이 없다(소비자가 여기 하나뿐이라
-// 토큰화 근거가 부족하다는 T2 판단) — 리터럴 40ms를 쓰고
-// animationBoundary.test.ts의 LITERAL_DELAY_EXCEPTIONS에 등록한다.
-export const iconMotion = style({
-  transform: 'scale(1)',
-  transition: `transform ${themeContract.animation.duration.base} ${themeContract.animation.easing.snap} 40ms`,
-});
-
-// 몸통이 눌리는 동안(:active) 아이콘 스팬도 함께 축소시키되, 위 iconMotion의
-// 40ms 지연은 건드리지 않는다(transitionDelay를 여기서 다시 선언하지 않음 —
-// 캐스케이드는 속성 단위로 적용되어 지연값은 iconMotion 기본 규칙이 그대로
-// 담당한다). List.css.ts의 globalStyle(두 독립 클래스 결합) 관례를 따른다.
-// 아이콘 자신의 scale은 몸통(base 0.95, danger 0.9~0.95대, ghost 0.92)의
-// scale과 곱해져 합성된다(리뷰 F5) — 예전 0.94는 0.95*0.94≈0.893,
-// ghost는 0.92*0.94≈0.865로 이 배치에서 가장 깊게 눌리는 조합이 됐다.
-// "본체 변형은 작게, 지연이 질량을 말한다"를 뒤집는다. 0.99로 낮춰 합성
-// 결과가 대부분 0.94대에 오도록 한다.
-globalStyle(
-  `${iconButton.classNames.base}:active:not(:disabled) ${iconMotion}, ${ghostBase}:active:not(:disabled) ${iconMotion}`,
-  {
-    transform: 'scale(0.99)',
-    transitionDuration: themeContract.animation.duration.fast,
-    transitionTimingFunction: themeContract.animation.easing.exit,
-  }
-);
 
 // Loader는 바깥에 블록 div를 하나 두므로 flex 아이템으로 만들어 줄 상자(baseline)
 // 정렬을 없앤다. 그대로 두면 점·스피너가 글자 baseline으로 내려앉는다.

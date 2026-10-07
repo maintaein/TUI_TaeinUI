@@ -5,10 +5,11 @@ import {
   iconSizeVariants,
   ghostBase,
   ghostSizeVariants,
-  iconMotion,
+  pressable,
   loadingSlot,
 } from './IconButton.css';
 import { Loader } from '../Loader';
+import { useClickRebound } from '../../_internal/useClickRebound';
 
 type IconButtonVariant = 'primary' | 'dark' | 'danger' | 'light';
 type IconButtonStyle = 'fill' | 'weak';
@@ -46,6 +47,13 @@ export const IconButton = forwardRef<HTMLButtonElement, IconButtonProps>(
       disabled = false,
       children,
       className,
+      onPointerDown,
+      onPointerUp,
+      onPointerLeave,
+      onPointerCancel,
+      onKeyDown,
+      onKeyUp,
+      onBlur,
       'aria-label': ariaLabel,
       'aria-labelledby': ariaLabelledby,
       ...props
@@ -63,6 +71,20 @@ export const IconButton = forwardRef<HTMLButtonElement, IconButtonProps>(
 
     const isDisabled = disabled || loading;
 
+    // 누름 상태의 수명은 useClickRebound가 정한다(:active 대신 data-pressed).
+    const { pressed, handlers } = useClickRebound<HTMLButtonElement>(
+      isDisabled,
+      {
+        onPointerDown,
+        onPointerUp,
+        onPointerLeave,
+        onPointerCancel,
+        onKeyDown,
+        onKeyUp,
+        onBlur,
+      }
+    );
+
     const variantClass = iconButton({ size, buttonStyle, variant });
 
     return (
@@ -75,9 +97,12 @@ export const IconButton = forwardRef<HTMLButtonElement, IconButtonProps>(
         aria-label={ariaLabel}
         aria-labelledby={ariaLabelledby}
         className={clsx(
+          pressable,
           ghost ? [ghostBase, ghostSizeVariants[size]] : variantClass,
           className
         )}
+        data-pressed={pressed ? '' : undefined}
+        {...handlers}
         {...props}
       >
         {loading ? (
@@ -89,10 +114,7 @@ export const IconButton = forwardRef<HTMLButtonElement, IconButtonProps>(
             aria-label="로딩 중"
           />
         ) : (
-          <span
-            aria-hidden="true"
-            className={clsx(iconMotion, iconSizeVariants[size])}
-          >
+          <span aria-hidden="true" className={iconSizeVariants[size]}>
             {children}
           </span>
         )}

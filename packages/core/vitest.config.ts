@@ -20,10 +20,12 @@ export default defineConfig({
     // CSSOM 규칙으로 잠근다.
     // Border도 같은 이유다. 호버 포인터 게이트와 :focus-within이 @media 안팎
     // 어디에 있는지, rotate 길이가 loop.slow인지를 CSSOM으로 잠근다.
+    // IconButton도 같은 이유다(Button과 같은 누름·호버 규칙을 CSSOM으로 잠근다).
     css: {
       include: [
         /Slider\.css/,
         /\/Button\.css/,
+        /\/IconButton\.css/,
         /\/Border\.css/,
         /HeaderBarNav\.css/,
         /mirrorOverlay\.css/,

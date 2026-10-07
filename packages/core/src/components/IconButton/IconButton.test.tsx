@@ -1,10 +1,11 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { describe, it, expect, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { afterEach, describe, it, expect, vi } from 'vitest';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { createRef } from 'react';
 import { IconButton } from './IconButton';
+import { themeContract } from '../../tokens/theme.css';
 
 const TestIcon = () => (
   <svg data-testid="test-icon" width="24" height="24" viewBox="0 0 24 24">
@@ -715,123 +716,347 @@ describe('IconButton', () => {
   });
 });
 
-describe('IconButton 모션 잠금', () => {
-  // vanilla-extract가 스타일을 클래스로 직렬화해서 jsdom에서 계산값을 못
-  // 읽는다. IconButton.css.ts 소스 텍스트에서 직접 확인한다(Button 관례).
-  const cssSource = readFileSync(
-    resolve(__dirname, './IconButton.css.ts'),
-    'utf-8'
+describe('IconButton 누름 효과는 입력 시간과 무관하게 완주한다', () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  // jsdom에는 PointerEvent가 없어 fireEvent.pointerDown은 button 값을 못 싣는다.
+  // React는 이름이 pointerdown인 이벤트면 클래스와 무관하게 받으므로 MouseEvent로 쏜다.
+  const pointerDown = (el: HTMLElement, button = 0) =>
+    act(() => {
+      el.dispatchEvent(
+        new MouseEvent('pointerdown', { bubbles: true, button })
+      );
+    });
+  const wait = (ms: number) => act(() => vi.advanceTimersByTime(ms));
+
+  it('30ms 탭이어도 90ms까지 data-pressed가 남고 그 뒤 사라진다', () => {
+    vi.useFakeTimers();
+    render(
+      <IconButton aria-label="탭">
+        <TestIcon />
+      </IconButton>
+    );
+    const button = screen.getByRole('button');
+
+    pointerDown(button);
+    expect(button).toHaveAttribute('data-pressed');
+    wait(30);
+    fireEvent.pointerUp(button);
+
+    wait(59);
+    expect(button).toHaveAttribute('data-pressed');
+    wait(1);
+    expect(button).not.toHaveAttribute('data-pressed');
+  });
+
+  it('ghost 모드도 같은 누름 상태를 갖는다', () => {
+    vi.useFakeTimers();
+    render(
+      <IconButton ghost aria-label="탭">
+        <TestIcon />
+      </IconButton>
+    );
+    const button = screen.getByRole('button');
+
+    pointerDown(button);
+    wait(30);
+    fireEvent.pointerUp(button);
+    wait(59);
+    expect(button).toHaveAttribute('data-pressed');
+    wait(1);
+    expect(button).not.toHaveAttribute('data-pressed');
+  });
+
+  it.each([
+    ['Space', ' '],
+    ['Enter', 'Enter'],
+  ])('%s 30ms 탭도 90ms까지 data-pressed가 남고 그 뒤 사라진다', (_n, key) => {
+    vi.useFakeTimers();
+    render(
+      <IconButton aria-label="키보드">
+        <TestIcon />
+      </IconButton>
+    );
+    const button = screen.getByRole('button');
+
+    fireEvent.keyDown(button, { key });
+    expect(button).toHaveAttribute('data-pressed');
+    wait(30);
+    fireEvent.keyUp(button, { key });
+
+    wait(59);
+    expect(button).toHaveAttribute('data-pressed');
+    wait(1);
+    expect(button).not.toHaveAttribute('data-pressed');
+  });
+
+  it('키를 누르고 있어 repeat가 오는 동안 체류를 다시 세지 않는다', () => {
+    vi.useFakeTimers();
+    render(
+      <IconButton aria-label="반복">
+        <TestIcon />
+      </IconButton>
+    );
+    const button = screen.getByRole('button');
+
+    fireEvent.keyDown(button, { key: 'Enter' });
+    wait(200);
+    fireEvent.keyDown(button, { key: 'Enter', repeat: true });
+    fireEvent.keyUp(button, { key: 'Enter' });
+    // 길게 눌렀으니 뗀 즉시 사라진다. repeat가 체류를 다시 시작했다면 남는다.
+    expect(button).not.toHaveAttribute('data-pressed');
+  });
+
+  it('보조 버튼(우클릭)은 누름 상태를 만들지 않는다', () => {
+    render(
+      <IconButton aria-label="우클릭">
+        <TestIcon />
+      </IconButton>
+    );
+    const button = screen.getByRole('button');
+
+    pointerDown(button, 2);
+    expect(button).not.toHaveAttribute('data-pressed');
+  });
+
+  it('누른 채 loading이 되면 누름 상태가 비워지고 다시 활성화돼도 남지 않는다', () => {
+    vi.useFakeTimers();
+    const { rerender } = render(
+      <IconButton aria-label="로딩">
+        <TestIcon />
+      </IconButton>
+    );
+    const button = screen.getByRole('button');
+
+    pointerDown(button);
+    expect(button).toHaveAttribute('data-pressed');
+    rerender(
+      <IconButton loading aria-label="로딩">
+        <TestIcon />
+      </IconButton>
+    );
+    expect(button).not.toHaveAttribute('data-pressed');
+
+    // pointerup이 유실됐고 체류 타이머가 만료돼도 다시 켜지지 않는다.
+    wait(200);
+    rerender(
+      <IconButton aria-label="로딩">
+        <TestIcon />
+      </IconButton>
+    );
+    expect(button).not.toHaveAttribute('data-pressed');
+  });
+
+  it('소비자가 준 포인터·키보드 핸들러도 불린다', () => {
+    const onPointerDown = vi.fn();
+    const onKeyDown = vi.fn();
+    render(
+      <IconButton
+        aria-label="합성"
+        onPointerDown={onPointerDown}
+        onKeyDown={onKeyDown}
+      >
+        <TestIcon />
+      </IconButton>
+    );
+    const button = screen.getByRole('button');
+
+    pointerDown(button);
+    fireEvent.keyDown(button, { key: 'Enter' });
+    expect(onPointerDown).toHaveBeenCalledTimes(1);
+    expect(onKeyDown).toHaveBeenCalledTimes(1);
+  });
+});
+
+/**
+ * vanilla-extract가 실제로 만든 CSS(jsdom에 주입된 <style>)를 CSSOM으로 읽는다.
+ * @media 안의 규칙까지 펼쳐 문서 순서와 감싼 미디어 조건을 함께 들고 있다.
+ */
+interface FlatRule {
+  rule: CSSStyleRule;
+  media: string | null;
+  order: number;
+}
+
+function iconButtonRules(): FlatRule[] {
+  const sheet = Array.from(document.styleSheets).find((candidate) =>
+    Array.from(candidate.cssRules).some((rule) =>
+      rule.cssText.includes('IconButton_iconButton')
+    )
   );
+  if (!sheet) {
+    throw new Error('IconButton.css.ts가 만든 스타일시트를 찾지 못했다');
+  }
 
-  it('아이콘 래퍼에 iconMotion 클래스가 붙는다(몸통보다 늦게 따라오는 지연용)', () => {
-    render(
-      <IconButton aria-label="지연">
-        <TestIcon />
-      </IconButton>
+  const flat: FlatRule[] = [];
+  const walk = (rules: CSSRuleList, media: string | null) => {
+    for (const rule of Array.from(rules)) {
+      if (rule instanceof CSSMediaRule) {
+        walk(rule.cssRules, rule.media.mediaText);
+      } else if (rule instanceof CSSStyleRule) {
+        flat.push({ rule, media, order: flat.length });
+      }
+    }
+  };
+  walk(sheet.cssRules, null);
+  return flat;
+}
+
+describe('IconButton 생성 CSS', () => {
+  const withSelector = (part: string) =>
+    iconButtonRules().filter(({ rule }) => rule.selectorText.includes(part));
+  const ownRule = (className: string, media: string | null = null) =>
+    iconButtonRules().find(
+      ({ rule, media: m }) =>
+        m === media &&
+        new RegExp(`^\\.IconButton_${className}__\\w+$`).test(rule.selectorText)
     );
-    const button = screen.getByRole('button');
-    const iconWrapper = button.querySelector('[aria-hidden="true"]');
-    expect(iconWrapper?.className).toContain('iconMotion');
-  });
-
-  it('ghost 모드에서도 아이콘 래퍼에 iconMotion 클래스가 붙는다', () => {
-    render(
-      <IconButton ghost aria-label="지연-ghost">
-        <TestIcon />
-      </IconButton>
+  const pressScale = () =>
+    withSelector('[data-pressed]').find(
+      ({ media, rule }) =>
+        media === null && rule.style.getPropertyValue('transform') !== ''
     );
-    const button = screen.getByRole('button');
-    const iconWrapper = button.querySelector('[aria-hidden="true"]');
-    expect(iconWrapper?.className).toContain('iconMotion');
-  });
 
-  it('recipe base와 ghostBase의 transition이 transform에 snap을 쓴다(해제 오버슛)', () => {
-    const transitionLines = [...cssSource.matchAll(/transition: `([^`]*)`,/g)];
-    expect(transitionLines.length).toBeGreaterThanOrEqual(2);
-    for (const [, line] of transitionLines) {
-      expect(line).toContain(
-        'transform ${themeContract.animation.duration.base} ${themeContract.animation.easing.snap}'
+  it('호버 규칙 9곳(변형 8 + ghost 1)이 모두 (hover: hover) and (pointer: fine) 안에 있다', () => {
+    const hovers = withSelector(':hover');
+    expect(hovers).toHaveLength(9);
+    for (const { media, rule } of hovers) {
+      expect(media, rule.selectorText).toBe(
+        '(hover: hover) and (pointer: fine)'
       );
     }
   });
 
-  it('recipe base와 ghostBase 양쪽에 :active:not(:disabled) exit 오버라이드가 있다', () => {
-    const activeBlocks = [
-      ...cssSource.matchAll(
-        /['&]*:active:not\(:disabled\)'?: \{([\s\S]*?)\n\s*\},/g
-      ),
-    ];
-    const withExit = activeBlocks.filter((m) =>
-      m[1].includes('themeContract.animation.easing.exit')
-    );
-    expect(withExit.length).toBeGreaterThanOrEqual(2);
-  });
-
-  it('iconMotion이 40ms 지연 리터럴에 근거 주석을 달고 있다(stagger 토큰 부재, T2 확인)', () => {
-    const iconMotionBlock = cssSource.match(
-      /export const iconMotion = style\(\{([\s\S]*?)\n\}\);/
-    )?.[1];
-    expect(iconMotionBlock, 'iconMotion 블록을 찾지 못했다').toBeDefined();
-    expect(iconMotionBlock).toContain('40ms');
-    expect(cssSource).toContain('stagger');
-  });
-
-  it('recipe base와 ghostBase 양쪽 hover에 translateY(-1px) 오버라이드가 있다(리뷰 F4 — 색 단독 채널 금지)', () => {
-    // compoundVariants 8곳의 hover(배경색/색만 바꾸는 블록, 이 리뷰가 손대지
-    // 말라고 한 부분)는 걸러내고, base.selectors/ghostBase.selectors에 새로
-    // 붙은 두 hover 블록만 겨냥한다 — 둘 다 'F4' 주석을 바로 앞에 단다.
-    const f4HoverBlocks = [
-      ...cssSource.matchAll(
-        /리뷰 F4[\s\S]*?\n\s*'&:hover:not\(:disabled\)': \{([\s\S]*?)\n\s*\},/g
-      ),
-    ];
-    expect(f4HoverBlocks).toHaveLength(2);
-    for (const [, block] of f4HoverBlocks) {
-      expect(block).toContain("transform: 'translateY(-1px)'");
-      expect(block).toContain('themeContract.animation.duration.fast');
+  it('호버 규칙은 :not([data-pressed])를 달아 같은 특정도의 누름 색을 덮지 않는다', () => {
+    for (const { rule } of withSelector(':hover')) {
+      expect(rule.selectorText).toContain(':not([data-pressed])');
     }
   });
 
-  // 리뷰 C3 — 포인터를 떼도 요소는 여전히 :hover에 매치된다. (0,3,0)인 이
-  // 블록의 타이밍 함수 롱핸드가 base(0,1,0)의 transition 숏핸드를 이기고,
-  // 게다가 속성별 목록을 값 하나로 무너뜨려 transform에도 같은 커브를
-  // 먹인다 — 되돌아오는 전이까지 그 커브가 지배해서 base의 snap 오버슛이
-  // 포인터 사용자에게 한 번도 재생되지 않았다(크로미엄 실측). 두 블록을
-  // 따로 잠근다: 한쪽만 되돌려 놓는 회귀가 있다.
-  it('recipe base :hover 블록에 transitionTimingFunction이 없다(리뷰 C3)', () => {
-    // 무엇을 뒤집으면 빨개지는가: iconButton.base.selectors의
-    // '&:hover:not(:disabled)'에 transitionTimingFunction: settle을
-    // 되돌려 놓으면 여기가 빨개진다.
-    const hoverBlocks = [
-      ...cssSource.matchAll(
-        /리뷰 F4[\s\S]*?\n\s*'&:hover:not\(:disabled\)': \{([\s\S]*?)\n\s*\},/g
-      ),
-    ];
-    expect(hoverBlocks).toHaveLength(2);
-    expect(hoverBlocks[0][1]).not.toContain('transitionTimingFunction');
+  it('호버는 배경색(과 글자색)만 바꾼다: transform과 타이밍 함수가 없다', () => {
+    for (const { rule } of withSelector(':hover')) {
+      expect(rule.style.getPropertyValue('transform'), rule.selectorText).toBe(
+        ''
+      );
+      expect(
+        rule.style.getPropertyValue('transition-timing-function'),
+        rule.selectorText
+      ).toBe('');
+    }
   });
 
-  it('ghostBase :hover 블록에 transitionTimingFunction이 없다(리뷰 C3)', () => {
-    // 무엇을 뒤집으면 빨개지는가: ghostBase.selectors의
-    // '&:hover:not(:disabled)'에 transitionTimingFunction: settle을
-    // 되돌려 놓으면 여기가 빨개진다.
-    const hoverBlocks = [
-      ...cssSource.matchAll(
-        /리뷰 F4[\s\S]*?\n\s*'&:hover:not\(:disabled\)': \{([\s\S]*?)\n\s*\},/g
-      ),
-    ];
-    expect(hoverBlocks).toHaveLength(2);
-    expect(hoverBlocks[1][1]).not.toContain('transitionTimingFunction');
+  it(':active 셀렉터를 쓰지 않는다(누름 상태는 data-pressed 하나가 가진다)', () => {
+    expect(withSelector(':active')).toHaveLength(0);
   });
 
-  it('아이콘 자신의 눌림 scale이 0.99로, 몸통 scale과 곱해도 0.94대에 머문다(리뷰 F5)', () => {
-    const overrideBlock = cssSource.match(
-      /globalStyle\(\s*`\$\{iconButton\.classNames\.base\}[\s\S]*?\{([\s\S]*?)\n\s*\}\s*\);/
-    )?.[1];
+  it('translateY가 어느 규칙에도 없다', () => {
+    for (const { rule } of iconButtonRules()) {
+      expect(rule.style.getPropertyValue('transform')).not.toContain(
+        'translateY'
+      );
+    }
+  });
+
+  it('data-pressed 규칙은 변형 8 + ghost 1 + pressable 1 = 10곳이고 scale(0.95)은 pressable에만 있다', () => {
+    const pressed = withSelector('[data-pressed]:not(:disabled)').filter(
+      ({ media }) => media === null
+    );
+    expect(pressed).toHaveLength(10);
+
+    const scaled = pressed.filter(
+      ({ rule }) => rule.style.getPropertyValue('transform') !== ''
+    );
+    expect(scaled).toHaveLength(1);
+    expect(scaled[0].rule.selectorText).toMatch(/^\.IconButton_pressable__/);
+    expect(scaled[0].rule.style.getPropertyValue('transform')).toBe(
+      'scale(0.95)'
+    );
+  });
+
+  it('진입은 fast+settle로 단단하다(ease-in이나 흔들리는 커브를 쓰지 않는다)', () => {
+    const entry = pressScale()!.rule.style;
+    expect(entry.getPropertyValue('transition-duration')).toBe(
+      themeContract.animation.duration.fast
+    );
+    expect(entry.getPropertyValue('transition-timing-function')).toBe(
+      themeContract.animation.easing.settle
+    );
+  });
+
+  it('해제는 base 전이의 transform spring이 맡는다(변형·ghost 양쪽)', () => {
+    const spring = `transform ${themeContract.animation.duration.base} ${themeContract.animation.easing.spring}`;
+    for (const name of ['iconButton', 'ghostBase']) {
+      const transition =
+        ownRule(name)?.rule.style.getPropertyValue('transition');
+      expect(transition, `${name} base 규칙을 찾지 못했다`).toBeDefined();
+      // transform만 spring이다. 색은 settle로 간다.
+      expect(transition).toContain(spring);
+      expect(transition).toContain(
+        `background-color ${themeContract.animation.duration.base} ${themeContract.animation.easing.settle}`
+      );
+    }
+  });
+
+  it('will-change: transform이 pressable 하나에 있고 축소 모드에서 auto다', () => {
     expect(
-      overrideBlock,
-      'iconMotion :active 오버라이드 블록을 찾지 못했다'
-    ).toBeDefined();
-    expect(overrideBlock).toContain("transform: 'scale(0.99)'");
+      ownRule('pressable')!.rule.style.getPropertyValue('will-change')
+    ).toBe('transform');
+    expect(
+      ownRule(
+        'pressable',
+        '(prefers-reduced-motion: reduce)'
+      )!.rule.style.getPropertyValue('will-change')
+    ).toBe('auto');
+  });
+
+  it('축소 모드에서 data-pressed의 transform만 none이고 색 변화는 남는다', () => {
+    const reduced = withSelector('[data-pressed]').filter(
+      ({ media }) => media === '(prefers-reduced-motion: reduce)'
+    );
+    expect(reduced).toHaveLength(1);
+    const { rule, order } = reduced[0];
+    expect(rule.style.getPropertyValue('transform')).toBe('none');
+    expect(rule.style.length).toBe(1);
+
+    // 같은 특정도라 pressable의 scale(0.95)보다 문서 순서가 늦어야 이긴다.
+    expect(order).toBeGreaterThan(pressScale()!.order);
+  });
+
+  it('ghost의 눌림 색은 예전 :active 값(gray[900] 글자, gray[200] 배경) 그대로다', () => {
+    const ghostPressed = withSelector('[data-pressed]').find(
+      ({ media, rule }) =>
+        media === null &&
+        rule.selectorText.startsWith('.IconButton_ghostBase__')
+    )!;
+    expect(ghostPressed.rule.style.getPropertyValue('background-color')).toBe(
+      themeContract.palette.gray[200]
+    );
+    expect(ghostPressed.rule.style.getPropertyValue('color')).toBe(
+      themeContract.palette.gray[900]
+    );
+  });
+
+  it('아이콘 래퍼에는 지연·scale 모션이 없다(size 클래스 하나뿐이다)', () => {
+    render(
+      <IconButton aria-label="아이콘">
+        <TestIcon />
+      </IconButton>
+    );
+    const wrapper = screen
+      .getByRole('button')
+      .querySelector('[aria-hidden="true"]')!;
+    expect(wrapper.className).not.toContain('iconMotion');
+    expect(wrapper.className.trim().split(/\s+/)).toHaveLength(1);
+  });
+
+  it('소스에 40ms 지연과 globalStyle이 없다', () => {
+    const cssSource = readFileSync(
+      resolve(__dirname, './IconButton.css.ts'),
+      'utf-8'
+    );
+    expect(cssSource).not.toContain('40ms');
+    expect(cssSource).not.toContain('globalStyle');
   });
 });
