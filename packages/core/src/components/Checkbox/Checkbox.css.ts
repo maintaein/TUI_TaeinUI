@@ -2,6 +2,9 @@ import { style, styleVariants } from '@vanilla-extract/css';
 import { themeContract } from '../../tokens/theme.css';
 import { focusRing } from '../../tokens/focusRing.css';
 
+// 상자 테두리 두께(px). 채움 층의 음수 inset이 같은 값을 쓴다.
+const BORDER_WIDTH = 2;
+
 export const wrapper = style({
   display: 'inline-flex',
   flexDirection: 'column',
@@ -67,7 +70,7 @@ export const checkbox = style({
 export const checkmark = style({
   width: '100%',
   height: '100%',
-  border: `2px solid ${themeContract.color.text.secondary}`,
+  border: `${BORDER_WIDTH}px solid ${themeContract.color.text.secondary}`,
   borderRadius: '4px',
   backgroundColor: themeContract.color.background.paper,
   transition: `background-color ${themeContract.animation.duration.fast} ${themeContract.animation.easing.settle}, border-color ${themeContract.animation.duration.fast} ${themeContract.animation.easing.settle}, box-shadow ${themeContract.animation.duration.fast} ${themeContract.animation.easing.settle}`,
@@ -116,7 +119,12 @@ export const checkmark = style({
  */
 export const markFill = style({
   position: 'absolute',
-  inset: 0,
+  // 채움을 border box 크기(테두리 두께만큼 바깥)로 깔고 `overflow: hidden`이 padding
+  // box로 자르게 한다. `inset: 0`에 `border-radius: inherit`(바깥 반경)면 padding box의
+  // 안쪽 반경(바깥 반경 - 테두리 두께)보다 채움 모서리가 더 둥글어 네 모서리에 상자
+  // 배경이 쐐기로 비친다. 이렇게 하면 채움 모서리가 클립 바깥으로 밀려나 빈틈이 없다.
+  // 크기와 무관하게 테두리 두께는 같아 sm·md·lg 모두 맞다.
+  inset: `${-BORDER_WIDTH}px`,
   borderRadius: 'inherit',
   transformOrigin: 'center',
   backgroundColor: themeContract.color.primary.main,

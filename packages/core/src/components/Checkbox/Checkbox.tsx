@@ -146,19 +146,22 @@ const syncMarkState = (
 
   if (prev === 'unchecked' || nextState === 'unchecked') {
     // 진입(unchecked → checked | indeterminate)과 해제(→ unchecked)는 같은 모양
-    // 위에서 `t`와 획이 오간다. 해제는 prev의 정준 모양으로 d·strokeDasharray를
-    // 확정한다(Ruling 77). 모프 도중 끊기고 곧장 해제로 넘어오면 d/dasharray가
-    // 중간값에 얼어 dashoffset과 안 맞아 조각이 남을 수 있어서다.
+    // 위에서 `t`와 획이 오간다. 진입은 목표 모양을 즉시 깔고 시작한다. 해제는
+    // d·strokeDasharray를 즉시 확정하지 않고 해제 타임라인에서 prev의 정준 모양으로
+    // 같이 트윈한다(Ruling 77). 모프 도중 끊겨도 현재 모양에서 부드럽게 가고,
+    // d/dasharray가 중간값에 얼어 dashoffset과 안 맞아 조각이 남는 일도 없다.
     const entering = nextState !== 'unchecked';
     const shape = entering ? nextState : prev;
     const length = lengthFor(shape);
-    gsap.set(path, {
-      attr: { d: pathFor(shape) },
-      strokeDasharray: length,
-      // 진입은 이 모양의 길이만큼 가려 놓고 시작한다. 중단 복귀(비행 중인 해제를
-      // 되돌림)면 건너뛴다. 지금 dashoffset에서 이어져야 획이 되감기지 않는다.
-      ...(entering && !interrupted ? { strokeDashoffset: length } : {}),
-    });
+    if (entering) {
+      gsap.set(path, {
+        attr: { d: pathFor(shape) },
+        strokeDasharray: length,
+        // 진입은 이 모양의 길이만큼 가려 놓고 시작한다. 중단 복귀(비행 중인 해제를
+        // 되돌림)면 건너뛴다. 지금 dashoffset에서 이어져야 획이 되감기지 않는다.
+        ...(interrupted ? {} : { strokeDashoffset: length }),
+      });
+    }
     writeFrame(nodes, progress.t);
     const duration = entering
       ? gsapDuration.slow
@@ -181,6 +184,9 @@ const syncMarkState = (
       timeline.to(
         path,
         {
+          ...(entering
+            ? {}
+            : { morphSVG: pathFor(shape), strokeDasharray: length }),
           strokeDashoffset: entering ? 0 : length,
           duration,
           ease: entering ? gsapEasing.settle : gsapEasing.exit,

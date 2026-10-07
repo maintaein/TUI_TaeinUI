@@ -5,6 +5,7 @@ import '@testing-library/jest-dom';
 import { createRef, useState } from 'react';
 import { Checkbox } from './Checkbox';
 import { gsapDuration, gsapEasing } from '../../tokens/gsapEasing';
+import { themeContract } from '../../tokens/theme.css';
 
 // gsap 네임스페이스는 ambient 전역 타입이라 import 없이 참조된다
 // (Snackbar.test.tsx의 CountdownTweenHost와 같은 방식) — 이 파일에서
@@ -457,6 +458,28 @@ describe('Checkbox', () => {
       expect(stroke.vars.ease).toBe(gsapEasing.exit);
     });
 
+    it('모프 도중 해제하면 d와 dasharray를 즉시 확정하지 않고 해제 타임라인이 같이 트윈한다', () => {
+      const { container, rerender } = render(mount({ checked: true }));
+      rerender(mount({ checked: true, indeterminate: true }));
+      const path = getMarkPath(container);
+      path.__markTween?.progress(0.1);
+      const midD = path.getAttribute('d');
+      expect(midD).not.toBe('M5 12 L19 12');
+
+      rerender(mount({ checked: false }));
+
+      expect(path.getAttribute('d')).toBe(midD);
+      const { stroke } = childrenOf(container);
+      expect(stroke.vars.morphSVG).toBe('M5 12 L19 12');
+      expect(stroke.vars.strokeDasharray).toBe(14);
+      expect(stroke.duration()).toBeCloseTo(gsapDuration.slow * 0.65, 10);
+      expect(stroke.vars.ease).toBe(gsapEasing.exit);
+
+      path.__markTween?.progress(1);
+      expect(path.getAttribute('d')).toBe('M5 12 L19 12');
+      expect(Number(path.style.strokeDashoffset)).toBe(14);
+    });
+
     it('indeterminate 진입도 체크와 같은 트윈이고 획은 대시 path다', () => {
       const { container, rerender } = render(mount({ checked: false }));
       rerender(mount({ checked: false, indeterminate: true }));
@@ -884,7 +907,15 @@ describe('Checkbox 생성 CSS (M5 task-16)', () => {
     expect(fill?.style.getPropertyValue('position')).toBe('absolute');
     expect(fill?.style.getPropertyValue('transform-origin')).toBe('center');
     expect(fill?.style.getPropertyValue('border-radius')).toBe('inherit');
-    expect(fill?.cssText).toMatch(/inset: 0|top: 0/);
+  });
+
+  it('채움은 테두리 두께만큼 바깥으로 깔려 padding box 모서리를 빈틈없이 덮는다', () => {
+    const border = own('checkmark')?.style.getPropertyValue('border');
+    const width = border?.match(/^(\d+)px/)?.[1];
+    expect(width).toBeDefined();
+    expect(own('markFill')?.style.getPropertyValue('inset')).toBe(
+      `-${width}px`
+    );
   });
 
   it('상자는 overflow hidden으로 채움의 넘침을 자른다', () => {
@@ -916,9 +947,11 @@ describe('Checkbox 생성 CSS (M5 task-16)', () => {
     const disabled = fillRules.find((rule) =>
       rule.selectorText.includes('input:disabled')
     );
-    expect(disabled?.style.getPropertyValue('background-color')).not.toBe('');
-    expect(
-      own('markFill')?.style.getPropertyValue('background-color')
-    ).not.toBe('');
+    expect(disabled?.style.getPropertyValue('background-color')).toBe(
+      themeContract.color.text.disabled
+    );
+    expect(own('markFill')?.style.getPropertyValue('background-color')).toBe(
+      themeContract.color.primary.main
+    );
   });
 });
