@@ -31,18 +31,20 @@ export const chip = recipe({
       '--chip-scale': '1',
     },
 
-    // 선택 표식(B2) — 항상 존재하되 scale(0)으로 숨어 있다가 .selected에서만
-    // 커진다(아래 globalStyle). 색은 --chip-marker-color로 Chip.tsx가 넣는다.
+    // 선택 표식(B2). 항상 존재하되 opacity 0으로 숨어 있다가 .selected에서만
+    // 서서히 나타난다(아래 globalStyle). 크기는 바뀌지 않는다. 색은
+    // --chip-marker-color로 Chip.tsx가 넣는다. 고리는 모양이라 색만으로 선택을
+    // 알리지 않는다(WCAG 1.4.1).
     '::before': {
       content: '""',
       position: 'absolute',
       inset: 0,
       borderRadius: 'inherit',
       border: '2px solid var(--chip-marker-color, transparent)',
-      transform: 'scale(0)',
+      opacity: 0,
       pointerEvents: 'none',
-      // 물러날 때(article 3): 진입(base)의 60~70%로 짧고, 가속 커브로 뺀다.
-      transition: `transform calc(${themeContract.animation.duration.base} * 0.65) ${themeContract.animation.easing.exit}`,
+      // 물러날 때(article 3): 진입(slow)의 65%(195ms)로 짧고, 가속 커브로 뺀다.
+      transition: `opacity calc(${themeContract.animation.duration.slow} * 0.65) ${themeContract.animation.easing.exit}`,
     },
   },
 
@@ -170,8 +172,7 @@ export const chip = recipe({
   },
 });
 
-// 선택된 본체 — "표식이 꽂히듯 박히고 칩이 그 충격에 한 번 흔들린다"를 키프레임
-// 없이 표현한다. spring(감쇠 진동) 커브 자체가 scale(1)→1.03 전이 중간에
+// 선택된 본체. spring(감쇠 진동) 커브가 scale(1)에서 1.03으로 가는 전이 중간에
 // 1.03을 넘겼다 살짝 되돌아오는 흔들림을 만든다(article 1: 상태 전이는 커브로).
 // --chip-scale을 1.03으로 올려 위 :hover/:active가 곱해 합성한다(리뷰 F1).
 // transitionDuration/TimingFunction만 얹으면(구 코드) transition-property는
@@ -185,14 +186,15 @@ export const selected = style({
   transition: `transform ${themeContract.animation.duration.base} ${themeContract.animation.easing.spring}, box-shadow ${themeContract.animation.duration.base} ${themeContract.animation.easing.settle}, opacity ${themeContract.animation.duration.base} ${themeContract.animation.easing.settle}`,
 });
 
-// 선택되면 위 chip base의 ::before 표식이 scale(1)로 꽂히듯 박힌다 — base
-// 소유의 짧은 퇴장 전이와 달리 진입은 base 길이 그대로에 spring으로 튄다.
-// selected가 빈 placeholder라 List.css.ts의 globalStyle(두 독립 클래스 결합)
-// 관례로 chip 표식과 결합한다.
+// 선택되면 위 chip base의 ::before 고리가 투명도로 스며든다. 크기는 바뀌지 않고
+// spring도 쓰지 않는다. settle은 1-(1-t)^4라 투명도가 진행 43.8%에 90%에 닿는다.
+// base(200ms)면 88ms 만에 거의 다 보여 "켜지는" 것으로 읽혀서 slow(300ms, 131ms)로
+// 늘렸다. 사라질 때는 base 규칙의 slow*0.65(195ms), exit다. 단축 속성을 통째로 써서
+// base의 transition을 물려받지 않게 한다(리뷰 F6과 같은 이유). selected가 빈
+// placeholder라 List.css.ts의 globalStyle(두 독립 클래스 결합) 관례로 chip 고리와 결합한다.
 globalStyle(`${selected}::before`, {
-  transform: 'scale(1)',
-  transitionDuration: themeContract.animation.duration.base,
-  transitionTimingFunction: themeContract.animation.easing.spring,
+  opacity: 1,
+  transition: `opacity ${themeContract.animation.duration.slow} ${themeContract.animation.easing.settle}`,
 });
 
 // 호버·누름의 색 한 쌍. 호버는 (hover: hover) and (pointer: fine) 안에서만 걸린다

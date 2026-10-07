@@ -1305,22 +1305,12 @@ interface OvershootException {
 }
 
 /**
- * 손으로 확인한 안전한 bare 오버라이드 1곳(F6 스캔 결과 전부. BoardRow의 것은
- * M5 task-11에서 막대와 함께 사라져 2곳에서 1곳이 됐다). 자기
- * own 규칙이 단일 속성(`transform`) transition만 선언하는 `::before`
- * globalStyle이라, bare `transitionTimingFunction`이 상속할 수 있는 속성이
- * transform 하나뿐이다. 새 자리가 여기 없이 생기면 위 `it`이 실패한다.
+ * 손으로 확인한 안전한 bare 오버라이드 목록. 지금은 비어 있다. 마지막 항목이던
+ * Chip의 `${selected}::before`는 고리를 투명도로 서서히 나타내게 바뀌며 transition
+ * 단축 속성을 통째로 쓰게 됐다(M5 task-12). 새 bare 자리가 생기면 아래 첫 `it`이
+ * 실패하고, 손으로 안전을 확인한 뒤에만 여기에 올린다.
  */
-const OVERSHOOT_TIMING_EXCEPTIONS: OvershootException[] = [
-  {
-    at: 'components/Chip/Chip.css.ts',
-    line: 195,
-    owner: '-',
-    reason:
-      '`${selected}::before` 진입. chip base의 ::before(Chip.css.ts:45)가 transform ' +
-      '단일 속성 transition만 선언해 bare spring이 샐 다른 속성이 없다.',
-  },
-];
+const OVERSHOOT_TIMING_EXCEPTIONS: OvershootException[] = [];
 
 // ---------------------------------------------------------------------------
 // 4. 오버슈트 이징 (R46)

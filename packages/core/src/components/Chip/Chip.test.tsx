@@ -714,15 +714,17 @@ describe('Chip 모션 잠금', () => {
     expect(cssSource).toMatch(/vars:\s*\{\s*'--chip-scale':\s*'1',\s*\}/);
   });
 
-  it('base에 표식(::before)이 scale(0)로 숨어 있다가 calc(base*0.65)/exit로 물러난다', () => {
+  it('base에 표식(::before)이 opacity 0으로 숨어 있다가 opacity만 calc(slow*0.65)/exit로 물러난다', () => {
     const before = cssSource.match(/'::before': \{([\s\S]*?)\n {4}\},/)?.[1];
     expect(before, '::before 블록을 찾지 못했다').toBeDefined();
-    expect(before).toContain("transform: 'scale(0)'");
-    expect(before).toContain('* 0.65');
-    expect(before).toContain('themeContract.animation.easing.exit');
+    expect(before).toContain('opacity: 0,');
+    expect(before).not.toContain('transform');
+    expect(before).toContain(
+      'transition: `opacity calc(${themeContract.animation.duration.slow} * 0.65) ${themeContract.animation.easing.exit}`'
+    );
   });
 
-  it('selected::before가 spring으로 표식을 scale(1)로 박아 넣는다', () => {
+  it('selected::before가 opacity 1로 slow/settle에 서서히 나타나고 spring·snap·transform이 없다', () => {
     expect(cssSource).toMatch(/\$\{selected\}::before/);
     const marker = cssSource.match(
       /\$\{selected\}::before[`'"],?\s*\{([\s\S]*?)\n\}\)/
@@ -731,8 +733,14 @@ describe('Chip 모션 잠금', () => {
       marker,
       'selected::before globalStyle 블록을 찾지 못했다'
     ).toBeDefined();
-    expect(marker).toContain("transform: 'scale(1)'");
-    expect(marker).toContain('themeContract.animation.easing.spring');
+    expect(marker).toContain('opacity: 1,');
+    // transition 단축 속성 통째로 쓴다. bare 롱핸드는 base의 속성 목록을 물려받는다(리뷰 F6).
+    expect(marker).toContain(
+      'transition: `opacity ${themeContract.animation.duration.slow} ${themeContract.animation.easing.settle}`'
+    );
+    expect(marker).not.toMatch(/transitionDuration|transitionTimingFunction/);
+    expect(marker).not.toMatch(/easing\.(spring|snap)/);
+    expect(marker).not.toContain('transform');
   });
 
   it('selected 클래스 자체가 --chip-scale을 1.03으로 올려 spring으로 본체를 흔든다', () => {
