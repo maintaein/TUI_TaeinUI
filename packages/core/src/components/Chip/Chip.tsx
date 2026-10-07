@@ -26,8 +26,8 @@ import {
   deleteButton,
 } from './Chip.css';
 
-// 테스트가 현재 퇴장 트윈을 읽는 손잡이(Avatar의 __avatarPress와 같은 모양).
-type ChipHost = HTMLElement & { __chipExitTween?: gsap.core.Tween };
+// 테스트가 현재 퇴장 타임라인을 읽는 손잡이(Modal·BoardRow의 __...Timeline과 같은 모양).
+type ChipHost = HTMLElement & { __chipExitTimeline?: gsap.core.Timeline };
 
 /** 태그, 필터, 선택 항목 등을 표시하는 칩 컴포넌트 */
 export interface ChipProps {
@@ -107,13 +107,14 @@ export const Chip = ({
   useEffect(() => {
     const el = rootRef.current;
     return () => {
-      el?.__chipExitTween?.kill();
+      el?.__chipExitTimeline?.kill();
     };
   }, []);
 
   // 삭제 버튼 클릭 핸들러. onDelete는 퇴장이 끝난 뒤 부른다. 부모가 칩을 바로
-  // 지우면 애니메이션할 시간이 없다(BubbleMenu도 끝난 뒤 닫는다). 가속하며
-  // 빨려 들어가는 것이 bubble이 사라지는 느낌이다(scale 1 -> 0, ease-in).
+  // 지우면 애니메이션할 시간이 없다(BubbleMenu도 끝난 뒤 닫는다). 퇴장은 두 단계다.
+  // 1) 가속하며 빨려 들어간다(scale 1 -> 0, ease-in). bubble이 사라지는 느낌이다.
+  // 2) 보이지 않게 된 칩이 자기 자리를 닫아 오른쪽 칩이 미끄러져 온다.
   // 축소 모드는 gateMotion이 끝 상태로 확정해 onComplete가 즉시 불린다.
   const handleDelete = (
     e: React.MouseEvent<HTMLElement> | React.KeyboardEvent<HTMLElement>
@@ -125,16 +126,45 @@ export const Chip = ({
     setExiting(true);
     // CSS transition이 transform·opacity를 따라가면 GSAP이 매 프레임 쓰는 값과 다툰다.
     el.style.transition = 'none';
-    el.__chipExitTween = gateMotion(reduced, () =>
-      gsap.to(el, {
+    // 값은 클릭 순간에 읽는다. 폭은 transform에 안 흔들리는 offsetWidth.
+    const parentStyle = el.parentElement
+      ? getComputedStyle(el.parentElement)
+      : null;
+    // ponytail: 가로 줄 배치(flex row·일반 흐름)만 닫는다. 가로 끝 여백이 grid나
+    // flex 비row에서는 옆 칩을 당기지 못하거나 반대쪽을 당긴다. 세로·grid 칩
+    // 목록이 실제로 생기면 그 축에 맞게 올린다.
+    const closesGap =
+      !!parentStyle &&
+      !parentStyle.display.includes('grid') &&
+      (!parentStyle.display.includes('flex') ||
+        parentStyle.flexDirection === 'row');
+    const columnGap = parseFloat(parentStyle?.columnGap ?? '') || 0;
+    el.__chipExitTimeline = gateMotion(reduced, () => {
+      const tl = gsap.timeline({ onComplete: () => onDeleteRef.current?.() });
+      tl.to(el, {
         scale: 0,
         opacity: 0,
         transformOrigin: '50% 50%',
         duration: gsapDuration.base,
         ease: gsapEasing.exit,
-        onComplete: () => onDeleteRef.current?.(),
-      })
-    );
+      });
+      // 폭을 0으로 줄이면 flex 항목의 min-width: auto(글자가 nowrap)에 걸려 안 줄고,
+      // 줄여도 gap 하나가 남아 부모가 지울 때 그만큼 다시 튄다. 끝 여백을
+      // -(폭 + gap)으로 주면 이 칩이 줄에서 차지하는 몫이 정확히 0이 되어 부모가
+      // 지우는 순간 옆 칩의 이동이 0이다. 칩은 1이 끝나면 보이지 않고 inert라
+      // 옆 칩이 그 위로 지나가도 무해하다. 1 다음에 하는 이유: exit(power2.in)는
+      // 진행 60%에도 크기가 0.64라 겹치면 보이는 칩 위로 옆 칩이 지난다.
+      // 넘침 없는 settle: 이동거리가 칩마다 다르다(40~130px). 넘치는 커브는 넘침이
+      // 거리에 비례해 긴 칩에서 gap(8px)을 넘어 옆 칩이 왼쪽 칩을 덮는다.
+      if (closesGap) {
+        tl.to(el, {
+          marginInlineEnd: -(el.offsetWidth + columnGap),
+          duration: gsapDuration.base,
+          ease: gsapEasing.settle,
+        });
+      }
+      return tl;
+    });
   };
 
   // 클릭 가능 여부에 따라 button 또는 div로 렌더링

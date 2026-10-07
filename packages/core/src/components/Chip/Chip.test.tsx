@@ -175,9 +175,9 @@ describe('Chip', () => {
       act(() => {
         (
           container.firstChild as HTMLElement & {
-            __chipExitTween?: { progress(value: number): unknown };
+            __chipExitTimeline?: { progress(value: number): unknown };
           }
-        ).__chipExitTween?.progress(1);
+        ).__chipExitTimeline?.progress(1);
       });
       expect(handleDelete).toHaveBeenCalledTimes(1);
     });
@@ -356,9 +356,9 @@ describe('Chip', () => {
       act(() => {
         (
           container.firstChild as HTMLElement & {
-            __chipExitTween?: { progress(value: number): unknown };
+            __chipExitTimeline?: { progress(value: number): unknown };
           }
-        ).__chipExitTween?.progress(1);
+        ).__chipExitTimeline?.progress(1);
       });
       expect(handleDelete).toHaveBeenCalledTimes(1);
     });
@@ -448,14 +448,17 @@ describe('Chip 삭제 퇴장', () => {
   afterEach(() => vi.unstubAllGlobals());
 
   // Chip.tsx가 DOM 노드에 얹는 손잡이. gsap을 직접 import하지 않고 이걸로 읽는다.
-  type ExitTween = {
+  type ExitStep = {
     vars: { scale?: number; opacity?: number; ease?: string };
     duration(): number;
+  };
+  type ExitTimeline = {
+    getChildren(nested?: boolean): ExitStep[];
     progress(value: number): unknown;
-    // 죽은 트윈은 타임라인에서 떨어진다.
+    // 죽은 타임라인은 루트에서 떨어진다.
     parent: unknown;
   };
-  type Host = HTMLElement & { __chipExitTween?: ExitTween };
+  type Host = HTMLElement & { __chipExitTimeline?: ExitTimeline };
 
   const stubReducedMotion = () =>
     vi.stubGlobal(
@@ -478,14 +481,15 @@ describe('Chip 삭제 퇴장', () => {
     await user.click(screen.getByRole('button', { name: /삭제/i }));
 
     expect(onDelete).not.toHaveBeenCalled();
-    const tween = root.__chipExitTween as ExitTween;
-    expect(tween.vars.scale).toBe(0);
-    expect(tween.vars.opacity).toBe(0);
-    expect(tween.vars.ease).toBe(gsapEasing.exit);
-    expect(tween.duration()).toBe(gsapDuration.base);
+    const timeline = root.__chipExitTimeline as ExitTimeline;
+    const [suck] = timeline.getChildren(false);
+    expect(suck.vars.scale).toBe(0);
+    expect(suck.vars.opacity).toBe(0);
+    expect(suck.vars.ease).toBe(gsapEasing.exit);
+    expect(suck.duration()).toBe(gsapDuration.base);
 
     act(() => {
-      tween.progress(1);
+      timeline.progress(1);
     });
     expect(onDelete).toHaveBeenCalledTimes(1);
   });
@@ -519,10 +523,10 @@ describe('Chip 삭제 퇴장', () => {
     await user.click(screen.getByRole('button', { name: 'B 삭제' }));
 
     act(() => {
-      a.__chipExitTween?.progress(1);
+      a.__chipExitTimeline?.progress(1);
     });
     act(() => {
-      b.__chipExitTween?.progress(1);
+      b.__chipExitTimeline?.progress(1);
     });
 
     expect(screen.queryByText('A')).not.toBeInTheDocument();
@@ -537,9 +541,9 @@ describe('Chip 삭제 퇴장', () => {
     const del = screen.getByRole('button', { name: /삭제/i });
 
     fireEvent.click(del);
-    const first = root.__chipExitTween;
+    const first = root.__chipExitTimeline;
     fireEvent.click(del);
-    expect(root.__chipExitTween).toBe(first);
+    expect(root.__chipExitTimeline).toBe(first);
 
     act(() => {
       first?.progress(1);
@@ -577,7 +581,7 @@ describe('Chip 삭제 퇴장', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /삭제/i }));
 
-    expect((container.firstChild as Host).__chipExitTween).toBeUndefined();
+    expect((container.firstChild as Host).__chipExitTimeline).toBeUndefined();
     expect(onDelete).not.toHaveBeenCalled();
   });
 
@@ -588,11 +592,117 @@ describe('Chip 삭제 퇴장', () => {
     const root = container.firstChild as Host;
 
     fireEvent.click(screen.getByRole('button', { name: /삭제/i }));
-    const tween = root.__chipExitTween as ExitTween;
-    expect(tween.parent).toBeTruthy();
+    const timeline = root.__chipExitTimeline as ExitTimeline;
+    expect(timeline.parent).toBeTruthy();
     unmount();
 
-    expect(tween.parent).toBeFalsy();
+    expect(timeline.parent).toBeFalsy();
+  });
+});
+
+describe('Chip 삭제 뒤 자리 닫기', () => {
+  type Step = {
+    vars: { scale?: number; marginInlineEnd?: number; ease?: string };
+    duration(): number;
+    startTime(): number;
+    endTime(): number;
+  };
+  type Timeline = {
+    getChildren(nested?: boolean): Step[];
+    progress(value: number): unknown;
+  };
+  type Host = HTMLElement & { __chipExitTimeline?: Timeline };
+
+  // jsdom은 레이아웃이 없어 offsetWidth가 0이다. 칩 폭을 정의해 준다.
+  const renderIn = (
+    parentStyle: Partial<CSSStyleDeclaration>,
+    onDelete: () => void = () => {}
+  ) => {
+    const parent = document.createElement('div');
+    Object.assign(parent.style, parentStyle);
+    document.body.append(parent);
+    const utils = render(<Chip label="테스트" onDelete={onDelete} />, {
+      container: parent,
+    });
+    const root = parent.firstChild as Host;
+    Object.defineProperty(root, 'offsetWidth', {
+      configurable: true,
+      value: 100,
+    });
+    fireEvent.click(screen.getByRole('button', { name: /삭제/i }));
+    const timeline = root.__chipExitTimeline as Timeline;
+    return { ...utils, parent, timeline, steps: timeline.getChildren(false) };
+  };
+
+  const row = { display: 'flex', flexDirection: 'row', columnGap: '8px' };
+
+  it('flex row 부모에서는 빨려 든 뒤에 자리를 닫는 둘째 단계가 이어진다', () => {
+    const { steps } = renderIn(row);
+
+    expect(steps).toHaveLength(2);
+    const [suck, close] = steps;
+    expect(suck.vars.scale).toBe(0);
+    // 둘째는 첫째가 끝난 시각에 시작한다. 겹치면 아직 보이는 칩 위로 옆 칩이 지난다.
+    expect(close.startTime()).toBe(suck.endTime());
+    expect(close.startTime()).toBeGreaterThan(suck.startTime());
+  });
+
+  it('둘째 단계는 넘침 없는 settle 커브로 base 동안 끝 여백을 움직인다', () => {
+    const [, close] = renderIn(row).steps;
+
+    expect(close.vars.marginInlineEnd).toBeDefined();
+    expect(close.vars.ease).toBe(gsapEasing.settle);
+    expect(close.vars.ease).not.toBe(gsapEasing.snap);
+    expect(close.vars.ease).not.toBe(gsapEasing.spring);
+    expect(close.duration()).toBe(gsapDuration.base);
+  });
+
+  it('끝 여백의 끝값은 -(칩 폭 + 부모 column-gap)이다', () => {
+    const [, close] = renderIn(row).steps;
+
+    expect(close.vars.marginInlineEnd).toBe(-(100 + 8));
+  });
+
+  it('column-gap이 normal이면 gap은 0으로 읽는다', () => {
+    const [, close] = renderIn({ display: 'flex', flexDirection: 'row' }).steps;
+
+    expect(close.vars.marginInlineEnd).toBe(-100);
+  });
+
+  it('일반 흐름(inline) 부모에서도 자리를 닫는다', () => {
+    expect(renderIn({}).steps).toHaveLength(2);
+  });
+
+  it.each([
+    ['grid', { display: 'grid', columnGap: '8px' }],
+    ['flex column', { display: 'flex', flexDirection: 'column' }],
+    ['flex row-reverse', { display: 'flex', flexDirection: 'row-reverse' }],
+  ])('%s 부모에서는 자리 닫기 단계를 만들지 않는다', (_, style) => {
+    const onDelete = vi.fn();
+    const { timeline, steps } = renderIn(style, onDelete);
+
+    expect(steps).toHaveLength(1);
+    act(() => {
+      timeline.progress(1);
+    });
+    expect(onDelete).toHaveBeenCalledTimes(1);
+  });
+
+  it('onDelete는 자리 닫기까지 끝난 뒤에 한 번 불린다', () => {
+    const onDelete = vi.fn();
+    const { timeline, steps } = renderIn(row, onDelete);
+    const [suck, close] = steps;
+
+    // 첫째가 끝난 직후(둘째 시작 지점)까지는 아직 안 불린다.
+    act(() => {
+      timeline.progress(suck.endTime() / close.endTime());
+    });
+    expect(onDelete).not.toHaveBeenCalled();
+
+    act(() => {
+      timeline.progress(1);
+    });
+    expect(onDelete).toHaveBeenCalledTimes(1);
   });
 });
 
