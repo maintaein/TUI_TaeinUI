@@ -85,6 +85,7 @@ const canHover = () =>
  * 라이브러리의 아이콘이든 children으로 넣으면 버튼이 된다. 아이콘 크기는 버튼
  * `size`가 정한다(아이콘의 svg가 1em). 아이콘에 직접 크기를 주려면 `size` prop이 아니라
  * `className`이나 `style`로 준다(`size` prop은 SVG 속성이라 버튼의 CSS 규칙에 진다).
+ * 소비자의 전역 요소 규칙(예: `svg { width: 24px }`)에도 진다. 클래스와 `style`은 이긴다.
  * aria-label 필수.
  */
 export interface IconButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
