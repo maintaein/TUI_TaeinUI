@@ -53,7 +53,8 @@ export interface IconButtonProps extends ButtonHTMLAttributes<HTMLButtonElement>
   /**
    * 호버 효과. jelly: 마우스가 들어오면 아이콘이 부피를 지키며 옆으로 퍼졌다가 출렁이며
    * 돌아온다. 한 번 도는 동안 다시 들어와도 무시한다. 마우스만 받고 터치·키보드 포커스에는
-   * 없으며 비활성·로딩에서도 없다. 모션 축소 선호에서는 움직이지 않는다 @default 'none'
+   * 없으며 비활성·로딩에서도 없다. 모션 축소 선호에서는 움직이지 않는다. 기본으로 켜져
+   * 있고 `'none'`으로 끈다 @default 'jelly'
    */
   hoverEffect?: IconButtonHoverEffect;
   /** 로딩 상태 @default false */
@@ -74,7 +75,7 @@ export const IconButton = forwardRef<HTMLButtonElement, IconButtonProps>(
       variant = 'primary',
       buttonStyle = 'ghost',
       size = 'md',
-      hoverEffect = 'none',
+      hoverEffect = 'jelly',
       loading = false,
       disabled = false,
       children,
@@ -122,11 +123,16 @@ export const IconButton = forwardRef<HTMLButtonElement, IconButtonProps>(
     const reduced = useReducedMotion();
     const slotRef = useRef<JellyHost>(null);
 
-    // 아이콘 칸이 바뀌거나(로딩) 효과가 꺼지거나 언마운트하면 돌던 타임라인을 죽인다.
+    // 아이콘 칸이 바뀌거나(로딩) 효과가 꺼지거나 언마운트하면 돌던 타임라인을 죽이고
+    // 중간 배율이 남지 않게 transform을 걷는다. 손잡이도 비워야 다시 켰을 때 죽은 것이
+    // "도는 중"으로 읽혀 무시되지 않는다.
     useEffect(() => {
       const el = slotRef.current;
       return () => {
-        el?.__iconButtonJelly?.kill();
+        if (!el?.__iconButtonJelly) return;
+        el.__iconButtonJelly.kill();
+        el.__iconButtonJelly = undefined;
+        gsap.set(el, { clearProps: 'transform' });
       };
     }, [jelly, loading]);
 

@@ -50,7 +50,7 @@ All components follow consistent patterns:
 
 ### Button & Action
 - **Button** — Primary action button. Props: variant('primary'|'dark'|'danger'|'light'), buttonStyle('fill'|'weak'), size, loading, leftIcon, rightIcon, fullWidth, customColor
-- **IconButton**: Turns an icon from any icon library (lucide-react, react-icons, etc.) into a button. Pass the icon as children; the button size sets the icon size. Props: variant, buttonStyle('ghost'|'weak'|'strong', default ghost), size, hoverEffect('none'|'jelly', default none; the icon spreads and wobbles back when the mouse enters), loading, aria-label (required)
+- **IconButton**: Turns an icon from any icon library (lucide-react, react-icons, etc.) into a button. Pass the icon as children; the button size sets the icon size. Props: variant, buttonStyle('ghost'|'weak'|'strong', default ghost), size, hoverEffect('none'|'jelly', default jelly, on by default and turned off with "none"; the icon spreads and wobbles back when the mouse enters), loading, aria-label (required)
 - **SegmentedButtons** — Button group for single selection. Props: options[{value,label,icon?}], value, onChange, size
 
 ### Display & Data
@@ -120,7 +120,7 @@ M3에서 GSAP 런타임이 실제로 붙은 컴포넌트와 그 능력. 계획�
 | Avatar | 다중 목표 중단(떠오름과 눌림이 서로를 덮어쓰며 이어짐) |
 | BoardRow | 타임라인 상대 위치 · CSS가 못 보는 값 읽기(트윈 중간 높이, 내용 높이) |
 | Chip | 타임라인 상대 위치 · CSS가 못 보는 값 읽기(폭과 gap으로 자리 닫기) |
-| IconButton | 타임라인 상대 위치 |
+| IconButton | 타임라인 상대 위치(젤리 호버, 기본으로 켜져 있고 `hoverEffect="none"`으로 끈다) |
 
 **Flip은 이 목록 어디에도 없다.** 유일한 후보였던 `Card`는 CSS 전환으로
 충분하다고 판단해 채택하지 않았다.

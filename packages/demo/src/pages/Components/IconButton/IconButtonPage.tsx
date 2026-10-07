@@ -36,9 +36,9 @@ export function IconButtonPage() {
     {
       name: 'hoverEffect',
       type: "'none' | 'jelly'",
-      default: "'none'",
+      default: "'jelly'",
       description:
-        'jelly이면 마우스가 들어올 때 아이콘이 옆으로 퍼졌다가 출렁이며 돌아온다. 마우스만, 세 모드 모두',
+        '마우스가 들어올 때 아이콘이 옆으로 퍼졌다가 출렁이며 돌아온다. 기본으로 켜져 있고 "none"으로 끈다. 마우스만, 세 모드 모두',
     },
     {
       name: 'loading',
@@ -299,24 +299,24 @@ const handleClick = () => {
         <div className={styles.sectionHeader}>
           <h2 className={styles.sectionTitle}>젤리</h2>
           <p className={styles.sectionDescription}>
-            hoverEffect=&quot;jelly&quot;는 마우스가 들어오면 아이콘이 부피를
-            지키며 옆으로 퍼졌다가 출렁이며 돌아오게 합니다. 아이콘만 움직이고
-            버튼은 그대로입니다. 도는 중에 다시 들어와도 무시하며, 터치와 키보드
-            포커스에는 효과가 없습니다.
+            젤리는 기본으로 켜져 있습니다. prop 없이 쓴 IconButton도 마우스가
+            들어오면 아이콘이 부피를 지키며 옆으로 퍼졌다가 출렁이며 돌아옵니다.
+            hoverEffect=&quot;none&quot;으로 끄고, 기본값과 같은
+            hoverEffect=&quot;jelly&quot;로 다시 명시할 수 있습니다. 마우스에만
+            반응하고 터치, 키보드 포커스, 동작 줄이기 설정에서는 움직이지
+            않습니다.
           </p>
         </div>
 
         <div className={styles.example}>
-          <h3 className={styles.exampleTitle}>Ghost · Weak · Strong</h3>
+          <h3 className={styles.exampleTitle}>기본 · none</h3>
           <LivePreview
-            title="젤리"
-            description='세 모드에 hoverEffect="jelly"를 줍니다.'
+            title="젤리 켜기와 끄기"
+            description='왼쪽은 prop이 없는 기본(젤리), 오른쪽은 hoverEffect="none"입니다. 각각 호버해 보세요.'
             editable
             code={`<div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
-  <IconButton hoverEffect="jelly" aria-label="검색"><Search /></IconButton>
-  <IconButton hoverEffect="jelly" buttonStyle="weak" aria-label="즐겨찾기"><Star /></IconButton>
-  <IconButton hoverEffect="jelly" buttonStyle="strong" aria-label="추가"><Plus /></IconButton>
-  <IconButton hoverEffect="jelly" buttonStyle="strong" variant="danger" aria-label="삭제"><Trash /></IconButton>
+  <IconButton buttonStyle="strong" aria-label="기본"><Plus /></IconButton>
+  <IconButton buttonStyle="strong" hoverEffect="none" aria-label="젤리 끔"><Plus /></IconButton>
 </div>`}
           />
         </div>

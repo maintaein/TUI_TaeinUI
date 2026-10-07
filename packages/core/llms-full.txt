@@ -318,8 +318,13 @@ import { Plus, X } from 'lucide-react';
   <X />
 </IconButton>
 
-// Icon spreads sideways like jelly when the mouse enters, then wobbles back
-<IconButton hoverEffect="jelly" aria-label="메뉴">
+// Jelly hover is on by default: the icon spreads sideways when the mouse enters, then wobbles back
+<IconButton aria-label="메뉴">
+  <Plus />
+</IconButton>
+
+// Turn it off with hoverEffect="none" (hoverEffect="jelly" is the default)
+<IconButton hoverEffect="none" aria-label="메뉴">
   <Plus />
 </IconButton>
 ```
@@ -330,7 +335,7 @@ import { Plus, X } from 'lucide-react';
 | variant | 'primary' \| 'dark' \| 'danger' \| 'light' | 'primary' | Button variant. Applies to weak and strong only (ghost is gray) |
 | buttonStyle | 'ghost' \| 'weak' \| 'strong' | 'ghost' | ghost: no background, weak: light background, strong: solid background |
 | size | 'sm' \| 'md' \| 'lg' \| 'xl' | 'md' | Button size |
-| hoverEffect | 'none' \| 'jelly' | 'none' | jelly: when the mouse enters, the icon spreads sideways (scaleX 1.15, scaleY 1/1.15, volume kept) and wobbles back with a spring. Only the icon moves, not the button. Re-entry while it is running is ignored. Mouse only (no effect for touch or keyboard focus, disabled or loading); with reduced motion nothing moves. Works in all three buttonStyles |
+| hoverEffect | 'none' \| 'jelly' | 'jelly' | On by default; set "none" to turn it off. jelly: when the mouse enters, the icon spreads sideways (scaleX 1.15, scaleY 1/1.15, volume kept) and wobbles back with a spring. Only the icon moves, not the button. Re-entry while it is running is ignored. Mouse only (no effect for touch or keyboard focus, disabled or loading); with reduced motion nothing moves. Works in all three buttonStyles |
 | loading | boolean | false | Loading state |
 | disabled | boolean | false | Disabled state |
 | children | ReactNode | — | Icon content |
@@ -1238,7 +1243,7 @@ M3(Tier-B GSAP 런타임)에서 실제로 GSAP이 붙은 컴포넌트와 그 능
 | Avatar | 다중 목표 중단(떠오름과 눌림이 서로를 덮어쓰며 이어짐) | 호버·포커스의 떠오름(`yPercent`)과 누름의 `scale`이 각자 `overwrite: 'auto'`로 지금 자리에서 새 목표로 이어진다. 호버는 spring, 되돌아올 때는 settle이다 |
 | BoardRow | 타임라인 상대 위치 · CSS가 못 보는 값 읽기(트윈 중간 높이, 내용 높이) | 펼침은 `height`를 현재 높이에서 `scrollHeight`보다 살짝 넘겼다가 내용 높이로 되돌리는 두 구간 타임라인이고, 접힘은 부풀었다가 0으로 간다. 도중에 뒤집으면 죽이기 전에 읽은 중간 높이에서 출발한다 |
 | Chip | 타임라인 상대 위치 · CSS가 못 보는 값 읽기(폭과 gap으로 자리 닫기) | 삭제는 두 구간이다. 먼저 `scale`·`opacity`가 0으로 빨려 들어가고, 이어서 `marginInlineEnd`를 `-(offsetWidth + columnGap)`으로 줘 자리를 닫아 오른쪽 칩이 미끄러져 온다. `onDelete`는 타임라인이 끝난 뒤 불린다 |
-| IconButton | 타임라인 상대 위치 | `hoverEffect="jelly"`일 때만 쓴다. 마우스가 들어오면 아이콘 칸이 두 구간 타임라인을 돈다. 먼저 `scaleX`가 1.15로, `scaleY`가 그 역수로 퍼지고(부피 보존), 이어서 둘이 1로 spring 커브를 타고 1을 지나쳤다가 앉는다. 도는 중에 다시 들어오면 무시한다 |
+| IconButton | 타임라인 상대 위치 | 기본으로 켜져 있고 `hoverEffect="none"`으로 끈다. 마우스가 들어오면 아이콘 칸이 두 구간 타임라인을 돈다. 먼저 `scaleX`가 1.15로, `scaleY`가 그 역수로 퍼지고(부피 보존), 이어서 둘이 1로 spring 커브를 타고 1을 지나쳤다가 앉는다. 도는 중에 다시 들어오면 무시한다 |
 
 **Flip은 이 목록 어디에도 없다.** 유일한 후보였던 `Card`는 레이아웃 변화를
 CSS 전환으로 충분히 표현할 수 있다고 판단해 채택하지 않았다.

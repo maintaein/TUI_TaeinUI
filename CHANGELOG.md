@@ -27,7 +27,7 @@
 - `Border`에 `glow` prop(`boolean`, 기본값 `false`)을 추가했습니다. 호버·포커스 시 테두리를 따라 도는 빛을 켭니다. `sides="all"`일 때만 나타납니다.
 - `animation.loop.slow`(`6000ms`) 토큰을 추가했습니다. `prefers-reduced-motion: reduce`에서는 다른 `loop` 토큰처럼 `0.01ms`로 내려갑니다.
 - `Avatar`에 `bouncy` prop(`boolean`, 기본값 `false`)을 추가했습니다. 호버나 키보드 포커스(`:focus-visible`)에 위로 튀며 떠오르고, 누르면(포인터, `Enter`, `Space`) 떠오른 채 커집니다. `onClick` 또는 `href`가 있어 클릭할 수 있는 아바타에서만 동작하고 아니면 무시됩니다. `Popover`의 트리거로 쓰면 `Popover`가 `onClick`을 넘기므로 동작합니다. 켜면 `clickable`의 `transform` 트랜지션과 `:active` 축소는 빠지고 `filter` 호버 밝기는 남습니다. `AvatarGroup` 안에서는 떠오른 아바타가 이웃 위로 올라옵니다. `prefers-reduced-motion: reduce`에서는 움직이지 않습니다. 켜지 않으면 동작이 이전과 같습니다.
-- `IconButton`에 `hoverEffect` prop(`'none' | 'jelly'`, 기본값 `'none'`)을 추가했습니다. `'jelly'`이면 마우스가 들어올 때 아이콘이 부피를 지키며 옆으로 퍼졌다가(`scaleX 1.15`, `scaleY` 1/1.15) 출렁이며 돌아옵니다. 아이콘 칸만 움직이고 버튼은 그대로이며, 도는 중에 다시 들어오면 무시합니다. 마우스만 받고 터치와 키보드 포커스에는 효과가 없으며, `disabled`·`loading`에서도 없습니다. `prefers-reduced-motion: reduce`에서는 움직이지 않습니다. 켜지 않으면 동작과 DOM이 이전과 같습니다.
+- `IconButton`에 `hoverEffect` prop(`'none' | 'jelly'`, 기본값 `'jelly'`)을 추가했습니다. 기본으로 켜져 있어 prop 없이 쓴 `IconButton`도 마우스가 들어올 때 아이콘이 부피를 지키며 옆으로 퍼졌다가(`scaleX 1.15`, `scaleY` 1/1.15) 출렁이며 돌아옵니다. 아이콘 칸만 움직이고 버튼은 그대로이며, 도는 중에 다시 들어오면 무시합니다. 마우스만 받고 터치와 키보드 포커스에는 효과가 없으며, `disabled`·`loading`에서도 없습니다. `prefers-reduced-motion: reduce`에서는 움직이지 않습니다. `hoverEffect="none"`으로 끄면 동작과 DOM이 이전과 같고, 도는 중에 끄면 타임라인을 죽이고 아이콘을 원래 모양으로 돌립니다. `BottomSheet`, `SideSheet`, `Snackbar`의 닫기 버튼도 기본값을 따라 젤리가 됩니다.
 
 ### Removed
 

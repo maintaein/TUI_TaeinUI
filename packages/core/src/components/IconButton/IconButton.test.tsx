@@ -1181,7 +1181,7 @@ describe('IconButton 젤리', () => {
 
   const setup = (props: Partial<ComponentProps<typeof IconButton>> = {}) => {
     const utils = render(
-      <IconButton aria-label="젤리" hoverEffect="jelly" {...props}>
+      <IconButton aria-label="젤리" {...props}>
         <TestIcon />
       </IconButton>
     );
@@ -1202,27 +1202,79 @@ describe('IconButton 젤리', () => {
         }) as unknown as MediaQueryList
     );
 
-  it('hoverEffect 기본에서는 마우스가 들어와도 타임라인이 없고 DOM도 같다', () => {
+  it('hoverEffect 기본(prop 없음)에서는 아이콘 칸에 jellySlot이 있고 마우스가 들어오면 타임라인이 돈다', () => {
     render(
       <IconButton aria-label="기본">
         <TestIcon />
       </IconButton>
     );
     const button = screen.getByRole('button');
+    expect(slotOf(button).className).toContain('jellySlot');
+
+    enter(button);
+
+    expect(slotOf(button).__iconButtonJelly).toBeDefined();
+    expect(slotOf(button).__iconButtonJelly!.progress()).toBeLessThan(1);
+  });
+
+  it("hoverEffect='jelly'를 명시해도 기본과 같다", () => {
+    const { button } = setup({ hoverEffect: 'jelly' });
+
+    enter(button);
+
+    expect(slotOf(button).className).toContain('jellySlot');
+    expect(slotOf(button).__iconButtonJelly).toBeDefined();
+  });
+
+  it("hoverEffect='none'이면 마우스가 들어와도 타임라인이 없고 DOM도 그대로다", () => {
+    const { button } = setup({ hoverEffect: 'none' });
     const before = button.innerHTML;
 
     enter(button);
 
     expect(slotOf(button).__iconButtonJelly).toBeUndefined();
+    expect(slotOf(button).className).not.toContain('jellySlot');
     expect(button.innerHTML).toBe(before);
   });
 
-  it("hoverEffect='none'을 명시해도 기본과 같다", () => {
-    const { button } = setup({ hoverEffect: 'none' });
+  it("도는 중에 hoverEffect를 'none'으로 바꾸면 타임라인을 죽이고 인라인 transform도 걷는다", () => {
+    const { button, rerender } = setup();
+    enter(button);
+    const slot = slotOf(button);
+    const tl = slot.__iconButtonJelly!;
+    act(() => {
+      tl.progress(0.2);
+    });
+    expect(slot.style.transform).not.toBe('');
+
+    rerender(
+      <IconButton aria-label="젤리" hoverEffect="none">
+        <TestIcon />
+      </IconButton>
+    );
+
+    expect(tl.parent).toBeNull();
+    expect(slot.style.transform).toBe('');
+    expect(slot.__iconButtonJelly).toBeUndefined();
+  });
+
+  it('none으로 껐다가 다시 켜면 새로 돈다', () => {
+    const { button, rerender } = setup();
+    enter(button);
+    rerender(
+      <IconButton aria-label="젤리" hoverEffect="none">
+        <TestIcon />
+      </IconButton>
+    );
+    rerender(
+      <IconButton aria-label="젤리">
+        <TestIcon />
+      </IconButton>
+    );
 
     enter(button);
 
-    expect(slotOf(button).__iconButtonJelly).toBeUndefined();
+    expect(slotOf(button).__iconButtonJelly!.progress()).toBeLessThan(1);
   });
 
   it('마우스가 들어오면 퍼짐 다음에 출렁이며 돌아오는 두 단계다', () => {
@@ -1349,7 +1401,11 @@ describe('IconButton 젤리', () => {
   it('hoverEffect가 none이어도 사용자의 onPointerEnter는 불린다', () => {
     const onPointerEnter = vi.fn();
     render(
-      <IconButton aria-label="없음" onPointerEnter={onPointerEnter}>
+      <IconButton
+        aria-label="없음"
+        hoverEffect="none"
+        onPointerEnter={onPointerEnter}
+      >
         <TestIcon />
       </IconButton>
     );
@@ -1382,7 +1438,7 @@ describe('IconButton 젤리', () => {
     expect(tl.parent).toBeNull();
   });
 
-  it('효과를 켠 버튼의 아이콘 칸에만 will-change 클래스가 붙는다', () => {
+  it('효과가 켜진 버튼(기본)의 아이콘 칸에만 will-change 클래스가 붙는다', () => {
     const { button } = setup();
     expect(slotOf(button).className).toContain('jellySlot');
 

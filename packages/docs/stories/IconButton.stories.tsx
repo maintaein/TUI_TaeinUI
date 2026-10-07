@@ -32,7 +32,7 @@ const meta = {
       control: 'select',
       options: ['none', 'jelly'],
       description:
-        '호버 효과. jelly는 마우스가 들어오면 아이콘이 옆으로 퍼졌다가 출렁이며 돌아온다',
+        '호버 효과. 기본값 jelly는 마우스가 들어오면 아이콘이 옆으로 퍼졌다가 출렁이며 돌아온다. none으로 끈다',
     },
     loading: {
       control: 'boolean',
@@ -233,22 +233,15 @@ export const AllStrongVariants: Story = {
   ),
 };
 
+// 젤리는 기본으로 켜져 있다. 왼쪽은 prop 없는 기본, 오른쪽은 hoverEffect="none"으로 끈 것.
 export const JellyHover: Story = {
   render: () => (
     <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
-      <IconButton hoverEffect="jelly" aria-label="검색">
+      <IconButton buttonStyle="strong" aria-label="기본(젤리)">
         <Search />
       </IconButton>
-      <IconButton hoverEffect="jelly" buttonStyle="weak" aria-label="좋아요">
-        <Heart />
-      </IconButton>
-      <IconButton
-        hoverEffect="jelly"
-        buttonStyle="strong"
-        variant="danger"
-        aria-label="삭제"
-      >
-        <Trash />
+      <IconButton buttonStyle="strong" hoverEffect="none" aria-label="젤리 끔">
+        <Search />
       </IconButton>
     </div>
   ),
