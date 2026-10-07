@@ -28,6 +28,12 @@ const meta = {
       options: ['sm', 'md', 'lg', 'xl'],
       description: '버튼 크기',
     },
+    hoverEffect: {
+      control: 'select',
+      options: ['none', 'jelly'],
+      description:
+        '호버 효과. jelly는 마우스가 들어오면 아이콘이 옆으로 퍼졌다가 출렁이며 돌아온다',
+    },
     loading: {
       control: 'boolean',
       description: '로딩 상태',
@@ -222,6 +228,27 @@ export const AllStrongVariants: Story = {
       </IconButton>
       <IconButton variant="light" buttonStyle="strong" aria-label="Light">
         <Plus />
+      </IconButton>
+    </div>
+  ),
+};
+
+export const JellyHover: Story = {
+  render: () => (
+    <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+      <IconButton hoverEffect="jelly" aria-label="검색">
+        <Search />
+      </IconButton>
+      <IconButton hoverEffect="jelly" buttonStyle="weak" aria-label="좋아요">
+        <Heart />
+      </IconButton>
+      <IconButton
+        hoverEffect="jelly"
+        buttonStyle="strong"
+        variant="danger"
+        aria-label="삭제"
+      >
+        <Trash />
       </IconButton>
     </div>
   ),

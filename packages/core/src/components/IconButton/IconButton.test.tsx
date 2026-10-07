@@ -1,13 +1,20 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { afterEach, describe, it, expect, vi } from 'vitest';
-import { act, fireEvent, render, screen } from '@testing-library/react';
+import {
+  act,
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+} from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { createRef } from 'react';
+import { createRef, type ComponentProps } from 'react';
 import { IconButton } from './IconButton';
 import { Button } from '../Button';
 import { themeContract } from '../../tokens/theme.css';
 import { themeTokens } from '../../tokens/contract';
+import { gsapDuration, gsapEasing } from '../../tokens/gsapEasing';
 
 const TestIcon = () => (
   <svg data-testid="test-icon" width="24" height="24" viewBox="0 0 24 24">
@@ -1129,6 +1136,278 @@ describe('IconButton 아이콘 크기는 버튼이 정한다', () => {
     for (const px of ['1.125rem', '1.375rem', '1.625rem', '1.875rem']) {
       expect(cssSource).toContain(`fontSize: '${px}'`);
     }
+  });
+});
+
+describe('IconButton 젤리', () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  // IconButton.tsx가 아이콘 칸에 얹는 손잡이. gsap을 직접 import하지 않고 이걸로 읽는다.
+  type Step = {
+    vars: {
+      scaleX?: number;
+      scaleY?: number;
+      ease?: string;
+      transformOrigin?: string;
+    };
+    duration(): number;
+    startTime(): number;
+  };
+  type Jelly = {
+    getChildren(nested: boolean): Step[];
+    progress(): number;
+    progress(value: number): unknown;
+    // 죽은 타임라인은 루트에서 떨어진다.
+    parent: unknown;
+  };
+  type Slot = HTMLElement & { __iconButtonJelly?: Jelly };
+
+  // jsdom에는 PointerEvent가 없다. React는 이름이 맞으면 받으므로 MouseEvent에
+  // pointerType을 얹어 쏜다. React의 enter/leave는 over/out에서 만들어진다.
+  const pointer = (
+    el: HTMLElement,
+    type: 'pointerover' | 'pointerout',
+    pointerType = 'mouse'
+  ) =>
+    act(() => {
+      const event = new MouseEvent(type, { bubbles: true });
+      Object.defineProperty(event, 'pointerType', { value: pointerType });
+      el.dispatchEvent(event);
+    });
+  const enter = (el: HTMLElement, pointerType?: string) =>
+    pointer(el, 'pointerover', pointerType);
+  const leave = (el: HTMLElement, pointerType?: string) =>
+    pointer(el, 'pointerout', pointerType);
+
+  const setup = (props: Partial<ComponentProps<typeof IconButton>> = {}) => {
+    const utils = render(
+      <IconButton aria-label="젤리" hoverEffect="jelly" {...props}>
+        <TestIcon />
+      </IconButton>
+    );
+    return { ...utils, button: screen.getByRole('button') };
+  };
+  const slotOf = (button: HTMLElement) =>
+    button.querySelector('[aria-hidden="true"]') as Slot;
+
+  const stubReducedMotion = () =>
+    vi.stubGlobal(
+      'matchMedia',
+      (media: string): MediaQueryList =>
+        ({
+          matches: true,
+          media,
+          addEventListener: () => {},
+          removeEventListener: () => {},
+        }) as unknown as MediaQueryList
+    );
+
+  it('hoverEffect 기본에서는 마우스가 들어와도 타임라인이 없고 DOM도 같다', () => {
+    render(
+      <IconButton aria-label="기본">
+        <TestIcon />
+      </IconButton>
+    );
+    const button = screen.getByRole('button');
+    const before = button.innerHTML;
+
+    enter(button);
+
+    expect(slotOf(button).__iconButtonJelly).toBeUndefined();
+    expect(button.innerHTML).toBe(before);
+  });
+
+  it("hoverEffect='none'을 명시해도 기본과 같다", () => {
+    const { button } = setup({ hoverEffect: 'none' });
+
+    enter(button);
+
+    expect(slotOf(button).__iconButtonJelly).toBeUndefined();
+  });
+
+  it('마우스가 들어오면 퍼짐 다음에 출렁이며 돌아오는 두 단계다', () => {
+    const { button } = setup();
+    enter(button);
+    const [spread, wobble] =
+      slotOf(button).__iconButtonJelly!.getChildren(false);
+
+    expect(spread.vars.scaleX).toBe(1.15);
+    expect(spread.vars.scaleY).toBeCloseTo(1 / 1.15, 10);
+    expect(spread.vars.ease).toBe(gsapEasing.settle);
+    expect(spread.duration()).toBe(gsapDuration.fast);
+
+    expect(wobble.vars.scaleX).toBe(1);
+    expect(wobble.vars.scaleY).toBe(1);
+    expect(wobble.vars.ease).toBe(gsapEasing.spring);
+    expect(wobble.duration()).toBe(gsapDuration.slower);
+    expect(wobble.startTime()).toBeGreaterThanOrEqual(
+      spread.startTime() + spread.duration()
+    );
+  });
+
+  it('가로가 늘면 세로는 같은 비율로 줄어 부피가 같다', () => {
+    const { button } = setup();
+    enter(button);
+    const [{ vars }] = slotOf(button).__iconButtonJelly!.getChildren(false);
+
+    expect(vars.scaleX! * vars.scaleY!).toBeCloseTo(1, 10);
+  });
+
+  it('원점은 아이콘 칸 바닥 가운데다', () => {
+    const { button } = setup();
+    enter(button);
+    const [spread] = slotOf(button).__iconButtonJelly!.getChildren(false);
+
+    expect(spread.vars.transformOrigin).toBe('50% 100%');
+  });
+
+  it("pointerType 'touch'와 'pen'은 효과가 없다", () => {
+    const { button } = setup();
+
+    enter(button, 'touch');
+    enter(button, 'pen');
+
+    expect(slotOf(button).__iconButtonJelly).toBeUndefined();
+  });
+
+  it('키보드 포커스는 효과가 없다', () => {
+    const { button } = setup();
+
+    act(() => button.focus());
+
+    expect(slotOf(button).__iconButtonJelly).toBeUndefined();
+  });
+
+  it('비활성이면 효과가 없다', () => {
+    const { button } = setup({ disabled: true });
+
+    enter(button);
+
+    expect(slotOf(button).__iconButtonJelly).toBeUndefined();
+  });
+
+  it('로딩 중에는 효과가 없다(아이콘 칸이 스피너로 바뀐다)', () => {
+    const { button } = setup({ loading: true });
+
+    enter(button);
+
+    expect(button.querySelector('[aria-hidden="true"]')).toBeNull();
+    for (const el of [button, ...Array.from(button.querySelectorAll('*'))]) {
+      expect((el as Slot).__iconButtonJelly).toBeUndefined();
+    }
+  });
+
+  it('도는 중에 다시 들어오면 새로 시작하지 않고 돌던 것을 그대로 둔다', () => {
+    const { button } = setup();
+    enter(button);
+    const running = slotOf(button).__iconButtonJelly!;
+    leave(button);
+
+    enter(button);
+
+    expect(slotOf(button).__iconButtonJelly).toBe(running);
+    expect(running.parent).not.toBeNull();
+  });
+
+  it('떠나도 도는 타임라인을 끊지 않는다', () => {
+    const { button } = setup();
+    enter(button);
+    const running = slotOf(button).__iconButtonJelly!;
+
+    leave(button);
+
+    expect(running.parent).not.toBeNull();
+    expect(running.progress()).toBeLessThan(1);
+  });
+
+  it('다 돈 뒤에 다시 들어오면 새로 한 번 더 돈다', () => {
+    const { button } = setup();
+    enter(button);
+    const first = slotOf(button).__iconButtonJelly!;
+    act(() => {
+      first.progress(1);
+    });
+    leave(button);
+
+    enter(button);
+
+    const second = slotOf(button).__iconButtonJelly!;
+    expect(second).not.toBe(first);
+    expect(second.progress()).toBeLessThan(1);
+  });
+
+  it('사용자의 onPointerEnter도 불리고 효과도 켜진다', () => {
+    const onPointerEnter = vi.fn();
+    const { button } = setup({ onPointerEnter });
+
+    enter(button);
+
+    expect(onPointerEnter).toHaveBeenCalledTimes(1);
+    expect(slotOf(button).__iconButtonJelly).toBeDefined();
+  });
+
+  it('hoverEffect가 none이어도 사용자의 onPointerEnter는 불린다', () => {
+    const onPointerEnter = vi.fn();
+    render(
+      <IconButton aria-label="없음" onPointerEnter={onPointerEnter}>
+        <TestIcon />
+      </IconButton>
+    );
+
+    enter(screen.getByRole('button'));
+
+    expect(onPointerEnter).toHaveBeenCalledTimes(1);
+  });
+
+  it('축소 모드에서는 끝 상태(1, 1)로 확정되어 보이는 움직임이 없다', () => {
+    stubReducedMotion();
+    const { button } = setup();
+
+    enter(button);
+    const tl = slotOf(button).__iconButtonJelly!;
+
+    expect(tl.parent).toBeNull();
+    expect(tl.progress()).toBe(1);
+    expect(slotOf(button).style.transform).not.toContain('1.15');
+  });
+
+  it('언마운트하면 타임라인을 죽인다', () => {
+    const { button } = setup();
+    enter(button);
+    const tl = slotOf(button).__iconButtonJelly!;
+    expect(tl.parent).not.toBeNull();
+
+    cleanup();
+
+    expect(tl.parent).toBeNull();
+  });
+
+  it('효과를 켠 버튼의 아이콘 칸에만 will-change 클래스가 붙는다', () => {
+    const { button } = setup();
+    expect(slotOf(button).className).toContain('jellySlot');
+
+    cleanup();
+    const plain = setup({ hoverEffect: 'none' });
+    expect(slotOf(plain.button).className).not.toContain('jellySlot');
+  });
+});
+
+describe('IconButton 젤리의 생성 CSS', () => {
+  const slotRule = (media: string | null = null) =>
+    iconButtonRules().find(
+      ({ rule, media: m }) =>
+        m === media && /^\.IconButton_jellySlot__\w+$/.test(rule.selectorText)
+    );
+
+  it('아이콘 칸은 will-change: transform이고 축소 모드에서 auto다', () => {
+    expect(slotRule()!.rule.style.getPropertyValue('will-change')).toBe(
+      'transform'
+    );
+    expect(
+      slotRule('(prefers-reduced-motion: reduce)')!.rule.style.getPropertyValue(
+        'will-change'
+      )
+    ).toBe('auto');
   });
 });
 

@@ -34,6 +34,13 @@ export function IconButtonPage() {
       description: '버튼 크기',
     },
     {
+      name: 'hoverEffect',
+      type: "'none' | 'jelly'",
+      default: "'none'",
+      description:
+        'jelly이면 마우스가 들어올 때 아이콘이 옆으로 퍼졌다가 출렁이며 돌아온다. 마우스만, 세 모드 모두',
+    },
+    {
       name: 'loading',
       type: 'boolean',
       default: 'false',
@@ -282,6 +289,34 @@ const handleClick = () => {
     <Button variant="dark" buttonStyle="weak" size="sm">메뉴</Button>
     <IconButton variant="dark" buttonStyle="weak" size="sm" aria-label="메뉴"><Menu /></IconButton>
   </div>
+</div>`}
+          />
+        </div>
+      </section>
+
+      {/* Hover Effect */}
+      <section className={styles.section}>
+        <div className={styles.sectionHeader}>
+          <h2 className={styles.sectionTitle}>젤리</h2>
+          <p className={styles.sectionDescription}>
+            hoverEffect=&quot;jelly&quot;는 마우스가 들어오면 아이콘이 부피를
+            지키며 옆으로 퍼졌다가 출렁이며 돌아오게 합니다. 아이콘만 움직이고
+            버튼은 그대로입니다. 도는 중에 다시 들어와도 무시하며, 터치와 키보드
+            포커스에는 효과가 없습니다.
+          </p>
+        </div>
+
+        <div className={styles.example}>
+          <h3 className={styles.exampleTitle}>Ghost · Weak · Strong</h3>
+          <LivePreview
+            title="젤리"
+            description='세 모드에 hoverEffect="jelly"를 줍니다.'
+            editable
+            code={`<div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+  <IconButton hoverEffect="jelly" aria-label="검색"><Search /></IconButton>
+  <IconButton hoverEffect="jelly" buttonStyle="weak" aria-label="즐겨찾기"><Star /></IconButton>
+  <IconButton hoverEffect="jelly" buttonStyle="strong" aria-label="추가"><Plus /></IconButton>
+  <IconButton hoverEffect="jelly" buttonStyle="strong" variant="danger" aria-label="삭제"><Trash /></IconButton>
 </div>`}
           />
         </div>

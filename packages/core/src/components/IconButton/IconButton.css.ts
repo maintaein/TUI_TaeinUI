@@ -312,3 +312,16 @@ globalStyle(`:where(${iconSlot} svg)`, {
 export const loadingSlot = style({
   display: 'flex',
 });
+
+// 젤리(hoverEffect="jelly")가 켜진 버튼의 아이콘 칸. 애니메이션 중에만 합성 레이어가
+// 생기면 끝나는 순간 레이어가 사라지며 아이콘이 1px 튈 수 있다. 그래서 효과가 켜졌을
+// 때만 처음부터 레이어를 둔다(근거는 Button.css.ts의 will-change 주석과 같다). 축소
+// 모드에서는 움직임이 없으니 레이어도 필요 없다.
+export const jellySlot = style({
+  willChange: 'transform',
+  '@media': {
+    '(prefers-reduced-motion: reduce)': {
+      willChange: 'auto',
+    },
+  },
+});
