@@ -134,11 +134,6 @@ const ChipPage = lazy(() =>
 const CardPage = lazy(() =>
   import('../pages/Components/Card').then((m) => ({ default: m.CardPage }))
 );
-const FormFieldPage = lazy(() =>
-  import('../pages/Components/FormField').then((m) => ({
-    default: m.FormFieldPage,
-  }))
-);
 
 // ─── Suspense wrapper ──────────────────────────────────────────────
 
@@ -420,14 +415,6 @@ const router = createBrowserRouter([
             element: (
               <LazyPage>
                 <CardPage />
-              </LazyPage>
-            ),
-          },
-          {
-            path: 'form-field',
-            element: (
-              <LazyPage>
-                <FormFieldPage />
               </LazyPage>
             ),
           },

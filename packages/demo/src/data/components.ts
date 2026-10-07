@@ -4,7 +4,6 @@ import {
   ChevronsUpDown,
   CirclePlus,
   CircleUser,
-  ClipboardList,
   Columns3,
   FileText,
   Hash,
@@ -39,7 +38,7 @@ export interface ComponentInfo {
 }
 
 export const componentsData: ComponentInfo[] = [
-  // Form Components (8개)
+  // Form Components (7개)
   {
     name: 'TextField',
     path: '/components/text-field',
@@ -93,14 +92,6 @@ export const componentsData: ComponentInfo[] = [
       '볼륨, 가격 범위 등 연속적인 값을 드래그로 조절할 때 사용합니다.',
     category: 'form',
     icon: SlidersHorizontal,
-  },
-  {
-    name: 'FormField',
-    path: '/components/form-field',
-    description:
-      '입력 필드에 라벨, 에러 메시지, 도움말을 일관되게 붙일 때 사용합니다.',
-    category: 'form',
-    icon: ClipboardList,
   },
 
   // Button Components (3개)

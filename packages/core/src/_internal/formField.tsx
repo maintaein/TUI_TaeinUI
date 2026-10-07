@@ -7,7 +7,7 @@ import {
   required as requiredStyle,
   helperText as helperTextStyle,
   errorMessage as errorMessageStyle,
-} from './FormField.css';
+} from './formField.css';
 
 /** Render prop으로 전달되는 폼 필드 상태 */
 export interface FormFieldRenderProps {
@@ -62,7 +62,6 @@ export const FormField = ({
 
   return (
     <div className={clsx(wrapper, fullWidth && fullWidthStyle, className)}>
-      
       <label htmlFor={inputId} className={labelStyle}>
         {label}
         {required && <span className={requiredStyle}>*</span>}

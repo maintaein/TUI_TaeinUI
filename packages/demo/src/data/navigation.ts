@@ -28,7 +28,6 @@ export const navigationData: NavigationItem[] = [
       { label: 'Checkbox', path: '/components/checkbox' },
       { label: 'Chip', path: '/components/chip' },
       { label: 'Divider', path: '/components/divider' },
-      { label: 'FormField', path: '/components/form-field' },
       { label: 'HeaderBar', path: '/components/header-bar' },
       { label: 'IconButton', path: '/components/icon-button' },
       { label: 'List', path: '/components/list' },

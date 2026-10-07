@@ -34,9 +34,9 @@ All components follow consistent patterns:
 - `ref` — All components support forwardRef
 - Form components require `label` prop for accessibility
 
-## Components (28 families, 47 exports)
+## Components (27 families, 46 exports)
 
-세는 규칙: 아래 목록은 컴포넌트 **계열** 28개다. 최상위 export는 47개인데,
+세는 규칙: 아래 목록은 컴포넌트 **계열** 27개다. 최상위 export는 46개인데,
 차이는 개별로도 import할 수 있는 합성 하위 컴포넌트(`ModalHeader`,
 `CardBody`, `AvatarGroup`, `ListItem` 등)다. 두 숫자 모두 소스에서 검증된다.
 
@@ -78,7 +78,6 @@ All components follow consistent patterns:
 - **Divider** — Content separator. Props: orientation, variant('solid'|'dashed'|'dotted'), spacing, children(text)
 - **Border** — Border wrapper. Props: sides, variant, width, color, rounded('md' default for sides='all', 'none' for partial sides), padding, glow(opt-in hover light)
 - **HeaderBar** — App header bar. Props: logo, title, actions, sticky, variant, elevation
-- **FormField** — Form field wrapper (render props). Props: label, helperText, error, errorMessage, required, children(renderFn)
 
 ## Design Tokens
 

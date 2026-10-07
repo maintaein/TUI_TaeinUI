@@ -1,5 +1,5 @@
 import { style } from '@vanilla-extract/css';
-import { themeContract } from '../../tokens/theme.css';
+import { themeContract } from '../tokens/theme.css';
 
 export const wrapper = style({
   display: 'flex',

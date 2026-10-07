@@ -171,19 +171,6 @@ export const searchIndex: SearchEntry[] = [
       { title: 'States', content: 'disabled 상태를 지원합니다' },
     ],
   },
-  {
-    id: 'form-field',
-    pageTitle: 'FormField',
-    path: '/components/form-field',
-    category: '폼 & 입력',
-    description: '폼 필드 래퍼. label, error, helper text를 관리합니다.',
-    sections: [
-      { title: 'Basic FormField', content: '기본 폼 필드 래퍼 사용법' },
-      { title: 'With Error', content: 'error prop으로 에러 메시지 표시' },
-      { title: 'With Helper Text', content: 'helperText prop으로 도움말 표시' },
-      { title: 'Required', content: 'required prop으로 필수 표시' },
-    ],
-  },
 
   // ─── 버튼 & 텍스트 ───
   {

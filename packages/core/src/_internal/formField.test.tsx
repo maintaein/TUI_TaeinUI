@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
-import { FormField } from './FormField';
+import { FormField } from './formField';
+import * as core from '../index';
 
 describe('FormField', () => {
   describe('기본 렌더링', () => {
@@ -335,6 +336,12 @@ describe('FormField', () => {
 
       const wrapper = container.firstChild as HTMLElement;
       expect(wrapper).toHaveClass('custom-class');
+    });
+  });
+
+  describe('공개 표면', () => {
+    it('공개 export에 FormField가 없다 (내부 전용이다)', () => {
+      expect(core).not.toHaveProperty('FormField');
     });
   });
 });

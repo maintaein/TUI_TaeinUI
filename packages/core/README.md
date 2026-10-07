@@ -92,10 +92,6 @@ function LoginForm() {
 - **Border** — 테두리 래퍼
 - **HeaderBar** — 상단 헤더 바
 
-### 폼
-
-- **FormField** — 폼 필드 래퍼 (render prop 패턴)
-
 ## 모션
 
 현재 GSAP 런타임이 붙어 있는 컴포넌트는 16개입니다: Modal, BottomSheet, SideSheet,

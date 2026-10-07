@@ -13,7 +13,7 @@ import { clsx } from 'clsx';
 import { gsap } from 'gsap';
 import * as styles from './NumericSpinner.css';
 import { Glyph } from '../../_internal/glyph';
-import { FormField } from '../FormField';
+import { FormField } from '../../_internal/formField';
 import { gateMotion } from '../../hooks/gateMotion';
 import { useReducedMotion } from '../../hooks/useReducedMotion';
 import { gsapEasing, gsapDuration } from '../../tokens/gsapEasing';

@@ -1,7 +1,7 @@
 import { forwardRef, useCallback, useRef } from 'react';
 import type { InputHTMLAttributes } from 'react';
 import { clsx } from 'clsx';
-import { FormField } from '../FormField';
+import { FormField } from '../../_internal/formField';
 import { MirrorOverlay } from '../../_internal/MirrorOverlay';
 import * as styles from './TextField.css';
 

@@ -1053,38 +1053,6 @@ import { CircleCheck, Info, Plus } from 'lucide-react';
 
 ---
 
-## FormField
-
-Form field wrapper using render props pattern.
-
-```tsx
-import { FormField } from '@taein-ui/core';
-
-<FormField label="이름" required error errorMessage="이름을 입력하세요">
-  {({ inputId, helperId, hasHelper, isError }) => (
-    <input
-      id={inputId}
-      aria-describedby={hasHelper ? helperId : undefined}
-      aria-invalid={isError}
-    />
-  )}
-</FormField>
-```
-
-### Props
-| Prop | Type | Default | Description |
-|------|------|---------|-------------|
-| label | string | (required) | Label text |
-| helperText | string | — | Helper text |
-| error | boolean | false | Error state |
-| errorMessage | string | — | Error message |
-| required | boolean | false | Required indicator |
-| fullWidth | boolean | false | Full width |
-| className | string | — | Additional CSS class |
-| children | (props: { inputId, helperId, hasHelper, isError }) => ReactNode | (required) | Render function |
-
----
-
 ## Design Tokens
 
 TUI uses `themeContract` for type-safe, theme-aware styling. 테마는 라이트

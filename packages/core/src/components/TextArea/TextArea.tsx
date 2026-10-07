@@ -1,7 +1,7 @@
 import { forwardRef, useEffect, useRef, useCallback } from 'react';
 import type { TextareaHTMLAttributes, ChangeEvent } from 'react';
 import { clsx } from 'clsx';
-import { FormField } from '../FormField';
+import { FormField } from '../../_internal/formField';
 import { MirrorOverlay } from '../../_internal/MirrorOverlay';
 import * as styles from './TextArea.css';
 
