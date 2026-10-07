@@ -40,6 +40,13 @@ const getFill = (container: HTMLElement): HTMLElement =>
 const scaleOf = (el: HTMLElement): number =>
   Number(/scale\(([^)]+)\)/.exec(el.style.transform)?.[1]);
 
+/** 진입·해제 타임라인의 자식 둘: 진행값(채움·부풂) 트윈과 획 트윈. */
+const childrenOf = (container: HTMLElement) => {
+  const timeline = getMarkPath(container).__markTween as gsap.core.Timeline;
+  const [progress, stroke] = timeline.getChildren() as gsap.core.Tween[];
+  return { timeline, progress, stroke };
+};
+
 /** 트윈을 0..1로 훑으며 매 걸음의 (채움, 상자, 획) 읽기를 모은다. */
 const sweep = (container: HTMLElement) => {
   const tween = getMarkPath(container).__markTween as gsap.core.Animation;
@@ -396,20 +403,58 @@ describe('Checkbox', () => {
       const { container, rerender } = render(mount({ checked: false }));
       rerender(mount({ checked: true }));
 
-      const tween = getMarkPath(container).__markTween as gsap.core.Tween;
-      expect(tween.vars.t).toBe(1);
-      expect(tween.duration()).toBe(gsapDuration.slow);
-      expect(tween.vars.ease).toBe(gsapEasing.spring);
+      const { progress } = childrenOf(container);
+      expect(progress.vars.t).toBe(1);
+      expect(progress.duration()).toBe(gsapDuration.slow);
+      expect(progress.vars.ease).toBe(gsapEasing.spring);
     });
 
-    it('해제: 진행값이 0으로 slow x 0.65 exit 트윈한다', () => {
+    it('체크: 획은 스프링이 아니라 slow settle로 0까지 그어진다', () => {
+      const { container, rerender } = render(mount({ checked: false }));
+      rerender(mount({ checked: true }));
+
+      const { stroke } = childrenOf(container);
+      expect(stroke.vars.strokeDashoffset).toBe(0);
+      expect(stroke.duration()).toBe(gsapDuration.slow);
+      expect(stroke.vars.ease).toBe(gsapEasing.settle);
+    });
+
+    it('진입·해제 타임라인의 두 자식은 위치 0에서 같이 시작한다', () => {
+      const { container, rerender } = render(mount({ checked: false }));
+      rerender(mount({ checked: true }));
+      const entering = childrenOf(container);
+      expect(entering.progress.startTime()).toBe(0);
+      expect(entering.stroke.startTime()).toBe(0);
+
+      rerender(mount({ checked: false }));
+      const leaving = childrenOf(container);
+      expect(leaving.progress.startTime()).toBe(0);
+      expect(leaving.stroke.startTime()).toBe(0);
+    });
+
+    it('체크 도중 획은 t의 스프링을 따르지 않는다(획이 t보다 먼저 끝나지 않는다)', () => {
+      const { container, rerender } = render(mount({ checked: false }));
+      rerender(mount({ checked: true }));
+
+      const { timeline } = childrenOf(container);
+      // 길이의 16%(약 48ms)에서 스프링 t는 1을 지났지만 settle 획은 아직 그어지는 중이다.
+      timeline.time(gsapDuration.slow * 0.16);
+      expect(
+        Number(getMarkPath(container).style.strokeDashoffset)
+      ).toBeGreaterThan(19.8 * 0.2);
+    });
+
+    it('해제: 진행값과 획 모두 slow x 0.65 exit로 간다', () => {
       const { container, rerender } = render(mount({ checked: true }));
       rerender(mount({ checked: false }));
 
-      const tween = getMarkPath(container).__markTween as gsap.core.Tween;
-      expect(tween.vars.t).toBe(0);
-      expect(tween.duration()).toBeCloseTo(gsapDuration.slow * 0.65, 10);
-      expect(tween.vars.ease).toBe(gsapEasing.exit);
+      const { progress, stroke } = childrenOf(container);
+      expect(progress.vars.t).toBe(0);
+      expect(progress.duration()).toBeCloseTo(gsapDuration.slow * 0.65, 10);
+      expect(progress.vars.ease).toBe(gsapEasing.exit);
+      expect(stroke.vars.strokeDashoffset).toBe(19.8);
+      expect(stroke.duration()).toBeCloseTo(gsapDuration.slow * 0.65, 10);
+      expect(stroke.vars.ease).toBe(gsapEasing.exit);
     });
 
     it('indeterminate 진입도 체크와 같은 트윈이고 획은 대시 path다', () => {
@@ -417,14 +462,15 @@ describe('Checkbox', () => {
       rerender(mount({ checked: false, indeterminate: true }));
 
       const path = getMarkPath(container);
-      const tween = path.__markTween as gsap.core.Tween;
-      expect(tween.vars.t).toBe(1);
-      expect(tween.duration()).toBe(gsapDuration.slow);
-      expect(tween.vars.ease).toBe(gsapEasing.spring);
+      const { timeline, progress, stroke } = childrenOf(container);
+      expect(progress.vars.t).toBe(1);
+      expect(progress.duration()).toBe(gsapDuration.slow);
+      expect(progress.vars.ease).toBe(gsapEasing.spring);
+      expect(stroke.vars.ease).toBe(gsapEasing.settle);
       expect(path.getAttribute('d')).toBe('M5 12 L19 12');
       expect(Number(path.style.strokeDashoffset)).toBe(14);
 
-      tween.progress(1);
+      timeline.progress(1);
       expect(Number(path.style.strokeDashoffset)).toBe(0);
     });
 
@@ -513,16 +559,17 @@ describe('Checkbox', () => {
       const { container, rerender } = render(mount({ checked: false }));
       rerender(mount({ checked: true }));
       const path = getMarkPath(container);
-      const first = path.__markTween as gsap.core.Tween;
+      const first = path.__markTween as gsap.core.Timeline;
       first.progress(0.3);
       expect(first.parent).not.toBeNull();
 
       rerender(mount({ checked: false }));
-      const second = path.__markTween as gsap.core.Tween;
-      expect(second).not.toBe(first);
+      const second = childrenOf(container);
+      expect(second.timeline).not.toBe(first);
       expect(first.parent).toBeNull();
-      expect(second.parent).not.toBeNull();
-      expect(second.vars.t).toBe(0);
+      expect(second.timeline.parent).not.toBeNull();
+      expect(second.progress.vars.t).toBe(0);
+      expect(second.stroke.vars.strokeDashoffset).toBe(19.8);
     });
 
     it('반대로 바뀔 때 지금 값에서 이어진다(되감기 아님)', () => {
@@ -533,10 +580,22 @@ describe('Checkbox', () => {
       const offsetBefore = getMarkPath(container).style.strokeDashoffset;
       expect(fillBefore).toBeGreaterThan(0);
       expect(fillBefore).toBeLessThan(1);
+      expect(Number(offsetBefore)).toBeGreaterThan(0);
+      expect(Number(offsetBefore)).toBeLessThan(19.8);
 
       rerender(mount({ checked: false }));
       expect(scaleOf(getFill(container))).toBe(fillBefore);
       expect(getMarkPath(container).style.strokeDashoffset).toBe(offsetBefore);
+
+      // 획 트윈이 지금 dashoffset에서 출발해 길이로 간다(0에서 다시 시작하지 않는다).
+      const { timeline } = childrenOf(container);
+      timeline.time(0.001);
+      expect(Number(getMarkPath(container).style.strokeDashoffset)).toBeCloseTo(
+        Number(offsetBefore),
+        0
+      );
+      timeline.progress(1);
+      expect(Number(getMarkPath(container).style.strokeDashoffset)).toBe(19.8);
     });
 
     it('마운트에서는 트윈이 없고 처음 상태가 마크업에 박혀 있다', () => {
@@ -571,10 +630,10 @@ describe('Checkbox', () => {
       screen.getByRole('checkbox').focus();
       await userEvent.keyboard(' ');
 
-      const tween = getMarkPath(container).__markTween as gsap.core.Tween;
-      expect(tween).toBeDefined();
-      expect(tween.vars.t).toBe(1);
-      expect(tween.vars.ease).toBe(gsapEasing.spring);
+      const { timeline, progress } = childrenOf(container);
+      expect(timeline).toBeDefined();
+      expect(progress.vars.t).toBe(1);
+      expect(progress.vars.ease).toBe(gsapEasing.spring);
     });
 
     it('축소 선호에서는 체크가 즉시 끝 상태다(채움 1, 상자 1, 획 끝)', () => {

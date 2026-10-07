@@ -48,7 +48,7 @@ const resolveMarkState = (
  * 표식 트윈을 테스트가 읽을 수 있는 통로. `Snackbar.tsx`의 `CountdownTweenHost`와
  * 같은 패턴 — 공개 prop/state가 아니라 path DOM 노드에 얹는다. 테스트는 실제
  * GSAP 인스턴스를 그대로 받아 `progress()`로 seek한다(무모킹). 살아 있는 트윈은
- * 하나뿐이다: 체크·해제는 진행값 트윈, checked ↔ indeterminate는 모양 바뀜 타임라인.
+ * 하나뿐이다(타임라인): 체크·해제는 진행값 트윈과 획 트윈, checked ↔ indeterminate는 모양 바뀜.
  */
 interface MarkTweenHost extends SVGPathElement {
   __markTween?: gsap.core.Animation;
@@ -59,7 +59,7 @@ interface MarkProgress {
   t: number;
 }
 
-/** 진행값이 움직이는 세 노드. */
+/** 진행값과 획이 움직이는 세 노드. */
 interface MarkNodes {
   /** 체크 획 path. */
   path: MarkTweenHost;
@@ -69,14 +69,9 @@ interface MarkNodes {
   box: HTMLElement;
 }
 
-/** 진행값 `t`를 세 노드에 쓴다. 트윈의 onUpdate와 모양 확정이 같은 이 함수를 거친다. */
-const writeFrame = (
-  { path, fill, box }: MarkNodes,
-  t: number,
-  length: number
-): void => {
-  const frame = progressFrame(t, length);
-  path.style.strokeDashoffset = String(frame.dashoffset);
+/** 진행값 `t`를 채움과 상자에 쓴다. 획은 `t`를 따르지 않고 자기 트윈이 쓴다. */
+const writeFrame = ({ fill, box }: MarkNodes, t: number): void => {
+  const frame = progressFrame(t);
   fill.style.transform = `scale(${frame.fill})`;
   box.style.transform = `scale(${frame.box})`;
 };
@@ -112,11 +107,12 @@ const attachSelfKill = (
  * #4). 사용자 토글(onChange)과 prop 변화(effect)가 모두 이 함수를 거쳐 로직이
  * 갈라지지 않는다.
  *
- * - 체크·indeterminate 진입: 진행값 `t`를 지금 값에서 1로 `slow` `spring`
- * - 해제: `t`를 지금 값에서 0으로 `slow × EXIT_RATIO` `exit`. 부풂 없음
+ * - 체크·indeterminate 진입: 진행값 `t`를 지금 값에서 1로 `slow` `spring`(채움·부풂),
+ *   획 dashoffset을 지금 값에서 0으로 `slow` `settle`(그어짐). 한 타임라인의 위치 0
+ * - 해제: `t`를 0으로, 획을 길이로, 둘 다 `slow × EXIT_RATIO` `exit`. 부풂 없음
  * - checked ↔ indeterminate: 모양 바뀜. `t`는 1에 머문다
  *
- * 진행 중에 반대로 바뀌면 트윈을 죽이고 지금 `t`에서 새 목표로 다시 트윈한다.
+ * 진행 중에 반대로 바뀌면 타임라인을 죽이고 두 자식 모두 지금 값에서 새 목표로 간다.
  */
 const syncMarkState = (
   nodes: MarkNodes,
@@ -143,30 +139,60 @@ const syncMarkState = (
     return;
   }
 
+  // kill() 전에 읽어야 산다. 핸들은 자연 완료나 축소 선호에서 비워지므로
+  // `__markTween !== undefined`는 "지금 비행 중인 트윈이 있다"와 같다.
+  const interrupted = path.__markTween !== undefined;
   path.__markTween?.kill();
 
   if (prev === 'unchecked' || nextState === 'unchecked') {
     // 진입(unchecked → checked | indeterminate)과 해제(→ unchecked)는 같은 모양
-    // 위에서 `t`만 오간다. 해제는 prev의 정준 모양으로 d·strokeDasharray를
+    // 위에서 `t`와 획이 오간다. 해제는 prev의 정준 모양으로 d·strokeDasharray를
     // 확정한다(Ruling 77). 모프 도중 끊기고 곧장 해제로 넘어오면 d/dasharray가
     // 중간값에 얼어 dashoffset과 안 맞아 조각이 남을 수 있어서다.
     const entering = nextState !== 'unchecked';
     const shape = entering ? nextState : prev;
     const length = lengthFor(shape);
-    gsap.set(path, { attr: { d: pathFor(shape) }, strokeDasharray: length });
-    writeFrame(nodes, progress.t, length);
-    const tween = gateMotion(reduced, () =>
-      gsap.to(progress, {
-        t: entering ? 1 : 0,
-        duration: entering ? gsapDuration.slow : gsapDuration.slow * EXIT_RATIO,
-        ease: entering ? gsapEasing.spring : gsapEasing.exit,
-        onUpdate: () => writeFrame(nodes, progress.t, length),
-      })
-    );
+    gsap.set(path, {
+      attr: { d: pathFor(shape) },
+      strokeDasharray: length,
+      // 진입은 이 모양의 길이만큼 가려 놓고 시작한다. 중단 복귀(비행 중인 해제를
+      // 되돌림)면 건너뛴다. 지금 dashoffset에서 이어져야 획이 되감기지 않는다.
+      ...(entering && !interrupted ? { strokeDashoffset: length } : {}),
+    });
+    writeFrame(nodes, progress.t);
+    const duration = entering
+      ? gsapDuration.slow
+      : gsapDuration.slow * EXIT_RATIO;
+    const tween = gateMotion(reduced, () => {
+      const timeline = gsap.timeline();
+      // 채움·부풂은 스프링 진행값을 따른다.
+      timeline.to(
+        progress,
+        {
+          t: entering ? 1 : 0,
+          duration,
+          ease: entering ? gsapEasing.spring : gsapEasing.exit,
+          onUpdate: () => writeFrame(nodes, progress.t),
+        },
+        0
+      );
+      // 획은 스프링에서 떼어 낸다. 스프링은 길이의 16%에 1을 지나 그리기가 54ms로
+      // 줄고 끝이 되감긴다(실측). 그려지는 효과는 사용자가 유지하라고 한 것이다.
+      timeline.to(
+        path,
+        {
+          strokeDashoffset: entering ? 0 : length,
+          duration,
+          ease: entering ? gsapEasing.settle : gsapEasing.exit,
+        },
+        0
+      );
+      return timeline;
+    });
     attachSelfKill(tween, path, reduced);
   } else {
     // 모양 변형: checked ↔ indeterminate. 진입이 중단된 채로(t < 1) 모프에 들어오면
-    // 같은 타임라인에서 `t`도 1로 보낸다(Ruling 77). 부풂 중(t > 1)이어도 1로
+    // 획은 0으로, 같은 타임라인에서 `t`도 1로 보낸다(Ruling 77). 부풂 중(t > 1)이어도 1로
     // 돌아와야 상자가 부푼 채 남지 않는다. 이미 1이면 진행값 트윈은 만들지 않는다.
     const length = lengthFor(nextState);
     const tween = gateMotion(reduced, () => {
@@ -175,13 +201,17 @@ const syncMarkState = (
       });
       timeline.to(
         path,
-        { morphSVG: pathFor(nextState), strokeDasharray: length },
+        {
+          morphSVG: pathFor(nextState),
+          strokeDasharray: length,
+          strokeDashoffset: 0,
+        },
         0
       );
       if (progress.t !== 1) {
         timeline.to(
           progress,
-          { t: 1, onUpdate: () => writeFrame(nodes, progress.t, length) },
+          { t: 1, onUpdate: () => writeFrame(nodes, progress.t) },
           0
         );
       }
