@@ -78,6 +78,22 @@ export const input = style({
   },
 });
 
+/**
+ * 여러 줄(textarea). 글자 크기는 단일 줄 size와 같은 값이고, 높이는 `rows`가 정한다.
+ * 단일 줄은 height로 세로 중앙을 잡아 세로 패딩이 없으므로, 여러 줄만 세로 패딩을
+ * 따로 갖는다(단일 줄에 대응하는 값이 없어, 합치기 전 여러 줄 입력의 값을 그대로 쓴다). `input` 뒤에 정의해 같은 특정도에서 padding을 덮는다.
+ */
+export const multilineSize = styleVariants({
+  sm: { fontSize: textMetrics.sm.fontSize, padding: '0.5rem 1rem' },
+  md: { fontSize: textMetrics.md.fontSize, padding: '0.75rem 1rem' },
+  lg: { fontSize: textMetrics.lg.fontSize, padding: '1rem 1rem' },
+});
+
+export const multiline = style({
+  lineHeight: 1.5,
+  resize: 'none',
+});
+
 // error 상태
 export const error = style({
   borderColor: `${themeContract.color.error.main} !important`,

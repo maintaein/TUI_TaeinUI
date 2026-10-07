@@ -21,6 +21,26 @@ export function TextFieldPage() {
       description: 'Input 타입',
     },
     {
+      name: 'multiline',
+      type: 'boolean',
+      default: 'false',
+      description:
+        'true이면 여러 줄 입력(textarea)을 그립니다. 이때 ref는 HTMLTextAreaElement이고 type은 받지 않습니다',
+    },
+    {
+      name: 'rows',
+      type: 'number',
+      default: '4',
+      description: '보이는 줄 수. multiline일 때만 받습니다',
+    },
+    {
+      name: 'autoResize',
+      type: 'boolean',
+      default: 'false',
+      description:
+        '입력한 내용에 맞춰 높이가 늘어납니다. multiline일 때만 받습니다',
+    },
+    {
       name: 'size',
       type: "'sm' | 'md' | 'lg'",
       default: "'md'",
@@ -77,7 +97,7 @@ export function TextFieldPage() {
         <h1 className={styles.title}>TextField</h1>
         <p className={styles.description}>
           TextField 컴포넌트는 이름, 이메일, 비밀번호, 검색어 등 한 줄 텍스트를
-          입력받을 때 사용합니다.
+          입력받을 때 사용합니다. 여러 줄 입력은 multiline을 켜세요.
         </p>
       </header>
 
@@ -284,6 +304,53 @@ const [password, setPassword] = useState('');
   label="주소"
   placeholder="서울특별시 강남구..."
   fullWidth
+/>`}
+          />
+        </div>
+
+        {/* Multiline */}
+        <div className={styles.example}>
+          <h3 className={styles.exampleTitle}>Multiline</h3>
+          <LivePreview
+            title="여러 줄 입력"
+            description="multiline을 켜면 textarea를 그립니다. rows로 보이는 줄 수를 정하고(기본 4), 픽셀 높이가 필요하면 style의 minHeight를 쓰세요."
+            editable
+            code={`<div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+  <TextField
+    label="소개"
+    placeholder="자신을 소개해 주세요"
+    multiline
+    fullWidth
+  />
+  <TextField
+    label="상세 설명"
+    placeholder="8줄 높이"
+    multiline
+    rows={8}
+    fullWidth
+  />
+</div>`}
+          />
+        </div>
+
+        {/* Auto Resize */}
+        <div className={styles.example}>
+          <h3 className={styles.exampleTitle}>Auto Resize</h3>
+          <LivePreview
+            title="자동 높이 조정"
+            description="multiline과 autoResize를 함께 쓰면 입력한 내용에 맞춰 높이가 늘어납니다. rows가 최소 높이가 됩니다."
+            editable
+            code={`const [value, setValue] = useState('');
+
+<TextField
+  label="메모"
+  placeholder="줄을 늘려 보세요"
+  multiline
+  autoResize
+  rows={2}
+  fullWidth
+  value={value}
+  onChange={(e) => setValue(e.target.value)}
 />`}
           />
         </div>

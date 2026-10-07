@@ -28,7 +28,6 @@ export default defineConfig({
         /\/Border\.css/,
         /HeaderBarNav\.css/,
         /\/TextField\.css/,
-        /\/TextArea\.css/,
       ],
     },
     coverage: {

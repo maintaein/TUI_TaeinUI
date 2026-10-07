@@ -34,15 +34,14 @@ All components follow consistent patterns:
 - `ref` — All components support forwardRef
 - Form components require `label` prop for accessibility
 
-## Components (27 families, 46 exports)
+## Components (26 families, 45 exports)
 
-세는 규칙: 아래 목록은 컴포넌트 **계열** 27개다. 최상위 export는 46개인데,
+세는 규칙: 아래 목록은 컴포넌트 **계열** 26개다. 최상위 export는 45개인데,
 차이는 개별로도 import할 수 있는 합성 하위 컴포넌트(`ModalHeader`,
 `CardBody`, `AvatarGroup`, `ListItem` 등)다. 두 숫자 모두 소스에서 검증된다.
 
 ### Form & Input
-- **TextField** — Text input with label, validation, helper text. Props: label, type, size, error, errorMessage, helperText, fullWidth
-- **TextArea** — Multiline text input with auto-resize. Props: label, size, autoResize, height, error, errorMessage, helperText
+- **TextField** - Text input with label, validation, helper text. Add `multiline` for a multiline textarea. Props: label, type, size, error, errorMessage, helperText, fullWidth, multiline, rows, autoResize (rows and autoResize only with multiline; type only without)
 - **Checkbox** — Checkbox with label, indeterminate state. Props: label, size, error, errorMessage, helperText, indeterminate
 - **Switch** — Toggle switch. Props: label, size, error, errorMessage, helperText
 - **Slider** — Range slider with marks and value display. Props: label, size, min, max, step, showValue, marks, trackColor
@@ -134,7 +133,7 @@ M3에서 GSAP 런타임이 실제로 붙은 컴포넌트와 그 능력. 계획�
 - `HeaderBarNav`도 `'use client'`가 붙는다. 포인터 거리를 매 프레임 읽어 항목 배율을
   계산하므로 브라우저에서만 돌아갈 수 있다. 담기는 그릇인 `HeaderBar`는 훅이 0개라
   그대로 서버 컴포넌트다 — 그래서 둘을 분리해 둔다.
-- `TextArea`는 `'use client'`가 붙는다. `autoResize`가 높이를 읽고 쓰는 훅을 갖는다.
+- `TextField`는 `'use client'`가 붙는다. `multiline`의 `autoResize`가 높이를 읽고 쓰는 훅을 갖는다.
 - 단, 서버 컴포넌트에서 `onClick` 같은 함수 prop을 넘기는 것은 TUI와 무관하게
   React가 막는다. 이벤트 핸들러를 붙이는 쪽 파일에 `'use client'`를 적어야 한다.
 - `styles.css`는 루트 레이아웃에서 한 번 import한다:

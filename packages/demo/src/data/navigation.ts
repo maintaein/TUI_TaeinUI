@@ -42,7 +42,6 @@ export const navigationData: NavigationItem[] = [
       { label: 'Snackbar', path: '/components/snackbar' },
       { label: 'Switch', path: '/components/switch' },
       { label: 'Text', path: '/components/text' },
-      { label: 'TextArea', path: '/components/text-area' },
       { label: 'TextField', path: '/components/text-field' },
       { label: 'Tooltip', path: '/components/tooltip' },
     ],

@@ -76,7 +76,7 @@ function App() {
 ### 2. 폼 컴포넌트
 
 ```tsx
-import { TextField, TextArea, Checkbox, Switch, Button } from '@taein-ui/core';
+import { TextField, Checkbox, Switch, Button } from '@taein-ui/core';
 import { useState } from 'react';
 
 function ContactForm() {
@@ -104,11 +104,12 @@ function ContactForm() {
         required
       />
 
-      <TextArea
+      <TextField
         label="메시지"
+        multiline
+        rows={6}
         value={formData.message}
         onChange={(e) => setFormData({ ...formData, message: e.target.value })}
-        height={150}
       />
 
       <Checkbox

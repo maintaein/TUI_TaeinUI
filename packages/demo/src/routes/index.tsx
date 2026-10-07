@@ -28,11 +28,6 @@ const TextFieldPage = lazy(() =>
     default: m.TextFieldPage,
   }))
 );
-const TextAreaPage = lazy(() =>
-  import('../pages/Components/TextArea').then((m) => ({
-    default: m.TextAreaPage,
-  }))
-);
 const CheckboxPage = lazy(() =>
   import('../pages/Components/Checkbox').then((m) => ({
     default: m.CheckboxPage,
@@ -207,14 +202,6 @@ const router = createBrowserRouter([
             element: (
               <LazyPage>
                 <TextFieldPage />
-              </LazyPage>
-            ),
-          },
-          {
-            path: 'text-area',
-            element: (
-              <LazyPage>
-                <TextAreaPage />
               </LazyPage>
             ),
           },

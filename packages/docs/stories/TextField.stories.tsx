@@ -232,6 +232,36 @@ export const ReadOnly: Story = {
   },
 };
 
+// Multiline (여러 줄)
+export const Multiline: Story = {
+  args: { label: '' },
+  parameters: { controls: { disable: true } },
+  render: () => (
+    <div
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '1.5rem',
+        width: '400px',
+      }}
+    >
+      <TextField
+        label="소개 (기본 4줄)"
+        multiline
+        placeholder="소개를 입력하세요"
+      />
+      <TextField label="상세 설명 (8줄)" multiline rows={8} />
+      <TextField
+        label="자동 높이"
+        multiline
+        autoResize
+        rows={2}
+        placeholder="줄을 늘려 보세요"
+      />
+    </div>
+  ),
+};
+
 // Controlled Component
 const ControlledExample = () => {
   const [value, setValue] = useState('');

@@ -74,27 +74,10 @@ export const searchIndex: SearchEntry[] = [
         title: 'Password',
         content: '비밀번호 입력 필드. type="password"로 설정',
       },
-    ],
-  },
-  {
-    id: 'text-area',
-    pageTitle: 'TextArea',
-    path: '/components/text-area',
-    category: '폼 & 입력',
-    description: '여러 줄 텍스트 입력. 자동 높이 조절을 지원합니다.',
-    sections: [
-      { title: 'Basic TextArea', content: '기본적인 여러 줄 텍스트 입력' },
       {
-        title: 'Auto Resize',
-        content: 'autoResize prop으로 내용에 따라 자동 높이 조절',
-      },
-      {
-        title: 'Character Count',
-        content: 'maxLength와 함께 글자 수 카운터 표시',
-      },
-      {
-        title: 'States',
-        content: 'error, disabled, readOnly 상태를 지원합니다',
+        title: 'Multiline',
+        content:
+          '여러 줄 입력은 multiline. rows로 줄 수, autoResize로 내용에 맞춰 높이 조절',
       },
     ],
   },

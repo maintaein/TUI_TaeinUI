@@ -28,12 +28,14 @@
 - `animation.loop.slow`(`6000ms`) 토큰을 추가했습니다. `prefers-reduced-motion: reduce`에서는 다른 `loop` 토큰처럼 `0.01ms`로 내려갑니다.
 - `Avatar`에 `bouncy` prop(`boolean`, 기본값 `false`)을 추가했습니다. 호버나 키보드 포커스(`:focus-visible`)에 위로 튀며 떠오르고, 누르면(포인터, `Enter`, `Space`) 떠오른 채 커집니다. `onClick` 또는 `href`가 있어 클릭할 수 있는 아바타에서만 동작하고 아니면 무시됩니다. `Popover`의 트리거로 쓰면 `Popover`가 `onClick`을 넘기므로 동작합니다. 켜면 `clickable`의 `transform` 트랜지션과 `:active` 축소는 빠지고 `filter` 호버 밝기는 남습니다. `AvatarGroup` 안에서는 떠오른 아바타가 이웃 위로 올라옵니다. `prefers-reduced-motion: reduce`에서는 움직이지 않습니다. 켜지 않으면 동작이 이전과 같습니다.
 - `IconButton`에 `hoverEffect` prop(`'none' | 'jelly'`, 기본값 `'jelly'`)을 추가했습니다. 기본으로 켜져 있어 prop 없이 쓴 `IconButton`도 마우스가 들어올 때 아이콘이 부피를 지키며 옆으로 퍼졌다가(`scaleX 1.15`, `scaleY` 1/1.15) 출렁이며 돌아옵니다. 아이콘 칸만 움직이고 버튼은 그대로이며, 도는 중에 다시 들어오면 무시합니다. 마우스만 받고 터치와 키보드 포커스에는 효과가 없으며, `disabled`·`loading`에서도 없습니다. `prefers-reduced-motion: reduce`에서는 움직이지 않습니다. `hoverEffect="none"`으로 끄면 동작과 DOM이 이전과 같고, 도는 중에 끄면 타임라인을 죽이고 아이콘을 원래 모양으로 돌립니다. `BottomSheet`, `SideSheet`, `Snackbar`의 닫기 버튼도 기본값을 따라 젤리가 됩니다.
+- `TextField`에 `multiline` prop(`boolean`, 기본값 `false`)을 추가했습니다. 켜면 `textarea`를 그립니다. `rows`(보이는 줄 수, 기본값 `4`)와 `autoResize`(내용에 맞춰 높이가 늘어남, 기본값 `false`)는 `multiline`일 때만 받고, 단일 줄에 주면 타입 오류입니다. `multiline`에는 `type`이 없습니다. `ref`는 단일 줄이면 `HTMLInputElement`, `multiline`이면 `HTMLTextAreaElement`입니다. 라벨, 도움말, 에러, 필수 표시, `size`, `fullWidth`는 단일 줄과 같습니다.
 
 ### Removed
 
 - **BREAKING CHANGE:** `LoadingSpinner`를 제거했습니다. `Loader`가 같은 기능을 덮습니다. `<LoadingSpinner type="dots" size="sm" color="#f00" />` → `<Loader type="dots" size="sm" color="#f00" />`
 - **BREAKING CHANGE:** `Icon` 컴포넌트와 `IconName`·`IconProps` 타입을 제거했습니다. 내장 아이콘 세트를 따로 공개하지 않습니다. `lucide-react` 같은 외부 아이콘 라이브러리를 `IconButton`의 `children`으로 넘기세요: `<IconButton aria-label="닫기"><X /></IconButton>` (`import { X } from 'lucide-react'`). 마운트 시 획이 그려지던 `draw` 모션도 함께 없어졌습니다.
 - **BREAKING CHANGE:** `FormField`와 `FormFieldProps`·`FormFieldRenderProps` 타입을 공개 export에서 내렸습니다. `TextField`·`TextArea`·`NumericSpinner`가 라벨, 필수 표시, 도움말, 에러 메시지와 그 사이의 연결을 이미 내장하고 있어 직접 쓸 일이 없습니다(코드는 내부 전용으로 남아 이 셋이 계속 씁니다). 옮기는 법: 라벨·도움말·에러가 필요한 입력은 `<TextField label="이름" helperText="..." error errorMessage="..." required />`처럼 `TextField`의 `label`·`helperText`·`error`·`errorMessage`·`required`를 쓰세요. 다른 입력 요소를 감싸려던 경우는 표준 `<label htmlFor>`와 `aria-describedby`를 직접 연결하세요.
+- **BREAKING CHANGE:** `TextArea`와 `TextAreaProps` 타입을 제거했습니다. `TextField`의 `multiline`이 대신합니다. 옮기는 법: `<TextArea label="소개" />`는 `<TextField label="소개" multiline />`으로 바꾸세요. `height={n}`은 `rows`(줄 수)나 `style={{ minHeight: n }}`(픽셀 높이)로 바꾸고, `autoResize`는 그대로 씁니다. 기본 높이는 120px 최소 높이에서 `rows` 4줄로 바뀝니다. 줄 수가 다르면 `rows`로 맞추세요. `ref`는 그대로 `HTMLTextAreaElement`입니다. 이전에 `TextArea`는 바깥에 `size`별 안쪽 여백을 한 겹 더 두르고 있었는데, 그 여백이 없어져 입력창이 래퍼에 딱 붙습니다.
 
 ### Changed
 
@@ -54,6 +56,8 @@
 - `IconButton`의 누름과 호버가 `Button`과 같아졌습니다. 호버에서 버튼은 배경색(과 글자색)만 바뀌고 위로 뜨던 `translateY(-1px)`는 없어졌습니다. 아이콘은 기본으로 젤리처럼 움직입니다(`hoverEffect="none"`으로 끕니다). 누름은 `scale(0.95)`로 입력 시간과 무관하게 최소 90ms 완주하고 `Enter`·`Space`도 같은 효과를 냅니다. `ghost`의 `scale(0.92)`와 아이콘 칸이 40ms 늦게 눌리던 효과도 없어졌습니다. `IconButton`에 `'use client'`가 붙습니다.
 - `IconButton`의 `weak`·`strong` 색이 `Button`의 같은 조합과 같아졌습니다. `strong` `danger`는 휴지·호버·누름이 `error.main`·`error[800]`·`error[900]`으로 누를수록 진해집니다(예전에는 누르면 호버보다 밝아졌습니다). `strong` `light`와 `weak`의 `primary`·`danger`·`light`는 아이콘 색이 한 단계 이상 진해져 호버·누름에서도 대비 3:1 이상을 지킵니다.
 - `IconButton`의 아이콘 크기를 버튼 `size`가 정합니다. 칸 안의 `svg`가 `1em`(18/22/26/30px)이라 어느 아이콘 라이브러리의 아이콘이든 같은 크기로 맞춰집니다. 아이콘의 `size` prop(예: lucide `size={22}`)은 SVG 속성이라 이 규칙에 집니다. 크기를 바꾸려면 아이콘에 `className`이나 `style`로 주세요. 소비자의 전역 요소 규칙(예: `svg { width: 24px }`)에도 집니다. 클래스와 `style`은 이깁니다.
+- **BREAKING CHANGE:** `TextField`의 타이핑 효과를 없앴습니다. 글자가 한 자씩 나타나던 효과가 사라지고 브라우저 기본 입력이 됩니다. 입력한 글자는 `input`의 값 그대로 그려지므로 `type`과 관계없이 같게 동작합니다. 효과를 쓰던 코드는 고칠 것이 없지만, 보이는 모습이 달라집니다.
+- `TextField`의 포커스 모양이 바뀌었습니다. 클릭과 키보드 모두 3px 후광과 2px 바깥 링이 없어지고, 호버와 같은 테두리 색(`primary.main`)으로 바뀝니다. 에러 상태의 포커스 후광도 없어지고 에러 테두리 색만 남습니다. 포커스 표시는 테두리 색 변화와 캐럿이 맡습니다.
 
 ### Fixed
 

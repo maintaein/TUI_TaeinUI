@@ -56,13 +56,20 @@ import { TextField } from '@taein-ui/core';
   fullWidth
   required
 />
+
+// 여러 줄: multiline을 켠다 (textarea). rows는 보이는 줄 수, autoResize는 내용에 맞춰 높이가 늘어난다
+<TextField label="소개" multiline rows={4} />
+<TextField label="메모" multiline autoResize />
 ```
 
-### Props (extends InputHTMLAttributes<HTMLInputElement>)
+### Props (extends InputHTMLAttributes<HTMLInputElement>, multiline이면 TextareaHTMLAttributes<HTMLTextAreaElement>)
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
 | label | string | (required) | Label text |
 | type | 'text' \| 'email' \| 'password' \| 'number' \| 'tel' \| 'url' | 'text' | Input type |
+| multiline | boolean | false | Render a `textarea`. `ref` is then `HTMLTextAreaElement`, and `type` is not accepted |
+| rows | number | 4 | Visible lines. Only with `multiline` (a type error otherwise) |
+| autoResize | boolean | false | Grow to fit the content. Only with `multiline` (a type error otherwise) |
 | size | 'sm' \| 'md' \| 'lg' | 'md' | Input size |
 | error | boolean | false | Error state |
 | errorMessage | string | — | Error message |
@@ -76,41 +83,7 @@ import { TextField } from '@taein-ui/core';
 - `aria-invalid` set automatically when `error` is true
 - `aria-describedby` linked to helper/error text
 - Label always connected via `htmlFor`/`id`
-
----
-
-## TextArea
-
-Multiline text input with optional auto-resize.
-
-```tsx
-import { TextArea } from '@taein-ui/core';
-
-<TextArea
-  label="설명"
-  placeholder="내용을 입력하세요"
-  value={value}
-  onChange={(e) => setValue(e.target.value)}
-  autoResize
-  height={150}
-  size="md"
-/>
-```
-
-### Props (extends TextareaHTMLAttributes<HTMLTextAreaElement>)
-| Prop | Type | Default | Description |
-|------|------|---------|-------------|
-| label | string | (required) | Label text |
-| size | 'sm' \| 'md' \| 'lg' | 'md' | TextArea size |
-| autoResize | boolean | false | Auto-adjust height to content |
-| height | string \| number | 120 | Minimum height |
-| error | boolean | false | Error state |
-| errorMessage | string | — | Error message |
-| helperText | string | — | Helper text |
-| fullWidth | boolean | false | Full width |
-| required | boolean | — | Required attribute |
-| disabled | boolean | — | Disabled attribute |
-| className | string | — | Additional CSS class |
+- `multiline` has no `height` prop: use `rows`, or `style={{ minHeight: 200 }}` for a pixel height
 
 ---
 
@@ -1248,7 +1221,7 @@ prop은 클라이언트 파일에서 넘긴다.
 배율을 계산하므로 브라우저에서만 돌아갈 수 있다. 담기는 그릇인 `HeaderBar` 자신은
 훅이 0개라 그대로 서버 컴포넌트로 남는다 — 그래서 둘을 분리해 둔다(Ruling 61).
 
-`TextArea`는 `'use client'`가 붙는다. `autoResize`가 높이를 읽고 쓰는 훅을 갖는다.
+`TextField`는 `'use client'`가 붙는다. `multiline`의 `autoResize`가 높이를 읽고 쓰는 훅을 갖는다.
 
 단, 서버 컴포넌트에서 `onClick` 같은 함수 prop을 넘기는 것은 TUI와 무관하게
 React가 막는다. 이벤트 핸들러를 붙이는 파일 쪽에 `'use client'`를 적어야 한다.

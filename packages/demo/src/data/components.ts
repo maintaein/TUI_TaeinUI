@@ -5,7 +5,6 @@ import {
   CirclePlus,
   CircleUser,
   Columns3,
-  FileText,
   Hash,
   Info,
   LayoutPanelTop,
@@ -38,7 +37,7 @@ export interface ComponentInfo {
 }
 
 export const componentsData: ComponentInfo[] = [
-  // Form Components (7개)
+  // Form Components (6개)
   {
     name: 'TextField',
     path: '/components/text-field',
@@ -46,14 +45,6 @@ export const componentsData: ComponentInfo[] = [
       '이름, 이메일, 비밀번호 등 한 줄 텍스트를 입력받을 때 사용합니다.',
     category: 'form',
     icon: TextCursorInput,
-  },
-  {
-    name: 'TextArea',
-    path: '/components/text-area',
-    description:
-      '후기, 메모, 설명 등 여러 줄의 텍스트를 입력받을 때 사용합니다.',
-    category: 'form',
-    icon: FileText,
   },
   {
     name: 'Checkbox',

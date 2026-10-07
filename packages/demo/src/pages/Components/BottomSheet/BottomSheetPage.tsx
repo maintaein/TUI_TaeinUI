@@ -300,7 +300,7 @@ const [name, setName] = useState('');
   <BottomSheet open={open} onClose={() => setOpen(false)} title="메모 추가" showClose closeOnBackdropClick={false} height="md">
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
       <TextField label="제목" value={name} onChange={(e) => setName(e.target.value)} placeholder="메모 제목을 입력하세요" fullWidth />
-      <TextArea label="내용" placeholder="메모 내용을 입력하세요" fullWidth rows={4} />
+      <TextField label="내용" placeholder="메모 내용을 입력하세요" multiline fullWidth rows={4} />
       <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end', marginTop: '0.5rem' }}>
         <Button size="sm" variant="light" onClick={() => setOpen(false)}>취소</Button>
         <Button size="sm" onClick={() => setOpen(false)} disabled={!name}>저장</Button>

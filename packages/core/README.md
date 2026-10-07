@@ -1,7 +1,7 @@
 # @taein-ui/core
 
 컴포넌트마다 다른 움직임을 갖는 React UI 컴포넌트 라이브러리, TUI(TaeinUI)의 본체입니다.
-컴포넌트 패밀리 30개(top-level export 49개)를 제공하고, 모션은 GSAP이 주도합니다.
+컴포넌트 패밀리 26개(top-level export 45개)를 제공하고, 모션은 GSAP이 주도합니다.
 
 전 컴포넌트에 같은 전환 하나를 입히지 않는 대신, 시인성·가독성·가시성은 어디서도 낮추지
 않습니다. 모션이 이 셋 중 하나라도 깎으면 틀린 쪽은 모션입니다.
@@ -55,8 +55,7 @@ function LoginForm() {
 
 ### 입력
 
-- **TextField** — 텍스트 입력 필드 (label, helperText, error 지원)
-- **TextArea** — 여러 줄 텍스트 입력
+- **TextField** - 텍스트 입력 필드 (label, helperText, error 지원). `multiline`이면 여러 줄 입력
 - **Checkbox** — 체크박스 (indeterminate 지원)
 - **Switch** — 토글 스위치
 - **Slider** — 범위 슬라이더

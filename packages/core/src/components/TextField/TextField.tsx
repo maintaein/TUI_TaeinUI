@@ -1,19 +1,21 @@
-import { forwardRef } from 'react';
-import type { InputHTMLAttributes } from 'react';
+import { forwardRef, useCallback, useEffect, useRef } from 'react';
+import type {
+  ChangeEvent,
+  InputHTMLAttributes,
+  ReactElement,
+  Ref,
+  RefAttributes,
+  TextareaHTMLAttributes,
+} from 'react';
 import { clsx } from 'clsx';
 import { FormField } from '../../_internal/formField';
 import * as styles from './TextField.css';
 
-/** 한 줄 텍스트 입력 컴포넌트. 레이블, 에러, 도움말 텍스트 내장 */
-export interface TextFieldProps extends Omit<
-  InputHTMLAttributes<HTMLInputElement>,
-  'size'
-> {
+/** 단일 줄과 여러 줄이 함께 받는 prop */
+interface TextFieldBaseProps {
   /** 레이블 텍스트 */
   label: string;
-  /** Input type */
-  type?: 'text' | 'email' | 'password' | 'number' | 'tel' | 'url';
-  /** Input size */
+  /** 크기 */
   size?: 'sm' | 'md' | 'lg';
   /** 에러 상태 */
   error?: boolean;
@@ -25,7 +27,36 @@ export interface TextFieldProps extends Omit<
   fullWidth?: boolean;
 }
 
-export const TextField = forwardRef<HTMLInputElement, TextFieldProps>(
+/** 한 줄 텍스트 입력 (`input`). `rows`와 `autoResize`는 받지 않는다 */
+interface SingleLineTextFieldProps
+  extends
+    TextFieldBaseProps,
+    Omit<InputHTMLAttributes<HTMLInputElement>, 'size'> {
+  /** 여러 줄 입력(`textarea`)으로 바꾼다. 기본값 `false` */
+  multiline?: false;
+  /** Input type */
+  type?: 'text' | 'email' | 'password' | 'number' | 'tel' | 'url';
+  rows?: never;
+  autoResize?: never;
+}
+
+/** 여러 줄 텍스트 입력 (`textarea`). textarea 속성에 `type`이 없으므로 `type`을 줄 수 없다 */
+interface MultilineTextFieldProps
+  extends
+    TextFieldBaseProps,
+    Omit<TextareaHTMLAttributes<HTMLTextAreaElement>, 'size'> {
+  /** 여러 줄 입력(`textarea`)으로 바꾼다 */
+  multiline: true;
+  /** 보이는 줄 수 @default 4 */
+  rows?: number;
+  /** 내용에 맞춰 높이가 늘어난다 @default false */
+  autoResize?: boolean;
+}
+
+/** 텍스트 입력 컴포넌트. 레이블, 에러, 도움말 텍스트 내장. `multiline`이면 여러 줄 */
+export type TextFieldProps = SingleLineTextFieldProps | MultilineTextFieldProps;
+
+const SingleLineField = forwardRef<HTMLInputElement, SingleLineTextFieldProps>(
   (
     {
       label,
@@ -38,10 +69,109 @@ export const TextField = forwardRef<HTMLInputElement, TextFieldProps>(
       required = false,
       disabled = false,
       className,
+      multiline: _multiline,
+      rows: _rows,
+      autoResize: _autoResize,
+      ...rest
+    },
+    ref
+  ) => (
+    <FormField
+      label={label}
+      helperText={helperText}
+      error={error}
+      errorMessage={errorMessage}
+      required={required}
+      fullWidth={fullWidth}
+    >
+      {({ inputId, helperId, hasHelper, isError }) => (
+        <input
+          ref={ref}
+          id={inputId}
+          type={type}
+          required={required}
+          disabled={disabled}
+          aria-invalid={isError}
+          aria-disabled={disabled}
+          aria-describedby={hasHelper ? helperId : undefined}
+          className={clsx(
+            styles.input,
+            styles.size[size],
+            isError && styles.error,
+            className
+          )}
+          {...rest}
+        />
+      )}
+    </FormField>
+  )
+);
+
+SingleLineField.displayName = 'TextField';
+
+const MultilineField = forwardRef<HTMLTextAreaElement, MultilineTextFieldProps>(
+  (
+    {
+      label,
+      size = 'md',
+      error = false,
+      errorMessage,
+      helperText,
+      fullWidth = false,
+      required = false,
+      disabled = false,
+      className,
+      multiline: _multiline,
+      rows = 4,
+      autoResize = false,
+      style,
+      onChange,
       ...rest
     },
     ref
   ) => {
+    const internalRef = useRef<HTMLTextAreaElement>(null);
+
+    // ref 병합 (forwardRef와 내부 ref 모두 지원)
+    const setRefs = useCallback(
+      (element: HTMLTextAreaElement | null) => {
+        internalRef.current = element;
+        if (typeof ref === 'function') {
+          ref(element);
+        } else if (ref) {
+          ref.current = element;
+        }
+      },
+      [ref]
+    );
+
+    // 자동 높이 조정 함수
+    const adjustHeight = useCallback(() => {
+      const textarea = internalRef.current;
+      if (!textarea || !autoResize) return;
+
+      textarea.style.height = 'auto';
+      textarea.style.height = `${textarea.scrollHeight}px`;
+    }, [autoResize]);
+
+    // autoResize 활성화 시 초기 높이 조정
+    useEffect(() => {
+      if (autoResize) {
+        adjustHeight();
+      }
+    }, [autoResize, adjustHeight]);
+
+    // onChange 핸들러 래핑 (자동 높이 조정 포함)
+    const handleChange = useCallback(
+      (e: ChangeEvent<HTMLTextAreaElement>) => {
+        if (autoResize) {
+          adjustHeight();
+        }
+        onChange?.(e);
+      },
+      [autoResize, adjustHeight, onChange]
+    );
+
     return (
       <FormField
         label={label}
@@ -52,10 +182,10 @@ export const TextField = forwardRef<HTMLInputElement, TextFieldProps>(
         fullWidth={fullWidth}
       >
         {({ inputId, helperId, hasHelper, isError }) => (
-          <input
-            ref={ref}
+          <textarea
+            ref={setRefs}
             id={inputId}
-            type={type}
+            rows={rows}
             required={required}
             disabled={disabled}
             aria-invalid={isError}
@@ -63,10 +193,13 @@ export const TextField = forwardRef<HTMLInputElement, TextFieldProps>(
             aria-describedby={hasHelper ? helperId : undefined}
             className={clsx(
               styles.input,
-              styles.size[size],
+              styles.multiline,
+              styles.multilineSize[size],
               isError && styles.error,
               className
             )}
+            style={{ overflow: autoResize ? 'hidden' : 'auto', ...style }}
+            onChange={handleChange}
             {...rest}
           />
         )}
@@ -74,5 +207,36 @@ export const TextField = forwardRef<HTMLInputElement, TextFieldProps>(
     );
   }
 );
+
+MultilineField.displayName = 'TextField';
+
+/**
+ * `forwardRef` 하나로는 "단일 줄이면 ref가 `HTMLInputElement`, `multiline`이면
+ * `HTMLTextAreaElement`"를 타입으로 말할 수 없다. 그래서 호출 시그니처 둘을 가진
+ * 인터페이스로 캐스팅한다. 기존 단일 줄 소비처(`useRef<HTMLInputElement>`, 콜백 ref)는
+ * 둘째 시그니처에 그대로 걸려 고칠 것이 없다. 단일 줄을 마지막에 두는 이유:
+ * `ComponentProps<typeof TextField>`는 마지막 시그니처를 읽으므로, Storybook 같은
+ * 도구가 기본 경우(단일 줄)의 props를 본다.
+ */
+interface TextFieldComponent {
+  (
+    props: MultilineTextFieldProps & RefAttributes<HTMLTextAreaElement>
+  ): ReactElement | null;
+  (
+    props: SingleLineTextFieldProps & RefAttributes<HTMLInputElement>
+  ): ReactElement | null;
+  displayName?: string;
+}
+
+export const TextField = forwardRef<
+  HTMLInputElement | HTMLTextAreaElement,
+  TextFieldProps
+>((props, ref) =>
+  props.multiline ? (
+    <MultilineField {...props} ref={ref as Ref<HTMLTextAreaElement>} />
+  ) : (
+    <SingleLineField {...props} ref={ref as Ref<HTMLInputElement>} />
+  )
+) as TextFieldComponent;
 
 TextField.displayName = 'TextField';
