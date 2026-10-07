@@ -16,12 +16,12 @@ const meta = {
     variant: {
       control: 'select',
       options: ['primary', 'dark', 'danger', 'light'],
-      description: '버튼 색상 변형',
+      description: '버튼 색상 변형. weak와 strong에만 적용된다',
     },
     buttonStyle: {
       control: 'select',
-      options: ['fill', 'weak'],
-      description: '버튼 스타일',
+      options: ['ghost', 'weak', 'strong'],
+      description: '버튼 스타일. 기본값은 ghost',
     },
     size: {
       control: 'select',
@@ -46,38 +46,6 @@ export const Default: Story = {
   args: {
     'aria-label': '검색',
     children: <Search size={22} />,
-  },
-};
-
-export const Primary: Story = {
-  args: {
-    variant: 'primary',
-    'aria-label': '검색',
-    children: <Search size={22} />,
-  },
-};
-
-export const Dark: Story = {
-  args: {
-    variant: 'dark',
-    'aria-label': '설정',
-    children: <Settings size={22} />,
-  },
-};
-
-export const Danger: Story = {
-  args: {
-    variant: 'danger',
-    'aria-label': '삭제',
-    children: <Trash size={22} />,
-  },
-};
-
-export const Light: Story = {
-  args: {
-    variant: 'light',
-    'aria-label': '추가',
-    children: <Plus size={22} />,
   },
 };
 
@@ -108,9 +76,46 @@ export const WeakDanger: Story = {
   },
 };
 
+export const StrongPrimary: Story = {
+  args: {
+    variant: 'primary',
+    buttonStyle: 'strong',
+    'aria-label': '검색',
+    children: <Search size={22} />,
+  },
+};
+
+export const StrongDark: Story = {
+  args: {
+    variant: 'dark',
+    buttonStyle: 'strong',
+    'aria-label': '설정',
+    children: <Settings size={22} />,
+  },
+};
+
+export const StrongDanger: Story = {
+  args: {
+    variant: 'danger',
+    buttonStyle: 'strong',
+    'aria-label': '삭제',
+    children: <Trash size={22} />,
+  },
+};
+
+export const StrongLight: Story = {
+  args: {
+    variant: 'light',
+    buttonStyle: 'strong',
+    'aria-label': '추가',
+    children: <Plus size={22} />,
+  },
+};
+
 export const Small: Story = {
   args: {
     size: 'sm',
+    buttonStyle: 'strong',
     'aria-label': '검색',
     children: <Search size={18} />,
   },
@@ -119,6 +124,7 @@ export const Small: Story = {
 export const Medium: Story = {
   args: {
     size: 'md',
+    buttonStyle: 'strong',
     'aria-label': '검색',
     children: <Search size={22} />,
   },
@@ -127,6 +133,7 @@ export const Medium: Story = {
 export const Large: Story = {
   args: {
     size: 'lg',
+    buttonStyle: 'strong',
     'aria-label': '검색',
     children: <Search size={26} />,
   },
@@ -135,6 +142,7 @@ export const Large: Story = {
 export const ExtraLarge: Story = {
   args: {
     size: 'xl',
+    buttonStyle: 'strong',
     'aria-label': '검색',
     children: <Search size={30} />,
   },
@@ -143,6 +151,7 @@ export const ExtraLarge: Story = {
 export const Loading: Story = {
   args: {
     loading: true,
+    buttonStyle: 'strong',
     'aria-label': '로딩 중',
     children: <Search size={22} />,
   },
@@ -151,6 +160,7 @@ export const Loading: Story = {
 export const Disabled: Story = {
   args: {
     disabled: true,
+    buttonStyle: 'strong',
     'aria-label': '비활성화',
     children: <Search size={22} />,
   },
@@ -159,36 +169,17 @@ export const Disabled: Story = {
 export const AllSizes: Story = {
   render: () => (
     <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-      <IconButton size="sm" aria-label="Small">
+      <IconButton buttonStyle="strong" size="sm" aria-label="Small">
         <Search size={18} />
       </IconButton>
-      <IconButton size="md" aria-label="Medium">
+      <IconButton buttonStyle="strong" size="md" aria-label="Medium">
         <Search size={22} />
       </IconButton>
-      <IconButton size="lg" aria-label="Large">
+      <IconButton buttonStyle="strong" size="lg" aria-label="Large">
         <Search size={26} />
       </IconButton>
-      <IconButton size="xl" aria-label="Extra Large">
+      <IconButton buttonStyle="strong" size="xl" aria-label="Extra Large">
         <Search size={30} />
-      </IconButton>
-    </div>
-  ),
-};
-
-export const AllVariants: Story = {
-  render: () => (
-    <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
-      <IconButton variant="primary" aria-label="Primary">
-        <Heart size={22} />
-      </IconButton>
-      <IconButton variant="dark" aria-label="Dark">
-        <Settings size={22} />
-      </IconButton>
-      <IconButton variant="danger" aria-label="Danger">
-        <Trash size={22} />
-      </IconButton>
-      <IconButton variant="light" aria-label="Light">
-        <Plus size={22} />
       </IconButton>
     </div>
   ),
@@ -211,6 +202,25 @@ export const AllWeakVariants: Story = {
         <Trash size={22} />
       </IconButton>
       <IconButton variant="light" buttonStyle="weak" aria-label="Light Weak">
+        <Plus size={22} />
+      </IconButton>
+    </div>
+  ),
+};
+
+export const AllStrongVariants: Story = {
+  render: () => (
+    <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+      <IconButton variant="primary" buttonStyle="strong" aria-label="Primary">
+        <Heart size={22} />
+      </IconButton>
+      <IconButton variant="dark" buttonStyle="strong" aria-label="Dark">
+        <Settings size={22} />
+      </IconButton>
+      <IconButton variant="danger" buttonStyle="strong" aria-label="Danger">
+        <Trash size={22} />
+      </IconButton>
+      <IconButton variant="light" buttonStyle="strong" aria-label="Light">
         <Plus size={22} />
       </IconButton>
     </div>
@@ -264,13 +274,27 @@ export const InteractiveExample: Story = {
         }}
       >
         <div style={{ display: 'flex', gap: '1rem' }}>
-          <IconButton onClick={handleClick} aria-label="좋아요">
+          <IconButton
+            buttonStyle="strong"
+            onClick={handleClick}
+            aria-label="좋아요"
+          >
             <Heart size={22} />
           </IconButton>
-          <IconButton variant="danger" onClick={handleClick} aria-label="삭제">
+          <IconButton
+            variant="danger"
+            buttonStyle="strong"
+            onClick={handleClick}
+            aria-label="삭제"
+          >
             <Trash size={22} />
           </IconButton>
-          <IconButton variant="dark" onClick={handleClick} aria-label="설정">
+          <IconButton
+            variant="dark"
+            buttonStyle="strong"
+            onClick={handleClick}
+            aria-label="설정"
+          >
             <Settings size={22} />
           </IconButton>
         </div>

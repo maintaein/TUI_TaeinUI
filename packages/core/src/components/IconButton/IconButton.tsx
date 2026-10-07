@@ -12,18 +12,16 @@ import { Loader } from '../Loader';
 import { useClickRebound } from '../../_internal/useClickRebound';
 
 type IconButtonVariant = 'primary' | 'dark' | 'danger' | 'light';
-type IconButtonStyle = 'fill' | 'weak';
+type IconButtonStyle = 'ghost' | 'weak' | 'strong';
 
 /** 아이콘만 표시하는 버튼 컴포넌트. aria-label 필수 */
 export interface IconButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
-  /** 버튼 색상 테마 @default 'primary' */
+  /** 버튼 색상 테마. weak·strong에만 적용된다(ghost는 회색 고정이라 무시된다) @default 'primary' */
   variant?: IconButtonVariant;
-  /** 버튼 채우기 스타일 @default 'fill' */
+  /** 버튼 스타일. ghost: 배경 없음(호버에 옅은 배경), weak: 옅은 배경, strong: 진한 배경 @default 'ghost' */
   buttonStyle?: IconButtonStyle;
   /** 버튼 크기 @default 'md' */
   size?: 'sm' | 'md' | 'lg' | 'xl';
-  /** 투명 배경 모드 @default false */
-  ghost?: boolean;
   /** 로딩 상태 @default false */
   loading?: boolean;
   /** 비활성화 상태 @default false */
@@ -40,9 +38,8 @@ export const IconButton = forwardRef<HTMLButtonElement, IconButtonProps>(
   (
     {
       variant = 'primary',
-      buttonStyle = 'fill',
+      buttonStyle = 'ghost',
       size = 'md',
-      ghost = false,
       loading = false,
       disabled = false,
       children,
@@ -85,8 +82,6 @@ export const IconButton = forwardRef<HTMLButtonElement, IconButtonProps>(
       }
     );
 
-    const variantClass = iconButton({ size, buttonStyle, variant });
-
     return (
       <button
         ref={ref}
@@ -98,7 +93,9 @@ export const IconButton = forwardRef<HTMLButtonElement, IconButtonProps>(
         aria-labelledby={ariaLabelledby}
         className={clsx(
           pressable,
-          ghost ? [ghostBase, ghostSizeVariants[size]] : variantClass,
+          buttonStyle === 'ghost'
+            ? [ghostBase, ghostSizeVariants[size]]
+            : iconButton({ size, buttonStyle, variant }),
           className
         )}
         data-pressed={pressed ? '' : undefined}

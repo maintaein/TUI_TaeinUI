@@ -65,10 +65,10 @@ describe('IconButton', () => {
     });
   });
 
-  describe('variant prop 테스트', () => {
+  describe('variant prop 테스트 (weak·strong에만 적용된다)', () => {
     it('variant="primary"를 적용한다', () => {
       render(
-        <IconButton variant="primary" aria-label="Primary">
+        <IconButton variant="primary" buttonStyle="strong" aria-label="Primary">
           <TestIcon />
         </IconButton>
       );
@@ -79,7 +79,7 @@ describe('IconButton', () => {
 
     it('variant="dark"를 적용한다', () => {
       render(
-        <IconButton variant="dark" aria-label="Dark">
+        <IconButton variant="dark" buttonStyle="strong" aria-label="Dark">
           <TestIcon />
         </IconButton>
       );
@@ -90,7 +90,7 @@ describe('IconButton', () => {
 
     it('variant="danger"를 적용한다', () => {
       render(
-        <IconButton variant="danger" aria-label="Danger">
+        <IconButton variant="danger" buttonStyle="strong" aria-label="Danger">
           <TestIcon />
         </IconButton>
       );
@@ -101,7 +101,7 @@ describe('IconButton', () => {
 
     it('variant="light"를 적용한다', () => {
       render(
-        <IconButton variant="light" aria-label="Light">
+        <IconButton variant="light" buttonStyle="strong" aria-label="Light">
           <TestIcon />
         </IconButton>
       );
@@ -112,15 +112,29 @@ describe('IconButton', () => {
   });
 
   describe('buttonStyle prop 테스트', () => {
-    it('buttonStyle="fill"을 적용한다', () => {
+    it('buttonStyle을 주지 않으면 ghost다(기본값)', () => {
       render(
-        <IconButton buttonStyle="fill" aria-label="Fill">
+        <IconButton aria-label="Default">
           <TestIcon />
         </IconButton>
       );
 
       const button = screen.getByRole('button');
-      expect(button.className).toContain('fill');
+      expect(button.className).toContain('ghost');
+      expect(button.className).not.toContain('weak');
+      expect(button.className).not.toContain('strong');
+    });
+
+    it('buttonStyle="strong"을 적용한다', () => {
+      render(
+        <IconButton buttonStyle="strong" aria-label="Strong">
+          <TestIcon />
+        </IconButton>
+      );
+
+      const button = screen.getByRole('button');
+      expect(button.className).toContain('strong');
+      expect(button.className).not.toContain('ghost');
     });
 
     it('buttonStyle="weak"를 적용한다', () => {
@@ -182,12 +196,16 @@ describe('IconButton', () => {
   });
 
   describe('아이콘 크기 테스트', () => {
-    it('contained 모드에서 아이콘 래퍼에 size별 클래스가 적용된다', () => {
+    it('weak 모드에서 아이콘 래퍼에 size별 클래스가 적용된다', () => {
       const sizes = ['sm', 'md', 'lg', 'xl'] as const;
 
       sizes.forEach((size) => {
         const { unmount } = render(
-          <IconButton size={size} aria-label={`icon-${size}`}>
+          <IconButton
+            buttonStyle="weak"
+            size={size}
+            aria-label={`icon-${size}`}
+          >
             <TestIcon />
           </IconButton>
         );
@@ -205,7 +223,11 @@ describe('IconButton', () => {
 
       sizes.forEach((size) => {
         const { unmount } = render(
-          <IconButton ghost size={size} aria-label={`ghost-${size}`}>
+          <IconButton
+            buttonStyle="ghost"
+            size={size}
+            aria-label={`ghost-${size}`}
+          >
             <TestIcon />
           </IconButton>
         );
@@ -220,7 +242,7 @@ describe('IconButton', () => {
 
     it('ghost 모드에서 size에 따라 ghost 크기 클래스가 버튼에 적용된다', () => {
       const { unmount } = render(
-        <IconButton ghost size="lg" aria-label="ghost-lg">
+        <IconButton buttonStyle="ghost" size="lg" aria-label="ghost-lg">
           <TestIcon />
         </IconButton>
       );
@@ -548,10 +570,10 @@ describe('IconButton', () => {
     });
   });
 
-  describe('ghost prop 테스트', () => {
+  describe('buttonStyle="ghost" 테스트', () => {
     it('ghost 모드에서 렌더링된다', () => {
       render(
-        <IconButton ghost aria-label="닫기">
+        <IconButton buttonStyle="ghost" aria-label="닫기">
           <TestIcon />
         </IconButton>
       );
@@ -563,7 +585,7 @@ describe('IconButton', () => {
 
     it('ghost 모드에서 ghost 스타일 클래스가 적용된다', () => {
       render(
-        <IconButton ghost aria-label="닫기">
+        <IconButton buttonStyle="ghost" aria-label="닫기">
           <TestIcon />
         </IconButton>
       );
@@ -572,28 +594,22 @@ describe('IconButton', () => {
       expect(button.className).toContain('ghost');
     });
 
-    it('ghost 모드에서 variant/buttonStyle 클래스가 적용되지 않는다', () => {
+    it('ghost에서는 variant가 무시된다(variant 클래스가 붙지 않는다)', () => {
       render(
-        <IconButton
-          ghost
-          variant="primary"
-          buttonStyle="fill"
-          aria-label="닫기"
-        >
+        <IconButton buttonStyle="ghost" variant="danger" aria-label="닫기">
           <TestIcon />
         </IconButton>
       );
 
       const button = screen.getByRole('button');
-      // fill/weak variant 클래스가 아닌 ghost 클래스만 있어야 함
       expect(button.className).toContain('ghost');
-      // fillVariants/weakVariants의 primary 클래스는 적용되지 않아야 함
-      expect(button.className).not.toContain('fill');
+      expect(button.className).not.toContain('danger');
+      expect(button.className).not.toContain('strong');
     });
 
     it('ghost 모드에서 sizeVariants가 적용되지 않는다', () => {
       render(
-        <IconButton ghost size="lg" aria-label="닫기">
+        <IconButton buttonStyle="ghost" size="lg" aria-label="닫기">
           <TestIcon />
         </IconButton>
       );
@@ -608,7 +624,7 @@ describe('IconButton', () => {
       const handleClick = vi.fn();
 
       render(
-        <IconButton ghost onClick={handleClick} aria-label="닫기">
+        <IconButton buttonStyle="ghost" onClick={handleClick} aria-label="닫기">
           <TestIcon />
         </IconButton>
       );
@@ -619,7 +635,7 @@ describe('IconButton', () => {
 
     it('ghost 모드에서 disabled 상태가 동작한다', () => {
       render(
-        <IconButton ghost disabled aria-label="닫기">
+        <IconButton buttonStyle="ghost" disabled aria-label="닫기">
           <TestIcon />
         </IconButton>
       );
@@ -631,7 +647,7 @@ describe('IconButton', () => {
 
     it('ghost 모드에서 loading 상태가 동작한다', () => {
       render(
-        <IconButton ghost loading aria-label="닫기">
+        <IconButton buttonStyle="ghost" loading aria-label="닫기">
           <TestIcon />
         </IconButton>
       );
@@ -644,7 +660,7 @@ describe('IconButton', () => {
 
     it('ghost 모드에서 아이콘은 aria-hidden으로 감싸진다', () => {
       render(
-        <IconButton ghost aria-label="닫기">
+        <IconButton buttonStyle="ghost" aria-label="닫기">
           <TestIcon />
         </IconButton>
       );
@@ -652,17 +668,6 @@ describe('IconButton', () => {
       const button = screen.getByRole('button');
       const iconWrapper = button.querySelector('[aria-hidden="true"]');
       expect(iconWrapper).toBeInTheDocument();
-    });
-
-    it('ghost={false}일 때 기존 동작과 동일하다 (기본값)', () => {
-      render(
-        <IconButton ghost={false} aria-label="닫기">
-          <TestIcon />
-        </IconButton>
-      );
-
-      const button = screen.getByRole('button');
-      expect(button.className).not.toContain('ghost');
     });
   });
 
@@ -751,23 +756,38 @@ describe('IconButton 누름 효과는 입력 시간과 무관하게 완주한다
     expect(button).not.toHaveAttribute('data-pressed');
   });
 
-  it('ghost 모드도 같은 누름 상태를 갖는다', () => {
-    vi.useFakeTimers();
-    render(
-      <IconButton ghost aria-label="탭">
-        <TestIcon />
-      </IconButton>
-    );
-    const button = screen.getByRole('button');
+  it.each(['ghost', 'weak', 'strong'] as const)(
+    '%s 모드도 같은 누름 상태를 갖는다',
+    (buttonStyle) => {
+      vi.useFakeTimers();
+      render(
+        <IconButton buttonStyle={buttonStyle} aria-label="탭">
+          <TestIcon />
+        </IconButton>
+      );
+      const button = screen.getByRole('button');
 
-    pointerDown(button);
-    wait(30);
-    fireEvent.pointerUp(button);
-    wait(59);
-    expect(button).toHaveAttribute('data-pressed');
-    wait(1);
-    expect(button).not.toHaveAttribute('data-pressed');
-  });
+      pointerDown(button);
+      wait(30);
+      fireEvent.pointerUp(button);
+      wait(59);
+      expect(button).toHaveAttribute('data-pressed');
+      wait(1);
+      expect(button).not.toHaveAttribute('data-pressed');
+    }
+  );
+
+  it.each(['ghost', 'weak', 'strong'] as const)(
+    '%s 모드에도 pressable 클래스가 붙는다(will-change와 누름 규칙이 세 모드에 같이 걸린다)',
+    (buttonStyle) => {
+      render(
+        <IconButton buttonStyle={buttonStyle} aria-label="탭">
+          <TestIcon />
+        </IconButton>
+      );
+      expect(screen.getByRole('button').className).toContain('pressable');
+    }
+  );
 
   it.each([
     ['Space', ' '],

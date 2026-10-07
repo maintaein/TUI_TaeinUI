@@ -386,7 +386,7 @@ const handleClick = () => {
             examples: [
               {
                 code: `// Good - IconButton 사용
-<IconButton aria-label="닫기"><X /></IconButton>
+<IconButton buttonStyle="strong" aria-label="닫기"><X /></IconButton>
 
 // Bad - 텍스트 없는 Button
 <Button leftIcon={<X />}>{""}</Button>`,

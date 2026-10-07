@@ -231,8 +231,14 @@ export const searchIndex: SearchEntry[] = [
     sections: [
       { title: 'Basic IconButton', content: '기본 아이콘 버튼 사용법' },
       { title: 'Sizes', content: 'sm, md, lg, xl 크기를 지원합니다' },
-      { title: 'Ghost', content: 'ghost prop으로 배경 없는 투명 버튼' },
-      { title: 'Variants', content: 'primary, dark, danger, light 색상 변형' },
+      {
+        title: 'Ghost',
+        content: 'buttonStyle ghost(기본값)로 배경 없는 투명 버튼',
+      },
+      {
+        title: 'Variants',
+        content: 'weak, strong에서 primary, dark, danger, light 색상 변형',
+      },
     ],
   },
   {

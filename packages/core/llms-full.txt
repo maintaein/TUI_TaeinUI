@@ -302,22 +302,22 @@ Icon-only button. Requires `aria-label` for accessibility.
 import { IconButton } from '@taein-ui/core';
 import { Plus, X } from 'lucide-react';
 
-<IconButton variant="primary" aria-label="닫기" onClick={handleClose}>
-  <X />
+// buttonStyle 기본값은 ghost(배경 없음)
+<IconButton aria-label="메뉴">
+  <Plus />
 </IconButton>
 
-<IconButton ghost aria-label="메뉴">
-  <Plus />
+<IconButton buttonStyle="strong" variant="primary" aria-label="닫기" onClick={handleClose}>
+  <X />
 </IconButton>
 ```
 
 ### Props (extends ButtonHTMLAttributes<HTMLButtonElement>)
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
-| variant | 'primary' \| 'dark' \| 'danger' \| 'light' | 'primary' | Button variant |
-| buttonStyle | 'fill' \| 'weak' | 'fill' | Fill or outline style |
+| variant | 'primary' \| 'dark' \| 'danger' \| 'light' | 'primary' | Button variant. Applies to weak and strong only (ghost is gray) |
+| buttonStyle | 'ghost' \| 'weak' \| 'strong' | 'ghost' | ghost: no background, weak: light background, strong: solid background |
 | size | 'sm' \| 'md' \| 'lg' \| 'xl' | 'md' | Button size |
-| ghost | boolean | false | Ghost style (no background) |
 | loading | boolean | false | Loading state |
 | disabled | boolean | false | Disabled state |
 | children | ReactNode | — | Icon content |
@@ -980,7 +980,7 @@ import { Plus } from 'lucide-react';
   logo={<img src="/logo.svg" alt="Logo" />}
   title="My App"
   actions={
-    <IconButton ghost aria-label="설정">
+    <IconButton aria-label="설정">
       <Plus />
     </IconButton>
   }

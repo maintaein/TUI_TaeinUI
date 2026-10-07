@@ -18,25 +18,20 @@ export function IconButtonPage() {
       name: 'variant',
       type: "'primary' | 'dark' | 'danger' | 'light'",
       default: "'primary'",
-      description: '버튼 색상 변형',
+      description:
+        '버튼 색상 변형. weak와 strong에만 적용된다(ghost는 회색 고정)',
     },
     {
       name: 'buttonStyle',
-      type: "'fill' | 'weak'",
-      default: "'fill'",
-      description: '버튼 스타일 (채움 / 약한)',
+      type: "'ghost' | 'weak' | 'strong'",
+      default: "'ghost'",
+      description: '버튼 스타일 (배경 없음 / 옅은 배경 / 진한 배경)',
     },
     {
       name: 'size',
       type: "'sm' | 'md' | 'lg' | 'xl'",
       default: "'md'",
-      description: '버튼 크기 (정사각형)',
-    },
-    {
-      name: 'ghost',
-      type: 'boolean',
-      default: 'false',
-      description: '고스트 모드: 배경/테두리 없이 아이콘만 버튼으로 사용',
+      description: '버튼 크기',
     },
     {
       name: 'loading',
@@ -86,10 +81,21 @@ export function IconButtonPage() {
         </Card>
         <Card className={styles.quickRefCard}>
           <Card.Body padding="md">
-            <h3 className={styles.quickRefTitle}>Contained</h3>
+            <h3 className={styles.quickRefTitle}>Ghost (기본)</h3>
             <CodeBlock
               language="tsx"
-              code={`<IconButton aria-label="설정">
+              code={`<IconButton aria-label="닫기">
+  <X />
+</IconButton>`}
+            />
+          </Card.Body>
+        </Card>
+        <Card className={styles.quickRefCard}>
+          <Card.Body padding="md">
+            <h3 className={styles.quickRefTitle}>Weak</h3>
+            <CodeBlock
+              language="tsx"
+              code={`<IconButton buttonStyle="weak" aria-label="설정">
   <Settings />
 </IconButton>`}
             />
@@ -97,66 +103,106 @@ export function IconButtonPage() {
         </Card>
         <Card className={styles.quickRefCard}>
           <Card.Body padding="md">
-            <h3 className={styles.quickRefTitle}>Ghost</h3>
+            <h3 className={styles.quickRefTitle}>Strong</h3>
             <CodeBlock
               language="tsx"
-              code={`<IconButton ghost aria-label="닫기">
-  <X />
+              code={`<IconButton buttonStyle="strong" aria-label="추가">
+  <Plus />
 </IconButton>`}
             />
           </Card.Body>
         </Card>
       </section>
 
-      {/* Contained Mode Section */}
+      {/* Ghost Section (default) */}
       <section className={styles.section}>
         <div className={styles.sectionHeader}>
-          <h2 className={styles.sectionTitle}>Contained Mode</h2>
+          <h2 className={styles.sectionTitle}>Ghost (기본)</h2>
           <p className={styles.sectionDescription}>
-            배경이 있는 정사각형 컨테이너 안에 아이콘을 배치하는 기본
-            모드입니다. variant, buttonStyle, size를 조합하여 다양한 스타일을
-            표현합니다.
+            buttonStyle을 주지 않으면 배경과 테두리 없이 아이콘만 버튼이 됩니다.
+            호버하면 옅은 회색 배경이 나타납니다. 색은 회색 고정이라 variant는
+            적용되지 않습니다.
           </p>
         </div>
 
-        {/* Basic */}
+        {/* Ghost Basic */}
         <div className={styles.example}>
-          <h3 className={styles.exampleTitle}>Basic</h3>
+          <h3 className={styles.exampleTitle}>Basic Ghost</h3>
           <LivePreview
-            title="기본 사용법"
-            description="아이콘과 aria-label을 함께 제공하는 가장 기본적인 사용법입니다."
+            title="Ghost 기본 사용법"
+            description="아이콘과 aria-label만 주면 배경 없는 아이콘 버튼이 됩니다. 호버 시 미세한 배경이 나타나 인터랙션 영역을 알려줍니다."
             editable
-            code={`<div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
-  <IconButton aria-label="홈"><House size={22} /></IconButton>
-  <IconButton aria-label="검색"><Search size={22} /></IconButton>
-  <IconButton aria-label="알림"><Bell size={22} /></IconButton>
+            code={`<div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+  <IconButton aria-label="닫기"><X size={22} /></IconButton>
   <IconButton aria-label="설정"><Settings size={22} /></IconButton>
+  <IconButton aria-label="더보기"><Ellipsis size={22} /></IconButton>
+  <IconButton aria-label="새로고침"><RotateCw size={22} /></IconButton>
 </div>`}
           />
         </div>
 
-        {/* Variants - Fill */}
+        {/* Ghost in context */}
         <div className={styles.example}>
-          <h3 className={styles.exampleTitle}>Variants (Fill)</h3>
+          <h3 className={styles.exampleTitle}>Ghost in Context</h3>
           <LivePreview
-            title="Fill 스타일 변형"
-            description="buttonStyle='fill' (기본값)일 때 4가지 variant입니다. Button과 동일한 색상 체계를 사용합니다."
+            title="실제 사용 맥락"
+            description="카드 헤더의 닫기/옵션 버튼, 리스트 아이템의 액션 버튼 등 콘텐츠 옆에 자연스럽게 배치되는 패턴입니다."
             editable
-            code={`<div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
-  <IconButton variant="primary" aria-label="추가"><Plus size={22} /></IconButton>
-  <IconButton variant="dark" aria-label="메뉴"><Menu size={22} /></IconButton>
-  <IconButton variant="danger" aria-label="삭제"><Trash size={22} /></IconButton>
-  <IconButton variant="light" aria-label="즐겨찾기"><Star size={22} /></IconButton>
+            code={`<div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem', backgroundColor: '#f9fafb', borderRadius: '0.75rem' }}>
+    <span style={{ fontWeight: 600 }}>알림 설정</span>
+    <div style={{ display: 'flex', gap: '0.25rem' }}>
+      <IconButton aria-label="편집"><Pencil size={22} /></IconButton>
+      <IconButton aria-label="닫기"><X size={22} /></IconButton>
+    </div>
+  </div>
+  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem', backgroundColor: '#f9fafb', borderRadius: '0.75rem' }}>
+    <span style={{ fontWeight: 600 }}>프로필 사진</span>
+    <div style={{ display: 'flex', gap: '0.25rem' }}>
+      <IconButton aria-label="더보기"><Ellipsis size={22} /></IconButton>
+    </div>
+  </div>
 </div>`}
           />
         </div>
 
-        {/* Variants - Weak */}
+        {/* Ghost Loading & Disabled */}
+        <div className={styles.example}>
+          <h3 className={styles.exampleTitle}>Ghost States</h3>
+          <LivePreview
+            title="Ghost 상태 변화"
+            description="loading과 disabled 상태는 세 모드가 같습니다."
+            editable
+            code={`const [loading, setLoading] = useState(false);
+const handleClick = () => {
+  setLoading(true);
+  setTimeout(() => setLoading(false), 2000);
+};
+
+<div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+  <IconButton loading={loading} onClick={handleClick} aria-label="새로고침"><RotateCw size={22} /></IconButton>
+  <IconButton loading aria-label="로딩 중"><Hourglass size={22} /></IconButton>
+  <IconButton disabled aria-label="비활성화"><X size={22} /></IconButton>
+</div>`}
+          />
+        </div>
+      </section>
+
+      {/* Weak Section */}
+      <section className={styles.section}>
+        <div className={styles.sectionHeader}>
+          <h2 className={styles.sectionTitle}>Weak</h2>
+          <p className={styles.sectionDescription}>
+            buttonStyle=&quot;weak&quot;는 채도가 낮은 배경색으로 시각적 위계를
+            낮춥니다. 툴바나 보조 액션에 적합합니다. variant로 색을 고릅니다.
+          </p>
+        </div>
+
         <div className={styles.example}>
           <h3 className={styles.exampleTitle}>Variants (Weak)</h3>
           <LivePreview
             title="Weak 스타일 변형"
-            description="buttonStyle='weak'는 채도가 낮은 배경색으로 시각적 위계를 낮춥니다. 툴바나 보조 액션에 적합합니다."
+            description="weak에서 쓸 수 있는 4가지 variant입니다."
             editable
             code={`<div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
   <IconButton variant="primary" buttonStyle="weak" aria-label="추가"><Plus size={22} /></IconButton>
@@ -167,60 +213,6 @@ export function IconButtonPage() {
           />
         </div>
 
-        {/* Sizes */}
-        <div className={styles.example}>
-          <h3 className={styles.exampleTitle}>Sizes</h3>
-          <LivePreview
-            title="크기 옵션"
-            description="sm(36px), md(44px), lg(52px), xl(60px) 네 가지 정사각형 크기를 제공합니다."
-            editable
-            code={`<div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
-  <IconButton size="sm" aria-label="Small"><Pencil size={18} /></IconButton>
-  <IconButton size="md" aria-label="Medium"><Pencil size={22} /></IconButton>
-  <IconButton size="lg" aria-label="Large"><Pencil size={26} /></IconButton>
-  <IconButton size="xl" aria-label="X-Large"><Pencil size={30} /></IconButton>
-</div>`}
-          />
-        </div>
-
-        {/* Loading */}
-        <div className={styles.example}>
-          <h3 className={styles.exampleTitle}>Loading</h3>
-          <LivePreview
-            title="로딩 상태"
-            description="loading prop으로 Loader를 표시합니다. 로딩 중에는 버튼이 자동으로 비활성화됩니다."
-            editable
-            code={`const [loading, setLoading] = useState(false);
-const handleClick = () => {
-  setLoading(true);
-  setTimeout(() => setLoading(false), 2000);
-};
-
-<div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
-  <IconButton loading={loading} onClick={handleClick} aria-label="새로고침"><RotateCw size={22} /></IconButton>
-  <IconButton loading variant="dark" aria-label="로딩 중"><Hourglass size={22} /></IconButton>
-  <IconButton loading variant="danger" aria-label="로딩 중"><Hourglass size={22} /></IconButton>
-</div>`}
-          />
-        </div>
-
-        {/* Disabled */}
-        <div className={styles.example}>
-          <h3 className={styles.exampleTitle}>Disabled</h3>
-          <LivePreview
-            title="비활성화 상태"
-            description="disabled prop으로 버튼을 비활성화합니다. 클릭 이벤트가 발생하지 않습니다."
-            editable
-            code={`<div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
-  <IconButton disabled aria-label="추가"><Plus size={22} /></IconButton>
-  <IconButton variant="dark" disabled aria-label="메뉴"><Menu size={22} /></IconButton>
-  <IconButton variant="danger" disabled aria-label="삭제"><Trash size={22} /></IconButton>
-  <IconButton variant="light" disabled aria-label="즐겨찾기"><Star size={22} /></IconButton>
-</div>`}
-          />
-        </div>
-
-        {/* Toolbar Example */}
         <div className={styles.example}>
           <h3 className={styles.exampleTitle}>Toolbar Example</h3>
           <LivePreview
@@ -240,8 +232,33 @@ const handleClick = () => {
 </div>`}
           />
         </div>
+      </section>
 
-        {/* Button vs IconButton */}
+      {/* Strong Section */}
+      <section className={styles.section}>
+        <div className={styles.sectionHeader}>
+          <h2 className={styles.sectionTitle}>Strong</h2>
+          <p className={styles.sectionDescription}>
+            buttonStyle=&quot;strong&quot;은 진한 배경으로 가장 눈에 띄는 액션을
+            만듭니다. Button의 fill과 같은 색상 체계를 씁니다.
+          </p>
+        </div>
+
+        <div className={styles.example}>
+          <h3 className={styles.exampleTitle}>Variants (Strong)</h3>
+          <LivePreview
+            title="Strong 스타일 변형"
+            description="strong에서 쓸 수 있는 4가지 variant입니다."
+            editable
+            code={`<div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+  <IconButton variant="primary" buttonStyle="strong" aria-label="추가"><Plus size={22} /></IconButton>
+  <IconButton variant="dark" buttonStyle="strong" aria-label="메뉴"><Menu size={22} /></IconButton>
+  <IconButton variant="danger" buttonStyle="strong" aria-label="삭제"><Trash size={22} /></IconButton>
+  <IconButton variant="light" buttonStyle="strong" aria-label="즐겨찾기"><Star size={22} /></IconButton>
+</div>`}
+          />
+        </div>
+
         <div className={styles.example}>
           <h3 className={styles.exampleTitle}>Button vs IconButton</h3>
           <LivePreview
@@ -251,11 +268,11 @@ const handleClick = () => {
             code={`<div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
   <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
     <Button variant="primary" leftIcon={<Plus size={16} />} size="md">추가</Button>
-    <IconButton variant="primary" size="md" aria-label="추가"><Plus size={22} /></IconButton>
+    <IconButton variant="primary" buttonStyle="strong" size="md" aria-label="추가"><Plus size={22} /></IconButton>
   </div>
   <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
     <Button variant="danger" leftIcon={<Trash size={16} />} size="md">삭제</Button>
-    <IconButton variant="danger" size="md" aria-label="삭제"><Trash size={22} /></IconButton>
+    <IconButton variant="danger" buttonStyle="strong" size="md" aria-label="삭제"><Trash size={22} /></IconButton>
   </div>
   <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
     <Button variant="dark" buttonStyle="weak" size="sm">메뉴</Button>
@@ -266,88 +283,35 @@ const handleClick = () => {
         </div>
       </section>
 
-      {/* Ghost Mode Section */}
+      {/* Sizes & States (세 모드 공통) */}
       <section className={styles.section}>
         <div className={styles.sectionHeader}>
-          <h2 className={styles.sectionTitle}>Ghost Mode</h2>
+          <h2 className={styles.sectionTitle}>Sizes &amp; States</h2>
           <p className={styles.sectionDescription}>
-            배경과 테두리 없이 아이콘 자체만 버튼으로 사용하는 모드입니다. ghost
-            prop을 추가하면 variant, buttonStyle, size가 무시되고 투명한
-            버튼으로 렌더링됩니다. 호버 시 미세한 배경이 나타납니다.
+            크기와 상태는 세 모드가 같습니다.
           </p>
         </div>
 
-        {/* Ghost Basic */}
         <div className={styles.example}>
-          <h3 className={styles.exampleTitle}>Basic Ghost</h3>
+          <h3 className={styles.exampleTitle}>Sizes</h3>
           <LivePreview
-            title="Ghost 기본 사용법"
-            description="ghost prop만 추가하면 배경 없는 아이콘 버튼이 됩니다. 호버 시 미세한 배경이 나타나 인터랙션 영역을 알려줍니다."
+            title="크기 옵션"
+            description="sm, md, lg, xl 네 가지 크기를 제공합니다. 채움 모드(weak, strong)는 sm과 md가 모두 44px입니다."
             editable
-            code={`<div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-  <IconButton ghost aria-label="닫기"><X size={22} /></IconButton>
-  <IconButton ghost aria-label="설정"><Settings size={22} /></IconButton>
-  <IconButton ghost aria-label="더보기"><Ellipsis size={22} /></IconButton>
-  <IconButton ghost aria-label="새로고침"><RotateCw size={22} /></IconButton>
+            code={`<div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+  <IconButton buttonStyle="strong" size="sm" aria-label="Small"><Pencil size={18} /></IconButton>
+  <IconButton buttonStyle="strong" size="md" aria-label="Medium"><Pencil size={22} /></IconButton>
+  <IconButton buttonStyle="strong" size="lg" aria-label="Large"><Pencil size={26} /></IconButton>
+  <IconButton buttonStyle="strong" size="xl" aria-label="X-Large"><Pencil size={30} /></IconButton>
 </div>`}
           />
         </div>
 
-        {/* Ghost vs Contained comparison */}
         <div className={styles.example}>
-          <h3 className={styles.exampleTitle}>Ghost vs Contained</h3>
+          <h3 className={styles.exampleTitle}>Loading</h3>
           <LivePreview
-            title="두 모드 비교"
-            description="같은 아이콘을 Contained와 Ghost 모드로 나란히 비교합니다. Ghost는 UI에 녹아들어 콘텐츠에 집중하게 합니다."
-            editable
-            code={`<div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-  <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-    <span style={{ width: '100px', fontSize: '0.875rem', color: '#6b7280' }}>Contained</span>
-    <IconButton aria-label="닫기"><X size={22} /></IconButton>
-    <IconButton aria-label="설정"><Settings size={22} /></IconButton>
-    <IconButton aria-label="더보기"><Ellipsis size={22} /></IconButton>
-  </div>
-  <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-    <span style={{ width: '100px', fontSize: '0.875rem', color: '#6b7280' }}>Ghost</span>
-    <IconButton ghost aria-label="닫기"><X size={22} /></IconButton>
-    <IconButton ghost aria-label="설정"><Settings size={22} /></IconButton>
-    <IconButton ghost aria-label="더보기"><Ellipsis size={22} /></IconButton>
-  </div>
-</div>`}
-          />
-        </div>
-
-        {/* Ghost in context */}
-        <div className={styles.example}>
-          <h3 className={styles.exampleTitle}>Ghost in Context</h3>
-          <LivePreview
-            title="실제 사용 맥락"
-            description="카드 헤더의 닫기/옵션 버튼, 리스트 아이템의 액션 버튼 등 콘텐츠 옆에 자연스럽게 배치되는 패턴입니다."
-            editable
-            code={`<div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem', backgroundColor: '#f9fafb', borderRadius: '0.75rem' }}>
-    <span style={{ fontWeight: 600 }}>알림 설정</span>
-    <div style={{ display: 'flex', gap: '0.25rem' }}>
-      <IconButton ghost aria-label="편집"><Pencil size={22} /></IconButton>
-      <IconButton ghost aria-label="닫기"><X size={22} /></IconButton>
-    </div>
-  </div>
-  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem', backgroundColor: '#f9fafb', borderRadius: '0.75rem' }}>
-    <span style={{ fontWeight: 600 }}>프로필 사진</span>
-    <div style={{ display: 'flex', gap: '0.25rem' }}>
-      <IconButton ghost aria-label="더보기"><Ellipsis size={22} /></IconButton>
-    </div>
-  </div>
-</div>`}
-          />
-        </div>
-
-        {/* Ghost Loading & Disabled */}
-        <div className={styles.example}>
-          <h3 className={styles.exampleTitle}>Ghost States</h3>
-          <LivePreview
-            title="Ghost 상태 변화"
-            description="Ghost 모드에서도 loading, disabled 상태를 동일하게 지원합니다."
+            title="로딩 상태"
+            description="loading prop으로 Loader를 표시합니다. 로딩 중에는 버튼이 자동으로 비활성화됩니다."
             editable
             code={`const [loading, setLoading] = useState(false);
 const handleClick = () => {
@@ -355,10 +319,25 @@ const handleClick = () => {
   setTimeout(() => setLoading(false), 2000);
 };
 
-<div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-  <IconButton ghost loading={loading} onClick={handleClick} aria-label="새로고침"><RotateCw size={22} /></IconButton>
-  <IconButton ghost loading aria-label="로딩 중"><Hourglass size={22} /></IconButton>
-  <IconButton ghost disabled aria-label="비활성화"><X size={22} /></IconButton>
+<div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+  <IconButton buttonStyle="strong" loading={loading} onClick={handleClick} aria-label="새로고침"><RotateCw size={22} /></IconButton>
+  <IconButton buttonStyle="strong" loading variant="dark" aria-label="로딩 중"><Hourglass size={22} /></IconButton>
+  <IconButton buttonStyle="strong" loading variant="danger" aria-label="로딩 중"><Hourglass size={22} /></IconButton>
+</div>`}
+          />
+        </div>
+
+        <div className={styles.example}>
+          <h3 className={styles.exampleTitle}>Disabled</h3>
+          <LivePreview
+            title="비활성화 상태"
+            description="disabled prop으로 버튼을 비활성화합니다. 클릭 이벤트가 발생하지 않습니다."
+            editable
+            code={`<div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+  <IconButton buttonStyle="strong" disabled aria-label="추가"><Plus size={22} /></IconButton>
+  <IconButton buttonStyle="strong" variant="dark" disabled aria-label="메뉴"><Menu size={22} /></IconButton>
+  <IconButton buttonStyle="strong" variant="danger" disabled aria-label="삭제"><Trash size={22} /></IconButton>
+  <IconButton buttonStyle="strong" variant="light" disabled aria-label="즐겨찾기"><Star size={22} /></IconButton>
 </div>`}
           />
         </div>

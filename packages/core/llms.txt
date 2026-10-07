@@ -50,7 +50,7 @@ All components follow consistent patterns:
 
 ### Button & Action
 - **Button** — Primary action button. Props: variant('primary'|'dark'|'danger'|'light'), buttonStyle('fill'|'weak'), size, loading, leftIcon, rightIcon, fullWidth, customColor
-- **IconButton** — Icon-only button. Props: variant, buttonStyle, size, ghost, loading, aria-label (required)
+^- **IconButton**: Icon-only button. Props: variant, buttonStyle('ghost'|'weak'|'strong', default ghost), size, loading, aria-label (required)
 - **SegmentedButtons** — Button group for single selection. Props: options[{value,label,icon?}], value, onChange, size
 
 ### Display & Data

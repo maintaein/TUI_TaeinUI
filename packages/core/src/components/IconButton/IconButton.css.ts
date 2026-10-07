@@ -106,7 +106,7 @@ export const iconButton = recipe({
     },
 
     buttonStyle: {
-      fill: {},
+      strong: {},
       weak: {},
     },
 
@@ -120,7 +120,7 @@ export const iconButton = recipe({
 
   compoundVariants: [
     {
-      variants: { buttonStyle: 'fill', variant: 'primary' },
+      variants: { buttonStyle: 'strong', variant: 'primary' },
       style: {
         // primary[600]은 흰 배경 대비 3.68:1로 Button의 동일 조합(4.60)보다
         // 낮다. 세 상태를 한 단계씩 올려 4.60/5.74/8.63으로 맞춘다.
@@ -133,7 +133,7 @@ export const iconButton = recipe({
       },
     },
     {
-      variants: { buttonStyle: 'fill', variant: 'dark' },
+      variants: { buttonStyle: 'strong', variant: 'dark' },
       style: {
         backgroundColor: themeContract.palette.gray[700],
         color: themeContract.color.text.inverse,
@@ -144,7 +144,7 @@ export const iconButton = recipe({
       },
     },
     {
-      variants: { buttonStyle: 'fill', variant: 'danger' },
+      variants: { buttonStyle: 'strong', variant: 'danger' },
       style: {
         backgroundColor: themeContract.palette.error[500],
         color: themeContract.color.error.contrast,
@@ -155,7 +155,7 @@ export const iconButton = recipe({
       },
     },
     {
-      variants: { buttonStyle: 'fill', variant: 'light' },
+      variants: { buttonStyle: 'strong', variant: 'light' },
       style: {
         backgroundColor: themeContract.color.background.default,
         color: themeContract.palette.primary[600],
@@ -214,7 +214,7 @@ export const iconButton = recipe({
 
   defaultVariants: {
     size: 'md',
-    buttonStyle: 'fill',
+    buttonStyle: 'strong',
     variant: 'primary',
   },
 });
