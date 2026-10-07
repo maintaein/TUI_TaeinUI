@@ -7,6 +7,7 @@ import * as styles from './Checkbox.css';
 import { gateMotion, settleMotion } from '../../hooks/gateMotion';
 import { gsapDuration, gsapEasing } from '../../tokens/gsapEasing';
 import { useReducedMotion } from '../../hooks/useReducedMotion';
+import { progressFrame } from './checkboxProgress';
 
 gsap.registerPlugin(MorphSVGPlugin);
 
@@ -46,11 +47,39 @@ const resolveMarkState = (
 /**
  * 표식 트윈을 테스트가 읽을 수 있는 통로. `Snackbar.tsx`의 `CountdownTweenHost`와
  * 같은 패턴 — 공개 prop/state가 아니라 path DOM 노드에 얹는다. 테스트는 실제
- * GSAP 인스턴스를 그대로 받아 `progress()`/`reverse()`로 seek한다(무모킹).
+ * GSAP 인스턴스를 그대로 받아 `progress()`로 seek한다(무모킹). 살아 있는 트윈은
+ * 하나뿐이다: 체크·해제는 진행값 트윈, checked ↔ indeterminate는 모양 바뀜 타임라인.
  */
 interface MarkTweenHost extends SVGPathElement {
-  __markTween?: gsap.core.Tween;
+  __markTween?: gsap.core.Animation;
 }
+
+/** 진행값. `t`가 0(해제)과 1(체크) 사이를 오가고 GSAP이 이 객체를 트윈한다. */
+interface MarkProgress {
+  t: number;
+}
+
+/** 진행값이 움직이는 세 노드. */
+interface MarkNodes {
+  /** 체크 획 path. */
+  path: MarkTweenHost;
+  /** 채움 층. */
+  fill: HTMLElement;
+  /** 상자(`checkmark`). 부풂이 걸린다. */
+  box: HTMLElement;
+}
+
+/** 진행값 `t`를 세 노드에 쓴다. 트윈의 onUpdate와 모양 확정이 같은 이 함수를 거친다. */
+const writeFrame = (
+  { path, fill, box }: MarkNodes,
+  t: number,
+  length: number
+): void => {
+  const frame = progressFrame(t, length);
+  path.style.strokeDashoffset = String(frame.dashoffset);
+  fill.style.transform = `scale(${frame.fill})`;
+  box.style.transform = `scale(${frame.box})`;
+};
 
 /**
  * 트윈에 자가 종료를 붙인다(Ruling 41 — 유휴 상태에서 살아 있는 gsap 객체는
@@ -61,7 +90,7 @@ interface MarkTweenHost extends SVGPathElement {
  * 그래서 `eventCallback`을 생성 이후에 따로 붙인다.
  */
 const attachSelfKill = (
-  tween: gsap.core.Tween,
+  tween: gsap.core.Animation,
   path: MarkTweenHost,
   reduced: boolean
 ): void => {
@@ -77,22 +106,31 @@ const attachSelfKill = (
 };
 
 /**
- * 표식 상태 전이를 DOM에 반영한다. 마운트 직후 첫 호출(`ref.current === null`)은
- * JSX가 이미 그려 둔 시작 모양을 그대로 인정하고 상태만 기록한다 — 애니메이션도
- * DOM 쓰기도 하지 않는다(초기 페인트 번쩍임 없음, 위험 #4). 그 외에는 브리프
- * "상태와 전이" 표를 그대로 따른다. 사용자 토글(onChange)과 prop 변화(effect)가
- * 모두 이 함수를 거쳐 로직이 갈라지지 않는다.
+ * 표식 상태 전이를 DOM에 반영한다. 마운트 직후 첫 호출(`markStateRef.current ===
+ * null`)은 JSX가 이미 그려 둔 시작 모양을 그대로 인정하고 상태와 진행값만
+ * 기록한다. 애니메이션도 DOM 쓰기도 하지 않는다(초기 페인트 번쩍임 없음, 위험
+ * #4). 사용자 토글(onChange)과 prop 변화(effect)가 모두 이 함수를 거쳐 로직이
+ * 갈라지지 않는다.
+ *
+ * - 체크·indeterminate 진입: 진행값 `t`를 지금 값에서 1로 `slow` `spring`
+ * - 해제: `t`를 지금 값에서 0으로 `slow × EXIT_RATIO` `exit`. 부풂 없음
+ * - checked ↔ indeterminate: 모양 바뀜. `t`는 1에 머문다
+ *
+ * 진행 중에 반대로 바뀌면 트윈을 죽이고 지금 `t`에서 새 목표로 다시 트윈한다.
  */
 const syncMarkState = (
-  path: MarkTweenHost,
+  nodes: MarkNodes,
+  progress: MarkProgress,
   markStateRef: React.MutableRefObject<MarkState | null>,
   nextState: MarkState,
   reduced: boolean
 ): void => {
+  const { path } = nodes;
   const prev = markStateRef.current;
 
   if (prev === null) {
     markStateRef.current = nextState;
+    progress.t = nextState === 'unchecked' ? 0 : 1;
     return;
   }
 
@@ -105,61 +143,50 @@ const syncMarkState = (
     return;
   }
 
-  // kill() 전에 읽어야 산다. attachSelfKill은 자연 완료(onComplete)나 축소 선호에서
-  // 핸들을 비우므로, `__markTween !== undefined`는 "지금 비행 중인 트윈이 있다"와 같다.
-  const interrupted = path.__markTween !== undefined;
   path.__markTween?.kill();
 
-  if (prev === 'unchecked') {
-    // 등장: unchecked → checked | indeterminate
-    const length = lengthFor(nextState);
-    gsap.set(path, {
-      attr: { d: pathFor(nextState) },
-      strokeDasharray: length,
-      // 중단 복귀(비행 중인 트윈은 퇴장뿐이다)면 되감기를 건너뛴다 — 명제 1조 ③가
-      // "상태가 또 바뀌면 현재 위치에서 이어진다"라, 퇴장 커브 중간값을 length로
-      // 덮으면 체크마크가 한 프레임 사라졌다가 처음부터 다시 그려진다.
-      ...(interrupted ? {} : { strokeDashoffset: length }),
-    });
+  if (prev === 'unchecked' || nextState === 'unchecked') {
+    // 진입(unchecked → checked | indeterminate)과 해제(→ unchecked)는 같은 모양
+    // 위에서 `t`만 오간다. 해제는 prev의 정준 모양으로 d·strokeDasharray를
+    // 확정한다(Ruling 77). 모프 도중 끊기고 곧장 해제로 넘어오면 d/dasharray가
+    // 중간값에 얼어 dashoffset과 안 맞아 조각이 남을 수 있어서다.
+    const entering = nextState !== 'unchecked';
+    const shape = entering ? nextState : prev;
+    const length = lengthFor(shape);
+    gsap.set(path, { attr: { d: pathFor(shape) }, strokeDasharray: length });
+    writeFrame(nodes, progress.t, length);
     const tween = gateMotion(reduced, () =>
-      gsap.to(path, {
-        strokeDashoffset: 0,
-        duration: gsapDuration.slow,
-        ease: gsapEasing.settle,
-        overwrite: 'auto',
-      })
-    );
-    attachSelfKill(tween, path, reduced);
-  } else if (nextState === 'unchecked') {
-    // 퇴장: checked | indeterminate → unchecked
-    // d·strokeDasharray도 prev의 정준 모양으로 같이 트윈한다(Ruling 77) —
-    // 모프 도중 끊기고 곧장 퇴장으로 넘어오면 d/dasharray가 중간값에 얼어
-    // dashoffset과 안 맞아 조각이 남을 수 있어서다.
-    const length = lengthFor(prev);
-    const tween = gateMotion(reduced, () =>
-      gsap.to(path, {
-        morphSVG: pathFor(prev),
-        strokeDasharray: length,
-        strokeDashoffset: length,
-        duration: gsapDuration.slow * EXIT_RATIO,
-        ease: gsapEasing.exit,
-        overwrite: 'auto',
+      gsap.to(progress, {
+        t: entering ? 1 : 0,
+        duration: entering ? gsapDuration.slow : gsapDuration.slow * EXIT_RATIO,
+        ease: entering ? gsapEasing.spring : gsapEasing.exit,
+        onUpdate: () => writeFrame(nodes, progress.t, length),
       })
     );
     attachSelfKill(tween, path, reduced);
   } else {
-    // 모양 변형: checked ↔ indeterminate. dashoffset도 같이 0으로 트윈한다(Ruling 77) —
-    // 등장이 중단된 채로 모프에 진입하면 dashoffset이 중간값에 걸려 있을 수 있어서다.
-    const tween = gateMotion(reduced, () =>
-      gsap.to(path, {
-        morphSVG: pathFor(nextState),
-        strokeDasharray: lengthFor(nextState),
-        strokeDashoffset: 0,
-        duration: gsapDuration.base,
-        ease: gsapEasing.settle,
-        overwrite: 'auto',
-      })
-    );
+    // 모양 변형: checked ↔ indeterminate. 진입이 중단된 채로(t < 1) 모프에 들어오면
+    // 같은 타임라인에서 `t`도 1로 보낸다(Ruling 77). 부풂 중(t > 1)이어도 1로
+    // 돌아와야 상자가 부푼 채 남지 않는다. 이미 1이면 진행값 트윈은 만들지 않는다.
+    const length = lengthFor(nextState);
+    const tween = gateMotion(reduced, () => {
+      const timeline = gsap.timeline({
+        defaults: { duration: gsapDuration.base, ease: gsapEasing.settle },
+      });
+      timeline.to(
+        path,
+        { morphSVG: pathFor(nextState), strokeDasharray: length },
+        0
+      );
+      if (progress.t !== 1) {
+        timeline.to(
+          progress,
+          { t: 1, onUpdate: () => writeFrame(nodes, progress.t, length) },
+          0
+        );
+      }
+      return timeline;
+    });
     attachSelfKill(tween, path, reduced);
   }
 
@@ -205,6 +232,9 @@ export const Checkbox = forwardRef<HTMLInputElement, CheckboxProps>(
     const helperId = useId();
     const internalRef = useRef<HTMLInputElement>(null);
     const pathRef = useRef<MarkTweenHost | null>(null);
+    const fillRef = useRef<HTMLSpanElement>(null);
+    const boxRef = useRef<HTMLSpanElement>(null);
+    const progressRef = useRef<MarkProgress>({ t: 0 });
     const markStateRef = useRef<MarkState | null>(null);
     const reduced = useReducedMotion();
 
@@ -216,6 +246,13 @@ export const Checkbox = forwardRef<HTMLInputElement, CheckboxProps>(
         );
       }
     }
+
+    const getNodes = (): MarkNodes | null => {
+      const path = pathRef.current;
+      const fill = fillRef.current;
+      const box = boxRef.current;
+      return path && fill && box ? { path, fill, box } : null;
+    };
 
     // indeterminate 상태 설정
     useEffect(() => {
@@ -234,14 +271,20 @@ export const Checkbox = forwardRef<HTMLInputElement, CheckboxProps>(
       const checkboxElement =
         (ref as React.RefObject<HTMLInputElement>)?.current ||
         internalRef.current;
-      const path = pathRef.current;
-      if (!checkboxElement || !path) return;
+      const nodes = getNodes();
+      if (!checkboxElement || !nodes) return;
 
       const nextState = resolveMarkState(
         checkboxElement.indeterminate,
         checkboxElement.checked
       );
-      syncMarkState(path, markStateRef, nextState, reduced);
+      syncMarkState(
+        nodes,
+        progressRef.current,
+        markStateRef,
+        nextState,
+        reduced
+      );
     }, [indeterminate, rest.checked, reduced, ref]);
 
     // 언마운트 시 살아 있는 트윈을 정리한다(Ruling 41). 정리 함수 안에서
@@ -256,14 +299,20 @@ export const Checkbox = forwardRef<HTMLInputElement, CheckboxProps>(
     }, []);
 
     const handleChange = (event: ChangeEvent<HTMLInputElement>) => {
-      const path = pathRef.current;
-      if (path) {
+      const nodes = getNodes();
+      if (nodes) {
         const target = event.currentTarget;
         const nextState = resolveMarkState(
           target.indeterminate,
           target.checked
         );
-        syncMarkState(path, markStateRef, nextState, reduced);
+        syncMarkState(
+          nodes,
+          progressRef.current,
+          markStateRef,
+          nextState,
+          reduced
+        );
       }
       rest.onChange?.(event);
     };
@@ -287,6 +336,7 @@ export const Checkbox = forwardRef<HTMLInputElement, CheckboxProps>(
         d: pathFor(initialShapeState),
         dasharray: length,
         dashoffset: initialMarkState === 'unchecked' ? length : 0,
+        fill: initialMarkState === 'unchecked' ? 'scale(0)' : 'scale(1)',
       };
     });
 
@@ -326,12 +376,19 @@ export const Checkbox = forwardRef<HTMLInputElement, CheckboxProps>(
               onChange={handleChange}
             />
             <span
+              ref={boxRef}
               className={clsx(
                 styles.checkmark,
                 styles.size[size],
                 error && styles.error
               )}
             >
+              <span
+                ref={fillRef}
+                aria-hidden="true"
+                className={styles.markFill}
+                style={{ transform: initialMark.fill }}
+              />
               <svg
                 viewBox="0 0 24 24"
                 aria-hidden="true"

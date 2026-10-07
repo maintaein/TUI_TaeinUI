@@ -4,11 +4,12 @@ import userEvent from '@testing-library/user-event';
 import '@testing-library/jest-dom';
 import { createRef, useState } from 'react';
 import { Checkbox } from './Checkbox';
+import { gsapDuration, gsapEasing } from '../../tokens/gsapEasing';
 
 // gsap 네임스페이스는 ambient 전역 타입이라 import 없이 참조된다
 // (Snackbar.test.tsx의 CountdownTweenHost와 같은 방식) — 이 파일에서
 // `from 'gsap'`가 없어야 gsapGateEnforcement 스캔에 안 걸린다.
-type MarkTweenHost = SVGPathElement & { __markTween?: gsap.core.Tween };
+type MarkTweenHost = SVGPathElement & { __markTween?: gsap.core.Animation };
 
 const getMarkPath = (container: HTMLElement): MarkTweenHost =>
   container.querySelector('svg path') as MarkTweenHost;
@@ -27,6 +28,31 @@ const installReducedMotion = (): void => {
         onchange: null,
       }) as unknown as MediaQueryList
   );
+};
+
+/** 상자(`checkmark`)와 그 안의 채움 층. 입력 바로 뒤 형제가 상자다. */
+const getBox = (container: HTMLElement): HTMLElement =>
+  container.querySelector('input + span') as HTMLElement;
+const getFill = (container: HTMLElement): HTMLElement =>
+  getBox(container).firstElementChild as HTMLElement;
+
+/** 인라인 `transform: scale(n)`의 n. */
+const scaleOf = (el: HTMLElement): number =>
+  Number(/scale\(([^)]+)\)/.exec(el.style.transform)?.[1]);
+
+/** 트윈을 0..1로 훑으며 매 걸음의 (채움, 상자, 획) 읽기를 모은다. */
+const sweep = (container: HTMLElement) => {
+  const tween = getMarkPath(container).__markTween as gsap.core.Animation;
+  const fills: number[] = [];
+  const boxes: number[] = [];
+  const offsets: number[] = [];
+  for (let step = 0; step <= 200; step += 1) {
+    tween.progress(step / 200);
+    fills.push(scaleOf(getFill(container)));
+    boxes.push(scaleOf(getBox(container)));
+    offsets.push(Number(getMarkPath(container).style.strokeDashoffset));
+  }
+  return { fills, boxes, offsets };
 };
 
 describe('Checkbox', () => {
@@ -357,6 +383,223 @@ describe('Checkbox', () => {
     });
   });
 
+  describe('스프링 (M5 task-16)', () => {
+    afterEach(() => {
+      vi.unstubAllGlobals();
+    });
+
+    const mount = (props: { checked: boolean; indeterminate?: boolean }) => (
+      <Checkbox label="동의" onChange={() => {}} {...props} />
+    );
+
+    it('체크: 진행값이 1로 slow spring 트윈한다', () => {
+      const { container, rerender } = render(mount({ checked: false }));
+      rerender(mount({ checked: true }));
+
+      const tween = getMarkPath(container).__markTween as gsap.core.Tween;
+      expect(tween.vars.t).toBe(1);
+      expect(tween.duration()).toBe(gsapDuration.slow);
+      expect(tween.vars.ease).toBe(gsapEasing.spring);
+    });
+
+    it('해제: 진행값이 0으로 slow x 0.65 exit 트윈한다', () => {
+      const { container, rerender } = render(mount({ checked: true }));
+      rerender(mount({ checked: false }));
+
+      const tween = getMarkPath(container).__markTween as gsap.core.Tween;
+      expect(tween.vars.t).toBe(0);
+      expect(tween.duration()).toBeCloseTo(gsapDuration.slow * 0.65, 10);
+      expect(tween.vars.ease).toBe(gsapEasing.exit);
+    });
+
+    it('indeterminate 진입도 체크와 같은 트윈이고 획은 대시 path다', () => {
+      const { container, rerender } = render(mount({ checked: false }));
+      rerender(mount({ checked: false, indeterminate: true }));
+
+      const path = getMarkPath(container);
+      const tween = path.__markTween as gsap.core.Tween;
+      expect(tween.vars.t).toBe(1);
+      expect(tween.duration()).toBe(gsapDuration.slow);
+      expect(tween.vars.ease).toBe(gsapEasing.spring);
+      expect(path.getAttribute('d')).toBe('M5 12 L19 12');
+      expect(Number(path.style.strokeDashoffset)).toBe(14);
+
+      tween.progress(1);
+      expect(Number(path.style.strokeDashoffset)).toBe(0);
+    });
+
+    it('체크를 훑으면 채움은 1을 넘고 상자는 최대 1.0715배까지 부풀며 획은 음수가 되지 않는다', () => {
+      const { container, rerender } = render(mount({ checked: false }));
+      rerender(mount({ checked: true }));
+
+      const { fills, boxes, offsets } = sweep(container);
+      expect(Math.max(...fills)).toBeGreaterThan(1.15);
+      expect(Math.max(...boxes)).toBeGreaterThan(1.05);
+      expect(Math.max(...boxes)).toBeLessThan(1.0716);
+      expect(Math.min(...offsets)).toBe(0);
+      expect(fills.at(-1)).toBe(1);
+      expect(boxes.at(-1)).toBe(1);
+      expect(offsets.at(-1)).toBe(0);
+    });
+
+    it('해제를 훑으면 채움이 0으로 줄고 상자는 부풀지 않으며 획은 길이로 돌아온다', () => {
+      const { container, rerender } = render(mount({ checked: true }));
+      rerender(mount({ checked: false }));
+
+      const { fills, boxes, offsets } = sweep(container);
+      expect(Math.max(...boxes)).toBe(1);
+      expect(Math.max(...fills)).toBeLessThanOrEqual(1);
+      expect(Math.min(...fills)).toBe(0);
+      expect(Math.max(...offsets)).toBe(19.8);
+      expect(fills.at(-1)).toBe(0);
+      expect(offsets.at(-1)).toBe(19.8);
+    });
+
+    it('checked → indeterminate는 모양 바뀜 타임라인 하나이고 진행값 트윈이 없다', () => {
+      const { container, rerender } = render(mount({ checked: true }));
+      rerender(mount({ checked: true, indeterminate: true }));
+
+      const path = getMarkPath(container);
+      const tween = path.__markTween as gsap.core.Timeline;
+      expect(tween.getChildren()).toHaveLength(1);
+      tween.progress(0.5);
+      expect(scaleOf(getFill(container))).toBe(1);
+      expect(getBox(container).style.transform).toBe('');
+      expect(Number(path.style.strokeDashoffset)).toBe(0);
+    });
+
+    it('indeterminate → checked도 같다', () => {
+      const { container, rerender } = render(
+        mount({ checked: true, indeterminate: true })
+      );
+      rerender(mount({ checked: true }));
+
+      const tween = getMarkPath(container).__markTween as gsap.core.Timeline;
+      expect(tween.getChildren()).toHaveLength(1);
+    });
+
+    it('진입이 중단된 채 모프로 넘어오면 같은 타임라인이 진행값도 1로 데려간다', () => {
+      const { container, rerender } = render(mount({ checked: false }));
+      rerender(mount({ checked: true }));
+      getMarkPath(container).__markTween?.progress(0.02);
+      expect(scaleOf(getFill(container))).toBeGreaterThan(0);
+      expect(scaleOf(getFill(container))).toBeLessThan(1);
+
+      rerender(mount({ checked: true, indeterminate: true }));
+      const tween = getMarkPath(container).__markTween as gsap.core.Timeline;
+      expect(tween.getChildren()).toHaveLength(2);
+      tween.progress(1);
+      expect(scaleOf(getFill(container))).toBe(1);
+      expect(scaleOf(getBox(container))).toBe(1);
+    });
+
+    it('부풂 한가운데서 모프로 넘어와도 상자는 1로 돌아온다', () => {
+      const { container, rerender } = render(mount({ checked: false }));
+      rerender(mount({ checked: true }));
+      const tween = getMarkPath(container).__markTween;
+      // spring 정점 근처로 seek해 t가 1을 넘은 자리에서 멈춘다.
+      for (let step = 0; step <= 200; step += 1) {
+        tween?.progress(step / 200);
+        if (scaleOf(getBox(container)) > 1.06) break;
+      }
+      expect(scaleOf(getBox(container))).toBeGreaterThan(1.06);
+
+      rerender(mount({ checked: true, indeterminate: true }));
+      getMarkPath(container).__markTween?.progress(1);
+      expect(scaleOf(getBox(container))).toBe(1);
+    });
+
+    it('진행 중 반대로 바뀌면 이전 트윈이 죽고 하나만 산다', () => {
+      const { container, rerender } = render(mount({ checked: false }));
+      rerender(mount({ checked: true }));
+      const path = getMarkPath(container);
+      const first = path.__markTween as gsap.core.Tween;
+      first.progress(0.3);
+      expect(first.parent).not.toBeNull();
+
+      rerender(mount({ checked: false }));
+      const second = path.__markTween as gsap.core.Tween;
+      expect(second).not.toBe(first);
+      expect(first.parent).toBeNull();
+      expect(second.parent).not.toBeNull();
+      expect(second.vars.t).toBe(0);
+    });
+
+    it('반대로 바뀔 때 지금 값에서 이어진다(되감기 아님)', () => {
+      const { container, rerender } = render(mount({ checked: false }));
+      rerender(mount({ checked: true }));
+      getMarkPath(container).__markTween?.progress(0.02);
+      const fillBefore = scaleOf(getFill(container));
+      const offsetBefore = getMarkPath(container).style.strokeDashoffset;
+      expect(fillBefore).toBeGreaterThan(0);
+      expect(fillBefore).toBeLessThan(1);
+
+      rerender(mount({ checked: false }));
+      expect(scaleOf(getFill(container))).toBe(fillBefore);
+      expect(getMarkPath(container).style.strokeDashoffset).toBe(offsetBefore);
+    });
+
+    it('마운트에서는 트윈이 없고 처음 상태가 마크업에 박혀 있다', () => {
+      const off = render(mount({ checked: false }));
+      expect(getMarkPath(off.container).__markTween).toBeUndefined();
+      expect(getFill(off.container).style.transform).toBe('scale(0)');
+      expect(Number(getMarkPath(off.container).style.strokeDashoffset)).toBe(
+        19.8
+      );
+      off.unmount();
+
+      const on = render(mount({ checked: true }));
+      expect(getMarkPath(on.container).__markTween).toBeUndefined();
+      expect(getFill(on.container).style.transform).toBe('scale(1)');
+      expect(Number(getMarkPath(on.container).style.strokeDashoffset)).toBe(0);
+      on.unmount();
+
+      const dash = render(mount({ checked: false, indeterminate: true }));
+      expect(getMarkPath(dash.container).__markTween).toBeUndefined();
+      expect(getFill(dash.container).style.transform).toBe('scale(1)');
+    });
+
+    it('채움 층은 aria-hidden이고 상자 안 첫 자식이며 체크 svg보다 앞이다', () => {
+      const { container } = render(mount({ checked: false }));
+      const fill = getFill(container);
+      expect(fill).toHaveAttribute('aria-hidden', 'true');
+      expect(fill.nextElementSibling?.tagName.toLowerCase()).toBe('svg');
+    });
+
+    it('키보드(Space)로 바꿔도 애니메이션한다', async () => {
+      const { container } = render(<Checkbox label="동의" />);
+      screen.getByRole('checkbox').focus();
+      await userEvent.keyboard(' ');
+
+      const tween = getMarkPath(container).__markTween as gsap.core.Tween;
+      expect(tween).toBeDefined();
+      expect(tween.vars.t).toBe(1);
+      expect(tween.vars.ease).toBe(gsapEasing.spring);
+    });
+
+    it('축소 선호에서는 체크가 즉시 끝 상태다(채움 1, 상자 1, 획 끝)', () => {
+      installReducedMotion();
+      const { container, rerender } = render(mount({ checked: false }));
+      rerender(mount({ checked: true }));
+
+      expect(getMarkPath(container).__markTween).toBeUndefined();
+      expect(scaleOf(getFill(container))).toBe(1);
+      expect(scaleOf(getBox(container))).toBe(1);
+      expect(Number(getMarkPath(container).style.strokeDashoffset)).toBe(0);
+    });
+
+    it('축소 선호에서는 해제도 즉시 끝 상태다(채움 0, 상자 1, 획 가림)', () => {
+      installReducedMotion();
+      const { container, rerender } = render(mount({ checked: true }));
+      rerender(mount({ checked: false }));
+
+      expect(getMarkPath(container).__markTween).toBeUndefined();
+      expect(scaleOf(getFill(container))).toBe(0);
+      expect(scaleOf(getBox(container))).toBe(1);
+      expect(Number(getMarkPath(container).style.strokeDashoffset)).toBe(19.8);
+    });
+  });
+
   describe('GSAP 모션 테스트 (Task 6)', () => {
     afterEach(() => {
       vi.unstubAllGlobals();
@@ -554,5 +797,69 @@ describe('Checkbox', () => {
         expect(Number(path.style.strokeDashoffset)).toBe(0);
       });
     });
+  });
+});
+
+/** vanilla-extract가 실제로 만든 CSS(jsdom에 주입된 <style>)를 CSSOM으로 읽는다. */
+const checkboxRules = (): CSSStyleRule[] => {
+  const sheet = Array.from(document.styleSheets).find((candidate) =>
+    Array.from(candidate.cssRules).some((rule) =>
+      rule.cssText.includes('Checkbox_checkmark')
+    )
+  );
+  if (!sheet) throw new Error('Checkbox 스타일시트를 찾지 못했다');
+  return Array.from(sheet.cssRules).filter(
+    (rule): rule is CSSStyleRule => rule instanceof CSSStyleRule
+  );
+};
+
+describe('Checkbox 생성 CSS (M5 task-16)', () => {
+  const own = (className: string) =>
+    checkboxRules().find((rule) =>
+      new RegExp(`^\\.Checkbox_${className}__\\w+$`).test(rule.selectorText)
+    );
+
+  it('채움 층은 상자 가운데 원점에서 상자를 덮고 모서리를 물려받는다', () => {
+    const fill = own('markFill');
+    expect(fill).toBeDefined();
+    expect(fill?.style.getPropertyValue('position')).toBe('absolute');
+    expect(fill?.style.getPropertyValue('transform-origin')).toBe('center');
+    expect(fill?.style.getPropertyValue('border-radius')).toBe('inherit');
+    expect(fill?.cssText).toMatch(/inset: 0|top: 0/);
+  });
+
+  it('상자는 overflow hidden으로 채움의 넘침을 자른다', () => {
+    expect(own('checkmark')?.style.getPropertyValue('overflow')).toBe('hidden');
+  });
+
+  it('상자 자신의 배경색은 체크·indeterminate·비활성 체크로 바뀌지 않는다', () => {
+    const stateRules = checkboxRules().filter(
+      (rule) =>
+        rule.selectorText.includes('Checkbox_checkmark') &&
+        /:checked|:indeterminate/.test(rule.selectorText)
+    );
+    expect(stateRules.length).toBeGreaterThan(0);
+    for (const rule of stateRules) {
+      expect(
+        rule.style.getPropertyValue('background-color'),
+        rule.selectorText
+      ).toBe('');
+    }
+  });
+
+  it('채움 색은 체크 여부를 따르지 않는다(해제 중에도 색을 지킨다), 비활성만 다르다', () => {
+    const fillRules = checkboxRules().filter((rule) =>
+      rule.selectorText.includes('Checkbox_markFill')
+    );
+    for (const rule of fillRules) {
+      expect(rule.selectorText).not.toMatch(/:checked|:indeterminate/);
+    }
+    const disabled = fillRules.find((rule) =>
+      rule.selectorText.includes('input:disabled')
+    );
+    expect(disabled?.style.getPropertyValue('background-color')).not.toBe('');
+    expect(
+      own('markFill')?.style.getPropertyValue('background-color')
+    ).not.toBe('');
   });
 });

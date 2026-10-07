@@ -75,6 +75,8 @@ export const checkmark = style({
   alignItems: 'center',
   justifyContent: 'center',
   position: 'relative',
+  // 채움 층의 넘침(스프링이 1을 넘는 순간)을 둥근 모서리 안에서 자른다.
+  overflow: 'hidden',
 
   selectors: {
     '&:hover': {
@@ -85,13 +87,12 @@ export const checkmark = style({
       ...focusRing(),
     },
 
+    // 상자 자신의 배경은 체크로 바뀌지 않는다. 차오르는 건 채움 층(markFill)이다.
     'input:checked + &': {
-      backgroundColor: themeContract.color.primary.main,
       borderColor: themeContract.color.primary.main,
     },
 
     'input:indeterminate + &': {
-      backgroundColor: themeContract.color.primary.main,
       borderColor: themeContract.color.primary.main,
     },
 
@@ -102,13 +103,35 @@ export const checkmark = style({
     },
 
     'input:disabled:checked + &': {
-      backgroundColor: themeContract.color.text.disabled,
       borderColor: themeContract.color.text.disabled,
     },
   },
 });
 
+/**
+ * 상자 안에서 가운데부터 차오르는 채움 층. `scale`은 GSAP이 쓴다(진행값 `t`에서
+ * `scale(max(t, 0))`). 색은 input의 체크 여부와 무관하게 정한다: 해제 중에는
+ * input이 이미 unchecked라, 체크 여부를 따르면 줄어드는 채움이 색을 잃는다.
+ * 안 차 있을 때는 scale(0)이라 보이지 않는다.
+ */
+export const markFill = style({
+  position: 'absolute',
+  inset: 0,
+  borderRadius: 'inherit',
+  transformOrigin: 'center',
+  backgroundColor: themeContract.color.primary.main,
+  pointerEvents: 'none',
+
+  selectors: {
+    [`input:disabled + ${checkmark} > &`]: {
+      backgroundColor: themeContract.color.text.disabled,
+    },
+  },
+});
+
 export const markSvg = style({
+  // 채움 층(absolute) 위에 그려지도록 쌓임 순서를 올린다.
+  position: 'relative',
   width: '100%',
   height: '100%',
   display: 'block',

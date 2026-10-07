@@ -20,6 +20,8 @@ export default defineConfig({
     // Border도 같은 이유다. 호버 포인터 게이트와 :focus-within이 @media 안팎
     // 어디에 있는지, rotate 길이가 loop.slow인지를 CSSOM으로 잠근다.
     // IconButton도 같은 이유다(Button과 같은 누름·호버 규칙을 CSSOM으로 잠근다).
+    // Checkbox도 같은 이유다. 채움 층의 원점·넘침 자름·색이 체크 여부를 따르지 않음을
+    // CSSOM으로 잠근다.
     css: {
       include: [
         /Slider\.css/,
@@ -28,6 +30,7 @@ export default defineConfig({
         /\/Border\.css/,
         /HeaderBarNav\.css/,
         /\/TextField\.css/,
+        /\/Checkbox\.css/,
       ],
     },
     coverage: {
