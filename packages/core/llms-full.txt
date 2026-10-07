@@ -310,17 +310,13 @@ import { IconButton } from '@taein-ui/core';
 import { Plus, X } from 'lucide-react';
 
 // buttonStyle 기본값은 ghost(배경 없음)
+// Jelly hover is on by default: the icon spreads sideways when the mouse enters, then wobbles back
 <IconButton aria-label="메뉴">
   <Plus />
 </IconButton>
 
 <IconButton buttonStyle="strong" variant="primary" aria-label="닫기" onClick={handleClose}>
   <X />
-</IconButton>
-
-// Jelly hover is on by default: the icon spreads sideways when the mouse enters, then wobbles back
-<IconButton aria-label="메뉴">
-  <Plus />
 </IconButton>
 
 // Turn it off with hoverEffect="none" (hoverEffect="jelly" is the default)

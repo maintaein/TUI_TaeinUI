@@ -1261,6 +1261,7 @@ describe('IconButton 젤리', () => {
   it('none으로 껐다가 다시 켜면 새로 돈다', () => {
     const { button, rerender } = setup();
     enter(button);
+    const first = slotOf(button).__iconButtonJelly!;
     rerender(
       <IconButton aria-label="젤리" hoverEffect="none">
         <TestIcon />
@@ -1274,7 +1275,27 @@ describe('IconButton 젤리', () => {
 
     enter(button);
 
-    expect(slotOf(button).__iconButtonJelly!.progress()).toBeLessThan(1);
+    // 죽은 타임라인도 progress가 0이라 그것만으로는 새것과 구별되지 않는다.
+    const second = slotOf(button).__iconButtonJelly!;
+    expect(second).not.toBe(first);
+    expect(second.parent).not.toBeNull();
+    expect(second.progress()).toBeLessThan(1);
+  });
+
+  it('도는 중에 loading이 켜지면 타임라인을 죽이고 손잡이를 비운다', () => {
+    const { button, rerender } = setup();
+    enter(button);
+    const slot = slotOf(button);
+    const tl = slot.__iconButtonJelly!;
+
+    rerender(
+      <IconButton aria-label="젤리" loading>
+        <TestIcon />
+      </IconButton>
+    );
+
+    expect(tl.parent).toBeNull();
+    expect(slot.__iconButtonJelly).toBeUndefined();
   });
 
   it('마우스가 들어오면 퍼짐 다음에 출렁이며 돌아오는 두 단계다', () => {

@@ -317,6 +317,9 @@ export const loadingSlot = style({
 // 생기면 끝나는 순간 레이어가 사라지며 아이콘이 1px 튈 수 있다. 그래서 효과가 켜졌을
 // 때만 처음부터 레이어를 둔다(근거는 Button.css.ts의 will-change 주석과 같다). 축소
 // 모드에서는 움직임이 없으니 레이어도 필요 없다.
+// 대가: 기본 켜짐이라 IconButton마다 버튼의 레이어에 더해 아이콘 칸 레이어가 하나 더
+// 상주한다(아이콘 크기라 작다). GSAP이 도는 동안은 translate3d, 끝나면 translate(0, 0)이라
+// 레이어가 바뀌는 순간 튈 수 있는 조건이 Button과 같다.
 export const jellySlot = style({
   willChange: 'transform',
   '@media': {

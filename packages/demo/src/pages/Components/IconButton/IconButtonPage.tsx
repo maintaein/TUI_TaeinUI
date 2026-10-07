@@ -294,7 +294,7 @@ const handleClick = () => {
         </div>
       </section>
 
-      {/* Hover Effect */}
+      {/* 젤리 */}
       <section className={styles.section}>
         <div className={styles.sectionHeader}>
           <h2 className={styles.sectionTitle}>젤리</h2>
