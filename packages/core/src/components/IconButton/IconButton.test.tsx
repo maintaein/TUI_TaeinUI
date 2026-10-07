@@ -1058,25 +1058,74 @@ describe('IconButton 생성 CSS', () => {
     );
   });
 
-  it('아이콘 래퍼에는 지연·scale 모션이 없다(size 클래스 하나뿐이다)', () => {
-    render(
-      <IconButton aria-label="아이콘">
-        <TestIcon />
-      </IconButton>
-    );
-    const wrapper = screen
-      .getByRole('button')
-      .querySelector('[aria-hidden="true"]')!;
-    expect(wrapper.className).not.toContain('iconMotion');
-    expect(wrapper.className.trim().split(/\s+/)).toHaveLength(1);
-  });
-
-  it('소스에 40ms 지연과 globalStyle이 없다', () => {
+  it('소스에 40ms 지연이 없다(아이콘 span은 몸통을 따라 눌린다)', () => {
     const cssSource = readFileSync(
       resolve(__dirname, './IconButton.css.ts'),
       'utf-8'
     );
     expect(cssSource).not.toContain('40ms');
-    expect(cssSource).not.toContain('globalStyle');
+    expect(cssSource).not.toContain('iconMotion');
+  });
+});
+
+describe('IconButton 아이콘 크기는 버튼이 정한다', () => {
+  const wrapperOf = (size?: 'sm' | 'md' | 'lg' | 'xl') => {
+    render(
+      <IconButton size={size} aria-label="아이콘">
+        <TestIcon />
+      </IconButton>
+    );
+    return screen.getByRole('button').querySelector('[aria-hidden="true"]')!;
+  };
+  const rules = () => iconButtonRules();
+  const slotClass = () =>
+    wrapperOf()
+      .className.split(/\s+/)
+      .find((c) => c.includes('iconSlot'))!;
+
+  it('아이콘 span이 iconSlot 클래스와 size 클래스를 함께 가진다', () => {
+    const wrapper = wrapperOf('lg');
+    expect(wrapper.className).toContain('iconSlot');
+    expect(wrapper.className).toContain('lg');
+  });
+
+  it('svg 규칙은 :where로 감싸 특정도가 0이다(className·style이 이긴다)', () => {
+    const slot = slotClass();
+    const rule = rules().find(
+      ({ rule: r }) =>
+        r.selectorText.includes(slot) && r.selectorText.includes('svg')
+    );
+    expect(rule, 'iconSlot 안의 svg 규칙을 찾지 못했다').toBeDefined();
+    // 선택자 전체가 :where(...) 하나다. 앞에 클래스가 붙으면 (0,1,x)가 돼 사용자 클래스에 진다.
+    expect(rule!.rule.selectorText).toMatch(/^:where\(/);
+    expect(rule!.rule.selectorText).toMatch(/\)$/);
+  });
+
+  it('svg는 1em x 1em이라 size별 fontSize(18/22/26/30px)를 따른다', () => {
+    const slot = slotClass();
+    const rule = rules().find(
+      ({ rule: r }) =>
+        r.selectorText.includes(slot) && r.selectorText.includes('svg')
+    )!;
+    expect(rule.rule.style.getPropertyValue('width')).toBe('1em');
+    expect(rule.rule.style.getPropertyValue('height')).toBe('1em');
+  });
+
+  it('아이콘 span은 가운데 정렬 flex다(세로로 처지지 않는다)', () => {
+    const slot = slotClass();
+    const rule = rules().find(({ rule: r }) => r.selectorText === `.${slot}`)!;
+    expect(rule.rule.style.getPropertyValue('display')).toBe('inline-flex');
+    expect(rule.rule.style.getPropertyValue('align-items')).toBe('center');
+    expect(rule.rule.style.getPropertyValue('justify-content')).toBe('center');
+  });
+
+  it('size별 fontSize는 그대로다(1em의 기준)', () => {
+    const cssSource = readFileSync(
+      resolve(__dirname, './IconButton.css.ts'),
+      'utf-8'
+    );
+    for (const px of ['1.125rem', '1.375rem', '1.625rem', '1.875rem']) {
+      expect(cssSource).toContain(`fontSize: '${px}'`);
+    }
   });
 });

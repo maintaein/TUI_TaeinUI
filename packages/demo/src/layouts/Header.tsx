@@ -104,7 +104,7 @@ export function Header({ onMenuClick, showMenuButton = false }: HeaderProps) {
       <div className={styles.leftSection}>
         {showMenuButton && (
           <IconButton onClick={onMenuClick} aria-label="메뉴 열기" size="md">
-            <Menu size={24} />
+            <Menu />
           </IconButton>
         )}
         <picture>

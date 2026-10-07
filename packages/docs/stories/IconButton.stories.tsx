@@ -10,7 +10,7 @@ const meta = {
   },
   tags: ['autodocs'],
   args: {
-    children: <Plus size={22} />,
+    children: <Plus />,
   },
   argTypes: {
     variant: {
@@ -45,7 +45,7 @@ type Story = StoryObj<typeof meta>;
 export const Default: Story = {
   args: {
     'aria-label': '검색',
-    children: <Search size={22} />,
+    children: <Search />,
   },
 };
 
@@ -54,7 +54,7 @@ export const WeakPrimary: Story = {
     variant: 'primary',
     buttonStyle: 'weak',
     'aria-label': '좋아요',
-    children: <Heart size={22} />,
+    children: <Heart />,
   },
 };
 
@@ -63,7 +63,7 @@ export const WeakDark: Story = {
     variant: 'dark',
     buttonStyle: 'weak',
     'aria-label': '닫기',
-    children: <X size={22} />,
+    children: <X />,
   },
 };
 
@@ -72,7 +72,7 @@ export const WeakDanger: Story = {
     variant: 'danger',
     buttonStyle: 'weak',
     'aria-label': '삭제',
-    children: <Trash size={22} />,
+    children: <Trash />,
   },
 };
 
@@ -81,7 +81,7 @@ export const StrongPrimary: Story = {
     variant: 'primary',
     buttonStyle: 'strong',
     'aria-label': '검색',
-    children: <Search size={22} />,
+    children: <Search />,
   },
 };
 
@@ -90,7 +90,7 @@ export const StrongDark: Story = {
     variant: 'dark',
     buttonStyle: 'strong',
     'aria-label': '설정',
-    children: <Settings size={22} />,
+    children: <Settings />,
   },
 };
 
@@ -99,7 +99,7 @@ export const StrongDanger: Story = {
     variant: 'danger',
     buttonStyle: 'strong',
     'aria-label': '삭제',
-    children: <Trash size={22} />,
+    children: <Trash />,
   },
 };
 
@@ -108,7 +108,7 @@ export const StrongLight: Story = {
     variant: 'light',
     buttonStyle: 'strong',
     'aria-label': '추가',
-    children: <Plus size={22} />,
+    children: <Plus />,
   },
 };
 
@@ -117,7 +117,7 @@ export const Small: Story = {
     size: 'sm',
     buttonStyle: 'strong',
     'aria-label': '검색',
-    children: <Search size={18} />,
+    children: <Search />,
   },
 };
 
@@ -126,7 +126,7 @@ export const Medium: Story = {
     size: 'md',
     buttonStyle: 'strong',
     'aria-label': '검색',
-    children: <Search size={22} />,
+    children: <Search />,
   },
 };
 
@@ -135,7 +135,7 @@ export const Large: Story = {
     size: 'lg',
     buttonStyle: 'strong',
     'aria-label': '검색',
-    children: <Search size={26} />,
+    children: <Search />,
   },
 };
 
@@ -144,7 +144,7 @@ export const ExtraLarge: Story = {
     size: 'xl',
     buttonStyle: 'strong',
     'aria-label': '검색',
-    children: <Search size={30} />,
+    children: <Search />,
   },
 };
 
@@ -153,7 +153,7 @@ export const Loading: Story = {
     loading: true,
     buttonStyle: 'strong',
     'aria-label': '로딩 중',
-    children: <Search size={22} />,
+    children: <Search />,
   },
 };
 
@@ -162,7 +162,7 @@ export const Disabled: Story = {
     disabled: true,
     buttonStyle: 'strong',
     'aria-label': '비활성화',
-    children: <Search size={22} />,
+    children: <Search />,
   },
 };
 
@@ -170,16 +170,16 @@ export const AllSizes: Story = {
   render: () => (
     <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
       <IconButton buttonStyle="strong" size="sm" aria-label="Small">
-        <Search size={18} />
+        <Search />
       </IconButton>
       <IconButton buttonStyle="strong" size="md" aria-label="Medium">
-        <Search size={22} />
+        <Search />
       </IconButton>
       <IconButton buttonStyle="strong" size="lg" aria-label="Large">
-        <Search size={26} />
+        <Search />
       </IconButton>
       <IconButton buttonStyle="strong" size="xl" aria-label="Extra Large">
-        <Search size={30} />
+        <Search />
       </IconButton>
     </div>
   ),
@@ -193,16 +193,16 @@ export const AllWeakVariants: Story = {
         buttonStyle="weak"
         aria-label="Primary Weak"
       >
-        <Heart size={22} />
+        <Heart />
       </IconButton>
       <IconButton variant="dark" buttonStyle="weak" aria-label="Dark Weak">
-        <Settings size={22} />
+        <Settings />
       </IconButton>
       <IconButton variant="danger" buttonStyle="weak" aria-label="Danger Weak">
-        <Trash size={22} />
+        <Trash />
       </IconButton>
       <IconButton variant="light" buttonStyle="weak" aria-label="Light Weak">
-        <Plus size={22} />
+        <Plus />
       </IconButton>
     </div>
   ),
@@ -212,16 +212,16 @@ export const AllStrongVariants: Story = {
   render: () => (
     <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
       <IconButton variant="primary" buttonStyle="strong" aria-label="Primary">
-        <Heart size={22} />
+        <Heart />
       </IconButton>
       <IconButton variant="dark" buttonStyle="strong" aria-label="Dark">
-        <Settings size={22} />
+        <Settings />
       </IconButton>
       <IconButton variant="danger" buttonStyle="strong" aria-label="Danger">
-        <Trash size={22} />
+        <Trash />
       </IconButton>
       <IconButton variant="light" buttonStyle="strong" aria-label="Light">
-        <Plus size={22} />
+        <Plus />
       </IconButton>
     </div>
   ),
@@ -237,22 +237,22 @@ export const IconCollection: Story = {
       }}
     >
       <IconButton aria-label="검색">
-        <Search size={22} />
+        <Search />
       </IconButton>
       <IconButton aria-label="좋아요">
-        <Heart size={22} />
+        <Heart />
       </IconButton>
       <IconButton aria-label="삭제">
-        <Trash size={22} />
+        <Trash />
       </IconButton>
       <IconButton aria-label="추가">
-        <Plus size={22} />
+        <Plus />
       </IconButton>
       <IconButton aria-label="설정">
-        <Settings size={22} />
+        <Settings />
       </IconButton>
       <IconButton aria-label="닫기">
-        <X size={22} />
+        <X />
       </IconButton>
     </div>
   ),
@@ -279,7 +279,7 @@ export const InteractiveExample: Story = {
             onClick={handleClick}
             aria-label="좋아요"
           >
-            <Heart size={22} />
+            <Heart />
           </IconButton>
           <IconButton
             variant="danger"
@@ -287,7 +287,7 @@ export const InteractiveExample: Story = {
             onClick={handleClick}
             aria-label="삭제"
           >
-            <Trash size={22} />
+            <Trash />
           </IconButton>
           <IconButton
             variant="dark"
@@ -295,7 +295,7 @@ export const InteractiveExample: Story = {
             onClick={handleClick}
             aria-label="설정"
           >
-            <Settings size={22} />
+            <Settings />
           </IconButton>
         </div>
         <p style={{ fontSize: '0.875rem', color: '#666' }}>

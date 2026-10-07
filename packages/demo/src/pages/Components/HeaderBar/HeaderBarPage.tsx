@@ -144,7 +144,7 @@ export function HeaderBarPage() {
             code={`<HeaderBar
   logo={<Palette size={24} />}
   title="TUI"
-  actions={<IconButton aria-label="메뉴" size="sm"><Menu size={18} /></IconButton>}
+  actions={<IconButton aria-label="메뉴" size="sm"><Menu /></IconButton>}
 >
   <div style={{ display: 'flex', gap: '1.5rem', fontSize: '0.875rem' }}>
     <a href="#" style={{ fontWeight: 600, color: 'inherit', textDecoration: 'none', padding: '0.5rem' }}>Components</a>
@@ -262,9 +262,9 @@ export function HeaderBarPage() {
   title="Store"
   actions={
     <div style={{ display: 'flex', gap: '0.25rem', alignItems: 'center' }}>
-      <IconButton aria-label="검색" size="sm"><Search size={18} /></IconButton>
-      <IconButton aria-label="알림" size="sm"><Bell size={18} /></IconButton>
-      <IconButton aria-label="장바구니" size="sm"><ShoppingCart size={18} /></IconButton>
+      <IconButton aria-label="검색" size="sm"><Search /></IconButton>
+      <IconButton aria-label="알림" size="sm"><Bell /></IconButton>
+      <IconButton aria-label="장바구니" size="sm"><ShoppingCart /></IconButton>
       <Button size="sm">로그인</Button>
     </div>
   }
@@ -292,8 +292,8 @@ export function HeaderBarPage() {
     title="Store"
     actions={
       <div style={{ display: 'flex', gap: '0.25rem', alignItems: 'center' }}>
-        <IconButton aria-label="검색" size="sm"><Search size={18} /></IconButton>
-        <IconButton aria-label="장바구니" size="sm"><ShoppingCart size={18} /></IconButton>
+        <IconButton aria-label="검색" size="sm"><Search /></IconButton>
+        <IconButton aria-label="장바구니" size="sm"><ShoppingCart /></IconButton>
         <Button size="sm">로그인</Button>
       </div>
     }
@@ -312,7 +312,7 @@ export function HeaderBarPage() {
     actions={
       <div style={{ display: 'flex', gap: '0.25rem', alignItems: 'center' }}>
         <Badge variant="danger" size="sm">3</Badge>
-        <IconButton aria-label="알림" size="sm"><Bell size={18} /></IconButton>
+        <IconButton aria-label="알림" size="sm"><Bell /></IconButton>
       </div>
     }
   />

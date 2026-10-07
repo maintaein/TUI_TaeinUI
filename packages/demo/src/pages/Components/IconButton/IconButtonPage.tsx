@@ -63,8 +63,10 @@ export function IconButtonPage() {
       <header className={styles.header}>
         <h1 className={styles.title}>IconButton</h1>
         <p className={styles.description}>
-          IconButton 컴포넌트는 닫기, 메뉴 열기, 설정 등 텍스트 없이
-          아이콘만으로 액션을 표현할 때 사용합니다.
+          IconButton은 lucide-react, react-icons 등 어느 아이콘 라이브러리의
+          아이콘이든 children으로 넣으면 버튼으로 만들어 줍니다. 아이콘 크기는
+          버튼 size가 정하므로 아이콘에 크기를 따로 주지 않습니다. 닫기, 메뉴
+          열기, 설정 등 텍스트 없이 아이콘만으로 액션을 표현할 때 사용합니다.
         </p>
       </header>
 
@@ -133,10 +135,10 @@ export function IconButtonPage() {
             description="아이콘과 aria-label만 주면 배경 없는 아이콘 버튼이 됩니다. 호버 시 미세한 배경이 나타나 인터랙션 영역을 알려줍니다."
             editable
             code={`<div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-  <IconButton aria-label="닫기"><X size={22} /></IconButton>
-  <IconButton aria-label="설정"><Settings size={22} /></IconButton>
-  <IconButton aria-label="더보기"><Ellipsis size={22} /></IconButton>
-  <IconButton aria-label="새로고침"><RotateCw size={22} /></IconButton>
+  <IconButton aria-label="닫기"><X /></IconButton>
+  <IconButton aria-label="설정"><Settings /></IconButton>
+  <IconButton aria-label="더보기"><Ellipsis /></IconButton>
+  <IconButton aria-label="새로고침"><RotateCw /></IconButton>
 </div>`}
           />
         </div>
@@ -152,14 +154,14 @@ export function IconButtonPage() {
   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem', backgroundColor: '#f9fafb', borderRadius: '0.75rem' }}>
     <span style={{ fontWeight: 600 }}>알림 설정</span>
     <div style={{ display: 'flex', gap: '0.25rem' }}>
-      <IconButton aria-label="편집"><Pencil size={22} /></IconButton>
-      <IconButton aria-label="닫기"><X size={22} /></IconButton>
+      <IconButton aria-label="편집"><Pencil /></IconButton>
+      <IconButton aria-label="닫기"><X /></IconButton>
     </div>
   </div>
   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem', backgroundColor: '#f9fafb', borderRadius: '0.75rem' }}>
     <span style={{ fontWeight: 600 }}>프로필 사진</span>
     <div style={{ display: 'flex', gap: '0.25rem' }}>
-      <IconButton aria-label="더보기"><Ellipsis size={22} /></IconButton>
+      <IconButton aria-label="더보기"><Ellipsis /></IconButton>
     </div>
   </div>
 </div>`}
@@ -180,9 +182,9 @@ const handleClick = () => {
 };
 
 <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-  <IconButton loading={loading} onClick={handleClick} aria-label="새로고침"><RotateCw size={22} /></IconButton>
-  <IconButton loading aria-label="로딩 중"><Hourglass size={22} /></IconButton>
-  <IconButton disabled aria-label="비활성화"><X size={22} /></IconButton>
+  <IconButton loading={loading} onClick={handleClick} aria-label="새로고침"><RotateCw /></IconButton>
+  <IconButton loading aria-label="로딩 중"><Hourglass /></IconButton>
+  <IconButton disabled aria-label="비활성화"><X /></IconButton>
 </div>`}
           />
         </div>
@@ -205,10 +207,10 @@ const handleClick = () => {
             description="weak에서 쓸 수 있는 4가지 variant입니다."
             editable
             code={`<div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
-  <IconButton variant="primary" buttonStyle="weak" aria-label="추가"><Plus size={22} /></IconButton>
-  <IconButton variant="dark" buttonStyle="weak" aria-label="메뉴"><Menu size={22} /></IconButton>
-  <IconButton variant="danger" buttonStyle="weak" aria-label="삭제"><Trash size={22} /></IconButton>
-  <IconButton variant="light" buttonStyle="weak" aria-label="즐겨찾기"><Star size={22} /></IconButton>
+  <IconButton variant="primary" buttonStyle="weak" aria-label="추가"><Plus /></IconButton>
+  <IconButton variant="dark" buttonStyle="weak" aria-label="메뉴"><Menu /></IconButton>
+  <IconButton variant="danger" buttonStyle="weak" aria-label="삭제"><Trash /></IconButton>
+  <IconButton variant="light" buttonStyle="weak" aria-label="즐겨찾기"><Star /></IconButton>
 </div>`}
           />
         </div>
@@ -220,15 +222,15 @@ const handleClick = () => {
             description="실제 툴바에서 IconButton을 조합하여 사용하는 패턴입니다."
             editable
             code={`<div style={{ display: 'flex', gap: '0.5rem', padding: '0.5rem', backgroundColor: '#f3f4f6', borderRadius: '0.75rem', alignItems: 'center' }}>
-  <IconButton size="sm" buttonStyle="weak" variant="dark" aria-label="Bold"><Bold size={18} /></IconButton>
-  <IconButton size="sm" buttonStyle="weak" variant="dark" aria-label="Italic"><Italic size={18} /></IconButton>
-  <IconButton size="sm" buttonStyle="weak" variant="dark" aria-label="Underline"><Underline size={18} /></IconButton>
+  <IconButton size="sm" buttonStyle="weak" variant="dark" aria-label="Bold"><Bold /></IconButton>
+  <IconButton size="sm" buttonStyle="weak" variant="dark" aria-label="Italic"><Italic /></IconButton>
+  <IconButton size="sm" buttonStyle="weak" variant="dark" aria-label="Underline"><Underline /></IconButton>
   <div style={{ width: '1px', height: '24px', backgroundColor: '#d1d5db', margin: '0 0.25rem' }} />
-  <IconButton size="sm" buttonStyle="weak" variant="dark" aria-label="왼쪽 정렬"><AlignLeft size={18} /></IconButton>
-  <IconButton size="sm" buttonStyle="weak" variant="dark" aria-label="가운데 정렬"><AlignCenter size={18} /></IconButton>
-  <IconButton size="sm" buttonStyle="weak" variant="dark" aria-label="오른쪽 정렬"><AlignRight size={18} /></IconButton>
+  <IconButton size="sm" buttonStyle="weak" variant="dark" aria-label="왼쪽 정렬"><AlignLeft /></IconButton>
+  <IconButton size="sm" buttonStyle="weak" variant="dark" aria-label="가운데 정렬"><AlignCenter /></IconButton>
+  <IconButton size="sm" buttonStyle="weak" variant="dark" aria-label="오른쪽 정렬"><AlignRight /></IconButton>
   <div style={{ width: '1px', height: '24px', backgroundColor: '#d1d5db', margin: '0 0.25rem' }} />
-  <IconButton size="sm" buttonStyle="weak" variant="danger" aria-label="삭제"><Trash size={18} /></IconButton>
+  <IconButton size="sm" buttonStyle="weak" variant="danger" aria-label="삭제"><Trash /></IconButton>
 </div>`}
           />
         </div>
@@ -251,10 +253,10 @@ const handleClick = () => {
             description="strong에서 쓸 수 있는 4가지 variant입니다."
             editable
             code={`<div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
-  <IconButton variant="primary" buttonStyle="strong" aria-label="추가"><Plus size={22} /></IconButton>
-  <IconButton variant="dark" buttonStyle="strong" aria-label="메뉴"><Menu size={22} /></IconButton>
-  <IconButton variant="danger" buttonStyle="strong" aria-label="삭제"><Trash size={22} /></IconButton>
-  <IconButton variant="light" buttonStyle="strong" aria-label="즐겨찾기"><Star size={22} /></IconButton>
+  <IconButton variant="primary" buttonStyle="strong" aria-label="추가"><Plus /></IconButton>
+  <IconButton variant="dark" buttonStyle="strong" aria-label="메뉴"><Menu /></IconButton>
+  <IconButton variant="danger" buttonStyle="strong" aria-label="삭제"><Trash /></IconButton>
+  <IconButton variant="light" buttonStyle="strong" aria-label="즐겨찾기"><Star /></IconButton>
 </div>`}
           />
         </div>
@@ -267,16 +269,16 @@ const handleClick = () => {
             editable
             code={`<div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
   <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
-    <Button variant="primary" leftIcon={<Plus size={16} />} size="md">추가</Button>
-    <IconButton variant="primary" buttonStyle="strong" size="md" aria-label="추가"><Plus size={22} /></IconButton>
+    <Button variant="primary" leftIcon={<Plus />} size="md">추가</Button>
+    <IconButton variant="primary" buttonStyle="strong" size="md" aria-label="추가"><Plus /></IconButton>
   </div>
   <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
-    <Button variant="danger" leftIcon={<Trash size={16} />} size="md">삭제</Button>
-    <IconButton variant="danger" buttonStyle="strong" size="md" aria-label="삭제"><Trash size={22} /></IconButton>
+    <Button variant="danger" leftIcon={<Trash />} size="md">삭제</Button>
+    <IconButton variant="danger" buttonStyle="strong" size="md" aria-label="삭제"><Trash /></IconButton>
   </div>
   <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
     <Button variant="dark" buttonStyle="weak" size="sm">메뉴</Button>
-    <IconButton variant="dark" buttonStyle="weak" size="sm" aria-label="메뉴"><Menu size={18} /></IconButton>
+    <IconButton variant="dark" buttonStyle="weak" size="sm" aria-label="메뉴"><Menu /></IconButton>
   </div>
 </div>`}
           />
@@ -299,10 +301,10 @@ const handleClick = () => {
             description="sm, md, lg, xl 네 가지 크기를 제공합니다. 채움 모드(weak, strong)는 sm과 md가 모두 44px입니다."
             editable
             code={`<div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
-  <IconButton buttonStyle="strong" size="sm" aria-label="Small"><Pencil size={18} /></IconButton>
-  <IconButton buttonStyle="strong" size="md" aria-label="Medium"><Pencil size={22} /></IconButton>
-  <IconButton buttonStyle="strong" size="lg" aria-label="Large"><Pencil size={26} /></IconButton>
-  <IconButton buttonStyle="strong" size="xl" aria-label="X-Large"><Pencil size={30} /></IconButton>
+  <IconButton buttonStyle="strong" size="sm" aria-label="Small"><Pencil /></IconButton>
+  <IconButton buttonStyle="strong" size="md" aria-label="Medium"><Pencil /></IconButton>
+  <IconButton buttonStyle="strong" size="lg" aria-label="Large"><Pencil /></IconButton>
+  <IconButton buttonStyle="strong" size="xl" aria-label="X-Large"><Pencil /></IconButton>
 </div>`}
           />
         </div>
@@ -320,9 +322,9 @@ const handleClick = () => {
 };
 
 <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
-  <IconButton buttonStyle="strong" loading={loading} onClick={handleClick} aria-label="새로고침"><RotateCw size={22} /></IconButton>
-  <IconButton buttonStyle="strong" loading variant="dark" aria-label="로딩 중"><Hourglass size={22} /></IconButton>
-  <IconButton buttonStyle="strong" loading variant="danger" aria-label="로딩 중"><Hourglass size={22} /></IconButton>
+  <IconButton buttonStyle="strong" loading={loading} onClick={handleClick} aria-label="새로고침"><RotateCw /></IconButton>
+  <IconButton buttonStyle="strong" loading variant="dark" aria-label="로딩 중"><Hourglass /></IconButton>
+  <IconButton buttonStyle="strong" loading variant="danger" aria-label="로딩 중"><Hourglass /></IconButton>
 </div>`}
           />
         </div>
@@ -334,10 +336,10 @@ const handleClick = () => {
             description="disabled prop으로 버튼을 비활성화합니다. 클릭 이벤트가 발생하지 않습니다."
             editable
             code={`<div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
-  <IconButton buttonStyle="strong" disabled aria-label="추가"><Plus size={22} /></IconButton>
-  <IconButton buttonStyle="strong" variant="dark" disabled aria-label="메뉴"><Menu size={22} /></IconButton>
-  <IconButton buttonStyle="strong" variant="danger" disabled aria-label="삭제"><Trash size={22} /></IconButton>
-  <IconButton buttonStyle="strong" variant="light" disabled aria-label="즐겨찾기"><Star size={22} /></IconButton>
+  <IconButton buttonStyle="strong" disabled aria-label="추가"><Plus /></IconButton>
+  <IconButton buttonStyle="strong" variant="dark" disabled aria-label="메뉴"><Menu /></IconButton>
+  <IconButton buttonStyle="strong" variant="danger" disabled aria-label="삭제"><Trash /></IconButton>
+  <IconButton buttonStyle="strong" variant="light" disabled aria-label="즐겨찾기"><Star /></IconButton>
 </div>`}
           />
         </div>

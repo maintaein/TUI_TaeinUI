@@ -258,7 +258,7 @@ const menu = (
     </List>
   }
 >
-  <IconButton aria-label="더보기"><Ellipsis size={22} /></IconButton>
+  <IconButton aria-label="더보기"><Ellipsis /></IconButton>
 </Popover>`}
           />
         </div>

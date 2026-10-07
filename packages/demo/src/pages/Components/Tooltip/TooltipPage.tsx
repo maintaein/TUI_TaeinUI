@@ -253,16 +253,16 @@ arrow: 화살표 표시/숨김
             editable
             code={`<div style={{ display: 'flex', gap: '0.5rem', padding: '1.5rem' }}>
   <Tooltip content="굵게">
-    <IconButton aria-label="굵게" size="sm"><Bold size={18} /></IconButton>
+    <IconButton aria-label="굵게" size="sm"><Bold /></IconButton>
   </Tooltip>
   <Tooltip content="기울임">
-    <IconButton aria-label="기울임" size="sm"><Italic size={18} /></IconButton>
+    <IconButton aria-label="기울임" size="sm"><Italic /></IconButton>
   </Tooltip>
   <Tooltip content="밑줄">
-    <IconButton aria-label="밑줄" size="sm"><Underline size={18} /></IconButton>
+    <IconButton aria-label="밑줄" size="sm"><Underline /></IconButton>
   </Tooltip>
   <Tooltip content="링크">
-    <IconButton aria-label="링크" size="sm"><Link size={18} /></IconButton>
+    <IconButton aria-label="링크" size="sm"><Link /></IconButton>
   </Tooltip>
 </div>`}
           />
@@ -424,7 +424,7 @@ arrow: 화살표 표시/숨김
   }
 >
   <Tooltip content="더보기" position="top">
-    <IconButton aria-label="더보기"><Ellipsis size={22} /></IconButton>
+    <IconButton aria-label="더보기"><Ellipsis /></IconButton>
   </Tooltip>
 </Popover>`}
           />

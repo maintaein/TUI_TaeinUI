@@ -1,4 +1,9 @@
-import { style, styleVariants, type StyleRule } from '@vanilla-extract/css';
+import {
+  style,
+  styleVariants,
+  globalStyle,
+  type StyleRule,
+} from '@vanilla-extract/css';
 import { recipe } from '@vanilla-extract/recipes';
 import { themeContract } from '../../tokens/theme.css';
 import { focusRing } from '../../tokens/focusRing.css';
@@ -269,6 +274,26 @@ export const ghostSizeVariants = styleVariants({
   md: { padding: '0.375rem' },
   lg: { padding: '0.5rem' },
   xl: { padding: '0.625rem' },
+});
+
+// 아이콘 칸. 아이콘 크기는 라이브러리가 아니라 버튼이 정한다: 칸 안의 svg를 1em으로
+// 맞추면 iconSizeVariants의 fontSize(18/22/26/30px)를 따른다. 어느 아이콘
+// 라이브러리(lucide-react, react-icons 등)의 svg든 같다.
+// 선택자는 :where로 감싸 특정도를 0으로 낮춘다. 사용자가 className이나 style로 준
+// 크기가 이긴다.
+// 알려진 한계: lucide의 size prop은 SVG 속성(width="22")이라 CSS 규칙에 진다(라이브러리
+// 기본 크기 24px를 이기려는 규칙이 같은 이유로 size도 이긴다). 크기를 바꾸려면
+// className이나 style로 준다. 의도된 동작이다.
+// 가운데 정렬 flex라 인라인 svg의 baseline 때문에 세로로 1~2px 처지지 않는다.
+export const iconSlot = style({
+  display: 'inline-flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+});
+
+globalStyle(`:where(${iconSlot} svg)`, {
+  width: '1em',
+  height: '1em',
 });
 
 // Loader는 바깥에 블록 div를 하나 두므로 flex 아이템으로 만들어 줄 상자(baseline)

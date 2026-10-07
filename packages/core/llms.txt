@@ -50,7 +50,7 @@ All components follow consistent patterns:
 
 ### Button & Action
 - **Button** — Primary action button. Props: variant('primary'|'dark'|'danger'|'light'), buttonStyle('fill'|'weak'), size, loading, leftIcon, rightIcon, fullWidth, customColor
-^- **IconButton**: Icon-only button. Props: variant, buttonStyle('ghost'|'weak'|'strong', default ghost), size, loading, aria-label (required)
+- **IconButton**: Turns an icon from any icon library (lucide-react, react-icons, etc.) into a button. Pass the icon as children; the button size sets the icon size. Props: variant, buttonStyle('ghost'|'weak'|'strong', default ghost), size, loading, aria-label (required)
 - **SegmentedButtons** — Button group for single selection. Props: options[{value,label,icon?}], value, onChange, size
 
 ### Display & Data
@@ -127,8 +127,8 @@ M3에서 GSAP 런타임이 실제로 붙은 컴포넌트와 그 능력. 계획�
   소비자가 래퍼를 만들 필요 없이 서버 컴포넌트에서 바로 import할 수 있다.
 - `Text`, `Divider`, `Border`, `Badge`, `List`, `Skeleton`, `HeaderBar`,
   `Loader`는 지시문이 없다 — 서버 컴포넌트로 렌더된다.
-  `Button`, `IconButton`도 마찬가지다(훅 없이 `forwardRef`만 쓰며, `forwardRef`는
-  RSC에서 유효하다).
+  `Button`, `IconButton`은 누름 상태를 `useClickRebound` 훅이 갖기 때문에
+  `'use client'`가 붙는다. 서버 컴포넌트에서 import하는 것은 그대로 된다.
 - `TextField`는 `'use client'`가 붙는다. 타이핑 미러 오버레이가 입력값을 글자
   단위 DOM 요소로 쪼개 겹쳐 그리는데, `<input>`의 `value`는 문자열일 뿐 글자별
   노드를 갖지 않는다 — 그 노드를 만들고 위치를 맞추는 훅이 있어야 하므로 더

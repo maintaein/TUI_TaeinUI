@@ -6,6 +6,7 @@ import {
   ghostBase,
   ghostSizeVariants,
   pressable,
+  iconSlot,
   loadingSlot,
 } from './IconButton.css';
 import { Loader } from '../Loader';
@@ -14,7 +15,13 @@ import { useClickRebound } from '../../_internal/useClickRebound';
 type IconButtonVariant = 'primary' | 'dark' | 'danger' | 'light';
 type IconButtonStyle = 'ghost' | 'weak' | 'strong';
 
-/** 아이콘만 표시하는 버튼 컴포넌트. aria-label 필수 */
+/**
+ * 아이콘을 버튼으로 만드는 컴포넌트. lucide-react, react-icons 등 어느 아이콘
+ * 라이브러리의 아이콘이든 children으로 넣으면 버튼이 된다. 아이콘 크기는 버튼
+ * `size`가 정한다(아이콘의 svg가 1em). 아이콘에 직접 크기를 주려면 `size` prop이 아니라
+ * `className`이나 `style`로 준다(`size` prop은 SVG 속성이라 버튼의 CSS 규칙에 진다).
+ * aria-label 필수.
+ */
 export interface IconButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   /** 버튼 색상 테마. weak·strong에만 적용된다(ghost는 회색 고정이라 무시된다) @default 'primary' */
   variant?: IconButtonVariant;
@@ -111,7 +118,10 @@ export const IconButton = forwardRef<HTMLButtonElement, IconButtonProps>(
             aria-label="로딩 중"
           />
         ) : (
-          <span aria-hidden="true" className={iconSizeVariants[size]}>
+          <span
+            aria-hidden="true"
+            className={clsx(iconSlot, iconSizeVariants[size])}
+          >
             {children}
           </span>
         )}

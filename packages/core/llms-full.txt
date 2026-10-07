@@ -296,7 +296,13 @@ import { Plus } from 'lucide-react';
 
 ## IconButton
 
-Icon-only button. Requires `aria-label` for accessibility.
+Turns an icon from any icon library into a button. Pass an icon from lucide-react,
+react-icons or similar as `children`; the button `size` decides the icon size
+(the icon's `svg` is set to `1em`, and `className` or `style` on the icon win).
+Requires `aria-label` for accessibility.
+
+Note: lucide's `size` prop is an SVG attribute, so the button's CSS rule overrides it.
+To change the size, pass `className` or `style` to the icon.
 
 ```tsx
 import { IconButton } from '@taein-ui/core';
@@ -1253,9 +1259,11 @@ zero-runtime이라 빌드 결과는 정적 CSS 파일 하나다.
 
 지시문이 **없는**(= 서버 컴포넌트로 렌더되는) 컴포넌트:
 `Text`, `Divider`, `Border`, `Badge`, `List`, `Skeleton`, `HeaderBar`,
-`Loader`, 그리고 `Button` · `IconButton`.
-뒤의 둘은 훅 없이 `forwardRef`만 쓰는데, `forwardRef`는 React의 서버 빌드에도
-있으므로 RSC에서 유효하다.
+`Loader`.
+
+`Button`과 `IconButton`은 `'use client'`가 붙는다. 누름 상태를 `useClickRebound` 훅이
+갖기 때문이다. 서버 컴포넌트에서 import하는 것은 그대로 되고, `onClick` 같은 함수
+prop은 클라이언트 파일에서 넘긴다.
 
 `TextField`는 `'use client'`가 붙는다. 타이핑 미러 오버레이(Task 7)가 입력값을
 글자 단위 DOM 요소로 쪼개 겹쳐 그리는데, `<input>`의 `value`는 문자열일 뿐
