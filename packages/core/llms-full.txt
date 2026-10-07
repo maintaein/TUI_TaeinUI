@@ -1,7 +1,7 @@
 # TUI (TaeinUI) — Full API Reference
 
 > A React + TypeScript UI component library where each component carries its own motion.
-> GSAP is the motion runtime (12 components today); visibility, legibility and readability
+> GSAP is the motion runtime (16 components today); visibility, legibility and readability
 > are never traded for it. Zero-runtime CSS via Vanilla Extract, tree-shakable, WCAG 2.2 AA.
 > Runtime dependencies: @vanilla-extract/css, @vanilla-extract/recipes, clsx, gsap.
 
@@ -316,6 +316,11 @@ import { Plus, X } from 'lucide-react';
 <IconButton buttonStyle="strong" variant="primary" aria-label="닫기" onClick={handleClose}>
   <X />
 </IconButton>
+
+// Hover color slides in from the edge the mouse entered and leaves through the edge it exits
+<IconButton hoverEffect="directional" aria-label="메뉴">
+  <Plus />
+</IconButton>
 ```
 
 ### Props (extends ButtonHTMLAttributes<HTMLButtonElement>)
@@ -324,6 +329,7 @@ import { Plus, X } from 'lucide-react';
 | variant | 'primary' \| 'dark' \| 'danger' \| 'light' | 'primary' | Button variant. Applies to weak and strong only (ghost is gray) |
 | buttonStyle | 'ghost' \| 'weak' \| 'strong' | 'ghost' | ghost: no background, weak: light background, strong: solid background |
 | size | 'sm' \| 'md' \| 'lg' \| 'xl' | 'md' | Button size |
+| hoverEffect | 'none' \| 'directional' | 'none' | directional: the hover color slides in from the edge the mouse entered and leaves through the edge it exits. Mouse only (no effect for touch or keyboard focus); with reduced motion the color changes at once. Works in all three buttonStyles |
 | loading | boolean | false | Loading state |
 | disabled | boolean | false | Disabled state |
 | children | ReactNode | — | Icon content |

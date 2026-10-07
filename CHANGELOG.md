@@ -27,6 +27,7 @@
 - `Border`에 `glow` prop(`boolean`, 기본값 `false`)을 추가했습니다. 호버·포커스 시 테두리를 따라 도는 빛을 켭니다. `sides="all"`일 때만 나타납니다.
 - `animation.loop.slow`(`6000ms`) 토큰을 추가했습니다. `prefers-reduced-motion: reduce`에서는 다른 `loop` 토큰처럼 `0.01ms`로 내려갑니다.
 - `Avatar`에 `bouncy` prop(`boolean`, 기본값 `false`)을 추가했습니다. 호버나 키보드 포커스(`:focus-visible`)에 위로 튀며 떠오르고, 누르면(포인터, `Enter`, `Space`) 떠오른 채 커집니다. `onClick` 또는 `href`가 있어 클릭할 수 있는 아바타에서만 동작하고 아니면 무시됩니다. `Popover`의 트리거로 쓰면 `Popover`가 `onClick`을 넘기므로 동작합니다. 켜면 `clickable`의 `transform` 트랜지션과 `:active` 축소는 빠지고 `filter` 호버 밝기는 남습니다. `AvatarGroup` 안에서는 떠오른 아바타가 이웃 위로 올라옵니다. `prefers-reduced-motion: reduce`에서는 움직이지 않습니다. 켜지 않으면 동작이 이전과 같습니다.
+- `IconButton`에 `hoverEffect` prop(`'none' | 'directional'`, 기본값 `'none'`)을 추가했습니다. `'directional'`이면 마우스가 들어온 가장 가까운 모서리에서 호버 색이 밀려 들어오고, 나갈 때는 나가는 쪽 모서리로 빠집니다. 색은 그 버튼의 호버·누름 색과 같고 `ghost`·`weak`·`strong` 세 모드에서 동작합니다. 켜면 버튼 자신의 호버 배경은 바뀌지 않고(층이 그 일을 합니다) 글자색만 지금처럼 바뀝니다. 마우스만 받고 터치와 키보드 포커스에는 효과가 없으며, `disabled`·`loading`에서도 없습니다. `prefers-reduced-motion: reduce`에서는 색이 바로 바뀝니다. 켜지 않으면 동작과 DOM이 이전과 같습니다.
 
 ### Removed
 

@@ -34,6 +34,13 @@ export function IconButtonPage() {
       description: '버튼 크기',
     },
     {
+      name: 'hoverEffect',
+      type: "'none' | 'directional'",
+      default: "'none'",
+      description:
+        'directional이면 마우스가 들어온 가장 가까운 모서리에서 호버 색이 밀려 들어오고 나가는 쪽 모서리로 빠진다. 마우스만, 세 모드 모두',
+    },
+    {
       name: 'loading',
       type: 'boolean',
       default: 'false',
@@ -280,6 +287,34 @@ const handleClick = () => {
     <Button variant="dark" buttonStyle="weak" size="sm">메뉴</Button>
     <IconButton variant="dark" buttonStyle="weak" size="sm" aria-label="메뉴"><Menu /></IconButton>
   </div>
+</div>`}
+          />
+        </div>
+      </section>
+
+      {/* Hover Effect */}
+      <section className={styles.section}>
+        <div className={styles.sectionHeader}>
+          <h2 className={styles.sectionTitle}>방향 채움</h2>
+          <p className={styles.sectionDescription}>
+            hoverEffect=&quot;directional&quot;은 마우스가 들어온 가장 가까운
+            모서리에서 호버 색을 밀어 넣고, 나갈 때는 나가는 쪽 모서리로 뺍니다.
+            색은 기본 호버 색과 같고 세 모드 모두에서 동작합니다. 버튼의 네 변을
+            번갈아 드나들어 보세요. 터치와 키보드 포커스에는 효과가 없습니다.
+          </p>
+        </div>
+
+        <div className={styles.example}>
+          <h3 className={styles.exampleTitle}>Ghost · Weak · Strong</h3>
+          <LivePreview
+            title="방향 채움"
+            description='세 모드에 hoverEffect="directional"을 줍니다.'
+            editable
+            code={`<div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+  <IconButton hoverEffect="directional" aria-label="검색"><Search /></IconButton>
+  <IconButton hoverEffect="directional" buttonStyle="weak" aria-label="즐겨찾기"><Star /></IconButton>
+  <IconButton hoverEffect="directional" buttonStyle="strong" aria-label="추가"><Plus /></IconButton>
+  <IconButton hoverEffect="directional" buttonStyle="strong" variant="danger" aria-label="삭제"><Trash /></IconButton>
 </div>`}
           />
         </div>
