@@ -11,7 +11,9 @@ import {
 import userEvent from '@testing-library/user-event';
 import { createRef, type ComponentProps } from 'react';
 import { IconButton } from './IconButton';
+import { Button } from '../Button';
 import { themeContract } from '../../tokens/theme.css';
+import { themeTokens } from '../../tokens/contract';
 import { gsapDuration, gsapEasing } from '../../tokens/gsapEasing';
 
 const TestIcon = () => (
@@ -907,14 +909,12 @@ interface FlatRule {
   order: number;
 }
 
-function iconButtonRules(): FlatRule[] {
+function sheetRules(marker: string): FlatRule[] {
   const sheet = Array.from(document.styleSheets).find((candidate) =>
-    Array.from(candidate.cssRules).some((rule) =>
-      rule.cssText.includes('IconButton_iconButton')
-    )
+    Array.from(candidate.cssRules).some((rule) => rule.cssText.includes(marker))
   );
   if (!sheet) {
-    throw new Error('IconButton.css.ts가 만든 스타일시트를 찾지 못했다');
+    throw new Error(`${marker}를 가진 스타일시트를 찾지 못했다`);
   }
 
   const flat: FlatRule[] = [];
@@ -930,6 +930,8 @@ function iconButtonRules(): FlatRule[] {
   walk(sheet.cssRules, null);
   return flat;
 }
+
+const iconButtonRules = () => sheetRules('IconButton_iconButton');
 
 describe('IconButton 생성 CSS', () => {
   const withSelector = (part: string) =>
@@ -1513,4 +1515,151 @@ describe('IconButton 방향 채움의 생성 CSS', () => {
       );
     }
   });
+});
+
+describe('IconButton의 색은 Button의 같은 조합과 같다', () => {
+  // 렌더해야 두 컴포넌트의 CSS가 문서에 주입된다.
+  const mount = () =>
+    render(
+      <>
+        <Button>b</Button>
+        <IconButton aria-label="i">
+          <TestIcon />
+        </IconButton>
+      </>
+    );
+
+  // themeContract는 var(--...)를 주므로 값을 알려면 같은 경로의 themeTokens를 읽는다.
+  const tokenValueOfVar = (() => {
+    const map = new Map<string, string>();
+    const walk = (contract: unknown, tokens: unknown) => {
+      if (typeof contract === 'string' && typeof tokens === 'string') {
+        map.set(contract, tokens);
+      } else if (contract && tokens && typeof contract === 'object') {
+        for (const key of Object.keys(contract)) {
+          walk(
+            (contract as Record<string, unknown>)[key],
+            (tokens as Record<string, unknown>)[key]
+          );
+        }
+      }
+    };
+    walk(themeContract, themeTokens);
+    return map;
+  })();
+
+  const luminance = (hex: string) => {
+    const [r, g, b] = [1, 3, 5].map((i) => {
+      const c = parseInt(hex.slice(i, i + 2), 16) / 255;
+      return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+    });
+    return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+  };
+
+  const COMBOS = [
+    'strong primary',
+    'strong dark',
+    'strong danger',
+    'strong light',
+    'weak primary',
+    'weak dark',
+    'weak danger',
+    'weak light',
+  ];
+
+  interface Look {
+    rest: string;
+    color: string;
+    border: string;
+    hover: string;
+    pressed: string;
+    pressedFilter: string;
+    pressedOpacity: string;
+  }
+
+  // 변수(--hoverFill)는 같은 규칙에 정의된 값으로 풀어 비교한다.
+  const resolve = (value: string, own: CSSStyleDeclaration) => {
+    const name = value.match(/^var\((--[\w-]+)\)$/)?.[1];
+    return (name && own.getPropertyValue(name)) || value;
+  };
+
+  // 클래스 뒤에 붙는 꼬리(:hover..., [data-pressed]...)가 tails 중 하나인 규칙.
+  const rulesFor = (
+    rules: FlatRule[],
+    cls: string,
+    media: string | null,
+    tails: string[]
+  ) =>
+    rules.find(
+      (r) =>
+        r.media === media &&
+        tails.some((tail) =>
+          new RegExp(`^\\.${cls}__\\w+${escapeRegExp(tail)}$`).test(
+            r.rule.selectorText
+          )
+        )
+    )?.rule.style;
+
+  const escapeRegExp = (text: string) =>
+    text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+  const look = (rules: FlatRule[], cls: string): Look => {
+    const own = rulesFor(rules, cls, null, [''])!;
+    const hover = rulesFor(rules, cls, '(hover: hover) and (pointer: fine)', [
+      ':hover:not(:disabled):not([data-pressed])',
+      ':hover:not(:disabled):not([data-pressed]):not([data-hover-effect])',
+    ])!;
+    const pressed = rulesFor(rules, cls, null, [
+      '[data-pressed]:not(:disabled)',
+    ])!;
+    return {
+      rest: own.getPropertyValue('background-color'),
+      color: own.getPropertyValue('color'),
+      border: own.getPropertyValue('border'),
+      hover: resolve(hover.getPropertyValue('background-color'), own),
+      pressed: resolve(pressed.getPropertyValue('background-color'), own),
+      pressedFilter: pressed.getPropertyValue('filter'),
+      pressedOpacity: pressed.getPropertyValue('opacity'),
+    };
+  };
+
+  const buttonLook = (i: number) =>
+    look(sheetRules('Button_button_compound'), `Button_button_compound_${i}`);
+  const iconLook = (i: number) =>
+    look(
+      sheetRules('IconButton_iconButton'),
+      `IconButton_iconButton_compound_${i}`
+    );
+
+  it.each(COMBOS.map((name, i) => [name, i] as const))(
+    '%s: 휴지 배경, 글자, 테두리, 호버 배경, 누름 배경과 보정이 Button과 같다',
+    (_name, i) => {
+      mount();
+      expect(iconLook(i)).toEqual(buttonLook(i));
+    }
+  );
+
+  it.each([
+    ...COMBOS.map((name, i) => [name, i] as const),
+    ['ghost', -1] as const,
+  ])('%s: 누름은 호버보다 밝지 않고 opacity로 흐려지지 않는다', (_name, i) => {
+    mount();
+    const { hover, pressed, pressedFilter, pressedOpacity } =
+      i === -1 ? ghostLook() : iconLook(i);
+    const hoverHex = tokenValueOfVar.get(hover) ?? hover;
+    const pressedHex = tokenValueOfVar.get(pressed) ?? pressed;
+
+    expect(pressedOpacity).toBe('');
+    expect(hoverHex).toMatch(/^#[0-9A-Fa-f]{6}$/);
+    expect(pressedHex).toMatch(/^#[0-9A-Fa-f]{6}$/);
+    expect(luminance(pressedHex)).toBeLessThanOrEqual(luminance(hoverHex));
+    // 배경이 호버와 같으면(weak danger) 보정(brightness)이 색으로 구별해 준다.
+    if (pressedHex === hoverHex) {
+      expect(pressedFilter).toMatch(/^brightness\(0\.\d+\)$/);
+    }
+  });
+
+  function ghostLook() {
+    return look(sheetRules('IconButton_iconButton'), 'IconButton_ghostBase');
+  }
 });

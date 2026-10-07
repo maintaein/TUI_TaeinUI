@@ -203,7 +203,8 @@ const handleClick = () => {
           <h2 className={styles.sectionTitle}>Weak</h2>
           <p className={styles.sectionDescription}>
             buttonStyle=&quot;weak&quot;는 채도가 낮은 배경색으로 시각적 위계를
-            낮춥니다. 툴바나 보조 액션에 적합합니다. variant로 색을 고릅니다.
+            낮춥니다. 툴바나 보조 액션에 적합합니다. variant로 색을 고르며,
+            Button의 weak와 같은 색을 씁니다.
           </p>
         </div>
 
@@ -249,7 +250,8 @@ const handleClick = () => {
           <h2 className={styles.sectionTitle}>Strong</h2>
           <p className={styles.sectionDescription}>
             buttonStyle=&quot;strong&quot;은 진한 배경으로 가장 눈에 띄는 액션을
-            만듭니다. Button의 fill과 같은 색상 체계를 씁니다.
+            만듭니다. Button의 fill과 같은 색을 쓰고(호버와 누름 포함) 이름만
+            strong입니다.
           </p>
         </div>
 

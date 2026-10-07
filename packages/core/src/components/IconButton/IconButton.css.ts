@@ -3,7 +3,6 @@ import {
   styleVariants,
   globalStyle,
   createVar,
-  fallbackVar,
   type StyleRule,
 } from '@vanilla-extract/css';
 import { recipe } from '@vanilla-extract/recipes';
@@ -16,9 +15,9 @@ const hoverFill = createVar();
 const pressedFill = createVar();
 
 interface Tone {
-  backgroundColor?: string;
+  backgroundColor: string;
   color?: string;
-  opacity?: number;
+  filter?: string;
 }
 
 // 호버·누름의 색 한 쌍(Button·Chip의 규칙과 같다). 호버는 (hover: hover) and
@@ -27,9 +26,8 @@ interface Tone {
 // compoundVariants 머리말). :not([data-pressed])는 vanilla-extract가 @media를
 // selectors 뒤에 내보내 특정도가 같은 호버가 누름 색을 덮는 것을 막는다.
 // 방향 채움이 켜지면(data-hover-effect) 호버 배경은 층이 맡고 버튼 자신은 바꾸지
-// 않는다. 글자색은 그대로 버튼에서 바뀐다. 누름의 opacity 같은 색이 아닌 값은 변수를
-// 거치지 않는다. 누름이 배경을 안 바꾸면(strong danger) 층은 투명이 되어 버튼 색이
-// 비친다.
+// 않는다. 글자색은 그대로 버튼에서 바뀐다. 누름의 filter 같은 색이 아닌 값은 변수를
+// 거치지 않는다(버튼의 filter는 자식인 층에도 걸린다). 누름 배경은 모든 조합이 갖는다.
 const tint = (
   hover: { backgroundColor: string; color?: string },
   pressed: Tone
@@ -38,7 +36,7 @@ const tint = (
   return {
     vars: {
       [hoverFill]: hover.backgroundColor,
-      ...(pressedBg && { [pressedFill]: pressedBg }),
+      [pressedFill]: pressedBg,
     },
     '@media': {
       '(hover: hover) and (pointer: fine)': {
@@ -56,7 +54,7 @@ const tint = (
     selectors: {
       '&[data-pressed]:not(:disabled)': {
         ...pressedRest,
-        ...(pressedBg && { backgroundColor: pressedFill }),
+        backgroundColor: pressedFill,
       },
     },
   };
@@ -187,20 +185,24 @@ export const iconButton = recipe({
     {
       variants: { buttonStyle: 'strong', variant: 'danger' },
       style: {
-        backgroundColor: themeContract.palette.error[500],
+        // Button.css.ts의 같은 조합과 같다(휴지 main, 호버 800, 누름 900). 누름은
+        // 호버보다 어두워진다. 대비는 그쪽 주석.
+        backgroundColor: themeContract.color.error.main,
         color: themeContract.color.error.contrast,
         ...tint(
-          { backgroundColor: themeContract.palette.error[700] },
-          { opacity: 0.9 }
+          { backgroundColor: themeContract.palette.error[800] },
+          { backgroundColor: themeContract.palette.error[900] }
         ),
       },
     },
     {
       variants: { buttonStyle: 'strong', variant: 'light' },
       style: {
+        // Button.css.ts의 fill light와 같다(글자 primary[900], 테두리 primary.main).
+        // 대비는 그쪽 주석.
         backgroundColor: themeContract.color.background.default,
-        color: themeContract.palette.primary[600],
-        border: `2px solid ${themeContract.palette.primary[600]}`,
+        color: themeContract.palette.primary[900],
+        border: `2px solid ${themeContract.color.primary.main}`,
         ...tint(
           { backgroundColor: themeContract.palette.primary[50] },
           { backgroundColor: themeContract.palette.primary[100] }
@@ -210,8 +212,9 @@ export const iconButton = recipe({
     {
       variants: { buttonStyle: 'weak', variant: 'primary' },
       style: {
+        // Button.css.ts의 weak primary와 같다(글자 primary[900]). 대비는 그쪽 주석.
         backgroundColor: themeContract.palette.primary[50],
-        color: themeContract.palette.primary[700],
+        color: themeContract.palette.primary[900],
         ...tint(
           { backgroundColor: themeContract.palette.primary[100] },
           { backgroundColor: themeContract.palette.primary[200] }
@@ -232,19 +235,25 @@ export const iconButton = recipe({
     {
       variants: { buttonStyle: 'weak', variant: 'danger' },
       style: {
+        // Button.css.ts의 weak danger와 같다(글자 error[900], 누름 brightness(0.96)).
+        // 호버와 누름 배경이 같아 보정이 누름을 가른다. 대비는 그쪽 주석.
         backgroundColor: themeContract.palette.error[50],
-        color: themeContract.palette.error[700],
+        color: themeContract.palette.error[900],
         ...tint(
           { backgroundColor: themeContract.palette.error[100] },
-          { backgroundColor: themeContract.palette.error[100] }
+          {
+            backgroundColor: themeContract.palette.error[100],
+            filter: 'brightness(0.96)',
+          }
         ),
       },
     },
     {
       variants: { buttonStyle: 'weak', variant: 'light' },
       style: {
+        // Button.css.ts의 weak light와 같다(글자 text.primary). 대비는 그쪽 주석.
         backgroundColor: themeContract.palette.primary[100],
-        color: themeContract.palette.primary[700],
+        color: themeContract.color.text.primary,
         ...tint(
           { backgroundColor: themeContract.palette.primary[200] },
           { backgroundColor: themeContract.palette.primary[300] }
@@ -344,7 +353,8 @@ export const loadingSlot = style({
 // 방향 채움(hoverEffect="directional")의 층. 호버 색이 포인터가 들어온 모서리에서
 // 밀려 들어온다. 움직임(transform)은 IconButton.tsx의 GSAP이 맡는다. 색은 tint의
 // 변수를 읽어 버튼의 호버·누름 색과 같다. 누름 중에는 층이 버튼 배경을 덮고 있으므로
-// 층이 누름 색을 보인다.
+// 층이 누름 색을 보인다. 층은 배경색만 갖고, 버튼의 filter(weak danger 누름)는 자식인
+// 층에도 걸려 Button과 같이 어두워진다.
 export const fill = style({
   position: 'absolute',
   inset: 0,
@@ -354,7 +364,7 @@ export const fill = style({
   transition: `background-color ${themeContract.animation.duration.base} ${themeContract.animation.easing.settle}`,
   selectors: {
     '[data-pressed]:not(:disabled) &': {
-      backgroundColor: fallbackVar(pressedFill, 'transparent'),
+      backgroundColor: pressedFill,
     },
   },
 });
