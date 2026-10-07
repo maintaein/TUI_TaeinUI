@@ -2,63 +2,29 @@ import {
   style,
   styleVariants,
   globalStyle,
-  createVar,
   type StyleRule,
 } from '@vanilla-extract/css';
 import { recipe } from '@vanilla-extract/recipes';
 import { themeContract } from '../../tokens/theme.css';
 import { focusRing } from '../../tokens/focusRing.css';
 
-// 호버·누름 색의 출처. 버튼의 호버·누름 규칙과 방향 채움 층(fill)이 같은 변수를
-// 읽는다. 색은 tint가 한 번만 적고, 9가지 조합마다 층용 색을 따로 두지 않는다.
-const hoverFill = createVar();
-const pressedFill = createVar();
-
-interface Tone {
-  backgroundColor: string;
-  color?: string;
-  filter?: string;
-}
-
 // 호버·누름의 색 한 쌍(Button·Chip의 규칙과 같다). 호버는 (hover: hover) and
 // (pointer: fine) 안에서만 걸린다(터치는 탭하면 호버가 발생해 색이 들러붙는다).
 // 호버는 배경색(과 글자색)만 바꾼다. 이동을 더하지 않는다(근거는 Button.css.ts의
 // compoundVariants 머리말). :not([data-pressed])는 vanilla-extract가 @media를
 // selectors 뒤에 내보내 특정도가 같은 호버가 누름 색을 덮는 것을 막는다.
-// 방향 채움이 켜지면(data-hover-effect) 호버 배경은 층이 맡고 버튼 자신은 바꾸지
-// 않는다. 글자색은 그대로 버튼에서 바뀐다. 누름의 filter 같은 색이 아닌 값은 변수를
-// 거치지 않는다(버튼의 filter는 자식인 층에도 걸린다). 누름 배경은 모든 조합이 갖는다.
-const tint = (
-  hover: { backgroundColor: string; color?: string },
-  pressed: Tone
-): StyleRule => {
-  const { backgroundColor: pressedBg, ...pressedRest } = pressed;
-  return {
-    vars: {
-      [hoverFill]: hover.backgroundColor,
-      [pressedFill]: pressedBg,
-    },
-    '@media': {
-      '(hover: hover) and (pointer: fine)': {
-        selectors: {
-          '&:hover:not(:disabled):not([data-pressed]):not([data-hover-effect])':
-            { backgroundColor: hoverFill },
-          ...(hover.color && {
-            '&:hover:not(:disabled):not([data-pressed])': {
-              color: hover.color,
-            },
-          }),
-        },
+const tint = (hover: StyleRule, pressed: StyleRule): StyleRule => ({
+  '@media': {
+    '(hover: hover) and (pointer: fine)': {
+      selectors: {
+        '&:hover:not(:disabled):not([data-pressed])': hover,
       },
     },
-    selectors: {
-      '&[data-pressed]:not(:disabled)': {
-        ...pressedRest,
-        backgroundColor: pressedFill,
-      },
-    },
-  };
-};
+  },
+  selectors: {
+    '&[data-pressed]:not(:disabled)': pressed,
+  },
+});
 
 // 모든 모드(ghost·weak·strong)에 같이 붙는 누름 규칙. 모드마다 따로 쓰면 한쪽이
 // 어긋난다. 색은 각 모드가 tint로 갖고, 여기는 축소와 레이어만 맡는다.
@@ -331,8 +297,6 @@ export const ghostSizeVariants = styleVariants({
 // className이나 style로 준다. 의도된 동작이다.
 // 가운데 정렬 flex라 인라인 svg의 baseline 때문에 세로로 1~2px 처지지 않는다.
 export const iconSlot = style({
-  // 채움 층(fill) 위에 그려진다. 층이 먼저 오고 위치 지정 요소끼리는 DOM 순서로 쌓인다.
-  position: 'relative',
   display: 'inline-flex',
   alignItems: 'center',
   justifyContent: 'center',
@@ -346,37 +310,5 @@ globalStyle(`:where(${iconSlot} svg)`, {
 // Loader는 바깥에 블록 div를 하나 두므로 flex 아이템으로 만들어 줄 상자(baseline)
 // 정렬을 없앤다. 그대로 두면 점·스피너가 글자 baseline으로 내려앉는다.
 export const loadingSlot = style({
-  position: 'relative',
   display: 'flex',
-});
-
-// 방향 채움(hoverEffect="directional")의 층. 호버 색이 포인터가 들어온 모서리에서
-// 밀려 들어온다. 움직임(transform)은 IconButton.tsx의 GSAP이 맡는다. 색은 tint의
-// 변수를 읽어 버튼의 호버·누름 색과 같다. 누름 중에는 층이 버튼 배경을 덮고 있으므로
-// 층이 누름 색을 보인다. 층은 배경색만 갖고, 버튼의 filter(weak danger 누름)는 자식인
-// 층에도 걸려 Button과 같이 어두워진다.
-export const fill = style({
-  position: 'absolute',
-  inset: 0,
-  borderRadius: 'inherit',
-  pointerEvents: 'none',
-  backgroundColor: hoverFill,
-  // 쉬는 자리: 아래 모서리 밖. IconButton.tsx의 OUTSIDE(101)와 같은 값이다. SSR HTML이
-  // 하이드레이션 전에 호버 색으로 버튼을 덮지 않게 CSS에도 둔다. 이후 transform은
-  // GSAP이 맡고, 처음 만질 때 x와 y를 0으로 지워 이 값이 두 배로 얹히지 않게 한다.
-  transform: 'translateY(101%)',
-  transition: `background-color ${themeContract.animation.duration.base} ${themeContract.animation.easing.settle}`,
-  selectors: {
-    '[data-pressed]:not(:disabled) &': {
-      backgroundColor: pressedFill,
-    },
-  },
-});
-
-// 층이 버튼 밖에서 잘리려면 버튼이 위치 기준이고 넘침을 가려야 한다. strong·weak는
-// 이미 그렇고 ghost는 아니다. ghost는 효과가 켜질 때만 이 클래스를 얹어 효과가 없는
-// 버튼의 모양을 건드리지 않는다.
-export const fillHost = style({
-  position: 'relative',
-  overflow: 'hidden',
 });

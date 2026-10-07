@@ -28,12 +28,6 @@ const meta = {
       options: ['sm', 'md', 'lg', 'xl'],
       description: '버튼 크기',
     },
-    hoverEffect: {
-      control: 'select',
-      options: ['none', 'directional'],
-      description:
-        '호버 효과. directional은 마우스가 들어온 모서리에서 호버 색이 밀려 들어온다',
-    },
     loading: {
       control: 'boolean',
       description: '로딩 상태',
@@ -228,31 +222,6 @@ export const AllStrongVariants: Story = {
       </IconButton>
       <IconButton variant="light" buttonStyle="strong" aria-label="Light">
         <Plus />
-      </IconButton>
-    </div>
-  ),
-};
-
-export const DirectionalHover: Story = {
-  render: () => (
-    <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
-      <IconButton hoverEffect="directional" aria-label="검색">
-        <Search />
-      </IconButton>
-      <IconButton
-        hoverEffect="directional"
-        buttonStyle="weak"
-        aria-label="좋아요"
-      >
-        <Heart />
-      </IconButton>
-      <IconButton
-        hoverEffect="directional"
-        buttonStyle="strong"
-        variant="danger"
-        aria-label="삭제"
-      >
-        <Trash />
       </IconButton>
     </div>
   ),
