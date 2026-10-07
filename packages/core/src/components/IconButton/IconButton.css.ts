@@ -361,6 +361,10 @@ export const fill = style({
   borderRadius: 'inherit',
   pointerEvents: 'none',
   backgroundColor: hoverFill,
+  // 쉬는 자리: 아래 모서리 밖. IconButton.tsx의 OUTSIDE(101)와 같은 값이다. SSR HTML이
+  // 하이드레이션 전에 호버 색으로 버튼을 덮지 않게 CSS에도 둔다. 이후 transform은
+  // GSAP이 맡고, 처음 만질 때 x와 y를 0으로 지워 이 값이 두 배로 얹히지 않게 한다.
+  transform: 'translateY(101%)',
   transition: `background-color ${themeContract.animation.duration.base} ${themeContract.animation.easing.settle}`,
   selectors: {
     '[data-pressed]:not(:disabled) &': {

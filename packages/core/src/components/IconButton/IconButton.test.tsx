@@ -980,8 +980,11 @@ describe('IconButton 생성 CSS', () => {
     expect(withSelector(':active')).toHaveLength(0);
   });
 
-  it('translateY가 어느 규칙에도 없다', () => {
-    for (const { rule } of iconButtonRules()) {
+  it('translateY가 버튼 규칙 어디에도 없다(채움 층의 쉬는 자리만 예외다)', () => {
+    const buttonRules = iconButtonRules().filter(
+      ({ rule }) => !/IconButton_fill__/.test(rule.selectorText)
+    );
+    for (const { rule } of buttonRules) {
       expect(rule.style.getPropertyValue('transform')).not.toContain(
         'translateY'
       );
@@ -1380,6 +1383,141 @@ describe('IconButton 방향 채움', () => {
     expect(tween.duration()).toBe(gsapDuration.base);
   });
 
+  it('효과를 켜면(none에서 directional로 rerender) 층이 아래 모서리 밖에서 쉰다', () => {
+    const { button, rerender } = setup({ hoverEffect: 'none' });
+    expect(button.children).toHaveLength(1);
+
+    rerender(
+      <IconButton aria-label="채움" hoverEffect="directional">
+        <TestIcon />
+      </IconButton>
+    );
+
+    expect(at(fillOf(button))).toMatch(/0(px|%)?, 101%/);
+  });
+
+  it('효과를 껐다 켜도 층은 새로 쉬는 자리에서 시작한다', () => {
+    const { button, rerender } = setup();
+    enter(button, { x: 1, y: 22 });
+    fillOf(button).__iconButtonFill!.progress(1);
+    expect(at(fillOf(button))).not.toContain('101%');
+
+    const props = { 'aria-label': '채움' };
+    rerender(
+      <IconButton {...props}>
+        <TestIcon />
+      </IconButton>
+    );
+    expect(button.children).toHaveLength(1);
+    rerender(
+      <IconButton {...props} hoverEffect="directional">
+        <TestIcon />
+      </IconButton>
+    );
+
+    expect(at(fillOf(button))).toMatch(/0(px|%)?, 101%/);
+  });
+
+  describe('로딩이 끝났을 때 포인터가 버튼 위에 있으면', () => {
+    // jsdom에는 matchMedia가 없다. 호버 게이트 질의만 참, 나머지(모션 축소)는 거짓으로 둔다.
+    const stubHoverGate = (hover: boolean) =>
+      vi.stubGlobal(
+        'matchMedia',
+        (media: string): MediaQueryList =>
+          ({
+            matches: hover && media === '(hover: hover) and (pointer: fine)',
+            media,
+            addEventListener: () => {},
+            removeEventListener: () => {},
+          }) as unknown as MediaQueryList
+      );
+    // jsdom의 :hover는 실제 포인터를 모른다. 그 버튼 인스턴스에서만 :hover를 참으로 둔다.
+    const hovered = (button: HTMLElement) => {
+      const matches = button.matches.bind(button);
+      button.matches = (selector: string) =>
+        selector === ':hover' ? true : matches(selector);
+      return button;
+    };
+    const withLoading = (loading: boolean) => (
+      <IconButton aria-label="채움" hoverEffect="directional" loading={loading}>
+        <TestIcon />
+      </IconButton>
+    );
+    // 들어와 있다가 loading이 되어 층이 빠진 상태까지 만든다.
+    const loadedAndLeft = () => {
+      const utils = setup();
+      enter(utils.button, { x: 1, y: 22 });
+      fillOf(utils.button).__iconButtonFill!.progress(1);
+      utils.rerender(withLoading(true));
+      fillOf(utils.button).__iconButtonFill!.progress(1);
+      expect(at(fillOf(utils.button))).toMatch(/0(px|%)?, 101%/);
+      return utils;
+    };
+
+    it(':hover면 층이 아래 모서리에서 slow settle로 다시 들어온다', () => {
+      stubHoverGate(true);
+      const { button, rerender } = loadedAndLeft();
+      const exit = fillOf(button).__iconButtonFill!;
+
+      hovered(button);
+      rerender(withLoading(false));
+
+      const tween = fillOf(button).__iconButtonFill!;
+      expect(tween).not.toBe(exit);
+      expect(tween.vars.xPercent).toBe(0);
+      expect(tween.vars.yPercent).toBe(0);
+      expect(tween.vars.ease).toBe(gsapEasing.settle);
+      expect(tween.duration()).toBe(gsapDuration.slow);
+      expect(at(fillOf(button))).toMatch(/0(px|%)?, 101%/);
+    });
+
+    it(':hover가 아니면 층은 들어오지 않는다', () => {
+      stubHoverGate(true);
+      const { button, rerender } = loadedAndLeft();
+      const exit = fillOf(button).__iconButtonFill!;
+
+      rerender(withLoading(false));
+
+      expect(fillOf(button).__iconButtonFill).toBe(exit);
+    });
+
+    it('호버가 없는 기기(게이트가 거짓)면 :hover여도 들어오지 않는다', () => {
+      stubHoverGate(false);
+      const { button, rerender } = loadedAndLeft();
+      const exit = fillOf(button).__iconButtonFill!;
+
+      hovered(button);
+      rerender(withLoading(false));
+
+      expect(fillOf(button).__iconButtonFill).toBe(exit);
+    });
+
+    it('matchMedia가 없는 환경에서도 터지지 않고 들어오지 않는다', () => {
+      const { button, rerender } = loadedAndLeft();
+      const exit = fillOf(button).__iconButtonFill!;
+
+      hovered(button);
+      expect(() => rerender(withLoading(false))).not.toThrow();
+
+      expect(fillOf(button).__iconButtonFill).toBe(exit);
+    });
+
+    it('처음부터 활성이던 버튼은 마운트 때 :hover여도 층이 들어오지 않는다(복귀 순간에만 들인다)', () => {
+      stubHoverGate(true);
+      const original = Element.prototype.matches;
+      const spy = vi
+        .spyOn(Element.prototype, 'matches')
+        .mockImplementation(function (this: Element, selector: string) {
+          return selector === ':hover' ? true : original.call(this, selector);
+        });
+
+      const { button } = setup();
+      spy.mockRestore();
+
+      expect(fillOf(button).__iconButtonFill).toBeUndefined();
+    });
+  });
+
   it('키보드 포커스는 효과가 없다', () => {
     const { button } = setup();
 
@@ -1506,6 +1644,12 @@ describe('IconButton 방향 채움의 생성 CSS', () => {
     expect(style.getPropertyValue('inset')).toBe('0');
     expect(style.getPropertyValue('border-radius')).toBe('inherit');
     expect(style.getPropertyValue('pointer-events')).toBe('none');
+  });
+
+  it('층의 CSS에 쉬는 자리(아래 밖 101%)가 있어 SSR에서 하이드레이션 전에도 버튼을 덮지 않는다', () => {
+    expect(layerRule()!.rule.style.getPropertyValue('transform')).toBe(
+      'translateY(101%)'
+    );
   });
 
   it('아이콘 칸과 로딩 칸은 position: relative로 층 위에 그려진다', () => {

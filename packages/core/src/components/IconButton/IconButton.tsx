@@ -35,8 +35,10 @@ type FillHost = HTMLElement & { __iconButtonFill?: gsap.core.Tween };
 
 // 층이 완전히 밖에 있는 위치. 100이면 가장자리에 반 픽셀 틈이 비쳐 101로 둔다
 // (FlowingMenu와 같다).
+// IconButton.css.ts의 fill이 CSS 초기값으로 같은 101%를 갖는다(SSR 쉬는 자리).
 const OUTSIDE = 101;
 const REST = { xPercent: 0, yPercent: OUTSIDE };
+const INSIDE = { xPercent: 0, yPercent: 0 };
 
 // 포인터에서 네 변까지 수직 거리 중 가장 가까운 변 밖의 자리. 같으면 먼저 오는 쪽.
 const nearestOutside = (rect: DOMRect, clientX: number, clientY: number) => {
@@ -55,6 +57,28 @@ const nearestOutside = (rect: DOMRect, clientX: number, clientY: number) => {
 const isOutside = (el: HTMLElement) =>
   Math.abs(Number(gsap.getProperty(el, 'xPercent'))) >= OUTSIDE ||
   Math.abs(Number(gsap.getProperty(el, 'yPercent'))) >= OUTSIDE;
+
+// 층을 지금 자리에서 target으로 보낸다. 축소 모드는 gateMotion이 끝 상태로 확정한다.
+const moveFill = (
+  el: FillHost,
+  target: { xPercent: number; yPercent: number },
+  duration: number,
+  reduced: boolean
+) => {
+  el.__iconButtonFill = gateMotion(reduced, () =>
+    gsap.to(el, {
+      ...target,
+      duration,
+      ease: gsapEasing.settle,
+      overwrite: 'auto',
+    })
+  );
+};
+
+// CSS의 호버 게이트와 같은 조건. matchMedia가 없는 환경(일부 jsdom)에서는 거짓이다.
+const canHover = () =>
+  typeof window.matchMedia === 'function' &&
+  window.matchMedia('(hover: hover) and (pointer: fine)').matches;
 
 /**
  * 아이콘을 버튼으로 만드는 컴포넌트. lucide-react, react-icons 등 어느 아이콘
@@ -142,40 +166,41 @@ export const IconButton = forwardRef<HTMLButtonElement, IconButtonProps>(
     const reduced = useReducedMotion();
     const fillRef = useRef<FillHost>(null);
 
-    // 층은 쉴 때 아래 모서리 밖에 있다. 언마운트하면 트윈을 죽인다.
+    // 층은 쉴 때 아래 모서리 밖에 있다(CSS 초기값과 같은 자리). x, y를 0으로 같이 둔다:
+    // GSAP은 처음 만질 때 CSS의 translateY(101%)를 계산된 transform에서 px(y)로 읽는다.
+    // 그 위에 yPercent를 얹으면 두 배로 밀린다(Snackbar.css.ts의 transform 주석과 같은 함정).
+    // 그래서 x, y를 0으로 같이 둔다. 인라인 none은 jsdom 때문이다: 거기서는 계산된 값이
+    // matrix()가 아니라 translateY(101%) 그대로라 GSAP이 읽다가 NaN이 된다.
+    // 언마운트하면 트윈을 죽인다.
     useLayoutEffect(() => {
       const el = fillRef.current;
       if (!el) return;
-      gsap.set(el, REST);
+      el.style.transform = 'none';
+      gsap.set(el, { x: 0, y: 0, ...REST });
       return () => {
         el.__iconButtonFill?.kill();
       };
     }, [directional]);
 
-    // 층을 지금 자리에서 target으로 보낸다. 축소 모드는 gateMotion이 끝 상태로 확정한다.
-    const moveFill = (
-      el: FillHost,
-      target: { xPercent: number; yPercent: number },
-      duration: number
-    ) => {
-      el.__iconButtonFill = gateMotion(reduced, () =>
-        gsap.to(el, {
-          ...target,
-          duration,
-          ease: gsapEasing.settle,
-          overwrite: 'auto',
-        })
-      );
-    };
-
-    // 비활성이 되는 순간 층이 들어와 있으면 지금 자리에서 밖으로 뺀다.
+    // 비활성이 되는 순간 층이 들어와 있으면 지금 자리에서 밖으로 뺀다. 비활성에서 돌아온
+    // 순간 포인터가 아직 위에 있으면(로딩 중에는 pointerenter가 다시 오지 않는다) 아래
+    // 모서리에서 들인다. 좌표가 없어 방향은 쉬는 자리 그대로다.
+    const wasDisabled = useRef(isDisabled);
     useEffect(() => {
+      const returned = wasDisabled.current && !isDisabled;
+      wasDisabled.current = isDisabled;
       const el = fillRef.current;
-      if (isDisabled && el && !isOutside(el)) {
-        moveFill(el, REST, gsapDuration.base);
+      if (!el) return;
+      if (isDisabled) {
+        if (!isOutside(el)) moveFill(el, REST, gsapDuration.base, reduced);
+      } else if (
+        returned &&
+        canHover() &&
+        el.parentElement?.matches(':hover')
+      ) {
+        if (isOutside(el)) gsap.set(el, REST);
+        moveFill(el, INSIDE, gsapDuration.slow, reduced);
       }
-      // moveFill은 매 렌더 새로 만들어지지만 reduced 말고는 렌더 사이에 변하는 것이 없다.
-      // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [isDisabled, reduced]);
 
     const handlePointerEnter = (event: PointerEvent<HTMLButtonElement>) => {
@@ -193,7 +218,7 @@ export const IconButton = forwardRef<HTMLButtonElement, IconButtonProps>(
           )
         );
       }
-      moveFill(el, { xPercent: 0, yPercent: 0 }, gsapDuration.slow);
+      moveFill(el, INSIDE, gsapDuration.slow, reduced);
     };
 
     const handlePointerLeave = (event: PointerEvent<HTMLButtonElement>) => {
@@ -207,7 +232,8 @@ export const IconButton = forwardRef<HTMLButtonElement, IconButtonProps>(
           event.clientX,
           event.clientY
         ),
-        gsapDuration.base
+        gsapDuration.base,
+        reduced
       );
     };
 
