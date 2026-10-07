@@ -94,9 +94,9 @@ function LoginForm() {
 
 ## 모션
 
-현재 GSAP 런타임이 붙어 있는 컴포넌트는 16개입니다: Modal, BottomSheet, SideSheet,
+현재 GSAP 런타임이 붙어 있는 컴포넌트는 14개입니다: Modal, BottomSheet, SideSheet,
 Snackbar, Checkbox, Switch, SegmentedButtons, NumericSpinner, Slider, HeaderBarNav,
-TextField, TextArea, Avatar, BoardRow, Chip, IconButton. 여기 없는 컴포넌트는 CSS 트랜지션만 씁니다. GSAP은 "쓸 수 있으니
+Avatar, BoardRow, Chip, IconButton. 여기 없는 컴포넌트는 CSS 트랜지션만 씁니다. GSAP은 "쓸 수 있으니
 쓴다"가 아니라 CSS로는 못 하는 일(트리거 좌표 읽기, 제스처 1:1 추적, 여러 목표를 동시에
 중단)이 있는 자리에만 들어갑니다. 최신 목록과 각자 쓰는 능력은 `llms.txt`의
 "Motion (GSAP Runtime)" 절에 있습니다.

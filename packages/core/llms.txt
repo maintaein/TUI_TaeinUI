@@ -1,7 +1,7 @@
 # TUI (TaeinUI)
 
 > A React + TypeScript UI component library where each component carries its own motion.
-> GSAP is the motion runtime (16 components today); visibility, legibility and readability
+> GSAP is the motion runtime (14 components today); visibility, legibility and readability
 > are never traded for it. Zero-runtime CSS via Vanilla Extract, tree-shakable, WCAG 2.2 AA.
 > Runtime dependencies: @vanilla-extract/css, @vanilla-extract/recipes, clsx, gsap.
 
@@ -115,7 +115,6 @@ M3에서 GSAP 런타임이 실제로 붙은 컴포넌트와 그 능력. 계획�
 | NumericSpinner | 다중 목표 중단 |
 | Slider | 제스처 추적(드래그 중 값 따라붙기) |
 | HeaderBarNav | 제스처 추적(포인터 근접) · CSS가 못 보는 값 읽기(컨테이너 좌표) |
-| TextField, TextArea | CSS가 못 보는 값 읽기(줄바꿈 감지용 offsetTop) |
 | Avatar | 다중 목표 중단(떠오름과 눌림이 서로를 덮어쓰며 이어짐) |
 | BoardRow | 타임라인 상대 위치 · CSS가 못 보는 값 읽기(트윈 중간 높이, 내용 높이) |
 | Chip | 타임라인 상대 위치 · CSS가 못 보는 값 읽기(폭과 gap으로 자리 닫기) |
@@ -132,15 +131,10 @@ M3에서 GSAP 런타임이 실제로 붙은 컴포넌트와 그 능력. 계획�
   `Loader`는 지시문이 없다 — 서버 컴포넌트로 렌더된다.
   `Button`, `IconButton`은 누름 상태를 `useClickRebound` 훅이 갖기 때문에
   `'use client'`가 붙는다. 서버 컴포넌트에서 import하는 것은 그대로 된다.
-- `TextField`는 `'use client'`가 붙는다. 타이핑 미러 오버레이가 입력값을 글자
-  단위 DOM 요소로 쪼개 겹쳐 그리는데, `<input>`의 `value`는 문자열일 뿐 글자별
-  노드를 갖지 않는다 — 그 노드를 만들고 위치를 맞추는 훅이 있어야 하므로 더
-  이상 서버 컴포넌트로 남을 수 없다.
 - `HeaderBarNav`도 `'use client'`가 붙는다. 포인터 거리를 매 프레임 읽어 항목 배율을
   계산하므로 브라우저에서만 돌아갈 수 있다. 담기는 그릇인 `HeaderBar`는 훅이 0개라
   그대로 서버 컴포넌트다 — 그래서 둘을 분리해 둔다.
-- `TextArea`도 `'use client'`가 붙는다. `TextField`와 같은 타이핑 미러 오버레이를
-  낱말 단위로 쓴다.
+- `TextArea`는 `'use client'`가 붙는다. `autoResize`가 높이를 읽고 쓰는 훅을 갖는다.
 - 단, 서버 컴포넌트에서 `onClick` 같은 함수 prop을 넘기는 것은 TUI와 무관하게
   React가 막는다. 이벤트 핸들러를 붙이는 쪽 파일에 `'use client'`를 적어야 한다.
 - `styles.css`는 루트 레이아웃에서 한 번 import한다:

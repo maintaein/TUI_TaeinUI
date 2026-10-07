@@ -2,7 +2,6 @@ import { forwardRef, useEffect, useRef, useCallback } from 'react';
 import type { TextareaHTMLAttributes, ChangeEvent } from 'react';
 import { clsx } from 'clsx';
 import { FormField } from '../../_internal/formField';
-import { MirrorOverlay } from '../../_internal/MirrorOverlay';
 import * as styles from './TextArea.css';
 
 /** 여러 줄 텍스트 입력 컴포넌트. 자동 높이 조정 지원 */
@@ -102,42 +101,27 @@ export const TextArea = forwardRef<HTMLTextAreaElement, TextAreaProps>(
         fullWidth={fullWidth}
       >
         {({ inputId, helperId, hasHelper, isError }) => (
-          <div
+          <textarea
+            ref={setRefs}
+            id={inputId}
+            required={required}
+            disabled={disabled}
+            aria-invalid={isError}
+            aria-disabled={disabled}
+            aria-describedby={hasHelper ? helperId : undefined}
             className={clsx(
-              styles.textareaContainer,
+              styles.textarea,
               styles.size[size],
-              isError && styles.error
+              isError && styles.error,
+              className
             )}
-          >
-            <textarea
-              ref={setRefs}
-              id={inputId}
-              required={required}
-              disabled={disabled}
-              aria-invalid={isError}
-              aria-disabled={disabled}
-              aria-describedby={hasHelper ? helperId : undefined}
-              className={clsx(
-                styles.textarea,
-                styles.size[size],
-                isError && styles.error,
-                className
-              )}
-              style={{
-                minHeight,
-                overflow: autoResize ? 'hidden' : 'auto',
-              }}
-              onChange={handleChange}
-              {...rest}
-            />
-            {!disabled && !rest.readOnly && (
-              <MirrorOverlay
-                inputRef={internalRef}
-                unit="word"
-                geometryClassName={clsx(styles.mirror, styles.mirrorSize[size])}
-              />
-            )}
-          </div>
+            style={{
+              minHeight,
+              overflow: autoResize ? 'hidden' : 'auto',
+            }}
+            onChange={handleChange}
+            {...rest}
+          />
         )}
       </FormField>
     );

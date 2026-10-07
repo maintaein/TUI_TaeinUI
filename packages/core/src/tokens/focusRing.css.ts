@@ -5,8 +5,9 @@ import { themeContract } from './theme.css';
  * 포커스 링 유틸.
  *
  * 왜: 포커스 표시가 18개 `:focus-visible` 규칙에 흩어져 굵기가 3px/2px로
- * 갈렸고, 폼 컨트롤 4종(TextField·TextArea 등)의 halo(rgba(25, 118, 210, 0.16))는
- * 대비 1.12~1.23:1이라 포커스 표시 구실을 못 한다. 값을 하나씩 고치면 다음
+ * 갈렸고, 폼 컨트롤의 halo(rgba(25, 118, 210, 0.16))는 대비 1.12~1.23:1이라
+ * 포커스 표시 구실을 못 한다(그 뒤 TextField는 M5 task-15에서 halo를 걷었고,
+ * NumericSpinner·Checkbox·Switch가 halo를 계속 쓴다). 값을 하나씩 고치면 다음
  * 컴포넌트에서 또 갈라지므로, 폭·색·offset을 여기 한 곳에서 결정한다.
  *
  * 대비 계약: `color.border.focus`(#1976D2) 대비 `background.default`(#FFFFFF)

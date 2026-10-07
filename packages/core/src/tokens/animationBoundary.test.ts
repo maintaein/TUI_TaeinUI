@@ -834,12 +834,13 @@ describe('전이 목록 잠금 (T3)', () => {
   });
 
   it('자기 전이를 가진 블록이 상태에서 boxShadow를 바꾸면 그 목록에 box-shadow가 있다', () => {
-    // TextField.css.ts:38(T3), NumericSpinner.css.ts:13 컨테이너(d03c209),
-    // NumericSpinner.css.ts:64 input(63a2b53)에 box-shadow를 넣은 이유다.
-    // 빠지면 focus·error halo가 페이드 없이 툭 튄다.
+    // NumericSpinner.css.ts:13 컨테이너(d03c209), NumericSpinner.css.ts:64
+    // input(63a2b53)에 box-shadow를 넣은 이유다(TextField는 M5 task-15에서
+    // 후광을 걷어 더는 해당하지 않는다). 빠지면 focus·error halo가 페이드
+    // 없이 툭 튄다.
     //
     // 자기 전이가 없는 블록은 판정에서 뺀다. vanilla-extract는 별개 `style()`
-    // 블록을 같은 요소에 합성하므로(`TextField.css.ts`의 `error`가 `input` 위에
+    // 블록을 같은 요소에 합성하므로(`NumericSpinner.css.ts`의 `error`가 컨테이너 위에
     // 얹힌다), 그런 블록의 전이는 소스의 다른 어딘가에 있고 어느 블록인지
     // 텍스트만으로는 못 가린다. 판정하면 규칙을 지킨 코드가 빨개진다.
     //

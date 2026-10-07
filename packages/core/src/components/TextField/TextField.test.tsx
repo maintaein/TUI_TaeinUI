@@ -74,20 +74,17 @@ describe('TextField', () => {
   describe('size prop 테스트', () => {
     it('sm size를 적용한다', () => {
       render(<TextField label="이름" size="sm" />);
-      const container = screen.getByLabelText('이름').parentElement;
-      expect(container?.className).toContain('size_sm');
+      expect(screen.getByLabelText('이름').className).toContain('size_sm');
     });
 
     it('md size를 적용한다 (기본값)', () => {
       render(<TextField label="이름" />);
-      const container = screen.getByLabelText('이름').parentElement;
-      expect(container?.className).toContain('size_md');
+      expect(screen.getByLabelText('이름').className).toContain('size_md');
     });
 
     it('lg size를 적용한다', () => {
       render(<TextField label="이름" size="lg" />);
-      const container = screen.getByLabelText('이름').parentElement;
-      expect(container?.className).toContain('size_lg');
+      expect(screen.getByLabelText('이름').className).toContain('size_lg');
     });
   });
 
@@ -116,8 +113,7 @@ describe('TextField', () => {
   describe('error prop 테스트', () => {
     it('error가 true이면 error 상태를 적용한다', () => {
       render(<TextField label="이메일" error />);
-      const container = screen.getByLabelText('이메일').parentElement;
-      expect(container?.className).toContain('error');
+      expect(screen.getByLabelText('이메일').className).toContain('error');
     });
 
     it('error message를 표시한다', () => {
@@ -166,8 +162,7 @@ describe('TextField', () => {
   describe('fullWidth prop 테스트', () => {
     it('fullWidth가 true이면 전체 너비를 차지한다', () => {
       render(<TextField label="이름" fullWidth />);
-      const wrapper =
-        screen.getByLabelText('이름').parentElement?.parentElement;
+      const wrapper = screen.getByLabelText('이름').parentElement;
       expect(wrapper?.className).toContain('fullWidth');
     });
   });
@@ -349,42 +344,90 @@ describe('TextField', () => {
     });
   });
 
-  describe('미러 오버레이 테스트 (Task 7)', () => {
-    it('기본 상태에서는 미러 오버레이가 렌더된다', () => {
-      const { container } = render(<TextField label="이름" />);
-      expect(container.querySelector('[aria-hidden="true"]')).not.toBeNull();
-    });
-
-    it('disabled에서는 미러 오버레이가 렌더되지 않는다 (Ruling 49)', () => {
-      const { container } = render(<TextField label="이름" disabled />);
-      expect(container.querySelector('[aria-hidden="true"]')).toBeNull();
-    });
-
-    it('readOnly에서는 미러 오버레이가 렌더되지 않는다 (Ruling 49)', () => {
-      const { container } = render(
-        <TextField label="이름" readOnly value="값" onChange={() => {}} />
-      );
-      expect(container.querySelector('[aria-hidden="true"]')).toBeNull();
-    });
-
-    it('type="password"에서는 미러 오버레이가 렌더되지 않는다 (Ruling 80, C-1 — 평문 노출 방지)', () => {
-      const { container } = render(
-        <TextField label="비밀번호" type="password" />
-      );
-      expect(container.querySelector('[aria-hidden="true"]')).toBeNull();
-    });
-
-    it('type="number"에서는 미러 오버레이가 렌더되지 않는다 (Ruling 80, C-1b — 중간 입력이 value=""로 사라진다)', () => {
-      const { container } = render(<TextField label="수량" type="number" />);
-      expect(container.querySelector('[aria-hidden="true"]')).toBeNull();
-    });
-
-    it.each([['text'], ['email'], ['tel'], ['url']] as const)(
-      'type="%s"에서는 미러 오버레이가 렌더된다 (허용 목록)',
+  describe('타이핑 효과 없음 (task-15)', () => {
+    it.each([
+      ['text'],
+      ['email'],
+      ['tel'],
+      ['url'],
+      ['password'],
+      ['number'],
+    ] as const)(
+      'type="%s"는 input 하나만 그린다: 글자를 따로 겹쳐 그리는 오버레이가 없다',
       (type) => {
         const { container } = render(<TextField label="입력" type={type} />);
-        expect(container.querySelector('[aria-hidden="true"]')).not.toBeNull();
+        expect(container.querySelector('[aria-hidden="true"]')).toBeNull();
+        expect(container.querySelectorAll('input')).toHaveLength(1);
       }
+    );
+  });
+});
+
+/** jsdom에 주입된 생성 CSS(CSSOM)에서 규칙을 평탄하게 읽는다. */
+function sheetRules(marker: string): CSSStyleRule[] {
+  const sheet = Array.from(document.styleSheets).find((candidate) =>
+    Array.from(candidate.cssRules).some((rule) => rule.cssText.includes(marker))
+  );
+  if (!sheet) {
+    throw new Error(`${marker}를 가진 스타일시트를 찾지 못했다`);
+  }
+  const flat: CSSStyleRule[] = [];
+  const walk = (rules: CSSRuleList) => {
+    for (const rule of Array.from(rules)) {
+      if (rule instanceof CSSStyleRule) flat.push(rule);
+      else if ('cssRules' in rule) walk((rule as CSSGroupingRule).cssRules);
+    }
+  };
+  walk(sheet.cssRules);
+  return flat;
+}
+
+describe('TextField 생성 CSS (포커스 모양, task-15)', () => {
+  const rules = () => sheetRules('TextField_input');
+  const inputRule = (suffix: string) =>
+    rules().find((rule) =>
+      new RegExp(`^\\.TextField_input__\\w+${suffix}$`).test(rule.selectorText)
+    );
+  const errorRule = (suffix: string) =>
+    rules().find((rule) =>
+      new RegExp(`^\\.TextField_error__\\w+${suffix}$`).test(rule.selectorText)
+    );
+
+  it('클릭(:focus)과 키보드(:focus-visible) 모두 호버와 같은 테두리 색을 쓴다', () => {
+    const hover = inputRule(':hover:not\\(:disabled\\)');
+    const focus = inputRule(':focus');
+    expect(hover).toBeDefined();
+    expect(focus).toBeDefined();
+    expect(focus!.style.getPropertyValue('border-color')).toBe(
+      hover!.style.getPropertyValue('border-color')
+    );
+    expect(inputRule(':focus-visible')).toBeUndefined();
+  });
+
+  it('포커스에는 3px 후광(box-shadow)도 2px 바깥 링(outline)도 없다', () => {
+    const focus = inputRule(':focus')!;
+    expect(focus.style.getPropertyValue('box-shadow')).toBe('');
+    expect(focus.style.getPropertyValue('outline')).toBe('');
+    expect(focus.style.getPropertyValue('outline-offset')).toBe('');
+  });
+
+  it('error 상태에는 포커스 후광이 없고 테두리 색만 남는다', () => {
+    const error = errorRule('')!;
+    expect(error.style.getPropertyValue('border-color')).toContain('error');
+    for (const rule of rules()) {
+      if (rule.selectorText.includes('TextField_error')) {
+        expect(
+          rule.style.getPropertyValue('box-shadow'),
+          rule.selectorText
+        ).toBe('');
+      }
+    }
+  });
+
+  it('transition 목록에 쓸모없어진 box-shadow가 없다', () => {
+    const base = inputRule('')!;
+    expect(base.style.getPropertyValue('transition')).not.toContain(
+      'box-shadow'
     );
   });
 });
