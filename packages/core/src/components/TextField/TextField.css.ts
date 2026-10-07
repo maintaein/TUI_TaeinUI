@@ -38,6 +38,9 @@ export const size = styleVariants({
 // input 기본 스타일
 export const input = style({
   width: '100%',
+  // 단일 줄의 HEIGHT - BORDER_WIDTH * 2 역산과 autoResize의 테두리 보정이 border-box를
+  // 전제한다. 소비처 리셋에 맡기지 않고 명시한다.
+  boxSizing: 'border-box',
   padding: TEXT_PADDING,
   border: `${BORDER_WIDTH}px solid ${themeContract.color.text.secondary}`,
   borderRadius: '8px',
@@ -74,6 +77,11 @@ export const input = style({
       backgroundColor: themeContract.color.surface.default,
       borderColor: themeContract.color.border.strong,
       cursor: 'default',
+    },
+    // 읽기 전용은 위 규칙(특정도 0,3,0)이 :focus(0,2,0)를 이겨 포커스 때 테두리가
+    // 안 변하고, 캐럿도 없어 위치가 안 보인다(WCAG 2.4.7). 포커스 색을 되돌려 놓는다.
+    '&:read-only:not(:disabled):focus': {
+      borderColor: themeContract.color.primary.main,
     },
   },
 });

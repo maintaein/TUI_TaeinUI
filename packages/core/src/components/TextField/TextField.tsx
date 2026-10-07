@@ -53,7 +53,13 @@ interface MultilineTextFieldProps
   autoResize?: boolean;
 }
 
-/** 텍스트 입력 컴포넌트. 레이블, 에러, 도움말 텍스트 내장. `multiline`이면 여러 줄 */
+/**
+ * 텍스트 입력 컴포넌트. 레이블, 에러, 도움말 텍스트 내장. `multiline`이면 여러 줄.
+ *
+ * `multiline`은 `true`나 `false` 리터럴로 쓴다. 변수면 삼항으로 가르고, 감싸는
+ * 컴포넌트의 props 타입은 `ComponentProps<typeof TextField>`로 받는다.
+ * `multiline`을 바꾸면 다른 요소라 다시 마운트되어 포커스와 비제어 값이 사라진다.
+ */
 export type TextFieldProps = SingleLineTextFieldProps | MultilineTextFieldProps;
 
 const SingleLineField = forwardRef<HTMLInputElement, SingleLineTextFieldProps>(
@@ -151,7 +157,9 @@ const MultilineField = forwardRef<HTMLTextAreaElement, MultilineTextFieldProps>(
       if (!textarea || !autoResize) return;
 
       textarea.style.height = 'auto';
-      textarea.style.height = `${textarea.scrollHeight}px`;
+      // scrollHeight는 테두리를 빼고 재므로, border-box인 height에는 위아래 테두리를 더한다
+      const border = textarea.offsetHeight - textarea.clientHeight;
+      textarea.style.height = `${textarea.scrollHeight + border}px`;
     }, [autoResize]);
 
     // autoResize 활성화 시 초기 높이 조정

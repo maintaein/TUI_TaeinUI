@@ -313,7 +313,7 @@ const [password, setPassword] = useState('');
           <h3 className={styles.exampleTitle}>Multiline</h3>
           <LivePreview
             title="여러 줄 입력"
-            description="multiline을 켜면 textarea를 그립니다. rows로 보이는 줄 수를 정하고(기본 4), 픽셀 높이가 필요하면 style의 minHeight를 쓰세요."
+            description="multiline을 켜면 textarea를 그립니다. rows로 보이는 줄 수를 정하고(기본 4), 픽셀 높이가 필요하면 style의 minHeight를 쓰세요. multiline은 리터럴로 쓰고, 변수면 삼항으로 가르세요."
             editable
             code={`<div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
   <TextField

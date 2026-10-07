@@ -464,6 +464,27 @@ describe('TextField multiline (task-15)', () => {
       expect(textarea.style.height).toBe('200px');
     });
 
+    it('높이는 scrollHeight에 위아래 테두리(offsetHeight - clientHeight)를 더한 값이다', async () => {
+      render(<TextField label="소개" multiline autoResize />);
+      const textarea = screen.getByLabelText('소개');
+      Object.defineProperty(textarea, 'scrollHeight', {
+        configurable: true,
+        value: 96,
+      });
+      Object.defineProperty(textarea, 'offsetHeight', {
+        configurable: true,
+        value: 98,
+      });
+      Object.defineProperty(textarea, 'clientHeight', {
+        configurable: true,
+        value: 96,
+      });
+
+      await userEvent.type(textarea, 'a');
+
+      expect(textarea.style.height).toBe('98px');
+    });
+
     it('켜져 있으면 처음 그릴 때도 높이를 맞춘다', () => {
       const original = Object.getOwnPropertyDescriptor(
         HTMLElement.prototype,
@@ -789,6 +810,21 @@ describe('TextField 생성 CSS (포커스 모양, task-15)', () => {
       hover!.style.getPropertyValue('border-color')
     );
     expect(inputRule(':focus-visible')).toBeUndefined();
+  });
+
+  it('읽기 전용이 포커스를 받으면 테두리가 편집 가능 포커스와 같은 색이다', () => {
+    const focus = inputRule(':focus')!;
+    const readOnlyFocus = inputRule(':read-only:not\\(:disabled\\):focus');
+    expect(readOnlyFocus).toBeDefined();
+    expect(readOnlyFocus!.style.getPropertyValue('border-color')).toBe(
+      focus.style.getPropertyValue('border-color')
+    );
+  });
+
+  it('input 클래스는 box-sizing을 border-box로 명시한다', () => {
+    expect(inputRule('')!.style.getPropertyValue('box-sizing')).toBe(
+      'border-box'
+    );
   });
 
   it('포커스에는 3px 후광(box-shadow)도 2px 바깥 링(outline)도 없다', () => {

@@ -247,7 +247,7 @@ export function renderTokenReference(): string {
     plainLine(
       'themeContract.color.overlay.focusHalo',
       color.overlay.focusHalo,
-      '포커스 halo(장식). 실제 포커스 표시는 focusRing 유틸의 outline이 맡는다'
+      '포커스 halo(장식). 실제 포커스 표시는 focusRing 유틸의 outline이 맡는다(TextField는 예외로 outline 없이 테두리 색이 맡는다)'
     ),
     plainLine(
       'themeContract.color.overlay.errorHalo',
