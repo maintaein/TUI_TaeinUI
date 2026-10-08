@@ -111,11 +111,11 @@ const attachSelfKill = (
  * #4). 사용자 토글(onChange)과 prop 변화(effect)가 모두 이 함수를 거쳐 로직이
  * 갈라지지 않는다.
  *
- * - 체크·indeterminate 진입: 상자 `s`가 위치 0에서 SQUEEZE로 `fast` `settle`(움츠림).
- *   위치 `fast`에서 `s`를 1로 `slow` `spring`(되튐), 진행값 `t`를 지금 값에서 1로
- *   `slow` `spring`(채움·부풂), 획 dashoffset을 지금 값에서 0으로 `slow` `settle`(그어짐)
+ * - 체크·indeterminate 진입: 상자 `s`가 위치 0에서 SQUEEZE로 `base` `drift`(움츠림).
+ *   위치 `base`에서 `s`를 1로 `slower` `spring`(되튐), 진행값 `t`를 지금 값에서 1로
+ *   `slower` `spring`(채움·부풂), 획 dashoffset을 지금 값에서 0으로 `slow` `settle`(그어짐)
  * - 해제: `t`를 0으로, 획을 길이로, 둘 다 위치 0에서 `slow × EXIT_RATIO` `exit`. 부풂 없음.
- *   상자는 체크와 같은 움츠림(위치 0)과 되튐(위치 `fast`)
+ *   상자는 체크와 같은 움츠림(위치 0)과 되튐(위치 `base`)
  * - checked ↔ indeterminate: 모양 바뀜. `t`는 1에 머문다
  *
  * 진행 중에 반대로 바뀌면 타임라인을 죽이고 두 자식 모두 지금 값에서 새 목표로 간다.
@@ -169,10 +169,13 @@ const syncMarkState = (
       });
     }
     writeFrame(nodes, progress);
-    const duration = entering
+    const fillDuration = entering
+      ? gsapDuration.slower
+      : gsapDuration.slow * EXIT_RATIO;
+    const strokeDuration = entering
       ? gsapDuration.slow
       : gsapDuration.slow * EXIT_RATIO;
-    const lead = entering ? gsapDuration.fast : 0;
+    const lead = entering ? gsapDuration.base : 0;
     const tween = gateMotion(reduced, () => {
       const timeline = gsap.timeline();
       // 채움·부풂은 스프링 진행값을 따른다.
@@ -180,7 +183,7 @@ const syncMarkState = (
         progress,
         {
           t: entering ? 1 : 0,
-          duration,
+          duration: fillDuration,
           ease: entering ? gsapEasing.spring : gsapEasing.exit,
           onUpdate: () => writeFrame(nodes, progress),
         },
@@ -195,19 +198,19 @@ const syncMarkState = (
             ? {}
             : { morphSVG: pathFor(shape), strokeDasharray: length }),
           strokeDashoffset: entering ? 0 : length,
-          duration,
+          duration: strokeDuration,
           ease: entering ? gsapEasing.settle : gsapEasing.exit,
         },
         lead
       );
-      // 체크도 해제도 상자는 먼저 움츠렸다가 `fast` 시점에 스프링으로 되튄다. 체크는
+      // 체크도 해제도 상자는 먼저 움츠렸다가 `base` 시점에 스프링으로 되튄다. 체크는
       // 되튀는 순간 채움·부풂·획이 같이 시작한다(위에서 `lead`만큼 미뤄 둔 것).
       timeline.to(
         progress,
         {
           s: SQUEEZE,
-          duration: gsapDuration.fast,
-          ease: gsapEasing.settle,
+          duration: gsapDuration.base,
+          ease: gsapEasing.drift,
           onUpdate: () => writeFrame(nodes, progress),
         },
         0
@@ -216,11 +219,11 @@ const syncMarkState = (
         progress,
         {
           s: 1,
-          duration: gsapDuration.slow,
+          duration: gsapDuration.slower,
           ease: gsapEasing.spring,
           onUpdate: () => writeFrame(nodes, progress),
         },
-        gsapDuration.fast
+        gsapDuration.base
       );
       return timeline;
     });

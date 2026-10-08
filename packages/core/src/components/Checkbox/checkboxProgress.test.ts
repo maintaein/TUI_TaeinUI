@@ -51,10 +51,15 @@ describe('progressFrame (진행값 t가 채움·상자를 정하는 식)', () =>
     );
   });
 
-  it('움츠림 깊이는 체크 정점의 증가분과 같다', () => {
+  it('SQUEEZE는 0.88 독립 상수다(체크 정점 증가분과 짝이 아니다)', () => {
     expect(SPRING_OVERSHOOT).toBe(0.2044);
-    const apex = progressFrame(1 + SPRING_OVERSHOOT, 1).box;
-    expect(1 - SQUEEZE).toBeCloseTo(apex - 1, 10);
-    expect(SQUEEZE).toBeCloseTo(0.9285, 4);
+    expect(SQUEEZE).toBe(0.88);
+    expect(1 - SQUEEZE).toBeGreaterThan(SWELL * SPRING_OVERSHOOT);
+  });
+
+  it('합성 정점: 같은 spring 정점에서 상자가 약 1.098배다', () => {
+    const peak = 1 + SPRING_OVERSHOOT;
+    const apex = progressFrame(peak, SQUEEZE + (1 - SQUEEZE) * peak).box;
+    expect(apex).toBeCloseTo(1.098, 2);
   });
 });
