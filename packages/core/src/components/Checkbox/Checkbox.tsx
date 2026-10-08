@@ -111,10 +111,11 @@ const attachSelfKill = (
  * #4). 사용자 토글(onChange)과 prop 변화(effect)가 모두 이 함수를 거쳐 로직이
  * 갈라지지 않는다.
  *
- * - 체크·indeterminate 진입: 진행값 `t`를 지금 값에서 1로 `slow` `spring`(채움·부풂),
- *   획 dashoffset을 지금 값에서 0으로 `slow` `settle`(그어짐). 한 타임라인의 위치 0
- * - 해제: `t`를 0으로, 획을 길이로, 둘 다 `slow × EXIT_RATIO` `exit`. 부풂 없음.
- *   상자는 `s`가 1 → SQUEEZE로 `fast` `settle`, 이어서 1로 `slow` `spring`(움츠렸다 되튐)
+ * - 체크·indeterminate 진입: 상자 `s`가 위치 0에서 SQUEEZE로 `fast` `settle`(움츠림).
+ *   위치 `fast`에서 `s`를 1로 `slow` `spring`(되튐), 진행값 `t`를 지금 값에서 1로
+ *   `slow` `spring`(채움·부풂), 획 dashoffset을 지금 값에서 0으로 `slow` `settle`(그어짐)
+ * - 해제: `t`를 0으로, 획을 길이로, 둘 다 위치 0에서 `slow × EXIT_RATIO` `exit`. 부풂 없음.
+ *   상자는 체크와 같은 움츠림(위치 0)과 되튐(위치 `fast`)
  * - checked ↔ indeterminate: 모양 바뀜. `t`는 1에 머문다
  *
  * 진행 중에 반대로 바뀌면 타임라인을 죽이고 두 자식 모두 지금 값에서 새 목표로 간다.
@@ -171,6 +172,7 @@ const syncMarkState = (
     const duration = entering
       ? gsapDuration.slow
       : gsapDuration.slow * EXIT_RATIO;
+    const lead = entering ? gsapDuration.fast : 0;
     const tween = gateMotion(reduced, () => {
       const timeline = gsap.timeline();
       // 채움·부풂은 스프링 진행값을 따른다.
@@ -182,7 +184,7 @@ const syncMarkState = (
           ease: entering ? gsapEasing.spring : gsapEasing.exit,
           onUpdate: () => writeFrame(nodes, progress),
         },
-        0
+        lead
       );
       // 획은 스프링에서 떼어 낸다. 스프링은 길이의 16%에 1을 지나 그리기가 54ms로
       // 줄고 끝이 되감긴다(실측). 그려지는 효과는 사용자가 유지하라고 한 것이다.
@@ -196,45 +198,30 @@ const syncMarkState = (
           duration,
           ease: entering ? gsapEasing.settle : gsapEasing.exit,
         },
+        lead
+      );
+      // 체크도 해제도 상자는 먼저 움츠렸다가 `fast` 시점에 스프링으로 되튄다. 체크는
+      // 되튀는 순간 채움·부풂·획이 같이 시작한다(위에서 `lead`만큼 미뤄 둔 것).
+      timeline.to(
+        progress,
+        {
+          s: SQUEEZE,
+          duration: gsapDuration.fast,
+          ease: gsapEasing.settle,
+          onUpdate: () => writeFrame(nodes, progress),
+        },
         0
       );
-      if (entering) {
-        // 해제 도중 체크하면 움츠린 상자를 지금 값에서 1로 돌린다(보통은 이미 1).
-        if (progress.s !== 1) {
-          timeline.to(
-            progress,
-            {
-              s: 1,
-              duration: gsapDuration.fast,
-              ease: gsapEasing.settle,
-              onUpdate: () => writeFrame(nodes, progress),
-            },
-            0
-          );
-        }
-      } else {
-        // 해제는 상자가 체크 때 부푼 만큼 안으로 움츠렸다가 스프링으로 되튄다.
-        timeline.to(
-          progress,
-          {
-            s: SQUEEZE,
-            duration: gsapDuration.fast,
-            ease: gsapEasing.settle,
-            onUpdate: () => writeFrame(nodes, progress),
-          },
-          0
-        );
-        timeline.to(
-          progress,
-          {
-            s: 1,
-            duration: gsapDuration.slow,
-            ease: gsapEasing.spring,
-            onUpdate: () => writeFrame(nodes, progress),
-          },
-          gsapDuration.fast
-        );
-      }
+      timeline.to(
+        progress,
+        {
+          s: 1,
+          duration: gsapDuration.slow,
+          ease: gsapEasing.spring,
+          onUpdate: () => writeFrame(nodes, progress),
+        },
+        gsapDuration.fast
+      );
       return timeline;
     });
     attachSelfKill(tween, path, reduced);

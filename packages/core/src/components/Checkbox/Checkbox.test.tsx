@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event';
 import '@testing-library/jest-dom';
 import { createRef, useState } from 'react';
 import { Checkbox } from './Checkbox';
+import { SPRING_OVERSHOOT, SQUEEZE, progressFrame } from './checkboxProgress';
 import { gsapDuration, gsapEasing } from '../../tokens/gsapEasing';
 import { themeContract } from '../../tokens/theme.css';
 
@@ -41,11 +42,20 @@ const getFill = (container: HTMLElement): HTMLElement =>
 const scaleOf = (el: HTMLElement): number =>
   Number(/scale\(([^)]+)\)/.exec(el.style.transform)?.[1]);
 
-/** 진입·해제 타임라인의 자식 둘: 진행값(채움·부풂) 트윈과 획 트윈. */
+/**
+ * 진입·해제 타임라인의 자식: 진행값(채움·부풂) 트윈, 획 트윈, 상자 `s` 둘(움츠림·되튐).
+ * 시작 위치로 정렬되는 순서에 기대지 않도록 vars로 찾는다.
+ */
 const childrenOf = (container: HTMLElement) => {
   const timeline = getMarkPath(container).__markTween as gsap.core.Timeline;
-  const [progress, stroke] = timeline.getChildren() as gsap.core.Tween[];
-  return { timeline, progress, stroke };
+  const all = timeline.getChildren() as gsap.core.Tween[];
+  const progress = all.find((c) => c.vars.t !== undefined) as gsap.core.Tween;
+  const stroke = all.find(
+    (c) => c.vars.strokeDashoffset !== undefined
+  ) as gsap.core.Tween;
+  const squeeze = all.find((c) => c.vars.s === SQUEEZE) as gsap.core.Tween;
+  const rebound = all.find((c) => c.vars.s === 1) as gsap.core.Tween;
+  return { timeline, all, progress, stroke, squeeze, rebound };
 };
 
 /** 트윈을 0..1로 훑으며 매 걸음의 (채움, 상자, 획) 읽기를 모은다. */
@@ -420,17 +430,39 @@ describe('Checkbox', () => {
       expect(stroke.vars.ease).toBe(gsapEasing.settle);
     });
 
-    it('진입·해제 타임라인의 두 자식은 위치 0에서 같이 시작한다', () => {
+    it('체크 타임라인은 자식 넷: 움츠림 0, 되튐·채움·획은 fast에서 시작한다', () => {
       const { container, rerender } = render(mount({ checked: false }));
       rerender(mount({ checked: true }));
       const entering = childrenOf(container);
-      expect(entering.progress.startTime()).toBe(0);
-      expect(entering.stroke.startTime()).toBe(0);
+      expect(entering.all).toHaveLength(4);
+      expect(entering.squeeze.startTime()).toBe(0);
+      expect(entering.squeeze.duration()).toBe(gsapDuration.fast);
+      expect(entering.squeeze.vars.ease).toBe(gsapEasing.settle);
+      expect(entering.squeeze.vars.s).toBeCloseTo(0.9285, 4);
+      expect(entering.rebound.startTime()).toBe(gsapDuration.fast);
+      expect(entering.rebound.duration()).toBe(gsapDuration.slow);
+      expect(entering.rebound.vars.ease).toBe(gsapEasing.spring);
+      expect(entering.progress.startTime()).toBe(gsapDuration.fast);
+      expect(entering.progress.vars.t).toBe(1);
+      expect(entering.progress.duration()).toBe(gsapDuration.slow);
+      expect(entering.progress.vars.ease).toBe(gsapEasing.spring);
+      expect(entering.stroke.startTime()).toBe(gsapDuration.fast);
+      expect(entering.stroke.vars.strokeDashoffset).toBe(0);
+      expect(entering.stroke.duration()).toBe(gsapDuration.slow);
+      expect(entering.stroke.vars.ease).toBe(gsapEasing.settle);
+    });
+
+    it('해제 타임라인은 바뀌지 않았다: 채움·획은 위치 0, 움츠림 0, 되튐 fast', () => {
+      const { container, rerender } = render(mount({ checked: true }));
+      rerender(mount({ checked: false }));
 
       rerender(mount({ checked: false }));
       const leaving = childrenOf(container);
+      expect(leaving.all).toHaveLength(4);
       expect(leaving.progress.startTime()).toBe(0);
       expect(leaving.stroke.startTime()).toBe(0);
+      expect(leaving.squeeze.startTime()).toBe(0);
+      expect(leaving.rebound.startTime()).toBe(gsapDuration.fast);
     });
 
     it('체크 도중 획은 t의 스프링을 따르지 않는다(획이 t보다 먼저 끝나지 않는다)', () => {
@@ -438,8 +470,8 @@ describe('Checkbox', () => {
       rerender(mount({ checked: true }));
 
       const { timeline } = childrenOf(container);
-      // 길이의 16%(약 48ms)에서 스프링 t는 1을 지났지만 settle 획은 아직 그어지는 중이다.
-      timeline.time(gsapDuration.slow * 0.16);
+      // 채움·획이 시작한 뒤 길이의 16%(약 48ms)에서 스프링 t는 1을 지났지만 settle 획은 아직 그어지는 중이다.
+      timeline.time(gsapDuration.fast + gsapDuration.slow * 0.16);
       expect(
         Number(getMarkPath(container).style.strokeDashoffset)
       ).toBeGreaterThan(19.8 * 0.2);
@@ -497,14 +529,15 @@ describe('Checkbox', () => {
       expect(Number(path.style.strokeDashoffset)).toBe(0);
     });
 
-    it('체크를 훑으면 채움은 1을 넘고 상자는 최대 1.0715배까지 부풀며 획은 음수가 되지 않는다', () => {
+    it('체크를 훑으면 채움은 1을 넘고 상자는 움츠렸다가 최대 약 1.087배까지 부풀며 획은 음수가 되지 않는다', () => {
       const { container, rerender } = render(mount({ checked: false }));
       rerender(mount({ checked: true }));
 
       const { fills, boxes, offsets } = sweep(container);
       expect(Math.max(...fills)).toBeGreaterThan(1.15);
-      expect(Math.max(...boxes)).toBeGreaterThan(1.05);
-      expect(Math.max(...boxes)).toBeLessThan(1.0716);
+      expect(Math.max(...boxes)).toBeCloseTo(1.087, 2);
+      expect(Math.min(...boxes)).toBeLessThan(0.94);
+      expect(Math.min(...boxes)).toBeGreaterThan(0.92);
       expect(Math.min(...offsets)).toBe(0);
       expect(fills.at(-1)).toBe(1);
       expect(boxes.at(-1)).toBe(1);
@@ -556,84 +589,27 @@ describe('Checkbox', () => {
       expect(scaleOf(getBox(container))).toBeCloseTo(0.9285, 3);
     });
 
-    it('체크는 상자 s가 1이면 s 자식을 만들지 않고, 움츠린 채 체크하면 s를 1로 fast settle 돌린다', () => {
-      const { container, rerender } = render(mount({ checked: false }));
-      rerender(mount({ checked: true }));
-      expect(
-        (getMarkPath(container).__markTween as gsap.core.Timeline).getChildren()
-      ).toHaveLength(2);
-
-      rerender(mount({ checked: false }));
-      const leaving = getMarkPath(container).__markTween as gsap.core.Timeline;
-      leaving.time(gsapDuration.fast);
-      const squeezed = scaleOf(getBox(container));
-      expect(squeezed).toBeLessThan(0.94);
-
-      rerender(mount({ checked: true }));
-      const timeline = getMarkPath(container).__markTween as gsap.core.Timeline;
-      const children = timeline.getChildren() as gsap.core.Tween[];
-      expect(children).toHaveLength(3);
-      const restore = children[2];
-      expect(restore.vars.s).toBe(1);
-      expect(restore.duration()).toBe(gsapDuration.fast);
-      expect(restore.vars.ease).toBe(gsapEasing.settle);
-      expect(restore.startTime()).toBe(0);
-
-      timeline.progress(1);
-      expect(scaleOf(getBox(container))).toBe(1);
+    it('합성 정점: t와 s가 같은 spring 정점에 동시에 닿으면 상자 정점이 약 1.087배다', () => {
+      // t는 1 + SPRING_OVERSHOOT, s는 SQUEEZE에서 1로 가는 같은 커브라 SQUEEZE + (1 - SQUEEZE) × 같은 값.
+      const peak = 1 + SPRING_OVERSHOOT;
+      const apex = progressFrame(peak, SQUEEZE + (1 - SQUEEZE) * peak).box;
+      expect(Math.abs(apex - 1.087)).toBeLessThan(0.005);
     });
 
-    it('checked → indeterminate는 모양 바뀜 타임라인 하나이고 진행값 트윈이 없다', () => {
+    it('움츠린 채(해제 도중) 체크하면 움츠림은 거의 움직이지 않고 되튐이 지금 값에서 시작한다', () => {
       const { container, rerender } = render(mount({ checked: true }));
-      rerender(mount({ checked: true, indeterminate: true }));
-
-      const path = getMarkPath(container);
-      const tween = path.__markTween as gsap.core.Timeline;
-      expect(tween.getChildren()).toHaveLength(1);
-      tween.progress(0.5);
-      expect(scaleOf(getFill(container))).toBe(1);
-      expect(getBox(container).style.transform).toBe('');
-      expect(Number(path.style.strokeDashoffset)).toBe(0);
-    });
-
-    it('indeterminate → checked도 같다', () => {
-      const { container, rerender } = render(
-        mount({ checked: true, indeterminate: true })
+      rerender(mount({ checked: false }));
+      (getMarkPath(container).__markTween as gsap.core.Timeline).time(
+        gsapDuration.fast
       );
+      const squeezed = scaleOf(getBox(container));
+      expect(squeezed).toBeCloseTo(SQUEEZE, 3);
+
       rerender(mount({ checked: true }));
-
-      const tween = getMarkPath(container).__markTween as gsap.core.Timeline;
-      expect(tween.getChildren()).toHaveLength(1);
-    });
-
-    it('진입이 중단된 채 모프로 넘어오면 같은 타임라인이 진행값도 1로 데려간다', () => {
-      const { container, rerender } = render(mount({ checked: false }));
-      rerender(mount({ checked: true }));
-      getMarkPath(container).__markTween?.progress(0.02);
-      expect(scaleOf(getFill(container))).toBeGreaterThan(0);
-      expect(scaleOf(getFill(container))).toBeLessThan(1);
-
-      rerender(mount({ checked: true, indeterminate: true }));
-      const tween = getMarkPath(container).__markTween as gsap.core.Timeline;
-      expect(tween.getChildren()).toHaveLength(2);
-      tween.progress(1);
-      expect(scaleOf(getFill(container))).toBe(1);
-      expect(scaleOf(getBox(container))).toBe(1);
-    });
-
-    it('부풂 한가운데서 모프로 넘어와도 상자는 1로 돌아온다', () => {
-      const { container, rerender } = render(mount({ checked: false }));
-      rerender(mount({ checked: true }));
-      const tween = getMarkPath(container).__markTween;
-      // spring 정점 근처로 seek해 t가 1을 넘은 자리에서 멈춘다.
-      for (let step = 0; step <= 200; step += 1) {
-        tween?.progress(step / 200);
-        if (scaleOf(getBox(container)) > 1.06) break;
-      }
-      expect(scaleOf(getBox(container))).toBeGreaterThan(1.06);
-
-      rerender(mount({ checked: true, indeterminate: true }));
-      getMarkPath(container).__markTween?.progress(1);
+      const { timeline } = childrenOf(container);
+      timeline.time(gsapDuration.fast / 2);
+      expect(scaleOf(getBox(container))).toBeCloseTo(SQUEEZE, 1);
+      timeline.progress(1);
       expect(scaleOf(getBox(container))).toBe(1);
     });
 
@@ -657,7 +633,9 @@ describe('Checkbox', () => {
     it('반대로 바뀔 때 지금 값에서 이어진다(되감기 아님)', () => {
       const { container, rerender } = render(mount({ checked: false }));
       rerender(mount({ checked: true }));
-      getMarkPath(container).__markTween?.progress(0.02);
+      (getMarkPath(container).__markTween as gsap.core.Timeline).time(
+        gsapDuration.fast + gsapDuration.slow * 0.02
+      );
       const fillBefore = scaleOf(getFill(container));
       const offsetBefore = getMarkPath(container).style.strokeDashoffset;
       expect(fillBefore).toBeGreaterThan(0);
