@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event';
 import '@testing-library/jest-dom';
 import { createRef, useState } from 'react';
 import { Switch } from './Switch';
+import { themeContract } from '../../tokens/theme.css';
 
 describe('Switch', () => {
   describe('렌더링 테스트', () => {
@@ -536,5 +537,74 @@ describe('Switch', () => {
         expect(readScaleX(sweep)).toBe(1);
       });
     });
+  });
+});
+
+/** vanilla-extract가 실제로 만든 CSS(jsdom에 주입된 <style>)를 CSSOM으로 읽는다. */
+const switchRules = (): CSSStyleRule[] => {
+  const sheet = Array.from(document.styleSheets).find((candidate) =>
+    Array.from(candidate.cssRules).some((rule) =>
+      rule.cssText.includes('Switch_sweep')
+    )
+  );
+  if (!sheet) throw new Error('Switch 스타일시트를 찾지 못했다');
+  return Array.from(sheet.cssRules).filter(
+    (rule): rule is CSSStyleRule => rule instanceof CSSStyleRule
+  );
+};
+
+describe('Switch 생성 CSS (M5 task-17)', () => {
+  const own = (className: string) =>
+    switchRules().find((rule) =>
+      new RegExp(`^\\.Switch_${className}__\\w+$`).test(rule.selectorText)
+    );
+
+  it('채움은 테두리 두께만큼 바깥으로 깔려 트랙 테두리까지 덮는다', () => {
+    const border = own('size_md')?.style.getPropertyValue('border');
+    const width = border?.match(/^(\d+)px/)?.[1];
+    expect(width).toBeDefined();
+    expect(own('sweep')?.style.getPropertyValue('inset')).toBe(`-${width}px`);
+  });
+
+  it('채움은 트랙의 바깥 반경을 물려받는다', () => {
+    expect(own('sweep')?.style.getPropertyValue('border-radius')).toBe(
+      'inherit'
+    );
+  });
+
+  it('트랙은 overflow hidden을 걸지 않는다(머리가 트랙 밖으로 나가야 한다)', () => {
+    const tracks = ['switchContainer', 'size_sm', 'size_md', 'size_lg'].map(
+      (name) => own(name)
+    );
+    for (const rule of tracks) {
+      expect(rule).toBeDefined();
+      expect(rule?.style.getPropertyValue('overflow')).not.toBe('hidden');
+    }
+  });
+
+  it('에러가 아니면 채움은 테두리 밖으로 깔리고, 에러면 테두리 안쪽에 머문다', () => {
+    const { rerender } = render(
+      <Switch label="스위치" checked onChange={() => {}} />
+    );
+    const sweep = screen.getByRole('switch')
+      .previousElementSibling as HTMLElement;
+    expect(sweep.className).not.toContain('sweepInside');
+
+    rerender(<Switch label="스위치" error checked onChange={() => {}} />);
+    expect(sweep.className).toContain('sweepInside');
+    expect(own('sweepInside')?.style.getPropertyValue('inset')).toBe('0');
+  });
+
+  it('켜진 에러 스위치는 트랙에 에러 테두리 색이 남고 채움이 그 위를 덮지 않는다', () => {
+    render(<Switch label="스위치" error checked onChange={() => {}} />);
+    const input = screen.getByRole('switch');
+    const track = input.parentElement as HTMLElement;
+    expect(track.className).toContain('Switch_error__');
+    expect(own('error')?.style.getPropertyValue('border-color')).toContain(
+      themeContract.color.error.main
+    );
+    expect((input.previousElementSibling as HTMLElement).className).toContain(
+      'Switch_sweepInside__'
+    );
   });
 });

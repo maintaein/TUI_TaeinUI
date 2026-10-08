@@ -290,7 +290,11 @@ export const Switch = forwardRef<HTMLInputElement, SwitchProps>(
               error && styles.error
             )}
           >
-            <span className={styles.sweep} ref={sweepRef} aria-hidden="true" />
+            <span
+              className={clsx(styles.sweep, error && styles.sweepInside)}
+              ref={sweepRef}
+              aria-hidden="true"
+            />
             <input
               ref={(element) => {
                 internalRef.current = element;

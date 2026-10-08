@@ -22,6 +22,8 @@ export default defineConfig({
     // IconButton도 같은 이유다(Button과 같은 누름·호버 규칙을 CSSOM으로 잠근다).
     // Checkbox도 같은 이유다. 채움 층의 원점·넘침 자름·색이 체크 여부를 따르지 않음을
     // CSSOM으로 잠근다.
+    // Switch도 같은 이유다. 채움이 테두리까지 덮는 음수 inset과 호버 부풂의
+    // 포인터 게이트를 CSSOM으로 잠근다.
     css: {
       include: [
         /Slider\.css/,
@@ -31,6 +33,7 @@ export default defineConfig({
         /HeaderBarNav\.css/,
         /\/TextField\.css/,
         /\/Checkbox\.css/,
+        /\/Switch\.css/,
       ],
     },
     coverage: {

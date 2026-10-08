@@ -2,6 +2,10 @@ import { style, styleVariants } from '@vanilla-extract/css';
 import { themeContract } from '../../tokens/theme.css';
 import { focusRing } from '../../tokens/focusRing.css';
 
+// 트랙 테두리 두께(px). 투명 테두리 밑까지 트랙 배경이 칠해지므로, 켜졌을 때
+// 파란 채움(sweep)이 같은 값만큼 바깥으로 깔려야 회색 고리가 안 남는다.
+const TRACK_BORDER_WIDTH = 2;
+
 // Wrapper
 export const wrapper = style({
   display: 'flex',
@@ -70,7 +74,7 @@ export const size = styleVariants(baseSizeContainer, (baseStyle) => [
   baseStyle,
   {
     backgroundColor: themeContract.color.text.secondary,
-    border: '2px solid transparent',
+    border: `${TRACK_BORDER_WIDTH}px solid transparent`,
     transition: `background-color ${themeContract.animation.duration.fast} ${themeContract.animation.easing.settle}, border-color ${themeContract.animation.duration.fast} ${themeContract.animation.easing.settle}, box-shadow ${themeContract.animation.duration.fast} ${themeContract.animation.easing.settle}`,
     position: 'relative',
     display: 'inline-block',
@@ -136,12 +140,21 @@ export const thumbSize = styleVariants(
 );
 
 // Sweep (트랙 색 전환용 오버레이) — GSAP이 scaleX로 왼쪽부터 채운다(Ruling 42).
+// 테두리 두께만큼 바깥(inset 음수)으로 깔아 트랙 둘레까지 덮고, 반경은 트랙의
+// 바깥 반경을 물려받는다. 트랙에 overflow hidden을 걸지 않는다 — 머리가
+// 켜질 때 트랙 밖으로 나가야 한다.
 export const sweep = style({
   position: 'absolute',
-  inset: 0,
+  inset: `${-TRACK_BORDER_WIDTH}px`,
   borderRadius: 'inherit',
   backgroundColor: themeContract.color.primary.main,
   transformOrigin: 'left center',
+});
+
+// 에러일 때의 채움 — 테두리 안쪽에만 깔아서 켜진 에러 스위치에도 에러 색
+// 테두리가 고리로 남게 한다(sweep 뒤에 선언해 같은 특이도에서 이긴다).
+export const sweepInside = style({
+  inset: 0,
 });
 
 // Error State
