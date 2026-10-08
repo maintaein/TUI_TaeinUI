@@ -511,17 +511,76 @@ describe('Checkbox', () => {
       expect(offsets.at(-1)).toBe(0);
     });
 
-    it('해제를 훑으면 채움이 0으로 줄고 상자는 부풀지 않으며 획은 길이로 돌아온다', () => {
+    it('해제를 훑으면 채움이 0으로 줄고 상자는 안으로 움츠렸다 돌아오며 획은 길이로 돌아온다', () => {
       const { container, rerender } = render(mount({ checked: true }));
       rerender(mount({ checked: false }));
 
       const { fills, boxes, offsets } = sweep(container);
-      expect(Math.max(...boxes)).toBe(1);
+      expect(Math.min(...boxes)).toBeLessThan(0.94);
+      expect(Math.min(...boxes)).toBeGreaterThan(0.92);
+      expect(Math.max(...boxes)).toBeLessThan(1.02);
       expect(Math.max(...fills)).toBeLessThanOrEqual(1);
       expect(Math.min(...fills)).toBe(0);
       expect(Math.max(...offsets)).toBe(19.8);
       expect(fills.at(-1)).toBe(0);
+      expect(boxes.at(-1)).toBe(1);
       expect(offsets.at(-1)).toBe(19.8);
+    });
+
+    it('해제: 상자 s가 SQUEEZE로 fast settle 움츠린 뒤 1로 slow spring 되튄다', () => {
+      const { container, rerender } = render(mount({ checked: true }));
+      rerender(mount({ checked: false }));
+
+      const timeline = getMarkPath(container).__markTween as gsap.core.Timeline;
+      const [, , squeeze, rebound] =
+        timeline.getChildren() as gsap.core.Tween[];
+      expect(timeline.getChildren()).toHaveLength(4);
+      expect(squeeze.vars.s).toBeCloseTo(0.9285, 4);
+      expect(squeeze.duration()).toBe(gsapDuration.fast);
+      expect(squeeze.vars.ease).toBe(gsapEasing.settle);
+      expect(squeeze.startTime()).toBe(0);
+      expect(rebound.vars.s).toBe(1);
+      expect(rebound.duration()).toBe(gsapDuration.slow);
+      expect(rebound.vars.ease).toBe(gsapEasing.spring);
+      expect(rebound.startTime()).toBe(
+        squeeze.startTime() + squeeze.duration()
+      );
+    });
+
+    it('움츠림 끝에서 상자는 0.9285배이고 채움·획은 해제를 따로 간다', () => {
+      const { container, rerender } = render(mount({ checked: true }));
+      rerender(mount({ checked: false }));
+
+      const { timeline } = childrenOf(container);
+      timeline.time(gsapDuration.fast);
+      expect(scaleOf(getBox(container))).toBeCloseTo(0.9285, 3);
+    });
+
+    it('체크는 상자 s가 1이면 s 자식을 만들지 않고, 움츠린 채 체크하면 s를 1로 fast settle 돌린다', () => {
+      const { container, rerender } = render(mount({ checked: false }));
+      rerender(mount({ checked: true }));
+      expect(
+        (getMarkPath(container).__markTween as gsap.core.Timeline).getChildren()
+      ).toHaveLength(2);
+
+      rerender(mount({ checked: false }));
+      const leaving = getMarkPath(container).__markTween as gsap.core.Timeline;
+      leaving.time(gsapDuration.fast);
+      const squeezed = scaleOf(getBox(container));
+      expect(squeezed).toBeLessThan(0.94);
+
+      rerender(mount({ checked: true }));
+      const timeline = getMarkPath(container).__markTween as gsap.core.Timeline;
+      const children = timeline.getChildren() as gsap.core.Tween[];
+      expect(children).toHaveLength(3);
+      const restore = children[2];
+      expect(restore.vars.s).toBe(1);
+      expect(restore.duration()).toBe(gsapDuration.fast);
+      expect(restore.vars.ease).toBe(gsapEasing.settle);
+      expect(restore.startTime()).toBe(0);
+
+      timeline.progress(1);
+      expect(scaleOf(getBox(container))).toBe(1);
     });
 
     it('checked → indeterminate는 모양 바뀜 타임라인 하나이고 진행값 트윈이 없다', () => {

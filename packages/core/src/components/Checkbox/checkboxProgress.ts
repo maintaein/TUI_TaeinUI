@@ -18,14 +18,30 @@
  */
 export const SWELL = 0.35;
 
+/**
+ * `spring` 토큰(`elastic.out(1, 0.5)`)의 정점 1.2044에서 1을 뺀 값. 값의 출처는
+ * 위 SWELL 주석과 같다(상자 정점 1 + SWELL × SPRING_OVERSHOOT).
+ */
+export const SPRING_OVERSHOOT = 0.2044;
+
+/**
+ * 해제 때 상자가 안으로 움츠리는 끝값 `s`. 체크 때 바깥으로 부푼 증가분
+ * (SWELL × SPRING_OVERSHOOT = 0.0715)과 같은 양이라 부풂과 움츠림이 짝이 된다.
+ */
+export const SQUEEZE = 1 - SWELL * SPRING_OVERSHOOT;
+
 export interface ProgressFrame {
   /** 채움 층의 scale. 상자 가운데에서 차오른다. */
   fill: number;
-  /** 상자의 scale. `t`가 1을 넘을 때만 1보다 커진다. */
+  /** 상자의 scale. 부풂(`t`가 1을 넘을 때)과 움츠림 `s`의 곱이다. */
   box: number;
 }
 
-export const progressFrame = (t: number): ProgressFrame => ({
+/**
+ * `s`는 해제 때 상자가 움츠리는 두 번째 진행값이다(평소 1). 상자 transform을 쓰는
+ * 곳이 하나이도록 부풂 × `s`로 합성한다.
+ */
+export const progressFrame = (t: number, s: number): ProgressFrame => ({
   fill: Math.max(t, 0),
-  box: 1 + SWELL * Math.max(0, t - 1),
+  box: (1 + SWELL * Math.max(0, t - 1)) * s,
 });

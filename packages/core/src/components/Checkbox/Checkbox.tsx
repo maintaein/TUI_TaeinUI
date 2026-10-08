@@ -7,7 +7,7 @@ import * as styles from './Checkbox.css';
 import { gateMotion, settleMotion } from '../../hooks/gateMotion';
 import { gsapDuration, gsapEasing } from '../../tokens/gsapEasing';
 import { useReducedMotion } from '../../hooks/useReducedMotion';
-import { progressFrame } from './checkboxProgress';
+import { SQUEEZE, progressFrame } from './checkboxProgress';
 
 gsap.registerPlugin(MorphSVGPlugin);
 
@@ -54,9 +54,13 @@ interface MarkTweenHost extends SVGPathElement {
   __markTween?: gsap.core.Animation;
 }
 
-/** 진행값. `t`가 0(해제)과 1(체크) 사이를 오가고 GSAP이 이 객체를 트윈한다. */
+/**
+ * 진행값. `t`가 0(해제)과 1(체크) 사이를 오가고 GSAP이 이 객체를 트윈한다.
+ * `s`는 해제 때 상자가 움츠렸다 되튀는 두 번째 진행값이다(평소 1).
+ */
 interface MarkProgress {
   t: number;
+  s: number;
 }
 
 /** 진행값과 획이 움직이는 세 노드. */
@@ -69,9 +73,9 @@ interface MarkNodes {
   box: HTMLElement;
 }
 
-/** 진행값 `t`를 채움과 상자에 쓴다. 획은 `t`를 따르지 않고 자기 트윈이 쓴다. */
-const writeFrame = ({ fill, box }: MarkNodes, t: number): void => {
-  const frame = progressFrame(t);
+/** 진행값 `t`·`s`를 채움과 상자에 쓴다. 획은 `t`를 따르지 않고 자기 트윈이 쓴다. */
+const writeFrame = ({ fill, box }: MarkNodes, progress: MarkProgress): void => {
+  const frame = progressFrame(progress.t, progress.s);
   fill.style.transform = `scale(${frame.fill})`;
   box.style.transform = `scale(${frame.box})`;
 };
@@ -109,7 +113,8 @@ const attachSelfKill = (
  *
  * - 체크·indeterminate 진입: 진행값 `t`를 지금 값에서 1로 `slow` `spring`(채움·부풂),
  *   획 dashoffset을 지금 값에서 0으로 `slow` `settle`(그어짐). 한 타임라인의 위치 0
- * - 해제: `t`를 0으로, 획을 길이로, 둘 다 `slow × EXIT_RATIO` `exit`. 부풂 없음
+ * - 해제: `t`를 0으로, 획을 길이로, 둘 다 `slow × EXIT_RATIO` `exit`. 부풂 없음.
+ *   상자는 `s`가 1 → SQUEEZE로 `fast` `settle`, 이어서 1로 `slow` `spring`(움츠렸다 되튐)
  * - checked ↔ indeterminate: 모양 바뀜. `t`는 1에 머문다
  *
  * 진행 중에 반대로 바뀌면 타임라인을 죽이고 두 자식 모두 지금 값에서 새 목표로 간다.
@@ -162,7 +167,7 @@ const syncMarkState = (
         ...(interrupted ? {} : { strokeDashoffset: length }),
       });
     }
-    writeFrame(nodes, progress.t);
+    writeFrame(nodes, progress);
     const duration = entering
       ? gsapDuration.slow
       : gsapDuration.slow * EXIT_RATIO;
@@ -175,7 +180,7 @@ const syncMarkState = (
           t: entering ? 1 : 0,
           duration,
           ease: entering ? gsapEasing.spring : gsapEasing.exit,
-          onUpdate: () => writeFrame(nodes, progress.t),
+          onUpdate: () => writeFrame(nodes, progress),
         },
         0
       );
@@ -193,6 +198,43 @@ const syncMarkState = (
         },
         0
       );
+      if (entering) {
+        // 해제 도중 체크하면 움츠린 상자를 지금 값에서 1로 돌린다(보통은 이미 1).
+        if (progress.s !== 1) {
+          timeline.to(
+            progress,
+            {
+              s: 1,
+              duration: gsapDuration.fast,
+              ease: gsapEasing.settle,
+              onUpdate: () => writeFrame(nodes, progress),
+            },
+            0
+          );
+        }
+      } else {
+        // 해제는 상자가 체크 때 부푼 만큼 안으로 움츠렸다가 스프링으로 되튄다.
+        timeline.to(
+          progress,
+          {
+            s: SQUEEZE,
+            duration: gsapDuration.fast,
+            ease: gsapEasing.settle,
+            onUpdate: () => writeFrame(nodes, progress),
+          },
+          0
+        );
+        timeline.to(
+          progress,
+          {
+            s: 1,
+            duration: gsapDuration.slow,
+            ease: gsapEasing.spring,
+            onUpdate: () => writeFrame(nodes, progress),
+          },
+          gsapDuration.fast
+        );
+      }
       return timeline;
     });
     attachSelfKill(tween, path, reduced);
@@ -217,7 +259,7 @@ const syncMarkState = (
       if (progress.t !== 1) {
         timeline.to(
           progress,
-          { t: 1, onUpdate: () => writeFrame(nodes, progress.t) },
+          { t: 1, onUpdate: () => writeFrame(nodes, progress) },
           0
         );
       }
@@ -270,7 +312,7 @@ export const Checkbox = forwardRef<HTMLInputElement, CheckboxProps>(
     const pathRef = useRef<MarkTweenHost | null>(null);
     const fillRef = useRef<HTMLSpanElement>(null);
     const boxRef = useRef<HTMLSpanElement>(null);
-    const progressRef = useRef<MarkProgress>({ t: 0 });
+    const progressRef = useRef<MarkProgress>({ t: 0, s: 1 });
     const markStateRef = useRef<MarkState | null>(null);
     const reduced = useReducedMotion();
 
