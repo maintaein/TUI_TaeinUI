@@ -81,7 +81,7 @@ const buildTimeline = (
       state,
       {
         p: 1,
-        duration: gsapDuration.slower,
+        duration: gsapDuration.slow,
         ease: gsapEasing.drift,
         onUpdate: write,
       },
@@ -95,7 +95,7 @@ const buildTimeline = (
         ease: gsapEasing.drift,
         onUpdate: write,
       },
-      gsapDuration.slower * SIZE_CHANGE_RATIO
+      gsapDuration.slow * SIZE_CHANGE_RATIO
     );
 
     return timeline;
@@ -277,10 +277,11 @@ export const Switch = forwardRef<HTMLInputElement, SwitchProps>(
             )}
           >
             <span
-              className={clsx(styles.sweep, error && styles.sweepInside)}
-              ref={sweepRef}
+              className={clsx(styles.sweepClip, error && styles.sweepInside)}
               aria-hidden="true"
-            />
+            >
+              <span className={styles.sweep} ref={sweepRef} />
+            </span>
             <input
               ref={(element) => {
                 internalRef.current = element;

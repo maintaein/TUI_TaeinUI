@@ -3,7 +3,8 @@ import { themeContract } from '../../tokens/theme.css';
 import { focusRing } from '../../tokens/focusRing.css';
 
 // 트랙 테두리 두께(px). 투명 테두리 밑까지 트랙 배경이 칠해지므로, 켜졌을 때
-// 파란 채움(sweep)이 같은 값만큼 바깥으로 깔려야 회색 고리가 안 남는다.
+// 파란 채움을 자르는 칸(sweepClip)이 같은 값만큼 바깥으로 깔려야 회색 고리가
+// 안 남는다.
 const TRACK_BORDER_WIDTH = 2;
 
 // Wrapper
@@ -185,22 +186,32 @@ export const thumbFace = style({
   },
 });
 
-// Sweep (트랙 색 전환용 오버레이) — GSAP이 scaleX로 왼쪽부터 채운다(Ruling 42).
-// 테두리 두께만큼 바깥(inset 음수)으로 깔아 트랙 둘레까지 덮고, 반경은 트랙의
-// 바깥 반경을 물려받는다. 트랙에 overflow hidden을 걸지 않는다. 머리가
-// 켜질 때 트랙 밖으로 나가야 한다.
-export const sweep = style({
+// 자르는 칸: 파란 채움을 트랙 알약 모양 안에 가둔다. 테두리 두께만큼 바깥(inset
+// 음수)으로 깔아 트랙 둘레까지 덮고, 반경은 트랙의 바깥 반경을 물려받는다.
+// 트랙 자신에는 overflow hidden을 걸지 않는다. 머리가 켜질 때 트랙 밖으로
+// 나가야 하므로 자르는 일은 이 칸이 맡는다.
+export const sweepClip = style({
   position: 'absolute',
   inset: `${-TRACK_BORDER_WIDTH}px`,
   borderRadius: 'inherit',
-  backgroundColor: themeContract.color.primary.main,
-  transformOrigin: 'left center',
+  overflow: 'hidden',
+  pointerEvents: 'none',
 });
 
-// 에러일 때의 채움은 테두리 안쪽에만 깔아서 켜진 에러 스위치에도 에러 색
-// 테두리가 고리로 남게 한다(sweep 뒤에 선언해 같은 특이도에서 이긴다).
+// 에러일 때의 칸은 테두리 안쪽에만 깔아서 켜진 에러 스위치에도 에러 색
+// 테두리가 고리로 남게 한다(sweepClip 뒤에 선언해 같은 특이도에서 이긴다).
 export const sweepInside = style({
   inset: 0,
+});
+
+// Sweep (트랙 색 전환용 채움). GSAP이 scaleX로 왼쪽부터 채운다(Ruling 42).
+// 자르는 칸 안의 직사각형이다. 반경이 없어도 칸이 알약 모양으로 자르므로
+// 차오르는 도중에도 파란색이 회색 알약 밖으로 나가지 않는다.
+export const sweep = style({
+  position: 'absolute',
+  inset: 0,
+  backgroundColor: themeContract.color.primary.main,
+  transformOrigin: 'left center',
 });
 
 // Error State

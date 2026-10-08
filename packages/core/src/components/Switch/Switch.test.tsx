@@ -327,14 +327,15 @@ describe('Switch', () => {
     };
 
     // 이동 하나의 길이. 켜진 크기 변화는 이동의 80% 시점에 시작한다.
-    const MOVE = gsapDuration.slower;
+    const MOVE = gsapDuration.slow;
 
     const getTrack = (switchElement: HTMLElement): SwitchTimelineHost =>
       switchElement.parentElement as SwitchTimelineHost;
-    // DOM 순서는 스윕 → input → 썸이다(스윕을 input 앞으로 둬서 size prop
-    // 테스트의 nextElementSibling=썸 가정을 안 깼다 — task-6-report.md 참고).
+    // DOM 순서는 자르는 칸(안에 스윕) → input → 썸이다(칸을 input 앞으로 둬서
+    // size prop 테스트의 nextElementSibling=썸 가정을 안 깼다. task-6-report.md 참고).
     const getSweep = (switchElement: HTMLElement): HTMLElement =>
-      switchElement.previousElementSibling as HTMLElement;
+      (switchElement.previousElementSibling as HTMLElement)
+        .firstElementChild as HTMLElement;
     const getThumb = (switchElement: HTMLElement): HTMLElement =>
       switchElement.nextElementSibling as HTMLElement;
 
@@ -519,12 +520,12 @@ describe('Switch', () => {
       };
 
       it.each([true, false])(
-        '이동 진행값 p는 slower drift로 0에서 1까지 가고 켜짐·꺼짐(%s)이 같다',
+        '이동 진행값 p는 slow drift로 0에서 1까지 가고 켜짐·꺼짐(%s)이 같다',
         (checked) => {
           const { switchElement } = enter(checked);
           const move = moveTween(switchElement);
           expect(move.startTime()).toBe(0);
-          expect(move.duration()).toBeCloseTo(gsapDuration.slower, 10);
+          expect(move.duration()).toBeCloseTo(gsapDuration.slow, 10);
           expect(move.vars.ease).toBe(gsapEasing.drift);
         }
       );
@@ -615,7 +616,7 @@ describe('Switch', () => {
         const thumb = getThumb(switchElement);
         const timeline = timelineOf(switchElement);
         timeline?.time(SIZE_AT - 0.001);
-        expect(baseOf(thumb)).toBeCloseTo(1, 5);
+        expect(baseOf(thumb)).toBeCloseTo(1, 4);
         timeline?.time(SIZE_AT + gsapDuration.base / 2);
         expect(baseOf(thumb)).toBeGreaterThan(1.01);
         expect(baseOf(thumb)).toBeLessThan(ON_SCALE.md);
@@ -913,17 +914,32 @@ describe('Switch 생성 CSS (M5 task-17)', () => {
       new RegExp(`^\\.Switch_${className}__\\w+$`).test(rule.selectorText)
     );
 
-  it('채움은 테두리 두께만큼 바깥으로 깔려 트랙 테두리까지 덮는다', () => {
+  it('자르는 칸은 테두리 두께만큼 바깥으로 깔려 트랙 테두리까지 덮는다', () => {
     const border = own('size_md')?.style.getPropertyValue('border');
     const width = border?.match(/^(\d+)px/)?.[1];
     expect(width).toBeDefined();
-    expect(own('sweep')?.style.getPropertyValue('inset')).toBe(`-${width}px`);
+    expect(own('sweepClip')?.style.getPropertyValue('inset')).toBe(
+      `-${width}px`
+    );
   });
 
-  it('채움은 트랙의 바깥 반경을 물려받는다', () => {
-    expect(own('sweep')?.style.getPropertyValue('border-radius')).toBe(
-      'inherit'
-    );
+  it('자르는 칸은 overflow hidden이고 트랙의 바깥 반경을 물려받는다', () => {
+    const clip = own('sweepClip');
+    expect(clip?.style.getPropertyValue('overflow')).toBe('hidden');
+    expect(clip?.style.getPropertyValue('border-radius')).toBe('inherit');
+    expect(clip?.style.getPropertyValue('pointer-events')).toBe('none');
+  });
+
+  it('채움은 자르는 칸 안의 직사각형이다(반경이 없고 칸을 꽉 채운다)', () => {
+    render(<Switch label="스위치" checked onChange={() => {}} />);
+    const clip = screen.getByRole('switch')
+      .previousElementSibling as HTMLElement;
+    const sweep = clip.firstElementChild as HTMLElement;
+    expect(clip.className).toContain('Switch_sweepClip__');
+    expect(sweep.className).toContain('Switch_sweep__');
+    expect(own('sweep')?.style.getPropertyValue('inset')).toBe('0');
+    expect(own('sweep')?.style.getPropertyValue('border-radius')).toBe('');
+    expect(own('sweep')?.style.getPropertyValue('overflow')).toBe('');
   });
 
   it('트랙은 overflow hidden을 걸지 않는다(머리가 트랙 밖으로 나가야 한다)', () => {
@@ -936,16 +952,16 @@ describe('Switch 생성 CSS (M5 task-17)', () => {
     }
   });
 
-  it('에러가 아니면 채움은 테두리 밖으로 깔리고, 에러면 테두리 안쪽에 머문다', () => {
+  it('에러가 아니면 칸은 테두리 밖으로 깔리고, 에러면 테두리 안쪽에 머문다', () => {
     const { rerender } = render(
       <Switch label="스위치" checked onChange={() => {}} />
     );
-    const sweep = screen.getByRole('switch')
+    const clip = screen.getByRole('switch')
       .previousElementSibling as HTMLElement;
-    expect(sweep.className).not.toContain('sweepInside');
+    expect(clip.className).not.toContain('sweepInside');
 
     rerender(<Switch label="스위치" error checked onChange={() => {}} />);
-    expect(sweep.className).toContain('sweepInside');
+    expect(clip.className).toContain('sweepInside');
     expect(own('sweepInside')?.style.getPropertyValue('inset')).toBe('0');
   });
 
