@@ -80,6 +80,9 @@ const baseSizeContainer = {
 export const size = styleVariants(baseSizeContainer, (baseStyle) => [
   baseStyle,
   {
+    // 라이브러리에는 전역 box-sizing 규칙이 없다. 높이에 테두리가 들어간다고 가정하면
+    // 소비자 리셋에 따라 바깥 높이가 달라져 ON_SCALE의 "트랙 + 2"가 틀어진다.
+    boxSizing: 'border-box',
     backgroundColor: themeContract.color.text.secondary,
     border: `${TRACK_BORDER_WIDTH}px solid transparent`,
     transition: `background-color ${themeContract.animation.duration.fast} ${themeContract.animation.easing.settle}, border-color ${themeContract.animation.duration.fast} ${themeContract.animation.easing.settle}, box-shadow ${themeContract.animation.duration.fast} ${themeContract.animation.easing.settle}`,
@@ -212,6 +215,13 @@ export const sweep = style({
   inset: 0,
   backgroundColor: themeContract.color.primary.main,
   transformOrigin: 'left center',
+
+  selectors: {
+    // 비활성 켜짐은 트랙 전체가 연한 파랑이다(활성 켜짐과 색으로 구별된다).
+    [`${switchContainer}:has(input:disabled) &`]: {
+      backgroundColor: themeContract.color.primary.light,
+    },
+  },
 });
 
 // Error State

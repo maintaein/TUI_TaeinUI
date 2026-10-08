@@ -101,6 +101,23 @@ const buildTimeline = (
     return timeline;
   });
 
+// 한 상태의 끝값(머리 x·크기, 파란 채움)을 애니메이션 없이 쓴다.
+const setEndState = (
+  sweep: HTMLSpanElement,
+  thumb: HTMLSpanElement,
+  size: SwitchSize,
+  state: SwitchState
+): void => {
+  const on = state === 'on';
+  const base = on ? ON_SCALE[size] : 1;
+  gsap.set(thumb, {
+    x: on ? styles.thumbOffset[size] : 0,
+    scaleX: base,
+    scaleY: base,
+  });
+  gsap.set(sweep, { scaleX: on ? 1 : 0 });
+};
+
 const syncSwitchState = (
   inputEl: HTMLInputElement,
   track: SwitchTimelineHost,
@@ -118,14 +135,8 @@ const syncSwitchState = (
 
   if (prev === null) {
     // 켜진 채 마운트되면 머리는 처음부터 켜진 크기다.
-    const base = nextState === 'on' ? ON_SCALE[size] : 1;
-    gsap.set(thumb, {
-      yPercent: -50,
-      x: nextState === 'on' ? styles.thumbOffset[size] : 0,
-      scaleX: base,
-      scaleY: base,
-    });
-    gsap.set(sweep, { scaleX: nextState === 'on' ? 1 : 0 });
+    gsap.set(thumb, { yPercent: -50 });
+    setEndState(sweep, thumb, size, nextState);
     stateRef.current = nextState;
     return;
   }
@@ -228,6 +239,22 @@ export const Switch = forwardRef<HTMLInputElement, SwitchProps>(
         reduced
       );
     }, [rest.checked, reduced, size, ref]);
+
+    // 실행 중 size가 바뀌면 머리 x와 켜진 크기가 이전 크기의 값으로 낡는다.
+    // 돌던 타임라인은 끝 상태로 확정한 뒤, 지금 상태의 새 크기 끝값을 쓴다.
+    useLayoutEffect(() => {
+      const track = trackRef.current;
+      const sweep = sweepRef.current;
+      const thumb = thumbRef.current;
+      const state = switchStateRef.current;
+      if (!track || !sweep || !thumb || !state) return;
+
+      if (track.__switchTimeline) {
+        settleMotion(track.__switchTimeline);
+        track.__switchTimeline = undefined;
+      }
+      setEndState(sweep, thumb, size, state);
+    }, [size]);
 
     useEffect(() => {
       const track = trackRef.current;

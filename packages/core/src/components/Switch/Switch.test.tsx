@@ -892,6 +892,71 @@ describe('Switch', () => {
         expect(readScaleX(sweep)).toBe(1);
       });
     });
+
+    describe('실행 중 size 변경 (M5 task-17)', () => {
+      const withSize = (
+        size: 'sm' | 'md' | 'lg',
+        checked: boolean
+      ): React.ReactElement => (
+        <Switch
+          label="스위치"
+          size={size}
+          checked={checked}
+          onChange={() => {}}
+        />
+      );
+
+      it('md 켜짐에서 lg로 바꾸면 머리 x가 lg 오프셋이고 scale이 lg ON_SCALE이다', () => {
+        const { rerender } = render(withSize('md', true));
+        const thumb = getThumb(screen.getByRole('switch'));
+        expect(readX(thumb)).toBe(18);
+
+        rerender(withSize('lg', true));
+
+        expect(readX(thumb)).toBe(22);
+        expect(readScaleX(thumb)).toBeCloseTo(ON_SCALE.lg, 10);
+        expect(readScaleY(thumb)).toBeCloseTo(ON_SCALE.lg, 10);
+        expect(readScaleX(getSweep(screen.getByRole('switch')))).toBe(1);
+      });
+
+      it('꺼짐에서 크기를 바꾸면 머리는 x 0과 scale 1에 머문다', () => {
+        const { rerender } = render(withSize('lg', false));
+        const thumb = getThumb(screen.getByRole('switch'));
+
+        rerender(withSize('sm', false));
+
+        expect(readX(thumb)).toBe(0);
+        expect(readScaleX(thumb)).toBe(1);
+        expect(readScaleY(thumb)).toBe(1);
+      });
+
+      it('이동 도중에 크기를 바꾸면 타임라인을 걷고 새 크기의 끝값으로 맞춘다', () => {
+        const { rerender } = render(withSize('md', false));
+        const switchElement = screen.getByRole('switch');
+        rerender(withSize('md', true));
+        getTrack(switchElement).__switchTimeline?.time(MOVE / 2);
+        expect(getTrack(switchElement).__switchTimeline).toBeDefined();
+
+        rerender(withSize('lg', true));
+
+        const thumb = getThumb(switchElement);
+        expect(getTrack(switchElement).__switchTimeline).toBeUndefined();
+        expect(readX(thumb)).toBe(22);
+        expect(readScaleX(thumb)).toBeCloseTo(ON_SCALE.lg, 10);
+        expect(readScaleY(thumb)).toBeCloseTo(ON_SCALE.lg, 10);
+      });
+
+      it('크기가 그대로면 이동 중인 타임라인을 건드리지 않는다', () => {
+        const { rerender } = render(withSize('md', false));
+        const switchElement = screen.getByRole('switch');
+        rerender(withSize('md', true));
+        const timeline = getTrack(switchElement).__switchTimeline;
+
+        rerender(withSize('md', true));
+
+        expect(getTrack(switchElement).__switchTimeline).toBe(timeline);
+      });
+    });
   });
 });
 
@@ -920,6 +985,30 @@ describe('Switch 생성 CSS (M5 task-17)', () => {
     expect(width).toBeDefined();
     expect(own('sweepClip')?.style.getPropertyValue('inset')).toBe(
       `-${width}px`
+    );
+  });
+
+  it.each(['size_sm', 'size_md', 'size_lg'])(
+    '트랙(%s)은 box-sizing을 border-box로 명시한다(리셋 없는 앱에서도 바깥 높이가 같다)',
+    (name) => {
+      expect(own(name)?.style.getPropertyValue('box-sizing')).toBe(
+        'border-box'
+      );
+    }
+  );
+
+  it('비활성이면 파란 채움이 primary.light이고, 기본 채움은 primary.main이다', () => {
+    expect(own('sweep')?.style.getPropertyValue('background-color')).toBe(
+      themeContract.color.primary.main
+    );
+    const disabledFill = switchRules().find((rule) =>
+      /^\.Switch_switchContainer__\w+:has\(input:disabled\) \.Switch_sweep__\w+$/.test(
+        rule.selectorText
+      )
+    );
+    expect(disabledFill).toBeDefined();
+    expect(disabledFill?.style.getPropertyValue('background-color')).toBe(
+      themeContract.color.primary.light
     );
   });
 
