@@ -18,14 +18,13 @@ const THUMB_STRETCH_X = 1.18;
 const THUMB_SQUASH_Y = 0.82;
 const SQUASH_PORTION = 0.2;
 const EXIT_RATIO = 0.65;
-// 도착 효과. 사용자 결정(M5 task-17): 켜질 때 20px 머리가 26px까지 커져 24px
-// 트랙을 위아래 1px씩 넘어서고(세로 1.3), 꺼질 때는 17px까지 작아졌다 돌아온다
-// (0.85). 크기는 md 기준이고 sm·lg도 같은 비율(scale)로 간다. 가로 1.2는 세로가
-// 더 큰 젤리 모양을 만든다. md에서 가로 24px가 트랙 바깥 오른쪽 끝(44px 중 끝)에
-// 닿는 값이다.
+// 켜질 때만 있는 도착 부풂. 사용자 결정(M5 task-17): 20px 머리가 26px까지 커져
+// 24px 트랙을 위아래 1px씩 넘어선다(세로 1.3). 크기는 md 기준이고 sm·lg도 같은
+// 비율(scale)로 간다. 가로 1.2는 세로가 더 큰 젤리 모양을 만든다. md에서 가로
+// 24px가 트랙 바깥 오른쪽 끝(44px 중 끝)에 닿는 값이다. 부풂이 정점이고, 그 뒤는
+// 출렁임 없이 drift로 1까지 돌아온다. 꺼질 때는 도착 효과가 없고 늘임이 풀리면 끝난다.
 const THUMB_SWELL_X = 1.2;
 const THUMB_SWELL_Y = 1.3;
-const THUMB_SHRINK = 0.85;
 // 도착 부풂이 시작하는 시점: 이동 구간이 80% 지난 때.
 const ARRIVE_RATIO = 0.8;
 
@@ -53,13 +52,13 @@ const attachSelfKill = (
 };
 
 // 켜짐·꺼짐 머리 움직임의 공통 뼈대. 출발 전 늘임, 이동과 같은 커브·길이로 늘임
-// 풀기(settle은 출발이 가장 빨라서 빨리 움직일 때 길고 느려지면 둥글어진다),
-// 도착 부풂(켜짐 커짐, 꺼짐 작아짐), 500ms 스프링 되튐 순서다.
+// 풀기(settle은 출발이 가장 빨라서 빨리 움직일 때 길고 느려지면 둥글어진다)까지다.
+// swell을 주면(켜짐) 도착 부풂과 drift로 부드럽게 돌아오는 단이 이어진다.
 const addThumbMotion = (
   timeline: gsap.core.Timeline,
   thumb: HTMLSpanElement,
   x: number,
-  arrival: { scaleX: number; scaleY: number }
+  swell?: { scaleX: number; scaleY: number }
 ): void => {
   const squashDuration = gsapDuration.slow * SQUASH_PORTION;
   const moveDuration = gsapDuration.slow - squashDuration;
@@ -86,11 +85,12 @@ const addThumbMotion = (
     { scaleX: 1, scaleY: 1, duration: moveDuration, ease: gsapEasing.settle },
     squashDuration
   );
+  if (!swell) return;
   // 늘임 풀기와 끝 20%가 겹치는데, overwrite 'auto'가 부풂이 시작될 때 풀기의
   // scale 값만 거두어 간다.
   timeline.to(
     thumb,
-    { ...arrival, duration: gsapDuration.fast, ease: gsapEasing.settle },
+    { ...swell, duration: gsapDuration.fast, ease: gsapEasing.settle },
     arriveAt
   );
   timeline.to(
@@ -98,8 +98,8 @@ const addThumbMotion = (
     {
       scaleX: 1,
       scaleY: 1,
-      duration: gsapDuration.slower,
-      ease: gsapEasing.spring,
+      duration: gsapDuration.slow,
+      ease: gsapEasing.drift,
     },
     arriveAt + gsapDuration.fast
   );
@@ -148,10 +148,7 @@ const buildOffTimeline = (
       },
       0
     );
-    addThumbMotion(timeline, thumb, 0, {
-      scaleX: THUMB_SHRINK,
-      scaleY: THUMB_SHRINK,
-    });
+    addThumbMotion(timeline, thumb, 0);
 
     return timeline;
   });
