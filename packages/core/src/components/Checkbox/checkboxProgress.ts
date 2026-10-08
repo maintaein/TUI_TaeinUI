@@ -19,15 +19,9 @@
 export const SWELL = 0.35;
 
 /**
- * `spring` 토큰(`elastic.out(1, 0.5)`)의 정점 1.2044에서 1을 뺀 값. 값의 출처는
- * 위 SWELL 주석과 같다(상자 정점 1 + SWELL × SPRING_OVERSHOOT). SQUEEZE의 넘침 계산에도 쓴다.
- */
-export const SPRING_OVERSHOOT = 0.2044;
-
-/**
  * 체크·해제 때 상자가 안으로 움츠리는 끝값 `s`. 독립 상수다. 사용자가 더 bouncy하게를
  * 요구했고, 되튐의 넘침은 이동거리 × 커브 넘침이라 넘침을 키우려면 움츠림이 깊어야
- * 한다. 0.12 × SPRING_OVERSHOOT(0.2044) = `s`만의 정점 약 1.0245. 같은 위치·커브·길이로
+ * 한다. 0.12 × 0.2044(`spring`의 넘침) = `s`만의 정점 약 1.0245. 같은 위치·커브·길이로
  * 시작하는 부풂(1.0715)과 곱해져 합성 정점은 약 1.098이다.
  */
 export const SQUEEZE = 0.88;
@@ -40,7 +34,7 @@ export interface ProgressFrame {
 }
 
 /**
- * `s`는 해제 때 상자가 움츠리는 두 번째 진행값이다(평소 1). 상자 transform을 쓰는
+ * `s`는 체크·해제 때 상자가 움츠렸다 되튀는 두 번째 진행값이다(평소 1). 상자 transform을 쓰는
  * 곳이 하나이도록 부풂 × `s`로 합성한다.
  */
 export const progressFrame = (t: number, s: number): ProgressFrame => ({

@@ -4,14 +4,12 @@ import userEvent from '@testing-library/user-event';
 import '@testing-library/jest-dom';
 import { createRef, useState } from 'react';
 import { Checkbox } from './Checkbox';
-import {
-  SPRING_OVERSHOOT,
-  SQUEEZE,
-  SWELL,
-  progressFrame,
-} from './checkboxProgress';
+import { SQUEEZE, SWELL, progressFrame } from './checkboxProgress';
 import { gsapDuration, gsapEasing } from '../../tokens/gsapEasing';
 import { themeContract } from '../../tokens/theme.css';
+
+/** `spring` 토큰(`elastic.out(1, 0.5)`)의 정점 1.2044에서 1을 뺀 값. */
+const SPRING_OVERSHOOT = 0.2044;
 
 // gsap 네임스페이스는 ambient 전역 타입이라 import 없이 참조된다
 // (Snackbar.test.tsx의 CountdownTweenHost와 같은 방식) — 이 파일에서
@@ -579,10 +577,8 @@ describe('Checkbox', () => {
       const { container, rerender } = render(mount({ checked: true }));
       rerender(mount({ checked: false }));
 
-      const timeline = getMarkPath(container).__markTween as gsap.core.Timeline;
-      const [, , squeeze, rebound] =
-        timeline.getChildren() as gsap.core.Tween[];
-      expect(timeline.getChildren()).toHaveLength(4);
+      const { all, squeeze, rebound } = childrenOf(container);
+      expect(all).toHaveLength(4);
       expect(squeeze.vars.s).toBe(0.88);
       expect(squeeze.duration()).toBe(gsapDuration.base);
       expect(squeeze.vars.ease).toBe(gsapEasing.drift);
@@ -631,6 +627,107 @@ describe('Checkbox', () => {
       expect(scaleOf(getBox(container))).toBeCloseTo(SQUEEZE, 1);
       timeline.progress(1);
       expect(scaleOf(getBox(container))).toBe(1);
+    });
+
+    it('checked → indeterminate는 모양 바뀜 타임라인 하나이고 진행값·상자 트윈이 없다', () => {
+      const { container, rerender } = render(mount({ checked: true }));
+      rerender(mount({ checked: true, indeterminate: true }));
+
+      const path = getMarkPath(container);
+      const { timeline, all } = childrenOf(container);
+      expect(all).toHaveLength(1);
+      timeline.progress(0.5);
+      expect(scaleOf(getFill(container))).toBe(1);
+      expect(getBox(container).style.transform).toBe('');
+      expect(Number(path.style.strokeDashoffset)).toBe(0);
+    });
+
+    it('indeterminate → checked도 같다', () => {
+      const { container, rerender } = render(
+        mount({ checked: true, indeterminate: true })
+      );
+      rerender(mount({ checked: true }));
+
+      expect(childrenOf(container).all).toHaveLength(1);
+    });
+
+    it('진입이 중단된 채 모프로 넘어오면 같은 타임라인이 t와 s도 1로 데려간다', () => {
+      const { container, rerender } = render(mount({ checked: false }));
+      rerender(mount({ checked: true }));
+      (getMarkPath(container).__markTween as gsap.core.Timeline).time(
+        gsapDuration.base + gsapDuration.slow * 0.02
+      );
+      expect(scaleOf(getFill(container))).toBeGreaterThan(0);
+      expect(scaleOf(getFill(container))).toBeLessThan(1);
+
+      rerender(mount({ checked: true, indeterminate: true }));
+      const { timeline, all } = childrenOf(container);
+      expect(all.filter((c) => c.vars.t === 1)).toHaveLength(1);
+      expect(all.filter((c) => c.vars.s === 1)).toHaveLength(1);
+      timeline.progress(1);
+      expect(scaleOf(getFill(container))).toBe(1);
+      expect(scaleOf(getBox(container))).toBe(1);
+    });
+
+    it('부풂 한가운데서 모프로 넘어와도 상자는 1로 돌아온다', () => {
+      const { container, rerender } = render(mount({ checked: false }));
+      rerender(mount({ checked: true }));
+      const tween = getMarkPath(container).__markTween;
+      // spring 정점 근처로 seek해 t가 1을 넘은 자리에서 멈춘다.
+      for (let step = 0; step <= 200; step += 1) {
+        tween?.progress(step / 200);
+        if (scaleOf(getBox(container)) > 1.06) break;
+      }
+      expect(scaleOf(getBox(container))).toBeGreaterThan(1.06);
+
+      rerender(mount({ checked: true, indeterminate: true }));
+      getMarkPath(container).__markTween?.progress(1);
+      expect(scaleOf(getBox(container))).toBe(1);
+    });
+
+    it('움츠림 도중(체크 후 fast의 절반) 모프로 넘어와도 상자는 1로 돌아온다', () => {
+      const { container, rerender } = render(mount({ checked: false }));
+      rerender(mount({ checked: true }));
+      (getMarkPath(container).__markTween as gsap.core.Timeline).time(
+        gsapDuration.base / 2
+      );
+      expect(scaleOf(getBox(container))).toBeLessThan(0.95);
+
+      rerender(mount({ checked: true, indeterminate: true }));
+      const { all, timeline } = childrenOf(container);
+      const restore = all.find((c) => c.vars.s === 1) as gsap.core.Tween;
+      expect(restore.startTime()).toBe(0);
+      expect(restore.duration()).toBe(gsapDuration.base);
+      expect(restore.vars.ease).toBe(gsapEasing.settle);
+      timeline.progress(1);
+      expect(scaleOf(getBox(container))).toBe(1);
+    });
+
+    it('되튐 도중(체크 후 base 뒤 96ms) 모프로 넘어와도 상자는 1로 돌아온다', () => {
+      const { container, rerender } = render(mount({ checked: false }));
+      rerender(mount({ checked: true }));
+      (getMarkPath(container).__markTween as gsap.core.Timeline).time(
+        gsapDuration.base + 0.096
+      );
+      expect(scaleOf(getBox(container))).not.toBe(1);
+
+      rerender(mount({ checked: true, indeterminate: true }));
+      getMarkPath(container).__markTween?.progress(1);
+      expect(scaleOf(getBox(container))).toBe(1);
+    });
+
+    it('해제가 끝난 뒤 되튐 중에 다른 모양으로 진입하면 획을 새 길이로 다시 가린다', () => {
+      const { container, rerender } = render(mount({ checked: true }));
+      rerender(mount({ checked: false }));
+      // 획 지우기(195ms)는 끝났고 상자 되튐으로 타임라인은 아직 산다.
+      (getMarkPath(container).__markTween as gsap.core.Timeline).time(0.3);
+      expect(getMarkPath(container).__markTween).toBeDefined();
+      expect(Number(getMarkPath(container).style.strokeDashoffset)).toBe(19.8);
+
+      rerender(mount({ checked: false, indeterminate: true }));
+      const path = getMarkPath(container);
+      expect(Number(path.style.strokeDasharray)).toBe(14);
+      expect(Number(path.style.strokeDashoffset)).toBe(14);
     });
 
     it('진행 중 반대로 바뀌면 이전 트윈이 죽고 하나만 산다', () => {

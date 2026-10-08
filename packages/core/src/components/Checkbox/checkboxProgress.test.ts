@@ -1,10 +1,8 @@
 import { describe, it, expect } from 'vitest';
-import {
-  SPRING_OVERSHOOT,
-  SQUEEZE,
-  SWELL,
-  progressFrame,
-} from './checkboxProgress';
+import { SQUEEZE, SWELL, progressFrame } from './checkboxProgress';
+
+/** `spring` 토큰(`elastic.out(1, 0.5)`)의 정점 1.2044에서 1을 뺀 값. */
+const SPRING_OVERSHOOT = 0.2044;
 
 describe('progressFrame (진행값 t가 채움·상자를 정하는 식)', () => {
   it('t 0.5: 채움 절반, 상자 그대로', () => {
@@ -52,7 +50,6 @@ describe('progressFrame (진행값 t가 채움·상자를 정하는 식)', () =>
   });
 
   it('SQUEEZE는 0.88 독립 상수다(체크 정점 증가분과 짝이 아니다)', () => {
-    expect(SPRING_OVERSHOOT).toBe(0.2044);
     expect(SQUEEZE).toBe(0.88);
     expect(1 - SQUEEZE).toBeGreaterThan(SWELL * SPRING_OVERSHOOT);
   });

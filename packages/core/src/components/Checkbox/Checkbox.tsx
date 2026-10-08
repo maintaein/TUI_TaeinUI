@@ -56,7 +56,7 @@ interface MarkTweenHost extends SVGPathElement {
 
 /**
  * 진행값. `t`가 0(해제)과 1(체크) 사이를 오가고 GSAP이 이 객체를 트윈한다.
- * `s`는 해제 때 상자가 움츠렸다 되튀는 두 번째 진행값이다(평소 1).
+ * `s`는 체크·해제 때 상자가 움츠렸다 되튀는 두 번째 진행값이다(평소 1).
  */
 interface MarkProgress {
   t: number;
@@ -118,7 +118,8 @@ const attachSelfKill = (
  *   상자는 체크와 같은 움츠림(위치 0)과 되튐(위치 `base`)
  * - checked ↔ indeterminate: 모양 바뀜. `t`는 1에 머문다
  *
- * 진행 중에 반대로 바뀌면 타임라인을 죽이고 두 자식 모두 지금 값에서 새 목표로 간다.
+ * 진행 중에 반대로 바뀌면 타임라인을 죽이고 `t`·`s`·획 모두 지금 값에서 새 목표로 간다.
+ * checked ↔ indeterminate 모프는 `t`와 `s`를 1로 돌려 상자가 틀어진 크기로 남지 않게 한다.
  */
 const syncMarkState = (
   nodes: MarkNodes,
@@ -145,10 +146,18 @@ const syncMarkState = (
     return;
   }
 
-  // kill() 전에 읽어야 산다. 핸들은 자연 완료나 축소 선호에서 비워지므로
-  // `__markTween !== undefined`는 "지금 비행 중인 트윈이 있다"와 같다.
-  const interrupted = path.__markTween !== undefined;
-  path.__markTween?.kill();
+  // kill() 전에 읽어야 산다. 획이 아직 그어지거나 지워지는 중일 때만 "끊었다"고 본다.
+  // 타임라인은 상자 되튐 때문에 획이 끝난 뒤에도 최대 500ms 더 산다. 그때 다른 모양으로
+  // 진입하면서 지금 dashoffset을 이어 받으면 옛 모양 길이 값이 새 dasharray와 어긋나 흰
+  // 토막이 보인다. 획이 끝났으면 끊은 것이 아니므로 새 길이로 다시 가린다.
+  const flight = path.__markTween as gsap.core.Timeline | undefined;
+  const interrupted =
+    flight !== undefined &&
+    (flight.getChildren() as gsap.core.Tween[]).some(
+      (child) =>
+        child.vars.strokeDashoffset !== undefined && child.progress() < 1
+    );
+  flight?.kill();
 
   if (prev === 'unchecked' || nextState === 'unchecked') {
     // 진입(unchecked → checked | indeterminate)과 해제(→ unchecked)는 같은 모양
@@ -231,7 +240,8 @@ const syncMarkState = (
   } else {
     // 모양 변형: checked ↔ indeterminate. 진입이 중단된 채로(t < 1) 모프에 들어오면
     // 획은 0으로, 같은 타임라인에서 `t`도 1로 보낸다(Ruling 77). 부풂 중(t > 1)이어도 1로
-    // 돌아와야 상자가 부푼 채 남지 않는다. 이미 1이면 진행값 트윈은 만들지 않는다.
+    // 돌아와야 상자가 부푼 채 남지 않는다. 상자 움츠림·되튐 중(s !== 1)에 와도 `s`를 같은
+    // 커브·길이로 1에 돌려야 상자가 틀어진 크기로 굳지 않는다. 이미 1이면 그 트윈은 만들지 않는다.
     const length = lengthFor(nextState);
     const tween = gateMotion(reduced, () => {
       const timeline = gsap.timeline({
@@ -250,6 +260,13 @@ const syncMarkState = (
         timeline.to(
           progress,
           { t: 1, onUpdate: () => writeFrame(nodes, progress) },
+          0
+        );
+      }
+      if (progress.s !== 1) {
+        timeline.to(
+          progress,
+          { s: 1, onUpdate: () => writeFrame(nodes, progress) },
           0
         );
       }
