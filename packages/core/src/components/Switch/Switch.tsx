@@ -13,20 +13,11 @@ import * as styles from './Switch.css';
 import { gateMotion, settleMotion } from '../../hooks/gateMotion';
 import { gsapDuration, gsapEasing } from '../../tokens/gsapEasing';
 import { useReducedMotion } from '../../hooks/useReducedMotion';
+import { ON_SCALE, thumbFrame } from './switchMotion';
 
-const THUMB_STRETCH_X = 1.18;
-const THUMB_SQUASH_Y = 0.82;
-const SQUASH_PORTION = 0.2;
-const EXIT_RATIO = 0.65;
-// 켜질 때만 있는 도착 부풂. 사용자 결정(M5 task-17): 20px 머리가 26px까지 커져
-// 24px 트랙을 위아래 1px씩 넘어선다(세로 1.3). 크기는 md 기준이고 sm·lg도 같은
-// 비율(scale)로 간다. 가로 1.2는 세로가 더 큰 젤리 모양을 만든다. md에서 가로
-// 24px가 트랙 바깥 오른쪽 끝(44px 중 끝)에 닿는 값이다. 부풂이 정점이고, 그 뒤는
-// 출렁임 없이 drift로 1까지 돌아온다. 꺼질 때는 도착 효과가 없고 늘임이 풀리면 끝난다.
-const THUMB_SWELL_X = 1.2;
-const THUMB_SWELL_Y = 1.3;
-// 도착 부풂이 시작하는 시점: 이동 구간이 80% 지난 때.
-const ARRIVE_RATIO = 0.8;
+// 켜진 크기로 바뀌는 시점: 이동 구간이 80% 지난 때. 이동하는 동안은 출발 크기로
+// 늘었다 둥글어지고, 도착이 가까워서야 켜지면 커지고 꺼지면 작아진다.
+const SIZE_CHANGE_RATIO = 0.8;
 
 type SwitchSize = keyof typeof styles.thumbOffset;
 type SwitchState = 'off' | 'on';
@@ -51,104 +42,61 @@ const attachSelfKill = (
   });
 };
 
-// 켜짐·꺼짐 머리 움직임의 공통 뼈대. 출발 전 늘임, 이동과 같은 커브·길이로 늘임
-// 풀기(settle은 출발이 가장 빨라서 빨리 움직일 때 길고 느려지면 둥글어진다)까지다.
-// swell을 주면(켜짐) 도착 부풂과 drift로 부드럽게 돌아오는 단이 이어진다.
-const addThumbMotion = (
-  timeline: gsap.core.Timeline,
-  thumb: HTMLSpanElement,
-  x: number,
-  swell?: { scaleX: number; scaleY: number }
-): void => {
-  const squashDuration = gsapDuration.slow * SQUASH_PORTION;
-  const moveDuration = gsapDuration.slow - squashDuration;
-  const arriveAt = squashDuration + moveDuration * ARRIVE_RATIO;
-
-  timeline.to(
-    thumb,
-    {
-      scaleX: THUMB_STRETCH_X,
-      scaleY: THUMB_SQUASH_Y,
-      duration: squashDuration,
-      ease: gsapEasing.exit,
-    },
-    0
-  );
-  // 이동과 늘임 풀기는 같은 구간에서 같은 커브로 겹친다. 의도된 겹침이다.
-  timeline.to(
-    thumb,
-    { x, duration: moveDuration, ease: gsapEasing.settle },
-    squashDuration
-  );
-  timeline.to(
-    thumb,
-    { scaleX: 1, scaleY: 1, duration: moveDuration, ease: gsapEasing.settle },
-    squashDuration
-  );
-  if (!swell) return;
-  // 늘임 풀기와 끝 20%가 겹치는데, overwrite 'auto'가 부풂이 시작될 때 풀기의
-  // scale 값만 거두어 간다.
-  timeline.to(
-    thumb,
-    { ...swell, duration: gsapDuration.fast, ease: gsapEasing.settle },
-    arriveAt
-  );
-  timeline.to(
-    thumb,
-    {
-      scaleX: 1,
-      scaleY: 1,
-      duration: gsapDuration.slow,
-      ease: gsapEasing.drift,
-    },
-    arriveAt + gsapDuration.fast
-  );
-};
-
-const buildOnTimeline = (
+// 켜짐·꺼짐 머리 움직임. 진행값 `p` 하나가 머리 x·늘임·파란 채움을 같이 움직이고,
+// 켜진 크기(`base`)는 이동 80% 시점에 따로 바뀐다. 시작값은 DOM의 지금 값에서
+// 읽으므로 진행 중에 반대로 바뀌어도 x·크기·늘임이 끊기지 않고 이어진다.
+const buildTimeline = (
   sweep: HTMLSpanElement,
   thumb: HTMLSpanElement,
   size: SwitchSize,
+  nextState: SwitchState,
   reduced: boolean
 ): gsap.core.Timeline =>
   gateMotion(reduced, () => {
-    const timeline = gsap.timeline({ defaults: { overwrite: 'auto' } });
+    const on = nextState === 'on';
+    const scaleX = Number(gsap.getProperty(thumb, 'scaleX'));
+    const scaleY = Number(gsap.getProperty(thumb, 'scaleY'));
+    const from = {
+      x: Number(gsap.getProperty(thumb, 'x')),
+      sweep: Number(gsap.getProperty(sweep, 'scaleX')),
+      k: Math.sqrt(scaleX / scaleY),
+    };
+    const to = { x: on ? styles.thumbOffset[size] : 0, sweep: on ? 1 : 0 };
+    const state = { p: 0, base: Math.sqrt(scaleX * scaleY) };
 
+    const write = (): void => {
+      const frame = thumbFrame(state.p, state.base, from.k);
+      gsap.set(thumb, {
+        x: from.x + (to.x - from.x) * state.p,
+        scaleX: frame.scaleX,
+        scaleY: frame.scaleY,
+      });
+      gsap.set(sweep, {
+        scaleX: from.sweep + (to.sweep - from.sweep) * state.p,
+      });
+    };
+
+    const timeline = gsap.timeline();
     timeline.to(
-      sweep,
-      { scaleX: 1, duration: gsapDuration.slow, ease: gsapEasing.settle },
-      0
-    );
-    addThumbMotion(timeline, thumb, styles.thumbOffset[size], {
-      scaleX: THUMB_SWELL_X,
-      scaleY: THUMB_SWELL_Y,
-    });
-
-    return timeline;
-  });
-
-const buildOffTimeline = (
-  sweep: HTMLSpanElement,
-  thumb: HTMLSpanElement,
-  reduced: boolean
-): gsap.core.Timeline =>
-  gateMotion(reduced, () => {
-    const timeline = gsap.timeline({ defaults: { overwrite: 'auto' } });
-
-    // 역재생하지 않는다(Ruling 41). 스윕은 지금 길이의 exit으로 빠지고, 머리는
-    // 켜짐과 같은 늘임으로 출발한다. 머리 타임라인이 길어도 스윕 길이는 그대로다.
-    // scale을 1로 되돌리는 트윈이 머리 움직임에 들어 있어서, on 타임라인이
-    // 눌림 구간에서 끊겨도 눌린 채 정지하지 않는다(Ruling 77).
-    timeline.to(
-      sweep,
+      state,
       {
-        scaleX: 0,
-        duration: gsapDuration.slow * EXIT_RATIO,
-        ease: gsapEasing.exit,
+        p: 1,
+        duration: gsapDuration.slower,
+        ease: gsapEasing.drift,
+        onUpdate: write,
       },
       0
     );
-    addThumbMotion(timeline, thumb, 0);
+    timeline.to(
+      state,
+      {
+        base: on ? ON_SCALE[size] : 1,
+        duration: gsapDuration.base,
+        ease: gsapEasing.drift,
+        onUpdate: write,
+      },
+      gsapDuration.slower * SIZE_CHANGE_RATIO
+    );
 
     return timeline;
   });
@@ -169,11 +117,13 @@ const syncSwitchState = (
   const prev = stateRef.current;
 
   if (prev === null) {
+    // 켜진 채 마운트되면 머리는 처음부터 켜진 크기다.
+    const base = nextState === 'on' ? ON_SCALE[size] : 1;
     gsap.set(thumb, {
       yPercent: -50,
       x: nextState === 'on' ? styles.thumbOffset[size] : 0,
-      scaleX: 1,
-      scaleY: 1,
+      scaleX: base,
+      scaleY: base,
     });
     gsap.set(sweep, { scaleX: nextState === 'on' ? 1 : 0 });
     stateRef.current = nextState;
@@ -190,10 +140,7 @@ const syncSwitchState = (
 
   track.__switchTimeline?.kill();
 
-  const timeline =
-    nextState === 'on'
-      ? buildOnTimeline(sweep, thumb, size, reduced)
-      : buildOffTimeline(sweep, thumb, reduced);
+  const timeline = buildTimeline(sweep, thumb, size, nextState, reduced);
   attachSelfKill(timeline, track, reduced);
 
   stateRef.current = nextState;

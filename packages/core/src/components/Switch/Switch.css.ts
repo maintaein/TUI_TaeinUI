@@ -63,11 +63,17 @@ export const switchInput = style({
   },
 });
 
+/** 트랙 높이(px). 켜진 머리 크기(switchMotion의 ON_SCALE)가 이 값을 읽는다. */
+export const trackHeight = { sm: 20, md: 24, lg: 28 } as const;
+
+/** 머리 지름(px). 켜진 머리 크기(switchMotion의 ON_SCALE)가 이 값을 읽는다. */
+export const thumbDiameter = { sm: 16, md: 20, lg: 24 } as const;
+
 // Size Variants for Container (Track)
 const baseSizeContainer = {
-  sm: { width: '36px', height: '20px', borderRadius: '10px' },
-  md: { width: '44px', height: '24px', borderRadius: '12px' },
-  lg: { width: '52px', height: '28px', borderRadius: '14px' },
+  sm: { width: '36px', height: `${trackHeight.sm}px`, borderRadius: '10px' },
+  md: { width: '44px', height: `${trackHeight.md}px`, borderRadius: '12px' },
+  lg: { width: '52px', height: `${trackHeight.lg}px`, borderRadius: '14px' },
 };
 
 export const size = styleVariants(baseSizeContainer, (baseStyle) => [
@@ -110,15 +116,27 @@ export const size = styleVariants(baseSizeContainer, (baseStyle) => [
 export const thumbOffset = { sm: 14, md: 18, lg: 22 } as const;
 
 // Thumb Size Variants
-// 위치(x)·Y 중앙 정렬(yPercent)·늘임과 도착 scale은 GSAP이 이 칸의 transform에
+// 위치(x)·Y 중앙 정렬(yPercent)·늘임과 켜진 크기 scale은 GSAP이 이 칸의 transform에
 // 쓴다. 눈에 보이는 면과 호버 부풂은 안쪽 thumbFace가 맡는다. offset 필드는 이제
 // 어떤 선택자에서도 쓰이지 않지만, thumbOffset과 값이 갈라지지 않도록 참조만
 // 남긴다.
 export const thumbSize = styleVariants(
   {
-    sm: { width: '16px', height: '16px', offset: `${thumbOffset.sm}px` },
-    md: { width: '20px', height: '20px', offset: `${thumbOffset.md}px` },
-    lg: { width: '24px', height: '24px', offset: `${thumbOffset.lg}px` },
+    sm: {
+      width: `${thumbDiameter.sm}px`,
+      height: `${thumbDiameter.sm}px`,
+      offset: `${thumbOffset.sm}px`,
+    },
+    md: {
+      width: `${thumbDiameter.md}px`,
+      height: `${thumbDiameter.md}px`,
+      offset: `${thumbOffset.md}px`,
+    },
+    lg: {
+      width: `${thumbDiameter.lg}px`,
+      height: `${thumbDiameter.lg}px`,
+      offset: `${thumbOffset.lg}px`,
+    },
   },
   (config) => ({
     position: 'absolute',

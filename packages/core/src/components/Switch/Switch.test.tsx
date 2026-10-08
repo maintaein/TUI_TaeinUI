@@ -6,6 +6,7 @@ import { createRef, useState } from 'react';
 import { Switch } from './Switch';
 import { themeContract } from '../../tokens/theme.css';
 import { gsapDuration, gsapEasing } from '../../tokens/gsapEasing';
+import { ON_SCALE } from './switchMotion';
 
 describe('Switch', () => {
   describe('렌더링 테스트', () => {
@@ -325,11 +326,8 @@ describe('Switch', () => {
       __switchTimeline?: gsap.core.Timeline;
     };
 
-    // 구간 경계. 눌림은 slow의 20%, 이동·늘임 풀기는 나머지 80%이고, 도착 부풂은
-    // 이동 끝의 80% 시점에 시작한다.
-    const SQUASH = gsapDuration.slow * 0.2;
-    const SETTLE = gsapDuration.slow * 0.8;
-    const ARRIVE = SQUASH + SETTLE * 0.8;
+    // 이동 하나의 길이. 켜진 크기 변화는 이동의 80% 시점에 시작한다.
+    const MOVE = gsapDuration.slower;
 
     const getTrack = (switchElement: HTMLElement): SwitchTimelineHost =>
       switchElement.parentElement as SwitchTimelineHost;
@@ -392,25 +390,23 @@ describe('Switch', () => {
       expect(readScaleX(sweep)).toBe(1);
     });
 
-    it('on 전이 중 썸이 눌렸다 펴진다: 늘임 구간 끝에서 scaleX>1·scaleY<1, 완료 시점엔 둘 다 1', () => {
+    it('on 전이 중 썸이 이동하며 늘었다 끝에서 켜진 크기로 머문다', () => {
       const { rerender } = render(
         <Switch label="스위치" checked={false} onChange={() => {}} />
       );
       const switchElement = screen.getByRole('switch');
       rerender(<Switch label="스위치" checked onChange={() => {}} />);
 
-      const track = getTrack(switchElement);
-      const timeline = track.__switchTimeline;
+      const timeline = getTrack(switchElement).__switchTimeline;
       const thumb = getThumb(switchElement);
 
-      // 눌림이 정점을 찍고 이동·늘임 풀기가 시작되는 경계.
-      timeline?.time(SQUASH);
+      timeline?.time(MOVE / 2);
       expect(readScaleX(thumb)).toBeGreaterThan(1);
       expect(readScaleY(thumb)).toBeLessThan(1);
 
       timeline?.progress(1);
-      expect(readScaleX(thumb)).toBe(1);
-      expect(readScaleY(thumb)).toBe(1);
+      expect(readScaleX(thumb)).toBeCloseTo(ON_SCALE.md, 10);
+      expect(readScaleY(thumb)).toBeCloseTo(ON_SCALE.md, 10);
       expect(readX(thumb)).toBe(18); // md 사이즈의 thumbOffset
     });
 
@@ -459,8 +455,8 @@ describe('Switch', () => {
       expect(track.__switchTimeline).toBeUndefined();
       expect(readScaleX(sweep)).toBe(1);
       expect(readX(thumb)).toBe(18);
-      expect(readScaleX(thumb)).toBe(1);
-      expect(readScaleY(thumb)).toBe(1);
+      expect(readScaleX(thumb)).toBeCloseTo(ON_SCALE.md, 10);
+      expect(readScaleY(thumb)).toBeCloseTo(ON_SCALE.md, 10);
     });
 
     it('언마운트 후 인스턴스당 살아 있는 gsap 객체가 0개다', () => {
@@ -479,22 +475,26 @@ describe('Switch', () => {
       expect(timeline?.parent).toBeNull();
     });
 
-    describe('늘임·이동·도착 효과 (M5 task-17)', () => {
+    describe('속도 비례 늘임과 켜진 크기 (M5 task-17)', () => {
       type Tween = gsap.core.Tween;
-      const tweensOf = (
-        switchElement: HTMLElement
-      ): { all: Tween[]; thumb: Tween[]; sweep: Tween } => {
-        const timeline = getTrack(switchElement).__switchTimeline;
-        const all = (timeline?.getChildren() ?? []) as Tween[];
-        const thumbEl = getThumb(switchElement);
-        return {
-          all,
-          thumb: all.filter((t) => t.targets()[0] === thumbEl),
-          sweep: all.find(
-            (t) => t.targets()[0] === getSweep(switchElement)
-          ) as Tween,
-        };
-      };
+      // 켜진 크기로 바뀌는 시점: 이동 구간의 80%.
+      const SIZE_AT = MOVE * 0.8;
+
+      const children = (switchElement: HTMLElement): Tween[] =>
+        (getTrack(switchElement).__switchTimeline?.getChildren() ??
+          []) as Tween[];
+      const timelineOf = (switchElement: HTMLElement) =>
+        getTrack(switchElement).__switchTimeline;
+      const moveTween = (switchElement: HTMLElement): Tween =>
+        children(switchElement).find((t) => t.vars.p === 1) as Tween;
+      const sizeTween = (switchElement: HTMLElement): Tween =>
+        children(switchElement).find((t) => t.vars.base !== undefined) as Tween;
+      // 늘임 k는 scaleX / scaleY의 제곱근이고, 켜진 크기 base는 곱의 제곱근이다.
+      const stretchOf = (el: HTMLElement): number =>
+        Math.sqrt(readScaleX(el) / readScaleY(el));
+      const baseOf = (el: HTMLElement): number =>
+        Math.sqrt(readScaleX(el) * readScaleY(el));
+
       const enter = (
         checked: boolean,
         props: { size?: 'sm' | 'md' | 'lg' } = {}
@@ -518,287 +518,300 @@ describe('Switch', () => {
         return { ...view, switchElement: screen.getByRole('switch') };
       };
 
-      it('켜짐: 머리는 늘임, 이동+늘임 풀기(settle), 부풂(1.3·1.2 fast settle), 돌아옴(slow drift) 단이고 spring은 없으며 스윕은 slow settle이다', () => {
+      it.each([true, false])(
+        '이동 진행값 p는 slower drift로 0에서 1까지 가고 켜짐·꺼짐(%s)이 같다',
+        (checked) => {
+          const { switchElement } = enter(checked);
+          const move = moveTween(switchElement);
+          expect(move.startTime()).toBe(0);
+          expect(move.duration()).toBeCloseTo(gsapDuration.slower, 10);
+          expect(move.vars.ease).toBe(gsapEasing.drift);
+        }
+      );
+
+      it.each([true, false])(
+        '출발 전 늘임이 없다: 머리와 채움을 직접 트윈하지 않고 모든 트윈은 p와 base 객체를 움직인다(%s)',
+        (checked) => {
+          const { switchElement } = enter(checked);
+          const thumb = getThumb(switchElement);
+          const sweep = getSweep(switchElement);
+          const tweens = children(switchElement);
+          expect(tweens).toHaveLength(2);
+          for (const tween of tweens) {
+            expect(tween.targets()[0]).not.toBe(thumb);
+            expect(tween.targets()[0]).not.toBe(sweep);
+            expect(tween.vars.scaleX).toBeUndefined();
+            expect(tween.vars.ease).not.toBe(gsapEasing.exit);
+          }
+        }
+      );
+
+      it('켜짐: 크기는 이동 80% 시점에 ON_SCALE까지 base drift로 바뀐다', () => {
         const { switchElement } = enter(true);
-        const { thumb, sweep } = tweensOf(switchElement);
-
-        expect(sweep.vars.scaleX).toBe(1);
-        expect(sweep.startTime()).toBe(0);
-        expect(sweep.duration()).toBeCloseTo(gsapDuration.slow, 10);
-        expect(sweep.vars.ease).toBe(gsapEasing.settle);
-
-        expect(thumb).toHaveLength(5);
-        const stretch = thumb.find((t) => t.vars.scaleX === 1.18) as Tween;
-        expect(stretch.vars.scaleY).toBe(0.82);
-        expect(stretch.startTime()).toBe(0);
-        expect(stretch.duration()).toBeCloseTo(SQUASH, 10);
-        expect(stretch.vars.ease).toBe(gsapEasing.exit);
-
-        const move = thumb.find((t) => t.vars.x === 18) as Tween;
-        expect(move.startTime()).toBeCloseTo(SQUASH, 10);
-        expect(move.duration()).toBeCloseTo(SETTLE, 10);
-        expect(move.vars.ease).toBe(gsapEasing.settle);
-
-        const release = thumb.find(
-          (t) => t.vars.scaleX === 1 && t.vars.ease === gsapEasing.settle
-        ) as Tween;
-        expect(release.vars.scaleY).toBe(1);
-        expect(release.startTime()).toBeCloseTo(move.startTime(), 10);
-        expect(release.duration()).toBeCloseTo(move.duration(), 10);
-
-        const swell = thumb.find((t) => t.vars.scaleY === 1.3) as Tween;
-        expect(swell.vars.scaleX).toBe(1.2);
-        expect(swell.startTime()).toBeCloseTo(ARRIVE, 10);
-        expect(swell.duration()).toBeCloseTo(gsapDuration.fast, 10);
-        expect(swell.vars.ease).toBe(gsapEasing.settle);
-
-        const settleBack = thumb.find(
-          (t) => t.vars.ease === gsapEasing.drift
-        ) as Tween;
-        expect(settleBack.vars.scaleX).toBe(1);
-        expect(settleBack.vars.scaleY).toBe(1);
-        expect(settleBack.startTime()).toBeCloseTo(
-          ARRIVE + gsapDuration.fast,
-          10
-        );
-        expect(settleBack.duration()).toBeCloseTo(gsapDuration.slow, 10);
-
-        expect(thumb.some((t) => t.vars.ease === gsapEasing.spring)).toBe(
-          false
-        );
+        const size = sizeTween(switchElement);
+        expect(size.vars.base).toBe(ON_SCALE.md);
+        expect(size.startTime()).toBeCloseTo(SIZE_AT, 10);
+        expect(size.duration()).toBeCloseTo(gsapDuration.base, 10);
+        expect(size.vars.ease).toBe(gsapEasing.drift);
       });
 
-      it('꺼짐: 켜짐과 같은 출발 늘임·이동 커브·길이만 있고 도착 크기 변화와 spring은 없으며 스윕은 지금 길이의 exit이다', () => {
+      it('꺼짐: 크기는 이동 80% 시점에 1까지 base drift로 바뀐다', () => {
         const { switchElement } = enter(false);
-        const { thumb, sweep } = tweensOf(switchElement);
-
-        expect(sweep.vars.scaleX).toBe(0);
-        expect(sweep.startTime()).toBe(0);
-        expect(sweep.duration()).toBeCloseTo(gsapDuration.slow * 0.65, 10);
-        expect(sweep.vars.ease).toBe(gsapEasing.exit);
-
-        expect(thumb).toHaveLength(3);
-        const stretch = thumb.find((t) => t.vars.scaleX === 1.18) as Tween;
-        expect(stretch.vars.scaleY).toBe(0.82);
-        expect(stretch.startTime()).toBe(0);
-        expect(stretch.duration()).toBeCloseTo(SQUASH, 10);
-        expect(stretch.vars.ease).toBe(gsapEasing.exit);
-
-        const move = thumb.find((t) => t.vars.x === 0) as Tween;
-        expect(move.startTime()).toBeCloseTo(SQUASH, 10);
-        expect(move.duration()).toBeCloseTo(SETTLE, 10);
-        expect(move.vars.ease).toBe(gsapEasing.settle);
-
-        const release = thumb.find(
-          (t) => t.vars.scaleX === 1 && t.vars.ease === gsapEasing.settle
-        ) as Tween;
-        expect(release.vars.scaleY).toBe(1);
-        expect(release.startTime()).toBeCloseTo(move.startTime(), 10);
-        expect(release.duration()).toBeCloseTo(move.duration(), 10);
-
-        const arrival = thumb.filter(
-          (t) =>
-            (t.vars.scaleX !== undefined && t.vars.scaleX !== 1.18) ||
-            (t.vars.scaleY !== undefined && t.vars.scaleY !== 0.82)
-        );
-        expect(arrival).toEqual([release]);
-        expect(thumb.some((t) => t.vars.ease === gsapEasing.spring)).toBe(
-          false
-        );
-        expect(thumb.some((t) => t.vars.ease === gsapEasing.drift)).toBe(false);
+        const size = sizeTween(switchElement);
+        expect(size.vars.base).toBe(1);
+        expect(size.startTime()).toBeCloseTo(SIZE_AT, 10);
+        expect(size.duration()).toBeCloseTo(gsapDuration.base, 10);
+        expect(size.vars.ease).toBe(gsapEasing.drift);
       });
 
-      it('켜질 때 도착 부풂의 끝에서 세로가 1.3, 가로가 1.2이고 돌아옴 끝에서 둘 다 1이다', () => {
+      it('켜짐 끝에서 머리 scale이 ON_SCALE에 머물고 x는 18, 채움은 1이다. 타임라인은 스스로 죽는다', () => {
         const { switchElement } = enter(true);
-        const timeline = getTrack(switchElement).__switchTimeline;
         const thumb = getThumb(switchElement);
+        timelineOf(switchElement)?.progress(1);
+        expect(readScaleX(thumb)).toBeCloseTo(ON_SCALE.md, 10);
+        expect(readScaleY(thumb)).toBeCloseTo(ON_SCALE.md, 10);
+        expect(readX(thumb)).toBe(18);
+        expect(readScaleX(getSweep(switchElement))).toBe(1);
+        expect(getTrack(switchElement).__switchTimeline).toBeUndefined();
+      });
 
-        timeline?.time(ARRIVE + gsapDuration.fast);
-        expect(readScaleY(thumb)).toBeCloseTo(1.3, 5);
-        expect(readScaleX(thumb)).toBeCloseTo(1.2, 5);
-
-        timeline?.progress(1);
-        expect(readScaleY(thumb)).toBe(1);
+      it('꺼짐 끝에서 머리 scale이 1이고 x는 0, 채움은 0이다', () => {
+        const { switchElement } = enter(false);
+        const thumb = getThumb(switchElement);
+        timelineOf(switchElement)?.progress(1);
         expect(readScaleX(thumb)).toBe(1);
+        expect(readScaleY(thumb)).toBe(1);
+        expect(readX(thumb)).toBe(0);
+        expect(readScaleX(getSweep(switchElement))).toBe(0);
       });
 
-      it('켜질 때 돌아오는 동안 1보다 작아지지도 부풂 정점보다 커지지도 않고 단조롭게 줄어든다(출렁임 없음)', () => {
+      it('이동 한가운데서 가장 길게 늘어(가로 1.144배) 부피는 지킨다', () => {
         const { switchElement } = enter(true);
-        const timeline = getTrack(switchElement).__switchTimeline;
         const thumb = getThumb(switchElement);
-        const start = ARRIVE + gsapDuration.fast;
+        timelineOf(switchElement)?.time(MOVE / 2);
+        expect(readScaleX(thumb)).toBeCloseTo(1.144, 3);
+        expect(readScaleY(thumb)).toBeCloseTo(1 / 1.144, 3);
+        expect(readScaleX(thumb) * readScaleY(thumb)).toBeCloseTo(1, 3);
+        expect(readX(thumb)).toBeCloseTo(9, 3);
+      });
 
-        let previous = Infinity;
-        for (let step = 0; step <= 20; step += 1) {
-          timeline?.time(start + (gsapDuration.slow * step) / 20);
-          const y = readScaleY(thumb);
-          expect(y).toBeGreaterThanOrEqual(1 - 1e-9);
-          expect(y).toBeLessThanOrEqual(1.3 + 1e-9);
-          expect(y).toBeLessThanOrEqual(previous + 1e-9);
-          previous = y;
+      it('늘임은 이동 속도를 따른다: 출발과 도착 직전에는 거의 늘지 않고 한가운데가 가장 길다', () => {
+        const { switchElement } = enter(true);
+        const thumb = getThumb(switchElement);
+        const at = (fraction: number): number => {
+          timelineOf(switchElement)?.time(MOVE * fraction);
+          return stretchOf(thumb);
+        };
+        const early = at(0.05);
+        const middle = at(0.5);
+        expect(early).toBeLessThan(1.01);
+        expect(middle).toBeGreaterThan(early);
+        expect(at(0.3)).toBeLessThan(middle);
+        expect(at(0.7)).toBeLessThan(middle);
+      });
+
+      it('켜질 때 이동하는 동안 크기는 1이고 80% 시점에서야 커지기 시작해 끝에서 ON_SCALE이다', () => {
+        const { switchElement } = enter(true);
+        const thumb = getThumb(switchElement);
+        const timeline = timelineOf(switchElement);
+        timeline?.time(SIZE_AT - 0.001);
+        expect(baseOf(thumb)).toBeCloseTo(1, 5);
+        timeline?.time(SIZE_AT + gsapDuration.base / 2);
+        expect(baseOf(thumb)).toBeGreaterThan(1.01);
+        expect(baseOf(thumb)).toBeLessThan(ON_SCALE.md);
+        timeline?.progress(1);
+        expect(baseOf(thumb)).toBeCloseTo(ON_SCALE.md, 10);
+      });
+
+      it('꺼질 때 이동하는 동안 크기는 켜진 크기이고 80% 시점에서야 작아지기 시작해 끝에서 1이다', () => {
+        const { switchElement } = enter(false);
+        const thumb = getThumb(switchElement);
+        const timeline = timelineOf(switchElement);
+        timeline?.time(SIZE_AT - 0.001);
+        expect(baseOf(thumb)).toBeCloseTo(ON_SCALE.md, 3);
+        timeline?.time(SIZE_AT + gsapDuration.base / 2);
+        expect(baseOf(thumb)).toBeLessThan(ON_SCALE.md - 0.01);
+        expect(baseOf(thumb)).toBeGreaterThan(1);
+        timeline?.progress(1);
+        expect(baseOf(thumb)).toBe(1);
+      });
+
+      it('파란 채움은 머리와 같은 p를 따라 켤 때 0에서 1로, 끌 때 1에서 0으로 간다', () => {
+        for (const checked of [true, false]) {
+          const { switchElement, unmount } = enter(checked);
+          const thumb = getThumb(switchElement);
+          const sweep = getSweep(switchElement);
+          for (const fraction of [0.2, 0.5, 0.8]) {
+            timelineOf(switchElement)?.time(MOVE * fraction);
+            expect(readScaleX(sweep)).toBeCloseTo(readX(thumb) / 18, 3);
+          }
+          unmount();
         }
       });
 
-      it('꺼질 때 늘임이 풀리는 이동 끝에서 가로·세로가 1이고 그 뒤 타임라인이 끝난다', () => {
-        const { switchElement } = enter(false);
-        const timeline = getTrack(switchElement).__switchTimeline;
-        const thumb = getThumb(switchElement);
-
-        timeline?.time(SQUASH + SETTLE);
-        expect(readScaleY(thumb)).toBeCloseTo(1, 5);
-        expect(readScaleX(thumb)).toBeCloseTo(1, 5);
-
-        timeline?.progress(1);
-        expect(readScaleY(thumb)).toBe(1);
-        expect(readScaleX(thumb)).toBe(1);
-        expect(readX(thumb)).toBe(0);
-      });
-
-      it('늘임은 이동과 같은 구간·커브로 풀려서, 이동 중간에도 늘임이 풀려 가는 중이다', () => {
-        const { switchElement } = enter(true);
-        const timeline = getTrack(switchElement).__switchTimeline;
-        const thumb = getThumb(switchElement);
-
-        timeline?.time(SQUASH);
-        const stretchedX = readScaleX(thumb);
-        timeline?.time(SQUASH + SETTLE * 0.3);
-        const midX = readScaleX(thumb);
-        expect(midX).toBeLessThan(stretchedX);
-        expect(midX).toBeGreaterThan(1);
-        expect(readX(thumb)).toBeGreaterThan(0);
-        expect(readX(thumb)).toBeLessThan(18);
-      });
-
       it.each([
-        ['sm', 16, 20.8],
-        ['md', 20, 26],
-        ['lg', 24, 31.2],
+        ['sm', 20, 16],
+        ['md', 24, 20],
+        ['lg', 28, 24],
       ] as const)(
-        '%s 머리(%ipx)는 켜질 때 정점에서 세로 %fpx까지 커지고(비율 1.3) 꺼질 때는 늘임이 풀린 뒤 원래 높이다',
-        (size, head, grown) => {
+        '%s의 ON_SCALE은 (트랙 높이 %i + 2) / 머리 %i이고 CSS 높이와 같은 값을 읽는다',
+        (size, track, head) => {
+          const trackRule = switchRules().find((rule) =>
+            new RegExp(`^\\.Switch_size_${size}__\\w+$`).test(rule.selectorText)
+          );
           const headRule = switchRules().find((rule) =>
             new RegExp(`^\\.Switch_thumbSize_${size}__\\w+$`).test(
               rule.selectorText
             )
           );
+          expect(trackRule?.style.getPropertyValue('height')).toBe(
+            `${track}px`
+          );
           expect(headRule?.style.getPropertyValue('height')).toBe(`${head}px`);
+          expect(ON_SCALE[size]).toBeCloseTo((track + 2) / head, 10);
 
           const on = enter(true, { size });
-          const onThumb = getThumb(on.switchElement);
-          getTrack(on.switchElement).__switchTimeline?.time(
-            ARRIVE + gsapDuration.fast
+          timelineOf(on.switchElement)?.progress(1);
+          expect(head * readScaleY(getThumb(on.switchElement))).toBeCloseTo(
+            track + 2,
+            5
           );
-          expect(head * readScaleY(onThumb)).toBeCloseTo(grown, 5);
-          on.unmount();
-
-          const off = enter(false, { size });
-          const offThumb = getThumb(off.switchElement);
-          getTrack(off.switchElement).__switchTimeline?.time(SQUASH + SETTLE);
-          expect(head * readScaleY(offThumb)).toBeCloseTo(head, 5);
-          off.unmount();
         }
       );
 
-      it('켜진 끝에서 가로 1.2배(24px)는 md 트랙의 바깥 오른쪽 끝(42)을 넘지 않는다', () => {
-        const head = 20;
-        const left = 2;
-        const rightEdge = left + 18 + head / 2 + (head * 1.2) / 2;
-        expect(rightEdge).toBeLessThanOrEqual(42);
-      });
-
-      it('도착 중에 반대로 바뀌면 지금 값에서 새 타임라인이 이어지고 끝은 off 정준값이다', () => {
-        const { switchElement, rerender } = enter(true);
-        const thumb = getThumb(switchElement);
-        const sweep = getSweep(switchElement);
-        const first = getTrack(switchElement).__switchTimeline;
-        first?.time(ARRIVE + gsapDuration.fast / 2); // 부푸는 중
-        const swelling = readScaleY(thumb);
-        expect(swelling).toBeGreaterThan(1.1);
-
-        rerender(<Switch label="스위치" checked={false} onChange={() => {}} />);
-        const second = getTrack(switchElement).__switchTimeline;
-        expect(second).not.toBe(first);
-        expect(first?.parent).toBeNull();
-        expect(readScaleY(thumb)).toBeCloseTo(swelling, 5); // 튀지 않는다
-
-        second?.progress(1);
-        expect(readScaleX(thumb)).toBe(1);
-        expect(readScaleY(thumb)).toBe(1);
-        expect(readX(thumb)).toBe(0);
-        expect(readScaleX(sweep)).toBe(0);
-      });
-
-      it('돌아오는 중에 반대로 바뀌어도 끝은 off 정준값이다', () => {
-        const { switchElement, rerender } = enter(true);
-        const thumb = getThumb(switchElement);
-        const sweep = getSweep(switchElement);
-        getTrack(switchElement).__switchTimeline?.time(
-          ARRIVE + gsapDuration.fast + gsapDuration.slow / 3
-        ); // 돌아오는 중
-
-        rerender(<Switch label="스위치" checked={false} onChange={() => {}} />);
-        getTrack(switchElement).__switchTimeline?.progress(1);
-
-        expect(readX(thumb)).toBe(0);
-        expect(readScaleX(thumb)).toBe(1);
-        expect(readScaleY(thumb)).toBe(1);
-        expect(readScaleX(sweep)).toBe(0);
-      });
-
-      it('타임라인은 끝나면 스스로 죽고 손잡이를 비운다', () => {
+      it('켜진 md 머리의 세로는 26px로 24px 트랙을 위아래 1px씩 넘어선다', () => {
         const { switchElement } = enter(true);
-        const track = getTrack(switchElement);
-        const timeline = track.__switchTimeline;
-
-        timeline?.progress(1);
-
-        expect(track.__switchTimeline).toBeUndefined();
-        expect(timeline?.parent).toBeNull();
+        timelineOf(switchElement)?.progress(1);
+        expect(20 * readScaleY(getThumb(switchElement))).toBeCloseTo(26, 5);
       });
 
-      it('마운트에서는 켜져 있든 꺼져 있든 타임라인 없이 끝 상태로 놓인다', () => {
+      it('마운트: 켜져 있으면 처음부터 ON_SCALE이고 꺼져 있으면 1이며 둘 다 타임라인이 없다', () => {
         const on = render(<Switch label="켜짐" checked onChange={() => {}} />);
-        const onTrack = getTrack(screen.getByRole('switch'));
-        expect(onTrack.__switchTimeline).toBeUndefined();
-        const onThumb = getThumb(screen.getByRole('switch'));
-        expect(readX(onThumb)).toBe(18);
-        expect(readScaleX(onThumb)).toBe(1);
-        expect(readScaleY(onThumb)).toBe(1);
+        const onSwitch = screen.getByRole('switch');
+        expect(getTrack(onSwitch).__switchTimeline).toBeUndefined();
+        expect(readX(getThumb(onSwitch))).toBe(18);
+        expect(readScaleX(getThumb(onSwitch))).toBeCloseTo(ON_SCALE.md, 10);
+        expect(readScaleY(getThumb(onSwitch))).toBeCloseTo(ON_SCALE.md, 10);
         on.unmount();
 
         render(<Switch label="꺼짐" checked={false} onChange={() => {}} />);
         const offSwitch = screen.getByRole('switch');
         expect(getTrack(offSwitch).__switchTimeline).toBeUndefined();
         expect(readX(getThumb(offSwitch))).toBe(0);
+        expect(readScaleX(getThumb(offSwitch))).toBe(1);
         expect(readScaleY(getThumb(offSwitch))).toBe(1);
       });
 
-      it('축소 선호에서는 꺼질 때도 타임라인 없이 끝 상태로 정지한다', () => {
-        installReducedMotion();
-        const { switchElement } = enter(false);
-        const thumb = getThumb(switchElement);
+      it.each([
+        ['sm', 14],
+        ['lg', 22],
+      ] as const)(
+        '마운트(켜짐) %s 머리도 자기 크기의 ON_SCALE이다',
+        (size, x) => {
+          render(
+            <Switch label="켜짐" size={size} checked onChange={() => {}} />
+          );
+          const thumb = getThumb(screen.getByRole('switch'));
+          expect(readX(thumb)).toBe(x);
+          expect(readScaleX(thumb)).toBeCloseTo(ON_SCALE[size], 10);
+        }
+      );
 
-        expect(getTrack(switchElement).__switchTimeline).toBeUndefined();
-        expect(readX(thumb)).toBe(0);
+      it('비활성이어도 켜져 있으면 ON_SCALE이다', () => {
+        render(<Switch label="비활성" checked disabled onChange={() => {}} />);
+        expect(readScaleX(getThumb(screen.getByRole('switch')))).toBeCloseTo(
+          ON_SCALE.md,
+          10
+        );
+      });
+
+      it('축소 선호에서는 켜면 ON_SCALE, 끄면 1로 타임라인 없이 곧장 정지한다', () => {
+        installReducedMotion();
+        const on = enter(true);
+        const onThumb = getThumb(on.switchElement);
+        expect(getTrack(on.switchElement).__switchTimeline).toBeUndefined();
+        expect(readX(onThumb)).toBe(18);
+        expect(readScaleX(onThumb)).toBeCloseTo(ON_SCALE.md, 10);
+        expect(readScaleY(onThumb)).toBeCloseTo(ON_SCALE.md, 10);
+        on.unmount();
+
+        const off = enter(false);
+        const offThumb = getThumb(off.switchElement);
+        expect(getTrack(off.switchElement).__switchTimeline).toBeUndefined();
+        expect(readX(offThumb)).toBe(0);
+        expect(readScaleX(offThumb)).toBe(1);
+        expect(readScaleY(offThumb)).toBe(1);
+        expect(readScaleX(getSweep(off.switchElement))).toBe(0);
+      });
+
+      it('늘어난 한가운데서 반대로 바뀌어도 늘임이 끊기지 않는다(전환 직전과 직후의 k가 같다)', () => {
+        const { switchElement, rerender } = enter(true);
+        const thumb = getThumb(switchElement);
+        const first = timelineOf(switchElement);
+        first?.time(MOVE / 2);
+        const before = stretchOf(thumb);
+        const beforeX = readX(thumb);
+        const beforeSweep = readScaleX(getSweep(switchElement));
+        expect(before).toBeGreaterThan(1.14);
+
+        rerender(<Switch label="스위치" checked={false} onChange={() => {}} />);
+        const second = timelineOf(switchElement);
+        expect(second).not.toBe(first);
+        expect(first?.parent).toBeNull();
+        second?.time(0.001);
+        expect(stretchOf(thumb)).toBeCloseTo(before, 3);
+        expect(readX(thumb)).toBeCloseTo(beforeX, 1);
+        expect(readScaleX(getSweep(switchElement))).toBeCloseTo(beforeSweep, 2);
+      });
+
+      it('이어진 늘임은 새 이동이 끝나는 쪽으로 줄어 끝에서 둘 다 1이다', () => {
+        const { switchElement, rerender } = enter(true);
+        const thumb = getThumb(switchElement);
+        timelineOf(switchElement)?.time(MOVE / 2);
+        rerender(<Switch label="스위치" checked={false} onChange={() => {}} />);
+        const second = timelineOf(switchElement);
+
+        second?.time(MOVE * 0.9);
+        expect(stretchOf(thumb)).toBeLessThan(1.05);
+
+        second?.progress(1);
         expect(readScaleX(thumb)).toBe(1);
         expect(readScaleY(thumb)).toBe(1);
+        expect(readX(thumb)).toBe(0);
         expect(readScaleX(getSweep(switchElement))).toBe(0);
       });
 
-      it('키보드(Space)로 켜고 꺼도 같은 타임라인이 돈다', async () => {
+      it('크기가 바뀌는 중에 반대로 바뀌어도 크기가 튀지 않고 끝은 off 정준값이다', () => {
+        const { switchElement, rerender } = enter(true);
+        const thumb = getThumb(switchElement);
+        timelineOf(switchElement)?.time(SIZE_AT + gsapDuration.base / 2);
+        const before = baseOf(thumb);
+        expect(before).toBeGreaterThan(1.01);
+
+        rerender(<Switch label="스위치" checked={false} onChange={() => {}} />);
+        const second = timelineOf(switchElement);
+        second?.time(0.001);
+        expect(baseOf(thumb)).toBeCloseTo(before, 3);
+
+        second?.progress(1);
+        expect(readScaleX(thumb)).toBe(1);
+        expect(readScaleY(thumb)).toBe(1);
+        expect(readX(thumb)).toBe(0);
+      });
+
+      it('키보드(Space)로 켜고 꺼도 같은 p 트윈이 돈다', async () => {
         render(<Switch label="스위치" />);
         const switchElement = screen.getByRole('switch');
         switchElement.focus();
 
         await userEvent.keyboard(' ');
-        const turningOn = tweensOf(switchElement);
-        expect(turningOn.thumb.some((t) => t.vars.scaleY === 1.3)).toBe(true);
-        getTrack(switchElement).__switchTimeline?.progress(1);
+        expect(moveTween(switchElement).vars.ease).toBe(gsapEasing.drift);
+        expect(sizeTween(switchElement).vars.base).toBe(ON_SCALE.md);
+        timelineOf(switchElement)?.progress(1);
 
         await userEvent.keyboard(' ');
-        const turningOff = tweensOf(switchElement);
-        expect(turningOff.thumb.some((t) => t.vars.scaleY === 1.3)).toBe(false);
-        expect(turningOff.thumb.some((t) => t.vars.scaleX === 1.18)).toBe(true);
+        expect(moveTween(switchElement).vars.ease).toBe(gsapEasing.drift);
+        expect(sizeTween(switchElement).vars.base).toBe(1);
       });
 
       it('호버 부풂은 머리 안쪽 면에만 걸리고 GSAP이 쓰는 머리의 transform에는 섞이지 않는다', () => {
@@ -813,7 +826,7 @@ describe('Switch', () => {
     });
 
     describe('중단 매트릭스 (Ruling 77 회귀)', () => {
-      it('on 전이를 스쿼시 구간에서 중단하고 off로 전이하면 썸의 scaleX·scaleY가 모두 1로 되돌아온다(Critical-1 회귀)', () => {
+      it('on 전이를 이동 초반(늘임이 막 시작된 때)에 중단하고 off로 전이하면 썸의 scaleX·scaleY가 모두 1로 되돌아온다(Critical-1 회귀)', () => {
         const { rerender } = render(
           <Switch label="스위치" checked={false} onChange={() => {}} />
         );
@@ -822,7 +835,7 @@ describe('Switch', () => {
         const sweep = getSweep(switchElement);
 
         rerender(<Switch label="스위치" checked onChange={() => {}} />);
-        getTrack(switchElement).__switchTimeline?.time(SQUASH / 2); // 늘임 구간 중단
+        getTrack(switchElement).__switchTimeline?.time(MOVE * 0.1); // 이동 초반 중단
         expect(readScaleY(thumb)).toBeLessThan(1);
 
         rerender(<Switch label="스위치" checked={false} onChange={() => {}} />);
@@ -844,7 +857,7 @@ describe('Switch', () => {
         const sweep = getSweep(switchElement);
 
         rerender(<Switch label="스위치" checked onChange={() => {}} />);
-        getTrack(switchElement).__switchTimeline?.time(SQUASH + SETTLE / 2); // 이동·늘임 풀기 구간 중단
+        getTrack(switchElement).__switchTimeline?.time(MOVE / 2); // 이동 한가운데 중단
 
         rerender(<Switch label="스위치" checked={false} onChange={() => {}} />);
         const timeline = getTrack(switchElement).__switchTimeline;
@@ -866,15 +879,15 @@ describe('Switch', () => {
         getTrack(switchElement).__switchTimeline?.progress(1); // on 완전 착지
 
         rerender(<Switch label="스위치" checked={false} onChange={() => {}} />);
-        getTrack(switchElement).__switchTimeline?.time(SQUASH + SETTLE / 2); // off 이동 구간 중단
+        getTrack(switchElement).__switchTimeline?.time(MOVE / 2); // off 이동 한가운데 중단
 
         rerender(<Switch label="스위치" checked onChange={() => {}} />); // 다시 on
         const timeline = getTrack(switchElement).__switchTimeline;
         timeline?.progress(1);
 
         expect(readX(thumb)).toBe(18); // md 사이즈의 thumbOffset
-        expect(readScaleX(thumb)).toBe(1);
-        expect(readScaleY(thumb)).toBe(1);
+        expect(readScaleX(thumb)).toBeCloseTo(ON_SCALE.md, 10);
+        expect(readScaleY(thumb)).toBeCloseTo(ON_SCALE.md, 10);
         expect(readScaleX(sweep)).toBe(1);
       });
     });
