@@ -109,7 +109,7 @@ M3에서 GSAP 런타임이 실제로 붙은 컴포넌트와 그 능력. 계획�
 | SideSheet | 타임라인 상대 위치 |
 | Snackbar | CSS가 못 보는 값 읽기(카운트다운 진행률 read-back) |
 | Checkbox | 모양 변형(checked ↔ indeterminate) · 다중 목표 중단 · CSS가 못 보는 값 읽기(스프링 진행값 하나로 채움·상자 구동, 체크와 해제 모두 상자가 먼저 움츠렸다 되튐) |
-| Switch | 타임라인 상대 위치 · 다중 목표 중단 |
+| Switch | 타임라인 상대 위치 · 다중 목표 중단(머리가 늘어 출발해 이동하며 풀리고, 켜질 땐 커졌다 꺼질 땐 작아졌다 스프링으로 되튐) |
 | SegmentedButtons | 다중 목표 중단 · CSS가 못 보는 값 읽기(인디케이터 좌표) |
 | NumericSpinner | 다중 목표 중단 |
 | Slider | 제스처 추적(드래그 중 값 따라붙기) |

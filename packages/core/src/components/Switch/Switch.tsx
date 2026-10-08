@@ -18,6 +18,16 @@ const THUMB_STRETCH_X = 1.18;
 const THUMB_SQUASH_Y = 0.82;
 const SQUASH_PORTION = 0.2;
 const EXIT_RATIO = 0.65;
+// 도착 효과. 사용자 결정(M5 task-17): 켜질 때 20px 머리가 26px까지 커져 24px
+// 트랙을 위아래 1px씩 넘어서고(세로 1.3), 꺼질 때는 17px까지 작아졌다 돌아온다
+// (0.85). 크기는 md 기준이고 sm·lg도 같은 비율(scale)로 간다. 가로 1.2는 세로가
+// 더 큰 젤리 모양을 만든다. md에서 가로 24px가 트랙 바깥 오른쪽 끝(44px 중 끝)에
+// 닿는 값이다.
+const THUMB_SWELL_X = 1.2;
+const THUMB_SWELL_Y = 1.3;
+const THUMB_SHRINK = 0.85;
+// 도착 부풂이 시작하는 시점: 이동 구간이 80% 지난 때.
+const ARRIVE_RATIO = 0.8;
 
 type SwitchSize = keyof typeof styles.thumbOffset;
 type SwitchState = 'off' | 'on';
@@ -42,6 +52,59 @@ const attachSelfKill = (
   });
 };
 
+// 켜짐·꺼짐 머리 움직임의 공통 뼈대. 출발 전 늘임, 이동과 같은 커브·길이로 늘임
+// 풀기(settle은 출발이 가장 빨라서 빨리 움직일 때 길고 느려지면 둥글어진다),
+// 도착 부풂(켜짐 커짐, 꺼짐 작아짐), 500ms 스프링 되튐 순서다.
+const addThumbMotion = (
+  timeline: gsap.core.Timeline,
+  thumb: HTMLSpanElement,
+  x: number,
+  arrival: { scaleX: number; scaleY: number }
+): void => {
+  const squashDuration = gsapDuration.slow * SQUASH_PORTION;
+  const moveDuration = gsapDuration.slow - squashDuration;
+  const arriveAt = squashDuration + moveDuration * ARRIVE_RATIO;
+
+  timeline.to(
+    thumb,
+    {
+      scaleX: THUMB_STRETCH_X,
+      scaleY: THUMB_SQUASH_Y,
+      duration: squashDuration,
+      ease: gsapEasing.exit,
+    },
+    0
+  );
+  // 이동과 늘임 풀기는 같은 구간에서 같은 커브로 겹친다. 의도된 겹침이다.
+  timeline.to(
+    thumb,
+    { x, duration: moveDuration, ease: gsapEasing.settle },
+    squashDuration
+  );
+  timeline.to(
+    thumb,
+    { scaleX: 1, scaleY: 1, duration: moveDuration, ease: gsapEasing.settle },
+    squashDuration
+  );
+  // 늘임 풀기와 끝 20%가 겹치는데, overwrite 'auto'가 부풂이 시작될 때 풀기의
+  // scale 값만 거두어 간다.
+  timeline.to(
+    thumb,
+    { ...arrival, duration: gsapDuration.fast, ease: gsapEasing.settle },
+    arriveAt
+  );
+  timeline.to(
+    thumb,
+    {
+      scaleX: 1,
+      scaleY: 1,
+      duration: gsapDuration.slower,
+      ease: gsapEasing.spring,
+    },
+    arriveAt + gsapDuration.fast
+  );
+};
+
 const buildOnTimeline = (
   sweep: HTMLSpanElement,
   thumb: HTMLSpanElement,
@@ -50,44 +113,16 @@ const buildOnTimeline = (
 ): gsap.core.Timeline =>
   gateMotion(reduced, () => {
     const timeline = gsap.timeline({ defaults: { overwrite: 'auto' } });
-    const squashDuration = gsapDuration.slow * SQUASH_PORTION;
-    const settleDuration = gsapDuration.slow * (1 - SQUASH_PORTION);
 
     timeline.to(
       sweep,
       { scaleX: 1, duration: gsapDuration.slow, ease: gsapEasing.settle },
       0
     );
-    timeline.to(
-      thumb,
-      {
-        scaleX: THUMB_STRETCH_X,
-        scaleY: THUMB_SQUASH_Y,
-        duration: squashDuration,
-        ease: gsapEasing.exit,
-      },
-      0
-    );
-    // 이동(snap)과 눌림 복원(spring)은 같은 구간에서 겹친다 — 의도된 겹침이다.
-    timeline.to(
-      thumb,
-      {
-        x: styles.thumbOffset[size],
-        duration: settleDuration,
-        ease: gsapEasing.snap,
-      },
-      squashDuration
-    );
-    timeline.to(
-      thumb,
-      {
-        scaleX: 1,
-        scaleY: 1,
-        duration: settleDuration,
-        ease: gsapEasing.spring,
-      },
-      squashDuration
-    );
+    addThumbMotion(timeline, thumb, styles.thumbOffset[size], {
+      scaleX: THUMB_SWELL_X,
+      scaleY: THUMB_SWELL_Y,
+    });
 
     return timeline;
   });
@@ -99,17 +134,24 @@ const buildOffTimeline = (
 ): gsap.core.Timeline =>
   gateMotion(reduced, () => {
     const timeline = gsap.timeline({ defaults: { overwrite: 'auto' } });
-    const duration = gsapDuration.slow * EXIT_RATIO;
 
-    // 역재생하지 않는다(Ruling 41) — squash 없이 exit 이징 하나로 짧게 빠진다.
-    // scaleX/scaleY도 같이 1로 되돌린다(Ruling 77) — on 타임라인이 스쿼시
-    // 구간에서 끊기고 곧장 off로 넘어오면 눌린 채 정지할 수 있어서다.
+    // 역재생하지 않는다(Ruling 41). 스윕은 지금 길이의 exit으로 빠지고, 머리는
+    // 켜짐과 같은 늘임으로 출발한다. 머리 타임라인이 길어도 스윕 길이는 그대로다.
+    // scale을 1로 되돌리는 트윈이 머리 움직임에 들어 있어서, on 타임라인이
+    // 눌림 구간에서 끊겨도 눌린 채 정지하지 않는다(Ruling 77).
     timeline.to(
-      thumb,
-      { x: 0, scaleX: 1, scaleY: 1, duration, ease: gsapEasing.exit },
+      sweep,
+      {
+        scaleX: 0,
+        duration: gsapDuration.slow * EXIT_RATIO,
+        ease: gsapEasing.exit,
+      },
       0
     );
-    timeline.to(sweep, { scaleX: 0, duration, ease: gsapEasing.exit }, 0);
+    addThumbMotion(timeline, thumb, 0, {
+      scaleX: THUMB_SHRINK,
+      scaleY: THUMB_SHRINK,
+    });
 
     return timeline;
   });
@@ -321,7 +363,9 @@ export const Switch = forwardRef<HTMLInputElement, SwitchProps>(
               {...rest}
               onChange={handleChange}
             />
-            <span className={styles.thumbSize[size]} ref={thumbRef} />
+            <span className={styles.thumbSize[size]} ref={thumbRef}>
+              <span className={styles.thumbFace} />
+            </span>
           </div>
         </label>
 
