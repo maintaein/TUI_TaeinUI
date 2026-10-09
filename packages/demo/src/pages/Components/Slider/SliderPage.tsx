@@ -25,7 +25,7 @@ export function SliderPage() {
       type: "'default' | 'bar' | 'wake'",
       default: "'default'",
       description:
-        '모양. bar는 머리 없이 채움 막대가 값이고, wake는 눈금 막대가 머리 뒤로 물결친다',
+        '모양. default와 bar는 끌면 머리 둘레의 선이 속도에 비례해 부풀어 물결치고(뒤쪽으로 길게) 멈추면 매끈해진다. bar는 머리 없이 채움 막대가 값이고, wake는 그 물결을 눈금 막대로 보여 준다',
     },
     {
       name: 'min',
@@ -236,7 +236,7 @@ const [lg, setLg] = useState(70);
           <h3 className={styles.exampleTitle}>Variants</h3>
           <LivePreview
             title="변형"
-            description="마우스를 올리면 라인이 탄성 있게 두꺼워지고 머리가 부풉니다. bar는 머리 없이 막대가 값을 보여 주고, wake는 눈금 막대가 머리를 따라 물결칩니다(움직임 줄이기 설정에서는 물결이 없습니다)."
+            description="끌면 머리 둘레의 선이 속도에 비례해 부풀어 물결치고(뒤쪽으로 길게), 멈추면 매끈해집니다. 마우스를 올리면 라인이 탄성 있게 두꺼워지고 머리가 부풉니다. bar는 머리 없이 막대가 값을 보여 주고, wake는 그 물결을 눈금 막대로 보여 줍니다(움직임 줄이기 설정에서는 물결이 없습니다)."
             editable
             code={`const [a, setA] = useState(40);
 const [b, setB] = useState(60);

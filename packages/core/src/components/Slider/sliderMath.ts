@@ -86,3 +86,112 @@ export function waveLift(
 export function waveScale(lift: number): number {
   return WAKE_REST_SCALE + lift * (1 - WAKE_REST_SCALE);
 }
+
+// default·bar 라인. 라인 자체가 머리 둘레에서 부푼다. 물결 식(`waveAmp`, `waveLift`)은
+// wake와 같고, 막대 단위가 아니라 px 단위로 연속이다.
+
+/** 라인 두께(px). 쉬는 두께와 마우스를 올린 두께. bar는 머리가 없어 조금 두껍다. */
+export const LINE_REST = 6;
+export const LINE_HOVER = 9;
+export const LINE_BAR_REST = 8;
+export const LINE_BAR_HOVER = 12;
+
+/** 물결이 부풀릴 수 있는 최대 두께(px). */
+export const LINE_WAVE_MAX = 20;
+
+/** 라인을 그리는 SVG의 높이(px)와 그 가운데. 최대 두께가 들어가고도 남는다. */
+export const LINE_BOX_HEIGHT = 24;
+const LINE_CENTER = LINE_BOX_HEIGHT / 2;
+
+/** 두께를 재는 x 간격(px). */
+const LINE_STEP_PX = 2;
+
+/** 폭을 아직 모를 때(SSR·첫 렌더) 쓰는 폭(px). */
+export const LINE_DEFAULT_WIDTH = 200;
+
+/** 네이티브 머리 폭(px). 머리 중심은 (폭 - 머리 폭) 위를 움직인다. */
+export const THUMB_PX = 24;
+
+/**
+ * 머리에서 `d`px 떨어진 곳의 라인 두께. `base`는 바탕 두께(쉬는 두께 또는
+ * 호버 두께)이고 물결이 `LINE_WAVE_MAX`까지 부풀린다. `waveLift`의 `gap`을 1로
+ * 두어 반경을 px 그대로 쓴다.
+ */
+export function lineThickness(
+  d: number,
+  dir: number,
+  amp: number,
+  base: number
+): number {
+  return base + waveLift(d, dir, amp, 1) * (LINE_WAVE_MAX - base);
+}
+
+const round2 = (v: number): number => +v.toFixed(2);
+
+/**
+ * 두께 함수로 그린 알약 모양 닫힌 경로. 위·아래 가장자리를 2px 간격으로 재고
+ * 양끝은 그 끝 두께의 반원이다. `inset`만큼 안쪽으로 들여 그린다(SVG 선은
+ * 가운데에 그려지니 1px 테두리는 0.5 들인 경로에 그린다). 시계 방향.
+ */
+export function linePath(
+  width: number,
+  thickAt: (x: number) => number,
+  inset = 0
+): string {
+  const half = (x: number): number => Math.max(thickAt(x) / 2 - inset, 0);
+  const rL = half(0);
+  const rR = half(width);
+  const xL = inset + rL;
+  const xR = Math.max(width - inset - rR, xL);
+  const xs: number[] = [];
+  for (let x = xL + LINE_STEP_PX; x < xR; x += LINE_STEP_PX) xs.push(x);
+  const hs = xs.map(half);
+  const c = LINE_CENTER;
+  const pt = (x: number, y: number): string => `${round2(x)},${round2(y)}`;
+  return [
+    `M${pt(xL, c - rL)}`,
+    ...xs.map((x, i) => `L${pt(x, c - hs[i])}`),
+    `L${pt(xR, c - rR)}`,
+    `A${round2(rR)},${round2(rR)} 0 0 1 ${pt(xR, c + rR)}`,
+    ...xs.map((x, i) => `L${pt(x, c + hs[i])}`).reverse(),
+    `L${pt(xL, c + rL)}`,
+    `A${round2(rL)},${round2(rL)} 0 0 1 ${pt(xL, c - rL)}`,
+    'Z',
+  ].join('');
+}
+
+export interface LineState {
+  /** 라인 폭(px) */
+  width: number;
+  /** 값의 위치(트랙 %) */
+  fillPct: number;
+  /** 채움 끝을 둥글게 한다(bar). 아니면 값 위치에서 곧게 잘린다. */
+  roundEnd: boolean;
+  /** 바탕 두께(px) */
+  base: number;
+  /** 머리 위치(트랙 %), 가는 방향(1 또는 -1), 물결 세기 0~1 */
+  headPct: number;
+  dir: number;
+  amp: number;
+}
+
+/**
+ * 라인 상태 -> 그림. `track`은 안 채운 알약(1px 테두리를 따라 0.5 들인 경로),
+ * `fill`은 채운 알약의 바깥 모양, `clip`은 채움을 자르는 x(px)다. 채움은 값
+ * 위치에서 잘린다. bar는 채움 모양 자체가 값 위치에서 둥글게 끝난다.
+ */
+export function lineShapes(s: LineState): {
+  track: string;
+  fill: string;
+  clip: number;
+} {
+  const headX = THUMB_PX / 2 + (s.headPct / 100) * (s.width - THUMB_PX);
+  const thickAt = (x: number): number =>
+    lineThickness(x - headX, s.dir, s.amp, s.base);
+  const clip = clamp((s.width * s.fillPct) / 100, 0, s.width);
+  return {
+    track: linePath(s.width, thickAt, 0.5),
+    fill: linePath(s.roundEnd ? clip : s.width, thickAt),
+    clip,
+  };
+}

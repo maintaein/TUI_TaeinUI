@@ -1,21 +1,19 @@
 import { style, styleVariants } from '@vanilla-extract/css';
 import { themeContract } from '../../tokens/theme.css';
 import { focusRing } from '../../tokens/focusRing.css';
-import { WAKE_BAR_MAX_HEIGHT, WAKE_REST_SCALE } from './sliderMath';
+import {
+  LINE_BAR_REST,
+  LINE_BOX_HEIGHT,
+  LINE_REST,
+  WAKE_BAR_MAX_HEIGHT,
+  WAKE_REST_SCALE,
+} from './sliderMath';
 
 /** 마우스(호버·정밀 포인터)에서만. 터치에는 호버가 없다. */
 const HOVER_GATE = '(hover: hover) and (pointer: fine)';
 
 /** 호버로 크기가 바뀌는 규칙은 움직임 축소 모드에서 빠진다(색·그림자는 남는다). */
 const HOVER_GROW_GATE = `${HOVER_GATE} and (prefers-reduced-motion: no-preference)`;
-
-/** 트랙 두께. 호버하면 1.5배(ElasticSlider 6 -> 12의 배율을 우리 크기에). */
-const TRACK_HEIGHT = '6px';
-const TRACK_HOVER_HEIGHT = '9px';
-
-/** bar 변형은 머리가 없어 채움 막대가 값이므로 트랙이 조금 더 두껍다. */
-const BAR_TRACK_HEIGHT = '8px';
-const BAR_TRACK_HOVER_HEIGHT = '12px';
 
 /** 호버하면 머리가 부푸는 배율. 잡는 동안(:active)도 같다. */
 const THUMB_HOVER_SCALE = 1.15;
@@ -75,78 +73,51 @@ export const variantStyles = styleVariants({
   wake: {},
 });
 
-// Slider Track (background)
+// Slider Track. 라인은 안에 든 SVG가 그린다. 이 요소는 라인 두께와 같은 높이로
+// 가운데에 서서 bar의 포커스 링을 두를 자리가 된다. 높이는 호버·물결 때 JS가
+// 인라인으로 쓰고(GSAP), 여기 값은 쉬는 두께(첫 렌더·SSR)다.
 export const sliderTrack = style({
   position: 'absolute',
   top: '50%',
   left: 0,
   right: 0,
-  height: TRACK_HEIGHT,
-  // 트랙의 임무는 그 위에 올라타는 것과 대비되는 것이다. fill(primary.main)과
-  // 썸 테두리가 어두우니 면은 연하게 두고, 식별성은 border.strong 경계선이
-  // 맡는다(SegmentedButtons·NumericSpinner 컨테이너와 같은 전략).
-  backgroundColor: themeContract.color.background.paper,
-  boxShadow: `inset 0 0 0 1px ${themeContract.color.border.strong}`,
-  // 알약. 반경을 크게 두면 높이가 6에서 9로 변해도 항상 끝이 반원이다.
+  height: `${LINE_REST}px`,
+  // 알약. 포커스 링이 라인 끝을 따라 둥글다.
   borderRadius: '999px',
   transform: 'translateY(-50%)',
   pointerEvents: 'none',
-  // fill이 이제 이 트랙의 자식이다(Ruling 22). fill 자신의 border-radius를 없애는
-  // 대신 트랙이 자르므로, scaleX가 0에 가까워져도 반지름이 트랙 높이의 절반을
-  // 넘어 찌그러지는 일이 없다. 트랙의 알약 반경이 스케일 없이 그대로 캡이 된다.
-  overflow: 'hidden',
-  // height는 합성 속성이 아니라 레이아웃을 건드리지만, 트랙은 absolute에 가운데
-  // 정렬(translateY -50%)이라 주변을 밀지 않고 위아래로 고르게 두꺼워진다.
-  // 알약을 scaleY로 늘리면 끝 반원이 일그러져서 height를 전이한다. 나올 때는
-  // 이 기본 전이(base settle)가 쓰인다.
-  transition: `height ${themeContract.animation.duration.base} ${themeContract.animation.easing.settle}`,
   selectors: {
-    [`${variantStyles.bar} &`]: { height: BAR_TRACK_HEIGHT },
+    [`${variantStyles.bar} &`]: { height: `${LINE_BAR_REST}px` },
     // 머리가 없으니 키보드 포커스는 트랙 둘레의 링이 알린다.
     [`${variantStyles.bar}:has(input:focus-visible) &`]: { ...focusRing() },
   },
-  '@media': {
-    [HOVER_GROW_GATE]: {
-      selectors: {
-        [`${sliderWrapper}:has(input:not(:disabled)):hover &`]: {
-          height: TRACK_HOVER_HEIGHT,
-          // 들어갈 때는 slow spring: height가 목표(9px, bar는 12px)를 살짝 넘었다
-          // 돌아온다. animationBoundary R46 허용 목록에 이유와 소유가 있다.
-          transition: `height ${themeContract.animation.duration.slow} ${themeContract.animation.easing.spring}`,
-        },
-        // bar는 12px. 변형 클래스를 하나 더 달아 위 기본 호버 규칙보다 특이도가 높다.
-        // 전이는 위 규칙의 것을 그대로 받는다(같은 커브).
-        [`${sliderWrapper}${variantStyles.bar}:has(input:not(:disabled)):hover &`]:
-          { height: BAR_TRACK_HOVER_HEIGHT },
-      },
-    },
-  },
 });
 
-// Slider Fill Track (filled portion)
-export const sliderFillTrack = style({
+// 라인 SVG. 최대 두께가 들어가고도 남는 높이로 트랙 가운데에 얹는다. 두께는 경로가
+// 정하므로 박스 밖으로 부풀어도 잘리지 않는다.
+export const sliderLine = style({
+  position: 'absolute',
+  left: 0,
+  top: '50%',
   width: '100%',
-  height: '100%',
-  backgroundColor: themeContract.color.primary.main,
-  // scaleX(var(...))는 JS가 매 프레임 쓰는 채움 비율이다. 위치·세로 정렬·둥근
-  // 캡은 이제 부모 트랙(overflow: hidden, 6px, 3px 반경) 소관이라 fill은
-  // scaleX 하나만 든다(Ruling 22 — 이전엔 translateY(-50%)와 합성해야 했다).
-  transform: 'scaleX(var(--slider-fill-scale, 0))',
-  transformOrigin: 'left center',
-  pointerEvents: 'none',
-  // width가 아닌 transform을 전이하므로 컴포지터에서 처리되어 레이아웃 재계산이
-  // 없다. 0.05s는 드래그 중 fill이 thumb를 프레임 단위로 따라붙게 하려는 의도된
-  // 값이라 duration 토큰으로 올리지 않는다(T8 하드코딩 duration 검사의 의도된 예외).
-  transition: 'transform 0.05s ease-out',
-  selectors: {
-    // bar: 막대 끝이 트랙 끝처럼 둥글다. scaleX는 둥근 끝을 납작하게 눌러서
-    // 같은 폭의 막대를 왼쪽으로 밀어 넣는(translateX) 식으로 채운다.
-    // 100%는 이 요소의 폭이라 트랙 폭과 같다.
-    [`${variantStyles.bar} &`]: {
-      borderRadius: '999px',
-      transform: 'translateX(calc((var(--slider-fill-scale, 0) - 1) * 100%))',
-    },
-  },
+  height: `${LINE_BOX_HEIGHT}px`,
+  transform: 'translateY(-50%)',
+  overflow: 'visible',
+  display: 'block',
+});
+
+// 안 채운 부분. 트랙의 임무는 그 위에 올라타는 것과 대비되는 것이다. fill
+// (primary.main)과 썸 테두리가 어두우니 면은 연하게 두고, 식별성은 border.strong
+// 1px 경계선이 맡는다(SegmentedButtons·NumericSpinner 컨테이너와 같은 전략).
+export const sliderLineTrack = style({
+  fill: themeContract.color.background.paper,
+  stroke: themeContract.color.border.strong,
+  strokeWidth: 1,
+});
+
+// 채운 부분. 같은 모양을 값 위치에서 자르고 안 채운 부분 위에 얹는다(테두리까지 덮는다).
+export const sliderLineFill = style({
+  fill: themeContract.color.primary.main,
 });
 
 // Wake 막대 묶음. 막대 위치(left %)가 머리 중심과 맞도록 양끝을 머리 반폭(24px의

@@ -57,30 +57,35 @@ describe('Slider 생성 CSS', () => {
   // 모듈을 최소 한 번 참조해 vanilla-extract가 CSS를 생성/주입하게 만든다.
   void SliderCss;
 
-  it('fill 트랙이 width가 아니라 transform(scaleX)으로 움직인다', () => {
+  it('라인은 SVG가 그린다: 안 채운 부분은 paper 면에 border.strong 1px 선, 채운 부분은 primary.main 면', () => {
     const sheet = findSliderStyleSheet();
-    const fillRule = findRule(sheet, 'sliderFillTrack');
+    const track = findRule(sheet, 'sliderLineTrack');
+    const fill = findRule(sheet, 'sliderLineFill');
 
-    expect(fillRule.style.width).toBe('100%');
-    expect(fillRule.style.transform).toContain('scaleX(var(');
-    expect(fillRule.style.transition).toContain('transform');
-    expect(fillRule.style.transition).not.toContain('width');
+    expect(track.style.getPropertyValue('fill')).toBe(
+      themeContract.color.background.paper
+    );
+    expect(track.style.getPropertyValue('stroke')).toBe(
+      themeContract.color.border.strong
+    );
+    expect(track.style.getPropertyValue('stroke-width')).toBe('1');
+    expect(fill.style.getPropertyValue('fill')).toBe(
+      themeContract.color.primary.main
+    );
   });
 
-  it('트랙이 overflow: hidden으로 자식 fill의 캡을 자른다 (Ruling 22)', () => {
-    const sheet = findSliderStyleSheet();
-    const trackRule = findRule(sheet, 'sliderTrack');
-
-    expect(trackRule.style.overflow).toBe('hidden');
-  });
-
-  it('fill은 트랙 안에 들어가면서 절대 위치·borderRadius를 잃는다 (Ruling 22)', () => {
-    const sheet = findSliderStyleSheet();
-    const fillRule = findRule(sheet, 'sliderFillTrack');
-
-    expect(fillRule.style.position).not.toBe('absolute');
-    expect(fillRule.style.getPropertyValue('border-radius')).toBe('');
-    expect(fillRule.style.height).toBe('100%');
+  it('SVG는 박스 밖으로 부풀어도 잘리지 않고, 옛 DOM 채움·가림은 없다', () => {
+    expect(
+      findRule(findSliderStyleSheet(), 'sliderLine').style.getPropertyValue(
+        'overflow'
+      )
+    ).toBe('visible');
+    expect('sliderFillTrack' in SliderCss).toBe(false);
+    expect(
+      findRule(findSliderStyleSheet(), 'sliderTrack').style.getPropertyValue(
+        'overflow'
+      )
+    ).toBe('');
   });
 
   it('잡을 때 나오던 눈금 스타일이 없다', () => {
@@ -117,36 +122,20 @@ describe('Slider 생성 CSS', () => {
       }
     });
 
-    it('rest 트랙은 6px이고 height를 base settle로 전이한다', () => {
+    it('트랙은 쉬는 두께 6px이고 CSS로 전이하지 않는다: 호버 두께는 GSAP이 맡는다', () => {
       const rule = findRule(findSliderStyleSheet(), 'sliderTrack');
 
       expect(rule.style.getPropertyValue('height')).toBe('6px');
-      expect(rule.style.getPropertyValue('transition')).toContain('height');
-      expect(rule.style.getPropertyValue('transition')).toContain(
-        duration.base
-      );
-      expect(rule.style.getPropertyValue('transition')).toContain(
-        easing.settle
-      );
+      expect(rule.style.getPropertyValue('transition')).toBe('');
     });
 
-    it('호버하면 트랙이 9px로 두꺼워진다: height 전이, 들어갈 때 slow spring', () => {
-      const [track] = hovers(/Slider_sliderTrack__\w+$/);
-
-      expect(track).toBeDefined();
-      expect(track.rule.style.getPropertyValue('height')).toBe('9px');
-      expect(track.media).toContain(MOTION_OK);
-      expect(track.rule.style.getPropertyValue('transition')).toContain(
-        'height'
-      );
-      expect(track.rule.style.getPropertyValue('transition')).toContain(
-        duration.slow
-      );
-      // 탄성이 있다. animationBoundary R46 허용 목록에 항목이 있다.
-      expect(track.rule.style.getPropertyValue('transition')).toContain(
-        `height ${duration.slow} ${easing.spring}`
-      );
-      expect(track.rule.style.getPropertyValue('transform')).toBe('');
+    it('트랙에는 호버 규칙이 없다 (머리와 포커스만 CSS)', () => {
+      expect(hovers(/Slider_sliderTrack__\w+$/)).toHaveLength(0);
+      for (const { rule } of flatRules()) {
+        if (/Slider_sliderTrack__\w+$/.test(rule.selectorText)) {
+          expect(rule.style.getPropertyValue('transition')).toBe('');
+        }
+      }
     });
 
     it.each([['webkit-slider-thumb'], ['moz-range-thumb']])(
@@ -233,7 +222,7 @@ describe('Slider 생성 CSS', () => {
       }
     });
 
-    it('트랙은 8px이고 호버하면 12px로 두꺼워진다(마우스 게이트 안)', () => {
+    it('트랙은 쉬는 두께 8px이고 호버 규칙이 없다(12px는 GSAP이 맡는다)', () => {
       const rest = own(
         new RegExp(`${BAR.source} \\.Slider_sliderTrack__\\w+$`)
       );
@@ -243,15 +232,7 @@ describe('Slider 생성 CSS', () => {
 
       expect(rest).toHaveLength(1);
       expect(rest[0].rule.style.getPropertyValue('height')).toBe('8px');
-      expect(hover).toHaveLength(1);
-      expect(hover[0].rule.style.getPropertyValue('height')).toBe('12px');
-      expect(hover[0].media).toContain('(hover: hover) and (pointer: fine)');
-      expect(hover[0].media).toContain(
-        '(prefers-reduced-motion: no-preference)'
-      );
-      expect(hover[0].rule.selectorText).toContain('input:not(:disabled)');
-      // 전이는 기본 호버 규칙(slow spring)이 같은 요소에 이미 걸려 있어 따로 적지 않는다.
-      expect(hover[0].rule.style.getPropertyValue('transition')).toBe('');
+      expect(hover).toHaveLength(0);
     });
 
     it('키보드 포커스면 머리가 없으니 트랙 둘레에 포커스 링이 선다', () => {
@@ -265,20 +246,6 @@ describe('Slider 생성 CSS', () => {
       expect(ring[0].rule.style.getPropertyValue('outline')).toContain(
         themeContract.color.border.focus
       );
-    });
-
-    it('채움 막대 끝이 트랙 끝처럼 둥글고, scale이 아니라 translateX로 움직여 모양이 일그러지지 않는다', () => {
-      const fill = own(
-        new RegExp(`${BAR.source} \\.Slider_sliderFillTrack__\\w+$`)
-      );
-
-      expect(fill).toHaveLength(1);
-      expect(fill[0].rule.style.getPropertyValue('border-radius')).toBe(
-        '999px'
-      );
-      const transform = fill[0].rule.style.getPropertyValue('transform');
-      expect(transform).toContain('translateX(');
-      expect(transform).not.toMatch(/scale[XY]?\(/);
     });
   });
 

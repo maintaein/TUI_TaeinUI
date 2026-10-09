@@ -550,7 +550,7 @@ interface Exception {
 }
 
 /**
- * 리터럴 이징 8줄 15건 4파일(`.css.ts`) + 인라인 현재 0건 — 양성 표본 상실은 M7 항목(`.tsx`).
+ * 리터럴 이징 7줄 14건 3파일(`.css.ts`) + 인라인 현재 0건, 양성 표본 상실은 M7 항목(`.tsx`).
  * BoardRow·Card·Chip은 M2 T3가, Loader·Skeleton은 M2 T3c가
  * 갚아 토큰으로 옮겨져 이 목록에서 빠졌다.
  *
@@ -604,24 +604,10 @@ const LITERAL_EASING_EXCEPTIONS: Exception[] = [
     owner: 'M2',
     reason: '선택된 세그먼트 transform·text-shadow 전이 곡선',
   },
-  {
-    at: 'components/Slider/Slider.css.ts',
-    values: ['ease-out'],
-    owner: 'M2',
-    reason: 'fill 추종 곡선. Task 4가 :87-89에 근거 주석을 남겼다',
-  },
 ];
 
 /** 리터럴 **duration**. 지연은 아래 목록이 따로 맡는다. */
-const LITERAL_DURATION_EXCEPTIONS: Exception[] = [
-  {
-    at: 'components/Slider/Slider.css.ts',
-    values: ['0.05s'],
-    owner: '-',
-    reason:
-      '드래그 중 fill이 thumb를 프레임 단위로 따라붙게 하는 의도된 값이다. 가장 짧은 duration 토큰(fast 150ms)도 세 프레임 늦는다',
-  },
-];
+const LITERAL_DURATION_EXCEPTIONS: Exception[] = [];
 
 /**
  * 리터럴 **지연**. 지연은 전이 속도가 아니라 한 컴포넌트 고유 연출의 내부
@@ -1199,12 +1185,13 @@ describe('리터럴 이징 잠금 (T8 · R32)', () => {
     );
   });
 
-  it('.css.ts 쪽 실측이 8줄 15건 4파일이다', () => {
+  it('.css.ts 쪽 실측이 7줄 14건 3파일이다', () => {
     // M3 T3d에서 11줄 20건 → 8줄 15건. SegmentedButtons의 activeIndicator 전이에서
-    // transform·width가 GSAP으로 넘어가며 리터럴 이징 3건이 사라졌다.
-    expect(new Set(cssEasings.map((e) => `${e.file}:${e.line}`)).size).toBe(8);
-    expect(cssEasings).toHaveLength(15);
-    expect(new Set(cssEasings.map((e) => e.file)).size).toBe(4);
+    // transform·width가 GSAP으로 넘어가며 리터럴 이징 3건이 사라졌다. M5 task-18에서
+    // Slider의 채움 전이(ease-out)가 SVG 경로로 바뀌며 1줄 1건 1파일이 더 사라졌다.
+    expect(new Set(cssEasings.map((e) => `${e.file}:${e.line}`)).size).toBe(7);
+    expect(cssEasings).toHaveLength(14);
+    expect(new Set(cssEasings.map((e) => e.file)).size).toBe(3);
   });
 
   it('.tsx 인라인 모션 대입까지 읽는다 (R39)', () => {
@@ -1306,26 +1293,6 @@ interface OvershootException {
  */
 const OVERSHOOT_TIMING_EXCEPTIONS: OvershootException[] = [];
 
-/**
- * `transform` 아닌 속성에 snap·spring을 건 transition 조각의 허용 목록. R46이
- * 막는 것은 opacity·색이 1에서 잘리는 인공물이다. 오버슈트해도 잘리지 않고
- * 그대로 그려지는 속성만 손으로 확인하고 올린다. `line`은 그 조각이 적힌 줄이다.
- */
-interface OvershootPropertyException extends OvershootException {
-  property: string;
-}
-
-const OVERSHOOT_PROPERTY_EXCEPTIONS: OvershootPropertyException[] = [
-  {
-    at: 'components/Slider/Slider.css.ts',
-    line: 115,
-    property: 'height',
-    owner: 'M5 task-18',
-    reason:
-      'Slider 트랙 호버의 height. R46이 막는 것은 opacity·색이 1에서 잘리는 인공물이다. height 넘침(6 -> 9px에서 약 9.6px)은 잘리지 않고 그대로 그려진다.',
-  },
-];
-
 // ---------------------------------------------------------------------------
 // 4. 오버슈트 이징 (R46)
 // ---------------------------------------------------------------------------
@@ -1349,17 +1316,7 @@ describe('오버슈트 이징 경계 (R46)', () => {
       for (const segment of decl.segments) {
         if (!OVERSHOOT.test(segment.text)) continue;
         if (segment.property !== 'transform') {
-          const allowed = OVERSHOOT_PROPERTY_EXCEPTIONS.some(
-            (e) =>
-              e.at === decl.file &&
-              e.line === segment.line &&
-              e.property === segment.property
-          );
-          if (!allowed) {
-            violations.push(
-              `${decl.file}:${segment.line} (${segment.property})`
-            );
-          }
+          violations.push(`${decl.file}:${segment.line} (${segment.property})`);
         }
       }
     }
@@ -1377,26 +1334,6 @@ describe('오버슈트 이징 경계 (R46)', () => {
       }
     }
     expect(violations).toEqual([]);
-  });
-
-  it('속성 허용 목록의 항목은 모두 실제 소스의 비 transform 오버슈트 조각이다', () => {
-    const OVERSHOOT = /animation\.easing\.(?:snap|spring)/;
-    const hits = ALL_DECLS.filter((d) => d.property === 'transition').flatMap(
-      (d) =>
-        d.segments
-          .filter((s) => OVERSHOOT.test(s.text) && s.property !== 'transform')
-          .map((s) => ({ file: d.file, line: s.line, property: s.property }))
-    );
-    for (const e of OVERSHOOT_PROPERTY_EXCEPTIONS) {
-      expect(
-        hits.some(
-          (h) =>
-            h.file === e.at && h.line === e.line && h.property === e.property
-        ),
-        `${e.at}:${e.line} (${e.property})가 더는 오버슈트 조각이 아니다: 허용 목록에서 빼라`
-      ).toBe(true);
-    }
-    expect(hits).toHaveLength(OVERSHOOT_PROPERTY_EXCEPTIONS.length);
   });
 
   it('bare 오버슈트 타이밍 허용 목록이 실제 소스와 정확히 일치한다', () => {

@@ -42,7 +42,7 @@ const meta = {
       control: 'select',
       options: ['default', 'bar', 'wake'],
       description:
-        '모양. bar는 머리 없이 막대가 값, wake는 눈금 막대가 물결친다',
+        '모양. default와 bar는 끌면 머리 둘레 선이 부풀어 물결친다. bar는 머리 없이 막대가 값, wake는 그 물결을 눈금 막대로 보여 준다',
     },
     showValue: {
       control: 'boolean',

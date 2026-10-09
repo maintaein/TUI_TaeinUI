@@ -4,12 +4,21 @@ import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { Slider } from './Slider';
 import {
+  LINE_BAR_HOVER,
+  LINE_BAR_REST,
+  LINE_BOX_HEIGHT,
+  LINE_DEFAULT_WIDTH,
+  LINE_HOVER,
+  LINE_REST,
+  LINE_WAVE_MAX,
+  THUMB_PX,
   WAKE_DEFAULT_BARS,
   waveAmp,
   waveLift,
   waveScale,
   WAKE_REST_SCALE,
 } from './sliderMath';
+import { gsapDuration, gsapEasing } from '../../tokens/gsapEasing';
 import { VALUE_FOLLOWER_PERCENT_VAR } from './Slider.css';
 
 /**
@@ -30,6 +39,7 @@ type WakeBarsHost = HTMLDivElement & {
   __wakeTick?: (time: number, deltaMs: number) => void;
   __wakeHead?: { pct: number };
   __wakeHeadTween?: gsap.core.Tween;
+  __hoverTween?: gsap.core.Tween;
 };
 
 const getWakeHost = (container: HTMLElement): WakeBarsHost | null =>
@@ -37,6 +47,51 @@ const getWakeHost = (container: HTMLElement): WakeBarsHost | null =>
 
 const getWakeBars = (container: HTMLElement): HTMLElement[] =>
   Array.from(container.querySelectorAll<HTMLElement>('[class*="wakeBar__"]'));
+
+/** default·bar의 트랙 요소. 라인 SVG를 품고, 물결 손잡이가 달린다. */
+const getLineHost = (container: HTMLElement): WakeBarsHost | null =>
+  container.querySelector('[class*="sliderTrack__"]') as WakeBarsHost | null;
+
+// jsdom에는 PointerEvent가 없다. React는 이름이 맞으면 받으므로 MouseEvent에
+// pointerType을 얹어 쏜다. React의 enter/leave는 over/out에서 만들어진다.
+const pointer = (
+  el: HTMLElement,
+  type: 'pointerover' | 'pointerout',
+  pointerType = 'mouse'
+) =>
+  act(() => {
+    const event = new MouseEvent(type, { bubbles: true });
+    Object.defineProperty(event, 'pointerType', { value: pointerType });
+    el.dispatchEvent(event);
+  });
+
+const getLine = (container: HTMLElement) => ({
+  svg: container.querySelector('svg') as SVGSVGElement,
+  track: container.querySelector(
+    '[class*="sliderLineTrack__"]'
+  ) as SVGPathElement,
+  fill: container.querySelector(
+    '[class*="sliderLineFill__"]'
+  ) as SVGPathElement,
+  clip: container.querySelector('rect') as SVGRectElement,
+});
+
+/** 경로의 M·L 점들. 호(A)의 끝점은 L이나 M이 아니라 A 뒤에 오므로 빠진다. */
+const pathPoints = (d: string): { x: number; y: number }[] =>
+  [...d.matchAll(/[ML]([\d.-]+),([\d.-]+)/g)].map((m) => ({
+    x: Number(m[1]),
+    y: Number(m[2]),
+  }));
+
+/** 안쪽 여백이 0인 경로의 위쪽 가장자리 점들의 두께(가운데선 12에서 2배). */
+const thicknessProfile = (d: string): { x: number; t: number }[] =>
+  pathPoints(d)
+    .filter(({ y }) => y < LINE_BOX_HEIGHT / 2)
+    .map(({ x, y }) => ({ x, t: 2 * (LINE_BOX_HEIGHT / 2 - y) }));
+
+/** 폭을 모를 때(jsdom) 머리 중심의 x(px). 머리 중심은 (폭 - 머리 폭) 위를 움직인다. */
+const headCenterX = (pct: number, width = LINE_DEFAULT_WIDTH): number =>
+  THUMB_PX / 2 + (pct / 100) * (width - THUMB_PX);
 
 // gsap 네임스페이스는 ambient 전역 타입이라 import 없이 참조된다
 // (Checkbox.test.tsx·Switch.test.tsx와 같은 방식). ticker의 리스너 수는 실제
@@ -487,17 +542,20 @@ describe('Slider', () => {
   });
 
   describe('trackColor prop 테스트', () => {
-    it('기본 fill 트랙이 렌더링된다', () => {
+    it('기본 fill 모양이 렌더링되고 값 위치에서 잘린다', () => {
       const { container } = render(
         <Slider label="슬라이더" value={50} onChange={() => {}} />
       );
 
-      const fillTrack = container.querySelector('[class*="sliderFillTrack"]');
-      expect(fillTrack).toBeInTheDocument();
-      expect(fillTrack).toHaveStyle({ '--slider-fill-scale': '0.5' });
+      const { fill, clip } = getLine(container);
+      expect(fill).toBeInTheDocument();
+      expect(Number(clip.getAttribute('width'))).toBe(LINE_DEFAULT_WIDTH / 2);
+      expect(fill.getAttribute('clip-path')).toBe(
+        `url(#${clip.parentElement!.id})`
+      );
     });
 
-    it('trackColor로 fill 트랙 색상을 변경할 수 있다', () => {
+    it('trackColor로 fill 색상을 변경할 수 있다 (안 채운 부분은 그대로)', () => {
       const { container } = render(
         <Slider
           label="슬라이더"
@@ -507,11 +565,12 @@ describe('Slider', () => {
         />
       );
 
-      const fillTrack = container.querySelector('[class*="sliderFillTrack"]');
-      expect(fillTrack).toHaveStyle({ backgroundColor: '#ff0000' });
+      const { fill, track } = getLine(container);
+      expect(fill.style.fill).toBe('#ff0000');
+      expect(track.style.fill).toBe('');
     });
 
-    it('value가 min일 때 fill 채움 비율이 0이다', () => {
+    it('value가 min일 때 fill이 잘려 보이지 않는다 (폭 0)', () => {
       const { container } = render(
         <Slider
           label="슬라이더"
@@ -522,11 +581,10 @@ describe('Slider', () => {
         />
       );
 
-      const fillTrack = container.querySelector('[class*="sliderFillTrack"]');
-      expect(fillTrack).toHaveStyle({ '--slider-fill-scale': '0' });
+      expect(Number(getLine(container).clip.getAttribute('width'))).toBe(0);
     });
 
-    it('value가 max일 때 fill 채움 비율이 1이다', () => {
+    it('value가 max일 때 fill이 트랙 전체를 덮는다 (폭 전부)', () => {
       const { container } = render(
         <Slider
           label="슬라이더"
@@ -537,8 +595,9 @@ describe('Slider', () => {
         />
       );
 
-      const fillTrack = container.querySelector('[class*="sliderFillTrack"]');
-      expect(fillTrack).toHaveStyle({ '--slider-fill-scale': '1' });
+      expect(Number(getLine(container).clip.getAttribute('width'))).toBe(
+        LINE_DEFAULT_WIDTH
+      );
     });
   });
 
@@ -844,14 +903,18 @@ describe('Slider', () => {
       expect(getFollower(container)).toBeInTheDocument();
     });
 
-    it('fill이 트랙의 자식으로 중첩된다', () => {
+    it('라인 SVG가 트랙의 자식이고 보조기술에는 숨겨진다', () => {
       const { container } = render(
         <Slider label="슬라이더" value={50} onChange={() => {}} />
       );
-      const track = container.querySelector('[class*="sliderTrack__"]');
-      const fill = container.querySelector('[class*="sliderFillTrack__"]');
+      const { svg, track, fill } = getLine(container);
 
-      expect(track).toContainElement(fill as HTMLElement);
+      expect(getLineHost(container)).toContainElement(
+        svg as unknown as HTMLElement
+      );
+      expect(svg).toContainElement(track as unknown as HTMLElement);
+      expect(svg).toContainElement(fill as unknown as HTMLElement);
+      expect(svg).toHaveAttribute('aria-hidden', 'true');
     });
   });
 
@@ -889,11 +952,10 @@ describe('Slider', () => {
       const { container } = render(
         <Slider label="슬라이더" variant="bar" value={50} onChange={() => {}} />
       );
-      const fill = container.querySelector(
-        '[class*="sliderFillTrack__"]'
-      ) as HTMLElement;
 
-      expect(fill.style.getPropertyValue('--slider-fill-scale')).toBe('0.5');
+      expect(Number(getLine(container).clip.getAttribute('width'))).toBe(
+        LINE_DEFAULT_WIDTH / 2
+      );
       fireEvent.pointerDown(screen.getByRole('slider'));
       expect(getFollower(container)).toBeInTheDocument();
     });
@@ -1242,19 +1304,9 @@ describe('Slider', () => {
       expect(tickerListeners()).toBe(before);
     });
 
-    it('wake가 아니면 티커를 붙이지 않는다', () => {
+    it('변형이 wake에서 default로 바뀌어도 티커는 하나다 (막대 쪽은 떼고 라인 쪽을 붙인다)', () => {
       const before = tickerListeners();
-      render(<Slider label="슬라이더" value={5} onChange={() => {}} />);
-      render(
-        <Slider label="슬라이더" variant="bar" value={5} onChange={() => {}} />
-      );
-
-      expect(tickerListeners()).toBe(before);
-    });
-
-    it('변형이 wake에서 default로 바뀌면 티커가 떼어진다', () => {
-      const before = tickerListeners();
-      const { rerender } = render(
+      const { container, rerender } = render(
         <Slider label="슬라이더" variant="wake" value={5} onChange={() => {}} />
       );
       rerender(
@@ -1266,7 +1318,355 @@ describe('Slider', () => {
         />
       );
 
+      expect(tickerListeners()).toBe(before + 1);
+      expect(getWakeHost(container)).not.toBeInTheDocument();
+    });
+  });
+
+  describe('default·bar 라인 물결과 호버 두께', () => {
+    afterEach(() => {
+      vi.unstubAllGlobals();
+    });
+
+    type LineVariant = 'default' | 'bar';
+    const lineJsx = (variant: LineVariant, value: number, extra = {}) => (
+      <Slider
+        label="슬라이더"
+        variant={variant}
+        value={value}
+        onChange={() => {}}
+        {...extra}
+      />
+    );
+    const fillProfile = (container: HTMLElement) =>
+      thicknessProfile(getLine(container).fill.getAttribute('d')!);
+    const peak = (profile: { t: number }[]) =>
+      Math.max(...profile.map(({ t }) => t));
+
+    /** 값을 from에서 to로 옮기고 머리 트윈을 progress까지 보낸 뒤 deltaMs짜리 한 프레임을 돌린다. */
+    const lineSwing = (
+      from: number,
+      to: number,
+      { progress = 0.5, deltaMs = 16, variant = 'default' as LineVariant } = {}
+    ) => {
+      const view = render(lineJsx(variant, from));
+      view.rerender(lineJsx(variant, to));
+      const host = getLineHost(view.container)!;
+      act(() => {
+        host.__wakeHeadTween!.progress(progress);
+      });
+      act(() => {
+        host.__wakeTick!(0, deltaMs);
+      });
+      return {
+        ...view,
+        host,
+        profile: fillProfile(view.container),
+        headX: headCenterX(host.__wakeHead!.pct),
+      };
+    };
+
+    it('쉬는 라인은 상수 두께 알약이다: default 6px, bar 8px, 끝은 반원', () => {
+      const flat = render(lineJsx('default', 50));
+      const { fill, track } = getLine(flat.container);
+
+      expect(
+        fillProfile(flat.container).every(({ t }) => t === LINE_REST)
+      ).toBe(true);
+      // 바깥 반지름 3, 1px 테두리를 따라 0.5 들인 안쪽 반지름 2.5
+      expect(fill.getAttribute('d')!.match(/A3,3 0 0 1/g)).toHaveLength(2);
+      expect(track.getAttribute('d')!.match(/A2\.5,2\.5 0 0 1/g)).toHaveLength(
+        2
+      );
+      expect(getLineHost(flat.container)!.style.height).toBe(`${LINE_REST}px`);
+      flat.unmount();
+
+      const bar = render(lineJsx('bar', 50));
+      expect(
+        fillProfile(bar.container).every(({ t }) => t === LINE_BAR_REST)
+      ).toBe(true);
+      expect(getLineHost(bar.container)!.style.height).toBe(
+        `${LINE_BAR_REST}px`
+      );
+    });
+
+    it('끄면 머리 둘레가 부풀되 최대 20px을 넘지 않는다', () => {
+      const { profile, headX } = lineSwing(20, 60);
+      const top = profile.reduce((a, b) => (b.t > a.t ? b : a));
+
+      expect(peak(profile)).toBeLessThanOrEqual(LINE_WAVE_MAX + 0.02);
+      expect(peak(profile)).toBeGreaterThan(LINE_WAVE_MAX - 1);
+      expect(Math.abs(top.x - headX)).toBeLessThanOrEqual(2);
+      // 머리에서 멀면 쉬는 두께다.
+      expect(profile[profile.length - 2].t).toBe(LINE_REST);
+    });
+
+    it('물결은 px 단위로 연속이다: 이웃 점의 두께 차가 작다', () => {
+      const { profile } = lineSwing(20, 60);
+
+      for (let i = 1; i < profile.length - 1; i++) {
+        expect(Math.abs(profile[i].t - profile[i - 1].t)).toBeLessThan(2.5);
+      }
+    });
+
+    it('오른쪽으로 가면 머리 뒤(왼쪽)가 앞(오른쪽)보다 넓게 부푼다', () => {
+      const { profile, headX } = lineSwing(20, 60);
+      const swollen = (side: (x: number) => boolean) =>
+        profile.filter(({ x, t }) => side(x) && t > LINE_REST + 0.5).length;
+
+      expect(swollen((x) => x < headX)).toBeGreaterThan(
+        swollen((x) => x > headX)
+      );
+    });
+
+    it('왼쪽으로 가면 앞뒤가 뒤집힌다', () => {
+      const { profile, headX } = lineSwing(60, 20);
+      const swollen = (side: (x: number) => boolean) =>
+        profile.filter(({ x, t }) => side(x) && t > LINE_REST + 0.5).length;
+
+      expect(swollen((x) => x > headX)).toBeGreaterThan(
+        swollen((x) => x < headX)
+      );
+    });
+
+    it('bar도 같은 물결이다: 바탕 두께 8px에서 20px까지', () => {
+      const { profile } = lineSwing(20, 60, { variant: 'bar' });
+
+      expect(peak(profile)).toBeGreaterThan(LINE_WAVE_MAX - 1);
+      expect(peak(profile)).toBeLessThanOrEqual(LINE_WAVE_MAX + 0.02);
+    });
+
+    it('속도에 비례한다: 같은 거리를 더 오래 걸리면 덜 부푼다', () => {
+      const fast = lineSwing(20, 60);
+      const fastPeak = peak(fast.profile);
+      fast.unmount();
+      const slow = lineSwing(20, 60, { deltaMs: 320 });
+
+      expect(peak(slow.profile)).toBeLessThan(fastPeak);
+      expect(peak(slow.profile)).toBeGreaterThan(LINE_REST);
+    });
+
+    it('멈추면 매끈한 쉬는 두께로 돌아가고, 이후 프레임은 경로를 다시 쓰지 않는다', () => {
+      const { host, container } = (() => {
+        const view = lineSwing(20, 60);
+        return { host: view.host, container: view.container };
+      })();
+      act(() => {
+        host.__wakeHeadTween!.progress(1);
+      });
+      act(() => {
+        host.__wakeTick!(0, 16); // 마지막 이동분
+      });
+      act(() => {
+        host.__wakeTick!(0, 16); // 속도 0
+      });
+
+      expect(fillProfile(container).every(({ t }) => t === LINE_REST)).toBe(
+        true
+      );
+
+      // 멈춘 프레임은 건너뛴다: 경로에 표지를 두면 다음 프레임이 덮지 않는다.
+      const { fill } = getLine(container);
+      fill.setAttribute('d', 'M0,0');
+      act(() => {
+        host.__wakeTick!(0, 16);
+      });
+      expect(fill.getAttribute('d')).toBe('M0,0');
+    });
+
+    it('키보드로 값이 바뀌어도 같은 물결이다 (잡지 않아도)', () => {
+      const { container } = render(
+        <Slider label="슬라이더" defaultValue={20} />
+      );
+      const host = getLineHost(container)!;
+
+      fireEvent.change(screen.getByRole('slider'), { target: { value: '60' } });
+      act(() => {
+        host.__wakeHeadTween!.progress(0.5);
+      });
+      act(() => {
+        host.__wakeTick!(0, 16);
+      });
+
+      expect(peak(fillProfile(container))).toBeGreaterThan(LINE_REST + 5);
+    });
+
+    it('채운 부분은 값 위치에서 잘린다: default는 곧게, bar는 둥글게', () => {
+      const flat = render(lineJsx('default', 30));
+      const flatLine = getLine(flat.container);
+      const flatXs = pathPoints(flatLine.fill.getAttribute('d')!).map(
+        (p) => p.x
+      );
+
+      expect(Number(flatLine.clip.getAttribute('width'))).toBe(
+        LINE_DEFAULT_WIDTH * 0.3
+      );
+      // 모양은 트랙 전체이고, 값 위치에서 clipPath가 자른다.
+      expect(Math.max(...flatXs)).toBeGreaterThan(LINE_DEFAULT_WIDTH - 4);
+      flat.unmount();
+
+      const bar = render(lineJsx('bar', 30));
+      const barLine = getLine(bar.container);
+      const barXs = pathPoints(barLine.fill.getAttribute('d')!).map((p) => p.x);
+
+      expect(Number(barLine.clip.getAttribute('width'))).toBe(
+        LINE_DEFAULT_WIDTH * 0.3
+      );
+      // 모양 자체가 값 위치에서 끝난다: 오른쪽 반원(반지름 4)이 값 위치에 닿는다.
+      expect(Math.max(...barXs) + LINE_BAR_REST / 2).toBe(
+        LINE_DEFAULT_WIDTH * 0.3
+      );
+      expect(barLine.fill.getAttribute('d')).toContain('A4,4 0 0 1');
+    });
+
+    it('값이 바뀌면 채움이 따라 바뀐다', () => {
+      const { container, rerender } = render(lineJsx('default', 30));
+      rerender(lineJsx('default', 80));
+
+      expect(Number(getLine(container).clip.getAttribute('width'))).toBe(
+        LINE_DEFAULT_WIDTH * 0.8
+      );
+    });
+
+    it('폭을 읽으면 viewBox와 채움이 그 폭에 맞는다', () => {
+      Object.defineProperty(HTMLElement.prototype, 'clientWidth', {
+        configurable: true,
+        get: () => 320,
+      });
+      try {
+        const { container } = render(lineJsx('default', 50));
+        const { svg, clip } = getLine(container);
+
+        expect(svg.getAttribute('viewBox')).toBe(`0 0 320 ${LINE_BOX_HEIGHT}`);
+        expect(Number(clip.getAttribute('width'))).toBe(160);
+      } finally {
+        delete (HTMLElement.prototype as { clientWidth?: number }).clientWidth;
+      }
+    });
+
+    it('티커는 default·bar도 마운트에 하나 붙고 언마운트에 떼어진다', () => {
+      const before = tickerListeners();
+      const view = render(lineJsx('default', 5));
+      const bar = render(lineJsx('bar', 5));
+
+      expect(tickerListeners()).toBe(before + 2);
+      view.unmount();
+      bar.unmount();
       expect(tickerListeners()).toBe(before);
+    });
+
+    it('축소 선호에서는 물결도 호버 두께도 없다: 티커도 트윈도 없고 쉬는 두께', () => {
+      installReducedMotion();
+      const before = tickerListeners();
+      const { container, rerender } = render(lineJsx('default', 20));
+      const host = getLineHost(container)!;
+
+      expect(tickerListeners()).toBe(before);
+      expect(host.__wakeTick).toBeUndefined();
+      expect(host.__wakeHeadTween).toBeUndefined();
+
+      rerender(lineJsx('default', 80));
+      pointer(screen.getByRole('slider').parentElement!, 'pointerover');
+      expect(host.__hoverTween).toBeUndefined();
+      expect(fillProfile(container).every(({ t }) => t === LINE_REST)).toBe(
+        true
+      );
+      expect(host.style.height).toBe(`${LINE_REST}px`);
+      // 값은 그대로 채움이 따른다.
+      expect(Number(getLine(container).clip.getAttribute('width'))).toBe(
+        LINE_DEFAULT_WIDTH * 0.8
+      );
+    });
+
+    describe('호버 두께 (GSAP)', () => {
+      const wrapperOf = (container: HTMLElement) =>
+        container.querySelector('[class*="sliderWrapper__"]') as HTMLElement;
+      const enter = (container: HTMLElement, pointerType = 'mouse') =>
+        pointer(wrapperOf(container), 'pointerover', pointerType);
+
+      it('마우스가 들어오면 바탕 두께가 slow spring 트윈으로 9px까지 간다', () => {
+        const { container } = render(lineJsx('default', 50));
+        const host = getLineHost(container)!;
+        enter(container);
+
+        const tween = host.__hoverTween!;
+        expect(tween).toBeDefined();
+        expect(tween.duration()).toBe(gsapDuration.slow);
+        expect(tween.vars.ease).toBe(gsapEasing.spring);
+        expect(tween.vars.base).toBe(LINE_HOVER);
+
+        act(() => {
+          tween.progress(1);
+        });
+        expect(host.style.height).toBe(`${LINE_HOVER}px`);
+        expect(fillProfile(container).every(({ t }) => t === LINE_HOVER)).toBe(
+          true
+        );
+      });
+
+      it('나가면 base settle 트윈으로 쉬는 두께 6px로 돌아간다', () => {
+        const { container } = render(lineJsx('default', 50));
+        const host = getLineHost(container)!;
+        enter(container);
+        act(() => {
+          host.__hoverTween!.progress(1);
+        });
+        pointer(wrapperOf(container), 'pointerout');
+
+        const tween = host.__hoverTween!;
+        expect(tween.duration()).toBe(gsapDuration.base);
+        expect(tween.vars.ease).toBe(gsapEasing.settle);
+        expect(tween.vars.base).toBe(LINE_REST);
+
+        act(() => {
+          tween.progress(1);
+        });
+        expect(host.style.height).toBe(`${LINE_REST}px`);
+      });
+
+      it('bar는 8px에서 12px까지 간다', () => {
+        const { container } = render(lineJsx('bar', 50));
+        const host = getLineHost(container)!;
+        enter(container);
+        act(() => {
+          host.__hoverTween!.progress(1);
+        });
+
+        expect(host.__hoverTween!.vars.base).toBe(LINE_BAR_HOVER);
+        expect(host.style.height).toBe(`${LINE_BAR_HOVER}px`);
+      });
+
+      it('호버 중에 값이 바뀌어도 두께가 쉬는 두께로 튕기지 않는다', () => {
+        const { container, rerender } = render(lineJsx('default', 50));
+        const host = getLineHost(container)!;
+        enter(container);
+        act(() => {
+          host.__hoverTween!.progress(1);
+        });
+        rerender(lineJsx('default', 70));
+
+        expect(host.style.height).toBe(`${LINE_HOVER}px`);
+      });
+
+      it('마우스만: 터치·펜은 두꺼워지지 않는다', () => {
+        for (const pointerType of ['touch', 'pen']) {
+          const { container, unmount } = render(lineJsx('default', 50));
+          enter(container, pointerType);
+
+          expect(getLineHost(container)!.__hoverTween).toBeUndefined();
+          unmount();
+        }
+      });
+
+      it('비활성이면 두꺼워지지 않는다', () => {
+        const { container } = render(
+          <Slider label="슬라이더" value={50} disabled onChange={() => {}} />
+        );
+        enter(container);
+
+        expect(getLineHost(container)!.__hoverTween).toBeUndefined();
+        expect(getLineHost(container)!.style.height).toBe(`${LINE_REST}px`);
+      });
     });
   });
 });

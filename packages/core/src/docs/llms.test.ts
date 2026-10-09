@@ -296,9 +296,11 @@ describe('컴포넌트가 실제로 합성하는 색 쌍', () => {
     return value as string;
   }
 
-  /** 블록 안에서 처음 나오는 backgroundColor의 토큰 참조 */
+  /** 블록 안에서 처음 나오는 면 색(backgroundColor, SVG는 fill)의 토큰 참조 */
   function firstBackground(block: string, label: string): string {
-    const ref = block.match(/backgroundColor: themeContract\.([\w.[\]]+)/)?.[1];
+    const ref = block.match(
+      /(?:backgroundColor|fill): themeContract\.([\w.[\]]+)/
+    )?.[1];
     expect(
       ref,
       `${label}의 backgroundColor가 토큰 참조가 아니다`
@@ -308,12 +310,12 @@ describe('컴포넌트가 실제로 합성하는 색 쌍', () => {
 
   it('Slider의 fill과 썸 테두리가 트랙 대비 3:1을 지킨다', () => {
     const track = firstBackground(
-      declBlock(SLIDER_CSS, 'sliderTrack'),
-      'sliderTrack'
+      declBlock(SLIDER_CSS, 'sliderLineTrack'),
+      'sliderLineTrack'
     );
     const fill = firstBackground(
-      declBlock(SLIDER_CSS, 'sliderFillTrack'),
-      'sliderFillTrack'
+      declBlock(SLIDER_CSS, 'sliderLineFill'),
+      'sliderLineFill'
     );
     expect(
       contrastRatio(tokenValue(fill), tokenValue(track)),
@@ -372,13 +374,15 @@ describe('컴포넌트가 실제로 합성하는 색 쌍', () => {
     // 트랙 면을 background.paper로 내리면 면 자체는 흰 페이지 대비 1.02:1이라
     // 안 보인다 — 1.4.11의 3:1을 넘기는 건 inset 경계선 쪽이다.
     const blocks: Record<string, string> = {
-      'Slider sliderTrack': declBlock(SLIDER_CSS, 'sliderTrack'),
+      'Slider sliderLineTrack': declBlock(SLIDER_CSS, 'sliderLineTrack'),
       'Loader bar': declBlock(LOADER_CSS, 'bar'),
     };
     for (const [label, block] of Object.entries(blocks)) {
-      const ring = block.match(
-        /boxShadow: `inset 0 0 0 1px \$\{themeContract\.([\w.]+)\}`/
-      )?.[1];
+      // Slider는 SVG 선(stroke), Loader는 inset 그림자.
+      const ringMatch = block.match(
+        /boxShadow: `inset 0 0 0 1px \$\{themeContract\.([\w.]+)\}`|stroke: themeContract\.([\w.]+)/
+      );
+      const ring = ringMatch?.[1] ?? ringMatch?.[2];
       expect(ring, `${label}에 inset 경계선이 없다`).toBe(
         'color.border.strong'
       );
