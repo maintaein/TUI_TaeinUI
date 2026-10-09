@@ -5,6 +5,7 @@ import {
   useCallback,
   useEffect,
   useLayoutEffect,
+  useMemo,
   useRef,
   type InputHTMLAttributes,
   type ChangeEvent,
@@ -24,6 +25,8 @@ import {
   sliderWrapper,
   sliderTrack,
   sliderFillTrack,
+  wakeBars,
+  wakeBar,
   slider as sliderClass,
   sizeVariants,
   variantStyles,
@@ -34,6 +37,14 @@ import {
   valueFollower,
   VALUE_FOLLOWER_PERCENT_VAR,
 } from './Slider.css';
+import {
+  computeBarValues,
+  tickInterval,
+  waveAmp,
+  waveLift,
+  waveScale,
+  WAKE_FLAT,
+} from './sliderMath';
 
 /** 슬라이더 트랙 위에 표시되는 마크 */
 export interface SliderMark {
@@ -46,6 +57,16 @@ export interface SliderMark {
 /** 테스트 전용. 값 따라붙기 quickTo가 만든 트윈에 `progress()`로 접근하는 손잡이. */
 interface ValueFollowerTweenHost extends HTMLSpanElement {
   __valueFollowerTween?: gsap.core.Tween;
+}
+
+/**
+ * 테스트 전용. wake 막대 묶음에 달린 손잡이: 프레임 콜백(`__wakeTick`), 머리
+ * 위치 객체(`__wakeHead`, 트랙 %), 머리가 값을 따라가는 quickTo 트윈.
+ */
+interface WakeBarsHost extends HTMLDivElement {
+  __wakeTick?: (time: number, deltaMs: number) => void;
+  __wakeHead?: { pct: number };
+  __wakeHeadTween?: gsap.core.Tween;
 }
 
 /** 잡았다는 신호를 만드는 키. */
@@ -84,9 +105,11 @@ export interface SliderProps extends Omit<
    * - `default`: 라인과 머리. 마우스를 올리면 라인이 두꺼워지고 머리가 부푼다
    * - `bar`: 머리 없이 채움 막대가 값이다(머리는 투명해도 잡고 끌 수 있다).
    *   키보드 포커스는 트랙 둘레의 링으로 보인다
+   * - `wake`: 라인이 눈금 막대로 나뉘고, 값이 바뀌면 머리 뒤로 막대들이 속도에
+   *   비례해 물결처럼 솟았다 가라앉는다. 움직임 줄이기 설정에서는 물결이 없다
    * @default 'default'
    */
-  variant?: 'default' | 'bar';
+  variant?: 'default' | 'bar' | 'wake';
   /** 최소값 */
   min?: number;
   /** 최대값 */
@@ -262,6 +285,68 @@ export const Slider = forwardRef<HTMLInputElement, SliderProps>(
       followerSetterRef.current?.(percent);
     }, [currentValue, isGrabbed, reduced, min, max]);
 
+    // wake: 막대 위치는 눈금 계산(computeTickValues)을 그대로 쓴다. 머리 위치는
+    // 값을 settle 성질로 따라가고, 매 프레임 그 변화량으로 속도를 재 물결을 만든다.
+    const isWake = variant === 'wake';
+    const barValues = useMemo(
+      () => (isWake ? computeBarValues(min, max, step) : []),
+      [isWake, min, max, step]
+    );
+    const wakeBarsRef = useRef<WakeBarsHost>(null);
+    const headSetterRef = useRef<((percent: number) => void) | null>(null);
+
+    useEffect(() => {
+      const host = wakeBarsRef.current;
+      const interval = tickInterval(min, max, step);
+      if (!isWake || reduced || !host || interval <= 0) return;
+
+      const bars = Array.from(host.children) as HTMLElement[];
+      const barsPerPercent = (max - min) / interval / 100;
+      const head = { pct: valueToPercent(currentValueRef.current, min, max) };
+      const setHead = gsap.quickTo(head, 'pct', {
+        duration: gsapDuration.base,
+        ease: gsapEasing.settle,
+      });
+      let lastPct = head.pct;
+      let lastAmp = 0;
+
+      const onTick = (_time: number, deltaMs: number) => {
+        const speed = deltaMs > 0 ? ((head.pct - lastPct) * 1000) / deltaMs : 0;
+        lastPct = head.pct;
+        const amp = waveAmp(speed);
+        const flat = amp < WAKE_FLAT && lastAmp < WAKE_FLAT;
+        lastAmp = amp;
+        if (flat) return;
+
+        const h = head.pct * barsPerPercent;
+        const dir = Math.sign(speed) || 1;
+        bars.forEach((bar, i) => {
+          bar.style.transform = `scaleY(${waveScale(waveLift(i - h, dir, amp))})`;
+        });
+      };
+
+      gsap.ticker.add(onTick);
+      headSetterRef.current = setHead;
+      host.__wakeTick = onTick;
+      host.__wakeHead = head;
+      host.__wakeHeadTween = setHead.tween;
+
+      return () => {
+        gsap.ticker.remove(onTick);
+        setHead.tween.kill();
+        headSetterRef.current = null;
+        delete host.__wakeTick;
+        delete host.__wakeHead;
+        delete host.__wakeHeadTween;
+        // 인라인 높이를 걷어 CSS의 쉬는 높이로 돌아간다.
+        for (const bar of bars) bar.style.transform = '';
+      };
+    }, [isWake, reduced, min, max, step, barValues]);
+
+    useEffect(() => {
+      headSetterRef.current?.(valueToPercent(currentValue, min, max));
+    }, [currentValue, min, max, isWake, reduced]);
+
     return (
       <div className={clsx(container, className)}>
         <div className={labelContainer}>
@@ -279,18 +364,39 @@ export const Slider = forwardRef<HTMLInputElement, SliderProps>(
             variantStyles[variant]
           )}
         >
-          <div className={sliderTrack}>
-            <div
-              className={sliderFillTrack}
-              style={
-                {
-                  // 비율(0~1)로 한 번만 나눠서 넘긴다(fillPercent는 0~100).
-                  '--slider-fill-scale': fillPercent / 100,
-                  ...(trackColor ? { backgroundColor: trackColor } : {}),
-                } as React.CSSProperties
-              }
-            />
-          </div>
+          {isWake ? (
+            <div className={wakeBars} aria-hidden ref={wakeBarsRef}>
+              {barValues.map((barValue) => {
+                const on = barValue <= currentValue;
+                return (
+                  <span
+                    key={barValue}
+                    className={wakeBar}
+                    data-on={on}
+                    style={{
+                      left: `${valueToPercent(barValue, min, max)}%`,
+                      ...(on && trackColor
+                        ? { backgroundColor: trackColor }
+                        : {}),
+                    }}
+                  />
+                );
+              })}
+            </div>
+          ) : (
+            <div className={sliderTrack}>
+              <div
+                className={sliderFillTrack}
+                style={
+                  {
+                    // 비율(0~1)로 한 번만 나눠서 넘긴다(fillPercent는 0~100).
+                    '--slider-fill-scale': fillPercent / 100,
+                    ...(trackColor ? { backgroundColor: trackColor } : {}),
+                  } as React.CSSProperties
+                }
+              />
+            </div>
+          )}
           {isGrabbed && (
             <span className={valueFollower} aria-hidden ref={followerRef}>
               {currentValue}

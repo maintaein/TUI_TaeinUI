@@ -281,4 +281,42 @@ describe('Slider 생성 CSS', () => {
       expect(transform).not.toMatch(/scale[XY]?\(/);
     });
   });
+
+  describe('wake 변형', () => {
+    const own = (re: RegExp) =>
+      flatRules().filter(({ rule }) => re.test(rule.selectorText));
+    const bar = () => own(/\.Slider_wakeBar__\w+$/)[0].rule;
+
+    it('막대는 폭 2px, 최대 높이 20px에 쉬는 scaleY(0.3)이고 가운데를 중심으로 늘어난다', () => {
+      expect(bar().style.getPropertyValue('width')).toBe('2px');
+      expect(bar().style.getPropertyValue('height')).toBe('20px');
+      expect(bar().style.getPropertyValue('transform')).toBe('scaleY(0.3)');
+      expect(bar().style.getPropertyValue('transform-origin')).toBe('center');
+      // 직사각형이라 scaleY로 일그러질 끝 반원이 없다.
+      expect(bar().style.getPropertyValue('border-radius')).toBe('');
+    });
+
+    it('꺼진 막대는 border.strong, 켜진 막대는 primary.main', () => {
+      expect(bar().style.getPropertyValue('background-color')).toBe(
+        themeContract.color.border.strong
+      );
+      const on = own(/\.Slider_wakeBar__\w+\[data-on="true"\]$/)[0].rule;
+      expect(on.style.getPropertyValue('background-color')).toBe(
+        themeContract.color.primary.main
+      );
+    });
+
+    it('막대 묶음은 양끝을 머리 반폭만큼 들여 머리 중심과 맞춘다', () => {
+      const bars = own(/\.Slider_wakeBars__\w+$/)[0].rule;
+
+      expect(bars.style.getPropertyValue('left')).toBe('12px');
+      expect(bars.style.getPropertyValue('right')).toBe('12px');
+    });
+
+    it('막대 높이는 JS가 매 프레임 쓰므로 transform을 CSS로 전이하지 않는다', () => {
+      expect(bar().style.getPropertyValue('transition')).not.toContain(
+        'transform'
+      );
+    });
+  });
 });

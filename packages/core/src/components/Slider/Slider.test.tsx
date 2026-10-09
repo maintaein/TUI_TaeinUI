@@ -1,8 +1,15 @@
-import { describe, it, expect, vi, afterEach } from 'vitest';
+import { describe, it, expect, vi, afterEach, beforeAll } from 'vitest';
 import { render, screen, fireEvent, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { Slider } from './Slider';
+import {
+  computeBarValues,
+  waveAmp,
+  waveLift,
+  waveScale,
+  WAKE_REST_SCALE,
+} from './sliderMath';
 import { VALUE_FOLLOWER_PERCENT_VAR } from './Slider.css';
 
 /**
@@ -17,6 +24,41 @@ type ValueFollowerTweenHost = HTMLSpanElement & {
 /** 잡을 때 나오던 눈금(옛 scrubTick 계열) DOM. 지금은 어느 변형에도 없다. */
 const getScrubTickElements = (container: HTMLElement): NodeListOf<Element> =>
   container.querySelectorAll('[class*="scrubTick"]');
+
+/** 테스트 전용. wake 막대 묶음에 달린 손잡이(Slider.tsx의 `WakeBarsHost`와 같은 모양). */
+type WakeBarsHost = HTMLDivElement & {
+  __wakeTick?: (time: number, deltaMs: number) => void;
+  __wakeHead?: { pct: number };
+  __wakeHeadTween?: gsap.core.Tween;
+};
+
+const getWakeHost = (container: HTMLElement): WakeBarsHost | null =>
+  container.querySelector('[class*="wakeBars__"]') as WakeBarsHost | null;
+
+const getWakeBars = (container: HTMLElement): HTMLElement[] =>
+  Array.from(container.querySelectorAll<HTMLElement>('[class*="wakeBar__"]'));
+
+// gsap 네임스페이스는 ambient 전역 타입이라 import 없이 참조된다
+// (Checkbox.test.tsx·Switch.test.tsx와 같은 방식). ticker의 리스너 수는 실제
+// gsap 모듈에서 읽는다(대역이 아니라 Slider.tsx가 쓰는 같은 인스턴스다).
+// 소스 파일이 아니라 시험이라 gateMotion을 쓰지 않으므로 `from 'gsap'`를 피한다
+// (gsapGateEnforcement 스캔은 `from 'gsap'`를 본다).
+interface GsapTicker {
+  _listeners: unknown[];
+}
+let gsapTicker: GsapTicker;
+beforeAll(async () => {
+  const actual = await vi.importActual<{ gsap: { ticker: GsapTicker } }>(
+    'gsap'
+  );
+  gsapTicker = actual.gsap.ticker;
+});
+const tickerListeners = (): number => gsapTicker._listeners.length;
+
+const barScale = (bar: HTMLElement): number =>
+  Number(
+    bar.style.getPropertyValue('transform').match(/scaleY\(([\d.e-]+)\)/)?.[1]
+  );
 
 const getFollower = (container: HTMLElement): ValueFollowerTweenHost | null =>
   container.querySelector(
@@ -854,6 +896,332 @@ describe('Slider', () => {
       expect(fill.style.getPropertyValue('--slider-fill-scale')).toBe('0.5');
       fireEvent.pointerDown(screen.getByRole('slider'));
       expect(getFollower(container)).toBeInTheDocument();
+    });
+  });
+
+  describe('variant="wake" 테스트', () => {
+    afterEach(() => {
+      vi.unstubAllGlobals();
+    });
+
+    it('기본에는 wake 막대가 없다', () => {
+      const { container } = render(<Slider label="슬라이더" />);
+
+      expect(getWakeHost(container)).not.toBeInTheDocument();
+      expect(
+        container.querySelector('[class*="sliderTrack__"]')
+      ).toBeInTheDocument();
+    });
+
+    it('wake는 기존 트랙 선을 그리지 않고 막대를 computeBarValues 위치에 놓는다', () => {
+      const { container } = render(
+        <Slider
+          label="슬라이더"
+          variant="wake"
+          min={0}
+          max={10}
+          step={1}
+          value={4}
+          onChange={() => {}}
+        />
+      );
+      const bars = getWakeBars(container);
+      const expected = computeBarValues(0, 10, 1);
+
+      expect(
+        container.querySelector('[class*="sliderTrack__"]')
+      ).not.toBeInTheDocument();
+      expect(bars).toHaveLength(expected.length);
+      expect(bars.map((bar) => bar.style.left)).toEqual(
+        expected.map((barValue) => `${(barValue / 10) * 100}%`)
+      );
+    });
+
+    it('촘촘한 step은 눈금처럼 줄여 막대 51개가 된다', () => {
+      const { container } = render(
+        <Slider label="슬라이더" variant="wake" value={0} onChange={() => {}} />
+      );
+
+      expect(getWakeBars(container)).toHaveLength(51);
+    });
+
+    it('값 이하 막대만 켜진다 (data-on)', () => {
+      const { container, rerender } = render(
+        <Slider
+          label="슬라이더"
+          variant="wake"
+          min={0}
+          max={10}
+          value={4}
+          onChange={() => {}}
+        />
+      );
+
+      const on = () =>
+        getWakeBars(container).map((bar) => bar.getAttribute('data-on'));
+      expect(on()).toEqual([
+        ...Array(5).fill('true'),
+        ...Array(6).fill('false'),
+      ]);
+
+      rerender(
+        <Slider
+          label="슬라이더"
+          variant="wake"
+          min={0}
+          max={10}
+          value={7}
+          onChange={() => {}}
+        />
+      );
+      expect(on().filter((state) => state === 'true')).toHaveLength(8);
+    });
+
+    it('trackColor는 켜진 막대에만 입힌다', () => {
+      const { container } = render(
+        <Slider
+          label="슬라이더"
+          variant="wake"
+          min={0}
+          max={10}
+          value={2}
+          trackColor="rgb(255, 0, 0)"
+          onChange={() => {}}
+        />
+      );
+      const bars = getWakeBars(container);
+
+      expect(bars[0].style.backgroundColor).toBe('rgb(255, 0, 0)');
+      expect(bars[2].style.backgroundColor).toBe('rgb(255, 0, 0)');
+      expect(bars[3].style.backgroundColor).toBe('');
+    });
+
+    it('머리는 그대로 있고 막대 묶음은 aria-hidden이다', () => {
+      const { container } = render(
+        <Slider label="볼륨" variant="wake" value={3} onChange={() => {}} />
+      );
+
+      expect(screen.getByRole('slider', { name: '볼륨' })).toBeInTheDocument();
+      expect(getWakeHost(container)).toHaveAttribute('aria-hidden', 'true');
+    });
+
+    /** 값을 from에서 to로 옮기고 머리 트윈을 progress까지 보낸 뒤 한 프레임 돌린다. */
+    const swing = (from: number, to: number, progress = 0.5) => {
+      const view = render(
+        <Slider
+          label="슬라이더"
+          variant="wake"
+          value={from}
+          onChange={() => {}}
+        />
+      );
+      view.rerender(
+        <Slider
+          label="슬라이더"
+          variant="wake"
+          value={to}
+          onChange={() => {}}
+        />
+      );
+      const host = getWakeHost(view.container)!;
+      act(() => {
+        host.__wakeHeadTween!.progress(progress);
+      });
+      act(() => {
+        host.__wakeTick!(0, 16);
+      });
+      return {
+        ...view,
+        host,
+        bars: getWakeBars(view.container),
+        h: host.__wakeHead!.pct / 2, // 막대 간격이 2%
+      };
+    };
+
+    it('값이 바뀌면 머리 뒤로 막대가 솟고, 높이는 WakeSlider와 같은 식이다', () => {
+      const { host, bars, h } = swing(20, 60);
+
+      expect(host.__wakeHead!.pct).toBeGreaterThan(20);
+      expect(host.__wakeHead!.pct).toBeLessThan(60);
+      // 한 프레임에 크게 움직였으니 세기는 1이고 방향은 오른쪽(+1)이다.
+      bars.forEach((bar, i) => {
+        expect(barScale(bar)).toBeCloseTo(waveScale(waveLift(i - h, 1, 1)), 10);
+      });
+      expect(barScale(bars[Math.round(h)])).toBeGreaterThan(WAKE_REST_SCALE);
+      expect(barScale(bars[0])).toBeCloseTo(WAKE_REST_SCALE, 10);
+      expect(barScale(bars[50])).toBeCloseTo(WAKE_REST_SCALE, 10);
+    });
+
+    it('오른쪽으로 가면 머리 뒤(왼쪽)가 앞(오른쪽)보다 넓게 솟는다', () => {
+      const { bars, h } = swing(20, 60);
+      const base = Math.round(h);
+
+      expect(barScale(bars[base - 6])).toBeGreaterThan(WAKE_REST_SCALE);
+      expect(barScale(bars[base + 6])).toBeCloseTo(WAKE_REST_SCALE, 10);
+    });
+
+    it('왼쪽으로 가면 앞뒤가 뒤집힌다', () => {
+      const { bars, h } = swing(60, 20);
+      const base = Math.round(h);
+
+      expect(barScale(bars[base + 6])).toBeGreaterThan(WAKE_REST_SCALE);
+      expect(barScale(bars[base - 6])).toBeCloseTo(WAKE_REST_SCALE, 10);
+    });
+
+    it('머리가 멈추면 모든 막대가 쉬는 높이로 돌아가고, 이후 프레임은 계산하지 않는다', () => {
+      const { host, bars } = swing(20, 60);
+      act(() => {
+        host.__wakeHeadTween!.progress(1);
+      });
+      act(() => {
+        host.__wakeTick!(0, 16); // 마지막 이동분
+      });
+      act(() => {
+        host.__wakeTick!(0, 16); // 속도 0
+      });
+
+      for (const bar of bars) {
+        expect(barScale(bar)).toBeCloseTo(WAKE_REST_SCALE, 10);
+      }
+
+      // 멈춘 프레임은 건너뛴다: 막대에 표지를 두면 다음 프레임이 덮지 않는다.
+      bars[10].style.setProperty('transform', 'scaleY(0.99)');
+      act(() => {
+        host.__wakeTick!(0, 16);
+      });
+      expect(barScale(bars[10])).toBe(0.99);
+    });
+
+    it('속도에 비례한다: 같은 거리를 더 오래 걸리면 물결이 낮다', () => {
+      const fast = swing(20, 60);
+      const fastPeak = Math.max(...fast.bars.map(barScale));
+      fast.unmount();
+
+      const slow = render(
+        <Slider
+          label="슬라이더"
+          variant="wake"
+          value={20}
+          onChange={() => {}}
+        />
+      );
+      slow.rerender(
+        <Slider
+          label="슬라이더"
+          variant="wake"
+          value={60}
+          onChange={() => {}}
+        />
+      );
+      const host = getWakeHost(slow.container)!;
+      act(() => {
+        host.__wakeHeadTween!.progress(0.5);
+      });
+      // 같은 이동을 20배 긴 프레임에 했다면 속도는 1/20이다.
+      act(() => {
+        host.__wakeTick!(0, 320);
+      });
+      const slowPeak = Math.max(...getWakeBars(slow.container).map(barScale));
+
+      expect(slowPeak).toBeLessThan(fastPeak);
+      expect(slowPeak).toBeGreaterThan(WAKE_REST_SCALE);
+      expect(waveAmp(0)).toBe(0);
+    });
+
+    it('키보드로 값이 바뀌어도 같은 물결이다 (잡지 않아도)', () => {
+      const { container } = render(
+        <Slider label="슬라이더" variant="wake" defaultValue={20} />
+      );
+      const host = getWakeHost(container)!;
+      const slider = screen.getByRole('slider');
+
+      fireEvent.change(slider, { target: { value: '60' } });
+      act(() => {
+        host.__wakeHeadTween!.progress(0.5);
+      });
+      act(() => {
+        host.__wakeTick!(0, 16);
+      });
+
+      expect(Math.max(...getWakeBars(container).map(barScale))).toBeGreaterThan(
+        WAKE_REST_SCALE
+      );
+    });
+
+    it('축소 선호에서는 물결이 없다: 티커도 머리 트윈도 없고 막대는 쉬는 높이, 색만 값을 따른다', () => {
+      installReducedMotion();
+      const before = tickerListeners();
+      const { container, rerender } = render(
+        <Slider
+          label="슬라이더"
+          variant="wake"
+          min={0}
+          max={10}
+          value={2}
+          onChange={() => {}}
+        />
+      );
+      const host = getWakeHost(container)!;
+
+      expect(tickerListeners()).toBe(before);
+      expect(host.__wakeTick).toBeUndefined();
+      expect(host.__wakeHeadTween).toBeUndefined();
+
+      rerender(
+        <Slider
+          label="슬라이더"
+          variant="wake"
+          min={0}
+          max={10}
+          value={8}
+          onChange={() => {}}
+        />
+      );
+      for (const bar of getWakeBars(container)) {
+        expect(bar.style.getPropertyValue('transform')).toBe('');
+      }
+      expect(
+        getWakeBars(container).filter((bar) => bar.dataset.on === 'true')
+      ).toHaveLength(9);
+    });
+
+    it('티커는 마운트에 하나 붙고 언마운트에 떼어진다', () => {
+      const before = tickerListeners();
+      const view = render(
+        <Slider label="슬라이더" variant="wake" value={5} onChange={() => {}} />
+      );
+
+      expect(tickerListeners()).toBe(before + 1);
+
+      view.unmount();
+      expect(tickerListeners()).toBe(before);
+    });
+
+    it('wake가 아니면 티커를 붙이지 않는다', () => {
+      const before = tickerListeners();
+      render(<Slider label="슬라이더" value={5} onChange={() => {}} />);
+      render(
+        <Slider label="슬라이더" variant="bar" value={5} onChange={() => {}} />
+      );
+
+      expect(tickerListeners()).toBe(before);
+    });
+
+    it('변형이 wake에서 default로 바뀌면 티커가 떼어진다', () => {
+      const before = tickerListeners();
+      const { rerender } = render(
+        <Slider label="슬라이더" variant="wake" value={5} onChange={() => {}} />
+      );
+      rerender(
+        <Slider
+          label="슬라이더"
+          variant="default"
+          value={5}
+          onChange={() => {}}
+        />
+      );
+
+      expect(tickerListeners()).toBe(before);
     });
   });
 });

@@ -21,6 +21,13 @@ export function SliderPage() {
       description: '슬라이더 크기',
     },
     {
+      name: 'variant',
+      type: "'default' | 'bar' | 'wake'",
+      default: "'default'",
+      description:
+        '모양. bar는 머리 없이 채움 막대가 값이고, wake는 눈금 막대가 머리 뒤로 물결친다',
+    },
+    {
       name: 'min',
       type: 'number',
       default: '0',
@@ -220,6 +227,25 @@ const [lg, setLg] = useState(70);
   <Slider label="Small" size="sm" value={sm} onChange={(e) => setSm(Number(e.target.value))} showValue />
   <Slider label="Medium" size="md" value={md} onChange={(e) => setMd(Number(e.target.value))} showValue />
   <Slider label="Large" size="lg" value={lg} onChange={(e) => setLg(Number(e.target.value))} showValue />
+</div>`}
+          />
+        </div>
+
+        {/* Variants */}
+        <div className={styles.example}>
+          <h3 className={styles.exampleTitle}>Variants</h3>
+          <LivePreview
+            title="변형"
+            description="마우스를 올리면 라인이 두꺼워지고 머리가 부풉니다. bar는 머리 없이 막대가 값을 보여 주고, wake는 눈금 막대가 머리를 따라 물결칩니다(움직임 줄이기 설정에서는 물결이 없습니다)."
+            editable
+            code={`const [a, setA] = useState(40);
+const [b, setB] = useState(60);
+const [c, setC] = useState(50);
+
+<div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+  <Slider label="default" value={a} onChange={(e) => setA(Number(e.target.value))} showValue />
+  <Slider label="bar" variant="bar" value={b} onChange={(e) => setB(Number(e.target.value))} showValue />
+  <Slider label="wake" variant="wake" value={c} onChange={(e) => setC(Number(e.target.value))} showValue />
 </div>`}
           />
         </div>

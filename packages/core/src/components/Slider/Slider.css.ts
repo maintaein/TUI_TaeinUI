@@ -1,6 +1,7 @@
 import { style, styleVariants } from '@vanilla-extract/css';
 import { themeContract } from '../../tokens/theme.css';
 import { focusRing } from '../../tokens/focusRing.css';
+import { WAKE_BAR_MAX_HEIGHT, WAKE_REST_SCALE } from './sliderMath';
 
 /** 마우스(호버·정밀 포인터)에서만. 터치에는 호버가 없다. */
 const HOVER_GATE = '(hover: hover) and (pointer: fine)';
@@ -71,6 +72,7 @@ export const sliderWrapper = style({
 export const variantStyles = styleVariants({
   default: {},
   bar: {},
+  wake: {},
 });
 
 // Slider Track (background)
@@ -142,6 +144,37 @@ export const sliderFillTrack = style({
     [`${variantStyles.bar} &`]: {
       borderRadius: '999px',
       transform: 'translateX(calc((var(--slider-fill-scale, 0) - 1) * 100%))',
+    },
+  },
+});
+
+// Wake 막대 묶음. 막대 위치(left %)가 머리 중심과 맞도록 양끝을 머리 반폭(24px의
+// 절반)만큼 들인다. 네이티브 range의 머리 중심은 폭이 아니라 (폭 - 머리 폭) 위를 움직인다.
+export const wakeBars = style({
+  position: 'absolute',
+  top: 0,
+  bottom: 0,
+  left: '12px',
+  right: '12px',
+  pointerEvents: 'none',
+});
+
+// Wake 막대 한 칸. 요소 높이는 최대 높이이고 쉬는 높이는 scaleY로 만든다.
+// JS가 매 프레임 인라인 transform을 쓰므로 transform은 CSS로 전이하지 않는다.
+// 2px 직사각형이라 scaleY로 일그러질 둥근 끝이 없다(border-radius 없음).
+export const wakeBar = style({
+  position: 'absolute',
+  top: `calc(50% - ${WAKE_BAR_MAX_HEIGHT / 2}px)`,
+  width: '2px',
+  height: `${WAKE_BAR_MAX_HEIGHT}px`,
+  marginLeft: '-1px',
+  backgroundColor: themeContract.color.border.strong,
+  transform: `scaleY(${WAKE_REST_SCALE})`,
+  transformOrigin: 'center',
+  transition: `background-color ${themeContract.animation.duration.base} ${themeContract.animation.easing.settle}`,
+  selectors: {
+    '&[data-on="true"]': {
+      backgroundColor: themeContract.color.primary.main,
     },
   },
 });

@@ -167,6 +167,9 @@ import { Slider } from '@taein-ui/core';
   showValue
   marks={[{ value: 0, label: '0' }, { value: 100, label: '100' }]}
 />
+
+<Slider label="밝기" variant="bar" value={v} onChange={(e) => setV(Number(e.target.value))} />
+<Slider label="재생 위치" variant="wake" value={v} onChange={(e) => setV(Number(e.target.value))} />
 ```
 
 ### Props (extends InputHTMLAttributes<HTMLInputElement>)
@@ -174,6 +177,7 @@ import { Slider } from '@taein-ui/core';
 |------|------|---------|-------------|
 | label | string | (required) | Label text |
 | size | 'sm' \| 'md' \| 'lg' | 'md' | Slider size |
+| variant | 'default' \| 'bar' \| 'wake' | 'default' | Look. `bar` has no visible thumb (the fill bar is the value, focus ring goes around the track). `wake` splits the line into tick bars that ripple behind the thumb in proportion to its speed (no ripple under reduced motion) |
 | min | number | 0 | Minimum value |
 | max | number | 100 | Maximum value |
 | step | number | 1 | Step increment |
@@ -1175,7 +1179,7 @@ M3(Tier-B GSAP 런타임)에서 실제로 GSAP이 붙은 컴포넌트와 그 능
 | Switch | 타임라인 상대 위치 · 다중 목표 중단 | 이동 하나를 진행값 `p`(`slow` `drift`, 300ms)로 트윈하고, 머리 x · 늘임 `1 + 0.144 × sin(π p)`(가로에 곱하고 세로에 나눠 부피 보존) · 파란 채움이 같은 `p`를 따른다(채움은 트랙 알약 모양으로 자르는 칸 안의 직사각형이라 차오르는 도중에도 트랙 밖으로 나가지 않는다). 늘임은 이동 속도에서만 나오고 출발 전 늘임은 없다. 켜진 머리 크기는 `(트랙 높이 + 2) / 머리 크기`(`md` 1.3)이고 이동 80% 시점에 `base` `drift`로 바뀌어 켜짐이면 그 크기로 머물고 꺼짐이면 1로 돌아온다. 도중에 반대로 바뀌면 지금 x · 크기 · 늘임에서 이어진다(늘임 초과분을 `1 - p`로 줄여 간다). 호버 부풂(1.06)은 GSAP이 쓰는 머리 칸이 아니라 안쪽 면의 CSS라 서로 곱해져 합성된다 |
 | SegmentedButtons | 다중 목표 중단 · CSS가 못 보는 값 읽기(인디케이터 좌표) | 선택마다 새 타임라인을 만들어(재사용 금지) `overwrite: 'auto'`가 이전 타임라인을 현재 값에서 죽이게 하고, 인디케이터 위치는 `selectedLabel`/컨테이너의 `getBoundingClientRect()`로 잰다 |
 | NumericSpinner | 다중 목표 중단 | 버튼 눌림 깊이(`overwrite: 'auto'` 2단 타임라인)와 입력 필드 흔들림(`gsap.fromTo(..., { overwrite: 'auto' })`) 두 채널 모두 재호출을 안전하게 흡수한다 |
-| Slider | 제스처 추적(드래그 중 값 따라붙기) | `gsap.quickTo(el, VALUE_FOLLOWER_PERCENT_VAR, ...)`가 드래그 중에만 값을 따라간다 — 길게 사는 트윈이라 gateMotion을 거치지 않고 `reduced`를 직접 분기한다 |
+| Slider | 제스처 추적(드래그 중 값 따라붙기) · CSS가 못 보는 값 읽기(`wake`의 머리 속도) | `gsap.quickTo(el, VALUE_FOLLOWER_PERCENT_VAR, ...)`가 드래그 중에만 값을 따라간다. 길게 사는 트윈이라 `reduced`를 직접 분기한다. `variant="wake"`에서는 머리 위치 객체를 `quickTo`(`base` `settle`)로 값에 따라가게 하고, GSAP ticker 하나가 매 프레임 그 변화량으로 속도를 재 막대 `scaleY`에 속도 비례 `cos²` 물결을 쓴다(축소 선호에서는 ticker를 붙이지 않는다) |
 | HeaderBarNav | 제스처 추적(포인터 근접) · CSS가 못 보는 값 읽기(컨테이너 좌표) | `pointermove`마다 `gsap.quickTo` 세터로 각 항목 배율을 갱신하고, 원점은 `pointerenter`에서 캐시한 `nav.getBoundingClientRect().left`로 잰다 |
 | Avatar | 다중 목표 중단(떠오름과 눌림이 서로를 덮어쓰며 이어짐) | 호버·포커스의 떠오름(`yPercent`)과 누름의 `scale`이 각자 `overwrite: 'auto'`로 지금 자리에서 새 목표로 이어진다. 호버는 spring, 되돌아올 때는 settle이다 |
 | BoardRow | 타임라인 상대 위치 · CSS가 못 보는 값 읽기(트윈 중간 높이, 내용 높이) | 펼침은 `height`를 현재 높이에서 `scrollHeight`보다 살짝 넘겼다가 내용 높이로 되돌리는 두 구간 타임라인이고, 접힘은 부풀었다가 0으로 간다. 도중에 뒤집으면 죽이기 전에 읽은 중간 높이에서 출발한다 |

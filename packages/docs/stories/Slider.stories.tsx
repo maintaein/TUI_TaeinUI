@@ -38,6 +38,12 @@ const meta = {
       options: ['sm', 'md', 'lg'],
       description: '슬라이더 크기',
     },
+    variant: {
+      control: 'select',
+      options: ['default', 'bar', 'wake'],
+      description:
+        '모양. bar는 머리 없이 막대가 값, wake는 눈금 막대가 물결친다',
+    },
     showValue: {
       control: 'boolean',
       description: '현재 값 표시 여부',
@@ -72,6 +78,48 @@ const DefaultComponent = () => {
 
 export const Default: Story = {
   render: () => <DefaultComponent />,
+};
+
+// Variants
+const VariantsComponent = () => {
+  const [a, setA] = useState(40);
+  const [b, setB] = useState(60);
+  const [c, setC] = useState(50);
+  return (
+    <div
+      style={{
+        width: '400px',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '2rem',
+      }}
+    >
+      <Slider
+        label="default"
+        value={a}
+        onChange={(e) => setA(Number(e.target.value))}
+        showValue
+      />
+      <Slider
+        label="bar"
+        variant="bar"
+        value={b}
+        onChange={(e) => setB(Number(e.target.value))}
+        showValue
+      />
+      <Slider
+        label="wake"
+        variant="wake"
+        value={c}
+        onChange={(e) => setC(Number(e.target.value))}
+        showValue
+      />
+    </div>
+  );
+};
+
+export const Variants: Story = {
+  render: () => <VariantsComponent />,
 };
 
 // With Value Display
