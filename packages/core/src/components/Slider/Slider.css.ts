@@ -12,6 +12,10 @@ const HOVER_GROW_GATE = `${HOVER_GATE} and (prefers-reduced-motion: no-preferenc
 const TRACK_HEIGHT = '6px';
 const TRACK_HOVER_HEIGHT = '9px';
 
+/** bar 변형은 머리가 없어 채움 막대가 값이므로 트랙이 조금 더 두껍다. */
+const BAR_TRACK_HEIGHT = '8px';
+const BAR_TRACK_HOVER_HEIGHT = '12px';
+
 /** 호버하면 머리가 부푸는 배율. 잡는 동안(:active)도 같다. */
 const THUMB_HOVER_SCALE = 1.15;
 
@@ -62,6 +66,13 @@ export const sliderWrapper = style({
   alignItems: 'center',
 });
 
+// 변형 클래스. 모양은 자식(트랙·채움·머리) 규칙이 `.변형 &`로 가려 입는다.
+// 빈 스타일이라 wrapper 자신에는 아무것도 칠하지 않는다.
+export const variantStyles = styleVariants({
+  default: {},
+  bar: {},
+});
+
 // Slider Track (background)
 export const sliderTrack = style({
   position: 'absolute',
@@ -87,6 +98,11 @@ export const sliderTrack = style({
   // 알약을 scaleY로 늘리면 끝 반원이 일그러져서 height를 전이한다. 나올 때는
   // 이 기본 전이(base settle)가 쓰인다.
   transition: `height ${themeContract.animation.duration.base} ${themeContract.animation.easing.settle}`,
+  selectors: {
+    [`${variantStyles.bar} &`]: { height: BAR_TRACK_HEIGHT },
+    // 머리가 없으니 키보드 포커스는 트랙 둘레의 링이 알린다.
+    [`${variantStyles.bar}:has(input:focus-visible) &`]: { ...focusRing() },
+  },
   '@media': {
     [HOVER_GROW_GATE]: {
       selectors: {
@@ -96,6 +112,9 @@ export const sliderTrack = style({
           // transform 전용) settle을 쓴다. 탄성은 머리의 scale이 맡는다.
           transition: `height ${themeContract.animation.duration.slow} ${themeContract.animation.easing.settle}`,
         },
+        // bar는 12px. 변형 클래스를 하나 더 달아 위 기본 호버 규칙보다 특이도가 높다.
+        [`${sliderWrapper}${variantStyles.bar}:has(input:not(:disabled)):hover &`]:
+          { height: BAR_TRACK_HOVER_HEIGHT },
       },
     },
   },
@@ -116,6 +135,15 @@ export const sliderFillTrack = style({
   // 없다. 0.05s는 드래그 중 fill이 thumb를 프레임 단위로 따라붙게 하려는 의도된
   // 값이라 duration 토큰으로 올리지 않는다(T8 하드코딩 duration 검사의 의도된 예외).
   transition: 'transform 0.05s ease-out',
+  selectors: {
+    // bar: 막대 끝이 트랙 끝처럼 둥글다. scaleX는 둥근 끝을 납작하게 눌러서
+    // 같은 폭의 막대를 왼쪽으로 밀어 넣는(translateX) 식으로 채운다.
+    // 100%는 이 요소의 폭이라 트랙 폭과 같다.
+    [`${variantStyles.bar} &`]: {
+      borderRadius: '999px',
+      transform: 'translateX(calc((var(--slider-fill-scale, 0) - 1) * 100%))',
+    },
+  },
 });
 
 // Slider Input
@@ -186,6 +214,10 @@ export const slider = style({
       borderColor: themeContract.color.text.disabled,
       cursor: 'not-allowed',
     },
+
+    // bar: 머리를 안 보이게만 한다. 크기와 히트 영역은 그대로라 잡고 끌 수 있다.
+    [`${variantStyles.bar} &::-webkit-slider-thumb`]: { opacity: 0 },
+    [`${variantStyles.bar} &::-moz-range-thumb`]: { opacity: 0 },
 
     // Tracks
     '&::-webkit-slider-runnable-track': {

@@ -26,6 +26,7 @@ import {
   sliderFillTrack,
   slider as sliderClass,
   sizeVariants,
+  variantStyles,
   helperText as helperTextClass,
   marksContainer,
   mark,
@@ -78,6 +79,14 @@ export interface SliderProps extends Omit<
   label: string;
   /** 슬라이더 크기 */
   size?: 'sm' | 'md' | 'lg';
+  /**
+   * 모양.
+   * - `default`: 라인과 머리. 마우스를 올리면 라인이 두꺼워지고 머리가 부푼다
+   * - `bar`: 머리 없이 채움 막대가 값이다(머리는 투명해도 잡고 끌 수 있다).
+   *   키보드 포커스는 트랙 둘레의 링으로 보인다
+   * @default 'default'
+   */
+  variant?: 'default' | 'bar';
   /** 최소값 */
   min?: number;
   /** 최대값 */
@@ -103,6 +112,7 @@ export const Slider = forwardRef<HTMLInputElement, SliderProps>(
     {
       label,
       size = 'md',
+      variant = 'default',
       min = 0,
       max = 100,
       step = 1,
@@ -262,7 +272,13 @@ export const Slider = forwardRef<HTMLInputElement, SliderProps>(
           {showValue && <span className={valueDisplay}>{currentValue}</span>}
         </div>
 
-        <div className={clsx(sliderWrapper, sizeVariants[size])}>
+        <div
+          className={clsx(
+            sliderWrapper,
+            sizeVariants[size],
+            variantStyles[variant]
+          )}
+        >
           <div className={sliderTrack}>
             <div
               className={sliderFillTrack}

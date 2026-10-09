@@ -812,4 +812,48 @@ describe('Slider', () => {
       expect(track).toContainElement(fill as HTMLElement);
     });
   });
+
+  describe('variant prop 테스트', () => {
+    const wrapperOf = (container: HTMLElement) =>
+      container.querySelector('[class*="sliderWrapper__"]') as HTMLElement;
+
+    it('기본은 default이고 bar·wake 클래스가 붙지 않는다', () => {
+      const { container } = render(<Slider label="슬라이더" />);
+
+      expect(wrapperOf(container).className).toContain('variantStyles_default');
+      expect(wrapperOf(container).className).not.toContain('variantStyles_bar');
+    });
+
+    it('variant="bar"는 wrapper에 bar 클래스를 붙이고 같은 입력으로 조작된다', () => {
+      const onChange = vi.fn();
+      const { container } = render(
+        <Slider label="볼륨" variant="bar" onChange={onChange} />
+      );
+      const slider = screen.getByRole('slider');
+
+      expect(wrapperOf(container).className).toContain('variantStyles_bar');
+      fireEvent.change(slider, { target: { value: '40' } });
+      expect(onChange).toHaveBeenCalledTimes(1);
+      expect(slider).toHaveValue('40');
+    });
+
+    it('variant는 input의 DOM 속성으로 새지 않는다', () => {
+      render(<Slider label="슬라이더" variant="bar" />);
+
+      expect(screen.getByRole('slider')).not.toHaveAttribute('variant');
+    });
+
+    it('bar에서도 채움 비율과 값 따라붙기가 그대로 동작한다', () => {
+      const { container } = render(
+        <Slider label="슬라이더" variant="bar" value={50} onChange={() => {}} />
+      );
+      const fill = container.querySelector(
+        '[class*="sliderFillTrack__"]'
+      ) as HTMLElement;
+
+      expect(fill.style.getPropertyValue('--slider-fill-scale')).toBe('0.5');
+      fireEvent.pointerDown(screen.getByRole('slider'));
+      expect(getFollower(container)).toBeInTheDocument();
+    });
+  });
 });

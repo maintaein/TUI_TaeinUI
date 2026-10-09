@@ -34,6 +34,25 @@ function findRule(
   return rule;
 }
 
+interface Flat {
+  rule: CSSStyleRule;
+  media: string | null;
+}
+function flatRules(): Flat[] {
+  const flat: Flat[] = [];
+  const walk = (rules: CSSRuleList, media: string | null) => {
+    for (const rule of Array.from(rules)) {
+      if (rule instanceof CSSMediaRule) {
+        walk(rule.cssRules, rule.media.mediaText);
+      } else if (rule instanceof CSSStyleRule) {
+        flat.push({ rule, media });
+      }
+    }
+  };
+  walk(findSliderStyleSheet().cssRules, null);
+  return flat;
+}
+
 describe('Slider 생성 CSS', () => {
   // 모듈을 최소 한 번 참조해 vanilla-extract가 CSS를 생성/주입하게 만든다.
   void SliderCss;
@@ -75,24 +94,6 @@ describe('Slider 생성 CSS', () => {
     const MOTION_OK = '(prefers-reduced-motion: no-preference)';
     const { duration, easing } = themeContract.animation;
 
-    interface Flat {
-      rule: CSSStyleRule;
-      media: string | null;
-    }
-    const flatRules = (): Flat[] => {
-      const flat: Flat[] = [];
-      const walk = (rules: CSSRuleList, media: string | null) => {
-        for (const rule of Array.from(rules)) {
-          if (rule instanceof CSSMediaRule) {
-            walk(rule.cssRules, rule.media.mediaText);
-          } else if (rule instanceof CSSStyleRule) {
-            flat.push({ rule, media });
-          }
-        }
-      };
-      walk(findSliderStyleSheet().cssRules, null);
-      return flat;
-    };
     const hovers = (tail: RegExp) =>
       flatRules().filter(
         ({ rule }) =>
@@ -199,6 +200,85 @@ describe('Slider 생성 CSS', () => {
       )) {
         expect(rule.selectorText).toContain('input:not(:disabled)');
       }
+    });
+  });
+
+  describe('bar 변형', () => {
+    const BAR = /Slider_variantStyles_bar__\w+/;
+    const own = (re: RegExp) =>
+      flatRules().filter(({ rule }) => re.test(rule.selectorText));
+
+    it.each([['webkit-slider-thumb'], ['moz-range-thumb']])(
+      '%s는 bar에서 투명하다: 크기·히트 영역은 그대로 둔다',
+      (pseudo) => {
+        const rules = own(new RegExp(`${BAR.source}.*::-${pseudo}$`));
+
+        expect(rules).toHaveLength(1);
+        expect(rules[0].rule.style.getPropertyValue('opacity')).toBe('0');
+        expect(rules[0].rule.style.getPropertyValue('width')).toBe('');
+        expect(rules[0].rule.style.getPropertyValue('display')).toBe('');
+      }
+    );
+
+    it('투명은 bar에만 걸린다: 기본 머리 규칙에는 opacity가 없다', () => {
+      const thumbs = flatRules().filter(
+        ({ rule }) =>
+          /::-(webkit-slider-thumb|moz-range-thumb)$/.test(rule.selectorText) &&
+          !BAR.test(rule.selectorText)
+      );
+
+      expect(thumbs.length).toBeGreaterThan(0);
+      for (const { rule } of thumbs) {
+        expect(rule.style.getPropertyValue('opacity')).toBe('');
+      }
+    });
+
+    it('트랙은 8px이고 호버하면 12px로 두꺼워진다(마우스 게이트 안)', () => {
+      const rest = own(
+        new RegExp(`${BAR.source} \\.Slider_sliderTrack__\\w+$`)
+      );
+      const hover = own(
+        new RegExp(`${BAR.source}.*:hover \\.Slider_sliderTrack__\\w+$`)
+      );
+
+      expect(rest).toHaveLength(1);
+      expect(rest[0].rule.style.getPropertyValue('height')).toBe('8px');
+      expect(hover).toHaveLength(1);
+      expect(hover[0].rule.style.getPropertyValue('height')).toBe('12px');
+      expect(hover[0].media).toContain('(hover: hover) and (pointer: fine)');
+      expect(hover[0].media).toContain(
+        '(prefers-reduced-motion: no-preference)'
+      );
+      expect(hover[0].rule.selectorText).toContain('input:not(:disabled)');
+      // 전이는 기본 호버 규칙(slow settle)이 같은 요소에 이미 걸려 있어 따로 적지 않는다.
+      expect(hover[0].rule.style.getPropertyValue('transition')).toBe('');
+    });
+
+    it('키보드 포커스면 머리가 없으니 트랙 둘레에 포커스 링이 선다', () => {
+      const ring = own(
+        new RegExp(
+          `${BAR.source}:has\\(input:focus-visible\\) \\.Slider_sliderTrack__\\w+$`
+        )
+      );
+
+      expect(ring).toHaveLength(1);
+      expect(ring[0].rule.style.getPropertyValue('outline')).toContain(
+        themeContract.color.border.focus
+      );
+    });
+
+    it('채움 막대 끝이 트랙 끝처럼 둥글고, scale이 아니라 translateX로 움직여 모양이 일그러지지 않는다', () => {
+      const fill = own(
+        new RegExp(`${BAR.source} \\.Slider_sliderFillTrack__\\w+$`)
+      );
+
+      expect(fill).toHaveLength(1);
+      expect(fill[0].rule.style.getPropertyValue('border-radius')).toBe(
+        '999px'
+      );
+      const transform = fill[0].rule.style.getPropertyValue('transform');
+      expect(transform).toContain('translateX(');
+      expect(transform).not.toMatch(/scale[XY]?\(/);
     });
   });
 });
