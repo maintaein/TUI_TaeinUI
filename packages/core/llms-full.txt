@@ -177,7 +177,7 @@ import { Slider } from '@taein-ui/core';
 |------|------|---------|-------------|
 | label | string | (required) | Label text |
 | size | 'sm' \| 'md' \| 'lg' | 'md' | Slider size |
-| variant | 'default' \| 'bar' \| 'wake' | 'default' | Look. `default` and `bar` draw the line as one SVG shape that swells around the thumb in proportion to drag speed (6px up to 20px, longer behind the thumb) and goes smooth again when still. `bar` has no visible thumb (the fill bar is the value, focus ring goes around the track). `wake` splits the line into tick bars (one per 8px of track width, 8 to 48) that ripple behind the thumb in proportion to its speed (no ripple under reduced motion) |
+| variant | 'default' \| 'bar' \| 'wake' | 'default' | Look. `default` and `bar` draw the line as one SVG shape that swells around the thumb in proportion to drag speed (6px up to 20px, longer behind the thumb) and goes smooth again when still. `bar` has no visible thumb (the fill bar is the value, focus ring goes around the track). `wake` splits the line into tick bars (one per 8px of track width, 8 to 160) that ripple behind the thumb in proportion to its speed (no ripple under reduced motion) |
 | min | number | 0 | Minimum value |
 | max | number | 100 | Maximum value |
 | step | number | 1 | Step increment |

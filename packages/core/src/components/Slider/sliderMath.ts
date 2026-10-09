@@ -7,12 +7,12 @@ const smoothstep = (s: number): number => s * s * (3 - 2 * s);
 /** 막대 사이 간격(px): 막대 폭 2px + 틈. 개수는 이 간격마다 하나다. */
 export const WAKE_BAR_GAP_PX = 8;
 export const WAKE_MIN_BARS = 8;
-export const WAKE_MAX_BARS = 48;
+export const WAKE_MAX_BARS = 160;
 
 /** 폭을 아직 모를 때(SSR·첫 렌더) 쓰는 개수. */
 export const WAKE_DEFAULT_BARS = 32;
 
-/** 트랙 폭(px) -> 막대 개수. 간격 8px마다 하나, 8~48개. */
+/** 트랙 폭(px) -> 막대 개수. 간격 8px마다 하나, 8~160개(1280px 트랙까지 8px 간격). */
 export function wakeBarCount(width: number): number {
   return clamp(
     Math.floor(width / WAKE_BAR_GAP_PX),
@@ -31,12 +31,12 @@ export const WAKE_BAR_MAX_HEIGHT = 24;
 export const WAKE_REST_SCALE = WAKE_BAR_REST_HEIGHT / WAKE_BAR_MAX_HEIGHT;
 
 /**
- * 머리 속도(트랙 %/s)가 이 값이면 물결이 최대다. WakeSlider.tsx의 320에서
- * 120으로 낮췄다: 트랙 폭의 약 100%/s로 끌 때 들림이 0.8을 넘어야 한다
- * (smoothstep(100 / 120) = 0.92). 머리를 따라가는 quickTo는 속도를 깎지 않는다
- * (끄는 속도와 머리 속도가 같다). 320이면 같은 끌기에서 0.28이었다.
+ * 머리 속도(px/s)가 이 값이면 물결이 최대다. 트랙 길이와 무관하게 같은 손 속도는
+ * 같은 세기를 낸다(%/s로 재면 긴 트랙에서 같은 손 속도가 약해 보였다). 기준은
+ * 129px 트랙에서 물결이 잘 보인다고 한 설정(트랙의 120%/s)이 내던 속도,
+ * 129 * 1.2 = 155px/s다. 머리를 따라가는 quickTo는 속도를 깎지 않는다.
  */
-const WAKE_FULL_SPEED = 120;
+export const WAKE_FULL_SPEED_PX = 150;
 
 /**
  * 최소·최대 반경(px). WakeSlider.tsx의 `MIN_REACH` 1.5, `reach` 6(막대 단위)을
@@ -52,11 +52,11 @@ const WAKE_SKEW = 0.6;
 export const WAKE_FLAT = 0.002;
 
 /**
- * 속도 -> 세기 0~1. WakeSlider.tsx:104. `WAKE_FLAT`보다 작으면 0으로 잘라, 멈춘
+ * 속도(px/s) -> 세기 0~1. WakeSlider.tsx:104. `WAKE_FLAT`보다 작으면 0으로 잘라, 멈춘
  * 뒤 막대가 쉬는 높이에 딱 맞는다.
  */
 export function waveAmp(speed: number): number {
-  const amp = smoothstep(clamp(Math.abs(speed) / WAKE_FULL_SPEED, 0, 1));
+  const amp = smoothstep(clamp(Math.abs(speed) / WAKE_FULL_SPEED_PX, 0, 1));
   return amp < WAKE_FLAT ? 0 : amp;
 }
 

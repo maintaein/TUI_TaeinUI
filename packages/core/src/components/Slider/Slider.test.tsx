@@ -13,6 +13,7 @@ import {
   LINE_WAVE_MAX,
   THUMB_PX,
   WAKE_DEFAULT_BARS,
+  wakeBarCount,
   waveAmp,
   waveLift,
   waveScale,
@@ -1223,15 +1224,55 @@ describe('Slider', () => {
       act(() => {
         host.__wakeHeadTween!.progress(0.5);
       });
-      // 같은 이동을 20배 긴 프레임에 했다면 속도는 1/20이다.
+      // 같은 이동을 100배 긴 프레임에 했다면 속도는 1/100이다.
       act(() => {
-        host.__wakeTick!(0, 320);
+        host.__wakeTick!(0, 1600);
       });
       const slowPeak = Math.max(...getWakeBars(slow.container).map(barScale));
 
       expect(slowPeak).toBeLessThan(fastPeak);
       expect(slowPeak).toBeGreaterThan(WAKE_REST_SCALE);
       expect(waveAmp(0)).toBe(0);
+    });
+
+    it('물결 세기는 px 속도로 잰다: 같은 px/s면 트랙 폭(129, 320, 806)과 무관하게 같은 물결이다', () => {
+      // 폭마다 머리가 1초에 75px 움직이게 pct를 옮긴다(폭이 넓을수록 pct 변화는 작다).
+      const PX_PER_SEC = 75;
+      for (const width of [129, 320, 806]) {
+        Object.defineProperty(HTMLElement.prototype, 'clientWidth', {
+          configurable: true,
+          get: () => width,
+        });
+        try {
+          const { container, unmount } = render(
+            <Slider label="슬라이더" variant="wake" defaultValue={50} />
+          );
+          const host = getWakeHost(container)!;
+          const bars = getWakeBars(container);
+          expect(bars).toHaveLength(wakeBarCount(width));
+          host.__wakeHead!.pct += (PX_PER_SEC / width) * 100;
+          act(() => {
+            host.__wakeTick!(0, 1000);
+          });
+
+          const gap = width / (bars.length - 1);
+          const h = (host.__wakeHead!.pct / 100) * (bars.length - 1);
+          bars.forEach((bar, i) => {
+            expect(barScale(bar)).toBeCloseTo(
+              waveScale(waveLift(i - h, 1, waveAmp(PX_PER_SEC), gap)),
+              10
+            );
+          });
+          // 세기 0.5: 머리 자리 막대가 쉬는 높이보다 확실히 솟는다.
+          expect(Math.max(...bars.map(barScale))).toBeGreaterThan(
+            WAKE_REST_SCALE + 0.2
+          );
+          unmount();
+        } finally {
+          delete (HTMLElement.prototype as { clientWidth?: number })
+            .clientWidth;
+        }
+      }
     });
 
     it('키보드로 값이 바뀌어도 같은 물결이다 (잡지 않아도)', () => {
@@ -1440,7 +1481,7 @@ describe('Slider', () => {
       const fast = lineSwing(20, 60);
       const fastPeak = peak(fast.profile);
       fast.unmount();
-      const slow = lineSwing(20, 60, { deltaMs: 320 });
+      const slow = lineSwing(20, 60, { deltaMs: 1600 });
 
       expect(peak(slow.profile)).toBeLessThan(fastPeak);
       expect(peak(slow.profile)).toBeGreaterThan(LINE_REST);

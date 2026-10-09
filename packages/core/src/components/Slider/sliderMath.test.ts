@@ -8,6 +8,7 @@ import {
   WAKE_BAR_MAX_HEIGHT,
   WAKE_DEFAULT_BARS,
   WAKE_MAX_BARS,
+  WAKE_FULL_SPEED_PX,
   WAKE_MIN_BARS,
   WAKE_MIN_REACH_PX,
   WAKE_REACH_PX,
@@ -24,19 +25,21 @@ import {
 } from './sliderMath';
 
 describe('wakeBarCount (트랙 폭 -> 막대 개수)', () => {
-  it('간격 8px마다 하나: 폭 129 -> 16개, 320 -> 40개', () => {
+  it('간격 8px마다 하나: 폭 129 -> 16개, 320 -> 40개, 806 -> 100개', () => {
     expect(wakeBarCount(129)).toBe(16);
     expect(wakeBarCount(320)).toBe(40);
+    expect(wakeBarCount(806)).toBe(100);
     expect(wakeBarCount(WAKE_BAR_GAP_PX * 20)).toBe(20);
   });
 
-  it('아주 좁아도 8개, 아주 넓어도 48개다', () => {
+  it('아주 좁아도 8개, 아주 넓어도 160개다 (1280px 트랙까지 간격 8px)', () => {
     expect(wakeBarCount(0)).toBe(WAKE_MIN_BARS);
     expect(wakeBarCount(30)).toBe(8);
-    expect(wakeBarCount(384)).toBe(48);
+    expect(wakeBarCount(1280)).toBe(160);
+    expect(wakeBarCount(2000)).toBe(160);
     expect(wakeBarCount(5000)).toBe(WAKE_MAX_BARS);
     expect(WAKE_MIN_BARS).toBe(8);
-    expect(WAKE_MAX_BARS).toBe(48);
+    expect(WAKE_MAX_BARS).toBe(160);
   });
 
   it('기본 개수는 상하한 안에 있다', () => {
@@ -46,18 +49,19 @@ describe('wakeBarCount (트랙 폭 -> 막대 개수)', () => {
 });
 
 describe('wake 물결 (WakeSlider.tsx:104-120과 같은 식)', () => {
-  it('세기는 속도 절댓값의 smoothstep이고 120에서 1로 포화한다', () => {
+  it('세기는 속도(px/s) 절댓값의 smoothstep이고 150에서 1로 포화한다', () => {
+    expect(WAKE_FULL_SPEED_PX).toBe(150);
     expect(waveAmp(0)).toBe(0);
-    expect(waveAmp(60)).toBeCloseTo(0.5, 10);
-    expect(waveAmp(120)).toBe(1);
-    expect(waveAmp(-120)).toBe(1);
+    expect(waveAmp(75)).toBeCloseTo(0.5, 10);
+    expect(waveAmp(150)).toBe(1);
+    expect(waveAmp(-150)).toBe(1);
     expect(waveAmp(1000)).toBe(1);
-    expect(waveAmp(-60)).toBeCloseTo(0.5, 10);
+    expect(waveAmp(-75)).toBeCloseTo(0.5, 10);
   });
 
-  it('트랙 폭의 100%/s로 끌면 들림이 0.8을 넘는다', () => {
-    expect(waveAmp(100)).toBeGreaterThan(0.8);
-    expect(waveAmp(-100)).toBeGreaterThan(0.8);
+  it('129px 트랙을 120%/s(155px/s)로 끌던 속도 근처에서 들림이 0.8을 넘는다', () => {
+    expect(waveAmp(129 * 1.2)).toBeGreaterThan(0.8);
+    expect(waveAmp(-129 * 1.2)).toBeGreaterThan(0.8);
   });
 
   it('아주 느린 속도는 0으로 잘려 막대가 쉬는 높이에 딱 맞는다', () => {

@@ -337,6 +337,7 @@ export const Slider = forwardRef<HTMLInputElement, SliderProps>(
     const restThick = isBar ? LINE_BAR_REST : LINE_REST;
     const hoverThick = isBar ? LINE_BAR_HOVER : LINE_HOVER;
     const lineW = trackWidth > 0 ? trackWidth : LINE_DEFAULT_WIDTH;
+    const widthRef = useRef(lineW);
     const lineId = `line-${useId().replace(/:/g, '')}`;
     const lineState = useRef({ base: restThick, headPct: 0, dir: 1, amp: 0 });
     const lineShapeRefs = useRef<{
@@ -370,6 +371,7 @@ export const Slider = forwardRef<HTMLInputElement, SliderProps>(
     // 도는 중이면 두께는 트윈이 정한다.
     useLayoutEffect(() => {
       paintLineRef.current = paintLine;
+      widthRef.current = lineW;
       if (isWake) return;
       if (!hoveredRef.current || reduced) {
         hoverTweenRef.current?.kill();
@@ -425,7 +427,11 @@ export const Slider = forwardRef<HTMLInputElement, SliderProps>(
       let lastAmp = 0;
 
       const onTick = (_time: number, deltaMs: number) => {
-        const speed = deltaMs > 0 ? ((head.pct - lastPct) * 1000) / deltaMs : 0;
+        // %/s를 px/s로 바꿔 잰다: 트랙 길이와 무관하게 같은 손 속도는 같은 세기다.
+        const speed =
+          deltaMs > 0
+            ? (((head.pct - lastPct) / 100) * widthRef.current * 1000) / deltaMs
+            : 0;
         lastPct = head.pct;
         const amp = waveAmp(speed);
         const flat = amp < WAKE_FLAT && lastAmp < WAKE_FLAT;
