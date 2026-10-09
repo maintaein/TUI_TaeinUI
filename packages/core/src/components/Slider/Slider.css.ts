@@ -2,6 +2,19 @@ import { style, styleVariants } from '@vanilla-extract/css';
 import { themeContract } from '../../tokens/theme.css';
 import { focusRing } from '../../tokens/focusRing.css';
 
+/** 마우스(호버·정밀 포인터)에서만. 터치에는 호버가 없다. */
+const HOVER_GATE = '(hover: hover) and (pointer: fine)';
+
+/** 호버로 크기가 바뀌는 규칙은 움직임 축소 모드에서 빠진다(색·그림자는 남는다). */
+const HOVER_GROW_GATE = `${HOVER_GATE} and (prefers-reduced-motion: no-preference)`;
+
+/** 트랙 두께. 호버하면 1.5배(ElasticSlider 6 -> 12의 배율을 우리 크기에). */
+const TRACK_HEIGHT = '6px';
+const TRACK_HOVER_HEIGHT = '9px';
+
+/** 호버하면 머리가 부푸는 배율. 잡는 동안(:active)도 같다. */
+const THUMB_HOVER_SCALE = 1.15;
+
 // Container
 export const container = style({
   display: 'flex',
@@ -55,19 +68,37 @@ export const sliderTrack = style({
   top: '50%',
   left: 0,
   right: 0,
-  height: '6px',
+  height: TRACK_HEIGHT,
   // 트랙의 임무는 그 위에 올라타는 것과 대비되는 것이다. fill(primary.main)과
   // 썸 테두리가 어두우니 면은 연하게 두고, 식별성은 border.strong 경계선이
   // 맡는다(SegmentedButtons·NumericSpinner 컨테이너와 같은 전략).
   backgroundColor: themeContract.color.background.paper,
   boxShadow: `inset 0 0 0 1px ${themeContract.color.border.strong}`,
-  borderRadius: '3px',
+  // 알약. 반경을 크게 두면 높이가 6에서 9로 변해도 항상 끝이 반원이다.
+  borderRadius: '999px',
   transform: 'translateY(-50%)',
   pointerEvents: 'none',
   // fill이 이제 이 트랙의 자식이다(Ruling 22). fill 자신의 border-radius를 없애는
   // 대신 트랙이 자르므로, scaleX가 0에 가까워져도 반지름이 트랙 높이의 절반을
-  // 넘어 찌그러지는 일이 없다 — 이 3px 반경과 6px 높이가 스케일 없이 그대로 캡이 된다.
+  // 넘어 찌그러지는 일이 없다. 트랙의 알약 반경이 스케일 없이 그대로 캡이 된다.
   overflow: 'hidden',
+  // height는 합성 속성이 아니라 레이아웃을 건드리지만, 트랙은 absolute에 가운데
+  // 정렬(translateY -50%)이라 주변을 밀지 않고 위아래로 고르게 두꺼워진다.
+  // 알약을 scaleY로 늘리면 끝 반원이 일그러져서 height를 전이한다. 나올 때는
+  // 이 기본 전이(base settle)가 쓰인다.
+  transition: `height ${themeContract.animation.duration.base} ${themeContract.animation.easing.settle}`,
+  '@media': {
+    [HOVER_GROW_GATE]: {
+      selectors: {
+        [`${sliderWrapper}:has(input:not(:disabled)):hover &`]: {
+          height: TRACK_HOVER_HEIGHT,
+          // 들어갈 때는 slow. height에는 오버슈트 이징을 걸 수 없어(snap·spring은
+          // transform 전용) settle을 쓴다. 탄성은 머리의 scale이 맡는다.
+          transition: `height ${themeContract.animation.duration.slow} ${themeContract.animation.easing.settle}`,
+        },
+      },
+    },
+  },
 });
 
 // Slider Fill Track (filled portion)
@@ -114,18 +145,12 @@ export const slider = style({
       boxShadow: '0 1px 4px rgba(0, 0, 0, 0.15)',
       marginTop: '-9px',
     },
-    '&:hover::-webkit-slider-thumb': {
-      borderColor: themeContract.color.primary.main,
-      boxShadow: '0 2px 6px rgba(0, 0, 0, 0.2)',
-      transform: 'scale(1.1)',
-    },
     '&:active::-webkit-slider-thumb': {
       borderColor: themeContract.color.primary.dark,
       boxShadow: '0 1px 3px rgba(0, 0, 0, 0.2)',
-      // hover(1.1)보다 커야 한다 — 드래그 중엔 :hover와 :active가 동시에
-      // 매칭되고 소스 순서상 :active가 이기므로, 여기서 hover보다 작은 값을
-      // 쓰면 "잡고 있는 동안 썸이 rest 크기로 보인다".
-      transform: 'scale(1.15)',
+      // 호버와 같은 배율이어야 한다. 드래그 중엔 :hover와 :active가 동시에
+      // 매칭되므로, 여기서 더 작은 값을 쓰면 "잡고 있는 동안 썸이 줄어든다".
+      transform: `scale(${THUMB_HOVER_SCALE})`,
     },
     '&:focus-visible::-webkit-slider-thumb': {
       ...focusRing(),
@@ -147,16 +172,11 @@ export const slider = style({
       transition: `border-color ${themeContract.animation.duration.base} ${themeContract.animation.easing.settle}, box-shadow ${themeContract.animation.duration.base} ${themeContract.animation.easing.settle}, transform ${themeContract.animation.duration.base} ${themeContract.animation.easing.settle}`,
       boxShadow: '0 1px 4px rgba(0, 0, 0, 0.15)',
     },
-    '&:hover::-moz-range-thumb': {
-      borderColor: themeContract.color.primary.main,
-      boxShadow: '0 2px 6px rgba(0, 0, 0, 0.2)',
-      transform: 'scale(1.1)',
-    },
     '&:active::-moz-range-thumb': {
       borderColor: themeContract.color.primary.dark,
       boxShadow: '0 1px 3px rgba(0, 0, 0, 0.2)',
-      // webkit과 같은 이유로 hover(1.1)보다 크게 둔다.
-      transform: 'scale(1.15)',
+      // webkit과 같은 이유로 호버와 같은 배율이다.
+      transform: `scale(${THUMB_HOVER_SCALE})`,
     },
     '&:focus-visible::-moz-range-thumb': {
       ...focusRing(),
@@ -186,6 +206,36 @@ export const slider = style({
     // Focus
     '&:focus-visible': {
       outline: 'none',
+    },
+  },
+
+  '@media': {
+    // 호버: 머리 색·그림자. 크기는 아래 GROW 게이트가 맡는다. 잡는 동안(:active)은
+    // 특이도가 더 높은 이 규칙이 :active 규칙을 덮지 않도록 :not(:active)로 뺀다.
+    [HOVER_GATE]: {
+      selectors: {
+        [`${sliderWrapper}:has(input:not(:disabled)):hover &:not(:active)::-webkit-slider-thumb`]:
+          { boxShadow: '0 2px 6px rgba(0, 0, 0, 0.2)' },
+        [`${sliderWrapper}:has(input:not(:disabled)):hover &:not(:active)::-moz-range-thumb`]:
+          { boxShadow: '0 2px 6px rgba(0, 0, 0, 0.2)' },
+      },
+    },
+    // 호버: 머리가 부푼다. 들어갈 때 slow spring, 나올 때는 기본 전이(base settle).
+    [HOVER_GROW_GATE]: {
+      selectors: {
+        [`${sliderWrapper}:has(input:not(:disabled)):hover &:not(:active)::-webkit-slider-thumb`]:
+          {
+            transform: `scale(${THUMB_HOVER_SCALE})`,
+            // 크기만 slow spring, 색·그림자는 기본과 같다.
+            transition: `border-color ${themeContract.animation.duration.base} ${themeContract.animation.easing.settle}, box-shadow ${themeContract.animation.duration.base} ${themeContract.animation.easing.settle}, transform ${themeContract.animation.duration.slow} ${themeContract.animation.easing.spring}`,
+          },
+        [`${sliderWrapper}:has(input:not(:disabled)):hover &:not(:active)::-moz-range-thumb`]:
+          {
+            transform: `scale(${THUMB_HOVER_SCALE})`,
+            // 크기만 slow spring, 색·그림자는 기본과 같다.
+            transition: `border-color ${themeContract.animation.duration.base} ${themeContract.animation.easing.settle}, box-shadow ${themeContract.animation.duration.base} ${themeContract.animation.easing.settle}, transform ${themeContract.animation.duration.slow} ${themeContract.animation.easing.spring}`,
+          },
+      },
     },
   },
 });
@@ -232,43 +282,7 @@ export const markLabel = style({
   marginTop: '0.25rem',
 });
 
-// Scrub Ticks Container (M3 T4) — 잡은 동안만 마운트되는 눈금 묶음. GSAP
-// 타임라인이 opacity·scaleY로 전체를 함께 올리고 내린다. marks(:209-233)와는
-// 이름도 DOM도 별개다 — marks는 사용자 지정 전 구간 표식이고, 이건 썸 근방에
-// 자동 계산되는 임시 표식이다.
-export const scrubTicksContainer = style({
-  position: 'absolute',
-  top: 0,
-  left: 0,
-  right: 0,
-  bottom: 0,
-  pointerEvents: 'none',
-  transformOrigin: 'center bottom',
-});
-
-// Scrub Tick — scrubTicksContainer 안에서 파생 간격으로 돋는 한 칸.
-export const scrubTick = style({
-  position: 'absolute',
-  top: '50%',
-  width: '2px',
-  height: '10px',
-  backgroundColor: themeContract.color.text.secondary,
-  transform: 'translate(-50%, -50%)',
-});
-
-// Scrub Tick Landed — 놓은 자리에 남는 한 칸. scrubTick과 다른 클래스로 분리해
-// **존재(별개 요소)와 길이**로 구분한다(명제 조항 4 — 색만으로 구분하지 않는다).
-export const scrubTickLanded = style({
-  position: 'absolute',
-  top: '50%',
-  width: '2px',
-  height: '14px',
-  backgroundColor: themeContract.color.primary.main,
-  transform: 'translate(-50%, -50%)',
-  pointerEvents: 'none',
-});
-
-// Value Follower (M3 T4 · M0.5 I2) — 잡은 동안 썸을 따라가는 값 표시.
+// Value Follower (M0.5 I2). 잡은 동안 썸을 따라가는 값 표시.
 // showValue(라벨 행의 고정 출력, :36-43)와 별개이고 그것을 대체하지 않는다.
 // left는 quickTo가 매 프레임 쓰는 --slider-value-follower-percent 커스텀
 // 속성에서 나온다 — Ruling 23: getBoundingClientRect() 대신 값에서 나온 %다.
