@@ -236,13 +236,13 @@ const [lg, setLg] = useState(70);
           <h3 className={styles.exampleTitle}>Variants</h3>
           <LivePreview
             title="변형"
-            description="마우스를 올리면 라인이 두꺼워지고 머리가 부풉니다. bar는 머리 없이 막대가 값을 보여 주고, wake는 눈금 막대가 머리를 따라 물결칩니다(움직임 줄이기 설정에서는 물결이 없습니다)."
+            description="마우스를 올리면 라인이 탄성 있게 두꺼워지고 머리가 부풉니다. bar는 머리 없이 막대가 값을 보여 주고, wake는 눈금 막대가 머리를 따라 물결칩니다(움직임 줄이기 설정에서는 물결이 없습니다)."
             editable
             code={`const [a, setA] = useState(40);
 const [b, setB] = useState(60);
 const [c, setC] = useState(50);
 
-<div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+<div style={{ display: 'flex', flexDirection: 'column', gap: '2rem', width: '100%', minWidth: '320px' }}>
   <Slider label="default" value={a} onChange={(e) => setA(Number(e.target.value))} showValue />
   <Slider label="bar" variant="bar" value={b} onChange={(e) => setB(Number(e.target.value))} showValue />
   <Slider label="wake" variant="wake" value={c} onChange={(e) => setC(Number(e.target.value))} showValue />

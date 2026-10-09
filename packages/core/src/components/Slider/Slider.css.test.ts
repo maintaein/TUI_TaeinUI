@@ -130,7 +130,7 @@ describe('Slider 생성 CSS', () => {
       );
     });
 
-    it('호버하면 트랙이 9px로 두꺼워진다: height 전이, 들어갈 때 slow', () => {
+    it('호버하면 트랙이 9px로 두꺼워진다: height 전이, 들어갈 때 slow spring', () => {
       const [track] = hovers(/Slider_sliderTrack__\w+$/);
 
       expect(track).toBeDefined();
@@ -142,9 +142,9 @@ describe('Slider 생성 CSS', () => {
       expect(track.rule.style.getPropertyValue('transition')).toContain(
         duration.slow
       );
-      // height는 오버슈트 이징을 받을 수 없다(animationBoundary: snap·spring은 transform만).
+      // 탄성이 있다. animationBoundary R46 허용 목록에 항목이 있다.
       expect(track.rule.style.getPropertyValue('transition')).toContain(
-        easing.settle
+        `height ${duration.slow} ${easing.spring}`
       );
       expect(track.rule.style.getPropertyValue('transform')).toBe('');
     });
@@ -250,7 +250,7 @@ describe('Slider 생성 CSS', () => {
         '(prefers-reduced-motion: no-preference)'
       );
       expect(hover[0].rule.selectorText).toContain('input:not(:disabled)');
-      // 전이는 기본 호버 규칙(slow settle)이 같은 요소에 이미 걸려 있어 따로 적지 않는다.
+      // 전이는 기본 호버 규칙(slow spring)이 같은 요소에 이미 걸려 있어 따로 적지 않는다.
       expect(hover[0].rule.style.getPropertyValue('transition')).toBe('');
     });
 
@@ -287,10 +287,10 @@ describe('Slider 생성 CSS', () => {
       flatRules().filter(({ rule }) => re.test(rule.selectorText));
     const bar = () => own(/\.Slider_wakeBar__\w+$/)[0].rule;
 
-    it('막대는 폭 2px, 최대 높이 20px에 쉬는 scaleY(0.3)이고 가운데를 중심으로 늘어난다', () => {
+    it('막대는 폭 2px, 최대 높이 24px에 쉬는 scaleY(0.25)이고 가운데를 중심으로 늘어난다', () => {
       expect(bar().style.getPropertyValue('width')).toBe('2px');
-      expect(bar().style.getPropertyValue('height')).toBe('20px');
-      expect(bar().style.getPropertyValue('transform')).toBe('scaleY(0.3)');
+      expect(bar().style.getPropertyValue('height')).toBe('24px');
+      expect(bar().style.getPropertyValue('transform')).toBe('scaleY(0.25)');
       expect(bar().style.getPropertyValue('transform-origin')).toBe('center');
       // 직사각형이라 scaleY로 일그러질 끝 반원이 없다.
       expect(bar().style.getPropertyValue('border-radius')).toBe('');

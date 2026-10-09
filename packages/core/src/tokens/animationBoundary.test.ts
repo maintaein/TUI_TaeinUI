@@ -1306,6 +1306,26 @@ interface OvershootException {
  */
 const OVERSHOOT_TIMING_EXCEPTIONS: OvershootException[] = [];
 
+/**
+ * `transform` 아닌 속성에 snap·spring을 건 transition 조각의 허용 목록. R46이
+ * 막는 것은 opacity·색이 1에서 잘리는 인공물이다. 오버슈트해도 잘리지 않고
+ * 그대로 그려지는 속성만 손으로 확인하고 올린다. `line`은 그 조각이 적힌 줄이다.
+ */
+interface OvershootPropertyException extends OvershootException {
+  property: string;
+}
+
+const OVERSHOOT_PROPERTY_EXCEPTIONS: OvershootPropertyException[] = [
+  {
+    at: 'components/Slider/Slider.css.ts',
+    line: 115,
+    property: 'height',
+    owner: 'M5 task-18',
+    reason:
+      'Slider 트랙 호버의 height. R46이 막는 것은 opacity·색이 1에서 잘리는 인공물이다. height 넘침(6 -> 9px에서 약 9.6px)은 잘리지 않고 그대로 그려진다.',
+  },
+];
+
 // ---------------------------------------------------------------------------
 // 4. 오버슈트 이징 (R46)
 // ---------------------------------------------------------------------------
@@ -1329,7 +1349,17 @@ describe('오버슈트 이징 경계 (R46)', () => {
       for (const segment of decl.segments) {
         if (!OVERSHOOT.test(segment.text)) continue;
         if (segment.property !== 'transform') {
-          violations.push(`${decl.file}:${segment.line} (${segment.property})`);
+          const allowed = OVERSHOOT_PROPERTY_EXCEPTIONS.some(
+            (e) =>
+              e.at === decl.file &&
+              e.line === segment.line &&
+              e.property === segment.property
+          );
+          if (!allowed) {
+            violations.push(
+              `${decl.file}:${segment.line} (${segment.property})`
+            );
+          }
         }
       }
     }
@@ -1347,6 +1377,26 @@ describe('오버슈트 이징 경계 (R46)', () => {
       }
     }
     expect(violations).toEqual([]);
+  });
+
+  it('속성 허용 목록의 항목은 모두 실제 소스의 비 transform 오버슈트 조각이다', () => {
+    const OVERSHOOT = /animation\.easing\.(?:snap|spring)/;
+    const hits = ALL_DECLS.filter((d) => d.property === 'transition').flatMap(
+      (d) =>
+        d.segments
+          .filter((s) => OVERSHOOT.test(s.text) && s.property !== 'transform')
+          .map((s) => ({ file: d.file, line: s.line, property: s.property }))
+    );
+    for (const e of OVERSHOOT_PROPERTY_EXCEPTIONS) {
+      expect(
+        hits.some(
+          (h) =>
+            h.file === e.at && h.line === e.line && h.property === e.property
+        ),
+        `${e.at}:${e.line} (${e.property})가 더는 오버슈트 조각이 아니다: 허용 목록에서 빼라`
+      ).toBe(true);
+    }
+    expect(hits).toHaveLength(OVERSHOOT_PROPERTY_EXCEPTIONS.length);
   });
 
   it('bare 오버슈트 타이밍 허용 목록이 실제 소스와 정확히 일치한다', () => {

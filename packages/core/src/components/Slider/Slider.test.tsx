@@ -4,7 +4,7 @@ import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { Slider } from './Slider';
 import {
-  computeBarValues,
+  WAKE_DEFAULT_BARS,
   waveAmp,
   waveLift,
   waveScale,
@@ -913,7 +913,7 @@ describe('Slider', () => {
       ).toBeInTheDocument();
     });
 
-    it('wake는 기존 트랙 선을 그리지 않고 막대를 computeBarValues 위치에 놓는다', () => {
+    it('wake는 기존 트랙 선을 그리지 않고 막대를 트랙 위에 고르게 놓는다', () => {
       const { container } = render(
         <Slider
           label="슬라이더"
@@ -926,23 +926,36 @@ describe('Slider', () => {
         />
       );
       const bars = getWakeBars(container);
-      const expected = computeBarValues(0, 10, 1);
 
       expect(
         container.querySelector('[class*="sliderTrack__"]')
       ).not.toBeInTheDocument();
-      expect(bars).toHaveLength(expected.length);
+      // 처음과 끝 막대는 트랙 양끝, 그 사이는 같은 간격.
+      expect(bars).toHaveLength(WAKE_DEFAULT_BARS);
       expect(bars.map((bar) => bar.style.left)).toEqual(
-        expected.map((barValue) => `${(barValue / 10) * 100}%`)
+        bars.map((_, i) => `${(i / (bars.length - 1)) * 100}%`)
       );
+      expect(bars[0].style.left).toBe('0%');
+      expect(bars[bars.length - 1].style.left).toBe('100%');
     });
 
-    it('촘촘한 step은 눈금처럼 줄여 막대 51개가 된다', () => {
+    it('막대 개수는 값 단계가 아니라 트랙 폭이 정한다: 폭을 모르면 기본 개수다', () => {
       const { container } = render(
         <Slider label="슬라이더" variant="wake" value={0} onChange={() => {}} />
       );
 
-      expect(getWakeBars(container)).toHaveLength(51);
+      // step 1이든 100이든 같다. 폭별 개수는 sliderMath.test.ts의 wakeBarCount가 맡는다.
+      expect(getWakeBars(container)).toHaveLength(WAKE_DEFAULT_BARS);
+      const coarse = render(
+        <Slider
+          label="슬라이더"
+          variant="wake"
+          step={50}
+          value={0}
+          onChange={() => {}}
+        />
+      );
+      expect(getWakeBars(coarse.container)).toHaveLength(WAKE_DEFAULT_BARS);
     });
 
     it('값 이하 막대만 켜진다 (data-on)', () => {
@@ -959,9 +972,10 @@ describe('Slider', () => {
 
       const on = () =>
         getWakeBars(container).map((bar) => bar.getAttribute('data-on'));
+      // 막대 i의 위치(i / 31 * 100%)가 값(40%) 이하인 막대, i = 0..12
       expect(on()).toEqual([
-        ...Array(5).fill('true'),
-        ...Array(6).fill('false'),
+        ...Array(13).fill('true'),
+        ...Array(WAKE_DEFAULT_BARS - 13).fill('false'),
       ]);
 
       rerender(
@@ -974,7 +988,8 @@ describe('Slider', () => {
           onChange={() => {}}
         />
       );
-      expect(on().filter((state) => state === 'true')).toHaveLength(8);
+      // 70%: i = 0..21
+      expect(on().filter((state) => state === 'true')).toHaveLength(22);
     });
 
     it('trackColor는 켜진 막대에만 입힌다', () => {
@@ -991,9 +1006,10 @@ describe('Slider', () => {
       );
       const bars = getWakeBars(container);
 
+      // 20%: i = 0..6
       expect(bars[0].style.backgroundColor).toBe('rgb(255, 0, 0)');
-      expect(bars[2].style.backgroundColor).toBe('rgb(255, 0, 0)');
-      expect(bars[3].style.backgroundColor).toBe('');
+      expect(bars[6].style.backgroundColor).toBe('rgb(255, 0, 0)');
+      expect(bars[7].style.backgroundColor).toBe('');
     });
 
     it('머리는 그대로 있고 막대 묶음은 aria-hidden이다', () => {
@@ -1034,7 +1050,7 @@ describe('Slider', () => {
         ...view,
         host,
         bars: getWakeBars(view.container),
-        h: host.__wakeHead!.pct / 2, // 막대 간격이 2%
+        h: (host.__wakeHead!.pct / 100) * (WAKE_DEFAULT_BARS - 1),
       };
     };
 
@@ -1049,7 +1065,35 @@ describe('Slider', () => {
       });
       expect(barScale(bars[Math.round(h)])).toBeGreaterThan(WAKE_REST_SCALE);
       expect(barScale(bars[0])).toBeCloseTo(WAKE_REST_SCALE, 10);
-      expect(barScale(bars[50])).toBeCloseTo(WAKE_REST_SCALE, 10);
+      expect(barScale(bars[bars.length - 1])).toBeCloseTo(WAKE_REST_SCALE, 10);
+    });
+
+    it('끄는 중 마지막 막대도 다른 막대와 같은 식이다(늘 최대 높이가 아니다)', () => {
+      const { bars, h } = swing(20, 60);
+      const last = bars.length - 1;
+
+      expect(barScale(bars[last])).toBeCloseTo(
+        waveScale(waveLift(last - h, 1, 1)),
+        10
+      );
+      expect(barScale(bars[last])).toBeLessThan(1);
+    });
+
+    it('머리가 맨 끝에 닿아도 마지막 막대는 멈춘 뒤 쉬는 높이다', () => {
+      const { host, bars } = swing(20, 100);
+      act(() => {
+        host.__wakeHeadTween!.progress(1);
+      });
+      act(() => {
+        host.__wakeTick!(0, 16);
+      });
+      act(() => {
+        host.__wakeTick!(0, 16);
+      });
+
+      expect(host.__wakeHead!.pct).toBe(100);
+      expect(barScale(bars[bars.length - 1])).toBe(WAKE_REST_SCALE);
+      expect(barScale(bars[bars.length - 2])).toBe(WAKE_REST_SCALE);
     });
 
     it('오른쪽으로 가면 머리 뒤(왼쪽)가 앞(오른쪽)보다 넓게 솟는다', () => {
@@ -1180,9 +1224,10 @@ describe('Slider', () => {
       for (const bar of getWakeBars(container)) {
         expect(bar.style.getPropertyValue('transform')).toBe('');
       }
+      // 80%: i = 0..24
       expect(
         getWakeBars(container).filter((bar) => bar.dataset.on === 'true')
-      ).toHaveLength(9);
+      ).toHaveLength(25);
     });
 
     it('티커는 마운트에 하나 붙고 언마운트에 떼어진다', () => {

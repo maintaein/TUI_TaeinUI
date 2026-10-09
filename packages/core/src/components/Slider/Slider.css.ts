@@ -110,11 +110,12 @@ export const sliderTrack = style({
       selectors: {
         [`${sliderWrapper}:has(input:not(:disabled)):hover &`]: {
           height: TRACK_HOVER_HEIGHT,
-          // 들어갈 때는 slow. height에는 오버슈트 이징을 걸 수 없어(snap·spring은
-          // transform 전용) settle을 쓴다. 탄성은 머리의 scale이 맡는다.
-          transition: `height ${themeContract.animation.duration.slow} ${themeContract.animation.easing.settle}`,
+          // 들어갈 때는 slow spring: height가 목표(9px, bar는 12px)를 살짝 넘었다
+          // 돌아온다. animationBoundary R46 허용 목록에 이유와 소유가 있다.
+          transition: `height ${themeContract.animation.duration.slow} ${themeContract.animation.easing.spring}`,
         },
         // bar는 12px. 변형 클래스를 하나 더 달아 위 기본 호버 규칙보다 특이도가 높다.
+        // 전이는 위 규칙의 것을 그대로 받는다(같은 커브).
         [`${sliderWrapper}${variantStyles.bar}:has(input:not(:disabled)):hover &`]:
           { height: BAR_TRACK_HOVER_HEIGHT },
       },

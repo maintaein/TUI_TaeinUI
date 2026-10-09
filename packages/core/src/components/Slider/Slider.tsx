@@ -5,7 +5,6 @@ import {
   useCallback,
   useEffect,
   useLayoutEffect,
-  useMemo,
   useRef,
   type InputHTMLAttributes,
   type ChangeEvent,
@@ -38,11 +37,12 @@ import {
   VALUE_FOLLOWER_PERCENT_VAR,
 } from './Slider.css';
 import {
-  computeBarValues,
-  tickInterval,
+  wakeBarCount,
   waveAmp,
   waveLift,
   waveScale,
+  WAKE_BAR_GAP_PX,
+  WAKE_DEFAULT_BARS,
   WAKE_FLAT,
 } from './sliderMath';
 
@@ -285,23 +285,39 @@ export const Slider = forwardRef<HTMLInputElement, SliderProps>(
       followerSetterRef.current?.(percent);
     }, [currentValue, isGrabbed, reduced, min, max]);
 
-    // wake: 막대 위치는 눈금 계산(computeTickValues)을 그대로 쓴다. 머리 위치는
-    // 값을 settle 성질로 따라가고, 매 프레임 그 변화량으로 속도를 재 물결을 만든다.
+    // wake: 막대 개수는 트랙 폭이 정한다(간격 8px마다 하나). 폭은 ResizeObserver로
+    // 읽고, 읽기 전(SSR·첫 렌더)에는 기본 개수로 그린 뒤 측정하고 맞춘다. 머리
+    // 위치는 값을 settle 성질로 따라가고, 매 프레임 그 변화량으로 속도를 재 물결을 만든다.
     const isWake = variant === 'wake';
-    const barValues = useMemo(
-      () => (isWake ? computeBarValues(min, max, step) : []),
-      [isWake, min, max, step]
-    );
     const wakeBarsRef = useRef<WakeBarsHost>(null);
     const headSetterRef = useRef<((percent: number) => void) | null>(null);
+    const [wakeWidth, setWakeWidth] = useState(0);
+
+    useLayoutEffect(() => {
+      const host = wakeBarsRef.current;
+      if (!isWake || !host) return;
+      setWakeWidth(host.clientWidth);
+      if (typeof ResizeObserver === 'undefined') return;
+      const observer = new ResizeObserver(([entry]) =>
+        setWakeWidth(entry.contentRect.width)
+      );
+      observer.observe(host);
+      return () => observer.disconnect();
+    }, [isWake]);
+
+    const barCount = isWake
+      ? wakeWidth > 0
+        ? wakeBarCount(wakeWidth)
+        : WAKE_DEFAULT_BARS
+      : 0;
+    // 실제 막대 간격(px). 폭을 모르면 기본 간격.
+    const barGap = wakeWidth > 0 ? wakeWidth / (barCount - 1) : WAKE_BAR_GAP_PX;
 
     useEffect(() => {
       const host = wakeBarsRef.current;
-      const interval = tickInterval(min, max, step);
-      if (!isWake || reduced || !host || interval <= 0) return;
+      if (!isWake || reduced || !host) return;
 
       const bars = Array.from(host.children) as HTMLElement[];
-      const barsPerPercent = (max - min) / interval / 100;
       const head = { pct: valueToPercent(currentValueRef.current, min, max) };
       const setHead = gsap.quickTo(head, 'pct', {
         duration: gsapDuration.base,
@@ -318,10 +334,10 @@ export const Slider = forwardRef<HTMLInputElement, SliderProps>(
         lastAmp = amp;
         if (flat) return;
 
-        const h = head.pct * barsPerPercent;
+        const h = (head.pct / 100) * (bars.length - 1);
         const dir = Math.sign(speed) || 1;
         bars.forEach((bar, i) => {
-          bar.style.transform = `scaleY(${waveScale(waveLift(i - h, dir, amp))})`;
+          bar.style.transform = `scaleY(${waveScale(waveLift(i - h, dir, amp, barGap))})`;
         });
       };
 
@@ -341,7 +357,7 @@ export const Slider = forwardRef<HTMLInputElement, SliderProps>(
         // 인라인 높이를 걷어 CSS의 쉬는 높이로 돌아간다.
         for (const bar of bars) bar.style.transform = '';
       };
-    }, [isWake, reduced, min, max, step, barValues]);
+    }, [isWake, reduced, min, max, barCount, barGap]);
 
     useEffect(() => {
       headSetterRef.current?.(valueToPercent(currentValue, min, max));
@@ -366,15 +382,17 @@ export const Slider = forwardRef<HTMLInputElement, SliderProps>(
         >
           {isWake ? (
             <div className={wakeBars} aria-hidden ref={wakeBarsRef}>
-              {barValues.map((barValue) => {
-                const on = barValue <= currentValue;
+              {Array.from({ length: barCount }, (_, i) => {
+                // 막대의 트랙 위 위치(%)가 값(%) 이하면 켜진다.
+                const barPercent = (i / (barCount - 1)) * 100;
+                const on = barPercent <= fillPercent + 1e-9;
                 return (
                   <span
-                    key={barValue}
+                    key={i}
                     className={wakeBar}
                     data-on={on}
                     style={{
-                      left: `${valueToPercent(barValue, min, max)}%`,
+                      left: `${barPercent}%`,
                       ...(on && trackColor
                         ? { backgroundColor: trackColor }
                         : {}),
