@@ -18,22 +18,25 @@ import {
   labelText,
   radioInput,
   activeIndicator,
+  indicatorShadow,
 } from './SegmentedButtons.css';
 import { gateMotion } from '../../hooks/gateMotion';
 import { useReducedMotion } from '../../hooks/useReducedMotion';
 import { gsapEasing, gsapDuration } from '../../tokens/gsapEasing';
+import { themeContract } from '../../tokens/theme.css';
+import { rubberStages, type Slot } from './segmentedMotion';
 
-/** 이동 중 진행 방향으로 늘어나는 배율(Ruling 33). 왜곡은 의도된 연출이다. */
-const TRAVEL_STRETCH = 1.12;
-
-/** 전체 이동 시간 중 늘어나는 구간의 비율. Switch.tsx의 SQUASH_PORTION과 같은 모양이다. */
-const STRETCH_PORTION = 0.4;
-/** 나머지 — 늘어난 것이 1로 되돌아오는 정착 구간의 비율. 둘의 합은 항상 1이다. */
-const SETTLE_PORTION = 1 - STRETCH_PORTION;
+/**
+ * 표시의 두 가장자리로 `clip-path`를 만든다. 표시 층은 트랙 전체 폭이라 왼쪽 inset은
+ * L, 오른쪽 inset은 `100% - R`이다(둘 다 트랙 왼쪽 기준 px). 둥근 끝은 반경 토큰이
+ * 맡아 늘어나도 납작해지지 않는다.
+ */
+const clipPathOf = ({ l, r }: Slot): string =>
+  `inset(0 calc(100% - ${r}px) 0 ${l}px round ${themeContract.borderRadius.md})`;
 
 /**
  * 인디케이터의 진행 중 타임라인을 테스트가 읽을 수 있는 통로. 공개 prop/state로
- * 내보내지 않고 span DOM 노드에 얹는다 — 타입 전용 확장이라 값으로 export되지
+ * 내보내지 않고 span DOM 노드에 얹는다, 타입 전용 확장이라 값으로 export되지
  * 않고 `SegmentedButtonsProps`에도 없으니 공개 API·`dist` 표면에 안 나간다
  * (Snackbar.tsx의 CountdownTweenHost와 같은 패턴). 테스트는 실제 GSAP 인스턴스를
  * 그대로 받아 `progress()`로 seek한다(무모킹).
@@ -124,11 +127,11 @@ export const SegmentedButtons = ({
 
   const reduced = useReducedMotion();
   const indicatorRef = useRef<HTMLSpanElement>(null);
-  // 인디케이터의 직전 위치. null이면 "이전 위치가 없다"는 뜻이라 미끄러지지도
-  // 늘어나지도 않는다(위험 4 — 마운트 시, 그리고 무효 값에서 되돌아올 때).
-  const prevIndicatorRectRef = useRef<{ left: number; width: number } | null>(
-    null
-  );
+  // 표시의 직전 칸 자리. null이면 "이전 위치가 없다"는 뜻이라 미끄러지지도
+  // 늘어나지도 않는다(위험 4, 마운트 시, 그리고 무효 값에서 되돌아올 때).
+  const prevSlotRef = useRef<Slot | null>(null);
+  // GSAP이 트윈하는 두 가장자리. 타임라인이 바뀌어도 이 객체 하나가 지금 값을 쥔다.
+  const edgesRef = useRef<Slot>({ l: 0, r: 0 });
   const indicatorTimelineRef = useRef<gsap.core.Timeline | null>(null);
 
   useEffect(() => {
@@ -139,80 +142,77 @@ export const SegmentedButtons = ({
     const selectedLabel = labels.find(
       (_, i) => options[i].value === currentValue
     );
+    const edges = edgesRef.current;
+    const paint = () => {
+      indicator.style.clipPath = clipPathOf(edges);
+    };
+    // 놓일 자리가 바뀌면 진행 중이던 타임라인은 죽는다. 지금 가장자리 값은 edges에
+    // 남아 있어, 새 타임라인이 거기서 이어받는다(Article 1③, 손잡이는 하나).
+    const restAt = (slot: Slot) => {
+      indicatorTimelineRef.current?.kill();
+      edges.l = slot.l;
+      edges.r = slot.r;
+      paint();
+    };
 
     if (!selectedLabel) {
-      // 값이 options에 없다 — 인디케이터는 숨어 있는다(width 0). 다음에
-      // 유효한 값으로 돌아오면 "처음 놓는 것"처럼 다시 취급한다.
-      gsap.set(indicator, { width: 0 });
-      prevIndicatorRectRef.current = null;
+      // 값이 options에 없다, 표시는 폭 0으로 숨는다. 다음에 유효한 값으로
+      // 돌아오면 "처음 놓는 것"처럼 다시 취급한다.
+      restAt({ l: 0, r: 0 });
+      prevSlotRef.current = null;
       return;
     }
 
     const rect = selectedLabel.getBoundingClientRect();
     const containerRect = container.getBoundingClientRect();
     const left = rect.left - containerRect.left;
-    const width = rect.width;
+    const slot = { l: left, r: left + rect.width };
 
-    const prev = prevIndicatorRectRef.current;
-    prevIndicatorRectRef.current = { left, width };
+    const prev = prevSlotRef.current;
+    // 같은 자리면 건드리지 않는다. 부모가 options 배열을 매번 새로 만들어도 이
+    // effect는 다시 도는데, 그때 진행 중인 타임라인을 끊으면 안 된다.
+    if (prev && prev.l === slot.l && prev.r === slot.r) return;
+    prevSlotRef.current = slot;
 
     if (!prev) {
-      // 첫 배치 — 이전 위치가 없으므로 미끄러지지도 늘어나지도 않는다.
-      gsap.set(indicator, { x: left, width, scaleX: 1 });
+      // 첫 배치, 이전 위치가 없으므로 미끄러지지도 늘어나지도 않는다.
+      restAt(slot);
       return;
     }
 
-    const direction =
-      left === prev.left ? null : left > prev.left ? 'right' : 'left';
+    indicatorTimelineRef.current?.kill();
+    const { dilate, lead, trail } = rubberStages(prev, slot);
 
-    // 새 타임라인을 매번 새로 만든다(재사용 금지) — overwrite:'auto'가
-    // 진행 중이던 이전 타임라인을 현재 값에서 죽이고, 이 타임라인은 그
-    // 현재 값에서 이어받는다(Article 1③ — 이 작업의 핵심 잠금).
+    // RubberSegment의 다섯 단계(travel·land)를 한 타임라인에 담는다. 같은 가장자리를
+    // 쥔 트윈이 겹쳐도(늘어남과 앞 가장자리) 시점이 늦은 쪽이 나중에 그려져 이어받는다.
     const timeline = gateMotion(reduced, () => {
-      const tl = gsap.timeline({ defaults: { overwrite: 'auto' } });
+      const tl = gsap.timeline({ onUpdate: paint });
+      const settle = { ease: gsapEasing.settle };
 
+      // 1. 늘어남: 두 가장자리가 옛 칸과 새 칸을 함께 덮도록 벌어진다.
+      tl.to(edges, { ...dilate, duration: gsapDuration.base, ...settle }, 0);
+      // 2~3. 넘겨줌 뒤 앞 가장자리가 새 칸 끝에 앉는다. 늘어남과 겹친다.
       tl.to(
-        indicator,
-        {
-          x: left,
-          width,
-          duration: gsapDuration.slow,
-          ease: gsapEasing.settle,
-        },
-        0
+        edges,
+        { [lead.edge]: lead.to, duration: gsapDuration.slow, ...settle },
+        gsapDuration.fast
       );
-
-      if (direction) {
-        // 이동 중 진행 방향으로 살짝 늘어난다(왜곡은 의도된 연출, Ruling 33).
-        // 앞 40%는 늘고 뒤 60%는 되돌아온다 — 한 타임라인 안 두 트윈 체인이며,
-        // GSAP keyframes 옵션은 일부러 쓰지 않는다(@keyframes 금지 스캐너 혼동 방지).
-        tl.set(
-          indicator,
-          {
-            transformOrigin:
-              direction === 'right' ? 'left center' : 'right center',
-          },
-          0
-        );
-        tl.to(
-          indicator,
-          {
-            scaleX: TRAVEL_STRETCH,
-            duration: gsapDuration.slow * STRETCH_PORTION,
-            ease: gsapEasing.settle,
-          },
-          0
-        );
-        tl.to(
-          indicator,
-          {
-            scaleX: 1,
-            duration: gsapDuration.slow * SETTLE_PORTION,
-            ease: gsapEasing.exit,
-          },
-          gsapDuration.slow * STRETCH_PORTION
-        );
-      }
+      // 4. 뒤 가장자리가 새 칸 끝을 지나쳐 따라온다.
+      tl.to(
+        edges,
+        {
+          [trail.edge]: trail.overshoot,
+          duration: gsapDuration.slow,
+          ...settle,
+        },
+        gsapDuration.fast
+      );
+      // 5. 풀림: 4가 끝난 뒤 새 칸 끝으로 돌아온다.
+      tl.to(
+        edges,
+        { [trail.edge]: trail.rest, duration: gsapDuration.fast, ...settle },
+        '>'
+      );
 
       return tl;
     });
@@ -322,7 +322,9 @@ export const SegmentedButtons = ({
         className
       )}
     >
-      <span ref={indicatorRef} className={activeIndicator} />
+      <span className={indicatorShadow} aria-hidden="true">
+        <span ref={indicatorRef} className={activeIndicator} />
+      </span>
 
       {options.map((option, index) => {
         const isSelected = currentValue === option.value;

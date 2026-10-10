@@ -15,22 +15,30 @@ export const container = style({
   position: 'relative',
 });
 
-export const activeIndicator = style({
+// 표시의 그림자를 맡는 층. 표시를 clip-path로 자르면 box-shadow도 같이 잘려서,
+// 자르지 않는 이 부모가 자른 결과의 윤곽을 drop-shadow로 그린다. 트랙 전체 폭이라
+// 안쪽 표시의 두 가장자리가 트랙 왼쪽 기준 px 좌표가 된다.
+export const indicatorShadow = style({
   position: 'absolute',
   top: '3px',
   left: 0,
-  width: 0,
+  width: '100%',
   height: 'calc(100% - 6px)',
-  borderRadius: themeContract.borderRadius.md,
-  backgroundColor: themeContract.color.primary.main,
-  boxShadow: '0 2px 8px rgba(0, 102, 255, 0.25)',
-  // x·width·scaleX는 이제 GSAP이 소유한다(M3 T3d) — 인디케이터가 폭이 제각각인
-  // 세그먼트 사이를 옮겨 다니며, 이동 중 진행 방향으로 살짝 늘어나는 왜곡까지
-  // 의도된 연출이라 CSS 전이로는 "중단 시 현재 위치에서 이어받기"를 표현할 수
-  // 없다. CSS와 GSAP이 같은 속성을 동시에 전이하면 서로 싸우므로 transform·width는
-  // 여기 전이 목록에서 뺀다. box-shadow만 색 강도 변화용으로 남긴다.
-  transition: `box-shadow ${themeContract.animation.duration.slow} ease`,
+  pointerEvents: 'none',
+  filter: 'drop-shadow(0 2px 8px rgba(0, 102, 255, 0.25))',
   zIndex: 0,
+});
+
+// 트랙 전체 폭의 파란 층. 보이는 부분은 clip-path가 정한다: 두 가장자리 L·R을
+// GSAP이 트윈하고 onUpdate에서 inline으로 쓴다(M5 task-19). 둥근 끝(borderRadius.md)은
+// clip-path의 round가 그려서 늘어나도 납작해지지 않는다. 여기 값은 JS가 쓰기 전
+// (서버 렌더)의 숨은 모습이다.
+export const activeIndicator = style({
+  display: 'block',
+  width: '100%',
+  height: '100%',
+  backgroundColor: themeContract.color.primary.main,
+  clipPath: 'inset(0 100% 0 0)',
 });
 
 // Size Variants
