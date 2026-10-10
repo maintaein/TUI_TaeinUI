@@ -130,14 +130,14 @@ export const SNAP_PX = 12;
 /** 보이는 위치가 목표와 이 거리(px) 안이면 따라잡았다고 본다. */
 export const CAUGHT_PX = 0.5;
 
-/** 한 단계 폭(px): 머리 중심이 움직이는 길이(트랙 폭 - 머리 지름)에서 `step`이 차지하는 몫. */
+/** 한 단계 폭(px): 머리 중심이 움직이는 길이 `travelPx`(`headTravelPx`)에서 `step`이 차지하는 몫. */
 export function stepWidthPx(
   step: number,
   min: number,
   max: number,
-  trackPx: number
+  travelPx: number
 ): number {
-  return max > min ? (step / (max - min)) * (trackPx - THUMB_PX) : 0;
+  return max > min ? (step / (max - min)) * travelPx : 0;
 }
 
 /**
@@ -233,6 +233,15 @@ export const LINE_DEFAULT_WIDTH = 200;
 
 /** 네이티브 머리 폭(px). 머리 중심은 (폭 - 머리 폭) 위를 움직인다. */
 export const THUMB_PX = 24;
+
+/**
+ * 머리 중심이 실제로 움직이는 길이(px). 위치 1%가 이 길이의 1/100이라 물결 세기(px/s)와
+ * 한 단계 폭이 이 길이로 잰다. default·bar는 호스트가 트랙 전체라 머리 폭을 빼고, wake는
+ * 막대 묶음이 이미 좌우 12px씩 들여져 있어(머리 폭만큼 좁다) 호스트 폭이 곧 이동 길이다.
+ */
+export function headTravelPx(hostPx: number, isWake: boolean): number {
+  return isWake ? hostPx : hostPx - THUMB_PX;
+}
 
 /**
  * 머리에서 `d`px 떨어진 곳의 라인 두께. `base`는 바탕 두께(쉬는 두께 또는

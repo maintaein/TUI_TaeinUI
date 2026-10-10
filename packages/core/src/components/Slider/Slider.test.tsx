@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, afterEach, beforeAll } from 'vitest';
+import { describe, it, expect, vi, afterEach } from 'vitest';
 import { render, screen, fireEvent, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
@@ -13,6 +13,7 @@ import {
   LINE_WAVE_MAX,
   THUMB_PX,
   WAKE_DEFAULT_BARS,
+  lineThickness,
   wakeBarCount,
   waveAmp,
   waveLift,
@@ -89,14 +90,25 @@ const headCenterX = (pct: number, width = LINE_DEFAULT_WIDTH): number =>
 /** 프레임 간격(ms). 시험이 ticker를 직접 돌릴 때 쓴다. */
 const FRAME_MS = 16;
 
-/** 프레임 콜백을 FRAME_MS씩 쪼개 총 `ms`만큼 돌린다. */
+/**
+ * 프레임 콜백을 FRAME_MS씩 쪼개 총 `ms`만큼 돌린다. 콜백은 쉬면 스스로 떨어지므로
+ * (손잡이가 사라진다) 떨어진 뒤의 프레임은 그냥 지나간다.
+ */
 const runFrames = (host: WakeBarsHost, ms: number): void => {
   act(() => {
     for (let t = 0; t < ms; t += FRAME_MS) {
-      host.__wakeTick!(0, Math.min(FRAME_MS, ms - t));
+      host.__wakeTick?.(0, Math.min(FRAME_MS, ms - t));
     }
   });
 };
+
+/**
+ * 머리 중심이 움직이는 폭(px). default·bar는 호스트(트랙) 폭에서 머리 24를 빼고, wake는
+ * 호스트(막대 묶음)가 이미 좌우 12px씩 들여져 있어 그 폭이 곧 이동 폭이다. 시험이 컴포넌트와
+ * 따로 세우는 기준이라 `sliderMath`의 함수를 쓰지 않는다.
+ */
+const travelOf = (hostPx: number, isWake: boolean): number =>
+  isWake ? hostPx : hostPx - THUMB_PX;
 
 /**
  * 순수 스프링으로 같은 프레임을 돌려 낸 기대 상태(트랙 %). 컴포넌트가 같은 식을 쓰는지
@@ -109,25 +121,19 @@ const springsAfter = (from: number, to: number, ms: number): WakeSprings => {
   }
   return state;
 };
-const ampAfter = (from: number, to: number, ms: number): number =>
-  waveAmp((springsAfter(from, to, ms).s * LINE_DEFAULT_WIDTH) / 100);
+const ampAfter = (
+  from: number,
+  to: number,
+  ms: number,
+  isWake = false
+): number =>
+  waveAmp(
+    (springsAfter(from, to, ms).s * travelOf(LINE_DEFAULT_WIDTH, isWake)) / 100
+  );
 
 // gsap 네임스페이스는 ambient 전역 타입이라 import 없이 참조된다
-// (Checkbox.test.tsx·Switch.test.tsx와 같은 방식). ticker의 리스너 수는 실제
-// gsap 모듈에서 읽는다(대역이 아니라 Slider.tsx가 쓰는 같은 인스턴스다).
-// 소스 파일이 아니라 시험이라 gateMotion을 쓰지 않으므로 `from 'gsap'`를 피한다
-// (gsapGateEnforcement 스캔은 `from 'gsap'`를 본다).
-interface GsapTicker {
-  _listeners: unknown[];
-}
-let gsapTicker: GsapTicker;
-beforeAll(async () => {
-  const actual = await vi.importActual<{ gsap: { ticker: GsapTicker } }>(
-    'gsap'
-  );
-  gsapTicker = actual.gsap.ticker;
-});
-const tickerListeners = (): number => gsapTicker._listeners.length;
+// (Checkbox.test.tsx·Switch.test.tsx와 같은 방식). 프레임 콜백이 ticker에 붙어 있는지는
+// GSAP 내부를 읽지 않고 요소의 `__wakeTick` 손잡이로 본다: 붙어 있는 동안에만 있다.
 
 const barScale = (bar: HTMLElement): number =>
   Number(
@@ -155,6 +161,61 @@ const installReducedMotion = (): void => {
         onchange: null,
       }) as unknown as MediaQueryList
   );
+};
+
+/**
+ * 축소 선호를 중간에 바꿀 수 있는 matchMedia. 처음은 꺼져 있고, 돌려받은 함수로
+ * 켜고 끈다(구독자에게 change를 알린다).
+ */
+const controllableReducedMotion = (): ((reduce: boolean) => void) => {
+  let reduce = false;
+  const listeners = new Set<() => void>();
+  vi.stubGlobal(
+    'matchMedia',
+    (media: string): MediaQueryList =>
+      ({
+        get matches() {
+          return reduce;
+        },
+        media,
+        addEventListener: (_type: string, listener: () => void) =>
+          listeners.add(listener),
+        removeEventListener: (_type: string, listener: () => void) =>
+          listeners.delete(listener),
+      }) as unknown as MediaQueryList
+  );
+  return (next) => {
+    reduce = next;
+    act(() => listeners.forEach((listener) => listener()));
+  };
+};
+
+/**
+ * jsdom에는 ResizeObserver가 없다. 만든 관찰자를 모아 두고 크기 변화를 직접 알리며
+ * `disconnect` 여부를 남기는 최소 구현을 전역에 깐다(matchMedia 보충과 같은 방식).
+ */
+class RecordingResizeObserver {
+  static created: RecordingResizeObserver[] = [];
+  disconnected = false;
+  constructor(private readonly callback: ResizeObserverCallback) {
+    RecordingResizeObserver.created.push(this);
+  }
+  observe(): void {}
+  unobserve(): void {}
+  disconnect(): void {
+    this.disconnected = true;
+  }
+  resize(width: number): void {
+    this.callback(
+      [{ contentRect: { width } } as ResizeObserverEntry],
+      this as unknown as ResizeObserver
+    );
+  }
+}
+const installRecordingResizeObserver = (): RecordingResizeObserver[] => {
+  RecordingResizeObserver.created = [];
+  vi.stubGlobal('ResizeObserver', RecordingResizeObserver);
+  return RecordingResizeObserver.created;
 };
 
 describe('Slider', () => {
@@ -659,7 +720,7 @@ describe('Slider', () => {
     });
   });
 
-  describe('눈금·값 따라붙기 테스트 (M3 T4)', () => {
+  describe('값 따라붙기(showThumbValue)와 라인 구조 테스트', () => {
     afterEach(() => {
       vi.unstubAllGlobals();
       vi.useRealTimers();
@@ -751,7 +812,6 @@ describe('Slider', () => {
 
     it('축소 선호에서는 값 따라붙기가 스프링 없이 값 자리다: 티커도 없다', () => {
       installReducedMotion();
-      const before = tickerListeners();
       const jsx = (value: number) => (
         <Slider
           showThumbValue
@@ -775,7 +835,7 @@ describe('Slider', () => {
       expect(follower.style.getPropertyValue(VALUE_FOLLOWER_PERCENT_VAR)).toBe(
         '60'
       );
-      expect(tickerListeners()).toBe(before);
+      expect(getLineHost(container)!.__wakeTick).toBeUndefined();
     });
 
     it('값 따라붙기는 aria-hidden이고 showValue를 대체하지 않는다', () => {
@@ -1158,6 +1218,43 @@ describe('Slider', () => {
       expect(headAt(container)).toBeCloseTo(53, 6);
     });
 
+    it('step이 바뀌면 끄는 중 규칙도 새 단계 폭으로 잰다', () => {
+      const { container, rerender } = render(jsx(50, 'default', 50));
+      fireEvent.pointerDown(screen.getByRole('slider'));
+      rerender(jsx(50, 'default', 0.001));
+
+      rerender(jsx(51.5, 'default', 0.001));
+
+      expect(headAt(container)).toBeCloseTo(51.5, 6);
+    });
+
+    it('끄는 중 규칙의 단계 폭은 머리가 움직이는 폭으로 잰다: wake는 호스트 폭, default는 트랙 폭에서 머리 24를 뺀 폭', () => {
+      // 이동 폭 125px에서 step 10(범위 100)은 12.5px라 12px을 넘어 늘 스프링이다.
+      // 폭을 두 번 빼면 10.1px로 잘못 잠긴다.
+      const cases = [
+        { variant: 'wake', width: 125 },
+        { variant: 'default', width: 125 + THUMB_PX },
+      ] as const;
+      for (const { variant, width } of cases) {
+        Object.defineProperty(HTMLElement.prototype, 'clientWidth', {
+          configurable: true,
+          get: () => width,
+        });
+        try {
+          const { container, rerender, unmount } = render(jsx(50, variant, 10));
+          fireEvent.pointerDown(screen.getByRole('slider'));
+
+          rerender(jsx(55, variant, 10));
+
+          expect(headAt(container)).toBe(50);
+          unmount();
+        } finally {
+          delete (HTMLElement.prototype as { clientWidth?: number })
+            .clientWidth;
+        }
+      }
+    });
+
     it('wake도 켜진 막대의 경계가 스프링으로 따라간다', () => {
       const { container, rerender } = render(jsx(0, 'wake'));
       const on = () =>
@@ -1183,17 +1280,14 @@ describe('Slider', () => {
       expect(fillAt(container)).toBe(90);
     });
 
-    it('멈춘 뒤 프레임은 그리지 않는다', () => {
+    it('값 자리에 닿으면 티커가 떨어져 더 그리지 않는다', () => {
       const { container, rerender } = render(jsx(10));
       rerender(jsx(90));
+      expect(getLineHost(container)!.__wakeTick).toBeDefined();
       frames(container, 2000);
       expect(headAt(container)).toBe(90);
 
-      getHead(container)!.style.setProperty(HEAD_PERCENT_VAR, '1');
-      frames(container, FRAME_MS);
-      expect(getHead(container)!.style.getPropertyValue(HEAD_PERCENT_VAR)).toBe(
-        '1'
-      );
+      expect(getLineHost(container)!.__wakeTick).toBeUndefined();
     });
   });
 
@@ -1396,7 +1490,7 @@ describe('Slider', () => {
         host,
         bars: getWakeBars(view.container),
         h: (host.__wakeHead!.pct / 100) * (WAKE_DEFAULT_BARS - 1),
-        amp: ampAfter(from, to, ms),
+        amp: ampAfter(from, to, ms, true),
       };
     };
 
@@ -1453,7 +1547,7 @@ describe('Slider', () => {
       expect(barScale(bars[base - 6])).toBeCloseTo(WAKE_REST_SCALE, 10);
     });
 
-    it('머리가 멈추면 모든 막대가 쉬는 높이로 돌아가고, 이후 프레임은 계산하지 않는다', () => {
+    it('머리가 멈추면 모든 막대가 쉬는 높이로 돌아가고 티커가 떨어진다', () => {
       const { host, bars } = swing(0, 60);
       runFrames(host, 2000);
 
@@ -1461,10 +1555,7 @@ describe('Slider', () => {
         expect(barScale(bar)).toBeCloseTo(WAKE_REST_SCALE, 10);
       }
 
-      // 멈춘 프레임은 건너뛴다: 막대에 표지를 두면 다음 프레임이 덮지 않는다.
-      bars[10].style.setProperty('transform', 'scaleY(0.99)');
-      runFrames(host, FRAME_MS);
-      expect(barScale(bars[10])).toBe(0.99);
+      expect(host.__wakeTick).toBeUndefined();
     });
 
     it('끄는 세기에 비례한다: 같은 시간에 센 끌기가 약한 끌기보다 물결이 높다', () => {
@@ -1589,7 +1680,6 @@ describe('Slider', () => {
 
     it('축소 선호에서는 물결이 없다: 티커도 머리 스프링도 없고 막대는 쉬는 높이, 색만 값을 따른다', () => {
       installReducedMotion();
-      const before = tickerListeners();
       const { container, rerender } = render(
         <Slider
           label="슬라이더"
@@ -1602,7 +1692,6 @@ describe('Slider', () => {
       );
       const host = getWakeHost(container)!;
 
-      expect(tickerListeners()).toBe(before);
       expect(host.__wakeTick).toBeUndefined();
       expect(host.__wakeHead).toBeUndefined();
 
@@ -1625,34 +1714,77 @@ describe('Slider', () => {
       ).toHaveLength(25);
     });
 
-    it('티커는 마운트에 하나 붙고 언마운트에 떼어진다', () => {
-      const before = tickerListeners();
+    it('티커는 마운트만으로는 붙지 않고, 값이 바뀌면 붙고, 쉬면 떼어진다', () => {
       const view = render(
         <Slider label="슬라이더" variant="wake" value={5} onChange={() => {}} />
       );
+      const host = getWakeHost(view.container)!;
 
-      expect(tickerListeners()).toBe(before + 1);
+      expect(host.__wakeTick).toBeUndefined();
+      expect(host.__wakeHead).toBeDefined();
 
-      view.unmount();
-      expect(tickerListeners()).toBe(before);
+      view.rerender(
+        <Slider
+          label="슬라이더"
+          variant="wake"
+          value={50}
+          onChange={() => {}}
+        />
+      );
+      expect(host.__wakeTick).toBeDefined();
+
+      runFrames(host, 2000);
+      expect(host.__wakeTick).toBeUndefined();
     });
 
-    it('변형이 wake에서 default로 바뀌어도 티커는 하나다 (막대 쪽은 떼고 라인 쪽을 붙인다)', () => {
-      const before = tickerListeners();
-      const { container, rerender } = render(
+    it('물결 중에 언마운트하면 티커 손잡이도 함께 걷힌다', () => {
+      const view = render(
         <Slider label="슬라이더" variant="wake" value={5} onChange={() => {}} />
       );
+      const host = getWakeHost(view.container)!;
+      view.rerender(
+        <Slider
+          label="슬라이더"
+          variant="wake"
+          value={50}
+          onChange={() => {}}
+        />
+      );
+      expect(host.__wakeTick).toBeDefined();
+
+      view.unmount();
+      expect(host.__wakeTick).toBeUndefined();
+      expect(host.__wakeHead).toBeUndefined();
+    });
+
+    it('변형이 wake에서 default로 바뀌면 물결 중이던 티커는 라인 쪽에 다시 붙는다', () => {
+      const wakeJsx = (value: number) => (
+        <Slider
+          label="슬라이더"
+          variant="wake"
+          value={value}
+          onChange={() => {}}
+        />
+      );
+      const { container, rerender } = render(wakeJsx(5));
+      rerender(wakeJsx(50));
+      runFrames(getWakeHost(container)!, FRAME_MS);
+      expect(getWakeHost(container)!.__wakeTick).toBeDefined();
+
       rerender(
         <Slider
           label="슬라이더"
           variant="default"
-          value={5}
+          value={50}
           onChange={() => {}}
         />
       );
 
-      expect(tickerListeners()).toBe(before + 1);
       expect(getWakeHost(container)).not.toBeInTheDocument();
+      const line = getLineHost(container)!;
+      expect(line.__wakeTick).toBeDefined();
+      runFrames(line, 2000);
+      expect(line.__wakeTick).toBeUndefined();
     });
   });
 
@@ -1792,7 +1924,7 @@ describe('Slider', () => {
       expect(later).toBeGreaterThan(first + 5);
     });
 
-    it('멈추면 매끈한 쉬는 두께로 돌아가고, 이후 프레임은 경로를 다시 쓰지 않는다', () => {
+    it('멈추면 매끈한 쉬는 두께로 돌아가고 티커가 떨어진다', () => {
       const { host, container } = lineSwing(0, 60);
       runFrames(host, 2000);
 
@@ -1800,11 +1932,7 @@ describe('Slider', () => {
         true
       );
 
-      // 멈춘 프레임은 건너뛴다: 경로에 표지를 두면 다음 프레임이 덮지 않는다.
-      const { fill } = getLine(container);
-      fill.setAttribute('d', 'M0,0');
-      runFrames(host, FRAME_MS);
-      expect(fill.getAttribute('d')).toBe('M0,0');
+      expect(host.__wakeTick).toBeUndefined();
     });
 
     it('키보드로 값이 바뀌어도 같은 물결이다 (잡지 않아도)', () => {
@@ -1818,6 +1946,120 @@ describe('Slider', () => {
 
       expect(peak(fillProfile(container))).toBeGreaterThan(LINE_REST + 5);
     });
+
+    it('축소 선호가 물결 중에 켜지면 선이 평평해지고 티커가 떨어진다', () => {
+      const setReduced = controllableReducedMotion();
+      const { container, rerender } = render(lineJsx('default', 0));
+      rerender(lineJsx('default', 60));
+      const host = getLineHost(container)!;
+      runFrames(host, 112);
+      expect(peak(fillProfile(container))).toBeGreaterThan(LINE_REST + 3);
+      expect(host.__wakeTick).toBeDefined();
+
+      setReduced(true);
+
+      expect(fillProfile(container).every(({ t }) => t === LINE_REST)).toBe(
+        true
+      );
+      expect(host.__wakeTick).toBeUndefined();
+    });
+
+    it('폭이 바뀌어도 물결 중인 티커와 물결 스프링이 초기화되지 않는다', () => {
+      const observers = installRecordingResizeObserver();
+      const { container, rerender } = render(lineJsx('default', 0));
+      const host = getLineHost(container)!;
+      rerender(lineJsx('default', 60));
+      runFrames(host, 112);
+      const tick = host.__wakeTick;
+      expect(tick).toBeDefined();
+      expect(peak(fillProfile(container))).toBeGreaterThan(LINE_REST + 3);
+
+      act(() => observers[0].resize(300));
+
+      expect(host.__wakeTick).toBe(tick);
+      expect(peak(fillProfile(container))).toBeGreaterThan(LINE_REST + 3);
+    });
+
+    it('언마운트하면 ResizeObserver를 끊는다', () => {
+      const observers = installRecordingResizeObserver();
+      const { unmount } = render(lineJsx('default', 50));
+      expect(observers).toHaveLength(1);
+      expect(observers[0].disconnected).toBe(false);
+
+      unmount();
+
+      expect(observers[0].disconnected).toBe(true);
+    });
+
+    it('슬라이더마다 clipPath id가 다르다: 채움이 제 clipPath를 가리킨다', () => {
+      const { container } = render(
+        <>
+          {lineJsx('default', 30)}
+          {lineJsx('bar', 70)}
+        </>
+      );
+      const ids = Array.from(container.querySelectorAll('clipPath')).map(
+        (clip) => clip.id
+      );
+      const fills = Array.from(
+        container.querySelectorAll('[class*="sliderLineFill__"]')
+      );
+
+      expect(ids).toHaveLength(2);
+      expect(new Set(ids).size).toBe(2);
+      fills.forEach((fill, i) => {
+        expect(fill.getAttribute('clip-path')).toBe(`url(#${ids[i]})`);
+      });
+    });
+
+    it.each(['default', 'bar'] as const)(
+      '%s: 같은 px/s 손 속도는 트랙 길이(129, 320, 806)와 무관하게 같은 물결이다(머리가 움직이는 폭으로 잰다)',
+      (variant) => {
+        const STEP_PX = 100;
+        const MS = 80;
+        const base = variant === 'bar' ? LINE_BAR_REST : LINE_REST;
+        for (const width of [129, 320, 806]) {
+          Object.defineProperty(HTMLElement.prototype, 'clientWidth', {
+            configurable: true,
+            get: () => width,
+          });
+          try {
+            const travel = travelOf(width, false);
+            const jsx = (value: number) =>
+              lineJsx(variant, value, { step: 0.001 });
+            const { container, rerender, unmount } = render(jsx(0));
+            const host = getLineHost(container)!;
+            rerender(jsx((STEP_PX / travel) * 100));
+            runFrames(host, MS);
+
+            // 기대 세기는 px 단위로 돌린 스프링에서 나온다(길이와 무관).
+            let state: WakeSprings = { x: 0, v: 0, s: 0, ds: 0 };
+            for (let t = 0; t < MS; t += FRAME_MS) {
+              state = stepWakeSprings(state, STEP_PX, FRAME_MS / 1000);
+            }
+            const amp = waveAmp(state.s);
+            expect(amp).toBeGreaterThan(0.1);
+
+            // 안 채운 트랙의 모양을 본다(bar의 채움은 값 위치에서 끝나 머리 둘레가 잘린다).
+            // 트랙 경로는 1px 테두리를 따라 0.5 들어가 두께가 1 얇다.
+            const headX = headCenterX(host.__wakeHead!.pct, width);
+            const track = thicknessProfile(
+              getLine(container).track.getAttribute('d')!
+            );
+            for (const { x, t } of track) {
+              expect(t + 1).toBeCloseTo(
+                lineThickness(x - headX, 1, amp, base),
+                1
+              );
+            }
+            unmount();
+          } finally {
+            delete (HTMLElement.prototype as { clientWidth?: number })
+              .clientWidth;
+          }
+        }
+      }
+    );
 
     it('채운 부분은 값 위치에서 잘린다: default는 곧게, bar는 둥글게', () => {
       const flat = render(lineJsx('default', 30));
@@ -1874,24 +2116,28 @@ describe('Slider', () => {
       }
     });
 
-    it('티커는 default·bar도 마운트에 하나 붙고 언마운트에 떼어진다', () => {
-      const before = tickerListeners();
-      const view = render(lineJsx('default', 5));
-      const bar = render(lineJsx('bar', 5));
+    it.each(['default', 'bar'] as const)(
+      '%s도 티커는 마운트만으로는 붙지 않고, 값이 바뀌면 붙고, 쉬면 떼어진다',
+      (variant) => {
+        const { container, rerender } = render(lineJsx(variant, 5));
+        const host = getLineHost(container)!;
 
-      expect(tickerListeners()).toBe(before + 2);
-      view.unmount();
-      bar.unmount();
-      expect(tickerListeners()).toBe(before);
-    });
+        expect(host.__wakeTick).toBeUndefined();
+        expect(host.__wakeHead).toBeDefined();
+
+        rerender(lineJsx(variant, 50));
+        expect(host.__wakeTick).toBeDefined();
+
+        runFrames(host, 2000);
+        expect(host.__wakeTick).toBeUndefined();
+      }
+    );
 
     it('축소 선호에서는 물결도 호버 두께도 없다: 티커도 트윈도 없고 쉬는 두께', () => {
       installReducedMotion();
-      const before = tickerListeners();
       const { container, rerender } = render(lineJsx('default', 20));
       const host = getLineHost(container)!;
 
-      expect(tickerListeners()).toBe(before);
       expect(host.__wakeTick).toBeUndefined();
       expect(host.__wakeHead).toBeUndefined();
 
@@ -1978,6 +2224,48 @@ describe('Slider', () => {
         expect(host.style.height).toBe(`${LINE_HOVER}px`);
       });
 
+      it('나가는 트윈이 도는 중에 리렌더가 와도 두께가 쉬는 두께로 튀지 않는다', () => {
+        const { container, rerender } = render(lineJsx('default', 50));
+        const host = getLineHost(container)!;
+        enter(container);
+        act(() => {
+          host.__hoverTween!.progress(1);
+        });
+        pointer(wrapperOf(container), 'pointerout');
+        const leaving = host.__hoverTween!;
+        act(() => {
+          leaving.progress(0.3);
+        });
+        const midHeight = host.style.height;
+        expect(midHeight).not.toBe(`${LINE_REST}px`);
+        expect(midHeight).not.toBe(`${LINE_HOVER}px`);
+
+        rerender(lineJsx('default', 70));
+
+        expect(host.style.height).toBe(midHeight);
+        expect(host.__hoverTween).toBe(leaving);
+        act(() => {
+          leaving.progress(1);
+        });
+        expect(host.style.height).toBe(`${LINE_REST}px`);
+      });
+
+      it('언마운트하면 도는 호버 트윈이 죽는다', () => {
+        const { container, unmount } = render(lineJsx('default', 50));
+        const host = getLineHost(container)!;
+        enter(container);
+        const tween = host.__hoverTween!;
+        act(() => {
+          tween.progress(0.3);
+        });
+        // 도는 트윈은 전역 타임라인에 붙어 있고, kill되면 떨어진다.
+        expect(tween.parent).toBeTruthy();
+
+        unmount();
+
+        expect(tween.parent).toBeFalsy();
+      });
+
       it('마우스만: 터치·펜은 두꺼워지지 않는다', () => {
         for (const pointerType of ['touch', 'pen']) {
           const { container, unmount } = render(lineJsx('default', 50));
@@ -1997,6 +2285,145 @@ describe('Slider', () => {
         expect(getLineHost(container)!.__hoverTween).toBeUndefined();
         expect(getLineHost(container)!.style.height).toBe(`${LINE_REST}px`);
       });
+    });
+  });
+
+  describe('티커는 목표가 바뀔 때 붙고 두 스프링이 쉬면 뗀다', () => {
+    type TickVariant = 'default' | 'bar' | 'wake';
+    const VARIANTS: TickVariant[] = ['default', 'bar', 'wake'];
+    const jsx = (variant: TickVariant, value: number) => (
+      <Slider
+        label="슬라이더"
+        variant={variant}
+        value={value}
+        step={0.001}
+        onChange={() => {}}
+      />
+    );
+    const hostOf = (variant: TickVariant, container: HTMLElement) =>
+      (variant === 'wake' ? getWakeHost(container) : getLineHost(container))!;
+    /** 보이는 위치(트랙 %). 라인은 채움 clip, wake는 그린 머리가 알려 준다. */
+    const shownPct = (variant: TickVariant, container: HTMLElement): number =>
+      variant === 'wake'
+        ? Number(getHead(container)!.style.getPropertyValue(HEAD_PERCENT_VAR))
+        : (Number(getLine(container).clip.getAttribute('width')) /
+            LINE_DEFAULT_WIDTH) *
+          100;
+
+    it.each(VARIANTS)(
+      '%s: 두 스프링이 모두 쉬는 바로 그 프레임에 뗀다',
+      (variant) => {
+        const { container, rerender } = render(jsx(variant, 10));
+        const host = hostOf(variant, container);
+        rerender(jsx(variant, 90));
+
+        let frames = 0;
+        while (host.__wakeTick && frames < 400) {
+          runFrames(host, FRAME_MS);
+          frames++;
+          const settled =
+            host.__wakeHead!.pct === 90 && shownPct(variant, container) === 90;
+          expect(host.__wakeTick === undefined).toBe(settled);
+        }
+
+        expect(host.__wakeTick).toBeUndefined();
+        expect(frames).toBeGreaterThan(5);
+        expect(frames).toBeLessThan(400);
+      }
+    );
+
+    it.each(VARIANTS)(
+      '%s: 물결 중 목표가 또 바뀌어도 한 인스턴스에 프레임 콜백 하나다',
+      (variant) => {
+        const { container, rerender } = render(jsx(variant, 10));
+        const host = hostOf(variant, container);
+        rerender(jsx(variant, 90));
+        const tick = host.__wakeTick;
+        runFrames(host, FRAME_MS);
+
+        rerender(jsx(variant, 30));
+
+        expect(host.__wakeTick).toBe(tick);
+      }
+    );
+
+    it.each(VARIANTS)(
+      '%s: 쉰 뒤 목표가 다시 바뀌면 다시 붙고, 같은 값 리렌더는 붙이지 않는다',
+      (variant) => {
+        const { container, rerender } = render(jsx(variant, 10));
+        const host = hostOf(variant, container);
+        rerender(jsx(variant, 10));
+        expect(host.__wakeTick).toBeUndefined();
+
+        rerender(jsx(variant, 90));
+        runFrames(host, 2000);
+        expect(host.__wakeTick).toBeUndefined();
+        rerender(jsx(variant, 90));
+        expect(host.__wakeTick).toBeUndefined();
+
+        rerender(jsx(variant, 20));
+        expect(host.__wakeTick).toBeDefined();
+      }
+    );
+
+    it.each(VARIANTS)(
+      '%s: 효과가 다시 시작돼도(step 변경) 보이는 위치가 값 자리에 닿을 때까지 이어서 좇는다',
+      (variant) => {
+        const withStep = (value: number, step: number) => (
+          <Slider
+            label="슬라이더"
+            variant={variant}
+            value={value}
+            step={step}
+            onChange={() => {}}
+          />
+        );
+        const { container, rerender } = render(withStep(10, 0.001));
+        const host = hostOf(variant, container);
+        rerender(withStep(90, 0.001));
+        runFrames(host, FRAME_MS);
+        expect(shownPct(variant, container)).toBeLessThan(90);
+
+        rerender(withStep(90, 0.002));
+
+        expect(host.__wakeTick).toBeDefined();
+        runFrames(host, 2000);
+        expect(shownPct(variant, container)).toBe(90);
+        expect(host.__wakeTick).toBeUndefined();
+      }
+    );
+
+    it.each(VARIANTS)(
+      '%s: 물결 중에 언마운트하면 손잡이가 걷힌다',
+      (variant) => {
+        const { container, rerender, unmount } = render(jsx(variant, 10));
+        const host = hostOf(variant, container);
+        rerender(jsx(variant, 90));
+        expect(host.__wakeTick).toBeDefined();
+
+        unmount();
+
+        expect(host.__wakeTick).toBeUndefined();
+        expect(host.__wakeHead).toBeUndefined();
+      }
+    );
+
+    it('축소 선호가 물결 중에 켜지면 wake 막대가 쉬는 높이로 돌아오고 티커가 떨어진다', () => {
+      const setReduced = controllableReducedMotion();
+      const { container, rerender } = render(jsx('wake', 0));
+      rerender(jsx('wake', 60));
+      const host = getWakeHost(container)!;
+      runFrames(host, 112);
+      expect(Math.max(...getWakeBars(container).map(barScale))).toBeGreaterThan(
+        WAKE_REST_SCALE
+      );
+
+      setReduced(true);
+
+      expect(host.__wakeTick).toBeUndefined();
+      for (const bar of getWakeBars(container)) {
+        expect(bar.style.getPropertyValue('transform')).toBe('');
+      }
     });
   });
 });

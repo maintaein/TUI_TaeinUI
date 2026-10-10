@@ -74,24 +74,17 @@ describe('Slider 생성 CSS', () => {
     );
   });
 
-  it('SVG는 박스 밖으로 부풀어도 잘리지 않고, 옛 DOM 채움·가림은 없다', () => {
+  it('SVG는 박스 밖으로 부풀어도 잘리지 않고, 트랙은 자르지 않는다', () => {
     expect(
       findRule(findSliderStyleSheet(), 'sliderLine').style.getPropertyValue(
         'overflow'
       )
     ).toBe('visible');
-    expect('sliderFillTrack' in SliderCss).toBe(false);
     expect(
       findRule(findSliderStyleSheet(), 'sliderTrack').style.getPropertyValue(
         'overflow'
       )
     ).toBe('');
-  });
-
-  it('잡을 때 나오던 눈금 스타일이 없다', () => {
-    expect('scrubTicksContainer' in SliderCss).toBe(false);
-    expect('scrubTick' in SliderCss).toBe(false);
-    expect('scrubTickLanded' in SliderCss).toBe(false);
   });
 
   describe('호버', () => {

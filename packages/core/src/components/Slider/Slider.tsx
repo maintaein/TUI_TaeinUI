@@ -58,6 +58,7 @@ import {
   WAKE_DEFAULT_BARS,
   WAKE_FLAT,
   WAKE_MAX_FRAME_S,
+  headTravelPx,
   nextDisplayLock,
   stepWidthPx,
   stepWakeSprings,
@@ -75,7 +76,9 @@ export interface SliderMark {
 
 /**
  * 테스트 전용. 물결을 그리는 요소(wake는 막대 묶음, default·bar는 트랙)에 달린
- * 손잡이: 프레임 콜백(`__wakeTick`), 머리 위치 객체(`__wakeHead`, 트랙 %).
+ * 손잡이. `__wakeTick`(프레임 콜백)은 ticker에 붙어 있는 동안에만 있고(목표가 움직이면
+ * 붙고 두 스프링이 쉬면 떨어진다), `__wakeHead`(머리 위치 객체, 트랙 %)는 물결 효과가
+ * 살아 있는 동안(축소 모드가 아니면 마운트 내내) 있다.
  */
 interface WakeBarsHost extends HTMLDivElement {
   __wakeTick?: (time: number, deltaMs: number) => void;
@@ -305,16 +308,18 @@ export const Slider = forwardRef<HTMLInputElement, SliderProps>(
         ? wakeBarCount(trackWidth)
         : WAKE_DEFAULT_BARS
       : 0;
-    // 실제 막대 간격(px). 폭을 모르면 기본 간격.
+    // 실제 막대 간격(px). 폭을 모르면 기본 간격. wake만 쓴다: default·bar에서 폭으로
+    // 흔들리면 리사이즈마다 효과(ticker, 물결 스프링)가 다시 시작한다.
     const barGap =
-      trackWidth > 0 ? trackWidth / (barCount - 1) : WAKE_BAR_GAP_PX;
+      isWake && trackWidth > 0 ? trackWidth / (barCount - 1) : WAKE_BAR_GAP_PX;
 
     // 라인(default·bar). 그리는 값은 모두 ref 하나에 두고, 프레임·호버 트윈·렌더가
     // 같은 paintLine으로 경로를 다시 쓴다.
     const restThick = isBar ? LINE_BAR_REST : LINE_REST;
     const hoverThick = isBar ? LINE_BAR_HOVER : LINE_HOVER;
     const lineW = trackWidth > 0 ? trackWidth : LINE_DEFAULT_WIDTH;
-    const widthRef = useRef(lineW);
+    // 머리 중심이 움직이는 길이(px). 물결 세기와 끄는 중 규칙의 단계 폭이 이것으로 잰다.
+    const travelRef = useRef(headTravelPx(lineW, isWake));
     const lineId = `line-${useId().replace(/:/g, '')}`;
     const lineState = useRef({ base: restThick, headPct: 0, dir: 1, amp: 0 });
     const lineShapeRefs = useRef<{
@@ -368,18 +373,21 @@ export const Slider = forwardRef<HTMLInputElement, SliderProps>(
     };
     const paintDisplayRef = useRef(paintDisplay);
 
-    // 렌더마다 바탕 두께를 맞추고 다시 그린다(폭·값·변형이 바뀐 경우). 호버 트윈이
-    // 도는 중이면 두께는 트윈이 정한다. 축소 모드는 스프링이 없어 값 자리로 바로 간다.
+    // 렌더마다 바탕 두께를 맞추고 다시 그린다(폭·값·변형이 바뀐 경우). 호버 트윈(들어가는
+    // 쪽과 나가는 쪽)이 도는 중이면 두께는 트윈이 정한다. 축소 모드는 스프링이 없어 값 자리로 바로 간다.
     useLayoutEffect(() => {
       paintLineRef.current = paintLine;
       paintDisplayRef.current = paintDisplay;
-      widthRef.current = lineW;
+      travelRef.current = headTravelPx(lineW, isWake);
       if (reduced) displayRef.current = fillPercent;
       paintDisplay();
       if (isWake) return;
       if (!hoveredRef.current || reduced) {
-        hoverTweenRef.current?.kill();
-        lineState.current.base = restThick;
+        // 나가는 트윈이 도는 중이면 트윈이 두께를 정한다(들어가는 쪽 보호와 짝).
+        if (reduced || !hoverTweenRef.current?.isActive()) {
+          hoverTweenRef.current?.kill();
+          lineState.current.base = restThick;
+        }
       } else if ((hoverTweenRef.current?.progress() ?? 1) >= 1) {
         lineState.current.base = hoverThick;
       }
@@ -434,10 +442,23 @@ export const Slider = forwardRef<HTMLInputElement, SliderProps>(
       // 얻으므로 같이 쓰면 끄는 중 물결이 사라진다.
       let shownTarget = target;
       let shown: WakeSprings = { x: displayRef.current, v: 0, s: 0, ds: 0 };
-      const stepOf = () => stepWidthPx(step, min, max, widthRef.current);
+      const stepOf = () => stepWidthPx(step, min, max, travelRef.current);
+      // 목표가 움직일 때 붙고(한 인스턴스에 하나) 쉬면 뗀다. 잠든 ticker는 add 안에서 곧바로
+      // 한 번 콜백을 부르는데(긴 공백의 간격 그대로) 그 프레임은 건너뛴다: 움직임이 한 번에
+      // 앞으로 튀지 않고, 다음 실제 프레임부터 흐른다.
+      let attached = false;
+      let attaching = false;
+      // 두 스프링이 모두 쉬는가. 프레임 콜백은 이때만 ticker에서 떨어져 있다.
+      const settled = () => {
+        const pxPerPct = travelRef.current / 100;
+        return (
+          wakeSpringsRested(shown, shownTarget, pxPerPct) &&
+          wakeSpringsRested(springs, target, pxPerPct)
+        );
+      };
       const setHead = (percent: number) => {
         target = percent;
-        const pxPerPct = widthRef.current / 100;
+        const pxPerPct = travelRef.current / 100;
         lockedRef.current = nextDisplayLock({
           locked: lockedRef.current,
           dragging: draggingRef.current,
@@ -446,22 +467,24 @@ export const Slider = forwardRef<HTMLInputElement, SliderProps>(
           jumpPx: Math.abs(percent - shownTarget) * pxPerPct,
         });
         shownTarget = percent;
-        if (!lockedRef.current) return;
-        shown = { x: percent, v: 0, s: 0, ds: 0 };
-        displayRef.current = percent;
-        paintDisplayRef.current();
-        paintLineRef.current();
+        if (lockedRef.current) {
+          shown = { x: percent, v: 0, s: 0, ds: 0 };
+          displayRef.current = percent;
+          paintDisplayRef.current();
+          paintLineRef.current();
+        }
+        if (!settled()) attach();
       };
       let lastAmp = 0;
 
       const onTick = (_time: number, deltaMs: number) => {
+        if (attaching) return;
         // 위치는 트랙 %이고 속도는 px/s로 읽는다: 트랙 길이와 무관하게 같은 손 속도는
         // 같은 세기다.
-        const pxPerPct = widthRef.current / 100;
+        const pxPerPct = travelRef.current / 100;
         const dt = Math.min(deltaMs / 1000, WAKE_MAX_FRAME_S);
         const shownMoving = !wakeSpringsRested(shown, shownTarget, pxPerPct);
         const waveMoving = !wakeSpringsRested(springs, target, pxPerPct);
-        if (!shownMoving && !waveMoving) return;
 
         let linePending = false;
         if (shownMoving) {
@@ -507,17 +530,33 @@ export const Slider = forwardRef<HTMLInputElement, SliderProps>(
           }
         }
         if (linePending) paintLineRef.current();
+        // 이 프레임에 둘 다 쉬었으면 바로 뗀다: 쉬는 동안 GSAP이 rAF를 멈출 수 있다.
+        if (settled()) detach();
       };
 
-      gsap.ticker.add(onTick);
+      const attach = () => {
+        if (attached) return;
+        attached = true;
+        attaching = true;
+        gsap.ticker.add(onTick);
+        attaching = false;
+        host.__wakeTick = onTick;
+      };
+      const detach = () => {
+        if (!attached) return;
+        attached = false;
+        gsap.ticker.remove(onTick);
+        delete host.__wakeTick;
+      };
+
       headSetterRef.current = setHead;
-      host.__wakeTick = onTick;
       host.__wakeHead = head;
+      // 효과가 다시 시작됐을 때(변형·step 변경 등) 보이는 위치가 아직 값 자리가 아니면 이어서 좇는다.
+      if (!settled()) attach();
 
       return () => {
-        gsap.ticker.remove(onTick);
+        detach();
         headSetterRef.current = null;
-        delete host.__wakeTick;
         delete host.__wakeHead;
         // 인라인 높이를 걷어 CSS의 쉬는 높이로 돌아간다.
         for (const bar of bars) bar.style.transform = '';

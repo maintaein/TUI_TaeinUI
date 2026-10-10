@@ -23,6 +23,7 @@ import {
   SNAP_PX,
   CAUGHT_PX,
   stepWidthPx,
+  headTravelPx,
   type WakeSprings,
   LINE_BAR_HOVER,
   LINE_BAR_REST,
@@ -273,12 +274,23 @@ describe('보이는 위치 (값이 한 번에 바뀌어도 순간이동하지 �
     expect(CAUGHT_PX).toBe(0.5);
   });
 
-  it('stepWidthPx: 한 단계가 머리 중심이 움직이는 길이(트랙 폭 - 머리 24)에서 차지하는 몫이다', () => {
-    // 폭 806px, step 1 / 범위 100 -> 782 * 0.01 = 7.82px
-    expect(stepWidthPx(1, 0, 100, 806)).toBeCloseTo(7.82, 6);
-    expect(stepWidthPx(50, 0, 100, 806)).toBeCloseTo(391, 6);
-    // 200px 트랙, 범위 -50~50
-    expect(stepWidthPx(5, -50, 50, 200)).toBeCloseTo(8.8, 6);
+  it('headTravelPx: 머리 중심이 움직이는 폭이다. default·bar는 트랙 폭에서 머리 24를 빼고, wake는 막대 묶음 폭(이미 24 좁다) 그대로다', () => {
+    expect(headTravelPx(806, false)).toBe(806 - THUMB_PX);
+    expect(headTravelPx(782, true)).toBe(782);
+    // 같은 트랙이면 변형과 무관하게 같은 이동 폭이다: wake 호스트는 트랙보다 머리 폭만큼 좁다
+    for (const track of [129, 320, 806]) {
+      expect(headTravelPx(track, false)).toBe(
+        headTravelPx(track - THUMB_PX, true)
+      );
+    }
+  });
+
+  it('stepWidthPx: 한 단계가 이동 폭(머리 중심이 움직이는 길이)에서 차지하는 몫이다. 머리 폭은 다시 빼지 않는다', () => {
+    // 이동 폭 782px, step 1 / 범위 100 -> 782 * 0.01 = 7.82px
+    expect(stepWidthPx(1, 0, 100, 782)).toBeCloseTo(7.82, 6);
+    expect(stepWidthPx(50, 0, 100, 782)).toBeCloseTo(391, 6);
+    // 이동 폭 176px, 범위 -50~50
+    expect(stepWidthPx(5, -50, 50, 176)).toBeCloseTo(8.8, 6);
     // 범위가 없으면 0(0으로 나누지 않는다)
     expect(stepWidthPx(1, 10, 10, 200)).toBe(0);
   });
