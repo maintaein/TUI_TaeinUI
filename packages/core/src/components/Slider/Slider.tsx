@@ -135,6 +135,12 @@ export interface SliderProps extends Omit<
   step?: number;
   /** 현재 값 표시 여부 */
   showValue?: boolean;
+  /**
+   * 잡고 끄는 동안 머리 위에 값을 띄운다. 라벨·`showValue` 값과 같은 줄 높이라
+   * 머리가 양끝에 가면 겹칠 수 있다
+   * @default false
+   */
+  showThumbValue?: boolean;
   /** 도움말 텍스트 */
   helperText?: string;
   /** 필수 입력 */
@@ -157,6 +163,7 @@ export const Slider = forwardRef<HTMLInputElement, SliderProps>(
       max = 100,
       step = 1,
       showValue = false,
+      showThumbValue = false,
       helperText,
       required = false,
       marks,
@@ -624,7 +631,7 @@ export const Slider = forwardRef<HTMLInputElement, SliderProps>(
               style={{ [HEAD_PERCENT_VAR]: initialPct } as CSSProperties}
             />
           )}
-          {isGrabbed && (
+          {showThumbValue && isGrabbed && (
             <span className={valueFollower} aria-hidden ref={followerRef}>
               {currentValue}
             </span>

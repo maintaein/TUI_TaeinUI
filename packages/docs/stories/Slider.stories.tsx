@@ -48,6 +48,11 @@ const meta = {
       control: 'boolean',
       description: '현재 값 표시 여부',
     },
+    showThumbValue: {
+      control: 'boolean',
+      description:
+        '잡고 끄는 동안 머리 위에 값을 띄운다. 라벨·showValue 값과 같은 줄 높이라 머리가 양끝에 가면 겹칠 수 있다',
+    },
     disabled: {
       control: 'boolean',
       description: '비활성화 상태',
@@ -297,6 +302,25 @@ const DisabledComponent = () => {
 
 export const Disabled: Story = {
   render: () => <DisabledComponent />,
+};
+
+// Thumb Value
+const ThumbValueComponent = () => {
+  const [value, setValue] = useState(50);
+  return (
+    <div style={{ width: '400px' }}>
+      <Slider
+        label="진행도"
+        value={value}
+        onChange={(e) => setValue(Number(e.target.value))}
+        showThumbValue
+      />
+    </div>
+  );
+};
+
+export const ThumbValue: Story = {
+  render: () => <ThumbValueComponent />,
 };
 
 // Required

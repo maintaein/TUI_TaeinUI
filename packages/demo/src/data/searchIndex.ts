@@ -151,7 +151,10 @@ export const searchIndex: SearchEntry[] = [
       { title: 'Basic Slider', content: '기본 슬라이더 사용법' },
       { title: 'Range', content: 'min, max, step으로 범위와 단위 설정' },
       { title: 'With Label', content: '현재 값 표시와 함께 사용' },
-      { title: 'States', content: 'disabled 상태를 지원합니다' },
+      {
+        title: '진행도 수치',
+        content: 'showThumbValue로 잡는 동안 머리 위에 값을 띄웁니다',
+      },
     ],
   },
 

@@ -668,6 +668,7 @@ describe('Slider', () => {
     it('기본에서는 잡아도 눈금 DOM이 없다', () => {
       const { container } = render(
         <Slider
+          showThumbValue
           label="슬라이더"
           value={5}
           min={0}
@@ -685,9 +686,46 @@ describe('Slider', () => {
       expect(getScrubTickElements(container)).toHaveLength(0);
     });
 
+    it('기본(showThumbValue 꺼짐)에서는 잡아도 값 따라붙기 요소가 없다', () => {
+      const { container } = render(
+        <Slider label="슬라이더" value={20} onChange={() => {}} />
+      );
+      const slider = screen.getByRole('slider');
+
+      fireEvent.pointerDown(slider);
+      expect(getFollower(container)).not.toBeInTheDocument();
+
+      slider.focus();
+      act(() => {
+        slider.dispatchEvent(
+          new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true })
+        );
+      });
+      expect(getFollower(container)).not.toBeInTheDocument();
+    });
+
+    it('showThumbValue를 켜면 잡는 동안만 값 따라붙기가 뜬다', () => {
+      const { container } = render(
+        <Slider
+          showThumbValue
+          label="슬라이더"
+          value={20}
+          onChange={() => {}}
+        />
+      );
+      const slider = screen.getByRole('slider');
+
+      expect(getFollower(container)).not.toBeInTheDocument();
+      fireEvent.pointerDown(slider);
+      expect(getFollower(container)).toHaveTextContent('20');
+      fireEvent.pointerUp(slider);
+      expect(getFollower(container)).not.toBeInTheDocument();
+    });
+
     it('잡고 있는 동안 값 따라붙기는 보이는 위치를 따른다: 값이 점프해도 스프링으로 좇는다(순간이동 금지)', () => {
       const jsx = (value: number) => (
         <Slider
+          showThumbValue
           label="슬라이더"
           value={value}
           min={0}
@@ -716,6 +754,7 @@ describe('Slider', () => {
       const before = tickerListeners();
       const jsx = (value: number) => (
         <Slider
+          showThumbValue
           label="슬라이더"
           value={value}
           min={0}
@@ -742,6 +781,7 @@ describe('Slider', () => {
     it('값 따라붙기는 aria-hidden이고 showValue를 대체하지 않는다', () => {
       const { container } = render(
         <Slider
+          showThumbValue
           label="슬라이더"
           value={20}
           min={0}
@@ -771,7 +811,12 @@ describe('Slider', () => {
 
     it('키보드(화살표)로도 같은 신호가 만들어진다: 값이 따라간다', () => {
       const { container } = render(
-        <Slider label="슬라이더" value={50} onChange={() => {}} />
+        <Slider
+          showThumbValue
+          label="슬라이더"
+          value={50}
+          onChange={() => {}}
+        />
       );
       const slider = screen.getByRole('slider');
       slider.focus();
@@ -788,7 +833,12 @@ describe('Slider', () => {
     it('마지막 키 입력 후 일정 시간 무입력이면 놓은 것으로 처리된다', () => {
       vi.useFakeTimers();
       const { container } = render(
-        <Slider label="슬라이더" value={50} onChange={() => {}} />
+        <Slider
+          showThumbValue
+          label="슬라이더"
+          value={50}
+          onChange={() => {}}
+        />
       );
       const slider = screen.getByRole('slider');
       slider.focus();
@@ -810,7 +860,12 @@ describe('Slider', () => {
     it('연타 중에는 놓은 것으로 처리되지 않는다 — 무입력 타이머가 매 입력마다 갱신된다', () => {
       vi.useFakeTimers();
       const { container } = render(
-        <Slider label="슬라이더" value={50} onChange={() => {}} />
+        <Slider
+          showThumbValue
+          label="슬라이더"
+          value={50}
+          onChange={() => {}}
+        />
       );
       const slider = screen.getByRole('slider');
       slider.focus();
@@ -862,7 +917,12 @@ describe('Slider', () => {
 
     it('blur로도 놓은 것으로 처리된다', () => {
       const { container } = render(
-        <Slider label="슬라이더" value={50} onChange={() => {}} />
+        <Slider
+          showThumbValue
+          label="슬라이더"
+          value={50}
+          onChange={() => {}}
+        />
       );
       const slider = screen.getByRole('slider');
       slider.focus();
@@ -882,6 +942,7 @@ describe('Slider', () => {
     it('marks와 값 따라붙기가 동시에 켜진 경우를 렌더한다', () => {
       const { container } = render(
         <Slider
+          showThumbValue
           label="슬라이더"
           value={5}
           min={0}
@@ -930,6 +991,7 @@ describe('Slider', () => {
       step = 0.001
     ) => (
       <Slider
+        showThumbValue
         label="슬라이더"
         variant={variant}
         value={value}
@@ -1167,7 +1229,13 @@ describe('Slider', () => {
 
     it('bar에서도 채움 비율과 값 따라붙기가 그대로 동작한다', () => {
       const { container } = render(
-        <Slider label="슬라이더" variant="bar" value={50} onChange={() => {}} />
+        <Slider
+          showThumbValue
+          label="슬라이더"
+          variant="bar"
+          value={50}
+          onChange={() => {}}
+        />
       );
 
       expect(Number(getLine(container).clip.getAttribute('width'))).toBe(

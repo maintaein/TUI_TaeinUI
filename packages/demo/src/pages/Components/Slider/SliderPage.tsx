@@ -70,6 +70,13 @@ export function SliderPage() {
       description: '현재 값 표시 여부',
     },
     {
+      name: 'showThumbValue',
+      type: 'boolean',
+      default: 'false',
+      description:
+        '잡고 끄는 동안 머리 위에 값을 띄움. 라벨·showValue 값과 같은 줄 높이라 머리가 양끝에 가면 겹칠 수 있음',
+    },
+    {
       name: 'helperText',
       type: 'string',
       default: 'undefined',
@@ -92,12 +99,6 @@ export function SliderPage() {
       type: 'string',
       default: 'undefined',
       description: '트랙 채움 색상 (CSS color 값)',
-    },
-    {
-      name: 'disabled',
-      type: 'boolean',
-      default: 'false',
-      description: '비활성화 상태',
     },
   ];
 
@@ -375,6 +376,24 @@ const [b, setB] = useState(50);
           />
         </div>
 
+        {/* Show Thumb Value */}
+        <div className={styles.example}>
+          <h3 className={styles.exampleTitle}>진행도 수치</h3>
+          <LivePreview
+            title="머리 위 진행도 수치"
+            description="showThumbValue prop을 켜면 잡고 끄는 동안 머리 위에 값이 뜬다. 기본은 꺼짐. 라벨과 겹치는 것을 줄이려면 showValue는 끈다."
+            editable
+            code={`const [value, setValue] = useState(50);
+
+<Slider
+  label="진행도"
+  value={value}
+  onChange={(e) => setValue(Number(e.target.value))}
+  showThumbValue
+/>`}
+          />
+        </div>
+
         {/* Helper Text */}
         <div className={styles.example}>
           <h3 className={styles.exampleTitle}>Helper Text</h3>
@@ -414,22 +433,6 @@ const [b, setB] = useState(50);
   required
   helperText="1~10 사이의 점수를 선택해주세요"
 />`}
-          />
-        </div>
-
-        {/* Disabled */}
-        <div className={styles.example}>
-          <h3 className={styles.exampleTitle}>Disabled</h3>
-          <LivePreview
-            title="비활성화 상태"
-            description="disabled prop으로 슬라이더를 비활성화합니다."
-            editable
-            code={`const [active, setActive] = useState(60);
-
-<div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-  <Slider label="활성 슬라이더" value={active} onChange={(e) => setActive(Number(e.target.value))} showValue />
-  <Slider label="비활성 슬라이더" value={60} onChange={() => {}} showValue disabled />
-</div>`}
           />
         </div>
       </section>

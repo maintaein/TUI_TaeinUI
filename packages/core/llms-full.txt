@@ -182,6 +182,7 @@ import { Slider } from '@taein-ui/core';
 | max | number | 100 | Maximum value |
 | step | number | 1 | Step increment |
 | showValue | boolean | false | Display current value |
+| showThumbValue | boolean | false | Show the value above the thumb while grabbing or dragging. Off by default. It sits at the label and `showValue` line height, so it can overlap them when the thumb is at either end |
 | helperText | string | — | Helper text |
 | marks | { value: number; label: string }[] | — | Marks on track |
 | trackColor | string | — | Fill track color |
