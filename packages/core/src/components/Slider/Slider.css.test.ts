@@ -138,47 +138,39 @@ describe('Slider 생성 CSS', () => {
       }
     });
 
-    it.each([['webkit-slider-thumb'], ['moz-range-thumb']])(
-      '%s: rest는 base settle, 호버는 1.15배 slow spring이고, :active는 호버 이상이다',
-      (pseudo) => {
-        const restRule = flatRules().find(
-          ({ rule }) =>
-            rule.selectorText.endsWith(`::-${pseudo}`) &&
-            !rule.selectorText.includes(':hover') &&
-            !rule.selectorText.includes(':active') &&
-            !rule.selectorText.includes(':focus-visible') &&
-            !rule.selectorText.includes(':disabled')
-        )!.rule;
-        const hover = hovers(new RegExp(`::-${pseudo}$`)).find(
-          ({ rule }) => rule.style.getPropertyValue('transform') !== ''
-        )!;
-        const activeRule = findRule(
-          findSliderStyleSheet(),
-          `:active::-${pseudo}`
-        );
-
-        expect(restRule.style.getPropertyValue('transform')).toBe('');
-        expect(restRule.style.getPropertyValue('transition')).toContain(
-          `transform ${duration.base} ${easing.settle}`
-        );
-        expect(scaleOf(hover.rule)).toBe(1.15);
-        expect(hover.media).toContain(MOTION_OK);
-        expect(hover.rule.style.getPropertyValue('transition')).toContain(
-          `transform ${duration.slow} ${easing.spring}`
-        );
-        expect(scaleOf(activeRule)).toBeGreaterThanOrEqual(scaleOf(hover.rule));
-      }
-    );
-
-    it('호버 머리 규칙은 :active를 뺀다 (특이도가 높아 잡는 동안의 색·그림자를 덮지 않는다)', () => {
-      const thumbHovers = flatRules().filter(
+    const HEAD = /Slider_sliderHead__\w+$/;
+    const headRest = () =>
+      flatRules().find(
         ({ rule }) =>
-          rule.selectorText.includes(':hover') &&
-          /::-(webkit-slider-thumb|moz-range-thumb)$/.test(rule.selectorText)
+          HEAD.test(rule.selectorText) && !rule.selectorText.includes(' ')
+      )!.rule;
+    const headHovers = () => hovers(HEAD);
+
+    it('그린 머리: rest는 base settle이고, 호버는 1.15배 slow spring이며, :active는 호버 이상이다', () => {
+      const hover = headHovers().find(
+        ({ rule }) => rule.style.getPropertyValue('transform') !== ''
+      )!;
+      const activeRule = findRule(
+        findSliderStyleSheet(),
+        'input:active) .Slider_sliderHead'
       );
 
-      expect(thumbHovers).toHaveLength(4);
-      for (const { rule } of thumbHovers) {
+      expect(headRest().style.getPropertyValue('transform')).toBe('');
+      expect(headRest().style.getPropertyValue('transition')).toContain(
+        `transform ${duration.base} ${easing.settle}`
+      );
+      expect(scaleOf(hover.rule)).toBe(1.15);
+      expect(hover.media).toContain(MOTION_OK);
+      expect(hover.rule.style.getPropertyValue('transition')).toContain(
+        `transform ${duration.slow} ${easing.spring}`
+      );
+      expect(scaleOf(activeRule)).toBeGreaterThanOrEqual(scaleOf(hover.rule));
+    });
+
+    it('호버 머리 규칙은 :active를 뺀다 (특이도가 높아 잡는 동안의 색·그림자를 덮지 않는다)', () => {
+      // 그림자 규칙(마우스 게이트)과 크기 규칙(마우스 + 움직임 허용 게이트) 둘.
+      expect(headHovers()).toHaveLength(2);
+      for (const { rule } of headHovers()) {
         expect(rule.selectorText).toContain(':not(:active)');
       }
     });
@@ -192,35 +184,123 @@ describe('Slider 생성 CSS', () => {
     });
   });
 
+  describe('그린 머리와 투명한 기본 썸', () => {
+    const THUMBS = /::-(webkit-slider-thumb|moz-range-thumb)$/;
+    const HEAD = /Slider_sliderHead__\w+$/;
+    const { duration, easing } = themeContract.animation;
+    const headRules = () =>
+      flatRules().filter(({ rule }) => HEAD.test(rule.selectorText));
+    const rest = () =>
+      headRules().find(({ rule }) => !rule.selectorText.includes(' '))!.rule;
+    const withState = (state: string) =>
+      headRules().find(({ rule }) => rule.selectorText.includes(state))!.rule;
+
+    it.each([['webkit-slider-thumb'], ['moz-range-thumb']])(
+      '기본 %s는 모든 변형에서 투명하다: 크기·히트 영역은 그대로 둔다',
+      (pseudo) => {
+        const plain = flatRules().filter(
+          ({ rule: candidate }) =>
+            candidate.selectorText.endsWith(`::-${pseudo}`) &&
+            !candidate.selectorText.includes(':hover') &&
+            !candidate.selectorText.includes(':disabled')
+        );
+
+        expect(plain).toHaveLength(1);
+        expect(plain[0].rule.style.getPropertyValue('opacity')).toBe('0');
+        expect(plain[0].rule.style.getPropertyValue('width')).toBe('24px');
+        expect(plain[0].rule.style.getPropertyValue('height')).toBe('24px');
+        expect(plain[0].rule.style.getPropertyValue('display')).toBe('');
+      }
+    );
+
+    it('기본 썸에는 모습 규칙이 남지 않는다: 호버·active·포커스 규칙도 색·그림자도 없다', () => {
+      const thumbs = flatRules().filter(({ rule }) =>
+        THUMBS.test(rule.selectorText)
+      );
+
+      expect(thumbs.length).toBeGreaterThan(0);
+      for (const { rule, media } of thumbs) {
+        expect(media).toBeNull();
+        expect(rule.selectorText).not.toContain(':hover');
+        expect(rule.selectorText).not.toContain(':active');
+        expect(rule.selectorText).not.toContain(':focus-visible');
+        expect(rule.style.getPropertyValue('box-shadow')).toBe('');
+        expect(rule.style.getPropertyValue('background-color')).toBe('');
+      }
+    });
+
+    it('쉬는 모습은 예전 썸과 같다: 24px 원, paper 면, 2px primary 테두리, 은은한 그림자', () => {
+      const r = rest();
+
+      expect(r.style.getPropertyValue('width')).toBe('24px');
+      expect(r.style.getPropertyValue('height')).toBe('24px');
+      expect(r.style.getPropertyValue('box-sizing')).toBe('border-box');
+      expect(r.style.getPropertyValue('border-radius')).toBe('50%');
+      expect(r.style.getPropertyValue('background-color')).toBe(
+        themeContract.color.background.paper
+      );
+      expect(r.style.getPropertyValue('border')).toBe(
+        `2px solid ${themeContract.color.primary.main}`
+      );
+      expect(r.style.getPropertyValue('box-shadow')).toBe(
+        '0 1px 4px rgba(0, 0, 0, 0.15)'
+      );
+      expect(r.style.getPropertyValue('transition')).toContain(
+        `box-shadow ${duration.base} ${easing.settle}`
+      );
+      // 위치는 값에서 나온 %다: 중심이 (폭 - 24px) 위를 움직인다.
+      expect(r.style.getPropertyValue('left')).toContain('100% - 24px');
+      expect(r.style.getPropertyValue('pointer-events')).toBe('none');
+    });
+
+    it('잡는 동안(:active)은 진한 테두리와 호버 이상의 배율이다', () => {
+      const active = withState('input:active) ');
+
+      expect(active.style.getPropertyValue('border-color')).toBe(
+        themeContract.color.primary.dark
+      );
+      expect(active.style.getPropertyValue('box-shadow')).toBe(
+        '0 1px 3px rgba(0, 0, 0, 0.2)'
+      );
+      expect(active.style.getPropertyValue('transform')).toBe('scale(1.15)');
+    });
+
+    it('키보드 포커스(:focus-visible)면 머리 둘레에 포커스 링이 선다', () => {
+      const ring = withState('input:focus-visible) ');
+
+      expect(ring.style.getPropertyValue('outline')).toContain(
+        themeContract.color.border.focus
+      );
+    });
+
+    it('비활성이면 테두리가 흐려지고 반투명하다 (입력의 opacity 0.5를 대신한다)', () => {
+      const disabled = withState('input:disabled) ');
+
+      expect(disabled.style.getPropertyValue('border-color')).toBe(
+        themeContract.color.text.disabled
+      );
+      expect(disabled.style.getPropertyValue('opacity')).toBe('0.5');
+    });
+
+    it('호버 그림자는 마우스 게이트 안에서 더 깊어진다', () => {
+      const shadow = flatRules().find(
+        ({ rule }) =>
+          HEAD.test(rule.selectorText) &&
+          rule.selectorText.includes(':hover') &&
+          rule.style.getPropertyValue('box-shadow') !== ''
+      )!;
+
+      expect(shadow.media).toContain('(hover: hover) and (pointer: fine)');
+      expect(shadow.rule.style.getPropertyValue('box-shadow')).toBe(
+        '0 2px 6px rgba(0, 0, 0, 0.2)'
+      );
+    });
+  });
+
   describe('bar 변형', () => {
     const BAR = /Slider_variantStyles_bar__\w+/;
     const own = (re: RegExp) =>
       flatRules().filter(({ rule }) => re.test(rule.selectorText));
-
-    it.each([['webkit-slider-thumb'], ['moz-range-thumb']])(
-      '%s는 bar에서 투명하다: 크기·히트 영역은 그대로 둔다',
-      (pseudo) => {
-        const rules = own(new RegExp(`${BAR.source}.*::-${pseudo}$`));
-
-        expect(rules).toHaveLength(1);
-        expect(rules[0].rule.style.getPropertyValue('opacity')).toBe('0');
-        expect(rules[0].rule.style.getPropertyValue('width')).toBe('');
-        expect(rules[0].rule.style.getPropertyValue('display')).toBe('');
-      }
-    );
-
-    it('투명은 bar에만 걸린다: 기본 머리 규칙에는 opacity가 없다', () => {
-      const thumbs = flatRules().filter(
-        ({ rule }) =>
-          /::-(webkit-slider-thumb|moz-range-thumb)$/.test(rule.selectorText) &&
-          !BAR.test(rule.selectorText)
-      );
-
-      expect(thumbs.length).toBeGreaterThan(0);
-      for (const { rule } of thumbs) {
-        expect(rule.style.getPropertyValue('opacity')).toBe('');
-      }
-    });
 
     it('트랙은 쉬는 두께 8px이고 호버 규칙이 없다(12px는 GSAP이 맡는다)', () => {
       const rest = own(

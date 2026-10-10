@@ -22,16 +22,7 @@ import {
   type WakeSprings,
 } from './sliderMath';
 import { gsapDuration, gsapEasing } from '../../tokens/gsapEasing';
-import { VALUE_FOLLOWER_PERCENT_VAR } from './Slider.css';
-
-/**
- * 테스트 전용 DOM 확장 읽기용 타입. `Slider.tsx`의 `ValueFollowerTweenHost`
- * (내보내지 않는 로컬 인터페이스)와 같은 모양이다.
- * Snackbar.test.tsx의 `CountdownTweenHost` 패턴을 그대로 따른다.
- */
-type ValueFollowerTweenHost = HTMLSpanElement & {
-  __valueFollowerTween?: gsap.core.Tween;
-};
+import { VALUE_FOLLOWER_PERCENT_VAR, HEAD_PERCENT_VAR } from './Slider.css';
 
 /** 잡을 때 나오던 눈금(옛 scrubTick 계열) DOM. 지금은 어느 변형에도 없다. */
 const getScrubTickElements = (container: HTMLElement): NodeListOf<Element> =>
@@ -143,10 +134,12 @@ const barScale = (bar: HTMLElement): number =>
     bar.style.getPropertyValue('transform').match(/scaleY\(([\d.e-]+)\)/)?.[1]
   );
 
-const getFollower = (container: HTMLElement): ValueFollowerTweenHost | null =>
-  container.querySelector(
-    '[class*="valueFollower__"]'
-  ) as ValueFollowerTweenHost | null;
+const getFollower = (container: HTMLElement): HTMLSpanElement | null =>
+  container.querySelector('[class*="valueFollower__"]');
+
+/** 그린 머리. bar에는 없다. */
+const getHead = (container: HTMLElement): HTMLSpanElement | null =>
+  container.querySelector('[class*="sliderHead__"]');
 
 /** jsdom은 matchMedia를 구현하지 않는다 — 축소 선호 경로를 열려면 깔아야 한다. */
 const installReducedMotion = (): void => {
@@ -692,79 +685,58 @@ describe('Slider', () => {
       expect(getScrubTickElements(container)).toHaveLength(0);
     });
 
-    it('잡고 있는 동안 값이 썸을 따라간다 — quickTo가 관성을 갖고 좇는다(순간이동 금지)', () => {
-      const { container, rerender } = render(
+    it('잡고 있는 동안 값 따라붙기는 보이는 위치를 따른다: 값이 점프해도 스프링으로 좇는다(순간이동 금지)', () => {
+      const jsx = (value: number) => (
         <Slider
           label="슬라이더"
-          value={20}
+          value={value}
           min={0}
           max={100}
           onChange={() => {}}
         />
       );
-      const slider = screen.getByRole('slider');
+      const { container, rerender } = render(jsx(20));
 
-      fireEvent.pointerDown(slider);
-      const follower = getFollower(container);
-      expect(follower).toBeInTheDocument();
-      expect(follower!.style.getPropertyValue(VALUE_FOLLOWER_PERCENT_VAR)).toBe(
-        '20'
-      );
+      fireEvent.pointerDown(screen.getByRole('slider'));
+      const follower = getFollower(container)!;
+      const at = () =>
+        follower.style.getPropertyValue(VALUE_FOLLOWER_PERCENT_VAR);
+      expect(at()).toBe('20');
 
-      rerender(
-        <Slider
-          label="슬라이더"
-          value={60}
-          min={0}
-          max={100}
-          onChange={() => {}}
-        />
-      );
-      // 값이 바뀐 직후에도 quickTo 트윈이 아직 안 흘렀으므로 순간이동하지 않는다.
-      expect(follower!.style.getPropertyValue(VALUE_FOLLOWER_PERCENT_VAR)).toBe(
-        '20'
-      );
+      rerender(jsx(60));
+      // 값이 바뀐 직후에도 아직 프레임이 안 흘렀으므로 순간이동하지 않는다.
+      expect(at()).toBe('20');
 
-      act(() => {
-        follower!.__valueFollowerTween!.progress(1);
-      });
-      expect(follower!.style.getPropertyValue(VALUE_FOLLOWER_PERCENT_VAR)).toBe(
-        '60'
-      );
+      runFrames(getLineHost(container)!, 1000);
+      expect(Number(at())).toBeCloseTo(60, 1);
     });
 
-    it('잡은 상태에서 축소 선호로 바뀌면 quickTo 트윈이 죽는다 — 확정 값 위에서 계속 덮어쓰지 않는다', () => {
-      const { container, rerender } = render(
-        <Slider
-          label="슬라이더"
-          value={20}
-          min={0}
-          max={100}
-          onChange={() => {}}
-        />
-      );
-      const slider = screen.getByRole('slider');
-
-      fireEvent.pointerDown(slider);
-      const follower = getFollower(container);
-      const tween = follower!.__valueFollowerTween;
-      expect(tween?.parent).not.toBeNull();
-
+    it('축소 선호에서는 값 따라붙기가 스프링 없이 값 자리다: 티커도 없다', () => {
       installReducedMotion();
-      rerender(
+      const before = tickerListeners();
+      const jsx = (value: number) => (
         <Slider
           label="슬라이더"
-          value={20}
+          value={value}
           min={0}
           max={100}
           onChange={() => {}}
         />
       );
+      const { container, rerender } = render(jsx(20));
 
-      // kill()된 트윈은 부모를 잃는다(useOverlayTransition.test.ts:311의 같은
-      // 패턴) — GSAP의 isActive()는 parent가 null이면 true를 내므로(gsap.js:1785:
-      // `!!(!parent || ...)`) killed 여부 판별에 쓸 수 없다. parent가 신뢰 가능한 신호다.
-      expect(tween?.parent).toBeNull();
+      fireEvent.pointerDown(screen.getByRole('slider'));
+      const follower = getFollower(container)!;
+      expect(follower.style.getPropertyValue(VALUE_FOLLOWER_PERCENT_VAR)).toBe(
+        '20'
+      );
+
+      rerender(jsx(60));
+
+      expect(follower.style.getPropertyValue(VALUE_FOLLOWER_PERCENT_VAR)).toBe(
+        '60'
+      );
+      expect(tickerListeners()).toBe(before);
     });
 
     it('값 따라붙기는 aria-hidden이고 showValue를 대체하지 않는다', () => {
@@ -946,6 +918,182 @@ describe('Slider', () => {
     });
   });
 
+  describe('보이는 위치: 값이 한 번에 바뀌어도 머리와 채움이 순간이동하지 않는다', () => {
+    afterEach(() => {
+      vi.unstubAllGlobals();
+    });
+
+    type DisplayVariant = 'default' | 'bar' | 'wake';
+    const jsx = (value: number, variant: DisplayVariant = 'default') => (
+      <Slider
+        label="슬라이더"
+        variant={variant}
+        value={value}
+        step={0.001}
+        onChange={() => {}}
+      />
+    );
+    const headAt = (container: HTMLElement) =>
+      Number(getHead(container)!.style.getPropertyValue(HEAD_PERCENT_VAR));
+    const fillAt = (container: HTMLElement) =>
+      (Number(getLine(container).clip.getAttribute('width')) /
+        LINE_DEFAULT_WIDTH) *
+      100;
+    /** 라인 변형의 프레임을 돌린다. */
+    const frames = (container: HTMLElement, ms: number) =>
+      runFrames(getLineHost(container)!, ms);
+
+    it('기본 썸을 대신하는 머리가 있다: default·wake에는 있고 aria-hidden이며 bar에는 없다', () => {
+      const plain = render(jsx(30));
+      expect(getHead(plain.container)).toHaveAttribute('aria-hidden', 'true');
+      expect(headAt(plain.container)).toBe(30);
+      plain.unmount();
+
+      const wake = render(jsx(30, 'wake'));
+      expect(getHead(wake.container)).toBeInTheDocument();
+      wake.unmount();
+
+      const bar = render(jsx(30, 'bar'));
+      expect(getHead(bar.container)).not.toBeInTheDocument();
+    });
+
+    it('마운트에서는 애니메이션 없이 값 자리다', () => {
+      const { container } = render(jsx(70));
+
+      expect(headAt(container)).toBe(70);
+      expect(fillAt(container)).toBe(70);
+    });
+
+    it('값이 점프하면 머리·채움·값 따라붙기가 같은 중간 위치를 지나 값에 닿는다', () => {
+      const { container, rerender } = render(jsx(10));
+      fireEvent.keyDown(screen.getByRole('slider'), { key: 'Home' });
+      rerender(jsx(90));
+
+      // 점프 직후 프레임: 값 위치가 아니라 중간이다.
+      frames(container, FRAME_MS);
+      const first = headAt(container);
+      expect(first).toBeGreaterThan(10);
+      expect(first).toBeLessThan(40);
+      expect(fillAt(container)).toBeCloseTo(first, 1);
+      expect(
+        Number(
+          getFollower(container)!.style.getPropertyValue(
+            VALUE_FOLLOWER_PERCENT_VAR
+          )
+        )
+      ).toBeCloseTo(first, 6);
+
+      // 넘치지 않고 0.3초 안에 0.5px(200px 트랙에서 0.25%) 이내로 닿는다.
+      let previous = first;
+      for (let t = FRAME_MS; t < 300; t += FRAME_MS) {
+        frames(container, FRAME_MS);
+        const now = headAt(container);
+        expect(now).toBeGreaterThanOrEqual(previous);
+        expect(now).toBeLessThanOrEqual(90);
+        previous = now;
+      }
+      frames(container, FRAME_MS);
+      expect(90 - headAt(container)).toBeLessThan(0.25);
+    });
+
+    it('끄는 중 따라잡은 뒤에는 작은 변화를 스프링 없이 그대로 따라간다', () => {
+      const { container, rerender } = render(jsx(50));
+      fireEvent.pointerDown(screen.getByRole('slider'));
+
+      // 한 번에 3px(200px 트랙에서 1.5%)씩: 프레임을 안 돌려도 바로 값 자리다.
+      for (const value of [51.5, 53, 54.5, 56]) {
+        rerender(jsx(value));
+        expect(headAt(container)).toBeCloseTo(value, 6);
+        expect(fillAt(container)).toBeCloseTo(value, 6);
+      }
+    });
+
+    it('끄는 중이라도 따라잡기 전에는 스프링이다: 점프를 좇는 동안 작은 변화는 따라붙지 않는다', () => {
+      const { container, rerender } = render(jsx(10));
+      fireEvent.pointerDown(screen.getByRole('slider'));
+      rerender(jsx(60));
+      frames(container, 2 * FRAME_MS);
+      rerender(jsx(61.5));
+
+      expect(headAt(container)).toBeLessThan(40);
+      // 따라잡으면 다시 그대로 따라붙는다.
+      frames(container, 1000);
+      rerender(jsx(63));
+      expect(headAt(container)).toBeCloseTo(63, 6);
+    });
+
+    it('끄는 중이라도 8px(4%)를 넘게 한 번에 바뀌면(큰 step 스냅, 마크) 스프링이다', () => {
+      const { container, rerender } = render(jsx(50));
+      fireEvent.pointerDown(screen.getByRole('slider'));
+      rerender(jsx(51.5));
+      expect(headAt(container)).toBeCloseTo(51.5, 6);
+
+      rerender(jsx(80));
+      expect(headAt(container)).toBeCloseTo(51.5, 6);
+      frames(container, FRAME_MS);
+      expect(headAt(container)).toBeGreaterThan(51.5);
+      expect(headAt(container)).toBeLessThan(65);
+    });
+
+    it('잡지 않은 변화는 작아도 스프링이다: 키보드, 놓은 뒤', () => {
+      const { container, rerender } = render(jsx(50));
+      const slider = screen.getByRole('slider');
+
+      // 키보드로 잡았어도 포인터로 끄는 것이 아니다.
+      fireEvent.keyDown(slider, { key: 'ArrowRight' });
+      rerender(jsx(51.5));
+      expect(headAt(container)).toBe(50);
+      frames(container, 1000);
+      expect(headAt(container)).toBeCloseTo(51.5, 1);
+
+      // 포인터로 끌다 놓으면 따라붙기가 끝난다.
+      fireEvent.pointerDown(slider);
+      rerender(jsx(53));
+      expect(headAt(container)).toBeCloseTo(53, 6);
+      fireEvent.pointerUp(slider);
+      rerender(jsx(54.5));
+      expect(headAt(container)).toBeCloseTo(53, 6);
+    });
+
+    it('wake도 켜진 막대의 경계가 스프링으로 따라간다', () => {
+      const { container, rerender } = render(jsx(0, 'wake'));
+      const on = () =>
+        getWakeBars(container).filter((b) => b.dataset.on === 'true');
+      expect(on()).toHaveLength(1);
+
+      rerender(jsx(100, 'wake'));
+      expect(on()).toHaveLength(1);
+      runFrames(getWakeHost(container)!, 3 * FRAME_MS);
+      expect(on().length).toBeGreaterThan(1);
+      expect(on().length).toBeLessThan(WAKE_DEFAULT_BARS);
+      runFrames(getWakeHost(container)!, 1000);
+      expect(on()).toHaveLength(WAKE_DEFAULT_BARS);
+    });
+
+    it('축소 선호에서는 스프링 없이 바로 값 자리다', () => {
+      installReducedMotion();
+      const { container, rerender } = render(jsx(10));
+
+      rerender(jsx(90));
+
+      expect(headAt(container)).toBe(90);
+      expect(fillAt(container)).toBe(90);
+    });
+
+    it('멈춘 뒤 프레임은 그리지 않는다', () => {
+      const { container, rerender } = render(jsx(10));
+      rerender(jsx(90));
+      frames(container, 2000);
+      expect(headAt(container)).toBe(90);
+
+      getHead(container)!.style.setProperty(HEAD_PERCENT_VAR, '1');
+      frames(container, FRAME_MS);
+      expect(getHead(container)!.style.getPropertyValue(HEAD_PERCENT_VAR)).toBe(
+        '1'
+      );
+    });
+  });
+
   describe('variant prop 테스트', () => {
     const wrapperOf = (container: HTMLElement) =>
       container.querySelector('[class*="sliderWrapper__"]') as HTMLElement;
@@ -1078,6 +1226,9 @@ describe('Slider', () => {
           onChange={() => {}}
         />
       );
+      // 값이 바뀌어도 켜진 경계는 스프링으로 따라간다: 아직 40%에 있다.
+      expect(on().filter((state) => state === 'true')).toHaveLength(13);
+      runFrames(getWakeHost(container)!, 1000);
       // 70%: i = 0..21
       expect(on().filter((state) => state === 'true')).toHaveLength(22);
     });
@@ -1590,9 +1741,11 @@ describe('Slider', () => {
     it('값이 바뀌면 채움이 따라 바뀐다', () => {
       const { container, rerender } = render(lineJsx('default', 30));
       rerender(lineJsx('default', 80));
+      runFrames(getLineHost(container)!, 1000);
 
-      expect(Number(getLine(container).clip.getAttribute('width'))).toBe(
-        LINE_DEFAULT_WIDTH * 0.8
+      expect(Number(getLine(container).clip.getAttribute('width'))).toBeCloseTo(
+        LINE_DEFAULT_WIDTH * 0.8,
+        1
       );
     });
 

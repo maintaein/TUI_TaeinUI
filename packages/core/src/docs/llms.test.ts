@@ -322,8 +322,9 @@ describe('컴포넌트가 실제로 합성하는 색 쌍', () => {
       `fill(${fill}) on track(${track})`
     ).toBeGreaterThanOrEqual(AA_UI);
 
-    // 썸의 면은 트랙과 같은 색일 수 있다 — 썸을 식별시키는 건 테두리다.
-    const thumbBorder = declBlock(SLIDER_CSS, 'slider').match(
+    // 머리의 면은 트랙과 같은 색일 수 있다. 머리를 식별시키는 건 테두리다.
+    // 머리는 기본 썸을 대신해 sliderHead가 그린다.
+    const thumbBorder = declBlock(SLIDER_CSS, 'sliderHead').match(
       /border: `2px solid \$\{themeContract\.([\w.[\]]+)\}`/
     )?.[1];
     expect(thumbBorder, '썸 테두리 색을 찾지 못했다').toBeDefined();

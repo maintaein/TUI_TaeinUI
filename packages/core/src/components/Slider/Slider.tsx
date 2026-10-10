@@ -8,12 +8,13 @@ import {
   useRef,
   type InputHTMLAttributes,
   type ChangeEvent,
+  type CSSProperties,
   type KeyboardEvent,
   type PointerEvent as ReactPointerEvent,
 } from 'react';
 import clsx from 'clsx';
 import { gsap } from 'gsap';
-import { settleMotion } from '../../hooks/gateMotion';
+import { gateMotion } from '../../hooks/gateMotion';
 import { useReducedMotion } from '../../hooks/useReducedMotion';
 import { gsapEasing, gsapDuration } from '../../tokens/gsapEasing';
 import {
@@ -38,6 +39,8 @@ import {
   markLabel,
   valueFollower,
   VALUE_FOLLOWER_PERCENT_VAR,
+  sliderHead,
+  HEAD_PERCENT_VAR,
 } from './Slider.css';
 import {
   lineShapes,
@@ -55,6 +58,7 @@ import {
   WAKE_DEFAULT_BARS,
   WAKE_FLAT,
   WAKE_MAX_FRAME_S,
+  nextDisplayLock,
   stepWakeSprings,
   wakeSpringsRested,
   type WakeSprings,
@@ -66,11 +70,6 @@ export interface SliderMark {
   value: number;
   /** 마크 레이블 텍스트 */
   label: string;
-}
-
-/** 테스트 전용. 값 따라붙기 quickTo가 만든 트윈에 `progress()`로 접근하는 손잡이. */
-interface ValueFollowerTweenHost extends HTMLSpanElement {
-  __valueFollowerTween?: gsap.core.Tween;
 }
 
 /**
@@ -205,9 +204,14 @@ export const Slider = forwardRef<HTMLInputElement, SliderProps>(
       typeof setTimeout
     > | null>(null);
     const followerRef = useRef<HTMLSpanElement>(null);
-    const followerSetterRef = useRef<
-      ((value: number, start?: number) => void) | null
-    >(null);
+    const headRef = useRef<HTMLSpanElement>(null);
+    // 포인터로 끄는 중인가. 키보드로 잡은 것(isGrabbed)과 구분한다: 키보드 변화는 늘 스프링이다.
+    const draggingRef = useRef(false);
+    // 보이는 위치(트랙 %). 그린 머리, 채움, 값 따라붙기가 모두 이것을 따른다. 값(목표)을
+    // 스프링으로 좇고, 마운트에서는 값 자리다. 렌더는 처음 값만 쓰고(`initialPct`) 이후는
+    // 프레임과 `paintDisplay`가 DOM에 쓴다.
+    const [initialPct] = useState(fillPercent);
+    const displayRef = useRef(initialPct);
 
     const handleRelease = useCallback(() => {
       if (disabled) return;
@@ -235,7 +239,18 @@ export const Slider = forwardRef<HTMLInputElement, SliderProps>(
       );
     };
 
+    const handlePointerDown = () => {
+      if (!disabled) draggingRef.current = true;
+      handleGrab();
+    };
+
+    const handlePointerEnd = () => {
+      draggingRef.current = false;
+      handleRelease();
+    };
+
     const handleBlur = () => {
+      draggingRef.current = false;
       if (isGrabbed) handleRelease();
     };
 
@@ -250,57 +265,6 @@ export const Slider = forwardRef<HTMLInputElement, SliderProps>(
         }
       };
     }, []);
-
-    // 값 따라붙기 quickTo — 잡은 순간 생성해 즉시 현재 위치로 점프(관성 없이),
-    // 이후 값이 바뀔 때마다 아래 effect가 관성 있게 좇는다(M0.5 I2 · 계획서가
-    // quickTo()를 명시로 요구한 자리). gateMotion을 거치지 않는다 — quickTo는
-    // 잡는 동안 반복해서 resetTo되는 장기 트윈이라 "확정 후 kill" 의미론과
-    // 구조가 안 맞는다(한 번 죽이면 다음 resetTo가 죽은 트윈을 건드린다). 대신
-    // reduced를 직접 분기해 애니메이션 자체를 만들지 않는다.
-    useLayoutEffect(() => {
-      if (!isGrabbed) {
-        followerSetterRef.current = null;
-        return;
-      }
-      const el = followerRef.current;
-      if (!el) return;
-
-      const percent = valueToPercent(currentValueRef.current, min, max);
-
-      if (reduced) {
-        el.style.setProperty(VALUE_FOLLOWER_PERCENT_VAR, String(percent));
-        return;
-      }
-
-      const setPercent = gsap.quickTo(el, VALUE_FOLLOWER_PERCENT_VAR, {
-        duration: gsapDuration.fast,
-        ease: gsapEasing.settle,
-      });
-      setPercent(percent, percent);
-      followerSetterRef.current = setPercent;
-      (el as ValueFollowerTweenHost).__valueFollowerTween = setPercent.tween;
-
-      return () => {
-        // 끝 상태(마지막 목표 값)로 확정한 뒤 죽인다.
-        settleMotion(setPercent.tween);
-        followerSetterRef.current = null;
-        delete (el as ValueFollowerTweenHost).__valueFollowerTween;
-      };
-    }, [isGrabbed, reduced, min, max]);
-
-    useEffect(() => {
-      if (!isGrabbed) return;
-      const percent = valueToPercent(currentValue, min, max);
-
-      if (reduced) {
-        followerRef.current?.style.setProperty(
-          VALUE_FOLLOWER_PERCENT_VAR,
-          String(percent)
-        );
-        return;
-      }
-      followerSetterRef.current?.(percent);
-    }, [currentValue, isGrabbed, reduced, min, max]);
 
     // 물결. 머리 위치는 값을 settle 성질로 따라가고, 매 프레임 그 변화량으로 속도를
     // 재 물결을 만든다. wake는 눈금 막대 높이로, default·bar는 라인 두께로 그린다.
@@ -353,7 +317,7 @@ export const Slider = forwardRef<HTMLInputElement, SliderProps>(
     const lineShapesNow = () =>
       lineShapes({
         width: lineW,
-        fillPct: fillPercent,
+        fillPct: displayRef.current,
         roundEnd: isBar,
         ...lineState.current,
       });
@@ -369,11 +333,38 @@ export const Slider = forwardRef<HTMLInputElement, SliderProps>(
     };
     const paintLineRef = useRef(paintLine);
 
+    // 보이는 위치를 라인 밖의 것에 쓴다: 그린 머리, 값 따라붙기, wake의 켜진 막대.
+    // 라인은 paintLine이 같은 위치로 따로 그린다.
+    const paintDisplay = () => {
+      const pct = displayRef.current;
+      headRef.current?.style.setProperty(HEAD_PERCENT_VAR, String(pct));
+      followerRef.current?.style.setProperty(
+        VALUE_FOLLOWER_PERCENT_VAR,
+        String(pct)
+      );
+      const bars = wakeBarsRef.current?.children;
+      if (!bars) return;
+      for (let i = 0; i < bars.length; i++) {
+        const bar = bars[i] as HTMLElement;
+        const on = (i / (bars.length - 1)) * 100 <= pct + 1e-9;
+        if (bar.dataset.on !== String(on))
+          bar.setAttribute('data-on', String(on));
+        bar.style.setProperty(
+          'background-color',
+          on && trackColor ? trackColor : ''
+        );
+      }
+    };
+    const paintDisplayRef = useRef(paintDisplay);
+
     // 렌더마다 바탕 두께를 맞추고 다시 그린다(폭·값·변형이 바뀐 경우). 호버 트윈이
-    // 도는 중이면 두께는 트윈이 정한다.
+    // 도는 중이면 두께는 트윈이 정한다. 축소 모드는 스프링이 없어 값 자리로 바로 간다.
     useLayoutEffect(() => {
       paintLineRef.current = paintLine;
+      paintDisplayRef.current = paintDisplay;
       widthRef.current = lineW;
+      if (reduced) displayRef.current = fillPercent;
+      paintDisplay();
       if (isWake) return;
       if (!hoveredRef.current || reduced) {
         hoverTweenRef.current?.kill();
@@ -395,12 +386,14 @@ export const Slider = forwardRef<HTMLInputElement, SliderProps>(
     // 비활성·축소 선호에서는 없다. 머리 1.15배는 CSS가 맡는다.
     const tweenBase = (to: number, entering: boolean) => {
       hoverTweenRef.current?.kill();
-      hoverTweenRef.current = gsap.to(lineState.current, {
-        base: to,
-        duration: entering ? gsapDuration.slow : gsapDuration.base,
-        ease: entering ? gsapEasing.spring : gsapEasing.settle,
-        onUpdate: () => paintLineRef.current(),
-      });
+      hoverTweenRef.current = gateMotion(reduced, () =>
+        gsap.to(lineState.current, {
+          base: to,
+          duration: entering ? gsapDuration.slow : gsapDuration.base,
+          ease: entering ? gsapEasing.spring : gsapEasing.settle,
+          onUpdate: () => paintLineRef.current(),
+        })
+      );
       if (lineRef.current) lineRef.current.__hoverTween = hoverTweenRef.current;
     };
     const handlePointerEnter = (e: ReactPointerEvent<HTMLDivElement>) => {
@@ -425,8 +418,27 @@ export const Slider = forwardRef<HTMLInputElement, SliderProps>(
       // 걸러 세기를 잰다(WakeSlider.tsx:91-95). 끄는 세기에 비례해 서서히 차오르고 빠진다.
       let target = head.pct;
       let springs: WakeSprings = { x: head.pct, v: 0, s: 0, ds: 0 };
+      // 보이는 위치도 같은 스프링으로 값을 좇는다. 물결 머리와 따로 둔다: 끄는 중에는
+      // 따라잡은 뒤 목표를 그대로 쓰는데(nextDisplayLock), 물결 머리는 그 지연에서 속도를
+      // 얻으므로 같이 쓰면 끄는 중 물결이 사라진다.
+      let shownTarget = target;
+      let shown: WakeSprings = { x: displayRef.current, v: 0, s: 0, ds: 0 };
+      let locked = false;
       const setHead = (percent: number) => {
         target = percent;
+        const pxPerPct = widthRef.current / 100;
+        locked = nextDisplayLock({
+          locked,
+          dragging: draggingRef.current,
+          gapPx: Math.abs(shownTarget - shown.x) * pxPerPct,
+          jumpPx: Math.abs(percent - shownTarget) * pxPerPct,
+        });
+        shownTarget = percent;
+        if (!locked) return;
+        shown = { x: percent, v: 0, s: 0, ds: 0 };
+        displayRef.current = percent;
+        paintDisplayRef.current();
+        paintLineRef.current();
       };
       let lastAmp = 0;
 
@@ -434,32 +446,54 @@ export const Slider = forwardRef<HTMLInputElement, SliderProps>(
         // 위치는 트랙 %이고 속도는 px/s로 읽는다: 트랙 길이와 무관하게 같은 손 속도는
         // 같은 세기다.
         const pxPerPct = widthRef.current / 100;
-        if (wakeSpringsRested(springs, target, pxPerPct)) return;
-        springs = stepWakeSprings(
-          springs,
-          target,
-          Math.min(deltaMs / 1000, WAKE_MAX_FRAME_S)
-        );
-        if (wakeSpringsRested(springs, target, pxPerPct)) {
-          springs = { x: target, v: 0, s: 0, ds: 0 };
-        }
-        head.pct = springs.x;
-        const speed = springs.s * pxPerPct;
-        const amp = waveAmp(speed);
-        const flat = amp < WAKE_FLAT && lastAmp < WAKE_FLAT;
-        lastAmp = amp;
-        if (flat) return;
+        const dt = Math.min(deltaMs / 1000, WAKE_MAX_FRAME_S);
+        const shownMoving = !wakeSpringsRested(shown, shownTarget, pxPerPct);
+        const waveMoving = !wakeSpringsRested(springs, target, pxPerPct);
+        if (!shownMoving && !waveMoving) return;
 
-        const dir = Math.sign(speed) || 1;
-        if (!isWake) {
-          Object.assign(line, { headPct: head.pct, dir, amp });
-          paintLineRef.current();
-          return;
+        let linePending = false;
+        if (shownMoving) {
+          locked = nextDisplayLock({
+            locked,
+            dragging: draggingRef.current,
+            gapPx: Math.abs(shownTarget - shown.x) * pxPerPct,
+            jumpPx: 0,
+          });
+          shown = locked
+            ? { x: shownTarget, v: 0, s: 0, ds: 0 }
+            : stepWakeSprings(shown, shownTarget, dt);
+          if (wakeSpringsRested(shown, shownTarget, pxPerPct)) {
+            shown = { x: shownTarget, v: 0, s: 0, ds: 0 };
+          }
+          displayRef.current = shown.x;
+          paintDisplayRef.current();
+          linePending = !isWake;
         }
-        const h = (head.pct / 100) * (bars.length - 1);
-        bars.forEach((bar, i) => {
-          bar.style.transform = `scaleY(${waveScale(waveLift(i - h, dir, amp, barGap))})`;
-        });
+
+        if (waveMoving) {
+          springs = stepWakeSprings(springs, target, dt);
+          if (wakeSpringsRested(springs, target, pxPerPct)) {
+            springs = { x: target, v: 0, s: 0, ds: 0 };
+          }
+          head.pct = springs.x;
+          const speed = springs.s * pxPerPct;
+          const amp = waveAmp(speed);
+          const flat = amp < WAKE_FLAT && lastAmp < WAKE_FLAT;
+          lastAmp = amp;
+          if (!flat) {
+            const dir = Math.sign(speed) || 1;
+            if (!isWake) {
+              Object.assign(line, { headPct: head.pct, dir, amp });
+              linePending = true;
+            } else {
+              const h = (head.pct / 100) * (bars.length - 1);
+              bars.forEach((bar, i) => {
+                bar.style.transform = `scaleY(${waveScale(waveLift(i - h, dir, amp, barGap))})`;
+              });
+            }
+          }
+        }
+        if (linePending) paintLineRef.current();
       };
 
       gsap.ticker.add(onTick);
@@ -488,7 +522,7 @@ export const Slider = forwardRef<HTMLInputElement, SliderProps>(
     // 첫 렌더(SSR 포함)는 쉬는 모양이다. 물결·호버 두께는 마운트 뒤 paintLine이 쓴다.
     const shapesInit = lineShapes({
       width: lineW,
-      fillPct: fillPercent,
+      fillPct: initialPct,
       roundEnd: isBar,
       base: restThick,
       headPct: 0,
@@ -520,7 +554,7 @@ export const Slider = forwardRef<HTMLInputElement, SliderProps>(
               {Array.from({ length: barCount }, (_, i) => {
                 // 막대의 트랙 위 위치(%)가 값(%) 이하면 켜진다.
                 const barPercent = (i / (barCount - 1)) * 100;
-                const on = barPercent <= fillPercent + 1e-9;
+                const on = barPercent <= initialPct + 1e-9;
                 return (
                   <span
                     key={i}
@@ -576,6 +610,14 @@ export const Slider = forwardRef<HTMLInputElement, SliderProps>(
               </svg>
             </div>
           )}
+          {!isBar && (
+            <span
+              className={sliderHead}
+              aria-hidden
+              ref={headRef}
+              style={{ [HEAD_PERCENT_VAR]: initialPct } as CSSProperties}
+            />
+          )}
           {isGrabbed && (
             <span className={valueFollower} aria-hidden ref={followerRef}>
               {currentValue}
@@ -592,9 +634,9 @@ export const Slider = forwardRef<HTMLInputElement, SliderProps>(
             disabled={disabled}
             required={required}
             onChange={handleChange}
-            onPointerDown={handleGrab}
-            onPointerUp={handleRelease}
-            onPointerCancel={handleRelease}
+            onPointerDown={handlePointerDown}
+            onPointerUp={handlePointerEnd}
+            onPointerCancel={handlePointerEnd}
             onKeyDown={handleKeyDown}
             onBlur={handleBlur}
             aria-label={label}

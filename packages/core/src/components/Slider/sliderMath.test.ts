@@ -19,6 +19,9 @@ import {
   WAKE_SMOOTHING,
   stepWakeSprings,
   wakeSpringsRested,
+  nextDisplayLock,
+  JUMP_PX,
+  CAUGHT_PX,
   type WakeSprings,
   LINE_BAR_HOVER,
   LINE_BAR_REST,
@@ -250,6 +253,56 @@ describe('wake 두 스프링 (WakeSlider.tsx:91-95)', () => {
     expect(at({ s: 200 })).toBe(false);
     // 10 단위/s * 2px = 20px/s는 세기가 FLAT(0.002) 아래라 물결이 없다.
     expect(at({ s: 10 })).toBe(true);
+  });
+});
+
+describe('보이는 위치 (값이 한 번에 바뀌어도 순간이동하지 않는다)', () => {
+  const lock = (p: Partial<Parameters<typeof nextDisplayLock>[0]> = {}) =>
+    nextDisplayLock({
+      locked: false,
+      dragging: true,
+      gapPx: 0,
+      jumpPx: 0,
+      ...p,
+    });
+
+  it('상수: 8px 넘게 한 번에 바뀌면 점프, 0.5px 안이면 따라잡음', () => {
+    expect(JUMP_PX).toBe(8);
+    expect(CAUGHT_PX).toBe(0.5);
+  });
+
+  it('끄는 중 목표를 따라잡았으면 따라붙는다(스프링 없이 그대로)', () => {
+    expect(lock({ gapPx: 0.49 })).toBe(true);
+    expect(lock({ gapPx: 0.5 })).toBe(false);
+  });
+
+  it('따라붙는 중이면 작은 변화는 계속 따라붙는다', () => {
+    expect(lock({ locked: true, gapPx: 30, jumpPx: JUMP_PX })).toBe(true);
+  });
+
+  it('8px 넘는 변화는 스프링이다: 따라붙던 중이어도 풀린다', () => {
+    expect(lock({ locked: true, jumpPx: JUMP_PX + 0.01 })).toBe(false);
+    expect(lock({ gapPx: 0, jumpPx: JUMP_PX + 0.01 })).toBe(false);
+  });
+
+  it('잡지 않은 변화(키보드, 값 prop)는 늘 스프링이다', () => {
+    expect(lock({ dragging: false, gapPx: 0 })).toBe(false);
+    expect(lock({ dragging: false, locked: true })).toBe(false);
+  });
+
+  it('목표가 200px 점프해도 넘치지 않고 0.3초 안에 0.5px 이내로 닿는다', () => {
+    let state: WakeSprings = { x: 0, v: 0, s: 0, ds: 0 };
+    let elapsed = 0;
+    for (; elapsed < 300; elapsed += 16) {
+      state = stepWakeSprings(state, 200, 0.016);
+      expect(state.x).toBeLessThanOrEqual(200);
+    }
+    expect(state.x).toBeGreaterThan(0);
+    expect(200 - state.x).toBeLessThan(0.5);
+    // 첫 프레임은 아직 멀다(순간이동이 아니다).
+    expect(
+      stepWakeSprings({ x: 0, v: 0, s: 0, ds: 0 }, 200, 0.016).x
+    ).toBeLessThan(20);
   });
 });
 

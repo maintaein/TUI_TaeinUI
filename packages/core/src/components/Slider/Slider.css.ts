@@ -164,65 +164,28 @@ export const slider = style({
   margin: 0,
 
   selectors: {
-    // Webkit thumb
+    // 기본 머리는 모든 변형에서 투명하다. 크기와 히트 영역은 그대로라 잡고 끌 수 있고,
+    // 보이는 머리는 sliderHead가 그린다(값이 한 번에 바뀌어도 스프링으로 따라간다).
     '&::-webkit-slider-thumb': {
       appearance: 'none',
       WebkitAppearance: 'none',
       width: '24px',
       height: '24px',
       borderRadius: '50%',
-      backgroundColor: themeContract.color.background.paper,
-      border: `2px solid ${themeContract.color.primary.main}`,
       cursor: 'pointer',
-      transition: `border-color ${themeContract.animation.duration.base} ${themeContract.animation.easing.settle}, box-shadow ${themeContract.animation.duration.base} ${themeContract.animation.easing.settle}, transform ${themeContract.animation.duration.base} ${themeContract.animation.easing.settle}`,
-      boxShadow: '0 1px 4px rgba(0, 0, 0, 0.15)',
       marginTop: '-9px',
+      opacity: 0,
     },
-    '&:active::-webkit-slider-thumb': {
-      borderColor: themeContract.color.primary.dark,
-      boxShadow: '0 1px 3px rgba(0, 0, 0, 0.2)',
-      // 호버와 같은 배율이어야 한다. 드래그 중엔 :hover와 :active가 동시에
-      // 매칭되므로, 여기서 더 작은 값을 쓰면 "잡고 있는 동안 썸이 줄어든다".
-      transform: `scale(${THUMB_HOVER_SCALE})`,
-    },
-    '&:focus-visible::-webkit-slider-thumb': {
-      ...focusRing(),
-    },
-    '&:disabled::-webkit-slider-thumb': {
-      backgroundColor: themeContract.color.background.paper,
-      borderColor: themeContract.color.text.disabled,
-      cursor: 'not-allowed',
-    },
-
-    // Firefox thumb
+    '&:disabled::-webkit-slider-thumb': { cursor: 'not-allowed' },
     '&::-moz-range-thumb': {
       width: '24px',
       height: '24px',
       borderRadius: '50%',
-      backgroundColor: themeContract.color.background.paper,
-      border: `2px solid ${themeContract.color.primary.main}`,
+      border: 'none',
       cursor: 'pointer',
-      transition: `border-color ${themeContract.animation.duration.base} ${themeContract.animation.easing.settle}, box-shadow ${themeContract.animation.duration.base} ${themeContract.animation.easing.settle}, transform ${themeContract.animation.duration.base} ${themeContract.animation.easing.settle}`,
-      boxShadow: '0 1px 4px rgba(0, 0, 0, 0.15)',
+      opacity: 0,
     },
-    '&:active::-moz-range-thumb': {
-      borderColor: themeContract.color.primary.dark,
-      boxShadow: '0 1px 3px rgba(0, 0, 0, 0.2)',
-      // webkit과 같은 이유로 호버와 같은 배율이다.
-      transform: `scale(${THUMB_HOVER_SCALE})`,
-    },
-    '&:focus-visible::-moz-range-thumb': {
-      ...focusRing(),
-    },
-    '&:disabled::-moz-range-thumb': {
-      backgroundColor: themeContract.color.background.paper,
-      borderColor: themeContract.color.text.disabled,
-      cursor: 'not-allowed',
-    },
-
-    // bar: 머리를 안 보이게만 한다. 크기와 히트 영역은 그대로라 잡고 끌 수 있다.
-    [`${variantStyles.bar} &::-webkit-slider-thumb`]: { opacity: 0 },
-    [`${variantStyles.bar} &::-moz-range-thumb`]: { opacity: 0 },
+    '&:disabled::-moz-range-thumb': { cursor: 'not-allowed' },
 
     // Tracks
     '&::-webkit-slider-runnable-track': {
@@ -245,33 +208,61 @@ export const slider = style({
       outline: 'none',
     },
   },
+});
+
+/** 그린 머리의 위치(트랙 %)를 실어 나르는 채널. 보이는 위치가 스프링으로 따라가며 JS가 쓴다. */
+export const HEAD_PERCENT_VAR = '--slider-head-percent';
+
+// 그린 머리(bar에는 없다). 네이티브 입력의 머리와 같은 24px 원이고, 입력의 머리는
+// 투명하게 잡기만 맡는다. 머리 중심은 (폭 - 머리 폭) 위를 움직인다.
+// 잡기·호버·포커스는 입력의 상태를 wrapper의 :has()로 읽는다.
+export const sliderHead = style({
+  position: 'absolute',
+  top: '50%',
+  left: `calc((100% - 24px) * var(${HEAD_PERCENT_VAR}, 0) / 100)`,
+  boxSizing: 'border-box',
+  width: '24px',
+  height: '24px',
+  marginTop: '-12px',
+  borderRadius: '50%',
+  backgroundColor: themeContract.color.background.paper,
+  border: `2px solid ${themeContract.color.primary.main}`,
+  boxShadow: '0 1px 4px rgba(0, 0, 0, 0.15)',
+  transition: `border-color ${themeContract.animation.duration.base} ${themeContract.animation.easing.settle}, box-shadow ${themeContract.animation.duration.base} ${themeContract.animation.easing.settle}, transform ${themeContract.animation.duration.base} ${themeContract.animation.easing.settle}`,
+  pointerEvents: 'none',
+  selectors: {
+    [`${sliderWrapper}:has(input:active) &`]: {
+      borderColor: themeContract.color.primary.dark,
+      boxShadow: '0 1px 3px rgba(0, 0, 0, 0.2)',
+      // 호버와 같은 배율이어야 한다. 드래그 중엔 :hover와 :active가 동시에
+      // 매칭되므로, 여기서 더 작은 값을 쓰면 "잡고 있는 동안 머리가 줄어든다".
+      transform: `scale(${THUMB_HOVER_SCALE})`,
+    },
+    [`${sliderWrapper}:has(input:focus-visible) &`]: { ...focusRing() },
+    [`${sliderWrapper}:has(input:disabled) &`]: {
+      borderColor: themeContract.color.text.disabled,
+      opacity: 0.5,
+    },
+  },
 
   '@media': {
-    // 호버: 머리 색·그림자. 크기는 아래 GROW 게이트가 맡는다. 잡는 동안(:active)은
-    // 특이도가 더 높은 이 규칙이 :active 규칙을 덮지 않도록 :not(:active)로 뺀다.
+    // 호버: 머리 그림자. 크기는 아래 GROW 게이트가 맡는다. 잡는 동안(:active)은 이 규칙이
+    // :active 규칙을 덮지 않도록 :not(:active)로 뺀다.
     [HOVER_GATE]: {
       selectors: {
-        [`${sliderWrapper}:has(input:not(:disabled)):hover &:not(:active)::-webkit-slider-thumb`]:
-          { boxShadow: '0 2px 6px rgba(0, 0, 0, 0.2)' },
-        [`${sliderWrapper}:has(input:not(:disabled)):hover &:not(:active)::-moz-range-thumb`]:
-          { boxShadow: '0 2px 6px rgba(0, 0, 0, 0.2)' },
+        [`${sliderWrapper}:has(input:not(:disabled):not(:active)):hover &`]: {
+          boxShadow: '0 2px 6px rgba(0, 0, 0, 0.2)',
+        },
       },
     },
     // 호버: 머리가 부푼다. 들어갈 때 slow spring, 나올 때는 기본 전이(base settle).
     [HOVER_GROW_GATE]: {
       selectors: {
-        [`${sliderWrapper}:has(input:not(:disabled)):hover &:not(:active)::-webkit-slider-thumb`]:
-          {
-            transform: `scale(${THUMB_HOVER_SCALE})`,
-            // 크기만 slow spring, 색·그림자는 기본과 같다.
-            transition: `border-color ${themeContract.animation.duration.base} ${themeContract.animation.easing.settle}, box-shadow ${themeContract.animation.duration.base} ${themeContract.animation.easing.settle}, transform ${themeContract.animation.duration.slow} ${themeContract.animation.easing.spring}`,
-          },
-        [`${sliderWrapper}:has(input:not(:disabled)):hover &:not(:active)::-moz-range-thumb`]:
-          {
-            transform: `scale(${THUMB_HOVER_SCALE})`,
-            // 크기만 slow spring, 색·그림자는 기본과 같다.
-            transition: `border-color ${themeContract.animation.duration.base} ${themeContract.animation.easing.settle}, box-shadow ${themeContract.animation.duration.base} ${themeContract.animation.easing.settle}, transform ${themeContract.animation.duration.slow} ${themeContract.animation.easing.spring}`,
-          },
+        [`${sliderWrapper}:has(input:not(:disabled):not(:active)):hover &`]: {
+          transform: `scale(${THUMB_HOVER_SCALE})`,
+          // 크기만 slow spring, 색·그림자는 기본과 같다.
+          transition: `border-color ${themeContract.animation.duration.base} ${themeContract.animation.easing.settle}, box-shadow ${themeContract.animation.duration.base} ${themeContract.animation.easing.settle}, transform ${themeContract.animation.duration.slow} ${themeContract.animation.easing.spring}`,
+        },
       },
     },
   },
