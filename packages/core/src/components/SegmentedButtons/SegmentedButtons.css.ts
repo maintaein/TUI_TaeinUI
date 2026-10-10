@@ -2,10 +2,10 @@ import { style, styleVariants } from '@vanilla-extract/css';
 import { themeContract } from '../../tokens/theme.css';
 import { focusRing } from '../../tokens/focusRing.css';
 
-// 표시(파란 알약)가 트랙 테두리 안쪽에서 떨어진 간격. 위·아래·왼쪽 끝·오른쪽 끝에
+// 표시(파란 알약)가 트랙 바깥 끝에서 떨어진 간격. 위·아래·왼쪽 끝·오른쪽 끝에
 // 모두 이 값 하나를 써서 표시가 트랙의 축소판으로 보인다. 위아래는 표시의 top·height가,
 // 좌우는 트랙 padding과 표시 안 라벨 줄 padding이 쓴다.
-export const INDICATOR_INSET_PX = 2;
+export const INDICATOR_INSET_PX = 1;
 
 // 표시의 모서리 반경: 트랙 반경에서 inset을 뺀다. 트랙과 같은 중심의 곡선이다.
 // clip-path의 round(SegmentedButtons.tsx)가 같은 값을 쓴다.
@@ -15,8 +15,9 @@ export const INDICATOR_RADIUS = `calc(${themeContract.borderRadius.lg} - ${INDIC
 export const container = style({
   display: 'inline-flex',
   alignItems: 'center',
-  backgroundColor: themeContract.color.background.paper,
-  boxShadow: `inset 0 0 0 1px ${themeContract.color.border.strong}`,
+  // 테두리 없이 회색 면 하나로 트랙을 그린다. 흰 페이지 위에서 면이 보이려면
+  // paper(1.04:1)로는 모자라 gray[200]을 쓴다(표시와 3:1, 비선택 글자 gray[700]과 4.5:1).
+  backgroundColor: themeContract.palette.gray[200],
   borderRadius: themeContract.borderRadius.lg,
   padding: `1px ${INDICATOR_INSET_PX}px`,
   gap: '4px',
@@ -96,7 +97,7 @@ export const button = style({
   padding: '0 16px',
   border: 'none',
   backgroundColor: 'transparent',
-  color: themeContract.color.text.secondary,
+  color: themeContract.palette.gray[700],
   fontSize: themeContract.font.size.sm,
   fontWeight: themeContract.font.weight.medium,
   fontFamily: themeContract.font.family.sans,

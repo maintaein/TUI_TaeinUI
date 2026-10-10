@@ -4,6 +4,8 @@ import userEvent from '@testing-library/user-event';
 import { SegmentedButtons } from './SegmentedButtons';
 import { gsapDuration, gsapEasing } from '../../tokens/gsapEasing';
 import { themeContract } from '../../tokens/theme.css';
+import { themeTokens } from '../../tokens/contract';
+import { contrastRatio, AA_TEXT, AA_UI } from '../../docs/llmsSections';
 
 describe('SegmentedButtons', () => {
   const options = [
@@ -912,12 +914,12 @@ describe('SegmentedButtons', () => {
       expect(indicator.style.clipPath).toMatch(/round calc\(var\(--/);
     });
 
-    it('쉬는 자리의 둥근 모서리는 트랙 반경(lg)에서 inset(2px)을 뺀 같은 중심의 곡선이다', () => {
+    it('쉬는 자리의 둥근 모서리는 트랙 반경(lg)에서 inset(1px)을 뺀 같은 중심의 곡선이다', () => {
       installLabelRects(rects);
       const { indicator } = renderAt('option2');
 
       expect(indicator.style.clipPath).toContain(
-        `round calc(${themeContract.borderRadius.lg} - 2px)`
+        `round calc(${themeContract.borderRadius.lg} - 1px)`
       );
     });
 
@@ -1317,17 +1319,47 @@ describe('SegmentedButtons 생성 CSS (M5 task-19 수정 1)', () => {
     expect(row?.getPropertyValue('width')).toBe('100%');
   });
 
-  it('표시는 트랙의 축소판이다: 트랙 좌우 padding, 표시 위 간격, 표시 안 라벨 줄 가로 padding이 같은 값(2px)이다', () => {
+  it('표시는 트랙의 축소판이다: 트랙 좌우 padding, 표시 위 간격, 표시 안 라벨 줄 가로 padding이 같은 값(1px)이다', () => {
     const box = own('container')?.style;
     const shadow = own('indicatorShadow')?.style;
     const row = own('indicatorLabels')?.style;
 
-    // 위아래 padding 1px은 그대로라 라벨 높이 85%가 바뀌지 않는다.
-    expect(box?.getPropertyValue('padding')).toBe('1px 2px');
-    expect(shadow?.getPropertyValue('top')).toBe('2px');
-    expect(shadow?.getPropertyValue('height')).toBe('calc(100% - 4px)');
-    expect(row?.getPropertyValue('padding')).toMatch(/^0(px)? 2px$/);
-    expect(row?.getPropertyValue('top')).toBe('-2px');
-    expect(row?.getPropertyValue('height')).toBe('calc(100% + 4px)');
+    // 테두리가 없어 트랙 바깥 끝이 경계다. 위아래 padding도 1px라 라벨 높이 85%가 바뀌지 않는다.
+    expect(box?.getPropertyValue('padding')).toMatch(/^1px( 1px)?$/);
+    expect(shadow?.getPropertyValue('top')).toBe('1px');
+    expect(shadow?.getPropertyValue('height')).toBe('calc(100% - 2px)');
+    expect(row?.getPropertyValue('padding')).toMatch(/^0(px)? 1px$/);
+    expect(row?.getPropertyValue('top')).toBe('-1px');
+    expect(row?.getPropertyValue('height')).toBe('calc(100% + 2px)');
+  });
+  it('트랙은 테두리 그림자 없이 회색 200 면이다', () => {
+    const box = own('container')?.style;
+
+    expect(box?.getPropertyValue('box-shadow')).toBe('');
+    expect(box?.getPropertyValue('background-color')).toBe(
+      themeContract.palette.gray[200]
+    );
+  });
+
+  it('비선택 라벨의 기본 글자색은 회색 700이다', () => {
+    expect(own('button')?.style.getPropertyValue('color')).toBe(
+      themeContract.palette.gray[700]
+    );
+  });
+});
+
+describe('SegmentedButtons 트랙 대비 (M5 task-19 수정 4)', () => {
+  const { palette, color } = themeTokens;
+
+  it('표시(primary.main)는 트랙(gray 200) 위에서 UI 요소 대비(3:1)를 만족한다', () => {
+    expect(
+      contrastRatio(color.primary.main, palette.gray[200])
+    ).toBeGreaterThanOrEqual(AA_UI);
+  });
+
+  it('비선택 글자(gray 700)는 트랙(gray 200) 위에서 본문 대비(4.5:1)를 만족한다', () => {
+    expect(
+      contrastRatio(palette.gray[700], palette.gray[200])
+    ).toBeGreaterThanOrEqual(AA_TEXT);
   });
 });
