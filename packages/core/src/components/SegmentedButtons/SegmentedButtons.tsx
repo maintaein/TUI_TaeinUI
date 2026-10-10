@@ -20,20 +20,20 @@ import {
   activeIndicator,
   indicatorShadow,
   indicatorLabels,
+  INDICATOR_RADIUS,
 } from './SegmentedButtons.css';
 import { gateMotion, settleMotion } from '../../hooks/gateMotion';
 import { useReducedMotion } from '../../hooks/useReducedMotion';
 import { gsapEasing, gsapDuration } from '../../tokens/gsapEasing';
-import { themeContract } from '../../tokens/theme.css';
 import { rubberStages, type Slot } from './segmentedMotion';
 
 /**
  * 표시의 두 가장자리로 `clip-path`를 만든다. 표시 층은 트랙 전체 폭이라 왼쪽 inset은
- * L, 오른쪽 inset은 `100% - R`이다(둘 다 트랙 왼쪽 기준 px). 둥근 끝은 반경 토큰이
- * 맡아 늘어나도 납작해지지 않는다.
+ * L, 오른쪽 inset은 `100% - R`이다(둘 다 트랙 왼쪽 기준 px). 둥근 끝은 트랙과 같은 중심의
+ * 반경(INDICATOR_RADIUS)이 맡아 늘어나도 납작해지지 않는다.
  */
 const clipPathOf = ({ l, r }: Slot): string =>
-  `inset(0 calc(100% - ${r}px) 0 ${l}px round ${themeContract.borderRadius.md})`;
+  `inset(0 calc(100% - ${r}px) 0 ${l}px round ${INDICATOR_RADIUS})`;
 
 /**
  * 인디케이터의 진행 중 타임라인을 테스트가 읽을 수 있는 통로. 공개 prop/state로
