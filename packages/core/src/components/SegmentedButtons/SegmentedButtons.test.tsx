@@ -1346,6 +1346,17 @@ describe('SegmentedButtons 생성 CSS (M5 task-19 수정 1)', () => {
       themeContract.palette.gray[700]
     );
   });
+
+  it('비활성 아닌 비선택 칸에 호버하면 글자색이 text.primary로 한 단계 진해진다', () => {
+    const hover = withSelector(
+      /^\.SegmentedButtons_button__\w+:hover:not\(\.disabled\):not\(\.selected\)$/
+    );
+
+    expect(hover).toHaveLength(1);
+    expect(hover[0].style.getPropertyValue('color')).toBe(
+      themeContract.color.text.primary
+    );
+  });
 });
 
 describe('SegmentedButtons 트랙 대비 (M5 task-19 수정 4)', () => {

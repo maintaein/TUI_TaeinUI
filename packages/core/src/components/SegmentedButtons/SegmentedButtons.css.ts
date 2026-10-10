@@ -5,7 +5,7 @@ import { focusRing } from '../../tokens/focusRing.css';
 // 표시(파란 알약)가 트랙 바깥 끝에서 떨어진 간격. 위·아래·왼쪽 끝·오른쪽 끝에
 // 모두 이 값 하나를 써서 표시가 트랙의 축소판으로 보인다. 위아래는 표시의 top·height가,
 // 좌우는 트랙 padding과 표시 안 라벨 줄 padding이 쓴다.
-export const INDICATOR_INSET_PX = 1;
+const INDICATOR_INSET_PX = 1;
 
 // 표시의 모서리 반경: 트랙 반경에서 inset을 뺀다. 트랙과 같은 중심의 곡선이다.
 // clip-path의 round(SegmentedButtons.tsx)가 같은 값을 쓴다.
