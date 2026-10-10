@@ -59,6 +59,7 @@ import {
   WAKE_FLAT,
   WAKE_MAX_FRAME_S,
   nextDisplayLock,
+  stepWidthPx,
   stepWakeSprings,
   wakeSpringsRested,
   type WakeSprings,
@@ -207,6 +208,8 @@ export const Slider = forwardRef<HTMLInputElement, SliderProps>(
     const headRef = useRef<HTMLSpanElement>(null);
     // 포인터로 끄는 중인가. 키보드로 잡은 것(isGrabbed)과 구분한다: 키보드 변화는 늘 스프링이다.
     const draggingRef = useRef(false);
+    // 보이는 위치가 목표를 그대로 따라붙는 중인가(nextDisplayLock). 누를 때마다 풀린다.
+    const lockedRef = useRef(false);
     // 보이는 위치(트랙 %). 그린 머리, 채움, 값 따라붙기가 모두 이것을 따른다. 값(목표)을
     // 스프링으로 좇고, 마운트에서는 값 자리다. 렌더는 처음 값만 쓰고(`initialPct`) 이후는
     // 프레임과 `paintDisplay`가 DOM에 쓴다.
@@ -241,6 +244,7 @@ export const Slider = forwardRef<HTMLInputElement, SliderProps>(
 
     const handlePointerDown = () => {
       if (!disabled) draggingRef.current = true;
+      lockedRef.current = false;
       handleGrab();
     };
 
@@ -419,22 +423,23 @@ export const Slider = forwardRef<HTMLInputElement, SliderProps>(
       let target = head.pct;
       let springs: WakeSprings = { x: head.pct, v: 0, s: 0, ds: 0 };
       // 보이는 위치도 같은 스프링으로 값을 좇는다. 물결 머리와 따로 둔다: 끄는 중에는
-      // 따라잡은 뒤 목표를 그대로 쓰는데(nextDisplayLock), 물결 머리는 그 지연에서 속도를
+      // 한 단계가 좁으면 목표를 그대로 쓰는데(nextDisplayLock), 물결 머리는 그 지연에서 속도를
       // 얻으므로 같이 쓰면 끄는 중 물결이 사라진다.
       let shownTarget = target;
       let shown: WakeSprings = { x: displayRef.current, v: 0, s: 0, ds: 0 };
-      let locked = false;
+      const stepOf = () => stepWidthPx(step, min, max, widthRef.current);
       const setHead = (percent: number) => {
         target = percent;
         const pxPerPct = widthRef.current / 100;
-        locked = nextDisplayLock({
-          locked,
+        lockedRef.current = nextDisplayLock({
+          locked: lockedRef.current,
           dragging: draggingRef.current,
+          stepPx: stepOf(),
           gapPx: Math.abs(shownTarget - shown.x) * pxPerPct,
           jumpPx: Math.abs(percent - shownTarget) * pxPerPct,
         });
         shownTarget = percent;
-        if (!locked) return;
+        if (!lockedRef.current) return;
         shown = { x: percent, v: 0, s: 0, ds: 0 };
         displayRef.current = percent;
         paintDisplayRef.current();
@@ -453,13 +458,14 @@ export const Slider = forwardRef<HTMLInputElement, SliderProps>(
 
         let linePending = false;
         if (shownMoving) {
-          locked = nextDisplayLock({
-            locked,
+          lockedRef.current = nextDisplayLock({
+            locked: lockedRef.current,
             dragging: draggingRef.current,
+            stepPx: stepOf(),
             gapPx: Math.abs(shownTarget - shown.x) * pxPerPct,
             jumpPx: 0,
           });
-          shown = locked
+          shown = lockedRef.current
             ? { x: shownTarget, v: 0, s: 0, ds: 0 }
             : stepWakeSprings(shown, shownTarget, dt);
           if (wakeSpringsRested(shown, shownTarget, pxPerPct)) {
@@ -513,7 +519,7 @@ export const Slider = forwardRef<HTMLInputElement, SliderProps>(
           paintLineRef.current();
         }
       };
-    }, [isWake, reduced, min, max, barCount, barGap]);
+    }, [isWake, reduced, min, max, step, barCount, barGap]);
 
     useEffect(() => {
       headSetterRef.current?.(valueToPercent(currentValue, min, max));

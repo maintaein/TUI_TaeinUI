@@ -20,8 +20,9 @@ import {
   stepWakeSprings,
   wakeSpringsRested,
   nextDisplayLock,
-  JUMP_PX,
+  SNAP_PX,
   CAUGHT_PX,
+  stepWidthPx,
   type WakeSprings,
   LINE_BAR_HOVER,
   LINE_BAR_REST,
@@ -261,33 +262,53 @@ describe('보이는 위치 (값이 한 번에 바뀌어도 순간이동하지 �
     nextDisplayLock({
       locked: false,
       dragging: true,
+      stepPx: 7.8,
       gapPx: 0,
       jumpPx: 0,
       ...p,
     });
 
-  it('상수: 8px 넘게 한 번에 바뀌면 점프, 0.5px 안이면 따라잡음', () => {
-    expect(JUMP_PX).toBe(8);
+  it('상수: 한 단계 12px 이하면 그대로, 0.5px 안이면 따라잡음', () => {
+    expect(SNAP_PX).toBe(12);
     expect(CAUGHT_PX).toBe(0.5);
   });
 
-  it('끄는 중 목표를 따라잡았으면 따라붙는다(스프링 없이 그대로)', () => {
-    expect(lock({ gapPx: 0.49 })).toBe(true);
-    expect(lock({ gapPx: 0.5 })).toBe(false);
+  it('stepWidthPx: 한 단계가 머리 중심이 움직이는 길이(트랙 폭 - 머리 24)에서 차지하는 몫이다', () => {
+    // 폭 806px, step 1 / 범위 100 -> 782 * 0.01 = 7.82px
+    expect(stepWidthPx(1, 0, 100, 806)).toBeCloseTo(7.82, 6);
+    expect(stepWidthPx(50, 0, 100, 806)).toBeCloseTo(391, 6);
+    // 200px 트랙, 범위 -50~50
+    expect(stepWidthPx(5, -50, 50, 200)).toBeCloseTo(8.8, 6);
+    // 범위가 없으면 0(0으로 나누지 않는다)
+    expect(stepWidthPx(1, 10, 10, 200)).toBe(0);
   });
 
-  it('따라붙는 중이면 작은 변화는 계속 따라붙는다', () => {
-    expect(lock({ locked: true, gapPx: 30, jumpPx: JUMP_PX })).toBe(true);
+  it('끄는 중 한 단계가 12px 이하(7.8)면 머리가 목표를 그대로 따른다: 한 번에 두 단계가 바뀌어도 같다', () => {
+    expect(lock({ stepPx: 7.8, locked: true, jumpPx: 15.6, gapPx: 30 })).toBe(
+      true
+    );
+    expect(lock({ stepPx: SNAP_PX })).toBe(true);
   });
 
-  it('8px 넘는 변화는 스프링이다: 따라붙던 중이어도 풀린다', () => {
-    expect(lock({ locked: true, jumpPx: JUMP_PX + 0.01 })).toBe(false);
-    expect(lock({ gapPx: 0, jumpPx: JUMP_PX + 0.01 })).toBe(false);
+  it('끄는 중 한 단계가 12px을 넘으면(step 50, 403px) 늘 스프링이다: 잠겨 있었어도 풀린다', () => {
+    expect(lock({ stepPx: 403 })).toBe(false);
+    expect(lock({ stepPx: SNAP_PX + 0.01, locked: true })).toBe(false);
   });
 
   it('잡지 않은 변화(키보드, 값 prop)는 늘 스프링이다', () => {
     expect(lock({ dragging: false, gapPx: 0 })).toBe(false);
     expect(lock({ dragging: false, locked: true })).toBe(false);
+  });
+
+  it('누른 순간의 첫 점프(트랙 클릭)는 스프링이다: 잠기지 않고, 따라잡은 뒤 잠긴다', () => {
+    expect(lock({ jumpPx: SNAP_PX + 0.01 })).toBe(false);
+    expect(lock({ jumpPx: 0, gapPx: 281 })).toBe(false);
+    expect(lock({ jumpPx: 0, gapPx: 0.49 })).toBe(true);
+    expect(lock({ jumpPx: 0, gapPx: 0.5 })).toBe(false);
+  });
+
+  it('잠긴 뒤에는 빠른 끌기로 크게 바뀌어도 목표를 그대로 따른다', () => {
+    expect(lock({ locked: true, jumpPx: 100, gapPx: 50 })).toBe(true);
   });
 
   it('목표가 200px 점프해도 넘치지 않고 0.3초 안에 0.5px 이내로 닿는다', () => {

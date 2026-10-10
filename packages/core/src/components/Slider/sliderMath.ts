@@ -120,27 +120,44 @@ export function wakeSpringsRested(
 // 보이는 위치(display). 값이 한 번에 바뀌어도 머리와 채움이 순간이동하지 않도록 값의
 // 위치를 머리 스프링(w0 = WAKE_SETTLE / WAKE_GLIDE)과 같은 임계 감쇠 스프링으로 따라간다.
 
-/** 끄는 중 이 거리(px)보다 크게 한 번에 바뀐 값은 따라붙지 않고 스프링으로 간다(큰 step 스냅, 마크). */
-export const JUMP_PX = 8;
+/**
+ * 끄는 중 한 단계 폭(px)이 이 값 이하면 머리가 커서(목표)를 그대로 따른다. 이보다 넓은
+ * 단계(큰 step 스냅, 마크)는 늘 스프링으로 간다. 한 번에 바뀐 양이 아니라 단계 폭으로
+ * 가르는 이유: 빠르게 끌어 값이 두세 단계씩 바뀌어도 보통 끌기는 늘 같은 규칙이다.
+ */
+export const SNAP_PX = 12;
 
-/** 끄는 중 보이는 위치가 목표와 이 거리(px) 안이면 따라잡았다고 본다. */
+/** 보이는 위치가 목표와 이 거리(px) 안이면 따라잡았다고 본다. */
 export const CAUGHT_PX = 0.5;
+
+/** 한 단계 폭(px): 머리 중심이 움직이는 길이(트랙 폭 - 머리 지름)에서 `step`이 차지하는 몫. */
+export function stepWidthPx(
+  step: number,
+  min: number,
+  max: number,
+  trackPx: number
+): number {
+  return max > min ? (step / (max - min)) * (trackPx - THUMB_PX) : 0;
+}
 
 /**
  * 보이는 위치가 목표를 스프링 없이 그대로 따라붙는 중인가(잠금). 스프링만 쓰면 끄는 동안
  * 머리가 커서보다 `2 / w0 * 속도`만큼 뒤처진다(300px/s에서 약 20px). 그래서 포인터로
- * 끄는 동안 목표를 따라잡았으면 이후는 목표를 그대로 쓴다. 잡지 않은 변화(키보드, 값
- * prop)는 항상 스프링이고, 한 번에 `JUMP_PX`보다 크게 바뀌면 다시 스프링이다.
- * `gapPx`는 바뀌기 전 목표와 보이는 위치의 거리, `jumpPx`는 이번 변화의 크기다.
+ * 끄는 동안 한 단계가 `SNAP_PX` 이하면 목표를 그대로 쓴다. 잡지 않은 변화(키보드, 값
+ * prop)와 넓은 단계는 늘 스프링이다. 누른 순간의 첫 점프(트랙 클릭)도 스프링이라, 한
+ * 번에 `SNAP_PX`보다 크게 바뀌면 잠기지 않고, 목표를 따라잡은(`CAUGHT_PX`) 뒤 잠긴다.
+ * 잠긴 뒤에는 변화가 커도 목표를 그대로 따른다(빠른 끌기). `gapPx`는 바뀌기 전 목표와
+ * 보이는 위치의 거리, `jumpPx`는 이번 변화의 크기다.
  */
 export function nextDisplayLock(p: {
   locked: boolean;
   dragging: boolean;
+  stepPx: number;
   gapPx: number;
   jumpPx: number;
 }): boolean {
-  if (!p.dragging || p.jumpPx > JUMP_PX) return false;
-  return p.locked || p.gapPx < CAUGHT_PX;
+  if (!p.dragging || p.stepPx > SNAP_PX) return false;
+  return p.locked || (p.gapPx < CAUGHT_PX && p.jumpPx <= SNAP_PX);
 }
 
 /**

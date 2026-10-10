@@ -924,12 +924,16 @@ describe('Slider', () => {
     });
 
     type DisplayVariant = 'default' | 'bar' | 'wake';
-    const jsx = (value: number, variant: DisplayVariant = 'default') => (
+    const jsx = (
+      value: number,
+      variant: DisplayVariant = 'default',
+      step = 0.001
+    ) => (
       <Slider
         label="슬라이더"
         variant={variant}
         value={value}
-        step={0.001}
+        step={step}
         onChange={() => {}}
       />
     );
@@ -1022,17 +1026,54 @@ describe('Slider', () => {
       expect(headAt(container)).toBeCloseTo(63, 6);
     });
 
-    it('끄는 중이라도 8px(4%)를 넘게 한 번에 바뀌면(큰 step 스냅, 마크) 스프링이다', () => {
+    it('끄는 중 한 번에 크게 바뀌어도 한 단계가 좁으면 잠긴 뒤에는 그대로 따라간다(빠른 끌기)', () => {
       const { container, rerender } = render(jsx(50));
       fireEvent.pointerDown(screen.getByRole('slider'));
       rerender(jsx(51.5));
       expect(headAt(container)).toBeCloseTo(51.5, 6);
 
       rerender(jsx(80));
-      expect(headAt(container)).toBeCloseTo(51.5, 6);
+      expect(headAt(container)).toBeCloseTo(80, 6);
+      expect(fillAt(container)).toBeCloseTo(80, 6);
+    });
+
+    it('끄는 중이라도 한 단계가 12px을 넘으면(step 50, 200px 트랙에서 88px) 늘 스프링이다', () => {
+      const { container, rerender } = render(jsx(0, 'default', 50));
+      fireEvent.pointerDown(screen.getByRole('slider'));
+      rerender(jsx(50, 'default', 50));
+      expect(headAt(container)).toBe(0);
       frames(container, FRAME_MS);
-      expect(headAt(container)).toBeGreaterThan(51.5);
-      expect(headAt(container)).toBeLessThan(65);
+      expect(headAt(container)).toBeGreaterThan(0);
+      expect(headAt(container)).toBeLessThan(50);
+
+      // 따라잡은 뒤에도 스프링이다.
+      frames(container, 1000);
+      expect(headAt(container)).toBeCloseTo(50, 1);
+      rerender(jsx(100, 'default', 50));
+      expect(headAt(container)).toBeCloseTo(50, 1);
+    });
+
+    it('누른 순간의 첫 점프(트랙 클릭)는 한 단계가 좁아도 스프링이다', () => {
+      const { container, rerender } = render(jsx(10));
+      fireEvent.pointerDown(screen.getByRole('slider'));
+      rerender(jsx(90));
+
+      expect(headAt(container)).toBe(10);
+      frames(container, FRAME_MS);
+      expect(headAt(container)).toBeGreaterThan(10);
+      expect(headAt(container)).toBeLessThan(40);
+    });
+
+    it('놓았다 다시 누르면 앞의 잠금이 남지 않는다: 두 번째 트랙 클릭도 스프링이다', () => {
+      const { container, rerender } = render(jsx(50));
+      const slider = screen.getByRole('slider');
+      fireEvent.pointerDown(slider);
+      rerender(jsx(51.5));
+      fireEvent.pointerUp(slider);
+
+      fireEvent.pointerDown(slider);
+      rerender(jsx(95));
+      expect(headAt(container)).toBeCloseTo(51.5, 6);
     });
 
     it('잡지 않은 변화는 작아도 스프링이다: 키보드, 놓은 뒤', () => {
