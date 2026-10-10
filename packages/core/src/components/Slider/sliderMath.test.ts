@@ -13,6 +13,13 @@ import {
   WAKE_MIN_REACH_PX,
   WAKE_REACH_PX,
   WAKE_REST_SCALE,
+  WAKE_SUBSTEP_S,
+  WAKE_SETTLE,
+  WAKE_GLIDE,
+  WAKE_SMOOTHING,
+  stepWakeSprings,
+  wakeSpringsRested,
+  type WakeSprings,
   LINE_BAR_HOVER,
   LINE_BAR_REST,
   LINE_HOVER,
@@ -49,19 +56,24 @@ describe('wakeBarCount (트랙 폭 -> 막대 개수)', () => {
 });
 
 describe('wake 물결 (WakeSlider.tsx:104-120과 같은 식)', () => {
-  it('세기는 속도(px/s) 절댓값의 smoothstep이고 150에서 1로 포화한다', () => {
-    expect(WAKE_FULL_SPEED_PX).toBe(150);
+  it('세기는 속도(px/s) 절댓값의 smoothstep이고 960에서 1로 포화한다', () => {
+    expect(WAKE_FULL_SPEED_PX).toBe(960);
     expect(waveAmp(0)).toBe(0);
-    expect(waveAmp(75)).toBeCloseTo(0.5, 10);
-    expect(waveAmp(150)).toBe(1);
-    expect(waveAmp(-150)).toBe(1);
-    expect(waveAmp(1000)).toBe(1);
-    expect(waveAmp(-75)).toBeCloseTo(0.5, 10);
+    expect(waveAmp(480)).toBeCloseTo(0.5, 10);
+    expect(waveAmp(960)).toBe(1);
+    expect(waveAmp(-960)).toBe(1);
+    expect(waveAmp(5000)).toBe(1);
+    expect(waveAmp(-480)).toBeCloseTo(0.5, 10);
   });
 
-  it('129px 트랙을 120%/s(155px/s)로 끌던 속도 근처에서 들림이 0.8을 넘는다', () => {
-    expect(waveAmp(129 * 1.2)).toBeGreaterThan(0.8);
-    expect(waveAmp(-129 * 1.2)).toBeGreaterThan(0.8);
+  it('약하게 끌면 약하고 세게 끌면 최대다: 300px/s는 0.5 미만, 960px/s 이상은 1', () => {
+    expect(waveAmp(300)).toBeLessThan(0.5);
+    expect(waveAmp(300)).toBeGreaterThan(0.1);
+    expect(waveAmp(-300)).toBeLessThan(0.5);
+    expect(waveAmp(960)).toBe(1);
+    expect(waveAmp(1500)).toBe(1);
+    // 옛 기준(150)에서는 150px/s가 이미 최대였다.
+    expect(waveAmp(150)).toBeLessThan(0.1);
   });
 
   it('아주 느린 속도는 0으로 잘려 막대가 쉬는 높이에 딱 맞는다', () => {
@@ -126,6 +138,118 @@ describe('wake 물결 (WakeSlider.tsx:104-120과 같은 식)', () => {
     expect(waveScale(0)).toBe(WAKE_REST_SCALE);
     expect(waveScale(1)).toBe(1);
     expect(waveScale(0.5)).toBeCloseTo(0.625, 12);
+  });
+});
+
+describe('wake 두 스프링 (WakeSlider.tsx:91-95)', () => {
+  const REST: WakeSprings = { x: 0, v: 0, s: 0, ds: 0 };
+
+  /** 목표를 100으로 계단 입력하고 frame초 간격으로 total초 동안 돌린 궤적. */
+  const run = (frame: number, total: number): WakeSprings[] => {
+    const out: WakeSprings[] = [];
+    let state = REST;
+    for (let t = 0; t < total - 1e-9; t += frame) {
+      state = stepWakeSprings(state, 100, frame);
+      out.push(state);
+    }
+    return out;
+  };
+
+  it('상수는 원본 값이다: SETTLE 9.23, glide 0.3, smoothing 100', () => {
+    expect(WAKE_SETTLE).toBe(9.23);
+    expect(WAKE_GLIDE).toBe(0.3);
+    expect(WAKE_SMOOTHING).toBe(100);
+  });
+
+  it('머리는 임계 감쇠라 목표를 넘지 않고 줄곧 다가가 정착한다', () => {
+    for (const frame of [0.001, 0.016, 0.064]) {
+      const path = run(frame, 3);
+      let prev = 0;
+      for (const { x } of path) {
+        expect(x).toBeLessThanOrEqual(100 + 1e-9);
+        expect(x).toBeGreaterThanOrEqual(prev - 1e-9);
+        prev = x;
+      }
+      expect(path[path.length - 1].x).toBeCloseTo(100, 3);
+    }
+  });
+
+  it('걸러진 속도는 과감쇠라 머리 속도를 넘지 않고 음수로 흔들리지도 않는다', () => {
+    const path = run(0.016, 3);
+    const peakV = Math.max(...path.map(({ v }) => v));
+    for (const { s } of path) {
+      expect(s).toBeLessThanOrEqual(peakV + 1e-9);
+      expect(s).toBeGreaterThanOrEqual(-1e-9);
+    }
+    // 걸러진 속도는 머리 속도보다 늦게 정점에 닿는다.
+    const peakAt = (key: 'v' | 's') =>
+      path.findIndex(
+        (state) => state[key] === Math.max(...path.map((p) => p[key]))
+      );
+    expect(peakAt('s')).toBeGreaterThan(peakAt('v'));
+  });
+
+  it('계단 입력에 걸러진 속도가 0 기울기로 출발한다: 시간에 대해 3제곱으로 자란다', () => {
+    const at = (ms: number): WakeSprings => {
+      let state = REST;
+      for (let i = 0; i < ms; i++) state = stepWakeSprings(state, 100, 0.001);
+      return state;
+    };
+    const s5 = at(5).s;
+    const s10 = at(10).s;
+
+    expect(s5).toBeGreaterThan(0);
+    // 기울기가 0에서 시작하면 두 배 시간에 8배(3제곱), 처음부터 기울기가 있으면 2배다.
+    expect(s10 / s5).toBeGreaterThan(5);
+    // 머리 속도는 같은 구간에서 선형으로 자란다(2배 근처).
+    expect(at(10).v / at(5).v).toBeLessThan(2.2);
+    // 처음 1ms에 걸러진 속도는 머리 속도의 1000분의 1도 안 된다.
+    expect(at(1).s).toBeLessThan(at(1).v / 1000);
+  });
+
+  it('프레임 간격이 커도(200ms, 1s) 발산하지 않고 넘치지도 않는다', () => {
+    for (const frame of [0.2, 1]) {
+      const path = run(frame, 10);
+      for (const { x, v, s } of path) {
+        expect(
+          Number.isFinite(x) && Number.isFinite(v) && Number.isFinite(s)
+        ).toBe(true);
+        expect(x).toBeLessThanOrEqual(100 + 1e-9);
+        expect(s).toBeGreaterThanOrEqual(-1e-9);
+        expect(s).toBeLessThan(1000);
+      }
+      expect(path[path.length - 1].x).toBeCloseTo(100, 3);
+    }
+  });
+
+  it('하위 단계는 1ms다 (프레임이 이보다 크면 쪼개 적분한다)', () => {
+    expect(WAKE_SUBSTEP_S).toBe(0.001);
+    // 한 번에 200ms를 줘도 쪼개 돌린 것과 같다(같은 하위 단계 크기).
+    const once = stepWakeSprings(REST, 100, 0.2);
+    let split = REST;
+    for (let i = 0; i < 200; i++) split = stepWakeSprings(split, 100, 0.001);
+    expect(once.x).toBeCloseTo(split.x, 8);
+    expect(once.s).toBeCloseTo(split.s, 8);
+  });
+
+  it('선형이다: 거리를 두 배로 하면 속도도 두 배라 px/s로 읽어도 폭과 무관하다', () => {
+    const a = stepWakeSprings(REST, 50, 0.08);
+    const b = stepWakeSprings(REST, 100, 0.08);
+    expect(b.s).toBeCloseTo(2 * a.s, 9);
+    expect(b.x).toBeCloseTo(2 * a.x, 9);
+  });
+
+  it('wakeSpringsRested: 목표에 닿고 속도가 없고 걸러진 속도가 물결이 안 될 만큼 작아야 쉰다', () => {
+    const at = (state: Partial<WakeSprings>, target = 0): boolean =>
+      wakeSpringsRested({ ...REST, ...state }, target, 2);
+
+    expect(at({})).toBe(true);
+    expect(at({ x: 0.001 })).toBe(true);
+    expect(at({ x: 1 })).toBe(false);
+    expect(at({ v: 5 })).toBe(false);
+    expect(at({ s: 200 })).toBe(false);
+    // 10 단위/s * 2px = 20px/s는 세기가 FLAT(0.002) 아래라 물결이 없다.
+    expect(at({ s: 10 })).toBe(true);
   });
 });
 

@@ -18,6 +18,8 @@ import {
   waveLift,
   waveScale,
   WAKE_REST_SCALE,
+  stepWakeSprings,
+  type WakeSprings,
 } from './sliderMath';
 import { gsapDuration, gsapEasing } from '../../tokens/gsapEasing';
 import { VALUE_FOLLOWER_PERCENT_VAR } from './Slider.css';
@@ -39,7 +41,6 @@ const getScrubTickElements = (container: HTMLElement): NodeListOf<Element> =>
 type WakeBarsHost = HTMLDivElement & {
   __wakeTick?: (time: number, deltaMs: number) => void;
   __wakeHead?: { pct: number };
-  __wakeHeadTween?: gsap.core.Tween;
   __hoverTween?: gsap.core.Tween;
 };
 
@@ -93,6 +94,32 @@ const thicknessProfile = (d: string): { x: number; t: number }[] =>
 /** 폭을 모를 때(jsdom) 머리 중심의 x(px). 머리 중심은 (폭 - 머리 폭) 위를 움직인다. */
 const headCenterX = (pct: number, width = LINE_DEFAULT_WIDTH): number =>
   THUMB_PX / 2 + (pct / 100) * (width - THUMB_PX);
+
+/** 프레임 간격(ms). 시험이 ticker를 직접 돌릴 때 쓴다. */
+const FRAME_MS = 16;
+
+/** 프레임 콜백을 FRAME_MS씩 쪼개 총 `ms`만큼 돌린다. */
+const runFrames = (host: WakeBarsHost, ms: number): void => {
+  act(() => {
+    for (let t = 0; t < ms; t += FRAME_MS) {
+      host.__wakeTick!(0, Math.min(FRAME_MS, ms - t));
+    }
+  });
+};
+
+/**
+ * 순수 스프링으로 같은 프레임을 돌려 낸 기대 상태(트랙 %). 컴포넌트가 같은 식을 쓰는지
+ * 본다. 폭을 모르는 jsdom은 LINE_DEFAULT_WIDTH로 잰다.
+ */
+const springsAfter = (from: number, to: number, ms: number): WakeSprings => {
+  let state: WakeSprings = { x: from, v: 0, s: 0, ds: 0 };
+  for (let t = 0; t < ms; t += FRAME_MS) {
+    state = stepWakeSprings(state, to, Math.min(FRAME_MS, ms - t) / 1000);
+  }
+  return state;
+};
+const ampAfter = (from: number, to: number, ms: number): number =>
+  waveAmp((springsAfter(from, to, ms).s * LINE_DEFAULT_WIDTH) / 100);
 
 // gsap 네임스페이스는 ambient 전역 타입이라 import 없이 참조된다
 // (Checkbox.test.tsx·Switch.test.tsx와 같은 방식). ticker의 리스너 수는 실제
@@ -1084,8 +1111,8 @@ describe('Slider', () => {
       expect(getWakeHost(container)).toHaveAttribute('aria-hidden', 'true');
     });
 
-    /** 값을 from에서 to로 옮기고 머리 트윈을 progress까지 보낸 뒤 한 프레임 돌린다. */
-    const swing = (from: number, to: number, progress = 0.5) => {
+    /** 값을 from에서 to로 옮기고 ms만큼 프레임을 돌린다. */
+    const swing = (from: number, to: number, ms = 112) => {
       const view = render(
         <Slider
           label="슬라이더"
@@ -1103,28 +1130,27 @@ describe('Slider', () => {
         />
       );
       const host = getWakeHost(view.container)!;
-      act(() => {
-        host.__wakeHeadTween!.progress(progress);
-      });
-      act(() => {
-        host.__wakeTick!(0, 16);
-      });
+      runFrames(host, ms);
       return {
         ...view,
         host,
         bars: getWakeBars(view.container),
         h: (host.__wakeHead!.pct / 100) * (WAKE_DEFAULT_BARS - 1),
+        amp: ampAfter(from, to, ms),
       };
     };
 
     it('값이 바뀌면 머리 뒤로 막대가 솟고, 높이는 WakeSlider와 같은 식이다', () => {
-      const { host, bars, h } = swing(20, 60);
+      const { host, bars, h, amp } = swing(0, 60);
 
-      expect(host.__wakeHead!.pct).toBeGreaterThan(20);
+      expect(host.__wakeHead!.pct).toBeGreaterThan(0);
       expect(host.__wakeHead!.pct).toBeLessThan(60);
-      // 한 프레임에 크게 움직였으니 세기는 1이고 방향은 오른쪽(+1)이다.
+      expect(amp).toBeGreaterThan(0.5);
       bars.forEach((bar, i) => {
-        expect(barScale(bar)).toBeCloseTo(waveScale(waveLift(i - h, 1, 1)), 10);
+        expect(barScale(bar)).toBeCloseTo(
+          waveScale(waveLift(i - h, 1, amp)),
+          10
+        );
       });
       expect(barScale(bars[Math.round(h)])).toBeGreaterThan(WAKE_REST_SCALE);
       expect(barScale(bars[0])).toBeCloseTo(WAKE_REST_SCALE, 10);
@@ -1132,11 +1158,11 @@ describe('Slider', () => {
     });
 
     it('끄는 중 마지막 막대도 다른 막대와 같은 식이다(늘 최대 높이가 아니다)', () => {
-      const { bars, h } = swing(20, 60);
+      const { bars, h, amp } = swing(40, 100);
       const last = bars.length - 1;
 
       expect(barScale(bars[last])).toBeCloseTo(
-        waveScale(waveLift(last - h, 1, 1)),
+        waveScale(waveLift(last - h, 1, amp)),
         10
       );
       expect(barScale(bars[last])).toBeLessThan(1);
@@ -1144,15 +1170,7 @@ describe('Slider', () => {
 
     it('머리가 맨 끝에 닿아도 마지막 막대는 멈춘 뒤 쉬는 높이다', () => {
       const { host, bars } = swing(20, 100);
-      act(() => {
-        host.__wakeHeadTween!.progress(1);
-      });
-      act(() => {
-        host.__wakeTick!(0, 16);
-      });
-      act(() => {
-        host.__wakeTick!(0, 16);
-      });
+      runFrames(host, 2000);
 
       expect(host.__wakeHead!.pct).toBe(100);
       expect(barScale(bars[bars.length - 1])).toBe(WAKE_REST_SCALE);
@@ -1160,7 +1178,7 @@ describe('Slider', () => {
     });
 
     it('오른쪽으로 가면 머리 뒤(왼쪽)가 앞(오른쪽)보다 넓게 솟는다', () => {
-      const { bars, h } = swing(20, 60);
+      const { bars, h } = swing(0, 60);
       const base = Math.round(h);
 
       expect(barScale(bars[base - 6])).toBeGreaterThan(WAKE_REST_SCALE);
@@ -1168,7 +1186,7 @@ describe('Slider', () => {
     });
 
     it('왼쪽으로 가면 앞뒤가 뒤집힌다', () => {
-      const { bars, h } = swing(60, 20);
+      const { bars, h } = swing(100, 40);
       const base = Math.round(h);
 
       expect(barScale(bars[base + 6])).toBeGreaterThan(WAKE_REST_SCALE);
@@ -1176,16 +1194,8 @@ describe('Slider', () => {
     });
 
     it('머리가 멈추면 모든 막대가 쉬는 높이로 돌아가고, 이후 프레임은 계산하지 않는다', () => {
-      const { host, bars } = swing(20, 60);
-      act(() => {
-        host.__wakeHeadTween!.progress(1);
-      });
-      act(() => {
-        host.__wakeTick!(0, 16); // 마지막 이동분
-      });
-      act(() => {
-        host.__wakeTick!(0, 16); // 속도 0
-      });
+      const { host, bars } = swing(0, 60);
+      runFrames(host, 2000);
 
       for (const bar of bars) {
         expect(barScale(bar)).toBeCloseTo(WAKE_REST_SCALE, 10);
@@ -1193,79 +1203,106 @@ describe('Slider', () => {
 
       // 멈춘 프레임은 건너뛴다: 막대에 표지를 두면 다음 프레임이 덮지 않는다.
       bars[10].style.setProperty('transform', 'scaleY(0.99)');
-      act(() => {
-        host.__wakeTick!(0, 16);
-      });
+      runFrames(host, FRAME_MS);
       expect(barScale(bars[10])).toBe(0.99);
     });
 
-    it('속도에 비례한다: 같은 거리를 더 오래 걸리면 물결이 낮다', () => {
-      const fast = swing(20, 60);
-      const fastPeak = Math.max(...fast.bars.map(barScale));
-      fast.unmount();
+    it('끄는 세기에 비례한다: 같은 시간에 센 끌기가 약한 끌기보다 물결이 높다', () => {
+      const strong = swing(0, 60);
+      const strongPeak = Math.max(...strong.bars.map(barScale));
+      strong.unmount();
+      const weak = swing(0, 12);
+      const weakPeak = Math.max(...weak.bars.map(barScale));
 
-      const slow = render(
-        <Slider
-          label="슬라이더"
-          variant="wake"
-          value={20}
-          onChange={() => {}}
-        />
-      );
-      slow.rerender(
-        <Slider
-          label="슬라이더"
-          variant="wake"
-          value={60}
-          onChange={() => {}}
-        />
-      );
-      const host = getWakeHost(slow.container)!;
-      act(() => {
-        host.__wakeHeadTween!.progress(0.5);
-      });
-      // 같은 이동을 100배 긴 프레임에 했다면 속도는 1/100이다.
-      act(() => {
-        host.__wakeTick!(0, 1600);
-      });
-      const slowPeak = Math.max(...getWakeBars(slow.container).map(barScale));
-
-      expect(slowPeak).toBeLessThan(fastPeak);
-      expect(slowPeak).toBeGreaterThan(WAKE_REST_SCALE);
+      expect(weakPeak).toBeLessThan(strongPeak);
+      expect(weakPeak).toBeGreaterThan(WAKE_REST_SCALE);
       expect(waveAmp(0)).toBe(0);
     });
 
+    it('물결은 서서히 차오른다: 끌기 시작한 첫 프레임은 거의 평평하고 뒤로 갈수록 솟는다', () => {
+      const view = render(
+        <Slider label="슬라이더" variant="wake" value={0} onChange={() => {}} />
+      );
+      view.rerender(
+        <Slider
+          label="슬라이더"
+          variant="wake"
+          value={100}
+          onChange={() => {}}
+        />
+      );
+      const host = getWakeHost(view.container)!;
+      const bars = getWakeBars(view.container);
+      const peak = () => Math.max(...bars.map(barScale));
+
+      runFrames(host, FRAME_MS);
+      const first = peak();
+      runFrames(host, 4 * FRAME_MS);
+      const later = peak();
+
+      expect(first).toBeLessThan(WAKE_REST_SCALE + 0.02);
+      expect(later).toBeGreaterThan(first + 0.2);
+    });
+
+    it('프레임 간격이 아주 커도 머리가 발산하지 않고 한 프레임에 64ms만 흐른다', () => {
+      const { host, bars } = swing(0, 100, 0);
+      act(() => {
+        host.__wakeTick!(0, 5000);
+      });
+
+      const capped = springsAfter(0, 100, 64).x;
+      expect(host.__wakeHead!.pct).toBeCloseTo(capped, 6);
+      expect(host.__wakeHead!.pct).toBeLessThan(100);
+      for (const bar of bars) {
+        expect(barScale(bar)).toBeGreaterThanOrEqual(WAKE_REST_SCALE - 1e-9);
+        expect(barScale(bar)).toBeLessThanOrEqual(1);
+      }
+    });
+
     it('물결 세기는 px 속도로 잰다: 같은 px/s면 트랙 폭(129, 320, 806)과 무관하게 같은 물결이다', () => {
-      // 폭마다 머리가 1초에 75px 움직이게 pct를 옮긴다(폭이 넓을수록 pct 변화는 작다).
-      const PX_PER_SEC = 75;
+      // 폭마다 머리 목표를 100px 옮긴다(폭이 넓을수록 pct 변화는 작다).
+      const STEP_PX = 100;
+      const MS = 80;
       for (const width of [129, 320, 806]) {
         Object.defineProperty(HTMLElement.prototype, 'clientWidth', {
           configurable: true,
           get: () => width,
         });
         try {
-          const { container, unmount } = render(
-            <Slider label="슬라이더" variant="wake" defaultValue={50} />
+          const jsx = (value: number) => (
+            <Slider
+              label="슬라이더"
+              variant="wake"
+              step={0.001}
+              value={value}
+              onChange={() => {}}
+            />
           );
+          const { container, rerender, unmount } = render(jsx(10));
           const host = getWakeHost(container)!;
           const bars = getWakeBars(container);
           expect(bars).toHaveLength(wakeBarCount(width));
-          host.__wakeHead!.pct += (PX_PER_SEC / width) * 100;
-          act(() => {
-            host.__wakeTick!(0, 1000);
-          });
+          rerender(jsx(10 + (STEP_PX / width) * 100));
+          runFrames(host, MS);
+
+          // 기대 세기는 px 단위로 돌린 스프링에서 나온다(폭과 무관).
+          let state: WakeSprings = { x: 0, v: 0, s: 0, ds: 0 };
+          for (let t = 0; t < MS; t += FRAME_MS) {
+            state = stepWakeSprings(state, STEP_PX, FRAME_MS / 1000);
+          }
+          const amp = waveAmp(state.s);
+          expect(amp).toBeGreaterThan(0.3);
 
           const gap = width / (bars.length - 1);
           const h = (host.__wakeHead!.pct / 100) * (bars.length - 1);
           bars.forEach((bar, i) => {
             expect(barScale(bar)).toBeCloseTo(
-              waveScale(waveLift(i - h, 1, waveAmp(PX_PER_SEC), gap)),
+              waveScale(waveLift(i - h, 1, amp, gap)),
               10
             );
           });
-          // 세기 0.5: 머리 자리 막대가 쉬는 높이보다 확실히 솟는다.
           expect(Math.max(...bars.map(barScale))).toBeGreaterThan(
-            WAKE_REST_SCALE + 0.2
+            WAKE_REST_SCALE + 0.1
           );
           unmount();
         } finally {
@@ -1282,20 +1319,15 @@ describe('Slider', () => {
       const host = getWakeHost(container)!;
       const slider = screen.getByRole('slider');
 
-      fireEvent.change(slider, { target: { value: '60' } });
-      act(() => {
-        host.__wakeHeadTween!.progress(0.5);
-      });
-      act(() => {
-        host.__wakeTick!(0, 16);
-      });
+      fireEvent.change(slider, { target: { value: '80' } });
+      runFrames(host, 112);
 
       expect(Math.max(...getWakeBars(container).map(barScale))).toBeGreaterThan(
         WAKE_REST_SCALE
       );
     });
 
-    it('축소 선호에서는 물결이 없다: 티커도 머리 트윈도 없고 막대는 쉬는 높이, 색만 값을 따른다', () => {
+    it('축소 선호에서는 물결이 없다: 티커도 머리 스프링도 없고 막대는 쉬는 높이, 색만 값을 따른다', () => {
       installReducedMotion();
       const before = tickerListeners();
       const { container, rerender } = render(
@@ -1312,7 +1344,7 @@ describe('Slider', () => {
 
       expect(tickerListeners()).toBe(before);
       expect(host.__wakeTick).toBeUndefined();
-      expect(host.__wakeHeadTween).toBeUndefined();
+      expect(host.__wakeHead).toBeUndefined();
 
       rerender(
         <Slider
@@ -1384,26 +1416,22 @@ describe('Slider', () => {
     const peak = (profile: { t: number }[]) =>
       Math.max(...profile.map(({ t }) => t));
 
-    /** 값을 from에서 to로 옮기고 머리 트윈을 progress까지 보낸 뒤 deltaMs짜리 한 프레임을 돌린다. */
+    /** 값을 from에서 to로 옮기고 ms만큼 프레임을 돌린다. amp는 같은 프레임을 순수 스프링으로 돌려 낸 세기다. */
     const lineSwing = (
       from: number,
       to: number,
-      { progress = 0.5, deltaMs = 16, variant = 'default' as LineVariant } = {}
+      { ms = 112, variant = 'default' as LineVariant } = {}
     ) => {
       const view = render(lineJsx(variant, from));
       view.rerender(lineJsx(variant, to));
       const host = getLineHost(view.container)!;
-      act(() => {
-        host.__wakeHeadTween!.progress(progress);
-      });
-      act(() => {
-        host.__wakeTick!(0, deltaMs);
-      });
+      runFrames(host, ms);
       return {
         ...view,
         host,
         profile: fillProfile(view.container),
         headX: headCenterX(host.__wakeHead!.pct),
+        amp: ampAfter(from, to, ms),
       };
     };
 
@@ -1431,19 +1459,20 @@ describe('Slider', () => {
       );
     });
 
-    it('끄면 머리 둘레가 부풀되 최대 20px을 넘지 않는다', () => {
-      const { profile, headX } = lineSwing(20, 60);
+    it('끄면 머리 둘레가 세기만큼 부풀되 최대 20px을 넘지 않는다', () => {
+      const { profile, headX, amp } = lineSwing(0, 60);
       const top = profile.reduce((a, b) => (b.t > a.t ? b : a));
 
+      expect(amp).toBeGreaterThan(0.5);
       expect(peak(profile)).toBeLessThanOrEqual(LINE_WAVE_MAX + 0.02);
-      expect(peak(profile)).toBeGreaterThan(LINE_WAVE_MAX - 1);
+      expect(peak(profile)).toBeGreaterThan(LINE_REST + amp * 14 - 0.5);
       expect(Math.abs(top.x - headX)).toBeLessThanOrEqual(2);
       // 머리에서 멀면 쉬는 두께다.
       expect(profile[profile.length - 2].t).toBe(LINE_REST);
     });
 
     it('물결은 px 단위로 연속이다: 이웃 점의 두께 차가 작다', () => {
-      const { profile } = lineSwing(20, 60);
+      const { profile } = lineSwing(0, 60);
 
       for (let i = 1; i < profile.length - 1; i++) {
         expect(Math.abs(profile[i].t - profile[i - 1].t)).toBeLessThan(2.5);
@@ -1451,7 +1480,7 @@ describe('Slider', () => {
     });
 
     it('오른쪽으로 가면 머리 뒤(왼쪽)가 앞(오른쪽)보다 넓게 부푼다', () => {
-      const { profile, headX } = lineSwing(20, 60);
+      const { profile, headX } = lineSwing(0, 60);
       const swollen = (side: (x: number) => boolean) =>
         profile.filter(({ x, t }) => side(x) && t > LINE_REST + 0.5).length;
 
@@ -1461,7 +1490,7 @@ describe('Slider', () => {
     });
 
     it('왼쪽으로 가면 앞뒤가 뒤집힌다', () => {
-      const { profile, headX } = lineSwing(60, 20);
+      const { profile, headX } = lineSwing(100, 40);
       const swollen = (side: (x: number) => boolean) =>
         profile.filter(({ x, t }) => side(x) && t > LINE_REST + 0.5).length;
 
@@ -1471,36 +1500,41 @@ describe('Slider', () => {
     });
 
     it('bar도 같은 물결이다: 바탕 두께 8px에서 20px까지', () => {
-      const { profile } = lineSwing(20, 60, { variant: 'bar' });
+      const { profile, amp } = lineSwing(0, 60, { variant: 'bar' });
 
-      expect(peak(profile)).toBeGreaterThan(LINE_WAVE_MAX - 1);
+      expect(peak(profile)).toBeGreaterThan(
+        LINE_BAR_REST + amp * (LINE_WAVE_MAX - LINE_BAR_REST) - 0.5
+      );
       expect(peak(profile)).toBeLessThanOrEqual(LINE_WAVE_MAX + 0.02);
     });
 
-    it('속도에 비례한다: 같은 거리를 더 오래 걸리면 덜 부푼다', () => {
-      const fast = lineSwing(20, 60);
-      const fastPeak = peak(fast.profile);
-      fast.unmount();
-      const slow = lineSwing(20, 60, { deltaMs: 1600 });
+    it('끄는 세기에 비례한다: 같은 시간에 센 끌기가 약한 끌기보다 더 부푼다', () => {
+      const strong = lineSwing(0, 60);
+      const strongPeak = peak(strong.profile);
+      strong.unmount();
+      const weak = lineSwing(0, 12);
 
-      expect(peak(slow.profile)).toBeLessThan(fastPeak);
-      expect(peak(slow.profile)).toBeGreaterThan(LINE_REST);
+      expect(peak(weak.profile)).toBeLessThan(strongPeak);
+      expect(peak(weak.profile)).toBeGreaterThan(LINE_REST);
+    });
+
+    it('서서히 차오른다: 끌기 시작한 첫 프레임은 거의 평평하고 뒤로 갈수록 부푼다', () => {
+      const view = render(lineJsx('default', 0));
+      view.rerender(lineJsx('default', 100));
+      const host = getLineHost(view.container)!;
+
+      runFrames(host, FRAME_MS);
+      const first = peak(fillProfile(view.container));
+      runFrames(host, 4 * FRAME_MS);
+      const later = peak(fillProfile(view.container));
+
+      expect(first).toBeLessThan(LINE_REST + 0.5);
+      expect(later).toBeGreaterThan(first + 5);
     });
 
     it('멈추면 매끈한 쉬는 두께로 돌아가고, 이후 프레임은 경로를 다시 쓰지 않는다', () => {
-      const { host, container } = (() => {
-        const view = lineSwing(20, 60);
-        return { host: view.host, container: view.container };
-      })();
-      act(() => {
-        host.__wakeHeadTween!.progress(1);
-      });
-      act(() => {
-        host.__wakeTick!(0, 16); // 마지막 이동분
-      });
-      act(() => {
-        host.__wakeTick!(0, 16); // 속도 0
-      });
+      const { host, container } = lineSwing(0, 60);
+      runFrames(host, 2000);
 
       expect(fillProfile(container).every(({ t }) => t === LINE_REST)).toBe(
         true
@@ -1509,9 +1543,7 @@ describe('Slider', () => {
       // 멈춘 프레임은 건너뛴다: 경로에 표지를 두면 다음 프레임이 덮지 않는다.
       const { fill } = getLine(container);
       fill.setAttribute('d', 'M0,0');
-      act(() => {
-        host.__wakeTick!(0, 16);
-      });
+      runFrames(host, FRAME_MS);
       expect(fill.getAttribute('d')).toBe('M0,0');
     });
 
@@ -1521,13 +1553,8 @@ describe('Slider', () => {
       );
       const host = getLineHost(container)!;
 
-      fireEvent.change(screen.getByRole('slider'), { target: { value: '60' } });
-      act(() => {
-        host.__wakeHeadTween!.progress(0.5);
-      });
-      act(() => {
-        host.__wakeTick!(0, 16);
-      });
+      fireEvent.change(screen.getByRole('slider'), { target: { value: '80' } });
+      runFrames(host, 112);
 
       expect(peak(fillProfile(container))).toBeGreaterThan(LINE_REST + 5);
     });
@@ -1604,7 +1631,7 @@ describe('Slider', () => {
 
       expect(tickerListeners()).toBe(before);
       expect(host.__wakeTick).toBeUndefined();
-      expect(host.__wakeHeadTween).toBeUndefined();
+      expect(host.__wakeHead).toBeUndefined();
 
       rerender(lineJsx('default', 80));
       pointer(screen.getByRole('slider').parentElement!, 'pointerover');

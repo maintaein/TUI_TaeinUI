@@ -31,12 +31,91 @@ export const WAKE_BAR_MAX_HEIGHT = 24;
 export const WAKE_REST_SCALE = WAKE_BAR_REST_HEIGHT / WAKE_BAR_MAX_HEIGHT;
 
 /**
- * 머리 속도(px/s)가 이 값이면 물결이 최대다. 트랙 길이와 무관하게 같은 손 속도는
- * 같은 세기를 낸다(%/s로 재면 긴 트랙에서 같은 손 속도가 약해 보였다). 기준은
- * 129px 트랙에서 물결이 잘 보인다고 한 설정(트랙의 120%/s)이 내던 속도,
- * 129 * 1.2 = 155px/s다. 머리를 따라가는 quickTo는 속도를 깎지 않는다.
+ * 머리 속도(px/s)가 이 값이면 물결이 최대다. WakeSlider.tsx:7 `FULL_SPEED` 320(%/s)을
+ * 원본 트랙의 기준 폭 300px로 환산한 값이다: 320 * 3 = 960px/s. 150px/s는 거의 모든
+ * 끌기를 최대로 만들어 약하게 끌어도 세게 끈 것과 같았다. px/s로 재므로 트랙 길이와
+ * 무관하게 같은 손 속도는 같은 세기를 낸다.
  */
-export const WAKE_FULL_SPEED_PX = 150;
+export const WAKE_FULL_SPEED_PX = 960;
+
+// 머리와 속도를 두 스프링으로 따라가 물결 세기가 서서히 차오르고 빠지게 한다.
+// GSAP 트윈이 아니라 ticker 안의 물리 적분이라 길이·커브 토큰으로 쓸 수 없다. 상수는
+// WakeSlider.tsx에서 왔다.
+
+/** 머리 스프링이 정착하는 데 드는 무차원 값. WakeSlider.tsx:6 `SETTLE`. */
+export const WAKE_SETTLE = 9.23;
+/** 머리가 목표를 따라가는 시간(s). WakeSlider.tsx:65 `glide` 기본값. */
+export const WAKE_GLIDE = 0.3;
+/** 속도를 거르는 정도(클수록 느리게 차오른다). WakeSlider.tsx:66 `smoothing` 기본값. */
+export const WAKE_SMOOTHING = 100;
+
+/** 머리 스프링의 고유 진동수. WakeSlider.tsx:91 `w0`. 감쇠 2 * w0은 임계 감쇠다. */
+const HEAD_W0 = WAKE_SETTLE / WAKE_GLIDE;
+/** 속도 스프링의 고유 진동수. WakeSlider.tsx:94 `wv`. 감쇠 2.5 * wv는 과감쇠(1.25)다. */
+const SPEED_WV = 2000 / WAKE_SMOOTHING;
+
+/**
+ * 한 번 적분하는 시간 간격(s). 스프링이 빨라(w0 약 31/s) 한 걸음이 크면 발산하므로
+ * 프레임 간격을 이 크기로 쪼갠다(1ms는 w0 * dt가 0.03이라 어떤 프레임 간격에서도
+ * 안정이고, 임계·과감쇠 해를 넘침 없이 따라간다). 닫힌 해는 두 번째 스프링의 입력(첫
+ * 스프링의 속도)이 계속 바뀌어 쓰기 어렵다.
+ */
+export const WAKE_SUBSTEP_S = 0.001;
+
+/** 한 프레임에 흘리는 시간의 상한(s). 탭이 뒤에 있다 돌아와도 한꺼번에 튀지 않는다. */
+export const WAKE_MAX_FRAME_S = 0.064;
+
+/** 머리 스프링과 속도 스프링의 상태. 위치와 속도는 단위가 같으면 어느 것이든 된다. */
+export interface WakeSprings {
+  /** 머리 위치 */
+  x: number;
+  /** 머리 속도(x 단위/s) */
+  v: number;
+  /** 걸러진 속도(v와 같은 단위) */
+  s: number;
+  /** 걸러진 속도의 변화율 */
+  ds: number;
+}
+
+/**
+ * `dtSec`초 동안 두 스프링을 `target`을 향해 적분한다. 머리는 임계 감쇠
+ * (a = w0^2 (target - x) - 2 w0 v)라 넘치지 않고, 걸러진 속도는 머리 속도를 과감쇠
+ * (a = wv^2 (v - s) - 2.5 wv ds)로 따라가 0에서 0 기울기로 출발한다.
+ * WakeSlider.tsx:91-95.
+ */
+export function stepWakeSprings(
+  state: WakeSprings,
+  target: number,
+  dtSec: number
+): WakeSprings {
+  let { x, v, s, ds } = state;
+  const steps = Math.max(1, Math.ceil(dtSec / WAKE_SUBSTEP_S - 1e-9));
+  const h = dtSec / steps;
+  for (let i = 0; i < steps; i++) {
+    v += (HEAD_W0 * HEAD_W0 * (target - x) - 2 * HEAD_W0 * v) * h;
+    x += v * h;
+    ds += (SPEED_WV * SPEED_WV * (v - s) - 2.5 * SPEED_WV * ds) * h;
+    s += ds * h;
+  }
+  return { x, v, s, ds };
+}
+
+/**
+ * 두 스프링이 모두 쉬었는가: 머리가 목표에 닿았고 속도가 거의 없고, 걸러진 속도가
+ * 물결이 안 보일 만큼(세기 `WAKE_FLAT` 미만) 작다. `pxPerUnit`은 위치 한 단위가 몇
+ * px인지(걸러진 속도를 px/s로 읽는 데 쓴다)다.
+ */
+export function wakeSpringsRested(
+  state: WakeSprings,
+  target: number,
+  pxPerUnit: number
+): boolean {
+  return (
+    Math.abs(target - state.x) < 0.005 &&
+    Math.abs(state.v) < 0.05 &&
+    waveAmp(state.s * pxPerUnit) === 0
+  );
+}
 
 /**
  * 최소·최대 반경(px). WakeSlider.tsx의 `MIN_REACH` 1.5, `reach` 6(막대 단위)을

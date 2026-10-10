@@ -54,6 +54,10 @@ import {
   WAKE_BAR_GAP_PX,
   WAKE_DEFAULT_BARS,
   WAKE_FLAT,
+  WAKE_MAX_FRAME_S,
+  stepWakeSprings,
+  wakeSpringsRested,
+  type WakeSprings,
 } from './sliderMath';
 
 /** 슬라이더 트랙 위에 표시되는 마크 */
@@ -71,13 +75,11 @@ interface ValueFollowerTweenHost extends HTMLSpanElement {
 
 /**
  * 테스트 전용. 물결을 그리는 요소(wake는 막대 묶음, default·bar는 트랙)에 달린
- * 손잡이: 프레임 콜백(`__wakeTick`), 머리 위치 객체(`__wakeHead`, 트랙 %), 머리가
- * 값을 따라가는 quickTo 트윈.
+ * 손잡이: 프레임 콜백(`__wakeTick`), 머리 위치 객체(`__wakeHead`, 트랙 %).
  */
 interface WakeBarsHost extends HTMLDivElement {
   __wakeTick?: (time: number, deltaMs: number) => void;
   __wakeHead?: { pct: number };
-  __wakeHeadTween?: gsap.core.Tween;
   /** default·bar의 호버 두께 트윈. */
   __hoverTween?: gsap.core.Tween;
 }
@@ -419,20 +421,30 @@ export const Slider = forwardRef<HTMLInputElement, SliderProps>(
       const line = lineState.current;
       const bars = isWake ? (Array.from(host.children) as HTMLElement[]) : [];
       const head = { pct: valueToPercent(currentValueRef.current, min, max) };
-      const setHead = gsap.quickTo(head, 'pct', {
-        duration: gsapDuration.base,
-        ease: gsapEasing.settle,
-      });
-      let lastPct = head.pct;
+      // 머리는 값(target)을 임계 감쇠 스프링으로 따라가고, 그 속도를 과감쇠 스프링으로
+      // 걸러 세기를 잰다(WakeSlider.tsx:91-95). 끄는 세기에 비례해 서서히 차오르고 빠진다.
+      let target = head.pct;
+      let springs: WakeSprings = { x: head.pct, v: 0, s: 0, ds: 0 };
+      const setHead = (percent: number) => {
+        target = percent;
+      };
       let lastAmp = 0;
 
       const onTick = (_time: number, deltaMs: number) => {
-        // %/s를 px/s로 바꿔 잰다: 트랙 길이와 무관하게 같은 손 속도는 같은 세기다.
-        const speed =
-          deltaMs > 0
-            ? (((head.pct - lastPct) / 100) * widthRef.current * 1000) / deltaMs
-            : 0;
-        lastPct = head.pct;
+        // 위치는 트랙 %이고 속도는 px/s로 읽는다: 트랙 길이와 무관하게 같은 손 속도는
+        // 같은 세기다.
+        const pxPerPct = widthRef.current / 100;
+        if (wakeSpringsRested(springs, target, pxPerPct)) return;
+        springs = stepWakeSprings(
+          springs,
+          target,
+          Math.min(deltaMs / 1000, WAKE_MAX_FRAME_S)
+        );
+        if (wakeSpringsRested(springs, target, pxPerPct)) {
+          springs = { x: target, v: 0, s: 0, ds: 0 };
+        }
+        head.pct = springs.x;
+        const speed = springs.s * pxPerPct;
         const amp = waveAmp(speed);
         const flat = amp < WAKE_FLAT && lastAmp < WAKE_FLAT;
         lastAmp = amp;
@@ -454,15 +466,12 @@ export const Slider = forwardRef<HTMLInputElement, SliderProps>(
       headSetterRef.current = setHead;
       host.__wakeTick = onTick;
       host.__wakeHead = head;
-      host.__wakeHeadTween = setHead.tween;
 
       return () => {
         gsap.ticker.remove(onTick);
-        setHead.tween.kill();
         headSetterRef.current = null;
         delete host.__wakeTick;
         delete host.__wakeHead;
-        delete host.__wakeHeadTween;
         // 인라인 높이를 걷어 CSS의 쉬는 높이로 돌아간다.
         for (const bar of bars) bar.style.transform = '';
         if (!isWake) {
