@@ -26,7 +26,9 @@ export const indicatorShadow = style({
   height: 'calc(100% - 6px)',
   pointerEvents: 'none',
   filter: 'drop-shadow(0 2px 8px rgba(0, 102, 255, 0.25))',
-  zIndex: 0,
+  // 진짜 라벨(zIndex 1) 위. 표시 안의 라벨 한 벌이 글자색을 표시 가장자리에서
+  // 정확히 가른다. pointerEvents none이라 클릭은 아래 진짜 라벨로 간다.
+  zIndex: 2,
 });
 
 // 트랙 전체 폭의 파란 층. 보이는 부분은 clip-path가 정한다: 두 가장자리 L·R을
@@ -39,6 +41,23 @@ export const activeIndicator = style({
   height: '100%',
   backgroundColor: themeContract.color.primary.main,
   clipPath: 'inset(0 100% 0 0)',
+});
+
+// 표시 안에 그리는 라벨 줄. 컨테이너 패딩 상자 전체를 덮고(표시는 위아래 3px 안쪽이라
+// 위로 3px 올라가 높이를 6px 늘린다) 컨테이너와 같은 가로 배치를 써서, 안쪽 라벨이
+// 진짜 라벨과 픽셀 단위로 같은 자리에 놓인다. 박스 크기 가정은 border-box로 못 박아
+// 컨테이너가 어느 쪽이든 안쪽 내용 상자가 같다.
+export const indicatorLabels = style({
+  position: 'absolute',
+  top: '-3px',
+  left: 0,
+  width: '100%',
+  height: 'calc(100% + 6px)',
+  boxSizing: 'border-box',
+  display: 'flex',
+  alignItems: 'center',
+  padding: '0 1px',
+  gap: '4px',
 });
 
 // Size Variants
@@ -92,17 +111,12 @@ export const button = style({
     },
 
     // ✅ 중첩 대신 조합형 selector로 표현
+    // 글자색은 선택과 무관하게 늘 위의 color다. 선택 칸의 흰 글자는 표시 안의 라벨 한
+    // 벌이 그려서 표시 가장자리에서 정확히 갈린다. 굵기는 두 줄의 폭을 맞추려고 남긴다.
     '&.selected': {
-      color: themeContract.color.primary.contrast,
       fontWeight: themeContract.font.weight.semibold,
       transform: 'scale(1)',
       transition: `transform ${themeContract.animation.duration.slow} ease, text-shadow ${themeContract.animation.duration.slow} ease`,
-    },
-    '&.selected:hover': {
-      textShadow: '0 0 8px rgba(255, 255, 255, 0.5)',
-    },
-    '&.selected:active': {
-      textShadow: 'none',
     },
 
     '&.disabled': {
@@ -114,6 +128,19 @@ export const button = style({
     '&.iconOnly': {
       minWidth: '44px',
       padding: '0 12px',
+    },
+
+    // 표시 안의 라벨 한 벌: 늘 활성색. 이 규칙이 .disabled보다 뒤라 이긴다.
+    [`${indicatorLabels} &`]: {
+      color: themeContract.color.primary.contrast,
+    },
+    // 선택 칸 호버 글자 빛. 진짜 라벨은 표시에 덮이므로 안쪽 글자가 대신 낸다.
+    // 이 빛을 지우기로 하면 이 두 규칙만 걷는다.
+    [`${container}:has(label.selected:hover) ${indicatorLabels} &.selected`]: {
+      textShadow: '0 0 8px rgba(255, 255, 255, 0.5)',
+    },
+    [`${container}:has(label.selected:active) ${indicatorLabels} &.selected`]: {
+      textShadow: 'none',
     },
   },
 });

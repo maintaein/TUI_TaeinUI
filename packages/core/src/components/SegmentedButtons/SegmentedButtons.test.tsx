@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { fireEvent, render, screen, act } from '@testing-library/react';
+import { fireEvent, render, screen, act, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { SegmentedButtons } from './SegmentedButtons';
 import { gsapDuration, gsapEasing } from '../../tokens/gsapEasing';
@@ -37,7 +37,9 @@ describe('SegmentedButtons', () => {
       );
 
       options.forEach((option) => {
-        expect(screen.getByText(option.label)).toBeInTheDocument();
+        expect(
+          screen.getByRole('radio', { name: option.label })
+        ).toBeInTheDocument();
       });
     });
 
@@ -216,7 +218,9 @@ describe('SegmentedButtons', () => {
         />
       );
 
-      const option1Label = screen.getByText('옵션 1');
+      const option1Label = screen
+        .getByRole('radio', { name: '옵션 1' })
+        .closest('label')!;
       await user.click(option1Label);
 
       expect(handleChange).toHaveBeenCalledWith('option1');
@@ -348,7 +352,9 @@ describe('SegmentedButtons', () => {
       );
 
       await user.tab();
-      const firstButton = screen.getByText('옵션 1').closest('label');
+      const firstButton = screen
+        .getByRole('radio', { name: '옵션 1' })
+        .closest('label');
       expect(firstButton).toHaveFocus();
     });
 
@@ -364,12 +370,16 @@ describe('SegmentedButtons', () => {
         />
       );
 
-      const firstButton = screen.getByText('옵션 1').closest('label');
+      const firstButton = screen
+        .getByRole('radio', { name: '옵션 1' })
+        .closest('label');
       firstButton?.focus();
 
       await user.keyboard('{ArrowRight}');
 
-      const secondButton = screen.getByText('옵션 2').closest('label');
+      const secondButton = screen
+        .getByRole('radio', { name: '옵션 2' })
+        .closest('label');
       expect(secondButton).toHaveFocus();
       expect(handleChange).toHaveBeenCalledWith('option2');
     });
@@ -386,12 +396,16 @@ describe('SegmentedButtons', () => {
         />
       );
 
-      const secondButton = screen.getByText('옵션 2').closest('label');
+      const secondButton = screen
+        .getByRole('radio', { name: '옵션 2' })
+        .closest('label');
       secondButton?.focus();
 
       await user.keyboard('{ArrowLeft}');
 
-      const firstButton = screen.getByText('옵션 1').closest('label');
+      const firstButton = screen
+        .getByRole('radio', { name: '옵션 1' })
+        .closest('label');
       expect(firstButton).toHaveFocus();
       expect(handleChange).toHaveBeenCalledWith('option1');
     });
@@ -408,12 +422,16 @@ describe('SegmentedButtons', () => {
         />
       );
 
-      const firstButton = screen.getByText('옵션 1').closest('label');
+      const firstButton = screen
+        .getByRole('radio', { name: '옵션 1' })
+        .closest('label');
       firstButton?.focus();
 
       await user.keyboard('{ArrowLeft}');
 
-      const lastButton = screen.getByText('옵션 3').closest('label');
+      const lastButton = screen
+        .getByRole('radio', { name: '옵션 3' })
+        .closest('label');
       expect(lastButton).toHaveFocus();
       expect(handleChange).toHaveBeenCalledWith('option3');
     });
@@ -430,12 +448,16 @@ describe('SegmentedButtons', () => {
         />
       );
 
-      const lastButton = screen.getByText('옵션 3').closest('label');
+      const lastButton = screen
+        .getByRole('radio', { name: '옵션 3' })
+        .closest('label');
       lastButton?.focus();
 
       await user.keyboard('{ArrowRight}');
 
-      const firstButton = screen.getByText('옵션 1').closest('label');
+      const firstButton = screen
+        .getByRole('radio', { name: '옵션 1' })
+        .closest('label');
       expect(firstButton).toHaveFocus();
       expect(handleChange).toHaveBeenCalledWith('option1');
     });
@@ -506,8 +528,15 @@ describe('SegmentedButtons', () => {
         />
       );
 
-      expect(screen.getByTestId('icon-1')).toBeInTheDocument();
-      expect(screen.getByTestId('icon-2')).toBeInTheDocument();
+      // 아이콘은 표시 안의 라벨 한 벌에도 있어서 진짜 라벨 범위로 좁힌다.
+      const labelOf = (name: string) =>
+        screen.getByRole('radio', { name }).closest('label')!;
+      expect(
+        within(labelOf('옵션 1')).getByTestId('icon-1')
+      ).toBeInTheDocument();
+      expect(
+        within(labelOf('옵션 2')).getByTestId('icon-2')
+      ).toBeInTheDocument();
     });
 
     it('아이콘만 있는 옵션을 렌더링할 수 있다', () => {
@@ -534,8 +563,13 @@ describe('SegmentedButtons', () => {
         />
       );
 
-      expect(screen.getByTestId('icon-1')).toBeInTheDocument();
-      expect(screen.getByTestId('icon-2')).toBeInTheDocument();
+      // 아이콘은 표시 안의 라벨 한 벌에도 있어서 진짜 라벨 범위로 좁힌다.
+      const labelOf = (name: string) =>
+        screen.getByRole('radio', { name }).closest('label')!;
+      expect(within(labelOf('홈')).getByTestId('icon-1')).toBeInTheDocument();
+      expect(
+        within(labelOf('즐겨찾기')).getByTestId('icon-2')
+      ).toBeInTheDocument();
 
       expect(screen.queryByText('홈')).not.toBeInTheDocument();
       expect(screen.queryByText('즐겨찾기')).not.toBeInTheDocument();
@@ -818,6 +852,20 @@ describe('SegmentedButtons', () => {
       );
     };
 
+    /** 선호를 도중에 켜고 끌 수 있는 matchMedia. change 리스너는 EventTarget이 실제로 부른다. */
+    const installTogglableReducedMotion = (initial: boolean) => {
+      const query = Object.assign(new EventTarget(), {
+        matches: initial,
+        media: '(prefers-reduced-motion: reduce)',
+        setMatches(next: boolean) {
+          query.matches = next;
+          query.dispatchEvent(new Event('change'));
+        },
+      });
+      vi.stubGlobal('matchMedia', () => query as unknown as MediaQueryList);
+      return query;
+    };
+
     afterEach(() => {
       vi.restoreAllMocks();
       vi.unstubAllGlobals();
@@ -1027,5 +1075,236 @@ describe('SegmentedButtons', () => {
       expect(readEdges(indicator)).toEqual({ l: 84, r: 164 });
       expect(indicator.__indicatorTimeline!.parent).toBeNull();
     });
+
+    const shiftedRects = {
+      '옵션 1': { left: 1, width: 80 },
+      '옵션 2': { left: 85, width: 80 },
+      '옵션 3': { left: 169, width: 80 },
+    };
+
+    it('같은 값인데 칸 좌표만 바뀌면 고무를 돌리지 않고 새 자리에 바로 앉는다', () => {
+      installLabelRects(rects);
+      const { indicator, moveTo, rerender } = renderAt('option1');
+      moveTo('option2');
+      const timeline = indicator.__indicatorTimeline!;
+      act(() => {
+        timeline.progress(1);
+      });
+
+      // 폰트 로딩 같은 이유로 칸이 1px 밀렸다.
+      installLabelRects(shiftedRects);
+      rerender(
+        <SegmentedButtons
+          options={[...options]}
+          value="option2"
+          onChange={() => {}}
+        />
+      );
+
+      expect(readEdges(indicator)).toEqual({ l: 85, r: 165 });
+      // 새 타임라인(고무 다섯 단계)을 만들지 않았다.
+      expect(indicator.__indicatorTimeline).toBe(timeline);
+    });
+
+    it('같은 값에서 좌표가 바뀌면 진행 중이던 타임라인도 끊고 새 자리에 앉는다', () => {
+      installLabelRects(rects);
+      const { indicator, moveTo, rerender } = renderAt('option1');
+      moveTo('option2');
+      const timeline = indicator.__indicatorTimeline!;
+      act(() => {
+        timeline.time(0.1);
+      });
+
+      installLabelRects(shiftedRects);
+      rerender(
+        <SegmentedButtons
+          options={[...options]}
+          value="option2"
+          onChange={() => {}}
+        />
+      );
+
+      expect(readEdges(indicator)).toEqual({ l: 85, r: 165 });
+      expect(timeline.parent).toBeNull();
+    });
+
+    it('타임라인이 도는 도중 모션 축소 선호가 켜지면 끝 자리로 확정하고 멈춘다', () => {
+      const query = installTogglableReducedMotion(false);
+      installLabelRects(rects);
+      const { indicator, moveTo } = renderAt('option1');
+      moveTo('option2');
+      const timeline = indicator.__indicatorTimeline!;
+      act(() => {
+        timeline.time(0.1);
+      });
+      expect(readEdges(indicator)).not.toEqual({ l: 84, r: 164 });
+
+      act(() => {
+        query.setMatches(true);
+      });
+
+      expect(readEdges(indicator)).toEqual({ l: 84, r: 164 });
+      expect(timeline.parent).toBeNull();
+    });
+  });
+
+  describe('표시 안 라벨 한 벌 (M5 task-19 수정 1)', () => {
+    const iconOptions = [
+      { value: 'a', label: '가', icon: <i data-testid="ia" /> },
+      { value: 'b', label: '나', icon: <i data-testid="ib" />, iconOnly: true },
+      { value: 'c', label: '다', disabled: true },
+    ];
+
+    const indicatorOf = (container: HTMLElement): HTMLElement =>
+      container.querySelector(
+        '[class*="SegmentedButtons_activeIndicator__"]'
+      ) as HTMLElement;
+
+    const realLabels = (container: HTMLElement): HTMLElement[] =>
+      Array.from(container.querySelectorAll('label'));
+
+    const copies = (container: HTMLElement): HTMLElement[] =>
+      Array.from(
+        indicatorOf(container).querySelectorAll<HTMLElement>(
+          '[class*="SegmentedButtons_button__"]'
+        )
+      );
+
+    it('표시 안에 옵션마다 라벨이 한 벌 더 있고 보조 기술에는 숨겨진다', () => {
+      const { container } = render(
+        <SegmentedButtons options={iconOptions} value="a" onChange={() => {}} />
+      );
+      const inner = within(indicatorOf(container));
+
+      expect(copies(container).map((el) => el.textContent)).toEqual([
+        '가',
+        '',
+        '다',
+      ]);
+      expect(
+        indicatorOf(container).closest('[aria-hidden="true"]')
+      ).not.toBeNull();
+      expect(indicatorOf(container).querySelector('input')).toBeNull();
+      expect(inner.getAllByTestId('ia')).toHaveLength(1);
+      expect(inner.getAllByTestId('ib')).toHaveLength(1);
+    });
+
+    it('안쪽 라벨은 진짜 라벨과 같은 클래스 목록이고 선택이 바뀌면 같이 따라간다', () => {
+      const { container, rerender } = render(
+        <SegmentedButtons options={iconOptions} value="a" onChange={() => {}} />
+      );
+      const classesOf = (els: HTMLElement[]) => els.map((el) => el.className);
+
+      expect(classesOf(copies(container))).toEqual(
+        classesOf(realLabels(container))
+      );
+      expect(realLabels(container)[0].className).toContain('selected');
+      expect(realLabels(container)[1].className).toContain('iconOnly');
+      expect(realLabels(container)[2].className).toContain('disabled');
+
+      rerender(
+        <SegmentedButtons options={iconOptions} value="b" onChange={() => {}} />
+      );
+      expect(classesOf(copies(container))).toEqual(
+        classesOf(realLabels(container))
+      );
+      expect(copies(container)[1].className).toContain('selected');
+      expect(copies(container)[0].className).not.toContain('selected');
+    });
+
+    it('안쪽 라벨은 label이 아니고 포커스를 받지 않는다', () => {
+      const { container } = render(
+        <SegmentedButtons
+          options={options}
+          value="option1"
+          onChange={() => {}}
+        />
+      );
+
+      expect(realLabels(container)).toHaveLength(3);
+      expect(copies(container)).toHaveLength(3);
+      copies(container).forEach((el) => {
+        expect(el.tagName).not.toBe('LABEL');
+        expect(el).not.toHaveAttribute('tabindex');
+      });
+    });
+  });
+});
+
+/** vanilla-extract가 실제로 만든 CSS(jsdom에 주입된 <style>)를 CSSOM으로 읽는다. */
+const segmentedRules = (): CSSStyleRule[] => {
+  const sheet = Array.from(document.styleSheets).find((candidate) =>
+    Array.from(candidate.cssRules).some((rule) =>
+      rule.cssText.includes('SegmentedButtons_button__')
+    )
+  );
+  if (!sheet) throw new Error('SegmentedButtons 스타일시트를 찾지 못했다');
+  return Array.from(sheet.cssRules).filter(
+    (rule): rule is CSSStyleRule => rule instanceof CSSStyleRule
+  );
+};
+
+describe('SegmentedButtons 생성 CSS (M5 task-19 수정 1)', () => {
+  const own = (className: string) =>
+    segmentedRules().find((rule) =>
+      new RegExp(`^\\.SegmentedButtons_${className}__\\w+$`).test(
+        rule.selectorText
+      )
+    );
+  const withSelector = (pattern: RegExp) =>
+    segmentedRules().filter((rule) => pattern.test(rule.selectorText));
+
+  it('표시 층이 진짜 라벨보다 위에 쌓인다', () => {
+    const shadow = Number(
+      own('indicatorShadow')?.style.getPropertyValue('z-index')
+    );
+    const label = Number(own('button')?.style.getPropertyValue('z-index'));
+
+    expect(Number.isNaN(shadow)).toBe(false);
+    expect(shadow).toBeGreaterThan(label);
+  });
+
+  it('진짜 라벨의 글자색은 선택 여부와 무관하다', () => {
+    const selectedRules = withSelector(
+      /SegmentedButtons_button__\w+\.selected$/
+    );
+
+    expect(selectedRules.length).toBeGreaterThan(0);
+    selectedRules.forEach((rule) => {
+      expect(rule.style.getPropertyValue('color')).toBe('');
+    });
+  });
+
+  it('표시 안 글자는 활성색이고, 선택 칸 호버 빛은 진짜 라벨이 아니라 표시 안 글자에 있다', () => {
+    const inner = withSelector(
+      /^\.SegmentedButtons_indicatorLabels__\w+ \.SegmentedButtons_button__\w+$/
+    );
+    expect(
+      inner.some((rule) => rule.style.getPropertyValue('color') !== '')
+    ).toBe(true);
+
+    const glow = (rule: CSSStyleRule) =>
+      rule.style.getPropertyValue('text-shadow');
+    const hoverGlow = segmentedRules().filter(
+      (rule) =>
+        /:hover/.test(rule.selectorText) &&
+        glow(rule) !== '' &&
+        glow(rule) !== 'none'
+    );
+    expect(hoverGlow).toHaveLength(1);
+    expect(hoverGlow[0].selectorText).toMatch(/:has\(/);
+    expect(hoverGlow[0].selectorText).toMatch(/indicatorLabels/);
+  });
+
+  it('안쪽 줄은 컨테이너와 같은 가로 배치(flex, 가로 1px, gap 4px)로 컨테이너 전체를 덮는다', () => {
+    const row = own('indicatorLabels')?.style;
+    const box = own('container')?.style;
+
+    expect(row?.getPropertyValue('display')).toBe('flex');
+    expect(row?.getPropertyValue('align-items')).toBe('center');
+    expect(row?.getPropertyValue('gap')).toBe(box?.getPropertyValue('gap'));
+    expect(row?.getPropertyValue('padding')).toMatch(/^0(px)? 1px$/);
+    expect(row?.getPropertyValue('box-sizing')).toBe('border-box');
+    expect(row?.getPropertyValue('width')).toBe('100%');
   });
 });

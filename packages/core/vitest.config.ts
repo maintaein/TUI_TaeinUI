@@ -24,6 +24,8 @@ export default defineConfig({
     // CSSOM으로 잠근다.
     // Switch도 같은 이유다. 채움이 테두리까지 덮는 음수 inset과 호버 부풂의
     // 포인터 게이트를 CSSOM으로 잠근다.
+    // SegmentedButtons도 같은 이유다. 표시 층이 진짜 라벨 위에 쌓이는지, 진짜 라벨의
+    // 글자색이 선택을 따르지 않는지를 CSSOM으로 잠근다.
     css: {
       include: [
         /Slider\.css/,
@@ -34,6 +36,7 @@ export default defineConfig({
         /\/TextField\.css/,
         /\/Checkbox\.css/,
         /\/Switch\.css/,
+        /\/SegmentedButtons\.css/,
       ],
     },
     coverage: {

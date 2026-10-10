@@ -19,8 +19,9 @@ import {
   radioInput,
   activeIndicator,
   indicatorShadow,
+  indicatorLabels,
 } from './SegmentedButtons.css';
-import { gateMotion } from '../../hooks/gateMotion';
+import { gateMotion, settleMotion } from '../../hooks/gateMotion';
 import { useReducedMotion } from '../../hooks/useReducedMotion';
 import { gsapEasing, gsapDuration } from '../../tokens/gsapEasing';
 import { themeContract } from '../../tokens/theme.css';
@@ -130,6 +131,9 @@ export const SegmentedButtons = ({
   // 표시의 직전 칸 자리. null이면 "이전 위치가 없다"는 뜻이라 미끄러지지도
   // 늘어나지도 않는다(위험 4, 마운트 시, 그리고 무효 값에서 되돌아올 때).
   const prevSlotRef = useRef<Slot | null>(null);
+  // prevSlotRef를 만든 때의 선택 값. 값이 그대로인데 좌표만 바뀐 것(레이아웃 변화)과
+  // 값이 바뀌어 옮겨 가는 것을 가른다.
+  const prevValueRef = useRef<string | null>(null);
   // GSAP이 트윈하는 두 가장자리. 타임라인이 바뀌어도 이 객체 하나가 지금 값을 쥔다.
   const edgesRef = useRef<Slot>({ l: 0, r: 0 });
   const indicatorTimelineRef = useRef<gsap.core.Timeline | null>(null);
@@ -150,6 +154,7 @@ export const SegmentedButtons = ({
     // 남아 있어, 새 타임라인이 거기서 이어받는다(Article 1③, 손잡이는 하나).
     const restAt = (slot: Slot) => {
       indicatorTimelineRef.current?.kill();
+      indicatorTimelineRef.current = null;
       edges.l = slot.l;
       edges.r = slot.r;
       paint();
@@ -169,13 +174,23 @@ export const SegmentedButtons = ({
     const slot = { l: left, r: left + rect.width };
 
     const prev = prevSlotRef.current;
+    const prevValue = prevValueRef.current;
+    prevValueRef.current = currentValue;
     // 같은 자리면 건드리지 않는다. 부모가 options 배열을 매번 새로 만들어도 이
-    // effect는 다시 도는데, 그때 진행 중인 타임라인을 끊으면 안 된다.
-    if (prev && prev.l === slot.l && prev.r === slot.r) return;
+    // effect는 다시 도는데, 그때 진행 중인 타임라인을 끊으면 안 된다. 다만 진행 중에
+    // 모션 축소 선호가 켜졌으면(이 effect가 reduced 변화로 다시 돈 것) 지금 모양에서
+    // 멈추지 않도록 끝 자리로 확정한다.
+    if (prev && prev.l === slot.l && prev.r === slot.r) {
+      const running = indicatorTimelineRef.current;
+      if (reduced && running && running.progress() < 1) settleMotion(running);
+      return;
+    }
     prevSlotRef.current = slot;
 
-    if (!prev) {
-      // 첫 배치, 이전 위치가 없으므로 미끄러지지도 늘어나지도 않는다.
+    // 이전 위치가 없으면(첫 배치) 미끄러지지도 늘어나지도 않는다. 값이 그대로인데
+    // 칸 좌표만 바뀐 것(폰트 로딩, 폭 변화)도 옮겨 가는 게 아니라 새 자리에 바로
+    // 앉는다. 고무는 선택 값이 바뀔 때만 돈다.
+    if (!prev || prevValue === currentValue) {
       restAt(slot);
       return;
     }
@@ -310,6 +325,27 @@ export const SegmentedButtons = ({
     [disabled, options, handleSelect]
   );
 
+  // 진짜 라벨과 표시 안의 라벨 한 벌이 같은 클래스 목록·같은 내용을 쓴다. 두 줄의
+  // 배치가 픽셀 단위로 같아야 글자색이 표시 가장자리에서 정확히 갈린다.
+  const labelClass = (option: SegmentedButtonOption) =>
+    clsx(
+      button,
+      currentValue === option.value && 'selected',
+      (disabled || option.disabled) && 'disabled',
+      option.iconOnly && 'iconOnly'
+    );
+
+  const renderContent = (option: SegmentedButtonOption) => (
+    <span className={buttonContent}>
+      {option.icon && (
+        <span className={iconWrapper} aria-hidden="true">
+          {option.icon}
+        </span>
+      )}
+      {!option.iconOnly && <span className={labelText}>{option.label}</span>}
+    </span>
+  );
+
   return (
     <div
       ref={containerRef}
@@ -323,7 +359,15 @@ export const SegmentedButtons = ({
       )}
     >
       <span className={indicatorShadow} aria-hidden="true">
-        <span ref={indicatorRef} className={activeIndicator} />
+        <span ref={indicatorRef} className={activeIndicator}>
+          <span className={indicatorLabels}>
+            {options.map((option) => (
+              <span key={option.value} className={labelClass(option)}>
+                {renderContent(option)}
+              </span>
+            ))}
+          </span>
+        </span>
       </span>
 
       {options.map((option, index) => {
@@ -334,12 +378,7 @@ export const SegmentedButtons = ({
           // eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions
           <label
             key={option.value}
-            className={clsx(
-              button,
-              isSelected && 'selected',
-              isDisabled && 'disabled',
-              option.iconOnly && 'iconOnly'
-            )}
+            className={labelClass(option)}
             tabIndex={isDisabled ? -1 : 0}
             onClick={(e) => handleLabelClick(e, option.value, option.disabled)}
             onKeyDown={(e) => handleKeyDown(e, index)}
@@ -356,16 +395,7 @@ export const SegmentedButtons = ({
               aria-label={option.label}
               tabIndex={-1}
             />
-            <span className={buttonContent}>
-              {option.icon && (
-                <span className={iconWrapper} aria-hidden="true">
-                  {option.icon}
-                </span>
-              )}
-              {!option.iconOnly && (
-                <span className={labelText}>{option.label}</span>
-              )}
-            </span>
+            {renderContent(option)}
           </label>
         );
       })}
