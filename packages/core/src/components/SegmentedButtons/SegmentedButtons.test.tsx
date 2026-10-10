@@ -912,12 +912,12 @@ describe('SegmentedButtons', () => {
       expect(indicator.style.clipPath).toMatch(/round calc\(var\(--/);
     });
 
-    it('쉬는 자리의 둥근 모서리는 트랙 반경(lg)에서 inset(3px)을 뺀 같은 중심의 곡선이다', () => {
+    it('쉬는 자리의 둥근 모서리는 트랙 반경(lg)에서 inset(2px)을 뺀 같은 중심의 곡선이다', () => {
       installLabelRects(rects);
       const { indicator } = renderAt('option2');
 
       expect(indicator.style.clipPath).toContain(
-        `round calc(${themeContract.borderRadius.lg} - 3px)`
+        `round calc(${themeContract.borderRadius.lg} - 2px)`
       );
     });
 
@@ -1317,17 +1317,17 @@ describe('SegmentedButtons 생성 CSS (M5 task-19 수정 1)', () => {
     expect(row?.getPropertyValue('width')).toBe('100%');
   });
 
-  it('표시는 트랙의 축소판이다: 트랙 좌우 padding, 표시 위 간격, 표시 안 라벨 줄 가로 padding이 같은 값(3px)이다', () => {
+  it('표시는 트랙의 축소판이다: 트랙 좌우 padding, 표시 위 간격, 표시 안 라벨 줄 가로 padding이 같은 값(2px)이다', () => {
     const box = own('container')?.style;
     const shadow = own('indicatorShadow')?.style;
     const row = own('indicatorLabels')?.style;
 
     // 위아래 padding 1px은 그대로라 라벨 높이 85%가 바뀌지 않는다.
-    expect(box?.getPropertyValue('padding')).toBe('1px 3px');
-    expect(shadow?.getPropertyValue('top')).toBe('3px');
-    expect(shadow?.getPropertyValue('height')).toBe('calc(100% - 6px)');
-    expect(row?.getPropertyValue('padding')).toMatch(/^0(px)? 3px$/);
-    expect(row?.getPropertyValue('top')).toBe('-3px');
-    expect(row?.getPropertyValue('height')).toBe('calc(100% + 6px)');
+    expect(box?.getPropertyValue('padding')).toBe('1px 2px');
+    expect(shadow?.getPropertyValue('top')).toBe('2px');
+    expect(shadow?.getPropertyValue('height')).toBe('calc(100% - 4px)');
+    expect(row?.getPropertyValue('padding')).toMatch(/^0(px)? 2px$/);
+    expect(row?.getPropertyValue('top')).toBe('-2px');
+    expect(row?.getPropertyValue('height')).toBe('calc(100% + 4px)');
   });
 });
