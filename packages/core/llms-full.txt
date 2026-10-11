@@ -516,6 +516,8 @@ import { Avatar, AvatarGroup } from '@taein-ui/core';
 
 Loading indicator with orbit (default), spinner, dots, bar, wave, inchworm, or fuse (progress) variants.
 
+The bar, inchworm, and fuse tracks are a borderless 6px gray (`palette.gray[200]`) surface with 3px rounded ends. The moving blue head of every type has a soft glow (`0 0 6px`, 45% of the head's own color), and it stays under reduced motion.
+
 ```tsx
 import { Loader } from '@taein-ui/core';
 

@@ -372,13 +372,14 @@ describe('컴포넌트가 실제로 합성하는 색 쌍', () => {
 
   it('연한 트랙 면은 border.strong 경계선이 식별을 맡는다', () => {
     // 트랙 면을 background.paper로 내리면 면 자체는 흰 페이지 대비 1.02:1이라
-    // 안 보인다 — 1.4.11의 3:1을 넘기는 건 inset 경계선 쪽이다.
+    // 안 보인다 — 1.4.11의 3:1을 넘기는 건 선(stroke) 쪽이다.
+    // Loader 막대 트랙은 경계선이 없는 gray 200 면으로 바뀌어 이 시험을 떠났다
+    // (채움 대비는 위 시험, 면은 SegmentedButtons 트랙과 같은 값, M5 task-20 수정 6).
     const blocks: Record<string, string> = {
       'Slider sliderLineTrack': declBlock(SLIDER_CSS, 'sliderLineTrack'),
-      'Loader bar': declBlock(LOADER_CSS, 'bar'),
     };
     for (const [label, block] of Object.entries(blocks)) {
-      // Slider는 SVG 선(stroke), Loader는 inset 그림자.
+      // Slider는 SVG 선(stroke).
       const ringMatch = block.match(
         /boxShadow: `inset 0 0 0 1px \$\{themeContract\.([\w.]+)\}`|stroke: themeContract\.([\w.]+)/
       );

@@ -12,6 +12,12 @@ import {
   inchwormStops,
 } from './loaderMotion';
 
+// 머리의 은은한 광휘. 타입마다 "움직이는 파란 부분(머리)"에 같은 빛을 건다: 값이
+// 하나라 색만 머리 색으로 바뀐다. 정지된 빛이라 애니메이션하지 않고 축소 선호에서도
+// 그대로 둔다. box-shadow 인자와 drop-shadow 인자가 같은 문법이라 둘 다 이 값을 쓴다.
+const loaderGlow = (color: string): string =>
+  `0 0 6px color-mix(in srgb, ${color} 45%, transparent)`;
+
 // 애니메이션 정의
 const progress = keyframes({
   '0%': {
@@ -134,13 +140,14 @@ export const overlayStyles = style({
 
 export const bar = style({
   position: 'relative',
-  height: '4px',
-  // 움직이는 fill이 이 컴포넌트의 유일한 신호다. fill이 어두우니 면은 연하게
-  // 두고 식별성은 border.strong 경계선이 맡는다.
-  backgroundColor: themeContract.color.background.paper,
-  boxShadow: `inset 0 0 0 1px ${themeContract.color.border.strong}`,
-  borderRadius: '2px',
-  overflow: 'hidden',
+  height: '6px',
+  // 테두리 없이 회색 면 하나로 트랙을 그린다. 흰 페이지 위에서 면이 보이려면
+  // paper(1.04:1)로는 모자라 gray[200]을 쓴다(SegmentedButtons 트랙과 같다).
+  // 채움(primary.main)과는 3:1을 넘는다.
+  backgroundColor: themeContract.palette.gray[200],
+  borderRadius: '3px',
+  // overflow: hidden은 머리의 빛을 위아래로 자른다. 양끝만 자르고 위아래는 연다.
+  clipPath: 'inset(-8px 0 -8px 0)',
 
   selectors: {
     // white 변형은 어두운 면 위에서 쓰는 것이라 밝은 fill이 올라탄다 —
@@ -148,7 +155,6 @@ export const bar = style({
     // 래퍼에 이미 달아 둔 속성이라 새로 붙일 것이 없다.
     '[data-color="white"] &': {
       backgroundColor: themeContract.color.surface.track,
-      boxShadow: 'none',
     },
   },
 });
@@ -159,8 +165,9 @@ export const barFill = style({
   left: 0,
   height: '100%',
   width: '25%',
-  borderRadius: '2px',
+  borderRadius: '3px',
   backgroundColor: 'var(--loader-color)',
+  boxShadow: loaderGlow('var(--loader-color)'),
   // 불확정 스윕이다(진행률을 받는 자리가 아니다) — S1: Skeleton wave와
   // 방향(좌→우) · 커브(T5 공유 자산) · 주기(loop.base)를 공유한다.
   animation: `${progress} ${themeContract.animation.loop.base} ${loopRhythmEasing} infinite`,
@@ -171,6 +178,20 @@ export const barSizeStyles = styleVariants({
   md: { width: '200px' },
   lg: { width: '300px' },
   xl: { width: '400px' },
+});
+
+// 자벌레의 빛 래퍼. 알약 층은 자기 clip-path로 그려져 box-shadow가 같이 잘리므로,
+// 자르지 않는 이 부모가 자른 결과의 윤곽을 drop-shadow로 그린다(SegmentedButtons
+// indicatorShadow와 같다). 트랙 면은 이 밖이라 빛이 면까지 번지지 않는다. 색 변수는
+// 이 래퍼가 받고 채움이 상속한다.
+export const inchwormGlow = style({
+  position: 'absolute',
+  top: 0,
+  left: 0,
+  width: '100%',
+  height: '100%',
+  pointerEvents: 'none',
+  filter: `drop-shadow(${loaderGlow('var(--loader-color)')})`,
 });
 
 // 자벌레의 채움 층. 트랙 전체 폭을 채우고 clip-path로 몸 모양만 남긴다.
@@ -189,7 +210,7 @@ export const inchwormFill = style({
 
   '@media': {
     '(prefers-reduced-motion: reduce)': {
-      clipPath: 'inset(0 37.5% 0 37.5% round 2px)',
+      clipPath: 'inset(0 37.5% 0 37.5% round 3px)',
       animation: `${fadeInOut} ${themeContract.animation.loop.base} infinite ${loopRhythmEasing} backwards`,
     },
   },
@@ -214,12 +235,30 @@ export const inlineContainer = style({
 });
 
 export const spinner = style({
+  position: 'relative',
   border: '3px solid',
   borderColor: themeContract.color.border.default,
   borderTopColor: 'var(--spinner-color)',
   borderRadius: '50%',
   animation: `${spin} ${themeContract.animation.loop.fast} ${themeContract.animation.easing.linear} infinite`,
   boxSizing: 'border-box',
+
+  selectors: {
+    // 빛은 색칠된 위쪽 호에만 걸어야 한다. 고리 전체에 그림자를 걸면 회색 부분까지
+    // 번지므로, 같은 크기의 겹친 층에 위쪽 테두리만 칠하고(나머지 투명) 그 층에
+    // drop-shadow를 건다. 층은 고리와 같이 돈다.
+    '&::before': {
+      content: "''",
+      position: 'absolute',
+      inset: '-3px',
+      boxSizing: 'border-box',
+      border: '3px solid',
+      borderColor: 'transparent',
+      borderTopColor: 'var(--spinner-color)',
+      borderRadius: '50%',
+      filter: `drop-shadow(${loaderGlow('var(--spinner-color)')})`,
+    },
+  },
 });
 
 // 점 궤도. 로더 크기는 spinnerSizeStyles가 주고, 점은 그 안에서 절대 배치한다.
@@ -236,6 +275,7 @@ export const orbitDot = style({
   margin: 'calc(var(--orbit-d) / -2) 0 0 calc(var(--orbit-d) / -2)',
   borderRadius: '50%',
   backgroundColor: 'var(--spinner-color)',
+  boxShadow: loaderGlow('var(--spinner-color)'),
   // 12시에서 시작해 시계 방향으로 i번째 점이 i × 45deg. 중심에서 반지름만큼 민다.
   transform:
     'rotate(calc(var(--orbit-i) * 45deg)) translateY(calc(var(--orbit-r) * -1))',
@@ -244,16 +284,20 @@ export const orbitDot = style({
   // 점마다 한 바퀴의 1/8씩 늦게 켜진다. 리터럴 시간 없이 loop 토큰의 배수다.
   animationDelay: `calc(${themeContract.animation.loop.fast} * var(--orbit-i) / 8)`,
   // 완료 표식(status)이 되면 점이 색을 바꾼다. 색은 CSS 전이가 맡고 위치와
-  // 투명도는 GSAP이 맡는다(Loader.tsx). 표식으로 모이는 동안과 앉은 뒤에는 밝기
+  // 투명도는 GSAP이 맡는다(Loader.tsx). 점의 빛(box-shadow)도 같은 색을 따라가야
+  // 해서 background-color와 같이 전이한다. 빛이 혼자 툭 바뀌지 않게 하려는 것이고
+  // 빛 자체를 움직이는 것은 아니다. 표식으로 모이는 동안과 앉은 뒤에는 밝기
   // 키프레임을 멈춘다(data-paused). loading으로 돌아와 도착하면 재개된다.
-  transition: `background-color ${themeContract.animation.duration.base} ${themeContract.animation.easing.settle}`,
+  transition: `background-color ${themeContract.animation.duration.base} ${themeContract.animation.easing.settle}, box-shadow ${themeContract.animation.duration.base} ${themeContract.animation.easing.settle}`,
 
   selectors: {
     '[data-status="done"] &': {
       backgroundColor: themeContract.color.success.dark,
+      boxShadow: loaderGlow(themeContract.color.success.dark),
     },
     '[data-status="error"] &': {
       backgroundColor: themeContract.color.error.dark,
+      boxShadow: loaderGlow(themeContract.color.error.dark),
     },
     '[data-paused] &': { animation: 'none' },
   },
@@ -301,6 +345,7 @@ export const waveBar = style({
   margin: '0 3px',
   borderRadius: '1px',
   backgroundColor: 'var(--spinner-color)',
+  boxShadow: loaderGlow('var(--spinner-color)'),
   transform: 'scaleY(0.3)',
   transformOrigin: 'center',
   animation: `${waveSwell} ${themeContract.animation.loop.base} ${loopRhythmEasing} infinite backwards`,
@@ -339,9 +384,13 @@ export const dot = style({
 // 버블 점의 안쪽 몸통. 눌림(예비동작)을 맡는다. 눌릴 때 바닥이 붙어 있도록
 // 기준점이 아래 가운데다.
 export const dotBody = style({
+  // span은 기본이 inline이라 block으로 두지 않으면 width·height 100%가 먹지 않아
+  // 0 x 0이 되고 점이 보이지 않는다(바깥 상자는 flex 항목이라 블록화되지만 안쪽은 아니다).
+  display: 'block',
   width: '100%',
   height: '100%',
   backgroundColor: 'var(--spinner-color)',
+  boxShadow: loaderGlow('var(--spinner-color)'),
   borderRadius: '50%',
   transformOrigin: '50% 100%',
   animation: `${bubbleSquash} ${themeContract.animation.loop.base} ${loopRhythmEasing} infinite backwards`,
@@ -442,9 +491,9 @@ export const fuseFill = style({
   width: '100%',
   height: '100%',
   backgroundColor: 'var(--loader-color)',
-  clipPath: 'inset(0 calc(100% - var(--fuse-value) * 1%) 0 0 round 2px)',
+  clipPath: 'inset(0 calc(100% - var(--fuse-value) * 1%) 0 0 round 3px)',
   // clip-path 전이는 레이아웃을 건드리지 않는 페인트 속성이다(자벌레와 같다).
-  // 둥근 끝(round 2px)을 지키며 오른쪽 가장자리만 옮기려면 이 속성이 필요하다.
+  // 둥근 끝(round 3px)을 지키며 오른쪽 가장자리만 옮기려면 이 속성이 필요하다.
   transition: `clip-path ${themeContract.animation.duration.slow} ${themeContract.animation.easing.settle}`,
 
   '@media': {
@@ -486,7 +535,7 @@ export const fuseSparkDot = style({
   height: 'var(--spark-d)',
   borderRadius: '50%',
   backgroundColor: 'var(--loader-color)',
-  boxShadow: '0 0 6px color-mix(in srgb, var(--loader-color) 55%, transparent)',
+  boxShadow: loaderGlow('var(--loader-color)'),
   animation: `${fuseFlicker} ${themeContract.animation.loop.fast} ${loopRhythmEasing} infinite`,
 
   '@media': {

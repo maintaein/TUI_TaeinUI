@@ -75,7 +75,7 @@ export const inchwormStops = (): InchwormStop[] => {
 
 /** 채움 층(트랙 전체 폭)을 몸 모양으로 오려 내는 clip-path. 끝이 둥글다. */
 export const inchwormInset = ({ l, lPx, r }: InchwormStop): string =>
-  `inset(0 calc(100% - ${r}%) 0 ${lPx ? `calc(${l}% + ${lPx}px)` : `${l}%`} round 2px)`;
+  `inset(0 calc(100% - ${r}%) 0 ${lPx ? `calc(${l}% + ${lPx}px)` : `${l}%`} round 3px)`;
 
 /** keyframes()에 펼쳐 넣는 프레임. 끝 프레임을 뺀 정지점마다 그 구간의 커브를 건다. */
 export const inchwormFrames = (

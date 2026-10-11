@@ -4,6 +4,7 @@ import { describe, it, expect, vi, afterEach } from 'vitest';
 import { act, render, screen } from '@testing-library/react';
 import { Loader } from './Loader';
 import { gray } from '../../tokens/colors.css';
+import { contrastRatio, AA_UI } from '../../docs/llmsSections';
 import { themeTokens } from '../../tokens/contract';
 import { gsapDuration, gsapEasing } from '../../tokens/gsapEasing';
 import { SQUASH_PX } from '../SegmentedButtons/segmentedMotion';
@@ -916,12 +917,12 @@ describe('Loader', () => {
       });
     });
 
-    it('clip-path 문자열: inset(0 calc(100% - R) 0 L round 2px), 지나침이면 L에 3px를 더한다', () => {
+    it('clip-path 문자열: inset(0 calc(100% - R) 0 L round 3px), 지나침이면 L에 3px를 더한다', () => {
       expect(inchwormInset(at(0))).toBe(
-        'inset(0 calc(100% - 0%) 0 -25% round 2px)'
+        'inset(0 calc(100% - 0%) 0 -25% round 3px)'
       );
       expect(inchwormInset(at(17))).toBe(
-        'inset(0 calc(100% - 25%) 0 calc(0% + 3px) round 2px)'
+        'inset(0 calc(100% - 25%) 0 calc(0% + 3px) round 3px)'
       );
     });
 
@@ -954,7 +955,7 @@ describe('Loader', () => {
       expect(fill).toContain('clipPath: inchwormInset(');
     });
 
-    it('bar와 같은 트랙(크기 클래스, 면, 경계) 안에서 채움 층이 전체 폭으로 깔린다', () => {
+    it('bar와 같은 트랙(크기 클래스, 면) 안에서 채움 층이 전체 폭으로 깔린다', () => {
       const { container } = render(<Loader type="inchworm" size="lg" />);
       const status = screen.getByRole('status');
       expect(status).toHaveAttribute('data-type', 'inchworm');
@@ -973,13 +974,14 @@ describe('Loader', () => {
       const { container, rerender } = render(
         <Loader type="inchworm" color="white" />
       );
+      // 빛(drop-shadow)이 색을 읽는 래퍼가 색을 받고, 채움은 상속한다.
       expect(
-        container.querySelector('[data-inchworm-fill]')!.className
+        container.querySelector('[data-inchworm-glow]')!.className
       ).toContain('colorStyles_white');
       rerender(<Loader type="inchworm" color="#0f0" />);
       expect(
         (
-          container.querySelector('[data-inchworm-fill]') as HTMLElement
+          container.querySelector('[data-inchworm-glow]') as HTMLElement
         ).style.getPropertyValue('--loader-color')
       ).toBe('#0f0');
     });
@@ -987,7 +989,7 @@ describe('Loader', () => {
     it('축소 선호: 기어가지 않고 몸은 가운데(L 37.5%, R 62.5%)에서 투명도 맥박(loop.base)이다', () => {
       const fill = block(LOADER_CSS, 'inchwormFill');
       const media = fill.slice(fill.indexOf('prefers-reduced-motion'));
-      expect(media).toContain("clipPath: 'inset(0 37.5% 0 37.5% round 2px)'");
+      expect(media).toContain("clipPath: 'inset(0 37.5% 0 37.5% round 3px)'");
       expect(media).toContain(
         'animation: `${fadeInOut} ${themeContract.animation.loop.base} infinite ${loopRhythmEasing} backwards`'
       );
@@ -1344,17 +1346,17 @@ describe('Loader', () => {
       expect(contrastOnWhite(themeTokens.color.error.dark)).toBeGreaterThan(3);
       const dotBlock = block(LOADER_CSS, 'orbitDot');
       expectCss(dotBlock).toContain(
-        '\'[data-status="done"] &\': { backgroundColor: themeContract.color.success.dark }'
+        '\'[data-status="done"] &\': { backgroundColor: themeContract.color.success.dark, boxShadow: loaderGlow(themeContract.color.success.dark) }'
       );
       expectCss(dotBlock).toContain(
-        '\'[data-status="error"] &\': { backgroundColor: themeContract.color.error.dark }'
+        '\'[data-status="error"] &\': { backgroundColor: themeContract.color.error.dark, boxShadow: loaderGlow(themeContract.color.error.dark) }'
       );
     });
 
     it('색은 CSS background-color 전이(base settle)로 바뀌고, 멈춘 동안 밝기 키프레임은 없다', () => {
       const dotBlock = block(LOADER_CSS, 'orbitDot');
       expectCss(dotBlock).toContain(
-        'transition: `background-color ${themeContract.animation.duration.base} ${themeContract.animation.easing.settle}`'
+        'transition: `background-color ${themeContract.animation.duration.base} ${themeContract.animation.easing.settle}, box-shadow ${themeContract.animation.duration.base} ${themeContract.animation.easing.settle}`'
       );
       expectCss(dotBlock).toContain("'[data-paused] &': { animation: 'none' }");
     });
@@ -1746,7 +1748,7 @@ describe('Loader', () => {
       const fill = block(LOADER_CSS, 'fuseFill');
       expectCss(fill).toContain("width: '100%'");
       expectCss(fill).toContain(
-        "clipPath: 'inset(0 calc(100% - var(--fuse-value) * 1%) 0 0 round 2px)'"
+        "clipPath: 'inset(0 calc(100% - var(--fuse-value) * 1%) 0 0 round 3px)'"
       );
       expectCss(fill).toContain(
         'transition: `clip-path ${themeContract.animation.duration.slow} ${themeContract.animation.easing.settle}`'
@@ -1769,9 +1771,7 @@ describe('Loader', () => {
       const dot = block(LOADER_CSS, 'fuseSparkDot');
       expectCss(dot).toContain("borderRadius: '50%'");
       expectCss(dot).toContain("backgroundColor: 'var(--loader-color)'");
-      expectCss(dot).toContain(
-        "boxShadow: '0 0 6px color-mix(in srgb, var(--loader-color) 55%, transparent)'"
-      );
+      expectCss(dot).toContain("boxShadow: loaderGlow('var(--loader-color)')");
     });
 
     it('value가 100이면 data-complete가 붙고 불똥이 base로 사라진다', () => {
@@ -1848,6 +1848,204 @@ describe('Loader', () => {
         <Loader key="f" type="fuse" value={10} />,
       ];
       expect(elements).toHaveLength(6);
+    });
+  });
+});
+
+describe('버블 점이 보인다 (M5 task-20 수정 6)', () => {
+  // CSSOM으로 읽으려면 vitest가 Loader.css를 jsdom에 주입해야 하는데, 그러면 궤도 점의
+  // 배치용 transform까지 적용되어 GSAP 좌표 시험들이 어긋난다. 그래서 이 파일의 다른
+  // CSS 시험처럼 소스 텍스트로 잠근다. 변이(display를 지움)로 빨개진다.
+  it('버블 점 안쪽 몸은 inline이 아니라 block이다 (inline이면 width·height 100%가 먹지 않아 0 x 0이다)', () => {
+    const body = block(LOADER_CSS, 'dotBody');
+    expectCss(body).toContain("display: 'block'");
+    expect(body).not.toMatch(/display:\s*'inline'/);
+  });
+
+  it('다른 span 그래픽은 inline 함정이 없다 (flex 항목이거나 절대 위치다)', () => {
+    // 궤도 점·불똥은 절대 위치, 물결 막대와 버블 점 바깥 상자는 flex 항목이라 블록화된다.
+    // 안쪽 몸만 부모(바깥 상자)가 flex가 아니라서 inline으로 남았다.
+    expectCss(block(LOADER_CSS, 'orbitDot')).toContain("position: 'absolute'");
+    expectCss(block(LOADER_CSS, 'fuseSparkDot')).toContain(
+      "position: 'absolute'"
+    );
+    expectCss(block(LOADER_CSS, 'waveBar')).toContain('flexShrink: 0');
+    expectCss(block(LOADER_CSS, 'wave')).toContain("display: 'flex'");
+    expectCss(block(LOADER_CSS, 'dotsContainer')).toContain("display: 'flex'");
+  });
+});
+
+describe('막대 디자인: 테두리 없는 6px 회색 면 (M5 task-20 수정 6)', () => {
+  const { palette, color } = themeTokens;
+
+  it('트랙은 테두리(boxShadow inset)와 overflow hidden 없이 6px, 끝 3px, gray 200 면이다', () => {
+    const track = block(LOADER_CSS, 'bar');
+    const base = track.slice(0, track.indexOf('selectors'));
+    expectCss(base).toContain("height: '6px'");
+    expectCss(base).toContain("borderRadius: '3px'");
+    expectCss(base).toContain(
+      'backgroundColor: themeContract.palette.gray[200]'
+    );
+    expect(track).not.toContain('boxShadow');
+    expect(track).not.toContain('border.strong');
+    expect(track).not.toMatch(/^\s*overflow:/m);
+  });
+
+  it('트랙은 위아래가 열린 clip-path로 양끝만 자른다 (빛이 위아래로 번지게)', () => {
+    expectCss(block(LOADER_CSS, 'bar')).toContain(
+      "clipPath: 'inset(-8px 0 -8px 0)'"
+    );
+  });
+
+  it('white 변형의 어두운 면(surface.track)은 그대로다', () => {
+    expectCss(block(LOADER_CSS, 'bar')).toContain(
+      'backgroundColor: themeContract.color.surface.track'
+    );
+  });
+
+  it('채움의 둥근 끝도 3px다', () => {
+    expectCss(block(LOADER_CSS, 'barFill')).toContain("borderRadius: '3px'");
+  });
+
+  it('채움(primary.main)은 트랙(gray 200) 위에서 UI 요소 대비(3:1)를 만족한다', () => {
+    expect(
+      contrastRatio(color.primary.main, palette.gray[200])
+    ).toBeGreaterThanOrEqual(AA_UI);
+  });
+
+  it('도화선 불똥은 6px 트랙의 가운데에 놓인다 (래퍼 top 50%, 점은 지름의 절반만큼 당긴다)', () => {
+    expectCss(block(LOADER_CSS, 'fuseSpark')).toContain("top: '50%'");
+    expectCss(block(LOADER_CSS, 'fuseSparkDot')).toContain(
+      "top: 'calc(var(--spark-d) / -2)'"
+    );
+  });
+});
+
+describe('머리의 은은한 광휘 (M5 task-20 수정 6)', () => {
+  it('광휘 값은 loaderGlow 하나에만 있고 리터럴이 다른 곳에 없다', () => {
+    const at = LOADER_CSS.indexOf('const loaderGlow = ');
+    expect(at, 'loaderGlow 정의를 찾지 못했다').toBeGreaterThan(-1);
+    const def = LOADER_CSS.slice(at, LOADER_CSS.indexOf(';', at));
+    expectCss(def).toContain(
+      '`0 0 6px color-mix(in srgb, ${color} 45%, transparent)`'
+    );
+    expect(LOADER_CSS.match(/0 0 6px/g)).toHaveLength(1);
+    expect(LOADER_CSS.match(/45%/g)).toHaveLength(1);
+  });
+
+  it('orbit: 점마다 자기 색으로 번지고 완료·실패 표식에서는 그 색이다', () => {
+    const dot = block(LOADER_CSS, 'orbitDot');
+    expectCss(dot).toContain("boxShadow: loaderGlow('var(--spinner-color)')");
+    expectCss(dot).toContain(
+      'boxShadow: loaderGlow(themeContract.color.success.dark)'
+    );
+    expectCss(dot).toContain(
+      'boxShadow: loaderGlow(themeContract.color.error.dark)'
+    );
+  });
+
+  it('dots: 안쪽 몸에 건다', () => {
+    expectCss(block(LOADER_CSS, 'dotBody')).toContain(
+      "boxShadow: loaderGlow('var(--spinner-color)')"
+    );
+  });
+
+  it('wave: 막대마다 건다', () => {
+    expectCss(block(LOADER_CSS, 'waveBar')).toContain(
+      "boxShadow: loaderGlow('var(--spinner-color)')"
+    );
+  });
+
+  it('bar: 움직이는 채움에 건다', () => {
+    expectCss(block(LOADER_CSS, 'barFill')).toContain(
+      "boxShadow: loaderGlow('var(--loader-color)')"
+    );
+  });
+
+  it('fuse: 불똥에만 걸고 채움 자체에는 걸지 않는다', () => {
+    expectCss(block(LOADER_CSS, 'fuseSparkDot')).toContain(
+      "boxShadow: loaderGlow('var(--loader-color)')"
+    );
+    const fill = block(LOADER_CSS, 'fuseFill');
+    expect(fill).not.toContain('boxShadow');
+    expect(fill).not.toContain('filter');
+  });
+
+  it('spinner: 회색 고리 층에는 그림자가 없고, 위쪽 호만 칠한 겹친 층에 drop-shadow가 걸린다', () => {
+    const ring = block(LOADER_CSS, 'spinner');
+    const own = ring.slice(0, ring.indexOf('selectors'));
+    expect(own).not.toContain('boxShadow');
+    expect(own).not.toContain('filter');
+    const layer = ring.slice(ring.indexOf("'&::before'"));
+    expectCss(layer).toContain(`content: "''"`);
+    expectCss(layer).toContain("position: 'absolute'");
+    expectCss(layer).toContain("borderColor: 'transparent'");
+    expectCss(layer).toContain("borderTopColor: 'var(--spinner-color)'");
+    expectCss(layer).toContain(
+      "filter: `drop-shadow(${loaderGlow('var(--spinner-color)')})`"
+    );
+    expectCss(layer).toContain("boxSizing: 'border-box'");
+    expectCss(layer).toContain("borderRadius: '50%'");
+  });
+
+  it('inchworm: 알약 층을 감싼 래퍼가 drop-shadow를 걸고, 트랙 면은 래퍼 밖이다', () => {
+    const wrap = block(LOADER_CSS, 'inchwormGlow');
+    expectCss(wrap).toContain(
+      "filter: `drop-shadow(${loaderGlow('var(--loader-color)')})`"
+    );
+    expectCss(wrap).toContain("position: 'absolute'");
+    expect(wrap).not.toContain('backgroundColor');
+    expect(block(LOADER_CSS, 'inchwormFill')).not.toContain('boxShadow');
+  });
+
+  it('inchworm DOM: 트랙 > 래퍼 > 채움이다', () => {
+    const { container } = render(<Loader type="inchworm" />);
+    const track = screen.getByRole('status').firstElementChild as HTMLElement;
+    const wrapper = container.querySelector('[data-inchworm-glow]');
+    expect(wrapper?.parentElement).toBe(track);
+    expect(wrapper?.firstElementChild).toBe(
+      container.querySelector('[data-inchworm-fill]')
+    );
+  });
+
+  it('정지된 빛이라 축소 선호에서도 걷어내지 않고, 빛은 애니메이션하지 않는다', () => {
+    [
+      'orbitDot',
+      'dotBody',
+      'waveBar',
+      'barFill',
+      'fuseSparkDot',
+      'spinner',
+      'inchwormGlow',
+    ].forEach((name) => {
+      const src = block(LOADER_CSS, name);
+      const media = src.includes('prefers-reduced-motion')
+        ? src.slice(src.indexOf('prefers-reduced-motion'))
+        : '';
+      expect(media, name).not.toMatch(/boxShadow|filter/);
+    });
+    // 전이는 궤도 점의 색 바꿈에 빛이 따라가는 것뿐이고 filter는 전이하지 않는다.
+    expect(LOADER_CSS).not.toMatch(/transition:[^\n]*filter/);
+    expect(
+      LOADER_CSS.match(/transition:[^\n]*box-shadow/g),
+      'box-shadow 전이는 orbitDot 하나뿐이다'
+    ).toHaveLength(1);
+    expect(block(LOADER_CSS, 'orbitDot')).toMatch(
+      /transition:[^\n]*box-shadow/
+    );
+    [
+      'progress',
+      'orbitLit',
+      'bubbleRise',
+      'bubbleSquash',
+      'waveSwell',
+      'inchworm',
+      'fuseFlicker',
+      'fadeInOut',
+    ].forEach((name) => {
+      expect(keyframesBlock(LOADER_CSS, name), name).not.toMatch(
+        /boxShadow|filter/
+      );
     });
   });
 });
