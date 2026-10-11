@@ -1410,67 +1410,48 @@ describe('Loader', () => {
     });
   });
 
-  describe('라벨 교체는 칸 폭 트윈과 GSAP 타임라인 하나다 (M5 task-20 수정 2)', () => {
+  describe('라벨 교체는 흐림 교체 GSAP 타임라인 하나다 (M5 task-20 수정 5)', () => {
     type LabelHost = HTMLElement & {
       __loaderLabelTimeline?: gsap.core.Timeline;
     };
     type Tween = gsap.core.Tween;
 
-    // jsdom은 레이아웃이 없어 offsetWidth·offsetHeight가 늘 0이다. 글자 수 × 10px로
-    // 폭을, 한 줄 20px로 높이를 깐다(읽은 횟수도 센다).
-    const CHAR_PX = 10;
-    const LINE_PX = 20;
-    let widthReads = 0;
-    let heightReads = 0;
-    // 줄바꿈 상태 높이에 얹는 소수 오차. 문턱(0.5)을 잠그는 시험이 쓴다
-    let wrapNoise = 0;
-    let rectReads = 0;
-    const offsetWidthOriginal = Object.getOwnPropertyDescriptor(
-      HTMLElement.prototype,
-      'offsetWidth'
-    );
-    const rectOriginal = Element.prototype.getBoundingClientRect;
-    const offsetHeightOriginal = Object.getOwnPropertyDescriptor(
-      HTMLElement.prototype,
-      'offsetHeight'
-    );
-    // 컨테이너가 라벨에 줄 수 있는 폭. 이보다 한 줄 폭이 넓은 글자는 줄바꿈되고,
-    // 줄바꿈을 허용한 칸의 높이가 nowrap 칸의 높이보다 커진다
-    const ROOM_PX = 20 * CHAR_PX;
-    const installLayout = (): void => {
-      Object.defineProperty(HTMLElement.prototype, 'offsetHeight', {
-        configurable: true,
-        get(this: HTMLElement) {
-          heightReads += 1;
-          if (this.tagName !== 'P') return 0;
-          const active = this.querySelector('[data-label-layer][data-active]');
-          const oneLine = (active?.textContent ?? '').length * CHAR_PX;
-          if (this.style.whiteSpace === 'nowrap') return LINE_PX;
-          const lines = Math.max(1, Math.ceil(oneLine / ROOM_PX));
-          return lines * LINE_PX + (lines === 1 ? wrapNoise : 0);
-        },
-      });
-      Object.defineProperty(HTMLElement.prototype, 'offsetWidth', {
-        configurable: true,
-        get(this: HTMLElement) {
-          widthReads += 1;
-          const inline = Number.parseFloat(this.style.width);
-          if (Number.isFinite(inline)) return inline;
-          if (this.hasAttribute('data-label-layer'))
-            return (this.textContent ?? '').length * CHAR_PX;
-          if (this.tagName === 'P') {
-            const active = this.querySelector(
-              '[data-label-layer][data-active]'
-            );
-            return (active?.textContent ?? '').length * CHAR_PX;
-          }
-          return 0;
-        },
-      });
+    // 레이아웃을 읽는 getter를 세는 껍데기. 값은 jsdom 그대로이고 읽은 횟수만 센다.
+    const READ_PROPS = [
+      'offsetWidth',
+      'offsetHeight',
+      'clientWidth',
+      'clientHeight',
+      'scrollWidth',
+      'scrollHeight',
+    ] as const;
+    let layoutReads = 0;
+    const restores: Array<() => void> = [];
+    const installReadCounter = (): void => {
+      for (const prop of READ_PROPS) {
+        const proto = [HTMLElement.prototype, Element.prototype].find((p) =>
+          Object.prototype.hasOwnProperty.call(p, prop)
+        ) as object;
+        const original = Object.getOwnPropertyDescriptor(proto, prop);
+        Object.defineProperty(proto, prop, {
+          configurable: true,
+          get(this: Element) {
+            layoutReads += 1;
+            return original?.get?.call(this) ?? 0;
+          },
+        });
+        restores.push(() => {
+          if (original) Object.defineProperty(proto, prop, original);
+        });
+      }
+      const rectOriginal = Element.prototype.getBoundingClientRect;
       Element.prototype.getBoundingClientRect = function (this: Element) {
-        rectReads += 1;
+        layoutReads += 1;
         return rectOriginal.call(this);
       };
+      restores.push(() => {
+        Element.prototype.getBoundingClientRect = rectOriginal;
+      });
     };
     const installReducedMotion = (): void => {
       vi.stubGlobal(
@@ -1488,26 +1469,9 @@ describe('Loader', () => {
     };
 
     afterEach(() => {
-      if (offsetWidthOriginal) {
-        Object.defineProperty(
-          HTMLElement.prototype,
-          'offsetWidth',
-          offsetWidthOriginal
-        );
-      }
-      Element.prototype.getBoundingClientRect = rectOriginal;
-      if (offsetHeightOriginal) {
-        Object.defineProperty(
-          HTMLElement.prototype,
-          'offsetHeight',
-          offsetHeightOriginal
-        );
-      }
+      restores.splice(0).forEach((restore) => restore());
       vi.unstubAllGlobals();
-      widthReads = 0;
-      heightReads = 0;
-      wrapNoise = 0;
-      rectReads = 0;
+      layoutReads = 0;
     });
 
     const paragraph = (container: HTMLElement): LabelHost =>
@@ -1524,8 +1488,7 @@ describe('Loader', () => {
     const startOf = (tween: Tween): Record<string, unknown> =>
       tween.vars.startAt as Record<string, unknown>;
 
-    it('글자가 바뀌면 칸 폭(옛 폭 → 새 폭)과 두 글자 층을 한 타임라인이 base settle로 바꾼다', () => {
-      installLayout();
+    it('글자가 바뀌면 두 글자 층만 한 타임라인이 base settle로 흐림 교체한다 (칸 폭 트윈이 없다)', () => {
       const { container, rerender } = render(
         <Loader label="저장하지 못했습니다" />
       );
@@ -1534,12 +1497,8 @@ describe('Loader', () => {
       const tl = timelineOf(container);
       const [old, next] = layers(container);
       expect(tl.duration()).toBe(gsapDuration.base);
-
-      const width = tweenOn(tl, paragraph(container));
-      expect(startOf(width).width).toBe(10 * CHAR_PX);
-      expect(width.vars.width).toBe(4 * CHAR_PX);
-      expect(width.duration()).toBe(gsapDuration.base);
-      expect(width.vars.ease).toBe(gsapEasing.settle);
+      expect(tl.getChildren()).toHaveLength(2);
+      expect(tweenOn(tl, paragraph(container))).toBeUndefined();
 
       const fadeOut = tweenOn(tl, old);
       expect(fadeOut.vars.opacity).toBe(0);
@@ -1558,17 +1517,15 @@ describe('Loader', () => {
       expect(fadeIn.vars.ease).toBe(gsapEasing.settle);
     });
 
-    it('도는 동안 칸 폭이 옛 폭에 고정되고 글자는 한 줄이다 (새 글자가 더 길어도 줄바꿈하지 않는다)', () => {
-      installLayout();
+    it('도는 동안에도 칸에 폭이나 줄바꿈 고정을 걸지 않는다 (칸 폭은 새 글자 기준으로 바로 정해진다)', () => {
       const { container, rerender } = render(<Loader label="가" />);
       rerender(<Loader label="가나다라마" />);
-      expect(paragraph(container).style.width).toBe(`${CHAR_PX}px`);
-      expect(paragraph(container).style.whiteSpace).toBe('nowrap');
+      expect(paragraph(container).style.width).toBe('');
+      expect(paragraph(container).style.whiteSpace).toBe('');
       expect(texts(container)).toEqual(['가', '가나다라마']);
     });
 
-    it('끝나면 옛 층을 비우고 칸 폭 고정과 손잡이를 거둔다', () => {
-      installLayout();
+    it('끝나면 옛 층을 비우고 손잡이를 거둔다', () => {
       const { container, rerender } = render(<Loader label="가나다" />);
       rerender(<Loader label="가" />);
       act(() => {
@@ -1576,12 +1533,10 @@ describe('Loader', () => {
       });
       expect(texts(container)).toEqual(['', '가']);
       expect(paragraph(container).style.width).toBe('');
-      expect(paragraph(container).style.whiteSpace).toBe('');
       expect(timelineOf(container)).toBeUndefined();
     });
 
-    it('도는 중 또 바뀌면 이전 타임라인은 죽고, 지금 폭에서 이어받고, 더 옛 글자는 칸에서 빠진다', () => {
-      installLayout();
+    it('도는 중 또 바뀌면 이전 타임라인은 죽고, 더 옛 글자는 칸에서 빠지고, 새 타임라인도 흐림 교체뿐이다', () => {
       const { container, rerender } = render(<Loader label="가" />);
       rerender(<Loader label="가나다" />);
       const first = timelineOf(container);
@@ -1592,14 +1547,11 @@ describe('Loader', () => {
       expect(first.parent).toBeNull();
       // 맨 처음 글자 '가'가 빠지고 그 층이 새 글자로 재사용된다
       expect(texts(container)).toEqual(['가나다라마', '가나다']);
-      // 칸은 옛 칸 폭(첫 타임라인이 고정해 둔 폭)에서 새 폭으로 간다
-      const width = tweenOn(second, paragraph(container));
-      expect(startOf(width).width).toBe(CHAR_PX);
-      expect(width.vars.width).toBe(5 * CHAR_PX);
+      expect(second.getChildren()).toHaveLength(2);
+      expect(tweenOn(second, paragraph(container))).toBeUndefined();
     });
 
     it('라벨이 없어지면 타임라인이 죽고 두 층이 모두 비며, 다시 생기면 효과 없이 처음 렌더처럼 나온다', () => {
-      installLayout();
       const { container, rerender } = render(<Loader label="가" />);
       rerender(<Loader label="가나다" />);
       const running = timelineOf(container);
@@ -1612,18 +1564,15 @@ describe('Loader', () => {
       expect(paragraph(container).style.width).toBe('');
     });
 
-    it('라벨 A → 없음 → 긴 B: 옛 글자가 남지 않고 칸 폭은 B 하나의 폭이다', () => {
-      installLayout();
+    it('라벨 A → 없음 → 긴 B: 옛 글자가 남지 않고 B 하나만 켜져 있다', () => {
       const { container, rerender } = render(<Loader label="A" />);
       rerender(<Loader />);
       rerender(<Loader label="Bbbbbbbbbbbbbbb" />);
       expect(texts(container)).toEqual(['Bbbbbbbbbbbbbbb', '']);
-      expect(paragraph(container).offsetWidth).toBe(15 * CHAR_PX);
-      expect(paragraph(container).style.width).toBe('');
+      expect(timelineOf(container)).toBeUndefined();
     });
 
     it('언마운트하면 돌던 타임라인이 정리된다', () => {
-      installLayout();
       const { container, rerender, unmount } = render(<Loader label="가" />);
       rerender(<Loader label="가나다" />);
       const running = timelineOf(container);
@@ -1633,7 +1582,7 @@ describe('Loader', () => {
     });
 
     it('라벨이 없으면 아무것도 재지 않는다 (Button, IconButton 안의 로더가 이 경우다)', () => {
-      installLayout();
+      installReadCounter();
       const { rerender } = render(<Loader type="dots" />);
       rerender(<Loader type="dots" size="lg" />);
       rerender(<Loader type="spinner" />);
@@ -1641,34 +1590,48 @@ describe('Loader', () => {
       rerender(<Loader type="wave" />);
       rerender(<Loader type="fuse" value={30} />);
       rerender(<Loader type="fuse" value={60} />);
-      expect(widthReads).toBe(0);
-      expect(heightReads).toBe(0);
-      expect(rectReads).toBe(0);
+      expect(layoutReads).toBe(0);
     });
 
-    it('라벨이 그대로면 다시 그려도 재지 않고, 부모가 옮겨 가도 아무 트윈이 없다', () => {
-      installLayout();
+    // orbit의 done·error 점 이동은 GSAP이 transform을 읽느라 getBoundingClientRect를
+    // 부른다. 그것은 라벨 교체와 무관하므로 여기서는 라벨만 있는 spinner로 잰다.
+    it('어떤 커밋에서도 레이아웃을 읽지 않는다 (마운트, 라벨 교체, 연속 교체, 끝, 제거, 재등장, 부모 이동)', () => {
+      installReadCounter();
+      const tree = (label: string | undefined, marginLeft = 0) => (
+        <div style={{ marginLeft }}>
+          <Loader type="spinner" size="xl" label={label} />
+        </div>
+      );
+      const { container, rerender, unmount } = render(tree('저장 중...'));
+      rerender(tree('저장했습니다'));
+      rerender(tree('저장하지 못했습니다'));
+      act(() => {
+        timelineOf(container).progress(1);
+      });
+      rerender(tree('저장 중...'));
+      rerender(tree(undefined));
+      rerender(tree('저장했습니다'));
+      rerender(tree('저장했습니다', 120));
+      rerender(tree('저장했습니다', 0));
+      unmount();
+      expect(layoutReads).toBe(0);
+    });
+
+    it('라벨이 그대로면 다시 그려도(부모가 옮겨 가도) 아무 트윈이 없다', () => {
       const tree = (marginLeft: number) => (
         <div style={{ marginLeft }}>
           <Loader label="가나다" />
         </div>
       );
       const { container, rerender } = render(tree(0));
-      widthReads = 0;
-      heightReads = 0;
-      rectReads = 0;
       rerender(tree(120));
       rerender(tree(0));
       expect(timelineOf(container)).toBeUndefined();
       expect(paragraph(container).style.width).toBe('');
-      expect(widthReads).toBe(0);
-      expect(heightReads).toBe(0);
-      expect(rectReads).toBe(0);
     });
 
-    it('축소 선호: 바로 끝 상태이고 옛 글자와 손잡이와 폭 고정이 남지 않는다', () => {
+    it('축소 선호: 바로 끝 상태이고 옛 글자와 손잡이가 남지 않는다', () => {
       installReducedMotion();
-      installLayout();
       const { container, rerender } = render(<Loader label="가나다" />);
       rerender(<Loader label="가" />);
       expect(texts(container)).toEqual(['', '가']);
@@ -1677,136 +1640,7 @@ describe('Loader', () => {
       expect(paragraph(container).style.whiteSpace).toBe('');
     });
 
-    it('새 글자가 줄바꿈되면(줄바꿈 높이가 한 줄 높이보다 큼) 칸 폭 트윈도 nowrap도 없이 흐림 교체만 한다', () => {
-      installLayout();
-      const { container, rerender } = render(<Loader label="가" />);
-      rerender(<Loader label={'가'.repeat(25)} />);
-      const tl = timelineOf(container);
-      const [old, next] = layers(container);
-      expect(tweenOn(tl, paragraph(container))).toBeUndefined();
-      expect(paragraph(container).style.whiteSpace).toBe('');
-      expect(tweenOn(tl, old).vars.opacity).toBe(0);
-      expect(tweenOn(tl, next).vars.opacity).toBe(1);
-      expect(tl.duration()).toBe(gsapDuration.base);
-    });
-
-    it('옛 글자가 줄바꿈되던 글자였어도(들어올 때 잰 값) 칸 폭 트윈도 nowrap도 없다', () => {
-      installLayout();
-      const { container, rerender } = render(
-        <Loader label={'가'.repeat(25)} />
-      );
-      rerender(<Loader label="가" />);
-      const tl = timelineOf(container);
-      expect(tweenOn(tl, paragraph(container))).toBeUndefined();
-      expect(paragraph(container).style.whiteSpace).toBe('');
-      expect(tweenOn(tl, layers(container)[0]).vars.opacity).toBe(0);
-    });
-
-    it('두 높이가 같은(한 줄) 글자는 칸 폭을 트윈한다', () => {
-      installLayout();
-      const { container, rerender } = render(<Loader label="가" />);
-      rerender(<Loader label={'가'.repeat(20)} />);
-      const width = tweenOn(timelineOf(container), paragraph(container));
-      expect(width.vars.width).toBe(ROOM_PX);
-      expect(paragraph(container).style.whiteSpace).toBe('nowrap');
-    });
-
-    it('줄바꿈 높이가 한 줄 높이를 0.5px 미만으로 넘는 오차는 줄바꿈이 아니다', () => {
-      installLayout();
-      wrapNoise = 0.4;
-      const { container, rerender } = render(<Loader label="가" />);
-      rerender(<Loader label="가나다" />);
-      expect(
-        tweenOn(timelineOf(container), paragraph(container))
-      ).toBeDefined();
-      expect(paragraph(container).style.whiteSpace).toBe('nowrap');
-    });
-
-    it('줄바꿈 여부는 칸 높이로만 정한다 (부모 폭을 읽지 않는다)', () => {
-      installLayout();
-      let parentWidthReads = 0;
-      const clientWidthOriginal = Object.getOwnPropertyDescriptor(
-        Element.prototype,
-        'clientWidth'
-      );
-      Object.defineProperty(Element.prototype, 'clientWidth', {
-        configurable: true,
-        get() {
-          parentWidthReads += 1;
-          return 0;
-        },
-      });
-      try {
-        const { container, rerender } = render(<Loader label="가" />);
-        rerender(<Loader label="가나다" />);
-        expect(parentWidthReads).toBe(0);
-        expect(
-          tweenOn(timelineOf(container), paragraph(container))
-        ).toBeDefined();
-      } finally {
-        if (clientWidthOriginal) {
-          Object.defineProperty(
-            Element.prototype,
-            'clientWidth',
-            clientWidthOriginal
-          );
-        }
-      }
-    });
-
-    it('줄바꿈되던 글자가 한 줄 글자로, 다시 한 줄 글자로 바뀌면 그 한 줄 글자부터는 폭을 트윈한다 (옛 값이 매 교체 갱신된다)', () => {
-      installLayout();
-      const { container, rerender } = render(
-        <Loader label={'가'.repeat(25)} />
-      );
-      rerender(<Loader label="가" />);
-      expect(
-        tweenOn(timelineOf(container), paragraph(container))
-      ).toBeUndefined();
-      act(() => {
-        timelineOf(container).progress(1);
-      });
-      rerender(<Loader label="가나" />);
-      expect(
-        tweenOn(timelineOf(container), paragraph(container))
-      ).toBeDefined();
-    });
-
-    it('줄바꿈되는 글자가 도는 중에 한 줄 글자로 바뀌어도 옛 글자의 값을 이어받아 폭 트윈이 없다', () => {
-      installLayout();
-      const { container, rerender } = render(<Loader label="가" />);
-      rerender(<Loader label={'가'.repeat(25)} />);
-      rerender(<Loader label="나" />);
-      expect(
-        tweenOn(timelineOf(container), paragraph(container))
-      ).toBeUndefined();
-    });
-
-    it('라벨이 없다가 줄바꿈되는 글자로 다시 생기면 그 글자가 옛 값이다', () => {
-      installLayout();
-      const { container, rerender } = render(<Loader label="가" />);
-      rerender(<Loader />);
-      rerender(<Loader label={'가'.repeat(25)} />);
-      expect(timelineOf(container)).toBeUndefined();
-      rerender(<Loader label="가" />);
-      expect(
-        tweenOn(timelineOf(container), paragraph(container))
-      ).toBeUndefined();
-    });
-
-    it('줄바꿈되는 교체가 끝나면 옛 층이 비고 손잡이가 거둬진다', () => {
-      installLayout();
-      const { container, rerender } = render(<Loader label="가" />);
-      rerender(<Loader label={'가'.repeat(25)} />);
-      act(() => {
-        timelineOf(container).progress(1);
-      });
-      expect(texts(container)).toEqual(['', '가'.repeat(25)]);
-      expect(timelineOf(container)).toBeUndefined();
-    });
-
-    it('도는 중에 축소 선호가 켜지면 끝 상태로 확정한다 (옛 층 비움, 폭 고정과 손잡이 거둠)', () => {
-      installLayout();
+    it('도는 중에 축소 선호가 켜지면 끝 상태로 확정한다 (옛 층 비움, 손잡이 거둠)', () => {
       let reduce = false;
       const listeners = new Set<() => void>();
       vi.stubGlobal(
@@ -1838,12 +1672,16 @@ describe('Loader', () => {
       expect(paragraph(container).style.whiteSpace).toBe('');
     });
 
-    it('꺼진 층은 절대 위치로 칸 폭에서 빠지고 칸은 위치 기준이며, 흐림은 CSS 전이가 아니라 GSAP이 맡는다', () => {
+    it('꺼진 층은 left 0 right 0 절대 위치라 칸 폭에서 빠지고 칸 폭에 맞춰 줄바꿈되며(nowrap 없음), 흐림은 CSS 전이가 아니라 GSAP이 맡는다', () => {
       const layer = block(LOADER_CSS, 'labelLayer');
       expectCss(block(LOADER_CSS, 'label')).toContain("position: 'relative'");
       expectCss(layer).toContain("'&:not([data-active])'");
       expectCss(layer).toContain("position: 'absolute'");
-      expectCss(layer).toContain("whiteSpace: 'nowrap'");
+      expectCss(layer).toContain('top: 0');
+      expectCss(layer).toContain('left: 0');
+      expectCss(layer).toContain('right: 0');
+      expect(layer).not.toContain('whiteSpace');
+      expect(layer).not.toContain('transform');
       expect(layer).not.toContain('transition');
       expect(layer).not.toContain('opacity');
       expect(layer).not.toContain('filter');

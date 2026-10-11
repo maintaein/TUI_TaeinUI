@@ -299,7 +299,7 @@ export function LoaderPage() {
             code={`const [status, setStatus] = useState('loading');
 const labels = { loading: '저장 중...', done: '저장했습니다', error: '저장하지 못했습니다' };
 
-<div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', alignItems: 'flex-start' }}>
+<div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', alignItems: 'center' }}>
   <div style={{ display: 'flex', gap: '0.5rem' }}>
     <Button size="sm" variant="light" onClick={() => setStatus('loading')}>loading</Button>
     <Button size="sm" variant="light" onClick={() => setStatus('done')}>done</Button>

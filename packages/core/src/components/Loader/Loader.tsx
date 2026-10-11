@@ -308,13 +308,10 @@ export const Loader = ({
   const reduced = useReducedMotion();
   const labelRef = useRef<LabelHost>(null);
   const labelTlRef = useRef<gsap.core.Timeline | null>(null);
-  // 지금 켜진 글자가 줄바꿈되는지(들어올 때 잰 값)와, 그 값을 잰 칸
-  const wrapsRef = useRef(false);
-  const measuredHostRef = useRef<HTMLElement | null>(null);
 
   // 라벨이 바뀌면 옛 글자를 흐려 보내고 새 글자를 같은 칸에 흐림에서 불러온다.
-  // 켜지지 않은 층은 절대 위치라 칸 폭에 들어가지 않고, 칸 폭은 아래 effect의
-  // 타임라인이 옛 폭에서 새 폭으로 옮긴다. 라벨이 없어지면 두 층을 비우고, 다시
+  // 켜지지 않은 층은 절대 위치라 칸 폭에 들어가지 않는다. 칸 폭은 새 글자 기준으로
+  // 그 커밋에 바로 정해지고 트윈하지 않는다. 라벨이 없어지면 두 층을 비우고, 다시
   // 생기면 처음 렌더처럼 효과 없이 나온다.
   const [slots, setSlots] = useState<LabelSlots>({
     texts: [label ?? '', ''],
@@ -346,40 +343,19 @@ export const Loader = ({
           }
     );
 
-  // 글자가 바뀐 그 커밋에서만 칸 안의 폭과 높이를 재고, 칸 폭 트윈과 두 글자 층의 흐림
-  // 교체를 타임라인 하나로 건다(Chip 삭제의 marginInlineEnd 트윈과 같은 1회성
-  // 레이아웃 트윈). 가운데 놓인 그래픽은 칸이 부드럽게 변하니 같이 옮겨 간다.
-  // 라벨이 없거나 글자가 그대로면 아무것도 재지 않는다. 끝나면(onComplete) 옛 층을
-  // 비운다. 도중에 또 바뀌면 이 타임라인은 죽고, 옛 층은 새 글자의 층으로
-  // 재사용되거나(더 옛 글자) 다음 타임라인이 맡는다.
-  //
-  // 줄바꿈 여부는 폭이 아니라 높이로 잰다. 컨테이너가 내용에 맞춰 줄어드는 자리
-  // (flex-start 줄 등)에서는 nowrap이 칸도 같이 넓혀 폭 비교가 늘 "들어간다"로 나온다.
-  // 줄바꿈을 허용한 높이가 nowrap 높이보다 크면 줄바꿈되는 글자다.
-  // 한 번 재고 nowrap은 남겨 둔다(트윈 동안 쓰고, 줄바꿈이면 호출자가 푼다).
-  const measureLabel = (p: HTMLElement): { wraps: boolean; to: number } => {
-    p.style.whiteSpace = '';
-    const hWrap = p.offsetHeight;
-    p.style.whiteSpace = 'nowrap';
-    const hOne = p.offsetHeight;
-    return { wraps: hWrap > hOne + 0.5, to: p.offsetWidth };
-  };
+  // 글자가 바뀐 그 커밋에서 두 글자 층의 흐림 교체를 타임라인 하나로 건다. DOM
+  // 레이아웃은 읽지 않는다(칸 폭·줄바꿈 판정 없음). 라벨이 없거나 글자가 그대로면
+  // 아무것도 하지 않는다. 끝나면(onComplete) 옛 층을 비운다. 도중에 또 바뀌면 이
+  // 타임라인은 죽고, 옛 층은 새 글자의 층으로 재사용되거나(더 옛 글자) 다음
+  // 타임라인이 맡는다.
   useLayoutEffect(() => {
     const prev = prevSlotsRef.current;
     prevSlotsRef.current = slots;
     const p = labelRef.current;
     if (!p) {
-      measuredHostRef.current = null;
       labelTlRef.current?.kill();
       labelTlRef.current = null;
       return;
-    }
-    // 처음 나온 칸(첫 렌더, 라벨이 다시 생김)은 효과 없이 나오고, 다음 교체의 옛
-    // 글자 값으로 줄바꿈 여부 하나만 재어 둔다.
-    if (measuredHostRef.current !== p) {
-      measuredHostRef.current = p;
-      wrapsRef.current = measureLabel(p).wraps;
-      p.style.whiteSpace = '';
     }
     if (
       prev.active === slots.active ||
@@ -394,26 +370,12 @@ export const Loader = ({
     const layerEls = p.querySelectorAll<HTMLElement>('[data-label-layer]');
     const oldEl = layerEls[prev.active];
     const newEl = layerEls[slots.active];
-    const running = labelTlRef.current;
-    // 도는 중이면 눈에 보이는 폭(고정된 폭)에서, 아니면 옛 글자 폭에서 시작한다.
-    // 꺼진 층은 nowrap이라 oldWidth는 옛 글자의 한 줄 폭이다.
-    const from = running ? p.offsetWidth : oldEl.offsetWidth;
-    running?.kill();
-    p.style.width = '';
-    const { wraps, to } = measureLabel(p);
-    // 옛 층은 지금 absolute라 지금 재면 배치가 다르다. 옛 글자가 들어올 때 잰 값을 쓴다.
-    // 옛 글자나 새 글자가 줄바꿈되던 라벨이면 한 줄로 펴는 폭 트윈이 칸을 밀고
-    // 높이를 뛰게 한다. 흐림 교체만 한다.
-    const tweenWidth = !(wrapsRef.current || wraps);
-    wrapsRef.current = wraps;
-    if (!tweenWidth) p.style.whiteSpace = '';
+    labelTlRef.current?.kill();
 
     const finish = (tl: gsap.core.Timeline): void => {
       if (labelTlRef.current !== tl) return;
       labelTlRef.current = null;
       p.__loaderLabelTimeline = undefined;
-      p.style.width = '';
-      p.style.whiteSpace = '';
       clearLayer(prev.active);
     };
     // 축소 선호면 gateMotion이 끝 상태로 확정하며 onComplete도 불러 옛 층을 비운다
@@ -422,9 +384,6 @@ export const Loader = ({
       labelTlRef.current = tl;
       p.__loaderLabelTimeline = tl;
       const timing = { duration: gsapDuration.base, ease: gsapEasing.settle };
-      if (tweenWidth) {
-        tl.fromTo(p, { width: from }, { width: to, ...timing }, 0);
-      }
       tl.to(oldEl, { opacity: 0, filter: 'blur(2px)', ...timing }, 0).fromTo(
         newEl,
         { opacity: 0, filter: 'blur(2px)' },

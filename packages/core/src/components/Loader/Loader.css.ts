@@ -397,9 +397,10 @@ export const label = style({
   textAlign: 'center',
 });
 
-// 라벨 교체: 켜진 층만 칸 안에 있고 켜지지 않은 층은 절대 위치로 가운데에 겹쳐
-// 칸 폭에 들어가지 않는다. 흐림 교체(투명도·blur)와 칸 폭은 Loader.tsx의 GSAP
-// 타임라인 하나가 맡는다.
+// 라벨 교체: 켜진 층만 칸 안에 있고 켜지지 않은 층은 절대 위치로 칸 전체에 겹쳐
+// 칸 폭에 들어가지 않는다. 글자는 줄바꿈을 막지 않아 칸 폭에 맞춰 줄이 나뉘고
+// 칸 밖으로 넘지 않는다(글자 정렬은 칸의 가운데). 흐림 교체(투명도·blur)는
+// Loader.tsx의 GSAP 타임라인 하나가 맡는다.
 export const labelLayer = style({
   display: 'block',
 
@@ -407,9 +408,8 @@ export const labelLayer = style({
     '&:not([data-active])': {
       position: 'absolute',
       top: 0,
-      left: '50%',
-      transform: 'translateX(-50%)',
-      whiteSpace: 'nowrap',
+      left: 0,
+      right: 0,
     },
   },
 });
