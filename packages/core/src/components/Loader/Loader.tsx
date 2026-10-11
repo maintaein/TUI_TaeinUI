@@ -13,7 +13,7 @@ import {
   bar,
   barFill,
   inchwormFill,
-  inchwormGlow,
+  barClip,
   barSizeStyles,
   colorStyles,
   inlineContainer,
@@ -473,32 +473,24 @@ export const Loader = ({
           data-color={color}
         >
           <div className={clsx(bar, barSizeStyles[size])}>
-            {type === 'bar' ? (
-              <div
-                className={clsx(barFill, presetClass)}
-                // colorStyles는 preset 3개만 가진 styleVariants라 임의 색상 문자열이면
-                // 클래스가 없다. 그때는 --loader-color를 인라인으로 직접 넘긴다.
-                style={
-                  presetClass
-                    ? undefined
-                    : ({ '--loader-color': color } as CSSProperties)
-                }
-              />
-            ) : (
-              // 알약 층의 빛(drop-shadow)은 알약을 감싼 래퍼가 건다. 색 변수도 래퍼가
-              // 받고 채움이 상속한다.
-              <div
-                className={clsx(inchwormGlow, presetClass)}
-                data-inchworm-glow
-                style={
-                  presetClass
-                    ? undefined
-                    : ({ '--loader-color': color } as CSSProperties)
-                }
-              >
+            {/* 채움을 둥글게 자르는 층이 빛(drop-shadow)을 걸고 색 변수를 받는다.
+                colorStyles는 preset 3개만 가진 styleVariants라 임의 색상 문자열이면
+                클래스가 없다. 그때는 --loader-color를 인라인으로 직접 넘긴다. */}
+            <div
+              className={clsx(barClip, presetClass)}
+              data-bar-clip
+              style={
+                presetClass
+                  ? undefined
+                  : ({ '--loader-color': color } as CSSProperties)
+              }
+            >
+              {type === 'bar' ? (
+                <div className={barFill} />
+              ) : (
                 <div className={inchwormFill} data-inchworm-fill />
-              </div>
-            )}
+              )}
+            </div>
           </div>
           <span className={visuallyHidden} data-loader-message>
             {accessibleLabel}

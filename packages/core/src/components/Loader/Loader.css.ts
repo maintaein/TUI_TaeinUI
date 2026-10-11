@@ -146,8 +146,6 @@ export const bar = style({
   // 채움(primary.main)과는 3:1을 넘는다.
   backgroundColor: themeContract.palette.gray[200],
   borderRadius: '3px',
-  // overflow: hidden은 머리의 빛을 위아래로 자른다. 양끝만 자르고 위아래는 연다.
-  clipPath: 'inset(-8px 0 -8px 0)',
 
   selectors: {
     // white 변형은 어두운 면 위에서 쓰는 것이라 밝은 fill이 올라탄다 —
@@ -167,7 +165,7 @@ export const barFill = style({
   width: '25%',
   borderRadius: '3px',
   backgroundColor: 'var(--loader-color)',
-  boxShadow: loaderGlow('var(--loader-color)'),
+  // 빛은 채움이 아니라 자르기 층(barClip)의 필터 하나가 건다.
   // 불확정 스윕이다(진행률을 받는 자리가 아니다) — S1: Skeleton wave와
   // 방향(좌→우) · 커브(T5 공유 자산) · 주기(loop.base)를 공유한다.
   animation: `${progress} ${themeContract.animation.loop.base} ${loopRhythmEasing} infinite`,
@@ -180,16 +178,19 @@ export const barSizeStyles = styleVariants({
   xl: { width: '400px' },
 });
 
-// 자벌레의 빛 래퍼. 알약 층은 자기 clip-path로 그려져 box-shadow가 같이 잘리므로,
-// 자르지 않는 이 부모가 자른 결과의 윤곽을 drop-shadow로 그린다(SegmentedButtons
-// indicatorShadow와 같다). 트랙 면은 이 밖이라 빛이 면까지 번지지 않는다. 색 변수는
-// 이 래퍼가 받고 채움이 상속한다.
-export const inchwormGlow = style({
+// 막대(bar·inchworm)의 채움 자르기 층. 트랙과 같은 크기·위치의 투명한 층이고,
+// 채움이 트랙 끝을 넘나들 때 둥근 끝(3px)으로 자른다(clip-path가 아니라 overflow +
+// border-radius). 빛(drop-shadow)은 이 층이 자기 내용을 둥글게 자른 결과에 걸리므로
+// 빛이 둥근 채움을 따라 번지고 트랙 끝에서 직선으로 끊기지 않는다. 트랙 면은 이 밖이라
+// 빛이 면까지 번지지 않는다. 색 변수는 이 층이 받고 채움이 상속한다.
+export const barClip = style({
   position: 'absolute',
   top: 0,
   left: 0,
   width: '100%',
   height: '100%',
+  overflow: 'hidden',
+  borderRadius: '3px',
   pointerEvents: 'none',
   filter: `drop-shadow(${loaderGlow('var(--loader-color)')})`,
 });

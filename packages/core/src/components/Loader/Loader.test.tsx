@@ -974,14 +974,14 @@ describe('Loader', () => {
       const { container, rerender } = render(
         <Loader type="inchworm" color="white" />
       );
-      // 빛(drop-shadow)이 색을 읽는 래퍼가 색을 받고, 채움은 상속한다.
-      expect(
-        container.querySelector('[data-inchworm-glow]')!.className
-      ).toContain('colorStyles_white');
+      // 빛(drop-shadow)이 색을 읽는 자르기 층이 색을 받고, 채움은 상속한다.
+      expect(container.querySelector('[data-bar-clip]')!.className).toContain(
+        'colorStyles_white'
+      );
       rerender(<Loader type="inchworm" color="#0f0" />);
       expect(
         (
-          container.querySelector('[data-inchworm-glow]') as HTMLElement
+          container.querySelector('[data-bar-clip]') as HTMLElement
         ).style.getPropertyValue('--loader-color')
       ).toBe('#0f0');
     });
@@ -1891,10 +1891,9 @@ describe('막대 디자인: 테두리 없는 6px 회색 면 (M5 task-20 수정 6
     expect(track).not.toMatch(/^\s*overflow:/m);
   });
 
-  it('트랙은 위아래가 열린 clip-path로 양끝만 자른다 (빛이 위아래로 번지게)', () => {
-    expectCss(block(LOADER_CSS, 'bar')).toContain(
-      "clipPath: 'inset(-8px 0 -8px 0)'"
-    );
+  it('트랙에는 clip-path가 없다 (직각으로 자르면 둥근 끝 밖으로 채움과 빛이 비어져 나온다)', () => {
+    expect(block(LOADER_CSS, 'bar')).not.toContain('clipPath');
+    expect(block(LOADER_CSS, 'bar')).not.toContain('clip-path');
   });
 
   it('white 변형의 어두운 면(surface.track)은 그대로다', () => {
@@ -1956,9 +1955,12 @@ describe('머리의 은은한 광휘 (M5 task-20 수정 6)', () => {
     );
   });
 
-  it('bar: 움직이는 채움에 건다', () => {
-    expectCss(block(LOADER_CSS, 'barFill')).toContain(
-      "boxShadow: loaderGlow('var(--loader-color)')"
+  it('bar: 채움 자체에는 빛이 없고 자르기 층의 필터 하나가 건다', () => {
+    const fill = block(LOADER_CSS, 'barFill');
+    expect(fill).not.toContain('boxShadow');
+    expect(fill).not.toContain('filter');
+    expectCss(block(LOADER_CSS, 'barClip')).toContain(
+      "filter: `drop-shadow(${loaderGlow('var(--loader-color)')})`"
     );
   });
 
@@ -1988,25 +1990,44 @@ describe('머리의 은은한 광휘 (M5 task-20 수정 6)', () => {
     expectCss(layer).toContain("borderRadius: '50%'");
   });
 
-  it('inchworm: 알약 층을 감싼 래퍼가 drop-shadow를 걸고, 트랙 면은 래퍼 밖이다', () => {
-    const wrap = block(LOADER_CSS, 'inchwormGlow');
-    expectCss(wrap).toContain(
+  it('채움 자르기 층: 투명, overflow hidden + border-radius 3px로 둥글게 자르고 그 결과에 drop-shadow를 건다', () => {
+    const clip = block(LOADER_CSS, 'barClip');
+    expectCss(clip).toContain("position: 'absolute'");
+    expectCss(clip).toContain("width: '100%'");
+    expectCss(clip).toContain("height: '100%'");
+    expectCss(clip).toContain("overflow: 'hidden'");
+    expectCss(clip).toContain("borderRadius: '3px'");
+    expectCss(clip).toContain(
       "filter: `drop-shadow(${loaderGlow('var(--loader-color)')})`"
     );
-    expectCss(wrap).toContain("position: 'absolute'");
-    expect(wrap).not.toContain('backgroundColor');
-    expect(block(LOADER_CSS, 'inchwormFill')).not.toContain('boxShadow');
+    expect(clip).not.toContain('clipPath');
+    expect(clip).not.toContain('backgroundColor');
+    expect(clip).not.toContain('boxShadow');
   });
 
-  it('inchworm DOM: 트랙 > 래퍼 > 채움이다', () => {
-    const { container } = render(<Loader type="inchworm" />);
-    const track = screen.getByRole('status').firstElementChild as HTMLElement;
-    const wrapper = container.querySelector('[data-inchworm-glow]');
-    expect(wrapper?.parentElement).toBe(track);
-    expect(wrapper?.firstElementChild).toBe(
-      container.querySelector('[data-inchworm-fill]')
-    );
+  it('트랙 면 층에는 빛이 없고, 자벌레 채움에도 box-shadow가 없다', () => {
+    const track = block(LOADER_CSS, 'bar');
+    expect(track).not.toContain('boxShadow');
+    expect(track).not.toContain('filter');
+    expect(block(LOADER_CSS, 'inchwormFill')).not.toContain('boxShadow');
+    expect(block(LOADER_CSS, 'inchwormFill')).not.toContain('filter');
   });
+
+  it.each(['bar', 'inchworm'] as const)(
+    '%s DOM: 트랙 > 자르기 층 > 채움이다',
+    (type) => {
+      const { container } = render(<Loader type={type} />);
+      const track = screen.getByRole('status').firstElementChild as HTMLElement;
+      const clip = container.querySelector('[data-bar-clip]');
+      expect(clip?.parentElement).toBe(track);
+      expect(clip?.children).toHaveLength(1);
+      if (type === 'inchworm') {
+        expect(clip?.firstElementChild).toBe(
+          container.querySelector('[data-inchworm-fill]')
+        );
+      }
+    }
+  );
 
   it('정지된 빛이라 축소 선호에서도 걷어내지 않고, 빛은 애니메이션하지 않는다', () => {
     [
@@ -2016,7 +2037,7 @@ describe('머리의 은은한 광휘 (M5 task-20 수정 6)', () => {
       'barFill',
       'fuseSparkDot',
       'spinner',
-      'inchwormGlow',
+      'barClip',
     ].forEach((name) => {
       const src = block(LOADER_CSS, name);
       const media = src.includes('prefers-reduced-motion')
