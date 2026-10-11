@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { act, render, screen } from '@testing-library/react';
 import { Loader } from './Loader';
 import { gray } from '../../tokens/colors.css';
 import { themeTokens } from '../../tokens/contract';
@@ -261,8 +261,9 @@ describe('Loader', () => {
 
   describe('label prop 테스트', () => {
     it('label 텍스트를 렌더링한다', () => {
-      render(<Loader label="로딩 중..." />);
-      expect(screen.getByText('로딩 중...')).toBeInTheDocument();
+      // 같은 글자가 status 영역 안의 숨은 메시지에도 있어 보이는 라벨(p)로 좁힌다
+      const { container } = render(<Loader label="로딩 중..." />);
+      expect(container.querySelector('p')).toHaveTextContent('로딩 중...');
     });
 
     it('label 없이도 렌더링된다', () => {
@@ -597,6 +598,12 @@ describe('Loader', () => {
       );
     });
 
+    it('축소 선호: 멈춘 점은 눈에 보이는 투명도 0.6이다 (0.15면 고리가 사라진다)', () => {
+      const dotBlock = block(LOADER_CSS, 'orbitDot');
+      const media = dotBlock.slice(dotBlock.indexOf('prefers-reduced-motion'));
+      expect(media).toContain('opacity: 0.6');
+    });
+
     it('type="spinner"를 명시하면 예전 고리가 나온다', () => {
       const { container } = render(<Loader type="spinner" />);
       expect(container.querySelector('[data-spinner]')).toBeInTheDocument();
@@ -736,6 +743,11 @@ describe('Loader', () => {
   });
 
   describe('물결 막대 wave (M5 task-20 2부)', () => {
+    it('접근성: 불확정 로딩이라 aria-busy="true"다 (bar·inchworm과 같다)', () => {
+      render(<Loader type="wave" />);
+      expect(screen.getByRole('status')).toHaveAttribute('aria-busy', 'true');
+    });
+
     const SIZES = [
       ['sm', 48, 12, 6],
       ['md', 64, 16, 8],
@@ -1234,6 +1246,60 @@ describe('Loader', () => {
       expect(timeline?.parent).toBeNull();
     });
 
+    it('bar로 마운트했다가 orbit으로 바꾼 뒤 언마운트해도 상태 타임라인이 죽는다', () => {
+      const { container, rerender, unmount } = render(<Loader type="bar" />);
+      rerender(<Loader type="orbit" />);
+      rerender(<Loader type="orbit" status="done" />);
+      const timeline = orbitOf(container).__loaderStatusTimeline;
+      expect(timeline?.parent).not.toBeNull();
+      unmount();
+      expect(timeline?.parent).toBeNull();
+    });
+
+    it('도는 중에 orbit이 아닌 type으로 갈아타면 상태 타임라인이 죽는다', () => {
+      const { container, rerender } = render(<Loader />);
+      rerender(<Loader status="done" />);
+      const timeline = orbitOf(container).__loaderStatusTimeline;
+      expect(timeline?.parent).not.toBeNull();
+      rerender(<Loader type="bar" />);
+      expect(timeline?.parent).toBeNull();
+    });
+
+    it('접근성: 살아 있는 영역 안에 화면에 안 보이는 메시지 글자가 있고 상태를 따라 바뀐다', () => {
+      const { rerender } = render(<Loader />);
+      const status = screen.getByRole('status');
+      expect(status).toHaveTextContent('로딩 중');
+      rerender(<Loader status="done" />);
+      expect(status).toHaveTextContent('완료');
+      rerender(<Loader status="error" />);
+      expect(status).toHaveTextContent('실패');
+      // 이름이 정해져 있으면 그 글자다 (aria-label이 label보다 먼저)
+      rerender(<Loader status="done" label="저장함" />);
+      expect(status).toHaveTextContent('저장함');
+      rerender(<Loader status="done" label="저장함" aria-label="저장 완료" />);
+      expect(status).toHaveTextContent('저장 완료');
+    });
+
+    it('메시지 글자는 시각적으로만 숨기고(display none 아님) 보이는 라벨은 영역 밖이라 두 번 읽히지 않는다', () => {
+      const { container } = render(<Loader label="불러오는 중" />);
+      const status = screen.getByRole('status');
+      const message = status.querySelector(
+        '[data-loader-message]'
+      ) as HTMLElement;
+      expect(message).toHaveTextContent('불러오는 중');
+      expect(message.className).toMatch(/visuallyHidden/);
+      const hidden = block(LOADER_CSS, 'visuallyHidden');
+      expectCss(hidden).toContain("position: 'absolute'");
+      expectCss(hidden).toContain("clip: 'rect(0, 0, 0, 0)'");
+      expect(hidden).not.toContain('display');
+      expect(status.contains(container.querySelector('p'))).toBe(false);
+    });
+
+    it('도화선 progressbar는 값 속성이 알리므로 메시지 글자를 두지 않는다', () => {
+      render(<Loader type="fuse" value={40} />);
+      expect(screen.getByRole('progressbar').textContent).toBe('');
+    });
+
     it('축소 선호: 상태가 바뀌면 바로 끝 상태이고 타임라인이 남지 않는다', () => {
       installReducedMotion();
       const { container, rerender } = render(<Loader />);
@@ -1342,61 +1408,46 @@ describe('Loader', () => {
       rerender(<Loader type="bar" label="나" />);
       expect(layers(container).map((l) => l.textContent)).toEqual(['가', '나']);
     });
-
-    it('꺼진 층은 투명도 0과 blur(2px), 켜진 층은 또렷하고, base settle로 갈아끼운다', () => {
-      const layer = block(LOADER_CSS, 'labelLayer');
-      expectCss(layer).toContain("gridArea: '1 / 1'");
-      expectCss(layer).toContain('opacity: 0');
-      expectCss(layer).toContain("filter: 'blur(2px)'");
-      expectCss(layer).toContain(
-        'transition: `opacity ${themeContract.animation.duration.base} ${themeContract.animation.easing.settle}, filter ${themeContract.animation.duration.base} ${themeContract.animation.easing.settle}`'
-      );
-      expectCss(layer).toContain(
-        "'&[data-active]': { opacity: 1, filter: 'blur(0)' }"
-      );
-    });
-
-    it('축소 선호: 전이 없이 바로 바뀐다', () => {
-      const layer = block(LOADER_CSS, 'labelLayer');
-      const media = layer.slice(layer.indexOf('prefers-reduced-motion'));
-      expectCss(media).toContain("transition: 'none'");
-    });
   });
 
-  describe('라벨 폭이 바뀌어도 그래픽이 순간이동하지 않는다 (M5 task-20 수정 1)', () => {
-    type SlideHost = HTMLElement & { __loaderSlideTween?: gsap.core.Tween };
-
-    // 그래픽의 화면 왼쪽 좌표. jsdom은 레이아웃이 없어 늘 0이라 환경 보급으로
-    // 깐다(SegmentedButtons.test.tsx 선례). 실제 브라우저처럼 transform의 x가
-    // 좌표에 더해져 보이게 한다.
-    let layoutLeft = 100;
-    const xOf = (el: Element): number => {
-      const m = (el as HTMLElement).style.transform.match(
-        /translate(?:3d)?\(([-\d.e]+)px/
-      );
-      return m ? Number(m[1]) : 0;
+  describe('라벨 교체는 칸 폭 트윈과 GSAP 타임라인 하나다 (M5 task-20 수정 2)', () => {
+    type LabelHost = HTMLElement & {
+      __loaderLabelTimeline?: gsap.core.Timeline;
     };
-    const installGraphicRect = (): void => {
-      vi.spyOn(Element.prototype, 'getBoundingClientRect').mockImplementation(
-        function (this: Element) {
-          const isGraphic =
-            this.hasAttribute('data-orbit') ||
-            (this.hasAttribute('data-type') &&
-              !this.querySelector('[data-orbit]'));
-          const left = isGraphic ? layoutLeft + xOf(this) : 0;
-          return {
-            left,
-            top: 0,
-            width: 0,
-            height: 0,
-            right: left,
-            bottom: 0,
-            x: left,
-            y: 0,
-            toJSON: () => ({}),
-          } as DOMRect;
-        }
-      );
+    type Tween = gsap.core.Tween;
+
+    // jsdom은 레이아웃이 없어 offsetWidth가 늘 0이다. 글자 수 × 10px로 환경을 깐다
+    // (칸 안의 폭만 읽는다는 것을 읽은 횟수로 잠그려고 횟수도 센다).
+    const CHAR_PX = 10;
+    let widthReads = 0;
+    let rectReads = 0;
+    const offsetWidthOriginal = Object.getOwnPropertyDescriptor(
+      HTMLElement.prototype,
+      'offsetWidth'
+    );
+    const rectOriginal = Element.prototype.getBoundingClientRect;
+    const installLayout = (): void => {
+      Object.defineProperty(HTMLElement.prototype, 'offsetWidth', {
+        configurable: true,
+        get(this: HTMLElement) {
+          widthReads += 1;
+          const inline = Number.parseFloat(this.style.width);
+          if (Number.isFinite(inline)) return inline;
+          if (this.hasAttribute('data-label-layer'))
+            return (this.textContent ?? '').length * CHAR_PX;
+          if (this.tagName === 'P') {
+            const active = this.querySelector(
+              '[data-label-layer][data-active]'
+            );
+            return (active?.textContent ?? '').length * CHAR_PX;
+          }
+          return 0;
+        },
+      });
+      Element.prototype.getBoundingClientRect = function (this: Element) {
+        rectReads += 1;
+        return rectOriginal.call(this);
+      };
     };
     const installReducedMotion = (): void => {
       vi.stubGlobal(
@@ -1412,226 +1463,194 @@ describe('Loader', () => {
           }) as unknown as MediaQueryList
       );
     };
-    const orbitOf = (container: HTMLElement): SlideHost =>
-      container.querySelector('[data-orbit]') as SlideHost;
+
+    afterEach(() => {
+      if (offsetWidthOriginal) {
+        Object.defineProperty(
+          HTMLElement.prototype,
+          'offsetWidth',
+          offsetWidthOriginal
+        );
+      }
+      Element.prototype.getBoundingClientRect = rectOriginal;
+      vi.unstubAllGlobals();
+      widthReads = 0;
+      rectReads = 0;
+    });
+
+    const paragraph = (container: HTMLElement): LabelHost =>
+      container.querySelector('p') as LabelHost;
     const layers = (container: HTMLElement) => [
       ...container.querySelectorAll<HTMLElement>('[data-label-layer]'),
     ];
-    const startX = (tween: gsap.core.Tween): number =>
-      (tween.vars.startAt as { x: number }).x;
+    const texts = (container: HTMLElement): string[] =>
+      layers(container).map((l) => l.textContent ?? '');
+    const timelineOf = (container: HTMLElement): gsap.core.Timeline =>
+      paragraph(container).__loaderLabelTimeline as gsap.core.Timeline;
+    const tweenOn = (tl: gsap.core.Timeline, el: Element): Tween =>
+      (tl.getChildren() as Tween[]).find((t) => t.targets()[0] === el) as Tween;
+    const startOf = (tween: Tween): Record<string, unknown> =>
+      tween.vars.startAt as Record<string, unknown>;
 
-    afterEach(() => {
-      vi.restoreAllMocks();
-      vi.unstubAllGlobals();
-      layoutLeft = 100;
+    it('글자가 바뀌면 칸 폭(옛 폭 → 새 폭)과 두 글자 층을 한 타임라인이 base settle로 바꾼다', () => {
+      installLayout();
+      const { container, rerender } = render(
+        <Loader label="저장하지 못했습니다" />
+      );
+      expect(timelineOf(container)).toBeUndefined();
+      rerender(<Loader label="저장 중" />);
+      const tl = timelineOf(container);
+      const [old, next] = layers(container);
+      expect(tl.duration()).toBe(gsapDuration.base);
+
+      const width = tweenOn(tl, paragraph(container));
+      expect(startOf(width).width).toBe(10 * CHAR_PX);
+      expect(width.vars.width).toBe(4 * CHAR_PX);
+      expect(width.duration()).toBe(gsapDuration.base);
+      expect(width.vars.ease).toBe(gsapEasing.settle);
+
+      const fadeOut = tweenOn(tl, old);
+      expect(fadeOut.vars.opacity).toBe(0);
+      expect(fadeOut.vars.filter).toBe('blur(2px)');
+      expect(fadeOut.duration()).toBe(gsapDuration.base);
+      expect(fadeOut.vars.ease).toBe(gsapEasing.settle);
+
+      const fadeIn = tweenOn(tl, next);
+      expect(startOf(fadeIn)).toMatchObject({
+        opacity: 0,
+        filter: 'blur(2px)',
+      });
+      expect(fadeIn.vars.opacity).toBe(1);
+      expect(fadeIn.vars.filter).toBe('blur(0px)');
+      expect(fadeIn.duration()).toBe(gsapDuration.base);
+      expect(fadeIn.vars.ease).toBe(gsapEasing.settle);
     });
 
-    describe('옛 라벨 층은 전환이 끝나면 칸에서 빠진다', () => {
-      it('전환 도중에는 두 층이 같은 칸에 글자를 든 채 겹쳐 있다', () => {
-        const { container, rerender } = render(
-          <Loader label="저장하지 못했습니다" />
-        );
-        rerender(<Loader label="저장 중" />);
-        expect(layers(container).map((l) => l.textContent)).toEqual([
-          '저장하지 못했습니다',
-          '저장 중',
-        ]);
-      });
-
-      it('옛 층의 투명도 전이가 끝나면 글자가 비어 칸 폭을 잡지 않는다', () => {
-        const { container, rerender } = render(
-          <Loader label="저장하지 못했습니다" />
-        );
-        rerender(<Loader label="저장 중" />);
-        const [old, next] = layers(container);
-        fireEvent.transitionEnd(old);
-        expect(old).toHaveTextContent('');
-        expect(next).toHaveTextContent('저장 중');
-        expect(next).toHaveAttribute('data-active');
-      });
-
-      it('켜진 층의 전이 끝은 아무것도 지우지 않는다', () => {
-        const { container, rerender } = render(<Loader label="가" />);
-        rerender(<Loader label="나" />);
-        const [, next] = layers(container);
-        fireEvent.transitionEnd(next);
-        expect(layers(container).map((l) => l.textContent)).toEqual([
-          '가',
-          '나',
-        ]);
-      });
-
-      it('비운 뒤 다시 바뀌어도 번갈아 넘어간다', () => {
-        const { container, rerender } = render(<Loader label="가" />);
-        rerender(<Loader label="나" />);
-        fireEvent.transitionEnd(layers(container)[0]);
-        rerender(<Loader label="다" />);
-        expect(layers(container).map((l) => l.textContent)).toEqual([
-          '다',
-          '나',
-        ]);
-        expect(layers(container)[0]).toHaveAttribute('data-active');
-      });
-
-      it('축소 선호: 전이가 없으니 옛 글자는 처음부터 칸에 남지 않는다', () => {
-        installReducedMotion();
-        const { container, rerender } = render(<Loader label="가" />);
-        rerender(<Loader label="나" />);
-        expect(layers(container).map((l) => l.textContent)).toEqual(['', '나']);
-      });
+    it('도는 동안 칸 폭이 옛 폭에 고정되고 글자는 한 줄이다 (새 글자가 더 길어도 줄바꿈하지 않는다)', () => {
+      installLayout();
+      const { container, rerender } = render(<Loader label="가" />);
+      rerender(<Loader label="가나다라마" />);
+      expect(paragraph(container).style.width).toBe(`${CHAR_PX}px`);
+      expect(paragraph(container).style.whiteSpace).toBe('nowrap');
+      expect(texts(container)).toEqual(['가', '가나다라마']);
     });
 
-    describe('그래픽 위치가 바뀌면 옛 자리에서 새 자리로 미끄러진다', () => {
-      it('라벨이 바뀌어 좌표가 20px 왼쪽으로 가면 x 20에서 0으로 base settle로 간다', () => {
-        installGraphicRect();
-        const { container, rerender } = render(
-          <Loader label="저장하지 못했습니다" />
-        );
-        expect(orbitOf(container).__loaderSlideTween).toBeUndefined();
-        layoutLeft = 80;
-        rerender(<Loader label="저장 중" />);
-        const tween = orbitOf(container).__loaderSlideTween as gsap.core.Tween;
-        expect(tween).toBeDefined();
-        expect(startX(tween)).toBe(20);
-        expect(tween.vars.x).toBe(0);
-        expect(tween.duration()).toBe(gsapDuration.base);
-        expect(tween.vars.ease).toBe(gsapEasing.settle);
-        // 옛 자리에 그대로 보이게 시작한다
-        expect(xOf(orbitOf(container))).toBe(20);
+    it('끝나면 옛 층을 비우고 칸 폭 고정과 손잡이를 거둔다', () => {
+      installLayout();
+      const { container, rerender } = render(<Loader label="가나다" />);
+      rerender(<Loader label="가" />);
+      act(() => {
+        timelineOf(container).progress(1);
       });
+      expect(texts(container)).toEqual(['', '가']);
+      expect(paragraph(container).style.width).toBe('');
+      expect(paragraph(container).style.whiteSpace).toBe('');
+      expect(timelineOf(container)).toBeUndefined();
+    });
 
-      it('오른쪽으로 가면 음수에서 시작한다', () => {
-        installGraphicRect();
-        const { container, rerender } = render(<Loader label="가" />);
-        layoutLeft = 130;
-        rerender(<Loader label="가나다라마바사" />);
-        expect(
-          startX(orbitOf(container).__loaderSlideTween as gsap.core.Tween)
-        ).toBe(-30);
-      });
+    it('도는 중 또 바뀌면 이전 타임라인은 죽고, 지금 폭에서 이어받고, 더 옛 글자는 칸에서 빠진다', () => {
+      installLayout();
+      const { container, rerender } = render(<Loader label="가" />);
+      rerender(<Loader label="가나다" />);
+      const first = timelineOf(container);
+      expect(texts(container)).toEqual(['가', '가나다']);
+      rerender(<Loader label="가나다라마" />);
+      const second = timelineOf(container);
+      expect(second).not.toBe(first);
+      expect(first.parent).toBeNull();
+      // 맨 처음 글자 '가'가 빠지고 그 층이 새 글자로 재사용된다
+      expect(texts(container)).toEqual(['가나다라마', '가나다']);
+      // 칸은 옛 칸 폭(첫 타임라인이 고정해 둔 폭)에서 새 폭으로 간다
+      const width = tweenOn(second, paragraph(container));
+      expect(startOf(width).width).toBe(CHAR_PX);
+      expect(width.vars.width).toBe(5 * CHAR_PX);
+    });
 
-      it('점들의 부모(궤도)에 걸리고 점 상태 트윈이 쓰는 점 요소와 다르다', () => {
-        installGraphicRect();
-        const { container, rerender } = render(<Loader label="가" />);
-        layoutLeft = 90;
-        rerender(<Loader label="가나다" />);
-        const tween = orbitOf(container).__loaderSlideTween as gsap.core.Tween;
-        expect(tween.targets()).toEqual([orbitOf(container)]);
-        expect(tween.targets()[0]).not.toHaveAttribute('data-orbit-dot');
-      });
+    it('라벨이 없어지면 타임라인이 죽고 두 층이 모두 비며, 다시 생기면 효과 없이 처음 렌더처럼 나온다', () => {
+      installLayout();
+      const { container, rerender } = render(<Loader label="가" />);
+      rerender(<Loader label="가나다" />);
+      const running = timelineOf(container);
+      rerender(<Loader />);
+      expect(running.parent).toBeNull();
+      expect(paragraph(container)).toBeNull();
+      rerender(<Loader label="나" />);
+      expect(texts(container)).toEqual(['나', '']);
+      expect(timelineOf(container)).toBeUndefined();
+      expect(paragraph(container).style.width).toBe('');
+    });
 
-      it('궤도가 아닌 type은 그 그래픽 요소에 건다', () => {
-        installGraphicRect();
-        const { container, rerender } = render(
-          <Loader type="bar" label="가" />
-        );
-        layoutLeft = 90;
-        rerender(<Loader type="bar" label="가나다" />);
-        const barEl = container.querySelector('[data-type="bar"]') as SlideHost;
-        expect(startX(barEl.__loaderSlideTween as gsap.core.Tween)).toBe(10);
-      });
+    it('라벨 A → 없음 → 긴 B: 옛 글자가 남지 않고 칸 폭은 B 하나의 폭이다', () => {
+      installLayout();
+      const { container, rerender } = render(<Loader label="A" />);
+      rerender(<Loader />);
+      rerender(<Loader label="Bbbbbbbbbbbbbbb" />);
+      expect(texts(container)).toEqual(['Bbbbbbbbbbbbbbb', '']);
+      expect(paragraph(container).offsetWidth).toBe(15 * CHAR_PX);
+      expect(paragraph(container).style.width).toBe('');
+    });
 
-      it('좌표가 같으면 트윈이 없다 (처음 렌더, 라벨 없음, 같은 자리)', () => {
-        installGraphicRect();
-        const { container, rerender } = render(<Loader />);
-        expect(orbitOf(container).__loaderSlideTween).toBeUndefined();
-        rerender(<Loader size="lg" />);
-        rerender(<Loader label="가" />);
-        rerender(<Loader label="나" />);
-        expect(orbitOf(container).__loaderSlideTween).toBeUndefined();
-        expect(xOf(orbitOf(container))).toBe(0);
-      });
+    it('언마운트하면 돌던 타임라인이 정리된다', () => {
+      installLayout();
+      const { container, rerender, unmount } = render(<Loader label="가" />);
+      rerender(<Loader label="가나다" />);
+      const running = timelineOf(container);
+      expect(running.parent).not.toBeNull();
+      unmount();
+      expect(running.parent).toBeNull();
+    });
 
-      it('0.5px 이하의 차이는 무시하고, 넘으면 미끄러진다', () => {
-        installGraphicRect();
-        const { container, rerender } = render(<Loader label="가" />);
-        layoutLeft = 99.5;
-        rerender(<Loader label="나" />);
-        expect(orbitOf(container).__loaderSlideTween).toBeUndefined();
-        layoutLeft = 98.9;
-        rerender(<Loader label="다" />);
-        expect(orbitOf(container).__loaderSlideTween).toBeDefined();
-      });
+    it('라벨이 없으면 아무것도 재지 않는다 (Button, IconButton 안의 로더가 이 경우다)', () => {
+      installLayout();
+      const { rerender } = render(<Loader type="dots" />);
+      rerender(<Loader type="dots" size="lg" />);
+      rerender(<Loader type="spinner" />);
+      rerender(<Loader type="bar" />);
+      rerender(<Loader type="wave" />);
+      rerender(<Loader type="fuse" value={30} />);
+      rerender(<Loader type="fuse" value={60} />);
+      expect(widthReads).toBe(0);
+      expect(rectReads).toBe(0);
+    });
 
-      it('옛 라벨 층이 빠져 폭이 줄어도 미끄러진다', () => {
-        installGraphicRect();
-        const { container, rerender } = render(
-          <Loader label="저장하지 못했습니다" />
-        );
-        rerender(<Loader label="저장 중" />);
-        orbitOf(container).__loaderSlideTween?.progress(1);
-        layoutLeft = 88;
-        fireEvent.transitionEnd(layers(container)[0]);
-        expect(
-          startX(orbitOf(container).__loaderSlideTween as gsap.core.Tween)
-        ).toBe(12);
-      });
+    it('라벨이 그대로면 다시 그려도 재지 않고, 부모가 옮겨 가도 아무 트윈이 없다', () => {
+      installLayout();
+      const tree = (marginLeft: number) => (
+        <div style={{ marginLeft }}>
+          <Loader label="가나다" />
+        </div>
+      );
+      const { container, rerender } = render(tree(0));
+      widthReads = 0;
+      rectReads = 0;
+      rerender(tree(120));
+      rerender(tree(0));
+      expect(timelineOf(container)).toBeUndefined();
+      expect(paragraph(container).style.width).toBe('');
+      expect(widthReads).toBe(0);
+      expect(rectReads).toBe(0);
+    });
 
-      it('끝까지 가면 x가 0이고 손잡이가 빈다', () => {
-        installGraphicRect();
-        const { container, rerender } = render(<Loader label="가" />);
-        layoutLeft = 80;
-        rerender(<Loader label="가나다" />);
-        const tween = orbitOf(container).__loaderSlideTween as gsap.core.Tween;
-        tween.progress(1);
-        expect(xOf(orbitOf(container))).toBe(0);
-        expect(orbitOf(container).__loaderSlideTween).toBeUndefined();
-      });
+    it('축소 선호: 바로 끝 상태이고 옛 글자와 손잡이와 폭 고정이 남지 않는다', () => {
+      installReducedMotion();
+      installLayout();
+      const { container, rerender } = render(<Loader label="가나다" />);
+      rerender(<Loader label="가" />);
+      expect(texts(container)).toEqual(['', '가']);
+      expect(timelineOf(container)).toBeUndefined();
+      expect(paragraph(container).style.width).toBe('');
+      expect(paragraph(container).style.whiteSpace).toBe('');
+    });
 
-      it('진행 중 또 바뀌면 지금 x에서 이어받고 이전 트윈은 죽는다', () => {
-        installGraphicRect();
-        const { container, rerender } = render(<Loader label="가" />);
-        layoutLeft = 80;
-        rerender(<Loader label="가나다" />);
-        const first = orbitOf(container).__loaderSlideTween as gsap.core.Tween;
-        first.progress(0.5);
-        const mid = xOf(orbitOf(container));
-        expect(mid).toBeGreaterThan(0);
-        expect(mid).toBeLessThan(20);
-        layoutLeft = 65;
-        rerender(<Loader label="가나다라마" />);
-        const second = orbitOf(container).__loaderSlideTween as gsap.core.Tween;
-        expect(second).not.toBe(first);
-        expect(first.parent).toBeNull();
-        expect(startX(second)).toBeCloseTo(mid + 15, 4);
-      });
-
-      it('축소 선호: 미끄러지지 않고 바로 앉는다', () => {
-        installReducedMotion();
-        installGraphicRect();
-        const { container, rerender } = render(<Loader label="가" />);
-        layoutLeft = 80;
-        rerender(<Loader label="가나다" />);
-        expect(orbitOf(container).__loaderSlideTween).toBeUndefined();
-        expect(xOf(orbitOf(container))).toBe(0);
-      });
-
-      it('언마운트하면 돌던 트윈이 정리된다', () => {
-        installGraphicRect();
-        const { container, rerender, unmount } = render(<Loader label="가" />);
-        layoutLeft = 80;
-        rerender(<Loader label="가나다" />);
-        const tween = orbitOf(container).__loaderSlideTween as gsap.core.Tween;
-        expect(tween.parent).not.toBeNull();
-        unmount();
-        expect(tween.parent).toBeNull();
-      });
-
-      it('점 상태 트윈과 같이 돌아도 서로 다른 요소라 덮어쓰지 않는다', () => {
-        installGraphicRect();
-        const { container, rerender } = render(<Loader label="저장 중..." />);
-        layoutLeft = 85;
-        rerender(<Loader status="done" label="저장했습니다" />);
-        const host = orbitOf(container) as SlideHost & {
-          __loaderStatusTimeline?: gsap.core.Timeline;
-        };
-        expect(host.__loaderSlideTween).toBeDefined();
-        expect(host.__loaderStatusTimeline).toBeDefined();
-        const dotTargets = (
-          host.__loaderStatusTimeline?.getChildren() as gsap.core.Tween[]
-        ).map((t) => t.targets()[0]);
-        expect(dotTargets).not.toContain(host);
-      });
+    it('꺼진 층은 절대 위치로 칸 폭에서 빠지고 칸은 위치 기준이며, 흐림은 CSS 전이가 아니라 GSAP이 맡는다', () => {
+      const layer = block(LOADER_CSS, 'labelLayer');
+      expectCss(block(LOADER_CSS, 'label')).toContain("position: 'relative'");
+      expectCss(layer).toContain("'&:not([data-active])'");
+      expectCss(layer).toContain("position: 'absolute'");
+      expectCss(layer).toContain("whiteSpace: 'nowrap'");
+      expect(layer).not.toContain('transition');
+      expect(layer).not.toContain('opacity');
+      expect(layer).not.toContain('filter');
     });
   });
 

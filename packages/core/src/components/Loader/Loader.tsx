@@ -27,6 +27,7 @@ import {
   waveBar,
   waveSizeStyles,
   labelLayer,
+  visuallyHidden,
   fuse,
   fuseFill,
   fuseSpark,
@@ -161,58 +162,26 @@ interface LabelSlots {
   active: 0 | 1;
 }
 
-interface SlideHost extends HTMLElement {
-  /** 지금 도는 미끄러짐 트윈(테스트가 읽는 손잡이). 끝나면 비운다 */
-  __loaderSlideTween?: gsap.core.Tween;
+const EMPTY_SLOTS: LabelSlots = { texts: ['', ''], active: 0 };
+
+interface LabelHost extends HTMLParagraphElement {
+  /** 지금 도는 라벨 교체 타임라인(테스트가 읽는 손잡이). 끝나면 비운다 */
+  __loaderLabelTimeline?: gsap.core.Timeline;
 }
 
-/** 이 차이(px)까지는 같은 자리로 본다 */
-const SLIDE_THRESHOLD_PX = 0.5;
+interface OrbitGraphicProps {
+  status: OrbitStatus;
+  size: LoaderSize;
+  reduced: boolean;
+}
 
-export const Loader = ({
-  type = 'orbit',
-  status = 'loading',
-  value,
-  size = 'md',
-  color = 'primary',
-  label,
-  fullScreen = false,
-  overlay = false,
-  'aria-label': ariaLabel,
-  className,
-  ...props
-}: LoaderProps) => {
-  const reduced = useReducedMotion();
-  const rootRef = useRef<HTMLDivElement>(null);
-  const orbitRef = useRef<OrbitHost>(null);
-  const leftRef = useRef<number | null>(null);
-  const slideRef = useRef<gsap.core.Tween | null>(null);
-
-  // 라벨이 바뀌면 옛 글자를 흐려 보내고 새 글자를 같은 칸에 흐림에서 불러온다.
-  // 두 층이 같은 칸에 겹쳐 있어 전환 도중에는 덜컥이지 않는다. 흐림이 끝난 옛 층은
-  // 글자를 비워 칸 폭에서 빠진다(안 비우면 투명한 옛 글자가 폭을 계속 잡는다).
-  const [slots, setSlots] = useState<LabelSlots>({
-    texts: [label ?? '', ''],
-    active: 0,
-  });
-  if (label && slots.texts[slots.active] !== label) {
-    const next = slots.active === 0 ? 1 : 0;
-    const texts: [string, string] = [...slots.texts];
-    texts[next] = label;
-    setSlots({ texts, active: next });
-  }
-  const clearLayer = (index: number): void =>
-    setSlots((s) =>
-      s.active === index || !s.texts[index]
-        ? s
-        : {
-            ...s,
-            texts: s.texts.map((t, i) => (i === index ? '' : t)) as [
-              string,
-              string,
-            ],
-          }
-    );
+/**
+ * 점 궤도 그래픽과 그 상태 전환 타임라인. 수명이 궤도와 같도록 Loader 본문이 아니라
+ * 여기에 둔다(type이 바뀌면 이 컴포넌트가 사라지며 타임라인도 같이 죽는다).
+ * 파일 밖으로 내보내지 않는다.
+ */
+const OrbitGraphic = ({ status, size, reduced }: OrbitGraphicProps) => {
+  const hostRef = useRef<OrbitHost>(null);
   const shownRef = useRef<{ status: OrbitStatus; size: LoaderSize } | null>(
     null
   );
@@ -221,11 +190,8 @@ export const Loader = ({
   // 바꾼다). 위치는 GSAP(x, y)이, 색은 CSS 전이가 맡는다. 마운트와 크기 변경은
   // 효과 없이 끝 상태를 바로 쓴다.
   useLayoutEffect(() => {
-    const host = orbitRef.current;
-    if (type !== 'orbit' || !host) {
-      shownRef.current = null;
-      return;
-    }
+    const host = hostRef.current;
+    if (!host) return;
     const dots = [...host.querySelectorAll<HTMLElement>('[data-orbit-dot]')];
     const targets = orbitTargets(status, size);
     const prev = shownRef.current;
@@ -297,57 +263,150 @@ export const Loader = ({
       timeline.kill();
       arrive(timeline);
     });
-  }, [type, status, size, reduced]);
+  }, [status, size, reduced]);
 
   useEffect(() => {
-    const host = orbitRef.current;
+    const host = hostRef.current;
     return () => {
       host?.__loaderStatusTimeline?.kill();
     };
   }, []);
 
-  // 라벨 폭이 바뀌면 컨테이너 폭이 바뀌어 가운데 놓인 그래픽이 옆으로 옮겨 간다.
-  // 매 커밋 뒤 그래픽의 레이아웃 왼쪽 좌표(진행 중인 x는 뺀다)를 재어 두고, 바뀌었으면
-  // 옛 자리에 그대로 보이게 x를 주고 0으로 미끄러뜨린다(FLIP). 점들의 x·y 트윈과는
-  // 다른 요소(점들의 부모)에 걸어 서로 덮어쓰지 않는다.
+  return (
+    <div
+      ref={hostRef}
+      className={clsx(orbit, spinnerSizeStyles[size])}
+      aria-hidden="true"
+      data-orbit
+      data-status={status}
+    >
+      {Array.from({ length: 8 }, (_, i) => (
+        <span
+          key={i}
+          className={clsx(orbitDot, orbitDotSizeStyles[size])}
+          style={{ '--orbit-i': i } as CSSProperties}
+          data-orbit-dot
+        />
+      ))}
+    </div>
+  );
+};
+
+export const Loader = ({
+  type = 'orbit',
+  status = 'loading',
+  value,
+  size = 'md',
+  color = 'primary',
+  label,
+  fullScreen = false,
+  overlay = false,
+  'aria-label': ariaLabel,
+  className,
+  ...props
+}: LoaderProps) => {
+  const reduced = useReducedMotion();
+  const labelRef = useRef<LabelHost>(null);
+  const labelTlRef = useRef<gsap.core.Timeline | null>(null);
+
+  // 라벨이 바뀌면 옛 글자를 흐려 보내고 새 글자를 같은 칸에 흐림에서 불러온다.
+  // 켜지지 않은 층은 절대 위치라 칸 폭에 들어가지 않고, 칸 폭은 아래 effect의
+  // 타임라인이 옛 폭에서 새 폭으로 옮긴다. 라벨이 없어지면 두 층을 비우고, 다시
+  // 생기면 처음 렌더처럼 효과 없이 나온다.
+  const [slots, setSlots] = useState<LabelSlots>({
+    texts: [label ?? '', ''],
+    active: 0,
+  });
+  const prevSlotsRef = useRef(slots);
+  if (!label) {
+    if (slots.texts[0] || slots.texts[1]) setSlots(EMPTY_SLOTS);
+  } else if (slots.texts[slots.active] !== label) {
+    if (!slots.texts[slots.active]) {
+      setSlots({ texts: [label, ''], active: 0 });
+    } else {
+      const next = slots.active === 0 ? 1 : 0;
+      const texts: [string, string] = [...slots.texts];
+      texts[next] = label;
+      setSlots({ texts, active: next });
+    }
+  }
+  const clearLayer = (index: number): void =>
+    setSlots((s) =>
+      s.active === index || !s.texts[index]
+        ? s
+        : {
+            ...s,
+            texts: s.texts.map((t, i) => (i === index ? '' : t)) as [
+              string,
+              string,
+            ],
+          }
+    );
+
+  // 글자가 바뀐 그 커밋에서만 칸 안의 폭을 재고, 칸 폭 트윈과 두 글자 층의 흐림
+  // 교체를 타임라인 하나로 건다(Chip 삭제의 marginInlineEnd 트윈과 같은 1회성
+  // 레이아웃 트윈). 가운데 놓인 그래픽은 칸이 부드럽게 변하니 같이 옮겨 간다.
+  // 라벨이 없거나 글자가 그대로면 아무것도 재지 않는다. 끝나면(onComplete) 옛 층을
+  // 비운다. 도중에 또 바뀌면 이 타임라인은 죽고, 옛 층은 새 글자의 층으로
+  // 재사용되거나(더 옛 글자) 다음 타임라인이 맡는다.
   useLayoutEffect(() => {
-    const root = rootRef.current;
-    const el = (root?.querySelector('[data-orbit]') ??
-      root?.querySelector('[data-type]')) as SlideHost | null | undefined;
-    if (!el) {
-      leftRef.current = null;
+    const prev = prevSlotsRef.current;
+    prevSlotsRef.current = slots;
+    const p = labelRef.current;
+    if (!p) {
+      labelTlRef.current?.kill();
+      labelTlRef.current = null;
       return;
     }
-    const current = Number(gsap.getProperty(el, 'x')) || 0;
-    const left = el.getBoundingClientRect().left - current;
-    const prev = leftRef.current;
-    leftRef.current = left;
-    if (prev === null || Math.abs(prev - left) <= SLIDE_THRESHOLD_PX) return;
+    if (
+      prev.active === slots.active ||
+      !prev.texts[prev.active] ||
+      !slots.texts[slots.active]
+    ) {
+      return;
+    }
 
-    slideRef.current?.kill();
-    const tween = gateMotion(reduced, () =>
-      gsap.fromTo(
-        el,
-        { x: current + prev - left },
-        {
-          x: 0,
-          duration: gsapDuration.base,
-          ease: gsapEasing.settle,
-          overwrite: true,
-        }
-      )
-    );
-    if (reduced) return;
-    slideRef.current = tween;
-    el.__loaderSlideTween = tween;
-    tween.eventCallback('onComplete', () => {
-      if (el.__loaderSlideTween === tween) el.__loaderSlideTween = undefined;
+    const layerEls = p.querySelectorAll<HTMLElement>('[data-label-layer]');
+    const oldEl = layerEls[prev.active];
+    const newEl = layerEls[slots.active];
+    const running = labelTlRef.current;
+    // 도는 중이면 눈에 보이는 폭(고정된 폭)에서, 아니면 옛 글자 폭에서 시작한다.
+    const from = running ? p.offsetWidth : oldEl.offsetWidth;
+    running?.kill();
+    p.style.width = '';
+    const to = p.offsetWidth;
+    // 칸이 새 글자보다 좁은 동안 줄바꿈하지 않게 한다
+    p.style.whiteSpace = 'nowrap';
+
+    const finish = (tl: gsap.core.Timeline): void => {
+      if (labelTlRef.current !== tl) return;
+      labelTlRef.current = null;
+      p.__loaderLabelTimeline = undefined;
+      p.style.width = '';
+      p.style.whiteSpace = '';
+      clearLayer(prev.active);
+    };
+    // 축소 선호면 gateMotion이 끝 상태로 확정하며 onComplete도 불러 옛 층을 비운다
+    gateMotion(reduced, () => {
+      const tl = gsap.timeline({ onComplete: () => finish(tl) });
+      labelTlRef.current = tl;
+      p.__loaderLabelTimeline = tl;
+      const timing = { duration: gsapDuration.base, ease: gsapEasing.settle };
+      tl.fromTo(p, { width: from }, { width: to, ...timing }, 0)
+        .to(oldEl, { opacity: 0, filter: 'blur(2px)', ...timing }, 0)
+        .fromTo(
+          newEl,
+          { opacity: 0, filter: 'blur(2px)' },
+          { opacity: 1, filter: 'blur(0px)', ...timing },
+          0
+        );
+      return tl;
     });
-  });
+  }, [slots, reduced]);
 
   useEffect(
     () => () => {
-      slideRef.current?.kill();
+      labelTlRef.current?.kill();
     },
     []
   );
@@ -438,6 +497,9 @@ export const Loader = ({
               }
             />
           </div>
+          <span className={visuallyHidden} data-loader-message>
+            {accessibleLabel}
+          </span>
         </div>
       );
     }
@@ -446,7 +508,13 @@ export const Loader = ({
       <div
         role="status"
         aria-live="polite"
-        aria-busy={type === 'orbit' ? status === 'loading' : undefined}
+        aria-busy={
+          type === 'orbit'
+            ? status === 'loading'
+            : type === 'wave'
+              ? true
+              : undefined
+        }
         aria-label={accessibleLabel}
         data-type={type}
         data-size={size}
@@ -487,28 +555,16 @@ export const Loader = ({
             ))}
           </div>
         ) : type === 'orbit' ? (
-          <div
-            ref={orbitRef}
-            className={clsx(orbit, spinnerSizeStyles[size])}
-            aria-hidden="true"
-            data-orbit
-            data-status={status}
-          >
-            {Array.from({ length: 8 }, (_, i) => (
-              <span
-                key={i}
-                className={clsx(orbitDot, orbitDotSizeStyles[size])}
-                style={{ '--orbit-i': i } as CSSProperties}
-                data-orbit-dot
-              />
-            ))}
-          </div>
+          <OrbitGraphic status={status} size={size} reduced={reduced} />
         ) : (
           <div
             className={clsx(spinner, spinnerSizeStyles[size])}
             data-spinner
           />
         )}
+        <span className={visuallyHidden} data-loader-message>
+          {accessibleLabel}
+        </span>
       </div>
     );
   };
@@ -517,7 +573,7 @@ export const Loader = ({
 
   if (!label && !fullScreen && !overlay) {
     return (
-      <div ref={rootRef} {...props} {...a11yLocked} className={className}>
+      <div {...props} {...a11yLocked} className={className}>
         {loaderElement}
       </div>
     );
@@ -525,7 +581,6 @@ export const Loader = ({
 
   return (
     <div
-      ref={rootRef}
       {...props}
       {...a11yLocked}
       className={clsx(
@@ -537,7 +592,7 @@ export const Loader = ({
     >
       {loaderElement}
       {label && (
-        <p className={labelClass}>
+        <p ref={labelRef} className={labelClass}>
           {slots.texts.map((t, i) => (
             <span
               key={i}
@@ -545,10 +600,8 @@ export const Loader = ({
               data-label-layer
               data-active={i === slots.active ? '' : undefined}
               aria-hidden={i === slots.active ? undefined : true}
-              onTransitionEnd={() => clearLayer(i)}
             >
-              {/* 축소 선호는 전이가 없어 transitionend가 오지 않는다. 처음부터 비운다 */}
-              {i === slots.active || !reduced ? t : ''}
+              {t}
             </span>
           ))}
         </p>

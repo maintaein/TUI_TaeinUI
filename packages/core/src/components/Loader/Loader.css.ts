@@ -26,11 +26,13 @@ const progress = keyframes({
 // 한 방향 회전이되 속도가 일정하지 않다 — 끌려가는 느낌. 루프에 ease-out을
 // 걸면 매 바퀴 멈춘 것처럼 보이므로, 대신 중간 프레임(50% 200deg)을 넣어
 // timing은 linear로 두고 키프레임 자체로 비등속을 만든다.
-// T5(loopRhythm) 공유 자산을 쓰지 않는 건 이 회전 하나다 — 주기가
+// T5(loopRhythm) 공유 자산을 쓰지 않는 회전은 이것이다. 주기가
 // loop.fast이고 커브가 linear + 비등속 키프레임인 것은 이 명제 한 줄의
 // 요구이지 계열 리듬(S1)의 예외가 아니다. 회전은 좌→우의 원형 형태라
 // "한 방향"은 그대로 지켜진다. 같은 파일의 점 궤도(orbit)와 버블 점의 예비동작은
 // 구간 커브가 Skeleton wave와 같아 공유 자산을 거친다(리뷰 F3, M5 task-20).
+// 자벌레(inchworm)도 공유 자산 밖이다: 구간 커브가 settle이고 주기가
+// loop.base의 2배다(걸음 5번이 한 바퀴라서).
 const spin = keyframes({
   '0%': { transform: 'rotate(0deg)' },
   '50%': { transform: 'rotate(200deg)' },
@@ -385,8 +387,8 @@ export const dotDelayStyles = styleVariants({
 });
 
 export const label = style({
-  // 글자가 바뀔 때 두 층이 같은 칸에 겹친다(labelLayer).
-  display: 'grid',
+  // 글자가 바뀔 때 켜지지 않은 층이 이 칸 위에 겹친다(labelLayer).
+  position: 'relative',
   margin: 0,
   fontSize: themeContract.font.size.sm,
   fontWeight: themeContract.font.weight.medium,
@@ -395,23 +397,35 @@ export const label = style({
   textAlign: 'center',
 });
 
-// 라벨 교체: 두 층이 같은 칸에 겹쳐 있어 글자가 바뀌어도 자리가 덜컥이지 않는다.
-// 꺼진 층은 흐려지며 사라지고 켜진 층은 흐림에서 또렷하게 나타난다.
+// 라벨 교체: 켜진 층만 칸 안에 있고 켜지지 않은 층은 절대 위치로 가운데에 겹쳐
+// 칸 폭에 들어가지 않는다. 흐림 교체(투명도·blur)와 칸 폭은 Loader.tsx의 GSAP
+// 타임라인 하나가 맡는다.
 export const labelLayer = style({
-  gridArea: '1 / 1',
-  opacity: 0,
-  filter: 'blur(2px)',
-  transition: `opacity ${themeContract.animation.duration.base} ${themeContract.animation.easing.settle}, filter ${themeContract.animation.duration.base} ${themeContract.animation.easing.settle}`,
+  display: 'block',
 
   selectors: {
-    '&[data-active]': { opacity: 1, filter: 'blur(0)' },
-  },
-
-  '@media': {
-    '(prefers-reduced-motion: reduce)': {
-      transition: 'none',
+    '&:not([data-active])': {
+      position: 'absolute',
+      top: 0,
+      left: '50%',
+      transform: 'translateX(-50%)',
+      whiteSpace: 'nowrap',
     },
   },
+});
+
+// 시각적으로만 숨기는 글자. display: none·visibility: hidden은 접근성 트리에서도
+// 지워져 쓸 수 없다. Snackbar.css.ts의 visuallyHidden과 같은 규칙이다.
+export const visuallyHidden = style({
+  position: 'absolute',
+  width: '1px',
+  height: '1px',
+  padding: 0,
+  margin: '-1px',
+  overflow: 'hidden',
+  clip: 'rect(0, 0, 0, 0)',
+  whiteSpace: 'nowrap',
+  border: 0,
 });
 
 // 도화선(fuse): 트랙은 bar와 같다. 채움 층은 트랙 전체 폭이고 clip-path로

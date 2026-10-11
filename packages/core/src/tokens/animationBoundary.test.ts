@@ -1296,7 +1296,8 @@ const OVERSHOOT_TIMING_EXCEPTIONS: OvershootException[] = [];
 /**
  * `animation` 단축의 키프레임이 건드리는 속성 이름. `const <name> = keyframes({...})`
  * 본문의 프레임마다 속성 키를 모은다. 찾지 못하면 빈 배열이라 "transform뿐"
- * 판정이 거짓이 된다(조용히 통과시키지 않는다).
+ * 판정이 거짓이 된다(조용히 통과시키지 않는다). 프레임이 하나라도 읽히지 않으면
+ * 표식 속성을 넣어 같은 쪽(거짓)으로 닫는다.
  */
 function keyframePropsIn(text: string, name: string): string[] {
   const head = new RegExp(`const ${name} = keyframes\\(\\{`).exec(text);
@@ -1308,13 +1309,23 @@ function keyframePropsIn(text: string, name: string): string[] {
     if (text[close] === '{') depth += 1;
     else if (text[close] === '}' && --depth === 0) break;
   }
+  const body = text.slice(open + 1, close);
   const props = new Set<string>();
-  for (const frame of text
-    .slice(open, close + 1)
-    .matchAll(/'[\d.,%\s]+'\s*:\s*\{([^{}]*)\}/g)) {
+  const read = [...body.matchAll(/'[\d.,%\s]+'\s*:\s*\{([^{}]*)\}/g)];
+  for (const frame of read) {
     for (const key of frame[1].matchAll(/(?:^|[,\s])(\w+)\s*:/g))
       props.add(key[1]);
   }
+  // 읽지 못한 프레임(from/to, 큰따옴표 키, 보간, 펼침)이 하나라도 있으면 그 안이
+  // transform뿐이라고 장담할 수 없다. 표식 속성을 넣어 "transform뿐" 판정을 깨뜨린다.
+  let blocks = 0;
+  let level = 0;
+  for (const ch of body) {
+    if (ch === '{' && level++ === 0) blocks += 1;
+    else if (ch === '}') level -= 1;
+  }
+  if (blocks !== read.length || /\$\{|\.\.\./.test(body))
+    props.add('(읽지 못한 프레임)');
   return [...props];
 }
 
@@ -1346,6 +1357,29 @@ describe('오버슈트 이징 경계 (R46)', () => {
       false
     );
     expect(animatesOnlyTransform(only, '1s ${x} infinite')).toBe(false);
+  });
+
+  it('읽지 못한 프레임이 하나라도 있으면 transform뿐이라는 면제를 주지 않는다 (실패 쪽으로 닫는다)', () => {
+    const readable = "  '0%': { transform: 'translateY(0)' },";
+    const wrap = (...frames: string[]) =>
+      ['const k = keyframes({', readable, ...frames, '});'].join('\n');
+    const value = '${k} 1s ${x} infinite';
+    // 읽히는 프레임만 있으면 면제다(대조군)
+    expect(animatesOnlyTransform(wrap(), value)).toBe(true);
+    // from/to 표기
+    expect(animatesOnlyTransform(wrap('  to: { opacity: 1 },'), value)).toBe(
+      false
+    );
+    // 큰따옴표 키
+    expect(
+      animatesOnlyTransform(wrap('  "50%": { width: "10px" },'), value)
+    ).toBe(false);
+    // 값에 보간이 든 프레임(중괄호가 보간에서 끊긴다)
+    expect(
+      animatesOnlyTransform(wrap("  '50%': { width: `${w}px` },"), value)
+    ).toBe(false);
+    // 펼침(...)으로 프레임을 만드는 키프레임
+    expect(animatesOnlyTransform(wrap('  ...frames(),'), value)).toBe(false);
   });
 
   it('snap·spring은 transform 전이에만 걸린다', () => {
