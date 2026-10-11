@@ -12,8 +12,8 @@ const meta = {
   argTypes: {
     type: {
       control: 'select',
-      options: ['spinner', 'dots', 'bar'],
-      description: 'Loader type',
+      options: ['orbit', 'spinner', 'dots', 'bar'],
+      description: 'Loader type (기본값 orbit)',
     },
     size: {
       control: 'select',
@@ -57,6 +57,18 @@ export const Types: Story = {
         flexWrap: 'wrap',
       }}
     >
+      <div>
+        <p
+          style={{
+            marginBottom: '1rem',
+            fontSize: '0.875rem',
+            fontWeight: 600,
+          }}
+        >
+          Orbit (기본)
+        </p>
+        <Loader type="orbit" />
+      </div>
       <div>
         <p
           style={{
@@ -173,7 +185,7 @@ export const Colors: Story = {
 };
 
 /**
- * color에 임의의 CSS 색상값을 넘길 수 있다. spinner와 dots 모두 적용된다.
+ * color에 임의의 CSS 색상값을 넘길 수 있다. orbit, spinner, dots 모두 적용된다.
  */
 const CUSTOM_COLORS = [
   ['Primary', '#1E88E5'],
@@ -185,7 +197,7 @@ const CUSTOM_COLORS = [
 export const CustomColors: Story = {
   render: () => (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-      {(['spinner', 'dots'] as const).map((type) => (
+      {(['orbit', 'spinner', 'dots'] as const).map((type) => (
         <div
           key={type}
           style={{ display: 'flex', alignItems: 'center', gap: '2rem' }}

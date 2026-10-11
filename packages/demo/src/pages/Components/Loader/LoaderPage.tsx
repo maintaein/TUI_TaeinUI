@@ -10,9 +10,9 @@ export function LoaderPage() {
   const propsData: PropDefinition[] = [
     {
       name: 'type',
-      type: "'spinner' | 'dots' | 'bar'",
-      default: "'spinner'",
-      description: '로더 타입 (스피너, 점 애니메이션, 프로그레스 바)',
+      type: "'orbit' | 'spinner' | 'dots' | 'bar'",
+      default: "'orbit'",
+      description: '로더 타입 (점 궤도, 스피너, 점이 솟는 버블, 프로그레스 바)',
     },
     {
       name: 'size',
@@ -87,7 +87,7 @@ export function LoaderPage() {
               </div>
               <List spacing="sm" className={styles.practiceList}>
                 <ListItem>
-                  type="spinner" 또는 "dots"만 단독으로 렌더링
+                  type="orbit", "spinner", "dots"만 단독으로 렌더링
                 </ListItem>
                 <ListItem>
                   color에 CSS 색상 문자열을 직접 지정 (예: "#8b5cf6",
@@ -159,11 +159,8 @@ export function LoaderPage() {
         </Card>
         <Card className={styles.quickRefCard}>
           <Card.Body padding="md">
-            <h3 className={styles.quickRefTitle}>Spinner</h3>
-            <CodeBlock
-              language="tsx"
-              code={`<Loader type="spinner" size="md" />`}
-            />
+            <h3 className={styles.quickRefTitle}>Orbit</h3>
+            <CodeBlock language="tsx" code={`<Loader size="md" />`} />
           </Card.Body>
         </Card>
         <Card className={styles.quickRefCard}>
@@ -182,15 +179,31 @@ export function LoaderPage() {
         <div className={styles.sectionHeader}>
           <h2 className={styles.sectionTitle}>Types</h2>
           <p className={styles.sectionDescription}>
-            세 가지 로더 타입을 제공합니다.
+            네 가지 로더 타입을 제공합니다. type을 주지 않으면 점
+            궤도(orbit)입니다.
           </p>
+        </div>
+
+        <div className={styles.example}>
+          <h3 className={styles.exampleTitle}>Orbit</h3>
+          <LivePreview
+            title="점 궤도 (기본)"
+            description="제자리에 있는 점 여덟 개의 밝기가 시계 방향으로 차례로 지나가서 점선 고리가 도는 것처럼 보입니다. type을 주지 않으면 이 모습입니다."
+            editable
+            code={`<div style={{ display: 'flex', gap: '2rem', alignItems: 'center' }}>
+  <Loader size="sm" />
+  <Loader size="md" />
+  <Loader size="lg" />
+  <Loader size="xl" />
+</div>`}
+          />
         </div>
 
         <div className={styles.example}>
           <h3 className={styles.exampleTitle}>Spinner</h3>
           <LivePreview
             title="스피너"
-            description="회전하는 원형 스피너입니다. 가장 일반적인 로딩 인디케이터입니다."
+            description='회전하는 원형 스피너입니다. 예전 기본 모습이며 type="spinner"로 고릅니다.'
             editable
             code={`<div style={{ display: 'flex', gap: '2rem', alignItems: 'center' }}>
   <Loader type="spinner" size="sm" />
@@ -205,7 +218,7 @@ export function LoaderPage() {
           <h3 className={styles.exampleTitle}>Dots</h3>
           <LivePreview
             title="점 애니메이션"
-            description="세 개의 점이 순서대로 깜빡이는 애니메이션입니다. 채팅이나 타이핑 인디케이터에 적합합니다."
+            description="세 개의 점이 차례로 살짝 움츠렸다가 말랑하게 솟았다 내려앉는 버블입니다. 채팅이나 타이핑 인디케이터에 적합합니다."
             editable
             code={`<div style={{ display: 'flex', gap: '2rem', alignItems: 'center' }}>
   <Loader type="dots" size="sm" />
@@ -297,7 +310,7 @@ export function LoaderPage() {
           <h3 className={styles.exampleTitle}>Custom Color</h3>
           <LivePreview
             title="커스텀 색상"
-            description="color에 CSS 색상 문자열을 넘기면 spinner와 dots 모두 그 색으로 그려집니다. 어두운 배경에서는 밝은 색을 지정하세요."
+            description="color에 CSS 색상 문자열을 넘기면 orbit, spinner, dots 모두 그 색으로 그려집니다. 어두운 배경에서는 밝은 색을 지정하세요."
             editable
             code={`<div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
   <div style={{ display: 'flex', gap: '2rem', alignItems: 'center' }}>

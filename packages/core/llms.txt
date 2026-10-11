@@ -59,7 +59,7 @@ All components follow consistent patterns:
 - **Avatar** - User avatar with image, fallback, status. Props: src, alt, size, variant('circular'|'rounded'|'square'), status, bouncy(opt-in hover/focus float + press grow, needs onClick or href)
 
 ### Feedback & Status
-- **Loader** — Loading indicator (spinner/dots/bar), preset or any CSS color. Props: type, size, color, label, fullScreen, overlay
+- **Loader** - Loading indicator (orbit/spinner/dots/bar, default orbit), preset or any CSS color. Props: type, size, color, label, fullScreen, overlay
 - **Skeleton** — Content placeholder. Props: variant('text'|'rect'|'circle'|'rounded'), animation('wave'|'pulse'|false), width, height
 - **Snackbar** — Toast notification. Props: open, message, severity('success'|'error'|'warning'|'info'), position, autoHideDuration, action
 - **Tooltip** — Hover tooltip. Props: children, content, position, delay, arrow

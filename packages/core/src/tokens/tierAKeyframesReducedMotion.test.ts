@@ -236,11 +236,14 @@ describe('Tier-A 12개 @keyframes 소스 열거 (M2 T4)', () => {
     expect(unused.map((k) => `${k.file}:${k.name}`)).toEqual([]);
   });
 
-  it('소스에서 찾은 keyframes 총량이 9개다 — 늘거나 줄면 이 파일의 분류를 다시 본다', () => {
+  it('소스에서 찾은 keyframes 총량이 12개다, 늘거나 줄면 이 파일의 분류를 다시 본다', () => {
     // 무엇을 뒤집으면 빨개지는가: 12개 파일 중 하나에 keyframes를 새로 추가하거나
     // 지우면 총량이 바뀐다. (예상 자리 확인용 — 브리프의 「예상되는 자리」는 참고이지
     // 여기서 실제로 세는 것이 진실이다.)
-    expect(KEYFRAMES).toHaveLength(9);
+    // M5 task-20: Loader에 점 궤도(orbitLit)와 버블 점(bubbleRise·bubbleSquash)이
+    // 들어 9개에서 12개가 됐다. fadeInOut은 버블 점의 축소 선호 대체(투명도
+    // 깜빡임)로 남아 있어 빠지지 않았다.
+    expect(KEYFRAMES).toHaveLength(12);
   });
 
   it('keyframes가 있는 파일은 Badge·Border·Divider·Loader·Skeleton 5개뿐이다 — Popover·Tooltip은 0건이다', () => {
@@ -257,12 +260,15 @@ describe('Tier-A 12개 @keyframes 소스 열거 (M2 T4)', () => {
     ]);
   });
 
-  it('무한 루프 6개 · 마운트 1회 3개로 분류된다', () => {
+  it('무한 루프 9개 · 마운트 1회 3개로 분류된다', () => {
     // 무엇을 뒤집으면 빨개지는가: 루프에서 infinite를 빼거나 마운트 1회에
     // infinite를 붙이면(잘못된 도구 선택, 공통 제약 §2) 분류가 바뀌어 잡힌다.
     expect(LOOP.map((k) => `${k.file}:${k.name}`).sort()).toEqual([
       'components/Border/Border.css.ts:rotate',
+      'components/Loader/Loader.css.ts:bubbleRise',
+      'components/Loader/Loader.css.ts:bubbleSquash',
       'components/Loader/Loader.css.ts:fadeInOut',
+      'components/Loader/Loader.css.ts:orbitLit',
       'components/Loader/Loader.css.ts:progress',
       'components/Loader/Loader.css.ts:spin',
       'components/Skeleton/Skeleton.css.ts:pulse',
@@ -302,19 +308,19 @@ describe('Tier-A 12개 @keyframes 소스 열거 (M2 T4)', () => {
  * `both`가 `'0%, 100%'` 프레임을 붙들었다.
  *
  * 그 성질은 지금까지 `theme.reducedMotion.test.ts`의 `dot` 한 자리에만
- * 리터럴 문자열로 잠겨 있었다. 여기서 LOOP 6개 전부로 일반화한다.
+ * 리터럴 문자열로 잠겨 있었다. 여기서 LOOP 9개 전부로 일반화한다.
  */
-describe('검사 1 — 무한 루프 6개가 축소 모드(iteration 1)에서 보이는 상태로 끝난다: 소비처 base가 표시 상태이고 fill-mode가 forwards/both가 아니다', () => {
-  it('LOOP 6개에서 프레임 15개·프레임 속성 16개·소비처 6곳을 실제로 순회한다 — 파서가 0개를 세면 아래 검사들보다 먼저 여기가 빨개진다', () => {
+describe('검사 1: 무한 루프 9개가 축소 모드(iteration 1)에서 보이는 상태로 끝난다: 소비처 base가 표시 상태이고 fill-mode가 forwards/both가 아니다', () => {
+  it('LOOP 9개에서 프레임 22개·프레임 속성 22개·소비처 9곳을 실제로 순회한다, 파서가 0개를 세면 아래 검사들보다 먼저 여기가 빨개진다', () => {
     // 무엇을 뒤집으면 빨개지는가: 루프 하나를 `from`/`to` 표기로 바꾸거나
     // 프레임 값에 `${...}` 보간을 넣으면 parseFrames가 그 키프레임에서 0개를
     // 돌려준다 — 개수가 어긋나 여기가 빨개진다. 개수 앵커가 없으면 같은
     // 리팩터링이 "순회할 것이 없으니 위반도 없다"로 조용히 초록이 된다.
-    expect(LOOP.flatMap((k) => k.frames)).toHaveLength(15);
+    expect(LOOP.flatMap((k) => k.frames)).toHaveLength(22);
     expect(
       LOOP.flatMap((k) => k.frames).flatMap((f) => Object.keys(f.props))
-    ).toHaveLength(16);
-    expect(LOOP.flatMap((k) => k.usages)).toHaveLength(6);
+    ).toHaveLength(22);
+    expect(LOOP.flatMap((k) => k.usages)).toHaveLength(9);
   });
 
   it('0%·100% 프레임에 opacity:0 / scale(0)류가 없다', () => {
@@ -509,15 +515,15 @@ describe('검사 3 — keyframes 소비의 duration 자리가 리터럴이 아�
 });
 
 describe('검사 4 — keyframes 본문이 transform·opacity 밖을 안 건드린다', () => {
-  it('9개 전체에서 프레임 18개·프레임 속성 21개를 실제로 순회한다 — 파싱이 비면 화이트리스트 검사가 진공이다', () => {
+  it('12개 전체에서 프레임 25개·프레임 속성 27개를 실제로 순회한다, 파싱이 비면 화이트리스트 검사가 진공이다', () => {
     // 무엇을 뒤집으면 빨개지는가: 프레임 값 하나를 백틱 보간(`\`${x}\``)으로
     // 바꾸면 PROP 정규식이 그 속성을 못 읽어 속성 수가 줄고, 프레임 키를
     // `from`/`to`로 바꾸면 FRAME 정규식이 그 프레임을 통째로 놓쳐 프레임 수가
     // 준다 — 둘 다 여기가 먼저 잡는다.
-    expect(KEYFRAMES.flatMap((k) => k.frames)).toHaveLength(18);
+    expect(KEYFRAMES.flatMap((k) => k.frames)).toHaveLength(25);
     expect(
       KEYFRAMES.flatMap((k) => k.frames).flatMap((f) => Object.keys(f.props))
-    ).toHaveLength(21);
+    ).toHaveLength(27);
   });
 
   it('프레임 속성이 화이트리스트 안이다', () => {

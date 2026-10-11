@@ -3,6 +3,7 @@ import { resolve } from 'node:path';
 import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { Loader } from './Loader';
+import { gray } from '../../tokens/colors.css';
 
 const LOADER_CSS = readFileSync(resolve(__dirname, './Loader.css.ts'), 'utf-8');
 
@@ -33,6 +34,24 @@ function commentBlockAbove(source: string, anchor: string): string {
   return comments.join('\n');
 }
 
+/** `const <name> = keyframes({...});` 블록 하나를 소스에서 잘라낸다. */
+function keyframesBlock(source: string, name: string): string {
+  const start = source.indexOf(`const ${name} = keyframes({`);
+  expect(start, `'${name}' 키프레임을 찾지 못했다`).toBeGreaterThan(-1);
+  const end = source.indexOf('\n});', start);
+  return source.slice(start, end);
+}
+
+/** 흰 바탕과 #rrggbb 한 색의 WCAG 대비. */
+function contrastOnWhite(hex: string): number {
+  const channel = (i: number) => {
+    const v = parseInt(hex.slice(1 + i * 2, 3 + i * 2), 16) / 255;
+    return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4;
+  };
+  const lum = 0.2126 * channel(0) + 0.7152 * channel(1) + 0.0722 * channel(2);
+  return 1.05 / (lum + 0.05);
+}
+
 describe('Loader', () => {
   describe('렌더링 테스트', () => {
     it('기본적으로 렌더링된다', () => {
@@ -61,10 +80,15 @@ describe('Loader', () => {
       expect(loader).toHaveAttribute('data-type', 'bar');
     });
 
-    it('기본 타입은 spinner이다', () => {
+    it('기본 타입은 orbit이다', () => {
       render(<Loader />);
       const loader = screen.getByRole('status');
-      expect(loader).toHaveAttribute('data-type', 'spinner');
+      expect(loader).toHaveAttribute('data-type', 'orbit');
+    });
+
+    it('orbit 타입을 렌더링한다', () => {
+      render(<Loader type="orbit" />);
+      expect(screen.getByRole('status')).toHaveAttribute('data-type', 'orbit');
     });
   });
 
@@ -304,10 +328,10 @@ describe('Loader', () => {
   // 흡수분: spinner·dots 타입, 4 size, 임의 색, aria-label 기본값 '로딩 중'
   describe('spinner·dots 흡수분', () => {
     describe('타입 변형', () => {
-      it('기본 타입은 spinner여야 한다', () => {
+      it('기본 타입은 orbit이어야 한다', () => {
         render(<Loader />);
-        const spinner = screen.getByRole('status');
-        expect(spinner).toBeInTheDocument();
+        const loader = screen.getByRole('status');
+        expect(loader).toHaveAttribute('data-type', 'orbit');
       });
 
       it('spinner 타입을 렌더링해야 한다', () => {
@@ -470,6 +494,173 @@ describe('Loader', () => {
           commentBlockAbove(LOADER_CSS, 'const spin = keyframes({')
         ).toMatch(/loopRhythm|T5|공유 자산/);
       });
+    });
+  });
+
+  describe('점 궤도 orbit (M5 task-20)', () => {
+    it('기본 렌더가 점 8개를 가진다', () => {
+      const { container } = render(<Loader />);
+      expect(container.querySelectorAll('[data-orbit-dot]')).toHaveLength(8);
+    });
+
+    it('점마다 순번 i를 --orbit-i로 받는다 (회전 각 i × 45deg와 늦춤 loop.fast × i / 8의 입력)', () => {
+      const { container } = render(<Loader />);
+      const dots = [
+        ...container.querySelectorAll<HTMLElement>('[data-orbit-dot]'),
+      ];
+      expect(dots.map((d) => d.style.getPropertyValue('--orbit-i'))).toEqual([
+        '0',
+        '1',
+        '2',
+        '3',
+        '4',
+        '5',
+        '6',
+        '7',
+      ]);
+    });
+
+    it('점의 회전 각은 i × 45deg이고 늦춤은 loop.fast × i / 8이다 (리터럴 ms 없음)', () => {
+      const dotBlock = block(LOADER_CSS, 'orbitDot');
+      expect(dotBlock).toContain('rotate(calc(var(--orbit-i) * 45deg))');
+      expect(dotBlock).toContain(
+        'animationDelay: `calc(${themeContract.animation.loop.fast} * var(--orbit-i) / 8)`'
+      );
+    });
+
+    it('접근성: 지금 spinner와 같은 status 계약이고 점들은 aria-hidden이다', () => {
+      const { container } = render(<Loader label="불러오는 중" />);
+      const status = screen.getByRole('status');
+      expect(status).toHaveAttribute('aria-live', 'polite');
+      expect(status).toHaveAttribute('aria-label', '불러오는 중');
+      const dot = container.querySelector('[data-orbit-dot]') as HTMLElement;
+      expect(dot.closest('[aria-hidden="true"]')).not.toBeNull();
+    });
+
+    it('색은 spinner·dots와 같은 --spinner-color로 받는다', () => {
+      render(<Loader color="#0f0" />);
+      expect(screen.getByRole('status')).toHaveStyle({
+        '--spinner-color': '#0f0',
+      });
+    });
+
+    it('켜짐 키프레임이 0.15 → 1 → 1 → 0.15 정지점이다 (18%·42%에 최대, 62%에 꺼짐)', () => {
+      const frames = keyframesBlock(LOADER_CSS, 'orbitLit');
+      expect(frames).toContain("'0%, 100%': { opacity: 0.15 }");
+      expect(frames).toContain("'18%, 42%': { opacity: 1 }");
+      expect(frames).toContain("'62%': { opacity: 0.15 }");
+      expect(frames).not.toContain('transform');
+    });
+
+    it('한 바퀴는 loop.fast, 구간 커브는 drift(loopRhythmEasing)이고 점은 제자리에서 투명도만 바뀐다', () => {
+      const dotBlock = block(LOADER_CSS, 'orbitDot');
+      expect(dotBlock).toContain(
+        'animation: `${orbitLit} ${themeContract.animation.loop.fast} ${loopRhythmEasing} infinite`'
+      );
+      expect(dotBlock).not.toMatch(/easing\.(snap|spring)/);
+      expect(dotBlock).toContain('opacity: 0.15');
+    });
+
+    it('축소 선호: 늦춤을 없애고 한 바퀴를 loop.base로 늘려 모든 점이 같이 뛴다', () => {
+      const dotBlock = block(LOADER_CSS, 'orbitDot');
+      const media = dotBlock.slice(dotBlock.indexOf('prefers-reduced-motion'));
+      expect(media).toContain("animationDelay: 'initial'");
+      expect(media).toContain(
+        'animationDuration: themeContract.animation.loop.base'
+      );
+    });
+
+    it('type="spinner"를 명시하면 예전 고리가 나온다', () => {
+      const { container } = render(<Loader type="spinner" />);
+      expect(container.querySelector('[data-spinner]')).toBeInTheDocument();
+      expect(container.querySelector('[data-orbit-dot]')).toBeNull();
+    });
+  });
+
+  describe('버블 점 dots (M5 task-20)', () => {
+    it('점 셋의 지연 0 / 0.2 / 0.4초가 바깥 상자와 안쪽 몸통에 같이 걸린다', () => {
+      const { container } = render(<Loader type="dots" />);
+      const dots = container.querySelectorAll('[data-dot]');
+      expect(dots).toHaveLength(3);
+      dots.forEach((dot) => {
+        const delay = dot.getAttribute('data-delay') as string;
+        expect(dot.className).toContain(`dotDelayStyles_${delay}`);
+        expect(dot.firstElementChild?.className).toContain(
+          `dotDelayStyles_${delay}`
+        );
+      });
+    });
+
+    it('솟음(bubbleRise)은 점 지름만큼 올라갔다 내려오고 투명도 변화가 없다', () => {
+      const frames = keyframesBlock(LOADER_CSS, 'bubbleRise');
+      expect(frames).toContain('translateY(calc(var(--bubble-rise) * -1))');
+      expect(frames).not.toContain('opacity');
+    });
+
+    it('예비동작(bubbleSquash)은 가로로 퍼지고 세로로 눌리며 투명도 변화가 없다', () => {
+      const frames = keyframesBlock(LOADER_CSS, 'bubbleSquash');
+      expect(frames).toContain('scaleX(1.15) scaleY(0.8)');
+      expect(frames).not.toContain('opacity');
+    });
+
+    it('움직이는 구간이 한 바퀴의 앞 1/3이다 (33%에 제자리, 나머지는 쉼)', () => {
+      expect(keyframesBlock(LOADER_CSS, 'bubbleRise')).toContain(
+        "'0%, 12%, 33%, 100%': { transform: 'translateY(0)' }"
+      );
+    });
+
+    it('넘치는 커브(snap)는 transform만 움직이는 솟음에만 걸리고, 예비동작은 drift다', () => {
+      expect(block(LOADER_CSS, 'dot')).toContain(
+        'animation: `${bubbleRise} ${themeContract.animation.loop.base} ${themeContract.animation.easing.snap} infinite backwards`'
+      );
+      const bodyBlock = block(LOADER_CSS, 'dotBody');
+      expect(bodyBlock).toContain(
+        'animation: `${bubbleSquash} ${themeContract.animation.loop.base} ${loopRhythmEasing} infinite backwards`'
+      );
+      expect(bodyBlock).not.toMatch(/easing\.(snap|spring)/);
+    });
+
+    it('눌릴 때 바닥이 붙어 있도록 기준점이 아래 가운데다', () => {
+      expect(block(LOADER_CSS, 'dotBody')).toContain(
+        "transformOrigin: '50% 100%'"
+      );
+    });
+
+    it('축소 선호: transform 없이 투명도 깜빡임(fadeInOut)으로 돌아간다', () => {
+      const frames = keyframesBlock(LOADER_CSS, 'fadeInOut');
+      expect(frames).toContain('opacity');
+      expect(frames).not.toContain('transform');
+      const dotBlock = block(LOADER_CSS, 'dot');
+      const media = dotBlock.slice(dotBlock.indexOf('prefers-reduced-motion'));
+      expect(media).toContain('${fadeInOut}');
+      const bodyBlock = block(LOADER_CSS, 'dotBody');
+      const bodyMedia = bodyBlock.slice(
+        bodyBlock.indexOf('prefers-reduced-motion')
+      );
+      expect(bodyMedia).toContain("animation: 'none'");
+    });
+  });
+
+  describe('fullScreen·overlay 반투명 (M5 task-20)', () => {
+    it('컨테이너에 opacity가 없다, 안의 로더와 라벨이 흐려지지 않는다', () => {
+      expect(block(LOADER_CSS, 'fullScreenStyles')).not.toMatch(/\bopacity\b/);
+      expect(block(LOADER_CSS, 'overlayStyles')).not.toMatch(/\bopacity\b/);
+    });
+
+    it('배경색에만 같은 비율의 투명도를 준다 (90% / 80%)', () => {
+      expect(block(LOADER_CSS, 'fullScreenStyles')).toContain(
+        'backgroundColor: `color-mix(in srgb, ${themeContract.color.background.default} 90%, transparent)`'
+      );
+      expect(block(LOADER_CSS, 'overlayStyles')).toContain(
+        'backgroundColor: `color-mix(in srgb, ${themeContract.color.background.default} 80%, transparent)`'
+      );
+    });
+
+    it('라벨은 text.secondary이고 흰 바탕 대비가 4.88:1이다', () => {
+      expect(block(LOADER_CSS, 'label')).toContain(
+        'color: themeContract.color.text.secondary'
+      );
+      expect(contrastOnWhite(gray[600])).toBeCloseTo(4.88, 1);
     });
   });
 });

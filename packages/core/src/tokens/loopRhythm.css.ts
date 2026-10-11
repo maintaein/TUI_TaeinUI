@@ -20,9 +20,11 @@ import { themeContract } from './theme.css';
  * 없으니 주기는 토큰을 그대로 쓰고, 이 파일은 새 토큰(`drift`)인 커브만
  * 공유 자산으로 내보낸다.
  *
- * `Loader`는 스윕(`barFill`)과 점 페이드(`dot`)로 이 자산을 소비한다 — 주기·커브가
- * `Skeleton`의 wave와 같다. 제외되는 건 컴포넌트가 아니라 회전(`spinner`)
- * 하나다: 주기가 `loop.fast`이고 커브가 `linear` + 비등속 키프레임인 것은
+ * `Loader`는 스윕(`barFill`)과 점 궤도(`orbitDot`, 주기 `loop.fast`), 버블 점의
+ * 예비동작(`dotBody`)과 축소 선호의 투명도 깜빡임(`dot`)으로 이 자산을 소비한다:
+ * 구간 커브가 `Skeleton`의 wave와 같다(스윕과 깜빡임은 주기도 같다). 버블 점의
+ * 솟음은 넘치는 커브(`snap`)라 이 자산이 아니다. 제외되는 건 컴포넌트가 아니라
+ * 회전(`spinner`) 하나다: 주기가 `loop.fast`이고 커브가 `linear` + 비등속 키프레임인 것은
  * 명제가 요구하는 별도 리듬이다(자세한 이유는 `Loader.css.ts` 참고).
  *
  * `Skeleton.css.ts`가 아니라 `tokens/`에 두는 이유: `Skeleton.css.ts`가

@@ -13,6 +13,10 @@ import {
   spinner,
   dotsContainer,
   dot,
+  dotBody,
+  orbit,
+  orbitDot,
+  orbitDotSizeStyles,
   spinnerSizeStyles,
   dotSizeStyles,
   dotDelayStyles,
@@ -23,13 +27,13 @@ import {
 // 받기 때문에, preset은 raw 값으로 풀고 그 밖의 값은 그대로 통과시킨다.
 import { primary, gray } from '../../tokens/colors.css';
 
-/** 로딩 상태를 표시하는 컴포넌트. 스피너, 점, 바 타입 지원 */
+/** 로딩 상태를 표시하는 컴포넌트. 점 궤도, 스피너, 점, 바 타입 지원 */
 export interface LoaderProps extends Omit<
   HTMLAttributes<HTMLDivElement>,
   'color'
 > {
-  /** 로딩 애니메이션 타입 @default 'spinner' */
-  type?: 'spinner' | 'dots' | 'bar';
+  /** 로딩 애니메이션 타입 @default 'orbit' */
+  type?: 'orbit' | 'spinner' | 'dots' | 'bar';
   /** 로더 크기 @default 'md' */
   size?: 'sm' | 'md' | 'lg' | 'xl';
   /** 로더 색상. preset 또는 임의의 CSS 색상값(예: '#f00', 'currentColor') @default 'primary' */
@@ -61,7 +65,7 @@ const a11yLocked = {
 } as const;
 
 export const Loader = ({
-  type = 'spinner',
+  type = 'orbit',
   size = 'md',
   color = 'primary',
   label,
@@ -138,6 +142,22 @@ export const Loader = ({
                 )}
                 data-dot
                 data-delay={delay}
+              >
+                <span className={clsx(dotBody, dotDelayStyles[delay])} />
+              </span>
+            ))}
+          </div>
+        ) : type === 'orbit' ? (
+          <div
+            className={clsx(orbit, spinnerSizeStyles[size])}
+            aria-hidden="true"
+          >
+            {Array.from({ length: 8 }, (_, i) => (
+              <span
+                key={i}
+                className={clsx(orbitDot, orbitDotSizeStyles[size])}
+                style={{ '--orbit-i': i } as CSSProperties}
+                data-orbit-dot
               />
             ))}
           </div>

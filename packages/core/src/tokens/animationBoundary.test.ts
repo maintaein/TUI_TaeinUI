@@ -1293,7 +1293,61 @@ const OVERSHOOT_TIMING_EXCEPTIONS: OvershootException[] = [];
 // 4. 오버슈트 이징 (R46)
 // ---------------------------------------------------------------------------
 
+/**
+ * `animation` 단축의 키프레임이 건드리는 속성 이름. `const <name> = keyframes({...})`
+ * 본문의 프레임마다 속성 키를 모은다. 찾지 못하면 빈 배열이라 "transform뿐"
+ * 판정이 거짓이 된다(조용히 통과시키지 않는다).
+ */
+function keyframePropsIn(text: string, name: string): string[] {
+  const head = new RegExp(`const ${name} = keyframes\\(\\{`).exec(text);
+  if (!head) return [];
+  const open = head.index + head[0].length - 1;
+  let depth = 0;
+  let close = open;
+  for (; close < text.length; close += 1) {
+    if (text[close] === '{') depth += 1;
+    else if (text[close] === '}' && --depth === 0) break;
+  }
+  const props = new Set<string>();
+  for (const frame of text
+    .slice(open, close + 1)
+    .matchAll(/'[\d.,%\s]+'\s*:\s*\{([^{}]*)\}/g)) {
+    for (const key of frame[1].matchAll(/(?:^|[,\s])(\w+)\s*:/g))
+      props.add(key[1]);
+  }
+  return [...props];
+}
+
+/** 넘치는 커브가 `animation` 단축에 걸려도 그 키프레임이 transform만 움직이면 안전하다. */
+function animatesOnlyTransform(text: string, value: string): boolean {
+  const name = /^\s*\$\{(\w+)\}/.exec(value)?.[1];
+  if (!name) return false;
+  const props = keyframePropsIn(text, name);
+  return props.length > 0 && props.every((prop) => prop === 'transform');
+}
+
 describe('오버슈트 이징 경계 (R46)', () => {
+  it('animation 단축의 넘치는 커브는 transform만 움직이는 키프레임에만 허용된다', () => {
+    const only = [
+      'const rise = keyframes({',
+      "  '0%': { transform: 'translateY(0)' },",
+      "  '22%': { transform: 'translateY(-4px)' },",
+      '});',
+    ].join('\n');
+    const mixed = [
+      'const pop = keyframes({',
+      "  '0%': { transform: 'scale(1)', opacity: 1 },",
+      '});',
+    ].join('\n');
+    expect(keyframePropsIn(only, 'rise')).toEqual(['transform']);
+    expect(animatesOnlyTransform(only, '${rise} 1s ${x} infinite')).toBe(true);
+    expect(animatesOnlyTransform(mixed, '${pop} 1s ${x} infinite')).toBe(false);
+    expect(animatesOnlyTransform(only, '${missing} 1s ${x} infinite')).toBe(
+      false
+    );
+    expect(animatesOnlyTransform(only, '1s ${x} infinite')).toBe(false);
+  });
+
   it('snap·spring은 transform 전이에만 걸린다', () => {
     // 오늘 소비자가 0이라 진공으로 통과하는 게 정상이다. M2가 둘을 쓰기
     // 시작할 때를 위해 미리 세워 두는 가드다.
@@ -1301,6 +1355,17 @@ describe('오버슈트 이징 경계 (R46)', () => {
     const violations: string[] = [];
     for (const decl of ALL_DECLS) {
       if (!OVERSHOOT.test(decl.value)) continue;
+      if (
+        decl.property === 'animation' &&
+        animatesOnlyTransform(
+          readFileSync(resolve(SRC, decl.file), 'utf-8'),
+          decl.value
+        )
+      ) {
+        // M5 task-20: Loader 버블 점의 솟음처럼 키프레임이 transform뿐이면
+        // 어느 커브를 걸어도 다른 속성으로 샐 수 없다.
+        continue;
+      }
       if (decl.property !== 'transition') {
         // transition 밖(animation 단축·타이밍 롱핸드·인라인 대입)은 어느 속성에
         // 걸리는지 소스 텍스트만으로 못 가린다. 조용히 통과시키지 않고 막는다.
