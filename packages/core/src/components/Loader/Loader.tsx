@@ -332,7 +332,7 @@ export const Loader = ({
   }
   const clearLayer = (index: number): void =>
     setSlots((s) =>
-      s.active === index || !s.texts[index]
+      !s.texts[index]
         ? s
         : {
             ...s,
@@ -363,6 +363,8 @@ export const Loader = ({
       !prev.texts[prev.active] ||
       !slots.texts[slots.active]
     ) {
+      // 도는 중에 축소 선호가 켜지면 끝 상태로 확정한다(궤도 상태 전환과 같다)
+      if (reduced && labelTlRef.current) settleMotion(labelTlRef.current);
       return;
     }
 
@@ -371,12 +373,20 @@ export const Loader = ({
     const newEl = layerEls[slots.active];
     const running = labelTlRef.current;
     // 도는 중이면 눈에 보이는 폭(고정된 폭)에서, 아니면 옛 글자 폭에서 시작한다.
-    const from = running ? p.offsetWidth : oldEl.offsetWidth;
+    // 꺼진 층은 nowrap이라 oldWidth는 옛 글자의 한 줄 폭이다.
+    const oldWidth = oldEl.offsetWidth;
+    const from = running ? p.offsetWidth : oldWidth;
     running?.kill();
     p.style.width = '';
-    const to = p.offsetWidth;
-    // 칸이 새 글자보다 좁은 동안 줄바꿈하지 않게 한다
+    // 칸이 새 글자보다 좁은 동안 줄바꿈하지 않게 하려고 nowrap을 걸고 잰다.
+    // 그래서 to는 새 글자의 한 줄 폭이다.
     p.style.whiteSpace = 'nowrap';
+    const to = p.offsetWidth;
+    // 옛 글자나 새 글자가 컨테이너 폭을 넘어 줄바꿈되던 라벨이면 한 줄로 펴는
+    // 폭 트윈이 칸을 컨테이너 밖으로 밀고 높이를 뛰게 한다. 흐림 교체만 한다.
+    const tweenWidth =
+      Math.max(oldWidth, to) <= (p.parentElement?.clientWidth ?? 0);
+    if (!tweenWidth) p.style.whiteSpace = '';
 
     const finish = (tl: gsap.core.Timeline): void => {
       if (labelTlRef.current !== tl) return;
@@ -392,14 +402,15 @@ export const Loader = ({
       labelTlRef.current = tl;
       p.__loaderLabelTimeline = tl;
       const timing = { duration: gsapDuration.base, ease: gsapEasing.settle };
-      tl.fromTo(p, { width: from }, { width: to, ...timing }, 0)
-        .to(oldEl, { opacity: 0, filter: 'blur(2px)', ...timing }, 0)
-        .fromTo(
-          newEl,
-          { opacity: 0, filter: 'blur(2px)' },
-          { opacity: 1, filter: 'blur(0px)', ...timing },
-          0
-        );
+      if (tweenWidth) {
+        tl.fromTo(p, { width: from }, { width: to, ...timing }, 0);
+      }
+      tl.to(oldEl, { opacity: 0, filter: 'blur(2px)', ...timing }, 0).fromTo(
+        newEl,
+        { opacity: 0, filter: 'blur(2px)' },
+        { opacity: 1, filter: 'blur(0px)', ...timing },
+        0
+      );
       return tl;
     });
   }, [slots, reduced]);

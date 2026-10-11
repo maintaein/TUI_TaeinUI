@@ -1426,7 +1426,17 @@ describe('Loader', () => {
       'offsetWidth'
     );
     const rectOriginal = Element.prototype.getBoundingClientRect;
+    const clientWidthOriginal = Object.getOwnPropertyDescriptor(
+      Element.prototype,
+      'clientWidth'
+    );
+    // 컨테이너가 라벨에 줄 수 있는 폭. 이보다 한 줄 폭이 넓은 글자는 줄바꿈된다
+    const ROOM_PX = 20 * CHAR_PX;
     const installLayout = (): void => {
+      Object.defineProperty(Element.prototype, 'clientWidth', {
+        configurable: true,
+        get: () => ROOM_PX,
+      });
       Object.defineProperty(HTMLElement.prototype, 'offsetWidth', {
         configurable: true,
         get(this: HTMLElement) {
@@ -1473,6 +1483,13 @@ describe('Loader', () => {
         );
       }
       Element.prototype.getBoundingClientRect = rectOriginal;
+      if (clientWidthOriginal) {
+        Object.defineProperty(
+          Element.prototype,
+          'clientWidth',
+          clientWidthOriginal
+        );
+      }
       vi.unstubAllGlobals();
       widthReads = 0;
       rectReads = 0;
@@ -1636,6 +1653,84 @@ describe('Loader', () => {
       installLayout();
       const { container, rerender } = render(<Loader label="가나다" />);
       rerender(<Loader label="가" />);
+      expect(texts(container)).toEqual(['', '가']);
+      expect(timelineOf(container)).toBeUndefined();
+      expect(paragraph(container).style.width).toBe('');
+      expect(paragraph(container).style.whiteSpace).toBe('');
+    });
+
+    it('새 글자가 컨테이너 폭보다 넓어 줄바꿈되면 칸 폭 트윈도 nowrap도 없이 흐림 교체만 한다', () => {
+      installLayout();
+      const { container, rerender } = render(<Loader label="가" />);
+      rerender(<Loader label={'가'.repeat(25)} />);
+      const tl = timelineOf(container);
+      const [old, next] = layers(container);
+      expect(tweenOn(tl, paragraph(container))).toBeUndefined();
+      expect(paragraph(container).style.whiteSpace).toBe('');
+      expect(tweenOn(tl, old).vars.opacity).toBe(0);
+      expect(tweenOn(tl, next).vars.opacity).toBe(1);
+      expect(tl.duration()).toBe(gsapDuration.base);
+    });
+
+    it('옛 글자가 컨테이너 폭보다 넓었어도 칸 폭 트윈도 nowrap도 없다', () => {
+      installLayout();
+      const { container, rerender } = render(
+        <Loader label={'가'.repeat(25)} />
+      );
+      rerender(<Loader label="가" />);
+      const tl = timelineOf(container);
+      expect(tweenOn(tl, paragraph(container))).toBeUndefined();
+      expect(paragraph(container).style.whiteSpace).toBe('');
+      expect(tweenOn(tl, layers(container)[0]).vars.opacity).toBe(0);
+    });
+
+    it('컨테이너 폭에 딱 맞는 글자는 한 줄이므로 칸 폭을 트윈한다', () => {
+      installLayout();
+      const { container, rerender } = render(<Loader label="가" />);
+      rerender(<Loader label={'가'.repeat(20)} />);
+      const width = tweenOn(timelineOf(container), paragraph(container));
+      expect(width.vars.width).toBe(ROOM_PX);
+      expect(paragraph(container).style.whiteSpace).toBe('nowrap');
+    });
+
+    it('줄바꿈되는 교체가 끝나면 옛 층이 비고 손잡이가 거둬진다', () => {
+      installLayout();
+      const { container, rerender } = render(<Loader label="가" />);
+      rerender(<Loader label={'가'.repeat(25)} />);
+      act(() => {
+        timelineOf(container).progress(1);
+      });
+      expect(texts(container)).toEqual(['', '가'.repeat(25)]);
+      expect(timelineOf(container)).toBeUndefined();
+    });
+
+    it('도는 중에 축소 선호가 켜지면 끝 상태로 확정한다 (옛 층 비움, 폭 고정과 손잡이 거둠)', () => {
+      installLayout();
+      let reduce = false;
+      const listeners = new Set<() => void>();
+      vi.stubGlobal(
+        'matchMedia',
+        (media: string): MediaQueryList =>
+          ({
+            get matches() {
+              return reduce;
+            },
+            media,
+            addEventListener: (_: string, fn: () => void) => listeners.add(fn),
+            removeEventListener: (_: string, fn: () => void) =>
+              listeners.delete(fn),
+            dispatchEvent: () => false,
+            onchange: null,
+          }) as unknown as MediaQueryList
+      );
+      const { container, rerender } = render(<Loader label="가나다" />);
+      rerender(<Loader label="가" />);
+      expect(timelineOf(container)).toBeDefined();
+      expect(texts(container)).toEqual(['가나다', '가']);
+      act(() => {
+        reduce = true;
+        listeners.forEach((fn) => fn());
+      });
       expect(texts(container)).toEqual(['', '가']);
       expect(timelineOf(container)).toBeUndefined();
       expect(paragraph(container).style.width).toBe('');
