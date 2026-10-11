@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { Loader } from './Loader';
 import { gray } from '../../tokens/colors.css';
 import { themeTokens } from '../../tokens/contract';
@@ -1360,6 +1360,278 @@ describe('Loader', () => {
       const layer = block(LOADER_CSS, 'labelLayer');
       const media = layer.slice(layer.indexOf('prefers-reduced-motion'));
       expectCss(media).toContain("transition: 'none'");
+    });
+  });
+
+  describe('라벨 폭이 바뀌어도 그래픽이 순간이동하지 않는다 (M5 task-20 수정 1)', () => {
+    type SlideHost = HTMLElement & { __loaderSlideTween?: gsap.core.Tween };
+
+    // 그래픽의 화면 왼쪽 좌표. jsdom은 레이아웃이 없어 늘 0이라 환경 보급으로
+    // 깐다(SegmentedButtons.test.tsx 선례). 실제 브라우저처럼 transform의 x가
+    // 좌표에 더해져 보이게 한다.
+    let layoutLeft = 100;
+    const xOf = (el: Element): number => {
+      const m = (el as HTMLElement).style.transform.match(
+        /translate(?:3d)?\(([-\d.e]+)px/
+      );
+      return m ? Number(m[1]) : 0;
+    };
+    const installGraphicRect = (): void => {
+      vi.spyOn(Element.prototype, 'getBoundingClientRect').mockImplementation(
+        function (this: Element) {
+          const isGraphic =
+            this.hasAttribute('data-orbit') ||
+            (this.hasAttribute('data-type') &&
+              !this.querySelector('[data-orbit]'));
+          const left = isGraphic ? layoutLeft + xOf(this) : 0;
+          return {
+            left,
+            top: 0,
+            width: 0,
+            height: 0,
+            right: left,
+            bottom: 0,
+            x: left,
+            y: 0,
+            toJSON: () => ({}),
+          } as DOMRect;
+        }
+      );
+    };
+    const installReducedMotion = (): void => {
+      vi.stubGlobal(
+        'matchMedia',
+        (media: string): MediaQueryList =>
+          ({
+            matches: true,
+            media,
+            addEventListener: () => {},
+            removeEventListener: () => {},
+            dispatchEvent: () => false,
+            onchange: null,
+          }) as unknown as MediaQueryList
+      );
+    };
+    const orbitOf = (container: HTMLElement): SlideHost =>
+      container.querySelector('[data-orbit]') as SlideHost;
+    const layers = (container: HTMLElement) => [
+      ...container.querySelectorAll<HTMLElement>('[data-label-layer]'),
+    ];
+    const startX = (tween: gsap.core.Tween): number =>
+      (tween.vars.startAt as { x: number }).x;
+
+    afterEach(() => {
+      vi.restoreAllMocks();
+      vi.unstubAllGlobals();
+      layoutLeft = 100;
+    });
+
+    describe('옛 라벨 층은 전환이 끝나면 칸에서 빠진다', () => {
+      it('전환 도중에는 두 층이 같은 칸에 글자를 든 채 겹쳐 있다', () => {
+        const { container, rerender } = render(
+          <Loader label="저장하지 못했습니다" />
+        );
+        rerender(<Loader label="저장 중" />);
+        expect(layers(container).map((l) => l.textContent)).toEqual([
+          '저장하지 못했습니다',
+          '저장 중',
+        ]);
+      });
+
+      it('옛 층의 투명도 전이가 끝나면 글자가 비어 칸 폭을 잡지 않는다', () => {
+        const { container, rerender } = render(
+          <Loader label="저장하지 못했습니다" />
+        );
+        rerender(<Loader label="저장 중" />);
+        const [old, next] = layers(container);
+        fireEvent.transitionEnd(old);
+        expect(old).toHaveTextContent('');
+        expect(next).toHaveTextContent('저장 중');
+        expect(next).toHaveAttribute('data-active');
+      });
+
+      it('켜진 층의 전이 끝은 아무것도 지우지 않는다', () => {
+        const { container, rerender } = render(<Loader label="가" />);
+        rerender(<Loader label="나" />);
+        const [, next] = layers(container);
+        fireEvent.transitionEnd(next);
+        expect(layers(container).map((l) => l.textContent)).toEqual([
+          '가',
+          '나',
+        ]);
+      });
+
+      it('비운 뒤 다시 바뀌어도 번갈아 넘어간다', () => {
+        const { container, rerender } = render(<Loader label="가" />);
+        rerender(<Loader label="나" />);
+        fireEvent.transitionEnd(layers(container)[0]);
+        rerender(<Loader label="다" />);
+        expect(layers(container).map((l) => l.textContent)).toEqual([
+          '다',
+          '나',
+        ]);
+        expect(layers(container)[0]).toHaveAttribute('data-active');
+      });
+
+      it('축소 선호: 전이가 없으니 옛 글자는 처음부터 칸에 남지 않는다', () => {
+        installReducedMotion();
+        const { container, rerender } = render(<Loader label="가" />);
+        rerender(<Loader label="나" />);
+        expect(layers(container).map((l) => l.textContent)).toEqual(['', '나']);
+      });
+    });
+
+    describe('그래픽 위치가 바뀌면 옛 자리에서 새 자리로 미끄러진다', () => {
+      it('라벨이 바뀌어 좌표가 20px 왼쪽으로 가면 x 20에서 0으로 base settle로 간다', () => {
+        installGraphicRect();
+        const { container, rerender } = render(
+          <Loader label="저장하지 못했습니다" />
+        );
+        expect(orbitOf(container).__loaderSlideTween).toBeUndefined();
+        layoutLeft = 80;
+        rerender(<Loader label="저장 중" />);
+        const tween = orbitOf(container).__loaderSlideTween as gsap.core.Tween;
+        expect(tween).toBeDefined();
+        expect(startX(tween)).toBe(20);
+        expect(tween.vars.x).toBe(0);
+        expect(tween.duration()).toBe(gsapDuration.base);
+        expect(tween.vars.ease).toBe(gsapEasing.settle);
+        // 옛 자리에 그대로 보이게 시작한다
+        expect(xOf(orbitOf(container))).toBe(20);
+      });
+
+      it('오른쪽으로 가면 음수에서 시작한다', () => {
+        installGraphicRect();
+        const { container, rerender } = render(<Loader label="가" />);
+        layoutLeft = 130;
+        rerender(<Loader label="가나다라마바사" />);
+        expect(
+          startX(orbitOf(container).__loaderSlideTween as gsap.core.Tween)
+        ).toBe(-30);
+      });
+
+      it('점들의 부모(궤도)에 걸리고 점 상태 트윈이 쓰는 점 요소와 다르다', () => {
+        installGraphicRect();
+        const { container, rerender } = render(<Loader label="가" />);
+        layoutLeft = 90;
+        rerender(<Loader label="가나다" />);
+        const tween = orbitOf(container).__loaderSlideTween as gsap.core.Tween;
+        expect(tween.targets()).toEqual([orbitOf(container)]);
+        expect(tween.targets()[0]).not.toHaveAttribute('data-orbit-dot');
+      });
+
+      it('궤도가 아닌 type은 그 그래픽 요소에 건다', () => {
+        installGraphicRect();
+        const { container, rerender } = render(
+          <Loader type="bar" label="가" />
+        );
+        layoutLeft = 90;
+        rerender(<Loader type="bar" label="가나다" />);
+        const barEl = container.querySelector('[data-type="bar"]') as SlideHost;
+        expect(startX(barEl.__loaderSlideTween as gsap.core.Tween)).toBe(10);
+      });
+
+      it('좌표가 같으면 트윈이 없다 (처음 렌더, 라벨 없음, 같은 자리)', () => {
+        installGraphicRect();
+        const { container, rerender } = render(<Loader />);
+        expect(orbitOf(container).__loaderSlideTween).toBeUndefined();
+        rerender(<Loader size="lg" />);
+        rerender(<Loader label="가" />);
+        rerender(<Loader label="나" />);
+        expect(orbitOf(container).__loaderSlideTween).toBeUndefined();
+        expect(xOf(orbitOf(container))).toBe(0);
+      });
+
+      it('0.5px 이하의 차이는 무시하고, 넘으면 미끄러진다', () => {
+        installGraphicRect();
+        const { container, rerender } = render(<Loader label="가" />);
+        layoutLeft = 99.5;
+        rerender(<Loader label="나" />);
+        expect(orbitOf(container).__loaderSlideTween).toBeUndefined();
+        layoutLeft = 98.9;
+        rerender(<Loader label="다" />);
+        expect(orbitOf(container).__loaderSlideTween).toBeDefined();
+      });
+
+      it('옛 라벨 층이 빠져 폭이 줄어도 미끄러진다', () => {
+        installGraphicRect();
+        const { container, rerender } = render(
+          <Loader label="저장하지 못했습니다" />
+        );
+        rerender(<Loader label="저장 중" />);
+        orbitOf(container).__loaderSlideTween?.progress(1);
+        layoutLeft = 88;
+        fireEvent.transitionEnd(layers(container)[0]);
+        expect(
+          startX(orbitOf(container).__loaderSlideTween as gsap.core.Tween)
+        ).toBe(12);
+      });
+
+      it('끝까지 가면 x가 0이고 손잡이가 빈다', () => {
+        installGraphicRect();
+        const { container, rerender } = render(<Loader label="가" />);
+        layoutLeft = 80;
+        rerender(<Loader label="가나다" />);
+        const tween = orbitOf(container).__loaderSlideTween as gsap.core.Tween;
+        tween.progress(1);
+        expect(xOf(orbitOf(container))).toBe(0);
+        expect(orbitOf(container).__loaderSlideTween).toBeUndefined();
+      });
+
+      it('진행 중 또 바뀌면 지금 x에서 이어받고 이전 트윈은 죽는다', () => {
+        installGraphicRect();
+        const { container, rerender } = render(<Loader label="가" />);
+        layoutLeft = 80;
+        rerender(<Loader label="가나다" />);
+        const first = orbitOf(container).__loaderSlideTween as gsap.core.Tween;
+        first.progress(0.5);
+        const mid = xOf(orbitOf(container));
+        expect(mid).toBeGreaterThan(0);
+        expect(mid).toBeLessThan(20);
+        layoutLeft = 65;
+        rerender(<Loader label="가나다라마" />);
+        const second = orbitOf(container).__loaderSlideTween as gsap.core.Tween;
+        expect(second).not.toBe(first);
+        expect(first.parent).toBeNull();
+        expect(startX(second)).toBeCloseTo(mid + 15, 4);
+      });
+
+      it('축소 선호: 미끄러지지 않고 바로 앉는다', () => {
+        installReducedMotion();
+        installGraphicRect();
+        const { container, rerender } = render(<Loader label="가" />);
+        layoutLeft = 80;
+        rerender(<Loader label="가나다" />);
+        expect(orbitOf(container).__loaderSlideTween).toBeUndefined();
+        expect(xOf(orbitOf(container))).toBe(0);
+      });
+
+      it('언마운트하면 돌던 트윈이 정리된다', () => {
+        installGraphicRect();
+        const { container, rerender, unmount } = render(<Loader label="가" />);
+        layoutLeft = 80;
+        rerender(<Loader label="가나다" />);
+        const tween = orbitOf(container).__loaderSlideTween as gsap.core.Tween;
+        expect(tween.parent).not.toBeNull();
+        unmount();
+        expect(tween.parent).toBeNull();
+      });
+
+      it('점 상태 트윈과 같이 돌아도 서로 다른 요소라 덮어쓰지 않는다', () => {
+        installGraphicRect();
+        const { container, rerender } = render(<Loader label="저장 중..." />);
+        layoutLeft = 85;
+        rerender(<Loader status="done" label="저장했습니다" />);
+        const host = orbitOf(container) as SlideHost & {
+          __loaderStatusTimeline?: gsap.core.Timeline;
+        };
+        expect(host.__loaderSlideTween).toBeDefined();
+        expect(host.__loaderStatusTimeline).toBeDefined();
+        const dotTargets = (
+          host.__loaderStatusTimeline?.getChildren() as gsap.core.Tween[]
+        ).map((t) => t.targets()[0]);
+        expect(dotTargets).not.toContain(host);
+      });
     });
   });
 

@@ -156,31 +156,18 @@ const placeDots = (dots: HTMLElement[], targets: Point[]): void => {
   });
 };
 
-/** 라벨이 바뀌면 옛 글자를 흐려 보내고 새 글자를 같은 칸에 흐림에서 불러온다 */
-const SwappingLabel = ({ text }: { text: string }) => {
-  const [slots, setSlots] = useState({ texts: [text, ''], active: 0 });
-  if (slots.texts[slots.active] !== text) {
-    const next = 1 - slots.active;
-    const texts = [...slots.texts];
-    texts[next] = text;
-    setSlots({ texts, active: next });
-  }
-  return (
-    <>
-      {slots.texts.map((t, i) => (
-        <span
-          key={i}
-          className={labelLayer}
-          data-label-layer
-          data-active={i === slots.active ? '' : undefined}
-          aria-hidden={i === slots.active ? undefined : true}
-        >
-          {t}
-        </span>
-      ))}
-    </>
-  );
-};
+interface LabelSlots {
+  texts: [string, string];
+  active: 0 | 1;
+}
+
+interface SlideHost extends HTMLElement {
+  /** 지금 도는 미끄러짐 트윈(테스트가 읽는 손잡이). 끝나면 비운다 */
+  __loaderSlideTween?: gsap.core.Tween;
+}
+
+/** 이 차이(px)까지는 같은 자리로 본다 */
+const SLIDE_THRESHOLD_PX = 0.5;
 
 export const Loader = ({
   type = 'orbit',
@@ -196,7 +183,36 @@ export const Loader = ({
   ...props
 }: LoaderProps) => {
   const reduced = useReducedMotion();
+  const rootRef = useRef<HTMLDivElement>(null);
   const orbitRef = useRef<OrbitHost>(null);
+  const leftRef = useRef<number | null>(null);
+  const slideRef = useRef<gsap.core.Tween | null>(null);
+
+  // 라벨이 바뀌면 옛 글자를 흐려 보내고 새 글자를 같은 칸에 흐림에서 불러온다.
+  // 두 층이 같은 칸에 겹쳐 있어 전환 도중에는 덜컥이지 않는다. 흐림이 끝난 옛 층은
+  // 글자를 비워 칸 폭에서 빠진다(안 비우면 투명한 옛 글자가 폭을 계속 잡는다).
+  const [slots, setSlots] = useState<LabelSlots>({
+    texts: [label ?? '', ''],
+    active: 0,
+  });
+  if (label && slots.texts[slots.active] !== label) {
+    const next = slots.active === 0 ? 1 : 0;
+    const texts: [string, string] = [...slots.texts];
+    texts[next] = label;
+    setSlots({ texts, active: next });
+  }
+  const clearLayer = (index: number): void =>
+    setSlots((s) =>
+      s.active === index || !s.texts[index]
+        ? s
+        : {
+            ...s,
+            texts: s.texts.map((t, i) => (i === index ? '' : t)) as [
+              string,
+              string,
+            ],
+          }
+    );
   const shownRef = useRef<{ status: OrbitStatus; size: LoaderSize } | null>(
     null
   );
@@ -289,6 +305,52 @@ export const Loader = ({
       host?.__loaderStatusTimeline?.kill();
     };
   }, []);
+
+  // 라벨 폭이 바뀌면 컨테이너 폭이 바뀌어 가운데 놓인 그래픽이 옆으로 옮겨 간다.
+  // 매 커밋 뒤 그래픽의 레이아웃 왼쪽 좌표(진행 중인 x는 뺀다)를 재어 두고, 바뀌었으면
+  // 옛 자리에 그대로 보이게 x를 주고 0으로 미끄러뜨린다(FLIP). 점들의 x·y 트윈과는
+  // 다른 요소(점들의 부모)에 걸어 서로 덮어쓰지 않는다.
+  useLayoutEffect(() => {
+    const root = rootRef.current;
+    const el = (root?.querySelector('[data-orbit]') ??
+      root?.querySelector('[data-type]')) as SlideHost | null | undefined;
+    if (!el) {
+      leftRef.current = null;
+      return;
+    }
+    const current = Number(gsap.getProperty(el, 'x')) || 0;
+    const left = el.getBoundingClientRect().left - current;
+    const prev = leftRef.current;
+    leftRef.current = left;
+    if (prev === null || Math.abs(prev - left) <= SLIDE_THRESHOLD_PX) return;
+
+    slideRef.current?.kill();
+    const tween = gateMotion(reduced, () =>
+      gsap.fromTo(
+        el,
+        { x: current + prev - left },
+        {
+          x: 0,
+          duration: gsapDuration.base,
+          ease: gsapEasing.settle,
+          overwrite: true,
+        }
+      )
+    );
+    if (reduced) return;
+    slideRef.current = tween;
+    el.__loaderSlideTween = tween;
+    tween.eventCallback('onComplete', () => {
+      if (el.__loaderSlideTween === tween) el.__loaderSlideTween = undefined;
+    });
+  });
+
+  useEffect(
+    () => () => {
+      slideRef.current?.kill();
+    },
+    []
+  );
 
   // color preset을 실제 색상 값으로 변환. preset이 아니면 CSS 색상값이므로 그대로 쓴다
   const getColorValue = (value: string) => {
@@ -455,7 +517,7 @@ export const Loader = ({
 
   if (!label && !fullScreen && !overlay) {
     return (
-      <div {...props} {...a11yLocked} className={className}>
+      <div ref={rootRef} {...props} {...a11yLocked} className={className}>
         {loaderElement}
       </div>
     );
@@ -463,6 +525,7 @@ export const Loader = ({
 
   return (
     <div
+      ref={rootRef}
       {...props}
       {...a11yLocked}
       className={clsx(
@@ -475,7 +538,19 @@ export const Loader = ({
       {loaderElement}
       {label && (
         <p className={labelClass}>
-          <SwappingLabel text={label} />
+          {slots.texts.map((t, i) => (
+            <span
+              key={i}
+              className={labelLayer}
+              data-label-layer
+              data-active={i === slots.active ? '' : undefined}
+              aria-hidden={i === slots.active ? undefined : true}
+              onTransitionEnd={() => clearLayer(i)}
+            >
+              {/* 축소 선호는 전이가 없어 transitionend가 오지 않는다. 처음부터 비운다 */}
+              {i === slots.active || !reduced ? t : ''}
+            </span>
+          ))}
         </p>
       )}
     </div>
