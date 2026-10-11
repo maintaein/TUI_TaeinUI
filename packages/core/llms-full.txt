@@ -1067,7 +1067,7 @@ TUI uses `themeContract` for type-safe, theme-aware styling. 테마는 라이트
 - `themeContract.color.surface.default` — #FFFFFF — 표면 기본
 - `themeContract.color.surface.hover` — #F5F5F5 — 표면 hover
 - `themeContract.color.surface.active` — #EEEEEE — 표면 active
-- `themeContract.color.surface.track` — #878787 — 흰 배경 대비 3.59:1 — 1.4.11의 3:1을 넘긴다. 컨트롤을 식별시키는 면(Switch·Slider·Loader의 트랙)에 쓴다. `border.strong`과 값은 같지만 경계선이 아니라 면이라 따로 둔다
+- `themeContract.color.surface.track` — #878787 — 흰 배경 대비 3.59:1 — 1.4.11의 3:1을 넘긴다. 컨트롤을 식별시키는 면(Switch·Slider의 트랙과 Loader `color="white"`의 트랙)에 쓴다. `border.strong`과 값은 같지만 경계선이 아니라 면이라 따로 둔다
 - `themeContract.color.border.default` — #E0E0E0 — 흰 배경 대비 1.32:1 — UI 요소 기준 3:1 미달이므로 구분선·비활성 테두리처럼 정보를 전달하지 않는 자리에만 쓴다. 경계가 정보를 전달하면 `border.strong`
 - `themeContract.color.border.strong` — #878787 — 흰 배경 대비 3.59:1 — 1.4.11의 3:1을 넘긴다. 폼 컨트롤·카드 경계처럼 있고 없고가 의미를 바꾸는 자리에 쓴다
 - `themeContract.color.border.focus` — #1976D2 — 포커스 링 색

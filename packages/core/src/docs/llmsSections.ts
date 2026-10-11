@@ -210,8 +210,8 @@ export function renderTokenReference(): string {
         color.background.default
       ).toFixed(
         2
-      )}:1 — 1.4.11의 3:1을 넘긴다. 컨트롤을 식별시키는 면(Switch·Slider·` +
-        'Loader의 트랙)에 쓴다. `border.strong`과 값은 같지만 경계선이 아니라 ' +
+      )}:1 — 1.4.11의 3:1을 넘긴다. 컨트롤을 식별시키는 면(Switch·Slider의 트랙과 ` +
+        'Loader `color="white"`의 트랙)에 쓴다. `border.strong`과 값은 같지만 경계선이 아니라 ' +
         '면이라 따로 둔다'
     ),
     plainLine(

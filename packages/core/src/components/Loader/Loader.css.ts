@@ -479,8 +479,9 @@ export const visuallyHidden = style({
 });
 
 // 도화선(fuse): 트랙은 bar와 같다. 채움 층은 트랙 전체 폭이고 clip-path로
-// 오른쪽을 잘라 --fuse-value(0~100)만큼 좌 → 우로 채운다. 불똥은 트랙 밖으로
-// 번지므로 overflow가 잘리는 트랙 안이 아니라 곁에 둔다.
+// 오른쪽을 잘라 --fuse-value(0~100)만큼 좌 → 우로 채운다. 채움은 자기
+// clip-path로 둥근 끝을 만들어 bar·inchworm의 자르기 층(barClip)이 없다. 불똥은
+// 트랙 밖으로 번지는 빛을 가지므로 트랙의 자식이 아니라 곁에 둔다.
 export const fuse = style({
   position: 'relative',
 });
