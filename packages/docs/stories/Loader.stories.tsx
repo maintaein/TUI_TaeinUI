@@ -133,6 +133,60 @@ export const Types: Story = {
   ),
 };
 
+export const Status: Story = {
+  render: function StatusStory() {
+    const [status, setStatus] = useState<'loading' | 'done' | 'error'>(
+      'loading'
+    );
+    const labels = {
+      loading: '저장 중...',
+      done: '저장했습니다',
+      error: '저장하지 못했습니다',
+    };
+    return (
+      <div
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '1.5rem',
+          alignItems: 'center',
+        }}
+      >
+        <div style={{ display: 'flex', gap: '0.5rem' }}>
+          <button onClick={() => setStatus('loading')}>loading</button>
+          <button onClick={() => setStatus('done')}>done</button>
+          <button onClick={() => setStatus('error')}>error</button>
+        </div>
+        <Loader size="xl" status={status} label={labels[status]} />
+      </div>
+    );
+  },
+};
+
+export const Fuse: Story = {
+  render: function FuseStory() {
+    const [value, setValue] = useState(30);
+    return (
+      <div
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '1.5rem',
+          alignItems: 'center',
+        }}
+      >
+        <div style={{ display: 'flex', gap: '0.5rem' }}>
+          <button onClick={() => setValue(Math.max(0, value - 20))}>-20</button>
+          <button onClick={() => setValue(Math.min(100, value + 20))}>
+            +20
+          </button>
+        </div>
+        <Loader type="fuse" size="lg" value={value} label={`${value}%`} />
+      </div>
+    );
+  },
+};
+
 export const Sizes: Story = {
   render: () => (
     <div

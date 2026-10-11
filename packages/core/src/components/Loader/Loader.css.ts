@@ -2,6 +2,9 @@ import { style, styleVariants, keyframes } from '@vanilla-extract/css';
 import { themeContract } from '../../tokens/theme.css';
 import { loopRhythmEasing } from '../../tokens/loopRhythm.css';
 import {
+  FUSE_SPARK_PX,
+  ORBIT_DOT_PX,
+  ORBIT_RADIUS_PX,
   WAVE_HEIGHT_PX,
   WAVE_WIDTH_PX,
   inchwormFrames,
@@ -79,6 +82,16 @@ const waveSwell = keyframes({
 // 페인트 속성이다.
 const inchworm = keyframes({
   ...inchwormFrames(themeContract.animation.easing.settle),
+});
+
+// 도화선(fuse)의 불똥: 타들어 가는 불이라 고르지 않게 깜빡인다. 정지점이 고르지
+// 않고(0 / 23 / 41 / 67 / 100) 크기 0.85 ~ 1.1, 투명도 0.7 ~ 1 사이를 오간다.
+// 구간 커브는 쓰는 쪽에서 drift로 건다(M5 task-20 3부).
+const fuseFlicker = keyframes({
+  '0%, 100%': { transform: 'scale(1)', opacity: 1 },
+  '23%': { transform: 'scale(0.85)', opacity: 0.7 },
+  '41%': { transform: 'scale(1.1)', opacity: 1 },
+  '67%': { transform: 'scale(0.9)', opacity: 0.8 },
 });
 
 // 축소 선호일 때 dots가 돌아가는 투명도 깜빡임. transform은 없다.
@@ -228,6 +241,20 @@ export const orbitDot = style({
   animation: `${orbitLit} ${themeContract.animation.loop.fast} ${loopRhythmEasing} infinite`,
   // 점마다 한 바퀴의 1/8씩 늦게 켜진다. 리터럴 시간 없이 loop 토큰의 배수다.
   animationDelay: `calc(${themeContract.animation.loop.fast} * var(--orbit-i) / 8)`,
+  // 완료 표식(status)이 되면 점이 색을 바꾼다. 색은 CSS 전이가 맡고 위치와
+  // 투명도는 GSAP이 맡는다(Loader.tsx). 표식으로 모이는 동안과 앉은 뒤에는 밝기
+  // 키프레임을 멈춘다(data-paused). loading으로 돌아와 도착하면 재개된다.
+  transition: `background-color ${themeContract.animation.duration.base} ${themeContract.animation.easing.settle}`,
+
+  selectors: {
+    '[data-status="done"] &': {
+      backgroundColor: themeContract.color.success.dark,
+    },
+    '[data-status="error"] &': {
+      backgroundColor: themeContract.color.error.dark,
+    },
+    '[data-paused] &': { animation: 'none' },
+  },
 
   '@media': {
     // 회전 인상을 없앤다: 늦춤을 없애 모든 점이 같이 뛰고 한 바퀴는 loop.base로
@@ -244,12 +271,13 @@ export const orbitDot = style({
 
 // 점 지름은 대략 로더 크기의 1/6. 반지름은 점 중심이 놓이는 원의 반지름
 // (크기 - 점 지름) / 2.
-export const orbitDotSizeStyles = styleVariants({
-  sm: { vars: { '--orbit-d': '3px', '--orbit-r': '6.5px' } },
-  md: { vars: { '--orbit-d': '4px', '--orbit-r': '10px' } },
-  lg: { vars: { '--orbit-d': '5px', '--orbit-r': '13.5px' } },
-  xl: { vars: { '--orbit-d': '8px', '--orbit-r': '20px' } },
-});
+// 표식 좌표도 같은 반지름을 읽는다(loaderMotion의 ORBIT_RADIUS_PX).
+export const orbitDotSizeStyles = styleVariants(ORBIT_DOT_PX, (d, size) => ({
+  vars: {
+    '--orbit-d': `${d}px`,
+    '--orbit-r': `${ORBIT_RADIUS_PX[size]}px`,
+  },
+}));
 
 // 물결 막대. 막대 칸은 폭 8px(막대 2px + 좌우 여백 3px)라 중심 간격이 8px로
 // 고정이고 개수는 폭 / 8이다(교훈 18, Slider wake와 같다).
@@ -357,6 +385,8 @@ export const dotDelayStyles = styleVariants({
 });
 
 export const label = style({
+  // 글자가 바뀔 때 두 층이 같은 칸에 겹친다(labelLayer).
+  display: 'grid',
   margin: 0,
   fontSize: themeContract.font.size.sm,
   fontWeight: themeContract.font.weight.medium,
@@ -364,3 +394,94 @@ export const label = style({
   fontFamily: themeContract.font.family.sans,
   textAlign: 'center',
 });
+
+// 라벨 교체: 두 층이 같은 칸에 겹쳐 있어 글자가 바뀌어도 자리가 덜컥이지 않는다.
+// 꺼진 층은 흐려지며 사라지고 켜진 층은 흐림에서 또렷하게 나타난다.
+export const labelLayer = style({
+  gridArea: '1 / 1',
+  opacity: 0,
+  filter: 'blur(2px)',
+  transition: `opacity ${themeContract.animation.duration.base} ${themeContract.animation.easing.settle}, filter ${themeContract.animation.duration.base} ${themeContract.animation.easing.settle}`,
+
+  selectors: {
+    '&[data-active]': { opacity: 1, filter: 'blur(0)' },
+  },
+
+  '@media': {
+    '(prefers-reduced-motion: reduce)': {
+      transition: 'none',
+    },
+  },
+});
+
+// 도화선(fuse): 트랙은 bar와 같다. 채움 층은 트랙 전체 폭이고 clip-path로
+// 오른쪽을 잘라 --fuse-value(0~100)만큼 좌 → 우로 채운다. 불똥은 트랙 밖으로
+// 번지므로 overflow가 잘리는 트랙 안이 아니라 곁에 둔다.
+export const fuse = style({
+  position: 'relative',
+});
+
+export const fuseFill = style({
+  position: 'absolute',
+  top: 0,
+  left: 0,
+  width: '100%',
+  height: '100%',
+  backgroundColor: 'var(--loader-color)',
+  clipPath: 'inset(0 calc(100% - var(--fuse-value) * 1%) 0 0 round 2px)',
+  // clip-path 전이는 레이아웃을 건드리지 않는 페인트 속성이다(자벌레와 같다).
+  // 둥근 끝(round 2px)을 지키며 오른쪽 가장자리만 옮기려면 이 속성이 필요하다.
+  transition: `clip-path ${themeContract.animation.duration.slow} ${themeContract.animation.easing.settle}`,
+
+  '@media': {
+    '(prefers-reduced-motion: reduce)': {
+      transition: 'none',
+    },
+  },
+});
+
+// 불똥 래퍼: 트랙 폭과 같은 폭이고, 오른쪽 끝이 채움 끝에 오도록 옮긴다
+// (value% - 100%, transform이라 GPU). 100이면 base로 사라진다.
+export const fuseSpark = style({
+  position: 'absolute',
+  top: '50%',
+  left: 0,
+  width: '100%',
+  height: 0,
+  pointerEvents: 'none',
+  transform: 'translateX(calc(var(--fuse-value) * 1% - 100%))',
+  transition: `transform ${themeContract.animation.duration.slow} ${themeContract.animation.easing.settle}, opacity ${themeContract.animation.duration.base} ${themeContract.animation.easing.settle}`,
+
+  selectors: {
+    '[data-complete] &': { opacity: 0 },
+  },
+
+  '@media': {
+    '(prefers-reduced-motion: reduce)': {
+      transition: 'none',
+    },
+  },
+});
+
+// 불똥 본체. 지름의 절반만큼 당겨 중심이 래퍼 오른쪽 끝에 놓인다.
+export const fuseSparkDot = style({
+  position: 'absolute',
+  top: 'calc(var(--spark-d) / -2)',
+  right: 'calc(var(--spark-d) / -2)',
+  width: 'var(--spark-d)',
+  height: 'var(--spark-d)',
+  borderRadius: '50%',
+  backgroundColor: 'var(--loader-color)',
+  boxShadow: '0 0 6px color-mix(in srgb, var(--loader-color) 55%, transparent)',
+  animation: `${fuseFlicker} ${themeContract.animation.loop.fast} ${loopRhythmEasing} infinite`,
+
+  '@media': {
+    '(prefers-reduced-motion: reduce)': {
+      animation: 'none',
+    },
+  },
+});
+
+export const fuseSparkSizeStyles = styleVariants(FUSE_SPARK_PX, (d) => ({
+  vars: { '--spark-d': `${d}px` },
+}));

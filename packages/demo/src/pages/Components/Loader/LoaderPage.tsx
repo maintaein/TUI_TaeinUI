@@ -10,10 +10,23 @@ export function LoaderPage() {
   const propsData: PropDefinition[] = [
     {
       name: 'type',
-      type: "'orbit' | 'spinner' | 'dots' | 'bar' | 'wave' | 'inchworm'",
+      type: "'orbit' | 'spinner' | 'dots' | 'bar' | 'wave' | 'inchworm' | 'fuse'",
       default: "'orbit'",
       description:
-        '로더 타입 (점 궤도, 스피너, 점이 솟는 버블, 프로그레스 바, 물결 막대, 자벌레)',
+        '로더 타입 (점 궤도, 스피너, 점이 솟는 버블, 프로그레스 바, 물결 막대, 자벌레, 진행률 도화선)',
+    },
+    {
+      name: 'status',
+      type: "'loading' | 'done' | 'error'",
+      default: "'loading'",
+      description:
+        'orbit 전용 완료 표식. done이면 점 여덟 개가 체크로, error면 X로 모입니다. 다른 type에 주면 타입 오류입니다.',
+    },
+    {
+      name: 'value',
+      type: 'number',
+      description:
+        'fuse 전용 진행률 (0~100, 범위 밖은 자릅니다). type="fuse"일 때 필수이고, 다른 type에 주면 타입 오류입니다.',
     },
     {
       name: 'size',
@@ -31,7 +44,8 @@ export function LoaderPage() {
     {
       name: 'label',
       type: 'string',
-      description: '로더 하단에 표시할 텍스트 라벨',
+      description:
+        '로더 하단에 표시할 텍스트 라벨. 글자가 바뀌면 옛 글자는 흐려지며 사라지고 새 글자가 흐림에서 또렷하게 나타납니다.',
     },
     {
       name: 'fullScreen',
@@ -48,7 +62,8 @@ export function LoaderPage() {
     {
       name: 'aria-label',
       type: 'string',
-      description: '접근성 레이블 (기본값: label 또는 "로딩 중")',
+      description:
+        '접근성 레이블 (기본값: label, 없으면 orbit은 status에 따라 "로딩 중" / "완료" / "실패", fuse는 "진행률", 나머지는 "로딩 중")',
     },
     {
       name: 'className',
@@ -180,7 +195,7 @@ export function LoaderPage() {
         <div className={styles.sectionHeader}>
           <h2 className={styles.sectionTitle}>Types</h2>
           <p className={styles.sectionDescription}>
-            여섯 가지 로더 타입을 제공합니다. type을 주지 않으면 점
+            일곱 가지 로더 타입을 제공합니다. type을 주지 않으면 점
             궤도(orbit)입니다.
           </p>
         </div>
@@ -271,6 +286,45 @@ export function LoaderPage() {
   <Loader type="inchworm" size="md" />
   <Loader type="inchworm" size="lg" />
   <Loader type="inchworm" size="xl" />
+</div>`}
+          />
+        </div>
+
+        <div className={styles.example}>
+          <h3 className={styles.exampleTitle}>Status</h3>
+          <LivePreview
+            title="완료 표식"
+            description="orbit에 status를 주면 돌던 점 여덟 개가 그 자리에서 체크(done) 또는 X(error)로 미끄러져 모입니다. 같은 점들이 모양을 바꾸는 것이라 loading으로 돌아가면 같은 길로 원 위에 돌아갑니다. 이동 중에 상태가 바뀌어도 지금 위치에서 이어집니다. label도 같이 바꾸면 흐림으로 갈아끼워집니다."
+            editable
+            code={`const [status, setStatus] = useState('loading');
+const labels = { loading: '저장 중...', done: '저장했습니다', error: '저장하지 못했습니다' };
+
+<div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', alignItems: 'flex-start' }}>
+  <div style={{ display: 'flex', gap: '0.5rem' }}>
+    <Button size="sm" variant="light" onClick={() => setStatus('loading')}>loading</Button>
+    <Button size="sm" variant="light" onClick={() => setStatus('done')}>done</Button>
+    <Button size="sm" variant="light" onClick={() => setStatus('error')}>error</Button>
+  </div>
+  <Loader size="xl" status={status} label={labels[status]} />
+</div>`}
+          />
+        </div>
+
+        <div className={styles.example}>
+          <h3 className={styles.exampleTitle}>Fuse</h3>
+          <LivePreview
+            title="도화선"
+            description="진행률(value, 0~100)을 받는 막대입니다. 결정된 진행이 얼마나 왔는지 한 방향(왼쪽에서 오른쪽)으로 채우고, 채운 끝에 붙은 불똥이 고르지 않게 깜빡이며 타들어 갑니다. 100이 되면 불똥이 사라집니다."
+            editable
+            code={`const [value, setValue] = useState(30);
+
+<div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', alignItems: 'flex-start' }}>
+  <div style={{ display: 'flex', gap: '0.5rem' }}>
+    <Button size="sm" variant="light" onClick={() => setValue(Math.max(0, value - 20))}>-20</Button>
+    <Button size="sm" variant="light" onClick={() => setValue(Math.min(100, value + 20))}>+20</Button>
+    <Button size="sm" variant="light" onClick={() => setValue(0)}>0</Button>
+  </div>
+  <Loader type="fuse" size="lg" value={value} label={value + '%'} />
 </div>`}
           />
         </div>
@@ -512,7 +566,13 @@ const handleLoad = () => {
             attribute: 'aria-busy="true"',
             effect: '작업이 진행 중임을 알립니다.',
             description:
-              'bar 타입에서 aria-busy="true"가 설정되어 콘텐츠가 아직 로딩 중임을 전달합니다.',
+              'bar 타입에서 aria-busy="true"가 설정되어 콘텐츠가 아직 로딩 중임을 전달합니다. orbit은 status가 loading일 때만 true이고 done이나 error가 되면 false입니다.',
+          },
+          {
+            attribute: 'role="progressbar"',
+            effect: 'fuse 타입의 진행률을 전달합니다.',
+            description:
+              'aria-valuemin 0, aria-valuemax 100, aria-valuenow(자른 value)가 함께 설정됩니다.',
           },
           {
             attribute: 'aria-live="polite"',

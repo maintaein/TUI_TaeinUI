@@ -1,9 +1,11 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi, afterEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { Loader } from './Loader';
 import { gray } from '../../tokens/colors.css';
+import { themeTokens } from '../../tokens/contract';
+import { gsapDuration, gsapEasing } from '../../tokens/gsapEasing';
 import { SQUASH_PX } from '../SegmentedButtons/segmentedMotion';
 import {
   INCHWORM_STEPS,
@@ -14,6 +16,12 @@ import {
   inchwormInset,
   inchwormStops,
   waveBarCount,
+  FUSE_SPARK_PX,
+  ORBIT_RADIUS_PX,
+  markPoints,
+  pairByAngle,
+  ringPoints,
+  type Point,
 } from './loaderMotion';
 
 const LOADER_CSS = readFileSync(resolve(__dirname, './Loader.css.ts'), 'utf-8');
@@ -62,6 +70,14 @@ function contrastOnWhite(hex: string): number {
   const lum = 0.2126 * channel(0) + 0.7152 * channel(1) + 0.0722 * channel(2);
   return 1.05 / (lum + 0.05);
 }
+
+/** CSS 소스 조각 비교. 줄바꿈과 닫는 괄호 앞 쉼표는 prettier가 정하므로 지우고 비교한다. */
+const squash = (src: string): string =>
+  src.replace(/\s+/g, '').replace(/,([}\]])/g, '$1');
+const expectCss = (src: string) => ({
+  toContain: (fragment: string) =>
+    expect(squash(src)).toContain(squash(fragment)),
+});
 
 describe('Loader', () => {
   describe('렌더링 테스트', () => {
@@ -963,6 +979,550 @@ describe('Loader', () => {
       expect(media).toContain(
         'animation: `${fadeInOut} ${themeContract.animation.loop.base} infinite ${loopRhythmEasing} backwards`'
       );
+    });
+  });
+
+  describe('완료 표식 순수 함수 (M5 task-20 3부)', () => {
+    const R = 10;
+    const A: Point = { x: -0.55 * R, y: 0 };
+    const B: Point = { x: -0.15 * R, y: 0.4 * R };
+    const C: Point = { x: 0.6 * R, y: -0.45 * R };
+    const dist = (a: Point, b: Point) => Math.hypot(a.x - b.x, a.y - b.y);
+    /** 점에서 선분 PQ까지의 거리와, P에서 그 수선의 발까지의 길이 */
+    const project = (p: Point, P: Point, Q: Point) => {
+      const len = dist(P, Q);
+      const t = Math.max(
+        0,
+        Math.min(
+          len,
+          ((p.x - P.x) * (Q.x - P.x) + (p.y - P.y) * (Q.y - P.y)) / len
+        )
+      );
+      const foot = {
+        x: P.x + ((Q.x - P.x) * t) / len,
+        y: P.y + ((Q.y - P.y) * t) / len,
+      };
+      return { gap: dist(p, foot), at: t };
+    };
+    const angle = (p: Point) =>
+      (Math.atan2(p.x, -p.y) + 2 * Math.PI) % (2 * Math.PI);
+    const rank = (pts: Point[]) =>
+      pts.map((p) => pts.filter((q) => angle(q) < angle(p)).length);
+
+    it('ringPoints: 12시에서 시계 방향으로 45도씩 반지름 위의 8점이다', () => {
+      const pts = ringPoints(R);
+      expect(pts).toHaveLength(8);
+      expect(pts[0].x).toBeCloseTo(0, 5);
+      expect(pts[0].y).toBeCloseTo(-R, 5);
+      expect(pts[2].x).toBeCloseTo(R, 5);
+      expect(pts[2].y).toBeCloseTo(0, 5);
+      expect(pts[4].y).toBeCloseTo(R, 5);
+      expect(pts[6].x).toBeCloseTo(-R, 5);
+      pts.forEach((p) => expect(Math.hypot(p.x, p.y)).toBeCloseTo(R, 1));
+    });
+
+    it('markPoints done: 8점이 A, B, C 꺾은선 위에 양끝을 포함해 길이를 따라 고르게 놓인다', () => {
+      const pts = markPoints('done', R);
+      expect(pts).toHaveLength(8);
+      expect(dist(pts[0], A)).toBeLessThan(0.02);
+      expect(dist(pts[7], C)).toBeLessThan(0.02);
+      const ab = dist(A, B);
+      const total = ab + dist(B, C);
+      pts.forEach((p, k) => {
+        const onAB = project(p, A, B);
+        const onBC = project(p, B, C);
+        const [near, arc] =
+          onAB.gap <= onBC.gap ? [onAB.gap, onAB.at] : [onBC.gap, ab + onBC.at];
+        expect(near).toBeLessThan(0.02);
+        expect(arc).toBeCloseTo((total * k) / 7, 1);
+      });
+    });
+
+    it('markPoints error: 8점이 두 대각선에 4점씩 놓이고 가운데는 비어 있다', () => {
+      const pts = markPoints('error', R);
+      expect(pts).toHaveLength(8);
+      const down = pts.filter((p) => Math.abs(p.x - p.y) < 0.02);
+      const up = pts.filter((p) => Math.abs(p.x + p.y) < 0.02);
+      expect(down).toHaveLength(4);
+      expect(up).toHaveLength(4);
+      pts.forEach((p) => {
+        expect(Math.hypot(p.x, p.y)).toBeGreaterThan(R * 0.15);
+        expect(Math.hypot(p.x, p.y)).toBeLessThan(R);
+      });
+    });
+
+    it('pairByAngle: 점과 자리를 12시부터 시계 방향 각도순으로 나란히 짝짓는다', () => {
+      const ring = ringPoints(R);
+      const targets = markPoints('done', R);
+      const paired = pairByAngle(ring, targets);
+      expect(paired).toHaveLength(8);
+      // 자리를 하나도 빼놓거나 겹치지 않는다
+      const key = (pts: Point[]) => pts.map((p) => `${p.x},${p.y}`).sort();
+      expect(key(paired)).toEqual(key(targets));
+      // i번째 점이 각도순 i번째 자리를 받는다
+      expect(rank(paired)).toEqual([0, 1, 2, 3, 4, 5, 6, 7]);
+    });
+
+    it('pairByAngle: 자리가 어떤 순서로 주어져도 각도순이 기준이다', () => {
+      const ring = ringPoints(R);
+      expect(pairByAngle(ring, [...ring].reverse())).toEqual(ring);
+    });
+  });
+
+  describe('완료 표식 status (M5 task-20 3부)', () => {
+    type OrbitHost = HTMLElement & {
+      __loaderStatusTimeline?: gsap.core.Timeline;
+    };
+    type Tween = gsap.core.Tween;
+
+    const MD = ORBIT_RADIUS_PX.md;
+    const STAGGER = gsapDuration.fast / 8;
+
+    afterEach(() => {
+      vi.unstubAllGlobals();
+    });
+
+    /** jsdom은 matchMedia를 구현하지 않는다. 축소 선호 경로를 열려면 깔아야 한다. */
+    const installReducedMotion = (): void => {
+      vi.stubGlobal(
+        'matchMedia',
+        (media: string): MediaQueryList =>
+          ({
+            matches: true,
+            media,
+            addEventListener: () => {},
+            removeEventListener: () => {},
+            dispatchEvent: () => false,
+            onchange: null,
+          }) as unknown as MediaQueryList
+      );
+    };
+
+    const orbitOf = (container: HTMLElement): OrbitHost =>
+      container.querySelector('[data-orbit]') as OrbitHost;
+    const dotsOf = (container: HTMLElement): HTMLElement[] => [
+      ...container.querySelectorAll<HTMLElement>('[data-orbit-dot]'),
+    ];
+    const posOf = (el: HTMLElement): Point => {
+      const m = el.style.transform.match(
+        /translate(?:3d)?\(([-\d.e]+)px,\s*([-\d.e]+)px/
+      );
+      return m ? { x: Number(m[1]), y: Number(m[2]) } : { x: 0, y: 0 };
+    };
+    const expectDotsAt = (container: HTMLElement, expected: Point[]): void => {
+      dotsOf(container).forEach((dot, i) => {
+        expect(posOf(dot).x).toBeCloseTo(expected[i].x, 4);
+        expect(posOf(dot).y).toBeCloseTo(expected[i].y, 4);
+      });
+    };
+    const markTargets = (kind: 'done' | 'error'): Point[] =>
+      pairByAngle(ringPoints(MD), markPoints(kind, MD));
+    const tweensOf = (container: HTMLElement): Tween[] =>
+      (orbitOf(container).__loaderStatusTimeline?.getChildren() ??
+        []) as Tween[];
+    const tweenFor = (container: HTMLElement, dot: HTMLElement): Tween =>
+      tweensOf(container).find((t) => t.targets()[0] === dot) as Tween;
+
+    it('마운트: loading이면 점은 원 위에 있고 움직이는 것이 없다', () => {
+      const { container } = render(<Loader />);
+      expectDotsAt(container, ringPoints(MD));
+      expect(orbitOf(container).__loaderStatusTimeline).toBeUndefined();
+      expect(orbitOf(container)).toHaveAttribute('data-status', 'loading');
+      expect(orbitOf(container)).not.toHaveAttribute('data-paused');
+    });
+
+    it('마운트: done으로 시작하면 효과 없이 바로 체크 자리에 있고 밝기 키프레임은 멈춘다', () => {
+      const { container } = render(<Loader status="done" />);
+      expectDotsAt(container, markTargets('done'));
+      expect(orbitOf(container).__loaderStatusTimeline).toBeUndefined();
+      expect(orbitOf(container)).toHaveAttribute('data-paused');
+    });
+
+    it('loading에서 done이 되면 점마다 트윈이 하나씩, 체크 자리로 slow settle로 간다', () => {
+      const { container, rerender } = render(<Loader />);
+      rerender(<Loader status="done" />);
+      const expected = markTargets('done');
+      const dots = dotsOf(container);
+      expect(tweensOf(container)).toHaveLength(8);
+      dots.forEach((dot, i) => {
+        const tween = tweenFor(container, dot);
+        expect(tween.vars.x).toBeCloseTo(expected[i].x, 4);
+        expect(tween.vars.y).toBeCloseTo(expected[i].y, 4);
+        expect(tween.vars.opacity).toBe(1);
+        expect(tween.duration()).toBeCloseTo(gsapDuration.slow, 6);
+        expect(tween.vars.ease).toBe(gsapEasing.settle);
+      });
+    });
+
+    it('점마다 시차가 fast / 8씩 벌어진다 (0번 점은 바로, 7번 점이 가장 늦게)', () => {
+      const { container, rerender } = render(<Loader />);
+      rerender(<Loader status="error" />);
+      dotsOf(container).forEach((dot, i) => {
+        expect(tweenFor(container, dot).startTime()).toBeCloseTo(
+          STAGGER * i,
+          6
+        );
+      });
+    });
+
+    it('끝까지 가면 점이 체크 자리에 앉고, 손잡이가 비며, 밝기 키프레임은 멈춘 채다', () => {
+      const { container, rerender } = render(<Loader />);
+      rerender(<Loader status="done" />);
+      const host = orbitOf(container);
+      expect(host).toHaveAttribute('data-paused');
+      host.__loaderStatusTimeline?.progress(1);
+      expectDotsAt(container, markTargets('done'));
+      expect(host.__loaderStatusTimeline).toBeUndefined();
+      expect(host).toHaveAttribute('data-paused');
+    });
+
+    it('error는 X 자리로 모인다', () => {
+      const { container, rerender } = render(<Loader />);
+      rerender(<Loader status="error" />);
+      orbitOf(container).__loaderStatusTimeline?.progress(1);
+      expectDotsAt(container, markTargets('error'));
+    });
+
+    it('loading으로 돌아오면 같은 길을 거꾸로 원 위로 가고, 도착한 뒤에야 밝기 키프레임이 재개된다', () => {
+      const { container, rerender } = render(<Loader status="done" />);
+      rerender(<Loader status="loading" />);
+      const host = orbitOf(container);
+      expect(host).toHaveAttribute('data-paused');
+      const ring = ringPoints(MD);
+      dotsOf(container).forEach((dot, i) => {
+        const tween = tweenFor(container, dot);
+        expect(tween.vars.x).toBeCloseTo(ring[i].x, 4);
+        expect(tween.vars.y).toBeCloseTo(ring[i].y, 4);
+        expect(tween.duration()).toBeCloseTo(gsapDuration.slow, 6);
+      });
+      host.__loaderStatusTimeline?.progress(1);
+      expectDotsAt(container, ring);
+      expect(host).not.toHaveAttribute('data-paused');
+      expect(host.__loaderStatusTimeline).toBeUndefined();
+    });
+
+    it('진행 중 상태가 바뀌면 지금 위치에서 새 목표로 가고 손잡이는 하나뿐이다', () => {
+      const { container, rerender } = render(<Loader />);
+      rerender(<Loader status="done" />);
+      const host = orbitOf(container);
+      const first = host.__loaderStatusTimeline as gsap.core.Timeline;
+      first.time(gsapDuration.slow * 0.5 + STAGGER * 3);
+      const dots = dotsOf(container);
+      const mid = dots.map(posOf);
+      // 아직 도착 전이라 원 위도 체크 자리도 아니다
+      expect(mid[0].x).not.toBeCloseTo(ringPoints(MD)[0].x, 2);
+
+      rerender(<Loader status="error" />);
+      const second = host.__loaderStatusTimeline as gsap.core.Timeline;
+      expect(second).not.toBe(first);
+      expect(first.parent).toBeNull();
+      second.progress(0);
+      dots.forEach((dot, i) => {
+        expect(posOf(dot).x).toBeCloseTo(mid[i].x, 4);
+        expect(posOf(dot).y).toBeCloseTo(mid[i].y, 4);
+      });
+      second.progress(1);
+      expectDotsAt(container, markTargets('error'));
+    });
+
+    it('언마운트하면 돌던 타임라인이 정리된다', () => {
+      const { container, rerender, unmount } = render(<Loader />);
+      rerender(<Loader status="done" />);
+      const timeline = orbitOf(container).__loaderStatusTimeline;
+      expect(timeline?.parent).not.toBeNull();
+      unmount();
+      expect(timeline?.parent).toBeNull();
+    });
+
+    it('축소 선호: 상태가 바뀌면 바로 끝 상태이고 타임라인이 남지 않는다', () => {
+      installReducedMotion();
+      const { container, rerender } = render(<Loader />);
+      rerender(<Loader status="done" />);
+      expectDotsAt(container, markTargets('done'));
+      expect(orbitOf(container).__loaderStatusTimeline).toBeUndefined();
+      rerender(<Loader status="loading" />);
+      expectDotsAt(container, ringPoints(MD));
+      expect(orbitOf(container)).not.toHaveAttribute('data-paused');
+    });
+
+    it('접근성: aria-busy는 loading일 때만 true이고 이름 기본값이 상태를 따른다', () => {
+      const { rerender } = render(<Loader />);
+      const status = screen.getByRole('status');
+      expect(status).toHaveAttribute('aria-busy', 'true');
+      expect(status).toHaveAttribute('aria-label', '로딩 중');
+      rerender(<Loader status="done" />);
+      expect(status).toHaveAttribute('aria-busy', 'false');
+      expect(status).toHaveAttribute('aria-label', '완료');
+      rerender(<Loader status="error" />);
+      expect(status).toHaveAttribute('aria-busy', 'false');
+      expect(status).toHaveAttribute('aria-label', '실패');
+    });
+
+    it('접근 이름은 aria-label, label이 있으면 그것이 먼저다', () => {
+      const { rerender } = render(<Loader status="done" label="저장함" />);
+      expect(screen.getByRole('status')).toHaveAttribute(
+        'aria-label',
+        '저장함'
+      );
+      rerender(<Loader status="done" label="저장함" aria-label="저장 완료" />);
+      expect(screen.getByRole('status')).toHaveAttribute(
+        'aria-label',
+        '저장 완료'
+      );
+    });
+
+    it('성공 색은 success.dark, 실패 색은 error.dark이고 둘 다 흰 바탕 대비 3:1 이상이다', () => {
+      expect(contrastOnWhite(themeTokens.color.success.dark)).toBeGreaterThan(
+        3
+      );
+      expect(contrastOnWhite(themeTokens.color.error.dark)).toBeGreaterThan(3);
+      const dotBlock = block(LOADER_CSS, 'orbitDot');
+      expectCss(dotBlock).toContain(
+        '\'[data-status="done"] &\': { backgroundColor: themeContract.color.success.dark }'
+      );
+      expectCss(dotBlock).toContain(
+        '\'[data-status="error"] &\': { backgroundColor: themeContract.color.error.dark }'
+      );
+    });
+
+    it('색은 CSS background-color 전이(base settle)로 바뀌고, 멈춘 동안 밝기 키프레임은 없다', () => {
+      const dotBlock = block(LOADER_CSS, 'orbitDot');
+      expectCss(dotBlock).toContain(
+        'transition: `background-color ${themeContract.animation.duration.base} ${themeContract.animation.easing.settle}`'
+      );
+      expectCss(dotBlock).toContain("'[data-paused] &': { animation: 'none' }");
+    });
+
+    it('반지름 표는 CSS 변수와 표식 좌표가 함께 읽는다', () => {
+      expect(ORBIT_RADIUS_PX).toEqual({ sm: 6.5, md: 10, lg: 13.5, xl: 20 });
+      expectCss(LOADER_CSS).toContain('ORBIT_RADIUS_PX');
+    });
+  });
+
+  describe('라벨 교체 (M5 task-20 3부)', () => {
+    const layers = (container: HTMLElement) => [
+      ...container.querySelectorAll<HTMLElement>('[data-label-layer]'),
+    ];
+
+    it('처음 렌더는 글자가 든 층 하나만 켜져 있고 다른 층은 비어 있다 (교체 효과 없음)', () => {
+      const { container } = render(<Loader label="불러오는 중" />);
+      const [first, second] = layers(container);
+      expect(first).toHaveTextContent('불러오는 중');
+      expect(first).toHaveAttribute('data-active');
+      expect(second).toHaveTextContent('');
+      expect(second).not.toHaveAttribute('data-active');
+    });
+
+    it('글자가 바뀌면 옛 글자와 새 글자가 같은 칸에 겹친 채 켜짐이 새 층으로 넘어간다', () => {
+      const { container, rerender } = render(<Loader label="저장 중" />);
+      rerender(<Loader label="저장 완료" />);
+      const [old, next] = layers(container);
+      expect(old).toHaveTextContent('저장 중');
+      expect(old).not.toHaveAttribute('data-active');
+      expect(old).toHaveAttribute('aria-hidden', 'true');
+      expect(next).toHaveTextContent('저장 완료');
+      expect(next).toHaveAttribute('data-active');
+      expect(old.parentElement).toBe(next.parentElement);
+    });
+
+    it('다시 바뀌면 켜짐이 번갈아 넘어가고 같은 글자로 다시 그리면 그대로다', () => {
+      const { container, rerender } = render(<Loader label="가" />);
+      rerender(<Loader label="나" />);
+      rerender(<Loader label="나" />);
+      expect(layers(container).map((l) => l.textContent)).toEqual(['가', '나']);
+      rerender(<Loader label="다" />);
+      const [a, b] = layers(container);
+      expect(a).toHaveTextContent('다');
+      expect(a).toHaveAttribute('data-active');
+      expect(b).toHaveTextContent('나');
+    });
+
+    it('모든 type에서 같다 (bar에도 적용)', () => {
+      const { container, rerender } = render(<Loader type="bar" label="가" />);
+      rerender(<Loader type="bar" label="나" />);
+      expect(layers(container).map((l) => l.textContent)).toEqual(['가', '나']);
+    });
+
+    it('꺼진 층은 투명도 0과 blur(2px), 켜진 층은 또렷하고, base settle로 갈아끼운다', () => {
+      const layer = block(LOADER_CSS, 'labelLayer');
+      expectCss(layer).toContain("gridArea: '1 / 1'");
+      expectCss(layer).toContain('opacity: 0');
+      expectCss(layer).toContain("filter: 'blur(2px)'");
+      expectCss(layer).toContain(
+        'transition: `opacity ${themeContract.animation.duration.base} ${themeContract.animation.easing.settle}, filter ${themeContract.animation.duration.base} ${themeContract.animation.easing.settle}`'
+      );
+      expectCss(layer).toContain(
+        "'&[data-active]': { opacity: 1, filter: 'blur(0)' }"
+      );
+    });
+
+    it('축소 선호: 전이 없이 바로 바뀐다', () => {
+      const layer = block(LOADER_CSS, 'labelLayer');
+      const media = layer.slice(layer.indexOf('prefers-reduced-motion'));
+      expectCss(media).toContain("transition: 'none'");
+    });
+  });
+
+  describe('도화선 fuse (M5 task-20 3부)', () => {
+    const barOf = (container: HTMLElement) =>
+      container.querySelector('[role="progressbar"]') as HTMLElement;
+
+    it('progressbar 역할과 값 속성, 접근 이름을 가진다', () => {
+      render(<Loader type="fuse" value={40} />);
+      const bar = screen.getByRole('progressbar');
+      expect(bar).toHaveAttribute('aria-valuemin', '0');
+      expect(bar).toHaveAttribute('aria-valuemax', '100');
+      expect(bar).toHaveAttribute('aria-valuenow', '40');
+      expect(bar).toHaveAttribute('aria-label', '진행률');
+      expect(bar).toHaveAttribute('data-type', 'fuse');
+    });
+
+    it('label과 aria-label이 접근 이름을 정한다', () => {
+      const { rerender } = render(
+        <Loader type="fuse" value={1} label="올리는 중" />
+      );
+      expect(screen.getByRole('progressbar')).toHaveAttribute(
+        'aria-label',
+        '올리는 중'
+      );
+      rerender(<Loader type="fuse" value={1} aria-label="업로드" />);
+      expect(screen.getByRole('progressbar')).toHaveAttribute(
+        'aria-label',
+        '업로드'
+      );
+    });
+
+    it('value는 0에서 100으로 자른다', () => {
+      const { container, rerender } = render(
+        <Loader type="fuse" value={150} />
+      );
+      expect(barOf(container)).toHaveAttribute('aria-valuenow', '100');
+      expect(barOf(container).style.getPropertyValue('--fuse-value')).toBe(
+        '100'
+      );
+      rerender(<Loader type="fuse" value={-20} />);
+      expect(barOf(container)).toHaveAttribute('aria-valuenow', '0');
+      expect(barOf(container).style.getPropertyValue('--fuse-value')).toBe('0');
+      rerender(<Loader type="fuse" value={Number.NaN} />);
+      expect(barOf(container)).toHaveAttribute('aria-valuenow', '0');
+    });
+
+    it('트랙은 bar와 같다 (크기 클래스, 면, 경계 안에 채움 층)', () => {
+      const { container } = render(<Loader type="fuse" size="lg" value={30} />);
+      expect(
+        container.querySelector('[class*="barSizeStyles_lg"]')
+      ).not.toBeNull();
+      const track = container.querySelector('[data-fuse-fill]')
+        ?.parentElement as HTMLElement;
+      expect(track.className).toMatch(/(^|\s|_)bar(_|\s|$)/);
+    });
+
+    it('채움은 트랙 전체 폭 층을 clip-path로 오려 좌에서 우로 채우고, slow settle로 전이한다', () => {
+      const fill = block(LOADER_CSS, 'fuseFill');
+      expectCss(fill).toContain("width: '100%'");
+      expectCss(fill).toContain(
+        "clipPath: 'inset(0 calc(100% - var(--fuse-value) * 1%) 0 0 round 2px)'"
+      );
+      expectCss(fill).toContain(
+        'transition: `clip-path ${themeContract.animation.duration.slow} ${themeContract.animation.easing.settle}`'
+      );
+      expectCss(fill).toContain("backgroundColor: 'var(--loader-color)'");
+    });
+
+    it('불똥 래퍼는 트랙 폭 위에서 translateX(value% - 100%)로 옮기고 같은 전이를 쓴다', () => {
+      const spark = block(LOADER_CSS, 'fuseSpark');
+      expectCss(spark).toContain(
+        "transform: 'translateX(calc(var(--fuse-value) * 1% - 100%))'"
+      );
+      expectCss(spark).toContain(
+        'transform ${themeContract.animation.duration.slow} ${themeContract.animation.easing.settle}'
+      );
+    });
+
+    it('불똥은 래퍼 오른쪽 끝의 작은 원이고 --loader-color로 번진다', () => {
+      expect(FUSE_SPARK_PX).toEqual({ sm: 6, md: 8, lg: 10, xl: 12 });
+      const dot = block(LOADER_CSS, 'fuseSparkDot');
+      expectCss(dot).toContain("borderRadius: '50%'");
+      expectCss(dot).toContain("backgroundColor: 'var(--loader-color)'");
+      expectCss(dot).toContain(
+        "boxShadow: '0 0 6px color-mix(in srgb, var(--loader-color) 55%, transparent)'"
+      );
+    });
+
+    it('value가 100이면 data-complete가 붙고 불똥이 base로 사라진다', () => {
+      const { container, rerender } = render(<Loader type="fuse" value={99} />);
+      expect(barOf(container)).not.toHaveAttribute('data-complete');
+      rerender(<Loader type="fuse" value={100} />);
+      expect(barOf(container)).toHaveAttribute('data-complete');
+      const spark = block(LOADER_CSS, 'fuseSpark');
+      expectCss(spark).toContain("'[data-complete] &': { opacity: 0 }");
+      expectCss(spark).toContain(
+        'opacity ${themeContract.animation.duration.base} ${themeContract.animation.easing.settle}'
+      );
+    });
+
+    it('0이면 불똥은 시작점(translateX(-100%))에 있다', () => {
+      const { container } = render(<Loader type="fuse" value={0} />);
+      expect(barOf(container).style.getPropertyValue('--fuse-value')).toBe('0');
+      expect(barOf(container)).not.toHaveAttribute('data-complete');
+    });
+
+    it('타들어 감: 고르지 않은 정지점(0 / 23 / 41 / 67 / 100)에서 scale 0.85 ~ 1.1, 투명도 0.7 ~ 1', () => {
+      const frames = keyframesBlock(LOADER_CSS, 'fuseFlicker');
+      expectCss(frames).toContain(
+        "'0%, 100%': { transform: 'scale(1)', opacity: 1 }"
+      );
+      expectCss(frames).toContain(
+        "'23%': { transform: 'scale(0.85)', opacity: 0.7 }"
+      );
+      expectCss(frames).toContain(
+        "'41%': { transform: 'scale(1.1)', opacity: 1 }"
+      );
+      expectCss(frames).toContain(
+        "'67%': { transform: 'scale(0.9)', opacity: 0.8 }"
+      );
+      const dot = block(LOADER_CSS, 'fuseSparkDot');
+      expectCss(dot).toContain(
+        'animation: `${fuseFlicker} ${themeContract.animation.loop.fast} ${loopRhythmEasing} infinite`'
+      );
+    });
+
+    it('축소 선호: 깜빡임도 전이도 없다', () => {
+      for (const name of ['fuseFill', 'fuseSpark', 'fuseSparkDot']) {
+        const b = block(LOADER_CSS, name);
+        const media = b.slice(b.indexOf('prefers-reduced-motion'));
+        expect(media, name).toContain(
+          name === 'fuseSparkDot' ? "animation: 'none'" : "transition: 'none'"
+        );
+      }
+    });
+
+    it('색은 bar와 같은 방식이다 (프리셋 클래스, 임의 색은 --loader-color 인라인)', () => {
+      const { container, rerender } = render(
+        <Loader type="fuse" value={10} color="secondary" />
+      );
+      expect(barOf(container).className).toContain('colorStyles_secondary');
+      rerender(<Loader type="fuse" value={10} color="#0f0" />);
+      expect(barOf(container).style.getPropertyValue('--loader-color')).toBe(
+        '#0f0'
+      );
+    });
+  });
+
+  describe('status·value 타입 (M5 task-20 3부)', () => {
+    it('fuse에 value가 없으면, spinner에 status를 주면 타입 오류다', () => {
+      const elements = [
+        // @ts-expect-error fuse는 value가 필수다
+        <Loader key="a" type="fuse" />,
+        // @ts-expect-error status는 orbit 전용이다
+        <Loader key="b" type="spinner" status="done" />,
+        // @ts-expect-error value는 fuse 전용이다
+        <Loader key="c" type="bar" value={10} />,
+        <Loader key="d" status="error" />,
+        <Loader key="e" type="orbit" status="done" />,
+        <Loader key="f" type="fuse" value={10} />,
+      ];
+      expect(elements).toHaveLength(6);
     });
   });
 });

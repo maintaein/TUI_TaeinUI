@@ -237,7 +237,7 @@ describe('Tier-A 12개 @keyframes 소스 열거 (M2 T4)', () => {
     expect(unused.map((k) => `${k.file}:${k.name}`)).toEqual([]);
   });
 
-  it('소스에서 찾은 keyframes 총량이 14개다, 늘거나 줄면 이 파일의 분류를 다시 본다', () => {
+  it('소스에서 찾은 keyframes 총량이 15개다, 늘거나 줄면 이 파일의 분류를 다시 본다', () => {
     // 무엇을 뒤집으면 빨개지는가: 12개 파일 중 하나에 keyframes를 새로 추가하거나
     // 지우면 총량이 바뀐다. (예상 자리 확인용 — 브리프의 「예상되는 자리」는 참고이지
     // 여기서 실제로 세는 것이 진실이다.)
@@ -247,7 +247,9 @@ describe('Tier-A 12개 @keyframes 소스 열거 (M2 T4)', () => {
     // M5 task-20 2부: 물결 막대(waveSwell)와 자벌레(inchworm)가 더해 14개가 됐다.
     // 자벌레는 정지점을 반복문으로 만들어 프레임이 0개로 읽힌다(아래 검사 4의
     // 생성형 키프레임 항목이 따로 지킨다).
-    expect(KEYFRAMES).toHaveLength(14);
+    // M5 task-20 3부: 도화선 불똥의 깜빡임(fuseFlicker)이 더해 15개가 됐다. 축소
+    // 선호에서는 깜빡임을 끄므로(animation: none) 대체 키프레임은 늘지 않았다.
+    expect(KEYFRAMES).toHaveLength(15);
   });
 
   it('keyframes가 있는 파일은 Badge·Border·Divider·Loader·Skeleton 5개뿐이다 — Popover·Tooltip은 0건이다', () => {
@@ -264,7 +266,7 @@ describe('Tier-A 12개 @keyframes 소스 열거 (M2 T4)', () => {
     ]);
   });
 
-  it('무한 루프 11개 · 마운트 1회 3개로 분류된다', () => {
+  it('무한 루프 12개 · 마운트 1회 3개로 분류된다', () => {
     // 무엇을 뒤집으면 빨개지는가: 루프에서 infinite를 빼거나 마운트 1회에
     // infinite를 붙이면(잘못된 도구 선택, 공통 제약 §2) 분류가 바뀌어 잡힌다.
     expect(LOOP.map((k) => `${k.file}:${k.name}`).sort()).toEqual([
@@ -272,6 +274,7 @@ describe('Tier-A 12개 @keyframes 소스 열거 (M2 T4)', () => {
       'components/Loader/Loader.css.ts:bubbleRise',
       'components/Loader/Loader.css.ts:bubbleSquash',
       'components/Loader/Loader.css.ts:fadeInOut',
+      'components/Loader/Loader.css.ts:fuseFlicker',
       'components/Loader/Loader.css.ts:inchworm',
       'components/Loader/Loader.css.ts:orbitLit',
       'components/Loader/Loader.css.ts:progress',
@@ -316,8 +319,8 @@ describe('Tier-A 12개 @keyframes 소스 열거 (M2 T4)', () => {
  * 그 성질은 지금까지 `theme.reducedMotion.test.ts`의 `dot` 한 자리에만
  * 리터럴 문자열로 잠겨 있었다. 여기서 LOOP 9개 전부로 일반화한다.
  */
-describe('검사 1: 무한 루프 11개가 축소 모드(iteration 1)에서 보이는 상태로 끝난다: 소비처 base가 표시 상태이고 fill-mode가 forwards/both가 아니다', () => {
-  it('LOOP 11개에서 프레임 26개·프레임 속성 26개·소비처 13곳을 실제로 순회한다, 파서가 0개를 세면 아래 검사들보다 먼저 여기가 빨개진다', () => {
+describe('검사 1: 무한 루프 12개가 축소 모드(iteration 1)에서 보이는 상태로 끝난다: 소비처 base가 표시 상태이고 fill-mode가 forwards/both가 아니다', () => {
+  it('LOOP 12개에서 프레임 30개·프레임 속성 34개·소비처 14곳을 실제로 순회한다, 파서가 0개를 세면 아래 검사들보다 먼저 여기가 빨개진다', () => {
     // 무엇을 뒤집으면 빨개지는가: 루프 하나를 `from`/`to` 표기로 바꾸거나
     // 프레임 값에 `${...}` 보간을 넣으면 parseFrames가 그 키프레임에서 0개를
     // 돌려준다 — 개수가 어긋나 여기가 빨개진다. 개수 앵커가 없으면 같은
@@ -325,11 +328,13 @@ describe('검사 1: 무한 루프 11개가 축소 모드(iteration 1)에서 보�
     // M5 task-20 2부: 버블 몸이 프레임 4개가 되고(+2), 물결(+2)과 자벌레(0, 생성형)가
     // 더해 22개에서 26개. fadeInOut이 막대와 자벌레의 축소 선호에도 쓰여 소비처는
     // 9곳에서 13곳(물결 1, 자벌레 1, fadeInOut +2)이다.
-    expect(LOOP.flatMap((k) => k.frames)).toHaveLength(26);
+    // M5 task-20 3부: 불똥 깜빡임이 프레임 4개(각각 transform과 opacity, 속성 +8)와
+    // 소비처 1곳을 더해 프레임 30개·속성 34개·소비처 14곳이다.
+    expect(LOOP.flatMap((k) => k.frames)).toHaveLength(30);
     expect(
       LOOP.flatMap((k) => k.frames).flatMap((f) => Object.keys(f.props))
-    ).toHaveLength(26);
-    expect(LOOP.flatMap((k) => k.usages)).toHaveLength(13);
+    ).toHaveLength(34);
+    expect(LOOP.flatMap((k) => k.usages)).toHaveLength(14);
   });
 
   it('0%·100% 프레임에 opacity:0 / scale(0)류가 없다', () => {
@@ -524,15 +529,16 @@ describe('검사 3 — keyframes 소비의 duration 자리가 리터럴이 아�
 });
 
 describe('검사 4 — keyframes 본문이 transform·opacity 밖을 안 건드린다', () => {
-  it('14개 전체에서 프레임 29개·프레임 속성 31개를 실제로 순회한다, 파싱이 비면 화이트리스트 검사가 진공이다', () => {
+  it('15개 전체에서 프레임 33개·프레임 속성 39개를 실제로 순회한다, 파싱이 비면 화이트리스트 검사가 진공이다', () => {
     // 무엇을 뒤집으면 빨개지는가: 프레임 값 하나를 백틱 보간(`\`${x}\``)으로
     // 바꾸면 PROP 정규식이 그 속성을 못 읽어 속성 수가 줄고, 프레임 키를
     // `from`/`to`로 바꾸면 FRAME 정규식이 그 프레임을 통째로 놓쳐 프레임 수가
     // 준다 — 둘 다 여기가 먼저 잡는다.
-    expect(KEYFRAMES.flatMap((k) => k.frames)).toHaveLength(29);
+    // M5 task-20 3부: 불똥 깜빡임 프레임 4개, 속성 8개가 더해 33개와 39개다.
+    expect(KEYFRAMES.flatMap((k) => k.frames)).toHaveLength(33);
     expect(
       KEYFRAMES.flatMap((k) => k.frames).flatMap((f) => Object.keys(f.props))
-    ).toHaveLength(31);
+    ).toHaveLength(39);
   });
 
   /**

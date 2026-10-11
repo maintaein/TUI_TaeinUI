@@ -514,7 +514,7 @@ import { Avatar, AvatarGroup } from '@taein-ui/core';
 
 ## Loader
 
-Loading indicator with orbit (default), spinner, dots, bar, wave, or inchworm variants.
+Loading indicator with orbit (default), spinner, dots, bar, wave, inchworm, or fuse (progress) variants.
 
 ```tsx
 import { Loader } from '@taein-ui/core';
@@ -524,16 +524,20 @@ import { Loader } from '@taein-ui/core';
 <Loader type="dots" label="로딩 중..." />
 <Loader type="wave" />
 <Loader type="inchworm" size="lg" />
+<Loader status="done" label="Saved" />
+<Loader type="fuse" value={40} />
 <Loader fullScreen overlay />
 ```
 
 ### Props (extends HTMLAttributes<HTMLDivElement>)
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
-| type | 'orbit' \| 'spinner' \| 'dots' \| 'bar' \| 'wave' \| 'inchworm' | 'orbit' | Loader type |
+| type | 'orbit' \| 'spinner' \| 'dots' \| 'bar' \| 'wave' \| 'inchworm' \| 'fuse' | 'orbit' | Loader type |
+| status | 'loading' \| 'done' \| 'error' | 'loading' | Orbit only. The eight dots slide into a check (done) or an X (error). Type error on other types |
+| value | number | required for fuse | Fuse only. Progress 0-100 (clamped), shown as a bar with a flickering spark at the fill end (role="progressbar"). Type error on other types |
 | size | 'sm' \| 'md' \| 'lg' \| 'xl' | 'md' | Loader size |
 | color | 'primary' \| 'secondary' \| 'white' \| string | 'primary' | Color preset or any CSS color value (e.g. '#f00', 'currentColor') |
-| label | string | — | Text label |
+| label | string | - | Text label. Changing the text cross-fades with a blur |
 | fullScreen | boolean | false | Full screen overlay |
 | overlay | boolean | false | Semi-transparent overlay |
 | aria-label | string | — | Accessibility label |

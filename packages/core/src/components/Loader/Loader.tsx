@@ -1,5 +1,10 @@
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { CSSProperties, HTMLAttributes } from 'react';
 import clsx from 'clsx';
+import { gsap } from 'gsap';
+import { gateMotion, settleMotion } from '../../hooks/gateMotion';
+import { useReducedMotion } from '../../hooks/useReducedMotion';
+import { gsapDuration, gsapEasing } from '../../tokens/gsapEasing';
 import {
   loaderContainer,
   fullScreenStyles,
@@ -21,29 +26,42 @@ import {
   wave,
   waveBar,
   waveSizeStyles,
+  labelLayer,
+  fuse,
+  fuseFill,
+  fuseSpark,
+  fuseSparkDot,
+  fuseSparkSizeStyles,
   spinnerSizeStyles,
   dotSizeStyles,
   dotDelayStyles,
 } from './Loader.css';
-import { waveBarCount } from './loaderMotion';
+import {
+  ORBIT_DOTS,
+  ORBIT_RADIUS_PX,
+  clampPercent,
+  markPoints,
+  pairByAngle,
+  ringPoints,
+  waveBarCount,
+  type Point,
+} from './loaderMotion';
 // 원본 팔레트를 직접 참조하는 이유: type="bar" 렌더 경로는 themeContract 기반
 // colorStyles를 쓰지만(아래), spinner/dots 경로는 color를 --spinner-color에
 // raw 값으로 넘긴다. color prop이 테마 role뿐 아니라 임의의 CSS 색상 문자열도
 // 받기 때문에, preset은 raw 값으로 풀고 그 밖의 값은 그대로 통과시킨다.
 import { primary, gray } from '../../tokens/colors.css';
 
-/** 로딩 상태를 표시하는 컴포넌트. 점 궤도, 스피너, 점, 바, 물결, 자벌레 타입 지원 */
-export interface LoaderProps extends Omit<
+/** 모든 type이 받는 prop */
+interface LoaderBaseProps extends Omit<
   HTMLAttributes<HTMLDivElement>,
   'color'
 > {
-  /** 로딩 애니메이션 타입 @default 'orbit' */
-  type?: 'orbit' | 'spinner' | 'dots' | 'bar' | 'wave' | 'inchworm';
   /** 로더 크기 @default 'md' */
   size?: 'sm' | 'md' | 'lg' | 'xl';
   /** 로더 색상. preset 또는 임의의 CSS 색상값(예: '#f00', 'currentColor') @default 'primary' */
   color?: 'primary' | 'secondary' | 'white' | (string & {});
-  /** 로더 아래 표시할 텍스트 */
+  /** 로더 아래 표시할 텍스트. 글자가 바뀌면 흐림과 투명도로 갈아끼운다 */
   label?: string;
   /** 전체 화면 중앙 배치 @default false */
   fullScreen?: boolean;
@@ -54,6 +72,40 @@ export interface LoaderProps extends Omit<
   /** 추가 CSS 클래스 */
   className?: string;
 }
+
+/** 점 궤도. `status`로 완료 표식을 받는다 */
+interface OrbitLoaderProps extends LoaderBaseProps {
+  /** 로딩 애니메이션 타입 @default 'orbit' */
+  type?: 'orbit';
+  /** 완료 표식. `done`이면 점들이 체크로, `error`면 X로 모인다 @default 'loading' */
+  status?: 'loading' | 'done' | 'error';
+  value?: never;
+}
+
+/** 진행률을 받는 도화선. `value`가 필수다 */
+interface FuseLoaderProps extends LoaderBaseProps {
+  /** 로딩 애니메이션 타입 */
+  type: 'fuse';
+  /** 진행률(0~100, 범위 밖은 자른다) */
+  value: number;
+  status?: never;
+}
+
+/** 그 밖의 type. `status`와 `value`는 받지 않는다 */
+interface PlainLoaderProps extends LoaderBaseProps {
+  /** 로딩 애니메이션 타입 */
+  type: 'spinner' | 'dots' | 'bar' | 'wave' | 'inchworm';
+  status?: never;
+  value?: never;
+}
+
+/**
+ * 로딩 상태를 표시하는 컴포넌트. 점 궤도, 스피너, 점, 바, 물결, 자벌레, 도화선 타입 지원.
+ *
+ * `status`는 `type`이 `'orbit'`(또는 생략)일 때만, `value`는 `type="fuse"`일 때만
+ * (그때는 필수) 받는다.
+ */
+export type LoaderProps = OrbitLoaderProps | FuseLoaderProps | PlainLoaderProps;
 
 type ColorPreset = keyof typeof colorStyles;
 
@@ -69,8 +121,71 @@ const a11yLocked = {
   'aria-busy': undefined,
 } as const;
 
+type OrbitStatus = 'loading' | 'done' | 'error';
+type LoaderSize = keyof typeof ORBIT_RADIUS_PX;
+
+const STATUS_NAME: Record<OrbitStatus, string> = {
+  loading: '로딩 중',
+  done: '완료',
+  error: '실패',
+};
+
+/** 밝기 키프레임이 돌 때 꺼진 점의 투명도(Loader.css.ts의 orbitLit과 같다) */
+const ORBIT_REST_OPACITY = 0.15;
+
+interface OrbitHost extends HTMLDivElement {
+  /** 지금 도는 상태 전환 타임라인(테스트가 읽는 손잡이). 끝나면 비운다 */
+  __loaderStatusTimeline?: gsap.core.Timeline;
+}
+
+/** 상태가 정하는 점 8개의 자리. loading은 원 위, 나머지는 각도순으로 짝지은 표식 자리 */
+const orbitTargets = (status: OrbitStatus, size: LoaderSize): Point[] => {
+  const radius = ORBIT_RADIUS_PX[size];
+  const ring = ringPoints(radius);
+  return status === 'loading'
+    ? ring
+    : pairByAngle(ring, markPoints(status, radius));
+};
+
+const placeDots = (dots: HTMLElement[], targets: Point[]): void => {
+  // rotation 0: CSS가 배치용으로 준 회전을 GSAP이 읽어 이어받지 않게 한다.
+  gsap.set(dots, {
+    x: (i: number) => targets[i].x,
+    y: (i: number) => targets[i].y,
+    rotation: 0,
+  });
+};
+
+/** 라벨이 바뀌면 옛 글자를 흐려 보내고 새 글자를 같은 칸에 흐림에서 불러온다 */
+const SwappingLabel = ({ text }: { text: string }) => {
+  const [slots, setSlots] = useState({ texts: [text, ''], active: 0 });
+  if (slots.texts[slots.active] !== text) {
+    const next = 1 - slots.active;
+    const texts = [...slots.texts];
+    texts[next] = text;
+    setSlots({ texts, active: next });
+  }
+  return (
+    <>
+      {slots.texts.map((t, i) => (
+        <span
+          key={i}
+          className={labelLayer}
+          data-label-layer
+          data-active={i === slots.active ? '' : undefined}
+          aria-hidden={i === slots.active ? undefined : true}
+        >
+          {t}
+        </span>
+      ))}
+    </>
+  );
+};
+
 export const Loader = ({
   type = 'orbit',
+  status = 'loading',
+  value,
   size = 'md',
   color = 'primary',
   label,
@@ -80,6 +195,101 @@ export const Loader = ({
   className,
   ...props
 }: LoaderProps) => {
+  const reduced = useReducedMotion();
+  const orbitRef = useRef<OrbitHost>(null);
+  const shownRef = useRef<{ status: OrbitStatus; size: LoaderSize } | null>(
+    null
+  );
+
+  // 상태가 바뀌면 점 8개가 지금 위치에서 새 자리로 미끄러진다(같은 물체가 모양을
+  // 바꾼다). 위치는 GSAP(x, y)이, 색은 CSS 전이가 맡는다. 마운트와 크기 변경은
+  // 효과 없이 끝 상태를 바로 쓴다.
+  useLayoutEffect(() => {
+    const host = orbitRef.current;
+    if (type !== 'orbit' || !host) {
+      shownRef.current = null;
+      return;
+    }
+    const dots = [...host.querySelectorAll<HTMLElement>('[data-orbit-dot]')];
+    const targets = orbitTargets(status, size);
+    const prev = shownRef.current;
+    shownRef.current = { status, size };
+
+    // 도착한 뒤 loading이면 밝기 키프레임을 되살린다.
+    const arrive = (timeline?: gsap.core.Timeline): void => {
+      if (!timeline || host.__loaderStatusTimeline === timeline) {
+        host.__loaderStatusTimeline = undefined;
+      }
+      if (status === 'loading') {
+        gsap.set(dots, { clearProps: 'opacity' });
+        host.removeAttribute('data-paused');
+      }
+    };
+
+    if (!prev || prev.size !== size) {
+      host.__loaderStatusTimeline?.kill();
+      placeDots(dots, targets);
+      if (status !== 'loading') {
+        gsap.set(dots, { opacity: 1 });
+        host.setAttribute('data-paused', '');
+      }
+      arrive();
+      return;
+    }
+
+    if (prev.status === status) {
+      if (reduced && host.__loaderStatusTimeline) {
+        settleMotion(host.__loaderStatusTimeline);
+      }
+      return;
+    }
+
+    host.__loaderStatusTimeline?.kill();
+    // 멈추기 전 밝기를 붙잡아 둔다. 키프레임을 끄면 점이 한 번 깜빡이기 때문이다.
+    if (prev.status === 'loading') {
+      dots.forEach((dot) => {
+        const lit = Number.parseFloat(getComputedStyle(dot).opacity);
+        if (Number.isFinite(lit)) gsap.set(dot, { opacity: lit });
+      });
+    }
+    host.setAttribute('data-paused', '');
+
+    const timeline = gateMotion(reduced, () => {
+      const tl = gsap.timeline();
+      dots.forEach((dot, i) => {
+        tl.to(
+          dot,
+          {
+            x: targets[i].x,
+            y: targets[i].y,
+            opacity: status === 'loading' ? ORBIT_REST_OPACITY : 1,
+            duration: gsapDuration.slow,
+            ease: gsapEasing.settle,
+          },
+          (gsapDuration.fast / ORBIT_DOTS) * i
+        );
+      });
+      return tl;
+    });
+
+    if (reduced) {
+      arrive();
+      return;
+    }
+    host.__loaderStatusTimeline = timeline;
+    timeline.eventCallback('onComplete', () => {
+      timeline.kill();
+      arrive(timeline);
+    });
+  }, [type, status, size, reduced]);
+
+  useEffect(() => {
+    const host = orbitRef.current;
+    return () => {
+      host?.__loaderStatusTimeline?.kill();
+    };
+  }, []);
+
   // color preset을 실제 색상 값으로 변환. preset이 아니면 CSS 색상값이므로 그대로 쓴다
   const getColorValue = (value: string) => {
     switch (value) {
@@ -95,8 +305,48 @@ export const Loader = ({
   };
 
   const renderLoader = () => {
-    const accessibleLabel = ariaLabel || label || '로딩 중';
+    const defaultName =
+      type === 'fuse'
+        ? '진행률'
+        : type === 'orbit'
+          ? STATUS_NAME[status]
+          : STATUS_NAME.loading;
+    const accessibleLabel = ariaLabel || label || defaultName;
     const presetClass = isPreset(color) ? colorStyles[color] : undefined;
+
+    // 도화선: 진행률을 받는 막대. 채움은 clip-path로, 불똥은 곁의 래퍼로 옮긴다.
+    if (type === 'fuse') {
+      const percent = clampPercent(value ?? 0);
+      return (
+        <div
+          role="progressbar"
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-valuenow={percent}
+          aria-label={accessibleLabel}
+          data-type="fuse"
+          data-size={size}
+          data-color={color}
+          data-complete={percent >= 100 ? '' : undefined}
+          className={presetClass}
+          style={
+            {
+              '--fuse-value': percent,
+              ...(presetClass ? {} : { '--loader-color': color }),
+            } as CSSProperties
+          }
+        >
+          <div className={clsx(fuse, barSizeStyles[size])}>
+            <div className={bar}>
+              <div className={fuseFill} data-fuse-fill />
+            </div>
+            <div className={fuseSpark} aria-hidden="true" data-fuse-spark>
+              <span className={clsx(fuseSparkDot, fuseSparkSizeStyles[size])} />
+            </div>
+          </div>
+        </div>
+      );
+    }
 
     // 자벌레는 bar와 같은 트랙을 쓰고 채움 층만 다르다.
     if (type === 'bar' || type === 'inchworm') {
@@ -134,6 +384,7 @@ export const Loader = ({
       <div
         role="status"
         aria-live="polite"
+        aria-busy={type === 'orbit' ? status === 'loading' : undefined}
         aria-label={accessibleLabel}
         data-type={type}
         data-size={size}
@@ -175,8 +426,11 @@ export const Loader = ({
           </div>
         ) : type === 'orbit' ? (
           <div
+            ref={orbitRef}
             className={clsx(orbit, spinnerSizeStyles[size])}
             aria-hidden="true"
+            data-orbit
+            data-status={status}
           >
             {Array.from({ length: 8 }, (_, i) => (
               <span
@@ -219,7 +473,11 @@ export const Loader = ({
       )}
     >
       {loaderElement}
-      {label && <p className={labelClass}>{label}</p>}
+      {label && (
+        <p className={labelClass}>
+          <SwappingLabel text={label} />
+        </p>
+      )}
     </div>
   );
 };
