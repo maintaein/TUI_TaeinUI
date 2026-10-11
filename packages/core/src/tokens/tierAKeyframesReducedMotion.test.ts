@@ -15,6 +15,7 @@
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join, resolve, relative, sep } from 'node:path';
 import { describe, it, expect } from 'vitest';
+import { inchwormFrames } from '../components/Loader/loaderMotion';
 
 const SRC = resolve(__dirname, '..');
 const COMPONENTS = resolve(SRC, 'components');
@@ -236,14 +237,17 @@ describe('Tier-A 12개 @keyframes 소스 열거 (M2 T4)', () => {
     expect(unused.map((k) => `${k.file}:${k.name}`)).toEqual([]);
   });
 
-  it('소스에서 찾은 keyframes 총량이 12개다, 늘거나 줄면 이 파일의 분류를 다시 본다', () => {
+  it('소스에서 찾은 keyframes 총량이 14개다, 늘거나 줄면 이 파일의 분류를 다시 본다', () => {
     // 무엇을 뒤집으면 빨개지는가: 12개 파일 중 하나에 keyframes를 새로 추가하거나
     // 지우면 총량이 바뀐다. (예상 자리 확인용 — 브리프의 「예상되는 자리」는 참고이지
     // 여기서 실제로 세는 것이 진실이다.)
     // M5 task-20: Loader에 점 궤도(orbitLit)와 버블 점(bubbleRise·bubbleSquash)이
     // 들어 9개에서 12개가 됐다. fadeInOut은 버블 점의 축소 선호 대체(투명도
     // 깜빡임)로 남아 있어 빠지지 않았다.
-    expect(KEYFRAMES).toHaveLength(12);
+    // M5 task-20 2부: 물결 막대(waveSwell)와 자벌레(inchworm)가 더해 14개가 됐다.
+    // 자벌레는 정지점을 반복문으로 만들어 프레임이 0개로 읽힌다(아래 검사 4의
+    // 생성형 키프레임 항목이 따로 지킨다).
+    expect(KEYFRAMES).toHaveLength(14);
   });
 
   it('keyframes가 있는 파일은 Badge·Border·Divider·Loader·Skeleton 5개뿐이다 — Popover·Tooltip은 0건이다', () => {
@@ -260,7 +264,7 @@ describe('Tier-A 12개 @keyframes 소스 열거 (M2 T4)', () => {
     ]);
   });
 
-  it('무한 루프 9개 · 마운트 1회 3개로 분류된다', () => {
+  it('무한 루프 11개 · 마운트 1회 3개로 분류된다', () => {
     // 무엇을 뒤집으면 빨개지는가: 루프에서 infinite를 빼거나 마운트 1회에
     // infinite를 붙이면(잘못된 도구 선택, 공통 제약 §2) 분류가 바뀌어 잡힌다.
     expect(LOOP.map((k) => `${k.file}:${k.name}`).sort()).toEqual([
@@ -268,9 +272,11 @@ describe('Tier-A 12개 @keyframes 소스 열거 (M2 T4)', () => {
       'components/Loader/Loader.css.ts:bubbleRise',
       'components/Loader/Loader.css.ts:bubbleSquash',
       'components/Loader/Loader.css.ts:fadeInOut',
+      'components/Loader/Loader.css.ts:inchworm',
       'components/Loader/Loader.css.ts:orbitLit',
       'components/Loader/Loader.css.ts:progress',
       'components/Loader/Loader.css.ts:spin',
+      'components/Loader/Loader.css.ts:waveSwell',
       'components/Skeleton/Skeleton.css.ts:pulse',
       'components/Skeleton/Skeleton.css.ts:wave',
     ]);
@@ -310,17 +316,20 @@ describe('Tier-A 12개 @keyframes 소스 열거 (M2 T4)', () => {
  * 그 성질은 지금까지 `theme.reducedMotion.test.ts`의 `dot` 한 자리에만
  * 리터럴 문자열로 잠겨 있었다. 여기서 LOOP 9개 전부로 일반화한다.
  */
-describe('검사 1: 무한 루프 9개가 축소 모드(iteration 1)에서 보이는 상태로 끝난다: 소비처 base가 표시 상태이고 fill-mode가 forwards/both가 아니다', () => {
-  it('LOOP 9개에서 프레임 22개·프레임 속성 22개·소비처 9곳을 실제로 순회한다, 파서가 0개를 세면 아래 검사들보다 먼저 여기가 빨개진다', () => {
+describe('검사 1: 무한 루프 11개가 축소 모드(iteration 1)에서 보이는 상태로 끝난다: 소비처 base가 표시 상태이고 fill-mode가 forwards/both가 아니다', () => {
+  it('LOOP 11개에서 프레임 26개·프레임 속성 26개·소비처 13곳을 실제로 순회한다, 파서가 0개를 세면 아래 검사들보다 먼저 여기가 빨개진다', () => {
     // 무엇을 뒤집으면 빨개지는가: 루프 하나를 `from`/`to` 표기로 바꾸거나
     // 프레임 값에 `${...}` 보간을 넣으면 parseFrames가 그 키프레임에서 0개를
     // 돌려준다 — 개수가 어긋나 여기가 빨개진다. 개수 앵커가 없으면 같은
     // 리팩터링이 "순회할 것이 없으니 위반도 없다"로 조용히 초록이 된다.
-    expect(LOOP.flatMap((k) => k.frames)).toHaveLength(22);
+    // M5 task-20 2부: 버블 몸이 프레임 4개가 되고(+2), 물결(+2)과 자벌레(0, 생성형)가
+    // 더해 22개에서 26개. fadeInOut이 막대와 자벌레의 축소 선호에도 쓰여 소비처는
+    // 9곳에서 13곳(물결 1, 자벌레 1, fadeInOut +2)이다.
+    expect(LOOP.flatMap((k) => k.frames)).toHaveLength(26);
     expect(
       LOOP.flatMap((k) => k.frames).flatMap((f) => Object.keys(f.props))
-    ).toHaveLength(22);
-    expect(LOOP.flatMap((k) => k.usages)).toHaveLength(9);
+    ).toHaveLength(26);
+    expect(LOOP.flatMap((k) => k.usages)).toHaveLength(13);
   });
 
   it('0%·100% 프레임에 opacity:0 / scale(0)류가 없다', () => {
@@ -515,15 +524,49 @@ describe('검사 3 — keyframes 소비의 duration 자리가 리터럴이 아�
 });
 
 describe('검사 4 — keyframes 본문이 transform·opacity 밖을 안 건드린다', () => {
-  it('12개 전체에서 프레임 25개·프레임 속성 27개를 실제로 순회한다, 파싱이 비면 화이트리스트 검사가 진공이다', () => {
+  it('14개 전체에서 프레임 29개·프레임 속성 31개를 실제로 순회한다, 파싱이 비면 화이트리스트 검사가 진공이다', () => {
     // 무엇을 뒤집으면 빨개지는가: 프레임 값 하나를 백틱 보간(`\`${x}\``)으로
     // 바꾸면 PROP 정규식이 그 속성을 못 읽어 속성 수가 줄고, 프레임 키를
     // `from`/`to`로 바꾸면 FRAME 정규식이 그 프레임을 통째로 놓쳐 프레임 수가
     // 준다 — 둘 다 여기가 먼저 잡는다.
-    expect(KEYFRAMES.flatMap((k) => k.frames)).toHaveLength(25);
+    expect(KEYFRAMES.flatMap((k) => k.frames)).toHaveLength(29);
     expect(
       KEYFRAMES.flatMap((k) => k.frames).flatMap((f) => Object.keys(f.props))
-    ).toHaveLength(27);
+    ).toHaveLength(31);
+  });
+
+  /**
+   * 정지점을 반복문으로 만드는 키프레임은 위 파서가 프레임을 0개로 읽어서
+   * 화이트리스트(transform·opacity)를 소리 없이 비껴간다. 그래서 프레임이 0개로
+   * 읽히는 키프레임은 이 목록에 이름과 이유를 적어야만 허용하고, 실제 프레임은
+   * 순수 함수의 출력에서 읽어 속성을 따로 잠근다.
+   *
+   * 자벌레(inchworm)는 clip-path를 움직인다. 화이트리스트 규칙(공통 제약 §4)의
+   * 취지는 레이아웃을 건드리지 않는 것이다. clip-path는 레이아웃을 바꾸지 않는
+   * 페인트 속성이고, 알약의 두 가장자리를 따로 움직이면서 둥근 끝을 지키는(교훈 16)
+   * 방법이 이것뿐이다. animationTimingFunction은 정지점마다 구간 커브를 거는 자리다.
+   */
+  const GENERATED_KEYFRAMES: Record<string, string[]> = {
+    'components/Loader/Loader.css.ts:inchworm': [
+      'animationTimingFunction',
+      'clipPath',
+    ],
+  };
+
+  it('프레임이 0개로 읽히는(반복문으로 만든) 키프레임은 허용 목록의 것뿐이다', () => {
+    const unparsed = KEYFRAMES.filter((k) => k.frames.length === 0).map(
+      (k) => `${k.file}:${k.name}`
+    );
+    expect(unparsed.sort()).toEqual(Object.keys(GENERATED_KEYFRAMES).sort());
+  });
+
+  it('허용 목록의 자벌레는 clipPath와 구간 커브(animationTimingFunction)만 움직이고 레이아웃 속성이 없다', () => {
+    const props = new Set(
+      Object.values(inchwormFrames('x')).flatMap((frame) => Object.keys(frame))
+    );
+    expect([...props].sort()).toEqual(
+      GENERATED_KEYFRAMES['components/Loader/Loader.css.ts:inchworm']
+    );
   });
 
   it('프레임 속성이 화이트리스트 안이다', () => {

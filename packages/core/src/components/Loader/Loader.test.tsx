@@ -4,6 +4,17 @@ import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { Loader } from './Loader';
 import { gray } from '../../tokens/colors.css';
+import { SQUASH_PX } from '../SegmentedButtons/segmentedMotion';
+import {
+  INCHWORM_STEPS,
+  WAVE_HEIGHT_PX,
+  WAVE_PITCH_PX,
+  WAVE_WIDTH_PX,
+  inchwormFrames,
+  inchwormInset,
+  inchwormStops,
+  waveBarCount,
+} from './loaderMotion';
 
 const LOADER_CSS = readFileSync(resolve(__dirname, './Loader.css.ts'), 'utf-8');
 
@@ -603,10 +614,54 @@ describe('Loader', () => {
       expect(frames).not.toContain('opacity');
     });
 
-    it('움직이는 구간이 한 바퀴의 앞 1/3이다 (33%에 제자리, 나머지는 쉼)', () => {
-      expect(keyframesBlock(LOADER_CSS, 'bubbleRise')).toContain(
-        "'0%, 12%, 33%, 100%': { transform: 'translateY(0)' }"
+    it('바깥 솟음 정지점이 0 → 10% 바닥, 20% 꼭대기, 32% 바닥, 그 뒤 쉼이다 (움직이는 구간은 한 바퀴의 앞 32%, M5 task-20 2부)', () => {
+      const frames = keyframesBlock(LOADER_CSS, 'bubbleRise');
+      expect(frames).toContain(
+        "'0%, 10%, 32%, 100%': { transform: 'translateY(0)' }"
       );
+      expect(frames).toContain(
+        "'20%': { transform: 'translateY(calc(var(--bubble-rise) * -1))' }"
+      );
+    });
+
+    it('안쪽 몸 정지점이 10% 눌림, 14% 늘어남, 20% 둥근 채, 32% 닿을 때 작게 눌림, 38% 쉼이다 (M5 task-20 2부)', () => {
+      const frames = keyframesBlock(LOADER_CSS, 'bubbleSquash');
+      expect(frames).toContain(
+        "'0%, 20%, 38%, 100%': { transform: 'scale(1)' }"
+      );
+      expect(frames).toContain(
+        "'10%': { transform: 'scaleX(1.15) scaleY(0.8)' }"
+      );
+      expect(frames).toContain(
+        "'14%': { transform: 'scaleX(0.92) scaleY(1.1)' }"
+      );
+      expect(frames).toContain(
+        "'32%': { transform: 'scaleX(1.08) scaleY(0.92)' }"
+      );
+    });
+
+    it('예비동작은 솟기 전에 바닥에서 일어난다: 눌림 최대 정지점이 바깥이 바닥을 떠나는 정지점 이하이고 꼭대기보다 앞선다 (M5 task-20 2부, 교훈 14)', () => {
+      const stops = (name: string) =>
+        [
+          ...keyframesBlock(LOADER_CSS, name).matchAll(
+            /'([^']+)':\s*\{ transform: '([^']+)'/g
+          ),
+        ].flatMap((m) =>
+          m[1].split(',').map((k) => ({ pct: parseFloat(k), transform: m[2] }))
+        );
+      const outer = stops('bubbleRise');
+      const inner = stops('bubbleSquash');
+      const peak = outer.find((s) => s.transform !== 'translateY(0)')!.pct;
+      const leaveBottom = Math.max(
+        ...outer
+          .filter((s) => s.transform === 'translateY(0)' && s.pct < peak)
+          .map((s) => s.pct)
+      );
+      const squashMax = inner.find((s) =>
+        s.transform.includes('scaleX(1.15)')
+      )!.pct;
+      expect(squashMax).toBeLessThanOrEqual(leaveBottom);
+      expect(squashMax).toBeLessThan(peak);
     });
 
     it('넘치는 커브(snap)는 transform만 움직이는 솟음에만 걸리고, 예비동작은 drift다', () => {
@@ -661,6 +716,253 @@ describe('Loader', () => {
         'color: themeContract.color.text.secondary'
       );
       expect(contrastOnWhite(gray[600])).toBeCloseTo(4.88, 1);
+    });
+  });
+
+  describe('물결 막대 wave (M5 task-20 2부)', () => {
+    const SIZES = [
+      ['sm', 48, 12, 6],
+      ['md', 64, 16, 8],
+      ['lg', 96, 24, 12],
+      ['xl', 128, 32, 16],
+    ] as const;
+
+    it.each(SIZES)(
+      '%s: 폭 %i, 높이 %i, 막대 개수는 폭 / 8 = %i개다',
+      (size, width, height, count) => {
+        const { container } = render(<Loader type="wave" size={size} />);
+        expect(container.querySelectorAll('[data-wave-bar]')).toHaveLength(
+          count
+        );
+        expect(WAVE_WIDTH_PX[size]).toBe(width);
+        expect(WAVE_HEIGHT_PX[size]).toBe(height);
+        expect(waveBarCount(size)).toBe(width / WAVE_PITCH_PX);
+      }
+    );
+
+    it('막대 중심 간격은 8px 고정이고 막대 폭 2px에 좌우 여백 3px씩이다 (교훈 18)', () => {
+      expect(WAVE_PITCH_PX).toBe(8);
+      const bar = block(LOADER_CSS, 'waveBar');
+      expect(bar).toContain("width: '2px'");
+      expect(bar).toContain("margin: '0 3px'");
+    });
+
+    it('막대마다 순번 i를 --wave-i로, 바깥이 개수를 --wave-n으로 받는다', () => {
+      const { container } = render(<Loader type="wave" size="md" />);
+      const bars = [
+        ...container.querySelectorAll<HTMLElement>('[data-wave-bar]'),
+      ];
+      expect(bars.map((b) => b.style.getPropertyValue('--wave-i'))).toEqual([
+        '0',
+        '1',
+        '2',
+        '3',
+        '4',
+        '5',
+        '6',
+        '7',
+      ]);
+      const wrap = container.querySelector<HTMLElement>('[data-wave]')!;
+      expect(wrap.style.getPropertyValue('--wave-n')).toBe('8');
+    });
+
+    it('막대마다 늦춤은 loop.base × i / N이다 (리터럴 ms 없음)', () => {
+      const bar = block(LOADER_CSS, 'waveBar');
+      expect(bar).toContain(
+        'animationDelay: `calc(${themeContract.animation.loop.base} * var(--wave-i) / var(--wave-n))`'
+      );
+    });
+
+    it('한 막대의 키프레임이 0% 0.3 → 8% 1 → 40% 0.3 → 100% 0.3 이다 (앞은 빨리 솟고 뒤는 천천히 가라앉는다)', () => {
+      const frames = keyframesBlock(LOADER_CSS, 'waveSwell');
+      expect(frames).toContain("'0%, 40%, 100%': { transform: 'scaleY(0.3)' }");
+      expect(frames).toContain("'8%': { transform: 'scaleY(1)' }");
+    });
+
+    it('솟는 구간(0 → 8%)이 가라앉는 구간(8% → 40%)보다 짧다', () => {
+      const frames = keyframesBlock(LOADER_CSS, 'waveSwell');
+      const peak = parseFloat(
+        /'(\d+)%': \{ transform: 'scaleY\(1\)'/.exec(frames)![1]
+      );
+      const restAgain = parseFloat(/'0%, (\d+)%, 100%'/.exec(frames)![1]);
+      expect(peak).toBeLessThan(restAgain - peak);
+    });
+
+    it('움직이는 속성은 transform scaleY뿐이다 (투명도·위치 없음)', () => {
+      const frames = keyframesBlock(LOADER_CSS, 'waveSwell');
+      expect(frames).not.toContain('opacity');
+      expect(frames).not.toMatch(/translate|rotate|scaleX/);
+      expect(frames.match(/transform:/g)).toHaveLength(2);
+    });
+
+    it('한 바퀴는 loop.base, 구간 커브는 drift, 기준점은 가운데이고 쉬는 높이가 scaleY(0.3)이다', () => {
+      const bar = block(LOADER_CSS, 'waveBar');
+      expect(bar).toContain(
+        'animation: `${waveSwell} ${themeContract.animation.loop.base} ${loopRhythmEasing} infinite backwards`'
+      );
+      expect(bar).not.toMatch(/easing\.(snap|spring)/);
+      expect(bar).toContain("transform: 'scaleY(0.3)'");
+      expect(bar).toContain("transformOrigin: 'center'");
+    });
+
+    it('색은 --spinner-color이고 접근성은 다른 타입과 같다 (막대 묶음 aria-hidden)', () => {
+      const { container } = render(
+        <Loader type="wave" color="#0f0" label="불러오는 중" />
+      );
+      const status = screen.getByRole('status');
+      expect(status).toHaveAttribute('aria-live', 'polite');
+      expect(status).toHaveAttribute('aria-label', '불러오는 중');
+      expect(status).toHaveAttribute('data-type', 'wave');
+      expect(status).toHaveStyle({ '--spinner-color': '#0f0' });
+      const wrap = container.querySelector('[data-wave]') as HTMLElement;
+      expect(wrap).toHaveAttribute('aria-hidden', 'true');
+      expect(block(LOADER_CSS, 'waveBar')).toContain(
+        "backgroundColor: 'var(--spinner-color)'"
+      );
+    });
+
+    it('축소 선호: transform 없이 막대는 쉬는 높이로 늦춤 없이 함께 투명도 맥박(fadeInOut, loop.base)이다', () => {
+      const bar = block(LOADER_CSS, 'waveBar');
+      const media = bar.slice(bar.indexOf('prefers-reduced-motion'));
+      expect(media).toContain(
+        'animation: `${fadeInOut} ${themeContract.animation.loop.base} infinite ${loopRhythmEasing} backwards`'
+      );
+      expect(media).not.toContain('transform');
+      expect(media).not.toContain('animationDelay');
+    });
+  });
+
+  describe('자벌레 inchworm (M5 task-20 2부)', () => {
+    const stops = inchwormStops();
+    const at = (pct: number) => stops.find((s) => s.at === pct)!;
+
+    it('걸음은 5번이고 정지점은 걸음마다 셋에 끝 하나, 16개다', () => {
+      expect(INCHWORM_STEPS).toBe(5);
+      expect(stops).toHaveLength(INCHWORM_STEPS * 3 + 1);
+      expect(stops.map((s) => s.at)).toEqual(
+        [...stops.map((s) => s.at)].sort((a, b) => a - b)
+      );
+      expect(stops[stops.length - 1].at).toBe(100);
+    });
+
+    it('몸이 왼쪽 밖(L -25, R 0)에서 들어와 오른쪽 밖(L 100, R 125)으로 나간다, 쉬는 몸은 25%다', () => {
+      expect(at(0)).toMatchObject({ l: -25, r: 0, lPx: 0 });
+      expect(at(100)).toMatchObject({ l: 100, r: 125, lPx: 0 });
+      for (let k = 0; k < 5; k++) {
+        const rest = at(k * 20);
+        expect(rest.r - rest.l).toBe(25);
+        expect(rest.lPx).toBe(0);
+      }
+    });
+
+    it('한 걸음: 앞끝 R이 +25%(몸 50%, 걸음의 40%), 뒤끝 L이 +25% + 3px(85%), 3px 되돌아옴(100%)', () => {
+      for (let k = 0; k < 5; k++) {
+        const base = k * 20;
+        const start = at(base);
+        const stretched = at(base + 8);
+        const over = at(base + 17);
+        const next = at(base + 20);
+        expect(stretched).toMatchObject({ l: start.l, r: start.r + 25 });
+        expect(stretched.r - stretched.l).toBe(50);
+        expect(over).toMatchObject({ l: start.l + 25, r: start.r + 25 });
+        expect(over.lPx).toBe(SQUASH_PX);
+        expect(next).toMatchObject({
+          l: start.l + 25,
+          r: start.r + 25,
+          lPx: 0,
+        });
+      }
+    });
+
+    it('지나침은 SegmentedButtons의 SQUASH_PX(3px)이고 걸음마다 한 번이다', () => {
+      expect(SQUASH_PX).toBe(3);
+      const over = stops.filter((s) => s.lPx > 0);
+      expect(over).toHaveLength(5);
+      expect(over.every((s) => s.lPx === 3)).toBe(true);
+    });
+
+    it('좌 → 우다: 정지점마다 L과 R이 줄어들지 않는다 (S1)', () => {
+      stops.slice(1).forEach((s, i) => {
+        expect(s.l).toBeGreaterThanOrEqual(stops[i].l);
+        expect(s.r).toBeGreaterThanOrEqual(stops[i].r);
+      });
+    });
+
+    it('clip-path 문자열: inset(0 calc(100% - R) 0 L round 2px), 지나침이면 L에 3px를 더한다', () => {
+      expect(inchwormInset(at(0))).toBe(
+        'inset(0 calc(100% - 0%) 0 -25% round 2px)'
+      );
+      expect(inchwormInset(at(17))).toBe(
+        'inset(0 calc(100% - 25%) 0 calc(0% + 3px) round 2px)'
+      );
+    });
+
+    it('키프레임은 정지점마다 clipPath와 구간 커브를 갖고 끝 프레임만 커브가 없다', () => {
+      const frames = inchwormFrames('EASE');
+      const keys = Object.keys(frames);
+      expect(keys).toHaveLength(16);
+      expect(keys[0]).toBe('0%');
+      expect(keys[keys.length - 1]).toBe('100%');
+      expect(frames['8%']).toEqual({
+        clipPath: inchwormInset(at(8)),
+        animationTimingFunction: 'EASE',
+      });
+      expect(frames['100%']).toEqual({ clipPath: inchwormInset(at(100)) });
+    });
+
+    it('css는 반복문으로 만든 프레임을 settle 커브로 쓰고 손으로 정지점을 쓰지 않는다', () => {
+      const frames = keyframesBlock(LOADER_CSS, 'inchworm');
+      expect(frames).toContain(
+        '...inchwormFrames(themeContract.animation.easing.settle)'
+      );
+      expect(frames).not.toMatch(/'\d+%'/);
+    });
+
+    it('한 바퀴는 loop.base × 2 이고 몸은 clip-path로 그린다', () => {
+      const fill = block(LOADER_CSS, 'inchwormFill');
+      expect(fill).toContain(
+        'animation: `${inchworm} calc(${themeContract.animation.loop.base} * 2) infinite backwards`'
+      );
+      expect(fill).toContain('clipPath: inchwormInset(');
+    });
+
+    it('bar와 같은 트랙(크기 클래스, 면, 경계) 안에서 채움 층이 전체 폭으로 깔린다', () => {
+      const { container } = render(<Loader type="inchworm" size="lg" />);
+      const status = screen.getByRole('status');
+      expect(status).toHaveAttribute('data-type', 'inchworm');
+      expect(status).toHaveAttribute('aria-live', 'polite');
+      expect(status).toHaveAttribute('aria-busy', 'true');
+      expect(status).toHaveAttribute('aria-label', '로딩 중');
+      const track = status.firstElementChild as HTMLElement;
+      expect(track.className).toContain('barSizeStyles_lg');
+      expect(container.querySelector('[data-inchworm-fill]')).not.toBeNull();
+      const fill = block(LOADER_CSS, 'inchwormFill');
+      expect(fill).toContain("width: '100%'");
+      expect(fill).toContain("backgroundColor: 'var(--loader-color)'");
+    });
+
+    it('color 프리셋과 임의 색상을 bar와 같은 방식으로 받는다', () => {
+      const { container, rerender } = render(
+        <Loader type="inchworm" color="white" />
+      );
+      expect(
+        container.querySelector('[data-inchworm-fill]')!.className
+      ).toContain('colorStyles_white');
+      rerender(<Loader type="inchworm" color="#0f0" />);
+      expect(
+        (
+          container.querySelector('[data-inchworm-fill]') as HTMLElement
+        ).style.getPropertyValue('--loader-color')
+      ).toBe('#0f0');
+    });
+
+    it('축소 선호: 기어가지 않고 몸은 가운데(L 37.5%, R 62.5%)에서 투명도 맥박(loop.base)이다', () => {
+      const fill = block(LOADER_CSS, 'inchwormFill');
+      const media = fill.slice(fill.indexOf('prefers-reduced-motion'));
+      expect(media).toContain("clipPath: 'inset(0 37.5% 0 37.5% round 2px)'");
+      expect(media).toContain(
+        'animation: `${fadeInOut} ${themeContract.animation.loop.base} infinite ${loopRhythmEasing} backwards`'
+      );
     });
   });
 });

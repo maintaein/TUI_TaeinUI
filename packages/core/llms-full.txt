@@ -514,7 +514,7 @@ import { Avatar, AvatarGroup } from '@taein-ui/core';
 
 ## Loader
 
-Loading indicator with orbit (default), spinner, dots, or bar variants.
+Loading indicator with orbit (default), spinner, dots, bar, wave, or inchworm variants.
 
 ```tsx
 import { Loader } from '@taein-ui/core';
@@ -522,13 +522,15 @@ import { Loader } from '@taein-ui/core';
 <Loader size="md" />
 <Loader type="spinner" size="md" />
 <Loader type="dots" label="로딩 중..." />
+<Loader type="wave" />
+<Loader type="inchworm" size="lg" />
 <Loader fullScreen overlay />
 ```
 
 ### Props (extends HTMLAttributes<HTMLDivElement>)
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
-| type | 'orbit' \| 'spinner' \| 'dots' \| 'bar' | 'orbit' | Loader type |
+| type | 'orbit' \| 'spinner' \| 'dots' \| 'bar' \| 'wave' \| 'inchworm' | 'orbit' | Loader type |
 | size | 'sm' \| 'md' \| 'lg' \| 'xl' | 'md' | Loader size |
 | color | 'primary' \| 'secondary' \| 'white' \| string | 'primary' | Color preset or any CSS color value (e.g. '#f00', 'currentColor') |
 | label | string | — | Text label |

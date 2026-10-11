@@ -7,6 +7,7 @@ import {
   label as labelClass,
   bar,
   barFill,
+  inchwormFill,
   barSizeStyles,
   colorStyles,
   inlineContainer,
@@ -17,23 +18,27 @@ import {
   orbit,
   orbitDot,
   orbitDotSizeStyles,
+  wave,
+  waveBar,
+  waveSizeStyles,
   spinnerSizeStyles,
   dotSizeStyles,
   dotDelayStyles,
 } from './Loader.css';
+import { waveBarCount } from './loaderMotion';
 // 원본 팔레트를 직접 참조하는 이유: type="bar" 렌더 경로는 themeContract 기반
 // colorStyles를 쓰지만(아래), spinner/dots 경로는 color를 --spinner-color에
 // raw 값으로 넘긴다. color prop이 테마 role뿐 아니라 임의의 CSS 색상 문자열도
 // 받기 때문에, preset은 raw 값으로 풀고 그 밖의 값은 그대로 통과시킨다.
 import { primary, gray } from '../../tokens/colors.css';
 
-/** 로딩 상태를 표시하는 컴포넌트. 점 궤도, 스피너, 점, 바 타입 지원 */
+/** 로딩 상태를 표시하는 컴포넌트. 점 궤도, 스피너, 점, 바, 물결, 자벌레 타입 지원 */
 export interface LoaderProps extends Omit<
   HTMLAttributes<HTMLDivElement>,
   'color'
 > {
   /** 로딩 애니메이션 타입 @default 'orbit' */
-  type?: 'orbit' | 'spinner' | 'dots' | 'bar';
+  type?: 'orbit' | 'spinner' | 'dots' | 'bar' | 'wave' | 'inchworm';
   /** 로더 크기 @default 'md' */
   size?: 'sm' | 'md' | 'lg' | 'xl';
   /** 로더 색상. preset 또는 임의의 CSS 색상값(예: '#f00', 'currentColor') @default 'primary' */
@@ -93,20 +98,25 @@ export const Loader = ({
     const accessibleLabel = ariaLabel || label || '로딩 중';
     const presetClass = isPreset(color) ? colorStyles[color] : undefined;
 
-    if (type === 'bar') {
+    // 자벌레는 bar와 같은 트랙을 쓰고 채움 층만 다르다.
+    if (type === 'bar' || type === 'inchworm') {
       return (
         <div
           role="status"
           aria-live="polite"
           aria-busy="true"
           aria-label={accessibleLabel}
-          data-type="bar"
+          data-type={type}
           data-size={size}
           data-color={color}
         >
           <div className={clsx(bar, barSizeStyles[size])}>
             <div
-              className={clsx(barFill, presetClass)}
+              className={clsx(
+                type === 'bar' ? barFill : inchwormFill,
+                presetClass
+              )}
+              data-inchworm-fill={type === 'inchworm' ? '' : undefined}
               // colorStyles는 preset 3개만 가진 styleVariants라 임의 색상 문자열이면
               // 클래스가 없다. 그때는 --loader-color를 인라인으로 직접 넘긴다.
               style={
@@ -145,6 +155,22 @@ export const Loader = ({
               >
                 <span className={clsx(dotBody, dotDelayStyles[delay])} />
               </span>
+            ))}
+          </div>
+        ) : type === 'wave' ? (
+          <div
+            className={clsx(wave, waveSizeStyles[size])}
+            style={{ '--wave-n': waveBarCount(size) } as CSSProperties}
+            aria-hidden="true"
+            data-wave
+          >
+            {Array.from({ length: waveBarCount(size) }, (_, i) => (
+              <span
+                key={i}
+                className={waveBar}
+                style={{ '--wave-i': i } as CSSProperties}
+                data-wave-bar
+              />
             ))}
           </div>
         ) : type === 'orbit' ? (

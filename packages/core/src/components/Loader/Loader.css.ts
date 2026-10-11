@@ -1,6 +1,13 @@
 import { style, styleVariants, keyframes } from '@vanilla-extract/css';
 import { themeContract } from '../../tokens/theme.css';
 import { loopRhythmEasing } from '../../tokens/loopRhythm.css';
+import {
+  WAVE_HEIGHT_PX,
+  WAVE_WIDTH_PX,
+  inchwormFrames,
+  inchwormInset,
+  inchwormStops,
+} from './loaderMotion';
 
 // 애니메이션 정의
 const progress = keyframes({
@@ -39,19 +46,39 @@ const orbitLit = keyframes({
 // 버블 점(dots)의 움직임은 둘로 나뉜다. 한 animation은 구간마다 커브를 못
 // 바꾸고, 키프레임 안에 커브를 넣는 것은 transform·opacity 밖이라 가드가
 // 막는다. 그래서 바깥 상자는 솟음(넘치는 커브 snap, transform만)을, 안쪽
-// 몸통은 예비동작(drift)을 맡는다. 한 바퀴의 앞 1/3(약 500ms)만 움직이고
-// 나머지는 쉰다. 투명도는 늘 1이다.
-// 솟음: 12%(예비동작이 끝나는 자리)에서 점 지름만큼 올라가 22%에 꼭대기,
-// 33%에 내려앉는다. snap이 구간마다 살짝 넘치므로 내려앉을 때 바닥을 조금 지난다.
+// 몸통은 예비동작(drift)을 맡는다. 한 바퀴의 앞 38%만 움직이고 나머지는 쉰다.
+// 투명도는 늘 1이다. 예비동작은 솟기 전에 바닥에서 일어난다(교훈 14).
+// 솟음: 10%까지 바닥에 머물다(그동안 몸이 눌린다) 점 지름만큼 올라가 20%에
+// 꼭대기, 32%에 내려앉는다. snap이 구간마다 살짝 넘치므로 내려앉을 때 바닥을
+// 조금 지난다.
 const bubbleRise = keyframes({
-  '0%, 12%, 33%, 100%': { transform: 'translateY(0)' },
-  '22%': { transform: 'translateY(calc(var(--bubble-rise) * -1))' },
+  '0%, 10%, 32%, 100%': { transform: 'translateY(0)' },
+  '20%': { transform: 'translateY(calc(var(--bubble-rise) * -1))' },
 });
 
-// 예비동작: 가로로 퍼지고 세로로 눌렸다가(12%) 22%까지 펴진다.
+// 몸: 0 → 10% 바닥에서 가로로 퍼지고 세로로 눌린다. 10 → 20% 늘어나며 떠나
+// 꼭대기에서 둥글어진다. 32%에 닿을 때 작게 눌렸다가 38%에 펴져 쉰다.
 const bubbleSquash = keyframes({
-  '0%, 22%, 100%': { transform: 'scale(1)' },
-  '12%': { transform: 'scaleX(1.15) scaleY(0.8)' },
+  '0%, 20%, 38%, 100%': { transform: 'scale(1)' },
+  '10%': { transform: 'scaleX(1.15) scaleY(0.8)' },
+  '14%': { transform: 'scaleX(0.92) scaleY(1.1)' },
+  '32%': { transform: 'scaleX(1.08) scaleY(0.92)' },
+});
+
+// 물결 막대(wave): 보이지 않는 머리가 좌 → 우로 지나가며 막대가 솟았다
+// 가라앉는다. 막대마다 늦춤이 달라 한 막대의 키프레임은 같다. 8%에 꼭대기
+// (머리 앞은 좁다), 40%에 쉬는 높이(뒤는 넓다). scaleY만 움직인다.
+const waveSwell = keyframes({
+  '0%, 40%, 100%': { transform: 'scaleY(0.3)' },
+  '8%': { transform: 'scaleY(1)' },
+});
+
+// 자벌레(inchworm): 걸음 5번의 정지점을 loaderMotion의 순수 함수가 반복문으로
+// 만든다. 채움 층을 clip-path로 오려 몸 모양을 그린다(둥근 끝이 납작해지지
+// 않는다). clip-path는 transform·opacity 밖이지만 레이아웃을 건드리지 않는
+// 페인트 속성이다.
+const inchworm = keyframes({
+  ...inchwormFrames(themeContract.animation.easing.settle),
 });
 
 // 축소 선호일 때 dots가 돌아가는 투명도 깜빡임. transform은 없다.
@@ -131,6 +158,28 @@ export const barSizeStyles = styleVariants({
   xl: { width: '400px' },
 });
 
+// 자벌레의 채움 층. 트랙 전체 폭을 채우고 clip-path로 몸 모양만 남긴다.
+// 한 바퀴는 loop.base의 두 배(걸음 하나가 600ms)다. 구간 커브는 키프레임
+// 정지점마다 걸려 있어 여기에는 커브를 쓰지 않는다. 축소 선호에서는 기어가지
+// 않고 가운데에 머물며 투명도 맥박으로 돌아간다.
+export const inchwormFill = style({
+  position: 'absolute',
+  top: 0,
+  left: 0,
+  width: '100%',
+  height: '100%',
+  backgroundColor: 'var(--loader-color)',
+  clipPath: inchwormInset(inchwormStops()[0]),
+  animation: `${inchworm} calc(${themeContract.animation.loop.base} * 2) infinite backwards`,
+
+  '@media': {
+    '(prefers-reduced-motion: reduce)': {
+      clipPath: 'inset(0 37.5% 0 37.5% round 2px)',
+      animation: `${fadeInOut} ${themeContract.animation.loop.base} infinite ${loopRhythmEasing} backwards`,
+    },
+  },
+});
+
 export const colorStyles = styleVariants({
   primary: {
     vars: { '--loader-color': themeContract.color.primary.main },
@@ -200,6 +249,41 @@ export const orbitDotSizeStyles = styleVariants({
   md: { vars: { '--orbit-d': '4px', '--orbit-r': '10px' } },
   lg: { vars: { '--orbit-d': '5px', '--orbit-r': '13.5px' } },
   xl: { vars: { '--orbit-d': '8px', '--orbit-r': '20px' } },
+});
+
+// 물결 막대. 막대 칸은 폭 8px(막대 2px + 좌우 여백 3px)라 중심 간격이 8px로
+// 고정이고 개수는 폭 / 8이다(교훈 18, Slider wake와 같다).
+export const wave = style({
+  display: 'flex',
+  alignItems: 'center',
+});
+
+export const waveSizeStyles = styleVariants(WAVE_WIDTH_PX, (width, size) => ({
+  width: `${width}px`,
+  height: `${WAVE_HEIGHT_PX[size]}px`,
+}));
+
+// 요소 높이는 최대 높이이고 쉬는 높이는 scaleY(0.3)로 만든다(Slider wakeBar와 같다).
+export const waveBar = style({
+  flexShrink: 0,
+  width: '2px',
+  height: '100%',
+  margin: '0 3px',
+  borderRadius: '1px',
+  backgroundColor: 'var(--spinner-color)',
+  transform: 'scaleY(0.3)',
+  transformOrigin: 'center',
+  animation: `${waveSwell} ${themeContract.animation.loop.base} ${loopRhythmEasing} infinite backwards`,
+  // 막대마다 한 바퀴의 i / N만큼 늦게 시작해 머리가 좌 → 우로 지나가는 것처럼 보인다.
+  animationDelay: `calc(${themeContract.animation.loop.base} * var(--wave-i) / var(--wave-n))`,
+
+  '@media': {
+    // 막대는 쉬는 높이로 두고, 늦춤 없이(shorthand가 지연을 되돌린다) 함께
+    // 투명도로 맥박한다.
+    '(prefers-reduced-motion: reduce)': {
+      animation: `${fadeInOut} ${themeContract.animation.loop.base} infinite ${loopRhythmEasing} backwards`,
+    },
+  },
 });
 
 export const dotsContainer = style({

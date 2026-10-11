@@ -10,9 +10,10 @@ export function LoaderPage() {
   const propsData: PropDefinition[] = [
     {
       name: 'type',
-      type: "'orbit' | 'spinner' | 'dots' | 'bar'",
+      type: "'orbit' | 'spinner' | 'dots' | 'bar' | 'wave' | 'inchworm'",
       default: "'orbit'",
-      description: '로더 타입 (점 궤도, 스피너, 점이 솟는 버블, 프로그레스 바)',
+      description:
+        '로더 타입 (점 궤도, 스피너, 점이 솟는 버블, 프로그레스 바, 물결 막대, 자벌레)',
     },
     {
       name: 'size',
@@ -179,7 +180,7 @@ export function LoaderPage() {
         <div className={styles.sectionHeader}>
           <h2 className={styles.sectionTitle}>Types</h2>
           <p className={styles.sectionDescription}>
-            네 가지 로더 타입을 제공합니다. type을 주지 않으면 점
+            여섯 가지 로더 타입을 제공합니다. type을 주지 않으면 점
             궤도(orbit)입니다.
           </p>
         </div>
@@ -240,6 +241,36 @@ export function LoaderPage() {
   <Loader type="bar" size="md" />
   <Loader type="bar" size="lg" />
   <Loader type="bar" size="xl" />
+</div>`}
+          />
+        </div>
+
+        <div className={styles.example}>
+          <h3 className={styles.exampleTitle}>Wave</h3>
+          <LivePreview
+            title="물결 막대"
+            description="가는 막대 한 줄 위를 보이지 않는 머리가 왼쪽에서 오른쪽으로 지나가고, 머리가 닿는 막대가 솟았다 가라앉습니다. 앞은 빨리 솟고 뒤는 천천히 가라앉습니다. 막대 간격은 8px로 고정이고 개수는 폭에 따라 정해집니다."
+            editable
+            code={`<div style={{ display: 'flex', gap: '2rem', alignItems: 'center' }}>
+  <Loader type="wave" size="sm" />
+  <Loader type="wave" size="md" />
+  <Loader type="wave" size="lg" />
+  <Loader type="wave" size="xl" />
+</div>`}
+          />
+        </div>
+
+        <div className={styles.example}>
+          <h3 className={styles.exampleTitle}>Inchworm</h3>
+          <LivePreview
+            title="자벌레"
+            description="bar와 같은 트랙 안에서 알약이 앞끝을 먼저 뻗고 뒤끝을 끌어와 3px 지나쳤다 앉는 걸음을 되풀이하며 왼쪽에서 오른쪽으로 기어갑니다. 한 걸음씩 나아간다는 뜻입니다."
+            editable
+            code={`<div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+  <Loader type="inchworm" size="sm" />
+  <Loader type="inchworm" size="md" />
+  <Loader type="inchworm" size="lg" />
+  <Loader type="inchworm" size="xl" />
 </div>`}
           />
         </div>
