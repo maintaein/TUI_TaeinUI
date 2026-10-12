@@ -1141,6 +1141,55 @@ describe('Snackbar', () => {
       expect(closingTween?.parent).toBeNull();
     });
 
+    /** 시트의 등장·퇴장 타임라인이 가진 트윈 중 해당 속성을 만지는 것이 있는가 */
+    const touches = (
+      container: HTMLElement,
+      id: string,
+      prop: 'yPercent' | 'opacity'
+    ): boolean =>
+      (sheetOf(container, id).__enterTimeline as gsap.core.Timeline)
+        .getChildren(false, true, false)
+        .some((child) => prop in child.vars);
+
+    it('넷째가 열려 안쪽에서 밀려나는 첫째는 이동 없이 흐려지기만 한다', () => {
+      const a = { ...A, onClose: vi.fn() };
+      const { container, rerender } = render(<Stack items={[a]} />);
+      rerender(<Stack items={[a, B]} />);
+      rerender(<Stack items={[a, B, C]} />);
+      rerender(<Stack items={[a, B, C, D]} />);
+      rerender(<Stack items={[{ ...a, open: false }, B, C, D]} />);
+
+      expect(touches(container, 'A', 'yPercent')).toBe(false);
+      expect(touches(container, 'A', 'opacity')).toBe(true);
+    });
+
+    it('가운데 것을 닫아도 이동 없이 흐려지기만 한다', () => {
+      const { container, rerender } = render(<Stack items={[A]} />);
+      rerender(<Stack items={[A, B]} />);
+      rerender(<Stack items={[A, B, C]} />);
+      rerender(<Stack items={[A, { ...B, open: false }, C]} />);
+
+      expect(touches(container, 'B', 'yPercent')).toBe(false);
+      expect(touches(container, 'B', 'opacity')).toBe(true);
+    });
+
+    it('가장자리(가장 새것)를 닫으면 지금처럼 가장자리 쪽으로 미끄러져 나간다', () => {
+      const { container, rerender } = render(<Stack items={[A]} />);
+      rerender(<Stack items={[A, B]} />);
+      rerender(<Stack items={[A, B, C]} />);
+      rerender(<Stack items={[A, B, { ...C, open: false }]} />);
+
+      expect(touches(container, 'C', 'yPercent')).toBe(true);
+      expect(touches(container, 'C', 'opacity')).toBe(true);
+    });
+
+    it('혼자 열려 있던 것은 가장자리 것이라 미끄러져 나간다', () => {
+      const { container, rerender } = render(<Stack items={[A]} />);
+      rerender(<Stack items={[{ ...A, open: false }]} />);
+
+      expect(touches(container, 'A', 'yPercent')).toBe(true);
+    });
+
     it('다른 위치의 스낵바는 서로 밀지도 넘치게 하지도 않는다', () => {
       const onCloseX = vi.fn();
       const x = {

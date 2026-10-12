@@ -58,6 +58,8 @@ interface CountdownTweenHost extends HTMLDivElement {
  */
 interface StackTweenHost extends HTMLElement {
   __stackTween?: gsap.core.Tween;
+  /** 등장·퇴장 타임라인. 퇴장에 미끄러짐이 남았는지 보는 시험이 읽는다 */
+  __enterTimeline?: gsap.core.Timeline;
 }
 
 /**
@@ -66,7 +68,8 @@ interface StackTweenHost extends HTMLElement {
  * 같은 `position`에 동시에 열린 스낵바는 겹치지 않고 줄을 선다. 새것이 화면
  * 가장자리에 서고 먼저 있던 것은 안쪽으로 밀린다. 한 위치에 최대 3개이고, 넷째가
  * 열리면 가장 오래된 것의 `onClose`가 불린다. `onClose`가 없는 스낵바는 닫을
- * 수단이 없으니 내보내지 못하고 그대로 남는다.
+ * 수단이 없으니 내보내지 못하고 그대로 남는다. 줄 안쪽에서 닫히는 것은 제자리에서
+ * 흐려지기만 하고, 가장자리 것만 가장자리 쪽으로 미끄러져 나간다.
  */
 export interface SnackbarProps extends Omit<
   HTMLAttributes<HTMLDivElement>,
@@ -168,6 +171,9 @@ export const Snackbar = ({
 
   const isTop = position.startsWith('top');
 
+  const slideTweenRef = useRef<gsap.core.Animation | null>(null);
+  const interiorOnCloseRef = useRef(false);
+
   const { shouldRender } = useOverlayTransition({
     open,
     buildTimeline: (timeline) => {
@@ -181,22 +187,22 @@ export const Snackbar = ({
       // from·to에 같은 값(-50)으로 넣어 두면 가로 위치는 고정된 채 yPercent·
       // opacity만 실제로 움직인다. CSS 쪽 `translateX(-50%)`는 지웠다(있으면
       // GSAP이 쓰는 transform과 서로 덮어써 하나가 사라진다).
+      //
+      // 미끄러짐(yPercent)과 흐려짐(opacity)은 같은 타임라인의 두 트윈이다. 줄 안쪽에서
+      // 닫히는 스낵바는 미끄러짐만 죽이고 흐려짐만 역재생한다(아래 effect).
+      const common = { duration: gsapDuration.slow, ease: gsapEasing.settle };
       timeline.fromTo(
         sheet,
-        {
-          yPercent,
-          opacity: 0,
-          ...(isCenter ? { xPercent: -50 } : {}),
-        },
-        {
-          yPercent: 0,
-          opacity: 1,
-          ...(isCenter ? { xPercent: -50 } : {}),
-          duration: gsapDuration.slow,
-          ease: gsapEasing.settle,
-        },
+        { opacity: 0, ...(isCenter ? { xPercent: -50 } : {}) },
+        { opacity: 1, ...(isCenter ? { xPercent: -50 } : {}), ...common },
         0
       );
+      timeline.fromTo(sheet, { yPercent }, { yPercent: 0, ...common }, 0);
+      slideTweenRef.current =
+        timeline
+          .getChildren(false, true, false)
+          .find((child) => 'yPercent' in child.vars) ?? null;
+      (sheet as StackTweenHost).__enterTimeline = timeline;
     },
   });
 
@@ -225,9 +231,18 @@ export const Snackbar = ({
 
     return () => {
       observer?.disconnect();
+      // 닫히기 시작하는 이 순간의 줄 순서를 적어 둔다(안쪽이면 오프셋이 0보다 크다).
+      interiorOnCloseRef.current = stackOffsetOf(stackId) > 0;
       unregisterSnackbar(stackId);
     };
   }, [open, position, stackId]);
+
+  // 줄 안쪽에서 닫히면 미끄러짐을 죽여 제자리에서 흐려지기만 한다. 가장자리 것을 빼고는
+  // 가는 길에 다른 스낵바가 있어 뚫고 지나가기 때문이다. 같은 커밋에서 위 cleanup이 먼저
+  // 돌고, 훅의 역재생 effect는 이 layout effect보다 나중이라 죽은 트윈은 역재생에 안 낀다.
+  useLayoutEffect(() => {
+    if (!open && interiorOnCloseRef.current) slideTweenRef.current?.kill();
+  }, [open]);
 
   const stackOffset = useSyncExternalStore(
     subscribeStack,
