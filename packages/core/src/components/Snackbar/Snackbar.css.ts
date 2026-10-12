@@ -29,8 +29,10 @@ export const snackbar = style({
 
 // Severity 스타일
 //
-// success·warning은 면이 `dark`이고 글자가 흰색(`text.inverse`)이다. 글자만 흰색으로
-// 바꾸면 `main` 위에서 2.78·2.16:1이라 AA를 못 넘는다. `dark` 위에서는 5.13·5.49:1이다.
+// success는 면이 `dark`이고 글자가 흰색(`text.inverse`)이다. 글자만 흰색으로 바꾸면
+// `main` 위에서 2.78:1이라 AA를 못 넘는다. `dark` 위에서는 5.13:1이다.
+// warning은 사용자 결정으로 겨자색 노랑(`palette.warning[750]` #BF8A00)이다. 흰 글자
+// 대비가 3.07:1이라 글자 AA(4.5:1)에는 못 미치고 3:1은 넘는다. 알고 받아들인 예외다.
 // 아이콘과 카운트다운 막대는 `currentColor`라 글자색을 따라 흰색이 된다(막대 대 면 3:1
 // 이상). error·info는 `main` 위 `contrast`(흰색)가 이미 4.98·4.6:1이라 그대로다.
 export const severityStyles = styleVariants({
@@ -43,7 +45,7 @@ export const severityStyles = styleVariants({
     color: themeContract.color.error.contrast,
   },
   warning: {
-    backgroundColor: themeContract.color.warning.dark,
+    backgroundColor: themeContract.palette.warning[750],
     color: themeContract.color.text.inverse,
   },
   // 값은 primary와 같지만 어휘를 계약에 맞춘다. primary를 빌려 쓰면 브랜드 색을
@@ -138,22 +140,24 @@ export const closeButton = style({
   },
 
   // 호버·눌림 면. IconButton `weak dark`의 면(gray[300]·gray[400])은 밝은 회색이라
-  // 색 면 위 흰 X가 1.3:1로 사라진다. 글자색을 옅게 섞은 반투명이면 어느 severity
-  // 면 위에서도 어울리고 X가 3:1 이상으로 남는다(llms.test.ts). `&&`는 클래스를
+  // 색 면 위 흰 X가 1.3:1로 사라진다. 글자색(흰색)을 섞으면 노란 면이 더 밝아져 X가
+  // 약 2.5:1로 떨어진다. 그래서 어두운 `text.primary`를 옅게 섞은 반투명으로 둔다.
+  // 면이 어두워지니 X의 대비는 어느 severity에서도 면 자체 대비 이상이고 3:1을 넘는다
+  // (llms.test.ts). `&&`는 클래스를
   // 한 번 더 걸어 IconButton의 같은 상태 규칙보다 특이도를 높인다. 게이트와 :not은
   // IconButton과 같다(터치 호버가 들러붙지 않고, 눌림 중에는 눌림 면이 이긴다).
   '@media': {
     '(hover: hover) and (pointer: fine)': {
       selectors: {
         '&&:hover:not(:disabled):not([data-pressed])': {
-          background: 'color-mix(in srgb, currentColor 16%, transparent)',
+          background: `color-mix(in srgb, ${themeContract.color.text.primary} 12%, transparent)`,
         },
       },
     },
   },
   selectors: {
     '&&[data-pressed]:not(:disabled)': {
-      background: 'color-mix(in srgb, currentColor 24%, transparent)',
+      background: `color-mix(in srgb, ${themeContract.color.text.primary} 18%, transparent)`,
     },
   },
 });

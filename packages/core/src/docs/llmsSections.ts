@@ -267,7 +267,7 @@ export function renderTokenReference(): string {
     '있어야 한다.',
     '',
     '### Color — Raw Palette',
-    '`themeContract.palette.{primary,gray,error}[50..900]` — hover/active처럼 4슬롯으로',
+    '`themeContract.palette.{primary,gray,error,warning}[50..900]`: hover/active처럼 4슬롯으로',
     '표현되지 않는 미세 단계가 필요할 때만 쓴다. 역할이 있는 자리에는 위의 역할',
     '토큰을 쓴다.',
     '',

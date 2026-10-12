@@ -86,10 +86,11 @@ export const themeTokens = {
     // - light   연한 배경용. 위에 text.primary를 얹는다
     // - dark    흰 배경 위 본문 텍스트용 (대비 4.5:1 기준). 글자를 얹지 않는
     //           도형(아이콘 단독·차트 마커·상태 점)도 이 슬롯을 쓴다.
-    //           예외 하나: Snackbar의 success·warning은 `dark`를 면으로 쓰고 그 위에
-    //           `text.inverse`(흰색)를 얹는다. 대비는 success 5.13:1, warning
-    //           5.49:1이다. `main` 위 흰 글자는 2.78·2.16:1이라 못 쓴다. 이 쌍은
-    //           llms.test.ts가 Snackbar.css.ts 소스에서 읽어 잰다
+    //           예외 하나: Snackbar의 success는 `dark`를 면으로 쓰고 그 위에
+    //           `text.inverse`(흰색)를 얹는다. 대비는 5.13:1이다. `main` 위 흰 글자는
+    //           2.78:1이라 못 쓴다. warning은 사용자 결정으로 `palette.warning[750]`
+    //           (겨자색 #BF8A00, 흰 글자 3.07:1)을 면으로 쓴다. 이 쌍은 llms.test.ts가
+    //           Snackbar.css.ts 소스에서 읽어 잰다
     // - contrast main 위에 얹는 글자색
     success: {
       main: success[500],
@@ -123,10 +124,13 @@ export const themeTokens = {
   // 상태별 세밀한 shade(hover/active 등)가 필요한 컴포넌트를 위한 원본 스케일
   // 노출. raw colors.css를 직접 import하는 대신 이 경로를 거치면 CSS 변수로
   // 감싸여 향후 다중 테마 도입 시에도 자동으로 반응한다.
+  // warning은 Snackbar의 겨자색 면(`warning[750]`) 때문에 먼저 노출한다. 계획서 가22의
+  // 팔레트 확장(success·warning, 8차) 중 warning 절반을 당긴 것이고 success는 그때 한다.
   palette: {
     primary,
     gray,
     error,
+    warning,
   },
   spacing,
   borderRadius,

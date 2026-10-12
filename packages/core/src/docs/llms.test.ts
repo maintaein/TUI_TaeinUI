@@ -471,8 +471,13 @@ describe('컴포넌트가 실제로 합성하는 색 쌍', () => {
 
   it('Snackbar 네 severity의 면 대 글자가 AA, 카운트다운 막대 대 면이 3:1을 지킨다', () => {
     // 글자만 흰색으로 바꾸면 success.main 2.78:1, warning.main 2.16:1이다. 그래서
-    // 면이 `dark`로 내려가고(5.13, 5.49) `text.inverse`가 얹힌다. 막대는
+    // success는 면이 `dark`로 내려가고(5.13) `text.inverse`가 얹힌다. 막대는
     // `currentColor`라 글자색을 따르므로 막대 대 면도 같은 쌍이다.
+    // warning만 예외다. 사용자가 겨자색 노랑 #BF8A00(`palette.warning[750]`)을 골랐고
+    // 흰 글자 대비는 3.07:1이다. 글자 AA(4.5:1, 1.4.3)에는 못 미치고 3:1은 넘는다.
+    // 알고 받아들인 결정이라 이 이름을 목록에 못박는다. 다른 severity가 슬쩍 낮아지면
+    // 4.5:1 검사가 잡는다.
+    const BELOW_AA_TEXT_BY_USER_DECISION = ['warning'];
     const css = read(resolve(ROOT, 'src/components/Snackbar/Snackbar.css.ts'));
     const pairs = Object.fromEntries(
       [
@@ -492,7 +497,7 @@ describe('컴포넌트가 실제로 합성하는 색 쌍', () => {
       fg: 'color.text.inverse',
     });
     expect(pairs.warning).toEqual({
-      bg: 'color.warning.dark',
+      bg: 'palette.warning[750]',
       fg: 'color.text.inverse',
     });
     expect(declBlock(css, 'bar')).toContain("backgroundColor: 'currentColor'");
@@ -501,7 +506,9 @@ describe('컴포넌트가 실제로 합성하는 색 쌍', () => {
       expect(
         contrastRatio(tokenValue(fg), tokenValue(bg)),
         `${severity} 글자(${fg}) on 면(${bg})`
-      ).toBeGreaterThanOrEqual(AA_TEXT);
+      ).toBeGreaterThanOrEqual(
+        BELOW_AA_TEXT_BY_USER_DECISION.includes(severity) ? AA_UI : AA_TEXT
+      );
       expect(
         contrastRatio(tokenValue(fg), tokenValue(bg)),
         `${severity} 막대(${fg}) on 면(${bg})`
@@ -509,18 +516,22 @@ describe('컴포넌트가 실제로 합성하는 색 쌍', () => {
     }
   });
 
-  it('Snackbar 닫기 버튼의 호버·눌림 면 위에서 흰 글리프가 네 severity 모두 3:1을 지킨다', () => {
-    // 면은 글자색(currentColor)을 옅게 섞은 반투명이라 severity 면과 섞인 색 위에
+  it('Snackbar 닫기 버튼의 호버·눌림 면 위에서 흰 글리프가 면 자체 대비 이상이고 네 severity 모두 3:1을 지킨다', () => {
+    // 면은 text.primary(어두운 회색)를 옅게 섞은 반투명이라 severity 면과 섞인 색 위에
     // 글리프(currentColor)가 얹힌다. 합성은 CSS `color-mix(in srgb, …)`와 같은 선형
-    // 평균이다. IconButton `weak dark`의 gray[300]을 그대로 두면 1.3:1이다.
+    // 평균이다. 어둡게 섞으니 흰 글리프 대비는 면 자체 대비보다 오른다. 흰색을 섞던
+    // 이전 방식은 노란 면을 더 밝혀 2.5:1로 떨어졌다.
     const css = read(resolve(ROOT, 'src/components/Snackbar/Snackbar.css.ts'));
     const closeBlock = declBlock(css, 'closeButton');
     const mixes = [
       ...closeBlock.matchAll(
-        /background: 'color-mix\(in srgb, currentColor (\d+)%, transparent\)'/g
+        /background: `color-mix\(in srgb, \$\{themeContract\.([\w.[\]]+)\} (\d+)%, transparent\)`/g
       ),
-    ].map((m) => Number(m[1]) / 100);
-    expect(mixes, '호버·눌림 두 규칙이 있어야 한다').toEqual([0.16, 0.24]);
+    ].map((m) => ({ ref: m[1], weight: Number(m[2]) / 100 }));
+    expect(mixes, '호버·눌림 두 규칙이 있어야 한다').toEqual([
+      { ref: 'color.text.primary', weight: 0.12 },
+      { ref: 'color.text.primary', weight: 0.18 },
+    ]);
 
     const channels = (hex: string): number[] =>
       [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
@@ -542,12 +553,15 @@ describe('컴포넌트가 실제로 합성하는 색 쌍', () => {
     expect(Object.keys(pairs)).toHaveLength(4);
 
     for (const [severity, { bg, fg }] of Object.entries(pairs)) {
-      for (const weight of mixes) {
-        const surface = mixOver(tokenValue(fg), tokenValue(bg), weight);
-        expect(
-          contrastRatio(tokenValue(fg), surface),
-          `${severity} 글리프(${fg}) on ${weight * 100}% 섞은 면(${surface})`
-        ).toBeGreaterThanOrEqual(AA_UI);
+      const own = contrastRatio(tokenValue(fg), tokenValue(bg));
+      for (const { ref, weight } of mixes) {
+        const surface = mixOver(tokenValue(ref), tokenValue(bg), weight);
+        const ratio = contrastRatio(tokenValue(fg), surface);
+        const label = `${severity} 글리프(${fg}) on ${weight * 100}% 섞은 면(${surface})`;
+        expect(ratio, `${label}: 면 자체 대비 이상`).toBeGreaterThanOrEqual(
+          own
+        );
+        expect(ratio, label).toBeGreaterThanOrEqual(AA_UI);
       }
     }
   });

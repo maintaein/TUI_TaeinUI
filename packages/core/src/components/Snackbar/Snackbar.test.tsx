@@ -755,21 +755,21 @@ describe('Snackbar', () => {
             hasBackground(flat)
         );
 
-      it('호버 면은 글자색 16%, 눌림 면은 24%를 섞은 반투명이다', () => {
+      it('호버 면은 text.primary 12%, 눌림 면은 18%를 섞은 어두운 반투명이다', () => {
         render(<Snackbar open message="메시지" />);
 
         const hover = stateRules('Snackbar_closeButton', ':hover');
         expect(hover).toHaveLength(1);
-        expect(backgroundOf(hover[0])).toBe(
-          'color-mix(in srgb, currentColor 16%, transparent)'
+        expect(backgroundOf(hover[0])).toMatch(
+          /^color-mix\(in srgb, var\(--[\w-]+\) 12%, transparent\)$/
         );
         // IconButton과 같은 게이트 안에서만 건다(터치에서 호버 면이 들러붙지 않게)
         expect(hover[0].media).toBe('(hover: hover) and (pointer: fine)');
 
         const pressed = stateRules('Snackbar_closeButton', '[data-pressed]');
         expect(pressed).toHaveLength(1);
-        expect(backgroundOf(pressed[0])).toBe(
-          'color-mix(in srgb, currentColor 24%, transparent)'
+        expect(backgroundOf(pressed[0])).toMatch(
+          /^color-mix\(in srgb, var\(--[\w-]+\) 18%, transparent\)$/
         );
       });
 
