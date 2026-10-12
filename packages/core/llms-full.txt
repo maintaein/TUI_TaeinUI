@@ -584,7 +584,7 @@ import { Snackbar, Button } from '@taein-ui/core';
   open={open}
   message="저장되었습니다"
   severity="success"
-  position="bottom-center"
+  position="bottom-right"
   autoHideDuration={3000}
   onClose={() => setOpen(false)}
   action={<Button size="sm" variant="light">취소</Button>}
@@ -597,7 +597,7 @@ import { Snackbar, Button } from '@taein-ui/core';
 | open | boolean | (required) | Visibility state |
 | message | ReactNode | (required) | Message content |
 | severity | 'success' \| 'error' \| 'warning' \| 'info' | 'info' | Message type |
-| position | 'top-left' \| 'top-center' \| 'top-right' \| 'bottom-left' \| 'bottom-center' \| 'bottom-right' | 'bottom-center' | Position |
+| position | 'top-left' \| 'top-center' \| 'top-right' \| 'bottom-left' \| 'bottom-center' \| 'bottom-right' | 'bottom-right' | Position |
 | autoHideDuration | number \| null | 6000 | Auto-close duration (ms) |
 | onClose | () => void | — | Close callback. Also called when the oldest of 4 stacked Snackbars at one position is evicted |
 | action | ReactNode | — | Action content |

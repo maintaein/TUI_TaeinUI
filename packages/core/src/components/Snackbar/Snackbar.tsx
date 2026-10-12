@@ -81,7 +81,7 @@ export interface SnackbarProps extends Omit<
   message: ReactNode;
   /** 알림 유형 (색상 및 아이콘 결정) @default 'info' */
   severity?: 'success' | 'error' | 'warning' | 'info';
-  /** 화면 내 표시 위치 @default 'bottom-center' */
+  /** 화면 내 표시 위치 @default 'bottom-right' */
   position?:
     | 'top-left'
     | 'top-center'
@@ -131,7 +131,7 @@ export const Snackbar = ({
   open,
   message,
   severity = 'info',
-  position = 'bottom-center',
+  position = 'bottom-right',
   autoHideDuration = 6000,
   onClose,
   action,

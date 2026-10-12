@@ -183,11 +183,11 @@ describe('Snackbar', () => {
       expect(snackbar.className).toContain('bottom-right');
     });
 
-    it('기본 위치는 bottom-center이다', () => {
+    it('기본 위치는 bottom-right이다', () => {
       const { container } = render(<Snackbar open message="메시지" />);
       const snackbar = container.querySelector('[class*="content"]')
         ?.parentElement as HTMLElement;
-      expect(snackbar.className).toContain('bottom-center');
+      expect(snackbar.className).toContain('bottom-right');
     });
   });
 
@@ -1175,8 +1175,12 @@ describe('Snackbar', () => {
     });
 
     it('center의 가로 xPercent -50은 밀림과 함께 유지된다', () => {
-      const { container, rerender } = render(<Stack items={[A]} />);
-      rerender(<Stack items={[A, B]} />);
+      const center = (item: Item): Item => ({
+        ...item,
+        position: 'bottom-center',
+      });
+      const { container, rerender } = render(<Stack items={[center(A)]} />);
+      rerender(<Stack items={[center(A), center(B)]} />);
 
       expect(sheetOf(container, 'A').style.transform).toContain(
         'translate(-50%'

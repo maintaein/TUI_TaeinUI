@@ -129,7 +129,7 @@ const PositionsComponent = () => {
     | 'bottom-left'
     | 'bottom-center'
     | 'bottom-right'
-  >('bottom-center');
+  >('bottom-right');
   const [open, setOpen] = useState(false);
 
   const positions = [
@@ -327,7 +327,6 @@ const MultipleSnackbarsComponent = () => {
           open
           message={snackbar.message}
           severity={snackbar.severity}
-          position="bottom-right"
           autoHideDuration={3000}
           onClose={() => removeSnackbar(snackbar.id)}
         />
@@ -445,7 +444,7 @@ export const Playground: Story = {
     open: true,
     message: '알림 메시지를 입력하세요.',
     severity: 'info',
-    position: 'bottom-center',
+    position: 'bottom-right',
     autoHideDuration: 6000,
   },
 };

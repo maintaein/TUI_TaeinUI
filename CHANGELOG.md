@@ -81,6 +81,7 @@
 - `Loader`의 `role="status"` 영역 안에 화면에 보이지 않는 메시지 글자(`aria-label` ?? `label` ?? 상태 기본값)가 생겼습니다. `status`가 바뀌면 이 글자가 바뀌어 보조 기술이 알립니다. `type="wave"`에도 `aria-busy="true"`가 붙습니다.
 - `Snackbar`의 success·warning 면이 진해지고(`color.success.dark` #2E7D32, `color.warning.dark` #A65200) 글자가 흰색(`color.text.inverse`)이 되었습니다. 아이콘과 카운트다운 막대도 글자색을 따라 흰색입니다. 이전에는 `main` 면(#4CAF50·#FF9800) 위에 어두운 글자였습니다. 글자만 흰색으로 바꾸면 대비가 2.78:1과 2.16:1이라 면을 `dark`로 내렸고, 흰 글자 대비는 success 5.13:1, warning 5.49:1입니다. error·info는 그대로입니다. 색을 직접 덮어쓰지 않았다면 할 일은 없습니다.
 - `Snackbar`가 같은 `position`에 동시에 열려 있으면 겹치지 않고 자동으로 줄을 섭니다. 새것이 화면 가장자리(bottom이면 맨 아래, top이면 맨 위)에 서고 먼저 있던 것은 안쪽으로 밀리며, 간격은 `spacing[2]`(8px)이고 밀리는 움직임은 `base` 길이의 `settle`입니다. 높이가 달라도(여러 줄 메시지, `action`) 실제 높이만큼 밀립니다. 닫히기 시작한 것은 줄에서 빠지고 나머지가 메워 들어옵니다. 한 위치에 최대 3개이고, 4개째가 열리면 가장 오래된 것의 `onClose`가 불립니다(`onClose`가 없는 스낵바는 닫을 수단이 없어 그대로 남습니다). 새 prop은 없습니다. `style={{ bottom: ... }}`로 직접 간격을 띄워 쌓던 코드는 이제 이중으로 밀리니 그 `style`을 지우세요.
+- `Snackbar`의 `position` 기본값이 `'bottom-center'`에서 `'bottom-right'`로 바뀌었습니다. 위치를 주지 않은 스낵바는 이제 화면 오른쪽 아래에 함께 쌓입니다. 예전 위치를 쓰려면 `position="bottom-center"`를 명시하세요.
 
 ### Fixed
 

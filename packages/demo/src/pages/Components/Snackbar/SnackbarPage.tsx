@@ -29,7 +29,7 @@ export function SnackbarPage() {
     {
       name: 'position',
       type: "'top-left' | 'top-center' | 'top-right' | 'bottom-left' | 'bottom-center' | 'bottom-right'",
-      default: "'bottom-center'",
+      default: "'bottom-right'",
       description: '화면 내 위치',
     },
     {
@@ -208,10 +208,10 @@ const messages = { info: '새 알림이 있습니다.', success: '완료되었�
           <h3 className={styles.exampleTitle}>Position Options</h3>
           <LivePreview
             title="위치 선택"
-            description="버튼을 클릭하여 각 위치에 스낵바를 표시합니다. 기본값은 bottom-center입니다."
+            description="버튼을 클릭하여 각 위치에 스낵바를 표시합니다. 기본값은 bottom-right입니다."
             editable
             code={`const [open, setOpen] = useState(false);
-const [position, setPosition] = useState('bottom-center');
+const [position, setPosition] = useState('bottom-right');
 const positions = ['top-left', 'top-center', 'top-right', 'bottom-left', 'bottom-center', 'bottom-right'];
 
 <div>
@@ -243,7 +243,7 @@ const positions = ['top-left', 'top-center', 'top-right', 'bottom-left', 'bottom
           <h3 className={styles.exampleTitle}>여러 개 쌓기</h3>
           <LivePreview
             title="여러 개 쌓기"
-            description="버튼을 누를 때마다 스낵바를 하나씩 더합니다. 4번째부터 가장 오래된 것이 onClose로 빠집니다. severity가 번갈아 나와 흰 글자도 함께 볼 수 있습니다."
+            description="버튼을 누를 때마다 스낵바를 하나씩 더합니다. 위치를 주지 않으면 오른쪽 아래에 쌓입니다. 4번째부터 가장 오래된 것이 onClose로 빠집니다. severity가 번갈아 나와 흰 글자도 함께 볼 수 있습니다."
             editable
             code={`const [items, setItems] = useState([]);
 const severities = ['success', 'warning', 'error', 'info'];
@@ -253,7 +253,7 @@ const close = (id) => setItems((prev) => prev.map((item) => (item.id === id ? { 
 <div>
   <Button size="sm" onClick={add}>스낵바 추가</Button>
   {items.map((item) => (
-    <Snackbar key={item.id} open={item.open} message={'#' + item.id + ' ' + item.severity + ' 알림'} severity={item.severity} position="bottom-right" autoHideDuration={null} onClose={() => close(item.id)} />
+    <Snackbar key={item.id} open={item.open} message={'#' + item.id + ' ' + item.severity + ' 알림'} severity={item.severity} autoHideDuration={null} onClose={() => close(item.id)} />
   ))}
 </div>`}
           />
