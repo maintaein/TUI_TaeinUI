@@ -835,6 +835,25 @@ describe('Snackbar', () => {
       expect(region).not.toBe(snackbar);
     });
 
+    it('숨은 라이브 리전은 top·left 0으로 문서 왼쪽 위에 놓여 페이지 스크롤을 늘리지 않는다 (CSSOM)', () => {
+      // 위치 조상도 top·left도 없으면 안쪽 스크롤 컨테이너 속 자기 자리에 놓여 문서 높이를 늘린다.
+      render(<Snackbar open message="메시지" />);
+      const hiddenClass = Array.from(screen.getByRole('status').classList).find(
+        (name) => /visuallyHidden/.test(name)
+      );
+      expect(hiddenClass).toBeDefined();
+      const rule = Array.from(document.styleSheets)
+        .flatMap((sheet) => Array.from(sheet.cssRules))
+        .find(
+          (r): r is CSSStyleRule =>
+            r instanceof CSSStyleRule && r.selectorText === `.${hiddenClass}`
+        );
+      expect(rule).toBeDefined();
+      expect(rule?.style.getPropertyValue('position')).toBe('absolute');
+      expect(rule?.style.getPropertyValue('top')).toBe('0');
+      expect(rule?.style.getPropertyValue('left')).toBe('0');
+    });
+
     it('닫기 버튼에 aria-label이 있다', () => {
       render(<Snackbar open message="메시지" />);
       const closeButton = screen.getByLabelText('닫기');

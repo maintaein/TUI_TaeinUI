@@ -1297,6 +1297,14 @@ describe('Loader', () => {
       expect(status.contains(container.querySelector('p'))).toBe(false);
     });
 
+    it('숨은 메시지 글자는 top·left 0으로 문서 왼쪽 위에 놓여 페이지 스크롤을 늘리지 않는다', () => {
+      // 위치 조상도 top·left도 없으면 안쪽 스크롤 컨테이너 속 자기 자리에 놓여 문서 높이를 늘린다.
+      // CSSOM 대신 소스 텍스트로 잠그는 이유는 '버블 점이 보인다' 시험 위 주석과 같다.
+      const hidden = block(LOADER_CSS, 'visuallyHidden');
+      expectCss(hidden).toContain('top: 0');
+      expectCss(hidden).toContain('left: 0');
+    });
+
     it('도화선 progressbar는 값 속성이 알리므로 메시지 글자를 두지 않는다', () => {
       render(<Loader type="fuse" value={40} />);
       expect(screen.getByRole('progressbar').textContent).toBe('');

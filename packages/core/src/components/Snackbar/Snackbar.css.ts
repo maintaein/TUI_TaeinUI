@@ -182,6 +182,8 @@ export const bar = style({
 // 모양이다 — display: none·visibility: hidden은 접근성 트리에서도 지워져 쓸 수 없다.
 export const visuallyHidden = style({
   position: 'absolute',
+  top: 0,
+  left: 0,
   width: '1px',
   height: '1px',
   padding: 0,
