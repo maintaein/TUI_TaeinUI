@@ -69,7 +69,9 @@ export function SnackbarPage() {
         <h1 className={styles.title}>Snackbar</h1>
         <p className={styles.description}>
           Snackbar 컴포넌트는 저장 완료, 에러 발생, 네트워크 상태 등 짧은 알림을
-          화면에 잠시 띄울 때 사용합니다.
+          화면에 잠시 띄울 때 사용합니다. 같은 위치에 열린 스낵바는 자동으로
+          쌓이고(최대 3개, 넘치면 가장 오래된 것이 닫힘), 위치를 주지 않으면
+          오른쪽 아래에 나타납니다.
         </p>
       </header>
 
@@ -104,7 +106,7 @@ export function SnackbarPage() {
               code={`severity: 'success' | 'error' | 'warning' | 'info'
 position: 6가지 위치 옵션
 autoHideDuration: 자동 닫힘 (기본 6초)
-쌓기: 같은 위치에 최대 3개`}
+쌓기: 같은 위치에 최대 3개 (기본, 끄려면 stack={false})`}
               language="text"
             />
           </Card.Body>
@@ -116,7 +118,8 @@ autoHideDuration: 자동 닫힘 (기본 6초)
         <div className={styles.sectionHeader}>
           <h2 className={styles.sectionTitle}>Severity</h2>
           <p className={styles.sectionDescription}>
-            메시지의 심각도에 따라 4가지 색상 변형을 제공합니다.
+            메시지의 심각도에 따라 4가지 색상 변형을 제공합니다. 버튼을 여러 번
+            누르면 스낵바가 오른쪽 아래에 하나씩 더해집니다.
           </p>
         </div>
 
@@ -124,13 +127,17 @@ autoHideDuration: 자동 닫힘 (기본 6초)
           <h3 className={styles.exampleTitle}>Info (Default)</h3>
           <LivePreview
             title="Info 스낵바"
-            description="일반적인 알림 메시지에 사용합니다. 기본값입니다."
+            description="일반적인 알림 메시지에 사용합니다. 기본값입니다. 버튼을 누를 때마다 새 스낵바가 쌓이고, 4번째부터 가장 오래된 것이 빠집니다."
             editable
-            code={`const [open, setOpen] = useState(false);
+            code={`const [items, setItems] = useState([]);
+const show = () => setItems((prev) => [...prev, { id: prev.length + 1, open: true }]);
+const close = (id) => setItems((prev) => prev.map((item) => (item.id === id ? { ...item, open: false } : item)));
 
 <div>
-  <Button size="sm" onClick={() => setOpen(true)}>Info 스낵바 열기</Button>
-  <Snackbar open={open} message="새로운 업데이트가 있습니다." severity="info" onClose={() => setOpen(false)} autoHideDuration={3000} />
+  <Button size="sm" onClick={show}>Info 스낵바 열기</Button>
+  {items.map((item) => (
+    <Snackbar key={item.id} open={item.open} message={'#' + item.id + ' 새로운 업데이트가 있습니다.'} severity="info" onClose={() => close(item.id)} autoHideDuration={3000} />
+  ))}
 </div>`}
           />
         </div>
@@ -141,11 +148,15 @@ autoHideDuration: 자동 닫힘 (기본 6초)
             title="Success 스낵바"
             description="작업이 성공적으로 완료되었을 때 사용합니다."
             editable
-            code={`const [open, setOpen] = useState(false);
+            code={`const [items, setItems] = useState([]);
+const show = () => setItems((prev) => [...prev, { id: prev.length + 1, open: true }]);
+const close = (id) => setItems((prev) => prev.map((item) => (item.id === id ? { ...item, open: false } : item)));
 
 <div>
-  <Button size="sm" onClick={() => setOpen(true)}>Success 스낵바 열기</Button>
-  <Snackbar open={open} message="저장이 완료되었습니다." severity="success" onClose={() => setOpen(false)} autoHideDuration={3000} />
+  <Button size="sm" onClick={show}>Success 스낵바 열기</Button>
+  {items.map((item) => (
+    <Snackbar key={item.id} open={item.open} message={'#' + item.id + ' 저장이 완료되었습니다.'} severity="success" onClose={() => close(item.id)} autoHideDuration={3000} />
+  ))}
 </div>`}
           />
         </div>
@@ -156,11 +167,15 @@ autoHideDuration: 자동 닫힘 (기본 6초)
             title="Error 스낵바"
             description="오류가 발생했을 때 사용합니다."
             editable
-            code={`const [open, setOpen] = useState(false);
+            code={`const [items, setItems] = useState([]);
+const show = () => setItems((prev) => [...prev, { id: prev.length + 1, open: true }]);
+const close = (id) => setItems((prev) => prev.map((item) => (item.id === id ? { ...item, open: false } : item)));
 
 <div>
-  <Button size="sm" onClick={() => setOpen(true)}>Error 스낵바 열기</Button>
-  <Snackbar open={open} message="저장에 실패했습니다. 다시 시도해주세요." severity="error" onClose={() => setOpen(false)} autoHideDuration={3000} />
+  <Button size="sm" onClick={show}>Error 스낵바 열기</Button>
+  {items.map((item) => (
+    <Snackbar key={item.id} open={item.open} message={'#' + item.id + ' 저장에 실패했습니다. 다시 시도해주세요.'} severity="error" onClose={() => close(item.id)} autoHideDuration={3000} />
+  ))}
 </div>`}
           />
         </div>
@@ -171,11 +186,15 @@ autoHideDuration: 자동 닫힘 (기본 6초)
             title="Warning 스낵바"
             description="주의가 필요한 상황에 사용합니다. success와 함께 진한 면 위에 흰 글자로 표시됩니다."
             editable
-            code={`const [open, setOpen] = useState(false);
+            code={`const [items, setItems] = useState([]);
+const show = () => setItems((prev) => [...prev, { id: prev.length + 1, open: true }]);
+const close = (id) => setItems((prev) => prev.map((item) => (item.id === id ? { ...item, open: false } : item)));
 
 <div>
-  <Button size="sm" onClick={() => setOpen(true)}>Warning 스낵바 열기</Button>
-  <Snackbar open={open} message="저장 공간이 부족합니다." severity="warning" onClose={() => setOpen(false)} autoHideDuration={3000} />
+  <Button size="sm" onClick={show}>Warning 스낵바 열기</Button>
+  {items.map((item) => (
+    <Snackbar key={item.id} open={item.open} message={'#' + item.id + ' 저장 공간이 부족합니다.'} severity="warning" onClose={() => close(item.id)} autoHideDuration={3000} />
+  ))}
 </div>`}
           />
         </div>
@@ -184,19 +203,22 @@ autoHideDuration: 자동 닫힘 (기본 6초)
           <h3 className={styles.exampleTitle}>All Severities</h3>
           <LivePreview
             title="전체 Severity 비교"
-            description="4가지 심각도를 버튼으로 전환하며 비교할 수 있습니다."
+            description="4가지 심각도를 버튼으로 눌러 비교할 수 있습니다. 서로 다른 심각도의 스낵바도 함께 쌓입니다."
             editable
-            code={`const [severity, setSeverity] = useState('info');
-const [open, setOpen] = useState(false);
+            code={`const [items, setItems] = useState([]);
 const messages = { info: '새 알림이 있습니다.', success: '완료되었습니다!', error: '오류가 발생했습니다.', warning: '주의가 필요합니다.' };
+const show = (severity) => setItems((prev) => [...prev, { id: prev.length + 1, severity, open: true }]);
+const close = (id) => setItems((prev) => prev.map((item) => (item.id === id ? { ...item, open: false } : item)));
 
 <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
   {['info', 'success', 'error', 'warning'].map((s) => (
-    <Button key={s} size="sm" variant={s === severity ? 'primary' : 'light'} onClick={() => { setSeverity(s); setOpen(true); }}>
+    <Button key={s} size="sm" variant="light" onClick={() => show(s)}>
       {s}
     </Button>
   ))}
-  <Snackbar open={open} message={messages[severity]} severity={severity} onClose={() => setOpen(false)} autoHideDuration={3000} />
+  {items.map((item) => (
+    <Snackbar key={item.id} open={item.open} message={'#' + item.id + ' ' + messages[item.severity]} severity={item.severity} onClose={() => close(item.id)} autoHideDuration={3000} />
+  ))}
 </div>`}
           />
         </div>
@@ -208,6 +230,7 @@ const messages = { info: '새 알림이 있습니다.', success: '완료되었�
           <h2 className={styles.sectionTitle}>Position</h2>
           <p className={styles.sectionDescription}>
             6가지 위치 옵션으로 스낵바를 화면 가장자리에 배치할 수 있습니다.
+            위치마다 따로 쌓입니다.
           </p>
         </div>
 
@@ -215,71 +238,23 @@ const messages = { info: '새 알림이 있습니다.', success: '완료되었�
           <h3 className={styles.exampleTitle}>Position Options</h3>
           <LivePreview
             title="위치 선택"
-            description="버튼을 클릭하여 각 위치에 스낵바를 표시합니다. 기본값은 bottom-right입니다."
+            description="버튼을 클릭하여 각 위치에 스낵바를 표시합니다. 위치를 주지 않으면 bottom-right입니다. 같은 위치를 여러 번 누르면 그 자리에 쌓입니다."
             editable
-            code={`const [open, setOpen] = useState(false);
-const [position, setPosition] = useState('bottom-right');
+            code={`const [items, setItems] = useState([]);
 const positions = ['top-left', 'top-center', 'top-right', 'bottom-left', 'bottom-center', 'bottom-right'];
+const show = (position) => setItems((prev) => [...prev, { id: prev.length + 1, position, open: true }]);
+const close = (id) => setItems((prev) => prev.map((item) => (item.id === id ? { ...item, open: false } : item)));
 
 <div>
   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.5rem', maxWidth: '360px' }}>
     {positions.map((pos) => (
-      <Button key={pos} size="sm" variant={pos === position ? 'primary' : 'light'} onClick={() => { setPosition(pos); setOpen(true); }}>
+      <Button key={pos} size="sm" variant="light" onClick={() => show(pos)}>
         {pos.replace('-', ' ')}
       </Button>
     ))}
   </div>
-  <Snackbar open={open} message={position + ' 위치의 스낵바'} position={position} onClose={() => setOpen(false)} autoHideDuration={2000} />
-</div>`}
-          />
-        </div>
-      </section>
-
-      {/* Stacking */}
-      <section className={styles.section}>
-        <div className={styles.sectionHeader}>
-          <h2 className={styles.sectionTitle}>Stacking</h2>
-          <p className={styles.sectionDescription}>
-            같은 위치에 열린 스낵바는 겹치지 않고 자동으로 줄을 섭니다. 새것이
-            화면 가장자리에 서고 먼저 있던 것은 안쪽으로 밀립니다. 같은 위치에
-            최대 3개이며, 넘치면 가장 오래된 것이 닫힘(onClose)입니다.
-          </p>
-        </div>
-
-        <div className={styles.example}>
-          <h3 className={styles.exampleTitle}>여러 개 쌓기</h3>
-          <LivePreview
-            title="여러 개 쌓기"
-            description="쌓기가 기본입니다. 버튼을 누를 때마다 스낵바를 하나씩 더합니다. 위치를 주지 않으면 오른쪽 아래에 쌓입니다. 4번째부터 가장 오래된 것이 onClose로 빠집니다. severity가 번갈아 나와 흰 글자도 함께 볼 수 있습니다."
-            editable
-            code={`const [items, setItems] = useState([]);
-const severities = ['success', 'warning', 'error', 'info'];
-const add = () => setItems((prev) => [...prev, { id: prev.length + 1, severity: severities[prev.length % 4], open: true }]);
-const close = (id) => setItems((prev) => prev.map((item) => (item.id === id ? { ...item, open: false } : item)));
-
-<div>
-  <Button size="sm" onClick={add}>스낵바 추가</Button>
   {items.map((item) => (
-    <Snackbar key={item.id} open={item.open} message={'#' + item.id + ' ' + item.severity + ' 알림'} severity={item.severity} autoHideDuration={null} onClose={() => close(item.id)} />
-  ))}
-</div>`}
-          />
-        </div>
-
-        <div className={styles.example}>
-          <h3 className={styles.exampleTitle}>하나씩만 보이기</h3>
-          <LivePreview
-            title="하나씩만 보이기"
-            description="쌓기는 기본입니다. 한 번에 하나만 보여 주려면 stack={false}"
-            editable
-            code={`const [items, setItems] = useState([]);
-const add = () => setItems((prev) => [...prev, { id: prev.length + 1, open: true }]);
-const close = (id) => setItems((prev) => prev.map((item) => (item.id === id ? { ...item, open: false } : item)));
-
-<div>
-  <Button size="sm" onClick={add}>스낵바 열기</Button>
-  {items.map((item) => (
-    <Snackbar key={item.id} open={item.open} stack={false} message={'#' + item.id + ' 알림'} autoHideDuration={null} onClose={() => close(item.id)} />
+    <Snackbar key={item.id} open={item.open} message={'#' + item.id + ' ' + item.position + ' 위치의 스낵바'} position={item.position} onClose={() => close(item.id)} autoHideDuration={2000} />
   ))}
 </div>`}
           />
@@ -301,8 +276,10 @@ const close = (id) => setItems((prev) => prev.map((item) => (item.id === id ? { 
             title="자동 닫힘 시간 조절"
             description="autoHideDuration prop으로 밀리초 단위의 시간을 설정합니다. 기본값은 6000ms(6초)입니다."
             editable
-            code={`const [open, setOpen] = useState(false);
+            code={`const [items, setItems] = useState([]);
 const [duration, setDuration] = useState(3000);
+const show = () => setItems((prev) => [...prev, { id: prev.length + 1, duration, open: true }]);
+const close = (id) => setItems((prev) => prev.map((item) => (item.id === id ? { ...item, open: false } : item)));
 
 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
   <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
@@ -312,8 +289,10 @@ const [duration, setDuration] = useState(3000);
       </Button>
     ))}
   </div>
-  <Button size="sm" variant="dark" onClick={() => setOpen(true)}>스낵바 열기 ({duration / 1000}초 후 자동 닫힘)</Button>
-  <Snackbar open={open} message={duration / 1000 + '초 후 자동으로 닫힙니다.'} severity="info" onClose={() => setOpen(false)} autoHideDuration={duration} />
+  <Button size="sm" variant="dark" onClick={show}>스낵바 열기 ({duration / 1000}초 후 자동 닫힘)</Button>
+  {items.map((item) => (
+    <Snackbar key={item.id} open={item.open} message={'#' + item.id + ' ' + item.duration / 1000 + '초 후 자동으로 닫힙니다.'} severity="info" onClose={() => close(item.id)} autoHideDuration={item.duration} />
+  ))}
 </div>`}
           />
         </div>
@@ -324,11 +303,15 @@ const [duration, setDuration] = useState(3000);
             title="자동 닫힘 비활성화"
             description="autoHideDuration={null}로 설정하면 수동으로만 닫을 수 있습니다."
             editable
-            code={`const [open, setOpen] = useState(false);
+            code={`const [items, setItems] = useState([]);
+const show = () => setItems((prev) => [...prev, { id: prev.length + 1, open: true }]);
+const close = (id) => setItems((prev) => prev.map((item) => (item.id === id ? { ...item, open: false } : item)));
 
 <div>
-  <Button size="sm" onClick={() => setOpen(true)}>Persistent 스낵바 열기</Button>
-  <Snackbar open={open} message="이 스낵바는 자동으로 닫히지 않습니다. X 버튼을 클릭하세요." severity="warning" onClose={() => setOpen(false)} autoHideDuration={null} />
+  <Button size="sm" onClick={show}>Persistent 스낵바 열기</Button>
+  {items.map((item) => (
+    <Snackbar key={item.id} open={item.open} message={'#' + item.id + ' 이 스낵바는 자동으로 닫히지 않습니다. X 버튼을 클릭하세요.'} severity="warning" onClose={() => close(item.id)} autoHideDuration={null} />
+  ))}
 </div>`}
           />
         </div>
@@ -349,22 +332,27 @@ const [duration, setDuration] = useState(3000);
             title="실행 취소 액션"
             description="action prop에 버튼을 전달하여 '실행 취소' 같은 추가 동작을 제공합니다."
             editable
-            code={`const [open, setOpen] = useState(false);
+            code={`const [items, setItems] = useState([]);
+const show = () => setItems((prev) => [...prev, { id: prev.length + 1, open: true }]);
+const close = (id) => setItems((prev) => prev.map((item) => (item.id === id ? { ...item, open: false } : item)));
 
 <div>
-  <Button size="sm" onClick={() => setOpen(true)}>삭제 실행</Button>
-  <Snackbar
-    open={open}
-    message="항목이 삭제되었습니다."
-    severity="info"
-    onClose={() => setOpen(false)}
-    autoHideDuration={5000}
-    action={
-      <Button size="sm" variant="light" onClick={() => { setOpen(false); }}>
-        실행 취소
-      </Button>
-    }
-  />
+  <Button size="sm" onClick={show}>삭제 실행</Button>
+  {items.map((item) => (
+    <Snackbar
+      key={item.id}
+      open={item.open}
+      message={'#' + item.id + ' 항목이 삭제되었습니다.'}
+      severity="info"
+      onClose={() => close(item.id)}
+      autoHideDuration={5000}
+      action={
+        <Button size="sm" variant="light" onClick={() => close(item.id)}>
+          실행 취소
+        </Button>
+      }
+    />
+  ))}
 </div>`}
           />
         </div>
@@ -385,15 +373,49 @@ const [duration, setDuration] = useState(3000);
             title="폼 제출 피드백"
             description="폼 제출 성공/실패에 따라 다른 스낵바를 표시합니다."
             editable
-            code={`const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'info' });
+            code={`const [items, setItems] = useState([]);
 const handleSubmit = (success) => {
-  setSnackbar(success ? { open: true, message: '설정이 저장되었습니다.', severity: 'success' } : { open: true, message: '저장에 실패했습니다.', severity: 'error' });
+  const next = success ? { message: '설정이 저장되었습니다.', severity: 'success' } : { message: '저장에 실패했습니다.', severity: 'error' };
+  setItems((prev) => [...prev, { id: prev.length + 1, ...next, open: true }]);
 };
+const close = (id) => setItems((prev) => prev.map((item) => (item.id === id ? { ...item, open: false } : item)));
 
 <div style={{ display: 'flex', gap: '0.5rem' }}>
   <Button size="sm" variant="primary" onClick={() => handleSubmit(true)}>저장 (성공)</Button>
   <Button size="sm" variant="danger" onClick={() => handleSubmit(false)}>저장 (실패)</Button>
-  <Snackbar open={snackbar.open} message={snackbar.message} severity={snackbar.severity} onClose={() => setSnackbar((s) => ({ ...s, open: false }))} autoHideDuration={3000} />
+  {items.map((item) => (
+    <Snackbar key={item.id} open={item.open} message={'#' + item.id + ' ' + item.message} severity={item.severity} onClose={() => close(item.id)} autoHideDuration={3000} />
+  ))}
+</div>`}
+          />
+        </div>
+      </section>
+
+      {/* Stack 끄기 */}
+      <section className={styles.section}>
+        <div className={styles.sectionHeader}>
+          <h2 className={styles.sectionTitle}>Stack 끄기</h2>
+          <p className={styles.sectionDescription}>
+            stack={'{false}'}를 주면 같은 위치에 하나만 보입니다. 열릴 때 다른
+            스낵바를 닫고, 뒤에 새 스낵바가 열리면 이 스낵바가 닫힙니다.
+          </p>
+        </div>
+
+        <div className={styles.example}>
+          <h3 className={styles.exampleTitle}>One at a Time</h3>
+          <LivePreview
+            title="하나씩만 보이기"
+            description="버튼을 여러 번 눌러도 스낵바는 하나만 보이고, 새것이 이전 것을 바꿔 끼웁니다."
+            editable
+            code={`const [items, setItems] = useState([]);
+const show = () => setItems((prev) => [...prev, { id: prev.length + 1, open: true }]);
+const close = (id) => setItems((prev) => prev.map((item) => (item.id === id ? { ...item, open: false } : item)));
+
+<div>
+  <Button size="sm" onClick={show}>스낵바 열기</Button>
+  {items.map((item) => (
+    <Snackbar key={item.id} open={item.open} stack={false} message={'#' + item.id + ' 알림'} autoHideDuration={null} onClose={() => close(item.id)} />
+  ))}
 </div>`}
           />
         </div>
