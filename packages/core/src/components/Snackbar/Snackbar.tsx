@@ -94,7 +94,7 @@ export interface SnackbarProps extends Omit<
   autoHideDuration?: number | null;
   /**
    * false면 같은 위치에 혼자 있다. 열릴 때 같은 위치의 다른 스낵바를 닫고(각자의 `onClose`),
-   * 열려 있는 동안 같은 위치에 새 스낵바가 열리면(쌓는 것이든 아니든) 그 새것이 닫힌다.
+   * 열려 있는 동안 같은 위치에 새 스낵바가 열리면(쌓는 것이든 아니든) 이 스낵바가 닫히고 새것이 남는다.
    * 모든 스낵바에 false를 주면 새것이 이전 것을 바꿔 끼우는 한 번에 하나 모드가 된다.
    * `onClose`가 없어 닫을 수 없는 것은 내보내지 못한다 @default true
    */

@@ -43,7 +43,7 @@ export function SnackbarPage() {
       type: 'boolean',
       default: 'true',
       description:
-        'false면 같은 위치에 혼자 있다: 열릴 때 다른 스낵바를 닫고, 새 스낵바가 열리면 닫힌다',
+        'false면 같은 위치에 혼자 있다: 열릴 때 다른 스낵바를 닫고, 뒤에 새 스낵바가 열리면 이 스낵바가 닫힌다',
     },
     {
       name: 'onClose',
