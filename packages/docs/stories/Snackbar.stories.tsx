@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react';
 import { Snackbar } from '@taein-ui/core';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 
 const meta = {
   title: 'Components/Snackbar',
@@ -277,10 +277,10 @@ const MultipleSnackbarsComponent = () => {
       severity: 'success' | 'error' | 'warning' | 'info';
     }>
   >([]);
-  let nextId = 0;
+  const nextId = useRef(0);
 
   const addSnackbar = (severity: 'success' | 'error' | 'warning' | 'info') => {
-    const id = nextId++;
+    const id = nextId.current++;
     setSnackbars((prev) => [
       ...prev,
       { id, message: `${severity} 알림 #${id}`, severity },
@@ -320,7 +320,8 @@ const MultipleSnackbarsComponent = () => {
         </button>
       </div>
 
-      {snackbars.map((snackbar, index) => (
+      {/* 같은 위치에 열린 스낵바는 자동으로 줄을 선다(최대 3개, 넘치면 가장 오래된 것의 onClose). */}
+      {snackbars.map((snackbar) => (
         <Snackbar
           key={snackbar.id}
           open
@@ -329,7 +330,6 @@ const MultipleSnackbarsComponent = () => {
           position="bottom-right"
           autoHideDuration={3000}
           onClose={() => removeSnackbar(snackbar.id)}
-          style={{ bottom: `${24 + index * 80}px` }}
         />
       ))}
     </div>

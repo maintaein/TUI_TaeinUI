@@ -14,11 +14,14 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { Snackbar } from './Snackbar';
+import { Snackbar, type SnackbarProps } from './Snackbar';
+import { gsapDuration, gsapEasing } from '../../tokens/gsapEasing';
 
 type CountdownTweenHost = HTMLDivElement & {
   __countdownTween?: gsap.core.Tween;
 };
+
+type StackTweenHost = HTMLElement & { __stackTween?: gsap.core.Tween };
 
 const getSheet = (container: HTMLElement): HTMLElement =>
   container.querySelector('[class*="Snackbar_snackbar__"]') as HTMLElement;
@@ -964,6 +967,308 @@ describe('Snackbar', () => {
       expect(
         container.querySelector('[class*="content"]')?.parentElement
       ).toHaveAttribute('inert');
+    });
+  });
+
+  // 같은 위치에 열린 스낵바가 줄을 선다 (M5 task-21).
+  //
+  // jsdom은 레이아웃이 없어 offsetHeight가 늘 0이다(환경 보급, Modal·BottomSheet 선례).
+  // 높이는 스낵바에 단 `data-h`에서 읽어 주는 getter를 프로토타입에 깐다. 밀림은 시트에
+  // 얹힌 테스트 전용 통로 `__stackTween`(= `__countdownTween`과 같은 방식)으로 읽는다.
+  describe('같은 위치에 쌓기 (M5 task-21)', () => {
+    let heightReads = 0;
+    let restoreHeights: (() => void) | null = null;
+
+    beforeEach(() => {
+      heightReads = 0;
+      const original = Object.getOwnPropertyDescriptor(
+        HTMLElement.prototype,
+        'offsetHeight'
+      );
+      Object.defineProperty(HTMLElement.prototype, 'offsetHeight', {
+        configurable: true,
+        get(this: HTMLElement) {
+          heightReads += 1;
+          return Number(this.dataset.h ?? 0);
+        },
+      });
+      restoreHeights = () => {
+        if (original) {
+          Object.defineProperty(
+            HTMLElement.prototype,
+            'offsetHeight',
+            original
+          );
+        }
+      };
+    });
+
+    afterEach(() => {
+      restoreHeights?.();
+      restoreHeights = null;
+    });
+
+    interface Item {
+      id: string;
+      h: number;
+      open?: boolean;
+      position?: SnackbarProps['position'];
+      onClose?: () => void;
+    }
+
+    const Stack = ({ items }: { items: Item[] }) => (
+      <>
+        {items.map(({ id, h, open = true, position, onClose }) => (
+          <Snackbar
+            key={id}
+            open={open}
+            message={id}
+            position={position}
+            onClose={onClose}
+            autoHideDuration={null}
+            {...{ 'data-h': h }}
+          />
+        ))}
+      </>
+    );
+
+    const sheetOf = (container: HTMLElement, id: string): StackTweenHost => {
+      const found = [
+        ...container.querySelectorAll<StackTweenHost>(
+          '[class*="Snackbar_snackbar__"]'
+        ),
+      ].find(
+        (el) =>
+          el.querySelector('[class*="Snackbar_message__"]')?.textContent === id
+      );
+      if (!found) throw new Error(`시트를 찾지 못했다: ${id}`);
+      return found;
+    };
+
+    /** 시트의 마지막 밀림 트윈이 향하는 y(px) */
+    const targetY = (container: HTMLElement, id: string): number =>
+      Number(sheetOf(container, id).__stackTween?.vars.y);
+
+    const A = { id: 'A', h: 40 };
+    const B = { id: 'B', h: 56 };
+    const C = { id: 'C', h: 72 };
+    const D = { id: 'D', h: 40 };
+
+    it('bottom: 새것이 가장자리(0)이고 먼저 있던 것은 위로 밀린다 (높이 합 + 간격 8)', () => {
+      const { container, rerender } = render(<Stack items={[A]} />);
+      rerender(<Stack items={[A, B]} />);
+      rerender(<Stack items={[A, B, C]} />);
+
+      expect(targetY(container, 'C')).toBe(0);
+      expect(targetY(container, 'B')).toBe(-(72 + 8));
+      expect(targetY(container, 'A')).toBe(-(72 + 56 + 16));
+    });
+
+    it('top: 부호가 반대다 (새것이 맨 위, 먼저 있던 것은 아래로)', () => {
+      const top = (item: Item): Item => ({ ...item, position: 'top-right' });
+      const { container, rerender } = render(<Stack items={[top(A)]} />);
+      rerender(<Stack items={[top(A), top(B)]} />);
+      rerender(<Stack items={[top(A), top(B), top(C)]} />);
+
+      expect(targetY(container, 'C')).toBe(0);
+      expect(targetY(container, 'B')).toBe(72 + 8);
+      expect(targetY(container, 'A')).toBe(72 + 56 + 16);
+    });
+
+    it('밀림은 gsapDuration.base, settle 커브의 트윈이다', () => {
+      const { container, rerender } = render(<Stack items={[A]} />);
+      rerender(<Stack items={[A, B]} />);
+
+      const tween = sheetOf(container, 'A').__stackTween as gsap.core.Tween;
+      expect(tween.vars.duration).toBe(gsapDuration.base);
+      expect(tween.vars.ease).toBe(gsapEasing.settle);
+    });
+
+    it('center의 가로 xPercent -50은 밀림과 함께 유지된다', () => {
+      const { container, rerender } = render(<Stack items={[A]} />);
+      rerender(<Stack items={[A, B]} />);
+
+      expect(sheetOf(container, 'A').style.transform).toContain(
+        'translate(-50%'
+      );
+    });
+
+    it('넷째가 열리면 가장 오래된 것의 onClose가 한 번 불린다', () => {
+      const onCloseA = vi.fn();
+      const onCloseB = vi.fn();
+      const a = { ...A, onClose: onCloseA };
+      const b = { ...B, onClose: onCloseB };
+      const c = { ...C, onClose: vi.fn() };
+      const d = { ...D, onClose: vi.fn() };
+      const { rerender } = render(<Stack items={[a]} />);
+      rerender(<Stack items={[a, b]} />);
+      rerender(<Stack items={[a, b, c]} />);
+      expect(onCloseA).not.toHaveBeenCalled();
+
+      rerender(<Stack items={[a, b, c, d]} />);
+
+      expect(onCloseA).toHaveBeenCalledTimes(1);
+      expect(onCloseB).not.toHaveBeenCalled();
+    });
+
+    it('부모가 그 onClose로 닫으면 나머지가 메워 들어온다', () => {
+      const a = { ...A, onClose: vi.fn() };
+      const d = { ...D, onClose: vi.fn() };
+      const { container, rerender } = render(<Stack items={[a]} />);
+      rerender(<Stack items={[a, B]} />);
+      rerender(<Stack items={[a, B, C]} />);
+      rerender(<Stack items={[a, B, C, d]} />);
+      rerender(<Stack items={[{ ...a, open: false }, B, C, d]} />);
+
+      expect(targetY(container, 'D')).toBe(0);
+      expect(targetY(container, 'C')).toBe(-(40 + 8));
+      expect(targetY(container, 'B')).toBe(-(40 + 72 + 16));
+    });
+
+    it('하나를 닫으면 그보다 오래된 것이 메워 들어오고, 닫는 것은 제자리에서 나간다', () => {
+      const { container, rerender } = render(<Stack items={[A]} />);
+      rerender(<Stack items={[A, B]} />);
+      rerender(<Stack items={[A, B, C]} />);
+      const closingTween = sheetOf(container, 'B').__stackTween;
+      const aTween = sheetOf(container, 'A').__stackTween;
+
+      rerender(<Stack items={[A, { ...B, open: false }, C]} />);
+
+      expect(targetY(container, 'A')).toBe(-(72 + 8));
+      expect(sheetOf(container, 'A').__stackTween).not.toBe(aTween);
+      // 닫히기 시작한 B는 새 밀림 트윈을 받지 않는다. 지금 자리에서 퇴장 트윈으로 나간다.
+      expect(sheetOf(container, 'B').__stackTween).toBe(closingTween);
+      expect(closingTween?.parent).toBeNull();
+    });
+
+    it('다른 위치의 스낵바는 서로 밀지도 넘치게 하지도 않는다', () => {
+      const onCloseX = vi.fn();
+      const x = {
+        id: 'X',
+        h: 40,
+        position: 'top-left' as const,
+        onClose: onCloseX,
+      };
+      const { container, rerender } = render(<Stack items={[x]} />);
+      rerender(<Stack items={[x, A]} />);
+      rerender(<Stack items={[x, A, B]} />);
+      rerender(<Stack items={[x, A, B, C]} />);
+
+      expect(targetY(container, 'X')).toBe(0);
+      expect(onCloseX).not.toHaveBeenCalled();
+      expect(targetY(container, 'C')).toBe(0);
+    });
+
+    it('축소 선호면 밀림이 즉시 끝난다', () => {
+      installReducedMotion();
+      const { container, rerender } = render(<Stack items={[A]} />);
+      rerender(<Stack items={[A, B]} />);
+
+      const tween = sheetOf(container, 'A').__stackTween as gsap.core.Tween;
+      expect(tween.progress()).toBe(1);
+      expect(sheetOf(container, 'A').style.transform).toContain(
+        `${-(56 + 8)}px`
+      );
+    });
+
+    it('축소 선호가 아니면 밀림은 아직 끝나지 않았다', () => {
+      const { container, rerender } = render(<Stack items={[A]} />);
+      rerender(<Stack items={[A, B]} />);
+
+      const tween = sheetOf(container, 'A').__stackTween as gsap.core.Tween;
+      expect(tween.progress()).toBeLessThan(1);
+    });
+
+    it('onClose가 없는 가장 오래된 것은 내보내지 못하고, 다른 것이 대신 닫히지도 않는다', () => {
+      const onCloseB = vi.fn();
+      const b = { ...B, onClose: onCloseB };
+      const c = { ...C, onClose: vi.fn() };
+      const d = { ...D, onClose: vi.fn() };
+      const { rerender } = render(<Stack items={[A]} />);
+      rerender(<Stack items={[A, b]} />);
+      rerender(<Stack items={[A, b, c]} />);
+      rerender(<Stack items={[A, b, c, d]} />);
+
+      expect(onCloseB).not.toHaveBeenCalled();
+    });
+
+    it('언마운트하면 줄에서 빠져 다음 마운트로 새지 않는다', () => {
+      const first = render(<Stack items={[A, B, C]} />);
+      first.unmount();
+
+      const onClose = vi.fn();
+      const x = { id: 'X', h: 40, onClose };
+      const y = { id: 'Y', h: 40, onClose };
+      const z = { id: 'Z', h: 40, onClose };
+      const second = render(<Stack items={[x, y, z]} />);
+
+      expect(onClose).not.toHaveBeenCalled();
+      expect(targetY(second.container, 'Z')).toBe(0);
+    });
+
+    it('open=false인 스낵바는 줄에 서지 않아 높이를 차지하지 않는다', () => {
+      const { container, rerender } = render(
+        <Stack items={[{ ...A, open: false }]} />
+      );
+      rerender(<Stack items={[{ ...A, open: false }, B, C]} />);
+
+      expect(targetY(container, 'B')).toBe(-(72 + 8));
+    });
+
+    describe('높이는 등록과 크기 변화 때만 잰다', () => {
+      class RecordingResizeObserver {
+        static created: RecordingResizeObserver[] = [];
+        disconnected = false;
+        constructor(private readonly callback: ResizeObserverCallback) {
+          RecordingResizeObserver.created.push(this);
+        }
+        observe(): void {}
+        unobserve(): void {}
+        disconnect(): void {
+          this.disconnected = true;
+        }
+        fire(): void {
+          this.callback([], this as unknown as ResizeObserver);
+        }
+      }
+
+      beforeEach(() => {
+        RecordingResizeObserver.created = [];
+        vi.stubGlobal('ResizeObserver', RecordingResizeObserver);
+      });
+
+      it('크기가 바뀌었다고 알리면 그 위에 쌓인 것의 밀림이 새 높이를 따른다', () => {
+        const { container, rerender } = render(<Stack items={[A]} />);
+        rerender(<Stack items={[A, B]} />);
+        expect(targetY(container, 'A')).toBe(-(56 + 8));
+
+        rerender(<Stack items={[A, { ...B, h: 100 }]} />);
+        // 다시 그리기만으로는 재지 않는다. 관찰자가 알려야 한다.
+        expect(targetY(container, 'A')).toBe(-(56 + 8));
+
+        act(() => RecordingResizeObserver.created[1].fire());
+        expect(targetY(container, 'A')).toBe(-(100 + 8));
+      });
+
+      it('다시 그려도 높이를 읽지 않는다', () => {
+        const { rerender } = render(<Stack items={[A]} />);
+        rerender(<Stack items={[A, B]} />);
+        const before = heightReads;
+
+        rerender(<Stack items={[A, B]} />);
+        rerender(<Stack items={[A, B]} />);
+
+        expect(heightReads).toBe(before);
+      });
+
+      it('닫히거나 언마운트되면 관찰을 끊는다', () => {
+        const { rerender, unmount } = render(<Stack items={[A, B]} />);
+        rerender(<Stack items={[A, { ...B, open: false }]} />);
+        expect(RecordingResizeObserver.created[1].disconnected).toBe(true);
+        expect(RecordingResizeObserver.created[0].disconnected).toBe(false);
+        unmount();
+        expect(RecordingResizeObserver.created[0].disconnected).toBe(true);
+      });
     });
   });
 });

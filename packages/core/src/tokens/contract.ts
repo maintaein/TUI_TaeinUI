@@ -85,7 +85,11 @@ export const themeTokens = {
     //           2.77/2.15라 배경과의 3:1은 보장하지 않는다
     // - light   연한 배경용. 위에 text.primary를 얹는다
     // - dark    흰 배경 위 본문 텍스트용 (대비 4.5:1 기준). 글자를 얹지 않는
-    //           도형(아이콘 단독·차트 마커·상태 점)도 이 슬롯을 쓴다
+    //           도형(아이콘 단독·차트 마커·상태 점)도 이 슬롯을 쓴다.
+    //           예외 하나: Snackbar의 success·warning은 `dark`를 면으로 쓰고 그 위에
+    //           `text.inverse`(흰색)를 얹는다. 대비는 success 5.13:1, warning
+    //           5.49:1이다. `main` 위 흰 글자는 2.78·2.16:1이라 못 쓴다. 이 쌍은
+    //           llms.test.ts가 Snackbar.css.ts 소스에서 읽어 잰다
     // - contrast main 위에 얹는 글자색
     success: {
       main: success[500],

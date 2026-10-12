@@ -468,4 +468,44 @@ describe('컴포넌트가 실제로 합성하는 색 쌍', () => {
       }
     }
   });
+
+  it('Snackbar 네 severity의 면 대 글자가 AA, 카운트다운 막대 대 면이 3:1을 지킨다', () => {
+    // 글자만 흰색으로 바꾸면 success.main 2.78:1, warning.main 2.16:1이다. 그래서
+    // 면이 `dark`로 내려가고(5.13, 5.49) `text.inverse`가 얹힌다. 막대는
+    // `currentColor`라 글자색을 따르므로 막대 대 면도 같은 쌍이다.
+    const css = read(resolve(ROOT, 'src/components/Snackbar/Snackbar.css.ts'));
+    const pairs = Object.fromEntries(
+      [
+        ...declBlock(css, 'severityStyles').matchAll(
+          /(\w+): \{\s*backgroundColor: themeContract\.([\w.[\]]+),\s*color: themeContract\.([\w.[\]]+)/g
+        ),
+      ].map((m) => [m[1], { bg: m[2], fg: m[3] }])
+    );
+    expect(Object.keys(pairs).sort()).toEqual([
+      'error',
+      'info',
+      'success',
+      'warning',
+    ]);
+    expect(pairs.success).toEqual({
+      bg: 'color.success.dark',
+      fg: 'color.text.inverse',
+    });
+    expect(pairs.warning).toEqual({
+      bg: 'color.warning.dark',
+      fg: 'color.text.inverse',
+    });
+    expect(declBlock(css, 'bar')).toContain("backgroundColor: 'currentColor'");
+
+    for (const [severity, { bg, fg }] of Object.entries(pairs)) {
+      expect(
+        contrastRatio(tokenValue(fg), tokenValue(bg)),
+        `${severity} 글자(${fg}) on 면(${bg})`
+      ).toBeGreaterThanOrEqual(AA_TEXT);
+      expect(
+        contrastRatio(tokenValue(fg), tokenValue(bg)),
+        `${severity} 막대(${fg}) on 면(${bg})`
+      ).toBeGreaterThanOrEqual(AA_UI);
+    }
+  });
 });

@@ -3,6 +3,7 @@ import {
   useLayoutEffect,
   useRef,
   useState,
+  useSyncExternalStore,
   type ReactNode,
   type HTMLAttributes,
 } from 'react';
@@ -24,6 +25,14 @@ import { Glyph, type GlyphName } from '../../_internal/glyph';
 import { useOverlayTransition } from '../../_internal/useOverlayTransition';
 import { gsapDuration, gsapEasing } from '../../tokens/gsapEasing';
 import { useReducedMotion } from '../../hooks/useReducedMotion';
+import { gateMotion } from '../../hooks/gateMotion';
+import {
+  registerSnackbar,
+  setSnackbarHeight,
+  stackOffsetOf,
+  subscribeStack,
+  unregisterSnackbar,
+} from './snackbarStack';
 
 /**
  * 축소 모드에서 막대를 몇 단으로 끊을지 (Ruling 14). 정확한 개수를 못 박은
@@ -43,7 +52,22 @@ interface CountdownTweenHost extends HTMLDivElement {
   __countdownTween?: gsap.core.Tween;
 }
 
-/** 화면 모서리에 일시적으로 표시되는 알림 컴포넌트 */
+/**
+ * 쌓임 트윈(`y`)을 테스트가 읽을 수 있는 통로. `CountdownTweenHost`와 같은 방식으로
+ * 시트 DOM 노드에 얹는다. 공개 API·`dist` 표면에 나가지 않는다.
+ */
+interface StackTweenHost extends HTMLElement {
+  __stackTween?: gsap.core.Tween;
+}
+
+/**
+ * 화면 모서리에 일시적으로 표시되는 알림 컴포넌트.
+ *
+ * 같은 `position`에 동시에 열린 스낵바는 겹치지 않고 줄을 선다. 새것이 화면
+ * 가장자리에 서고 먼저 있던 것은 안쪽으로 밀린다. 한 위치에 최대 3개이고, 넷째가
+ * 열리면 가장 오래된 것의 `onClose`가 불린다. `onClose`가 없는 스낵바는 닫을
+ * 수단이 없으니 내보내지 못하고 그대로 남는다.
+ */
 export interface SnackbarProps extends Omit<
   HTMLAttributes<HTMLDivElement>,
   'content'
@@ -64,7 +88,10 @@ export interface SnackbarProps extends Omit<
     | 'bottom-right';
   /** 자동 닫힘 시간(ms). null이면 자동 닫힘 비활성화 @default 6000 */
   autoHideDuration?: number | null;
-  /** 닫기 콜백 */
+  /**
+   * 닫기 콜백. 닫기 버튼, 자동 닫힘, 같은 위치에 4개째가 열려 밀려날 때(가장 오래된 것)
+   * 불린다. 없으면 자동 닫힘도, 밀려남도 일어나지 않는다
+   */
   onClose?: () => void;
   /** 메시지 옆 액션 영역 (버튼 등) */
   action?: ReactNode;
@@ -139,13 +166,14 @@ export const Snackbar = ({
   // 애초에 만들지 않는다(완료 조건 7) — 지금 타이머가 무장되는 조건과 같다.
   const hasCountdown = autoHideDuration !== null && !!onClose;
 
+  const isTop = position.startsWith('top');
+
   const { shouldRender } = useOverlayTransition({
     open,
     buildTimeline: (timeline) => {
       const sheet = sheetRef.current;
       if (!sheet) return;
 
-      const isTop = position.startsWith('top');
       const isCenter = position.endsWith('center');
       const yPercent = isTop ? -100 : 100;
 
@@ -172,6 +200,62 @@ export const Snackbar = ({
     },
   });
 
+  // 같은 위치 줄서기. 열려 있는 동안만 줄에 선다(닫히기 시작하면 그 순간 빠지고,
+  // 나머지가 메워 들어온다). 높이는 등록할 때와 크기가 바뀔 때(ResizeObserver)만 잰다.
+  // 매 렌더에 재지 않는다. 모듈 상태는 이 effect 안에서만 바뀐다(SSR 안전).
+  // 선언 순서: onCloseRef 갱신 layout effect 뒤라야 넘침 때 최신 onClose를 부른다.
+  const [stackId] = useState(() => Symbol('snackbar'));
+  useLayoutEffect(() => {
+    const sheet = sheetRef.current;
+    if (!open || !sheet) return;
+
+    registerSnackbar(
+      stackId,
+      position,
+      sheet.offsetHeight,
+      () => onCloseRef.current
+    );
+    let observer: ResizeObserver | undefined;
+    if (typeof ResizeObserver !== 'undefined') {
+      observer = new ResizeObserver(() =>
+        setSnackbarHeight(stackId, sheet.offsetHeight)
+      );
+      observer.observe(sheet);
+    }
+
+    return () => {
+      observer?.disconnect();
+      unregisterSnackbar(stackId);
+    };
+  }, [open, position, stackId]);
+
+  const stackOffset = useSyncExternalStore(
+    subscribeStack,
+    () => stackOffsetOf(stackId),
+    () => 0
+  );
+
+  // 밀림은 `y`(px)다. 등장 타임라인은 `yPercent`·`opacity`만 만지고, GSAP이 둘을 한
+  // transform으로 합친다. 닫히기 시작하면(open=false) 이 트윈을 죽여 지금 자리에서
+  // 퇴장 트윈으로 나간다. bottom은 안쪽이 위(-y), top은 안쪽이 아래(+y)다.
+  useLayoutEffect(() => {
+    const sheet = sheetRef.current;
+    if (!open || !sheet) return;
+
+    const tween = gateMotion(reduced, () =>
+      gsap.to(sheet, {
+        y: isTop ? stackOffset : 0 - stackOffset,
+        duration: gsapDuration.base,
+        ease: gsapEasing.settle,
+      })
+    );
+    (sheet as StackTweenHost).__stackTween = tween;
+
+    return () => {
+      tween.kill();
+    };
+  }, [open, stackOffset, isTop, reduced]);
+
   useEffect(() => {
     // 렌더 중에 바로 채우면 리전 노드와 내용이 동시에 생겨 스크린 리더가 못 읽는 경우가
     // 생긴다(처음부터 open인 채 마운트하는 경로). 한 틱 늦게 채우는 것이 목적이라 의도적으로
@@ -193,7 +277,7 @@ export const Snackbar = ({
   // 안 된다(명제 라인 169 · Ruling 15) — GSAP의 진행률 read-back이 필요한
   // 이유가 이것이다.
   //
-  // Ruling 14: gateMotion을 거치지 않는다. gateMotion은 애니메이션을 끝
+  // Ruling 14: 이 카운트다운은 gateMotion을 거치지 않는다. gateMotion은 애니메이션을 끝
   // 상태로 확정하는데, 6초 카운트다운에 그걸 적용하면 스낵바가 즉시 닫힌다.
   // 축소 선호는 "시간을 건너뛰어라"가 아니다. 그래서 이 파일이
   // `GATE_ENFORCEMENT_EXCEPTIONS`의 첫 항목이다 — 등장·퇴장은 위

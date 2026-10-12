@@ -49,7 +49,8 @@ const GATE_ENFORCEMENT_EXCEPTIONS: GateEnforcementException[] = [
       '카운트다운이 즉시 끝나 스낵바가 열리자마자 닫힌다(Ruling 14) — 2.2.1은 ' +
       '시간을 줄이지 말라는 뜻이라 게이트 대상이 아니다. 축소 모드가 바꾸는 건 ' +
       '막대의 그림(연속→이산 단계)뿐이고 시계는 그대로 둔다. 등장·퇴장 타임라인은 ' +
-      '같은 파일의 useOverlayTransition을 통해 이미 게이트를 거친다.',
+      '같은 파일의 useOverlayTransition을 통해 이미 게이트를 거치고, 같은 위치 쌓임 ' +
+      '오프셋(`y`)은 이 파일이 gateMotion으로 직접 거친다(M5 task-21).',
   },
 ];
 

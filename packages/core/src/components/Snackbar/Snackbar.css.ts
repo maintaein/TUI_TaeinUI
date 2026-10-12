@@ -28,18 +28,23 @@ export const snackbar = style({
 });
 
 // Severity 스타일
+//
+// success·warning은 면이 `dark`이고 글자가 흰색(`text.inverse`)이다. 글자만 흰색으로
+// 바꾸면 `main` 위에서 2.78·2.16:1이라 AA를 못 넘는다. `dark` 위에서는 5.13·5.49:1이다.
+// 아이콘과 카운트다운 막대는 `currentColor`라 글자색을 따라 흰색이 된다(막대 대 면 3:1
+// 이상). error·info는 `main` 위 `contrast`(흰색)가 이미 4.98·4.6:1이라 그대로다.
 export const severityStyles = styleVariants({
   success: {
-    backgroundColor: themeContract.color.success.main,
-    color: themeContract.color.success.contrast,
+    backgroundColor: themeContract.color.success.dark,
+    color: themeContract.color.text.inverse,
   },
   error: {
     backgroundColor: themeContract.color.error.main,
     color: themeContract.color.error.contrast,
   },
   warning: {
-    backgroundColor: themeContract.color.warning.main,
-    color: themeContract.color.warning.contrast,
+    backgroundColor: themeContract.color.warning.dark,
+    color: themeContract.color.text.inverse,
   },
   // 값은 primary와 같지만 어휘를 계약에 맞춘다. primary를 빌려 쓰면 브랜드 색을
   // 바꿀 때 정보 알림 색까지 따라 바뀐다.
@@ -135,9 +140,9 @@ export const closeButton = style({
 
 // 카운트다운 막대. `Snackbar.tsx`가 매 프레임 `transform: scaleX()`만 바꾼다
 // (완료 조건 9 — `width`를 바꾸면 레이아웃 재계산이다). 배경은 severity가
-// 이미 쓰는 `contrast` 텍스트색을 그대로 물려받는다 — 새 토큰 없이 4종
-// severity 배경 전부에서 이미 검증된 대비를 그대로 쓴다(완료 조건 8, 보고서
-// 참고). 시작 `scaleX(1)`은 첫 GSAP 틱 전 번쩍임을 막는 정적 기본값이다.
+// 이미 쓰는 글자색(`currentColor`)을 그대로 물려받는다 — 새 토큰 없이 4종
+// severity 면 전부에서 글자 대비와 같은 쌍으로 검증된다(완료 조건 8, llms.test.ts).
+// 시작 `scaleX(1)`은 첫 GSAP 틱 전 번쩍임을 막는 정적 기본값이다.
 export const bar = style({
   position: 'absolute',
   left: 0,

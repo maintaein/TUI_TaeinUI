@@ -96,7 +96,8 @@ export function SnackbarPage() {
             <CodeBlock
               code={`severity: 'success' | 'error' | 'warning' | 'info'
 position: 6가지 위치 옵션
-autoHideDuration: 자동 닫힘 (기본 6초)`}
+autoHideDuration: 자동 닫힘 (기본 6초)
+쌓기: 같은 위치에 최대 3개`}
               language="text"
             />
           </Card.Body>
@@ -161,7 +162,7 @@ autoHideDuration: 자동 닫힘 (기본 6초)`}
           <h3 className={styles.exampleTitle}>Warning</h3>
           <LivePreview
             title="Warning 스낵바"
-            description="주의가 필요한 상황에 사용합니다. 텍스트 색상이 어두운 톤으로 표시됩니다."
+            description="주의가 필요한 상황에 사용합니다. success와 함께 진한 면 위에 흰 글자로 표시됩니다."
             editable
             code={`const [open, setOpen] = useState(false);
 
@@ -222,6 +223,38 @@ const positions = ['top-left', 'top-center', 'top-right', 'bottom-left', 'bottom
     ))}
   </div>
   <Snackbar open={open} message={position + ' 위치의 스낵바'} position={position} onClose={() => setOpen(false)} autoHideDuration={2000} />
+</div>`}
+          />
+        </div>
+      </section>
+
+      {/* Stacking */}
+      <section className={styles.section}>
+        <div className={styles.sectionHeader}>
+          <h2 className={styles.sectionTitle}>Stacking</h2>
+          <p className={styles.sectionDescription}>
+            같은 위치에 열린 스낵바는 겹치지 않고 자동으로 줄을 섭니다. 새것이
+            화면 가장자리에 서고 먼저 있던 것은 안쪽으로 밀립니다. 같은 위치에
+            최대 3개이며, 넘치면 가장 오래된 것이 닫힘(onClose)입니다.
+          </p>
+        </div>
+
+        <div className={styles.example}>
+          <h3 className={styles.exampleTitle}>여러 개 쌓기</h3>
+          <LivePreview
+            title="여러 개 쌓기"
+            description="버튼을 누를 때마다 스낵바를 하나씩 더합니다. 4번째부터 가장 오래된 것이 onClose로 빠집니다. severity가 번갈아 나와 흰 글자도 함께 볼 수 있습니다."
+            editable
+            code={`const [items, setItems] = useState([]);
+const severities = ['success', 'warning', 'error', 'info'];
+const add = () => setItems((prev) => [...prev, { id: prev.length + 1, severity: severities[prev.length % 4], open: true }]);
+const close = (id) => setItems((prev) => prev.map((item) => (item.id === id ? { ...item, open: false } : item)));
+
+<div>
+  <Button size="sm" onClick={add}>스낵바 추가</Button>
+  {items.map((item) => (
+    <Snackbar key={item.id} open={item.open} message={'#' + item.id + ' ' + item.severity + ' 알림'} severity={item.severity} position="bottom-right" autoHideDuration={null} onClose={() => close(item.id)} />
+  ))}
 </div>`}
           />
         </div>
@@ -410,7 +443,9 @@ const handleSubmit = (success) => {
                 <ListItem>severity를 상황에 맞게 선택</ListItem>
                 <ListItem>중요한 작업에는 실행 취소 액션 제공</ListItem>
                 <ListItem>자동 닫힘 시간은 메시지 길이에 맞게 설정</ListItem>
-                <ListItem>한 번에 하나의 스낵바만 표시</ListItem>
+                <ListItem>
+                  같은 위치에는 가능하면 하나만, 많아도 3개까지만 표시
+                </ListItem>
               </List>
             </Card.Body>
           </Card>
@@ -423,7 +458,10 @@ const handleSubmit = (success) => {
               <List>
                 <ListItem>긴 문장이나 여러 줄의 메시지 사용</ListItem>
                 <ListItem>중요한 정보를 스낵바로만 전달</ListItem>
-                <ListItem>여러 스낵바를 동시에 표시</ListItem>
+                <ListItem>
+                  알림을 한꺼번에 여러 개 쏟아내기 (4개째부터 가장 오래된 것이
+                  닫힘)
+                </ListItem>
                 <ListItem>자동 닫힘을 너무 짧게 설정 (최소 3초)</ListItem>
                 <ListItem>
                   사용자 확인이 필요한 내용에 스낵바 사용 (Modal 사용)
