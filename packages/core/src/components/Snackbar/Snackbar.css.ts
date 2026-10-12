@@ -136,6 +136,26 @@ export const closeButton = style({
     borderRadius: themeContract.borderRadius.sm,
     opacity: 1,
   },
+
+  // 호버·눌림 면. IconButton `weak dark`의 면(gray[300]·gray[400])은 밝은 회색이라
+  // 색 면 위 흰 X가 1.3:1로 사라진다. 글자색을 옅게 섞은 반투명이면 어느 severity
+  // 면 위에서도 어울리고 X가 3:1 이상으로 남는다(llms.test.ts). `&&`는 클래스를
+  // 한 번 더 걸어 IconButton의 같은 상태 규칙보다 특이도를 높인다. 게이트와 :not은
+  // IconButton과 같다(터치 호버가 들러붙지 않고, 눌림 중에는 눌림 면이 이긴다).
+  '@media': {
+    '(hover: hover) and (pointer: fine)': {
+      selectors: {
+        '&&:hover:not(:disabled):not([data-pressed])': {
+          background: 'color-mix(in srgb, currentColor 16%, transparent)',
+        },
+      },
+    },
+  },
+  selectors: {
+    '&&[data-pressed]:not(:disabled)': {
+      background: 'color-mix(in srgb, currentColor 24%, transparent)',
+    },
+  },
 });
 
 // 카운트다운 막대. `Snackbar.tsx`가 매 프레임 `transform: scaleX()`만 바꾼다

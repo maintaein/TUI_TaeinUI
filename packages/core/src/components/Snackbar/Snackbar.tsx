@@ -93,7 +93,8 @@ export interface SnackbarProps extends Omit<
   autoHideDuration?: number | null;
   /**
    * 닫기 콜백. 닫기 버튼, 자동 닫힘, 같은 위치에 4개째가 열려 밀려날 때(가장 오래된 것)
-   * 불린다. 없으면 자동 닫힘도, 밀려남도 일어나지 않는다
+   * 불린다. 없으면 자동 닫힘도, 밀려남도 일어나지 않는다. 밀려나서 불린 `onClose`에서
+   * `open`을 내리지 않으면 그 스낵바는 남는다(줄이 3개를 넘어 길어진다)
    */
   onClose?: () => void;
   /** 메시지 옆 액션 영역 (버튼 등) */
@@ -259,6 +260,7 @@ export const Snackbar = ({
 
     const tween = gateMotion(reduced, () =>
       gsap.to(sheet, {
+        // `0 - `는 오프셋 0일 때 -0이 되지 않게 하려는 것이다(bottom은 안쪽이 위쪽, -y)
         y: isTop ? stackOffset : 0 - stackOffset,
         duration: gsapDuration.base,
         ease: gsapEasing.settle,

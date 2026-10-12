@@ -703,6 +703,96 @@ describe('Snackbar', () => {
 
       expect(handleClose).toHaveBeenCalledTimes(1);
     });
+
+    describe('호버·눌림 면 (생성 CSS, CSSOM)', () => {
+      // IconButton `weak dark`의 호버(gray[300])·눌림(gray[400]) 면은 밝은 회색이라
+      // 색 면 위 흰 X가 1.3:1로 사라진다. closeButton이 글자색을 옅게 섞은 반투명으로
+      // 덮되, IconButton의 같은 상태 규칙보다 특이도가 높아야 이긴다.
+      type Flat = { rule: CSSStyleRule; media: string | null };
+
+      const allRules = (): Flat[] => {
+        const out: Flat[] = [];
+        const walk = (rules: CSSRuleList, media: string | null) => {
+          for (const rule of Array.from(rules)) {
+            if (rule instanceof CSSMediaRule) {
+              walk(rule.cssRules, rule.conditionText);
+            } else if (rule instanceof CSSStyleRule) {
+              out.push({ rule, media });
+            }
+          }
+        };
+        for (const sheet of Array.from(document.styleSheets)) {
+          walk(sheet.cssRules, null);
+        }
+        return out;
+      };
+
+      /** 선택자 특이도(id는 안 쓴다). `:not()`은 안쪽 선택자만 센다. */
+      const specificity = (selector: string): number =>
+        (
+          selector
+            .replace(/::[\w-]+/g, '')
+            .match(/\.[\w-]+|\[[^\]]+\]|:(?!not\b)[\w-]+/g) ?? []
+        ).length;
+
+      const hasBackground = ({ rule }: Flat): boolean =>
+        rule.style.getPropertyValue('background') !== '' ||
+        rule.style.getPropertyValue('background-color') !== '';
+
+      const backgroundOf = ({ rule }: Flat): string =>
+        rule.style.getPropertyValue('background-color') ||
+        rule.style.getPropertyValue('background');
+
+      const stateRules = (owner: string, state: ':hover' | '[data-pressed]') =>
+        allRules().filter(
+          (flat) =>
+            flat.rule.selectorText.includes(owner) &&
+            // 호버 선택자도 `:not([data-pressed])`를 품으니 눌림은 호버가 없는 쪽만 센다
+            (state === ':hover'
+              ? flat.rule.selectorText.includes(':hover')
+              : flat.rule.selectorText.includes('[data-pressed]') &&
+                !flat.rule.selectorText.includes(':hover')) &&
+            hasBackground(flat)
+        );
+
+      it('호버 면은 글자색 16%, 눌림 면은 24%를 섞은 반투명이다', () => {
+        render(<Snackbar open message="메시지" />);
+
+        const hover = stateRules('Snackbar_closeButton', ':hover');
+        expect(hover).toHaveLength(1);
+        expect(backgroundOf(hover[0])).toBe(
+          'color-mix(in srgb, currentColor 16%, transparent)'
+        );
+        // IconButton과 같은 게이트 안에서만 건다(터치에서 호버 면이 들러붙지 않게)
+        expect(hover[0].media).toBe('(hover: hover) and (pointer: fine)');
+
+        const pressed = stateRules('Snackbar_closeButton', '[data-pressed]');
+        expect(pressed).toHaveLength(1);
+        expect(backgroundOf(pressed[0])).toBe(
+          'color-mix(in srgb, currentColor 24%, transparent)'
+        );
+      });
+
+      it.each([':hover', '[data-pressed]'] as const)(
+        '%s 규칙이 IconButton의 같은 상태 규칙보다 특이도가 높다',
+        (state) => {
+          render(<Snackbar open message="메시지" />);
+
+          const mine = stateRules('Snackbar_closeButton', state);
+          const theirs = stateRules('IconButton_', state).filter(
+            (flat) => !flat.rule.selectorText.includes('Snackbar_closeButton')
+          );
+          expect(mine).toHaveLength(1);
+          expect(theirs.length).toBeGreaterThan(0);
+          for (const flat of theirs) {
+            expect(
+              specificity(mine[0].rule.selectorText),
+              `${mine[0].rule.selectorText} 대 ${flat.rule.selectorText}`
+            ).toBeGreaterThan(specificity(flat.rule.selectorText));
+          }
+        }
+      );
+    });
   });
 
   describe('action prop 테스트', () => {

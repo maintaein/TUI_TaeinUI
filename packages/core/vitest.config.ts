@@ -26,6 +26,8 @@ export default defineConfig({
     // 포인터 게이트를 CSSOM으로 잠근다.
     // SegmentedButtons도 같은 이유다. 표시 층이 진짜 라벨 위에 쌓이는지, 진짜 라벨의
     // 글자색이 선택을 따르지 않는지를 CSSOM으로 잠근다.
+    // Snackbar도 같은 이유다. 닫기 버튼의 호버·눌림 면 규칙이 IconButton의 같은 상태
+    // 규칙보다 특이도가 높은지를 CSSOM으로 잠근다.
     css: {
       include: [
         /Slider\.css/,
@@ -37,6 +39,7 @@ export default defineConfig({
         /\/Checkbox\.css/,
         /\/Switch\.css/,
         /\/SegmentedButtons\.css/,
+        /\/Snackbar\.css/,
       ],
     },
     coverage: {

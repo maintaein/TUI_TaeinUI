@@ -508,4 +508,47 @@ describe('컴포넌트가 실제로 합성하는 색 쌍', () => {
       ).toBeGreaterThanOrEqual(AA_UI);
     }
   });
+
+  it('Snackbar 닫기 버튼의 호버·눌림 면 위에서 흰 글리프가 네 severity 모두 3:1을 지킨다', () => {
+    // 면은 글자색(currentColor)을 옅게 섞은 반투명이라 severity 면과 섞인 색 위에
+    // 글리프(currentColor)가 얹힌다. 합성은 CSS `color-mix(in srgb, …)`와 같은 선형
+    // 평균이다. IconButton `weak dark`의 gray[300]을 그대로 두면 1.3:1이다.
+    const css = read(resolve(ROOT, 'src/components/Snackbar/Snackbar.css.ts'));
+    const closeBlock = declBlock(css, 'closeButton');
+    const mixes = [
+      ...closeBlock.matchAll(
+        /background: 'color-mix\(in srgb, currentColor (\d+)%, transparent\)'/g
+      ),
+    ].map((m) => Number(m[1]) / 100);
+    expect(mixes, '호버·눌림 두 규칙이 있어야 한다').toEqual([0.16, 0.24]);
+
+    const channels = (hex: string): number[] =>
+      [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
+    const toHex = (rgb: number[]): string =>
+      '#' +
+      rgb.map((c) => Math.round(c).toString(16).padStart(2, '0')).join('');
+    const mixOver = (fg: string, bg: string, weight: number): string =>
+      toHex(
+        channels(bg).map((b, i) => channels(fg)[i] * weight + b * (1 - weight))
+      );
+
+    const pairs = Object.fromEntries(
+      [
+        ...declBlock(css, 'severityStyles').matchAll(
+          /(\w+): \{\s*backgroundColor: themeContract\.([\w.[\]]+),\s*color: themeContract\.([\w.[\]]+)/g
+        ),
+      ].map((m) => [m[1], { bg: m[2], fg: m[3] }])
+    );
+    expect(Object.keys(pairs)).toHaveLength(4);
+
+    for (const [severity, { bg, fg }] of Object.entries(pairs)) {
+      for (const weight of mixes) {
+        const surface = mixOver(tokenValue(fg), tokenValue(bg), weight);
+        expect(
+          contrastRatio(tokenValue(fg), surface),
+          `${severity} 글리프(${fg}) on ${weight * 100}% 섞은 면(${surface})`
+        ).toBeGreaterThanOrEqual(AA_UI);
+      }
+    }
+  });
 });
