@@ -140,7 +140,7 @@ export const closeButton = style({
 
 // 카운트다운 막대. `Snackbar.tsx`가 매 프레임 `transform: scaleX()`만 바꾼다
 // (완료 조건 9 — `width`를 바꾸면 레이아웃 재계산이다). 배경은 severity가
-// 이미 쓰는 글자색(`currentColor`)을 그대로 물려받는다 — 새 토큰 없이 4종
+// 이미 쓰는 글자색(`currentColor`)을 그대로 물려받는다. 새 토큰 없이 4종
 // severity 면 전부에서 글자 대비와 같은 쌍으로 검증된다(완료 조건 8, llms.test.ts).
 // 시작 `scaleX(1)`은 첫 GSAP 틱 전 번쩍임을 막는 정적 기본값이다.
 export const bar = style({
