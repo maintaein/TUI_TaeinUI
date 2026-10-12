@@ -43,6 +43,11 @@ const meta = {
       control: 'number',
       description: 'Auto hide duration in ms (null to disable)',
     },
+    stack: {
+      control: 'boolean',
+      description:
+        'false면 같은 위치에 혼자 있다: 열릴 때 다른 스낵바를 닫고, 새 스낵바가 열리면 닫힌다 (기본 true)',
+    },
   },
 } satisfies Meta<typeof Snackbar>;
 
@@ -337,6 +342,46 @@ const MultipleSnackbarsComponent = () => {
 
 export const MultipleSnackbars: Story = {
   render: () => <MultipleSnackbarsComponent />,
+};
+
+const OneAtATimeComponent = () => {
+  const [items, setItems] = useState<Array<{ id: number; open: boolean }>>([]);
+  const nextId = useRef(1);
+
+  const add = () => {
+    const id = nextId.current++;
+    setItems((prev) => [...prev, { id, open: true }]);
+  };
+
+  const close = (id: number) => {
+    setItems((prev) =>
+      prev.map((item) => (item.id === id ? { ...item, open: false } : item))
+    );
+  };
+
+  return (
+    <div>
+      <button onClick={add} style={{ padding: '0.5rem 1rem' }}>
+        스낵바 열기
+      </button>
+
+      {/* 쌓기가 기본이다. stack={false}면 같은 위치에 하나만 보인다. */}
+      {items.map((item) => (
+        <Snackbar
+          key={item.id}
+          open={item.open}
+          stack={false}
+          message={`#${item.id} 알림`}
+          autoHideDuration={null}
+          onClose={() => close(item.id)}
+        />
+      ))}
+    </div>
+  );
+};
+
+export const OneAtATime: Story = {
+  render: () => <OneAtATimeComponent />,
 };
 
 const FormSubmissionComponent = () => {

@@ -29,6 +29,7 @@ import { gateMotion } from '../../hooks/gateMotion';
 import {
   registerSnackbar,
   setSnackbarHeight,
+  setSnackbarStack,
   stackOffsetOf,
   subscribeStack,
   unregisterSnackbar,
@@ -92,6 +93,13 @@ export interface SnackbarProps extends Omit<
   /** 자동 닫힘 시간(ms). null이면 자동 닫힘 비활성화 @default 6000 */
   autoHideDuration?: number | null;
   /**
+   * false면 같은 위치에 혼자 있다. 열릴 때 같은 위치의 다른 스낵바를 닫고(각자의 `onClose`),
+   * 열려 있는 동안 같은 위치에 새 스낵바가 열리면(쌓는 것이든 아니든) 그 새것이 닫힌다.
+   * 모든 스낵바에 false를 주면 새것이 이전 것을 바꿔 끼우는 한 번에 하나 모드가 된다.
+   * `onClose`가 없어 닫을 수 없는 것은 내보내지 못한다 @default true
+   */
+  stack?: boolean;
+  /**
    * 닫기 콜백. 닫기 버튼, 자동 닫힘, 같은 위치에 4개째가 열려 밀려날 때(가장 오래된 것)
    * 불린다. 없으면 자동 닫힘도, 밀려남도 일어나지 않는다. 밀려나서 불린 `onClose`에서
    * `open`을 내리지 않으면 그 스낵바는 남는다(줄이 3개를 넘어 길어진다)
@@ -133,6 +141,7 @@ export const Snackbar = ({
   severity = 'info',
   position = 'bottom-right',
   autoHideDuration = 6000,
+  stack = true,
   onClose,
   action,
   className,
@@ -212,6 +221,12 @@ export const Snackbar = ({
   // 매 렌더에 재지 않는다. 모듈 상태는 이 effect 안에서만 바뀐다(SSR 안전).
   // 선언 순서: onCloseRef 갱신 layout effect 뒤라야 넘침 때 최신 onClose를 부른다.
   const [stackId] = useState(() => Symbol('snackbar'));
+  // 등록 때 최신 `stack`을 읽는다. 열린 뒤에 바뀌면 아래 effect가 저장소에 알린다.
+  const stackRef = useRef(stack);
+  useLayoutEffect(() => {
+    stackRef.current = stack;
+    setSnackbarStack(stackId, stack);
+  }, [stack, stackId]);
   useLayoutEffect(() => {
     const sheet = sheetRef.current;
     if (!open || !sheet) return;
@@ -220,7 +235,8 @@ export const Snackbar = ({
       stackId,
       position,
       sheet.offsetHeight,
-      () => onCloseRef.current
+      () => onCloseRef.current,
+      stackRef.current
     );
     let observer: ResizeObserver | undefined;
     if (typeof ResizeObserver !== 'undefined') {

@@ -13,6 +13,7 @@ import {
   overflowVictims,
   registerSnackbar,
   setSnackbarHeight,
+  setSnackbarStack,
   stackOffsetOf,
   stackOffsets,
   subscribeStack,
@@ -39,9 +40,15 @@ describe('stackOffsets', () => {
 });
 
 describe('overflowVictims', () => {
-  const entry = (name: string, closable = true, evicted = false) => ({
+  const entry = (
+    name: string,
+    closable = true,
+    evicted = false,
+    stack = true
+  ) => ({
     name,
     evicted,
+    stack,
     getOnClose: () => (closable ? () => {} : undefined),
   });
 
@@ -77,6 +84,58 @@ describe('overflowVictims', () => {
   });
 });
 
+describe('overflowVictims: 쌓지 않는 것(stack=false)', () => {
+  const entry = (name: string, stack = true, closable = true) => ({
+    name,
+    stack,
+    evicted: false,
+    getOnClose: () => (closable ? () => {} : undefined),
+  });
+
+  it('가장 새 항목이 쌓지 않는 것이면 나머지 전부가 대상이다', () => {
+    const [a, b, c, s] = [
+      entry('a'),
+      entry('b'),
+      entry('c'),
+      entry('s', false),
+    ];
+    expect(overflowVictims([a, b, c, s], 3)).toEqual([a, b, c]);
+    expect(overflowVictims([a, s], 3)).toEqual([a]);
+  });
+
+  it('쌓지 않는 것이 먼저 있고 뒤에 아무것이나 열리면 쌓지 않는 것이 대상이다', () => {
+    const [s, a] = [entry('s', false), entry('a')];
+    expect(overflowVictims([s, a], 3)).toEqual([s]);
+  });
+
+  it('쌓지 않는 것 뒤에 쌓지 않는 것이 열려도 앞의 것이 대상이다 (새것이 이긴다)', () => {
+    const [s1, s2] = [entry('s1', false), entry('s2', false)];
+    expect(overflowVictims([s1, s2], 3)).toEqual([s1]);
+  });
+
+  it('쌓지 않는 것이 모두인 줄은 늘 마지막 하나만 남는다', () => {
+    const list = ['a', 'b', 'c', 'd'].map((n) => entry(n, false));
+    expect(overflowVictims(list, 3)).toEqual(list.slice(0, 3));
+  });
+
+  it('쌓는 것들의 넘침은 쌓지 않는 것이 끼어 있어도 쌓는 것끼리만 센다', () => {
+    const [a, s, b, c, d] = [
+      entry('a'),
+      entry('s', false),
+      entry('b'),
+      entry('c'),
+      entry('d'),
+    ];
+    // s는 새것 뒤에 있으니 대상. 쌓는 것은 a b c d 네 개라 a도 대상.
+    expect(overflowVictims([a, s, b, c, d], 3)).toEqual([a, s]);
+  });
+
+  it('닫을 수 없는(onClose 없는) 쌓지 않는 것은 대상에서 빠진다', () => {
+    const [s, a] = [entry('s', false, false), entry('a')];
+    expect(overflowVictims([s, a], 3)).toEqual([]);
+  });
+});
+
 describe('상수', () => {
   it('위치당 최대는 3개다 (사용자 결정)', () => {
     expect(MAX_PER_POSITION).toBe(3);
@@ -93,11 +152,12 @@ describe('저장소', () => {
   const open = (
     position: string,
     height: number,
-    onClose?: () => void
+    onClose?: () => void,
+    stack = true
   ): symbol => {
     const id = Symbol('t');
     ids.push(id);
-    registerSnackbar(id, position, height, () => onClose);
+    registerSnackbar(id, position, height, () => onClose, stack);
     return id;
   };
 
@@ -187,5 +247,40 @@ describe('저장소', () => {
     open('bottom-center', 40, named('b'));
     open('bottom-center', 40, named('c'));
     expect(closed).toEqual([]);
+  });
+
+  it('쌓지 않는 것이 열리면 같은 위치의 열린 것들만 닫히고 다른 위치는 그대로다', () => {
+    const closed: string[] = [];
+    const named = (n: string) => () => closed.push(n);
+    open('top-center', 40, named('x'));
+    open('bottom-center', 40, named('a'));
+    open('bottom-center', 40, named('b'));
+    open('bottom-center', 40, named('s'), false);
+    expect(closed).toEqual(['a', 'b']);
+  });
+
+  it('쌓지 않는 것이 열려 있는 위치에 새것이 열리면 쌓지 않는 것이 닫힌다', () => {
+    const closed: string[] = [];
+    const named = (n: string) => () => closed.push(n);
+    open('bottom-center', 40, named('s'), false);
+    open('bottom-center', 40, named('a'));
+    expect(closed).toEqual(['s']);
+  });
+
+  it('쌓지 않는 것이 다른 위치에 있으면 서로 상관없다', () => {
+    const closed: string[] = [];
+    const named = (n: string) => () => closed.push(n);
+    open('top-center', 40, named('s'), false);
+    open('bottom-center', 40, named('a'));
+    expect(closed).toEqual([]);
+  });
+
+  it('stack 값을 열린 뒤에 바꾸면 다음 계산에 반영된다', () => {
+    const closed: string[] = [];
+    const named = (n: string) => () => closed.push(n);
+    const a = open('bottom-center', 40, named('a'));
+    setSnackbarStack(a, false);
+    open('bottom-center', 40, named('b'));
+    expect(closed).toEqual(['a']);
   });
 });

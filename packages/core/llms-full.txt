@@ -575,7 +575,7 @@ import { Skeleton } from '@taein-ui/core';
 
 Toast notification with auto-hide. success and warning use the `dark` surface with white (`text.inverse`) text.
 
-Snackbars that are open at the same `position` stack automatically instead of overlapping: the newest sits at the screen edge (bottom or top), older ones are pushed inward with a `spacing[2]` gap. At most 3 per position. When a 4th opens, the oldest one's `onClose` is called, so a Snackbar without `onClose` is never evicted. No extra API.
+Snackbars that are open at the same `position` stack automatically instead of overlapping: the newest sits at the screen edge (bottom or top), older ones are pushed inward with a `spacing[2]` gap. At most 3 per position. When a 4th opens, the oldest one's `onClose` is called, so a Snackbar without `onClose` is never evicted. Stacking is the default. `stack={false}` keeps a Snackbar alone at its position: when it opens, the other Snackbars at that position are closed (each `onClose`), and when any Snackbar opens at that position while it is open, it is the one that gets closed (the newer wins). Give every Snackbar `stack={false}` to show one at a time, each new one replacing the previous.
 
 ```tsx
 import { Snackbar, Button } from '@taein-ui/core';
@@ -599,7 +599,8 @@ import { Snackbar, Button } from '@taein-ui/core';
 | severity | 'success' \| 'error' \| 'warning' \| 'info' | 'info' | Message type |
 | position | 'top-left' \| 'top-center' \| 'top-right' \| 'bottom-left' \| 'bottom-center' \| 'bottom-right' | 'bottom-right' | Position |
 | autoHideDuration | number \| null | 6000 | Auto-close duration (ms) |
-| onClose | () => void | — | Close callback. Also called when the oldest of 4 stacked Snackbars at one position is evicted |
+| stack | boolean | true | If false, stays alone at its position: closes the others when it opens, and is closed when another opens there |
+| onClose | () => void | — | Close callback. Also called when the oldest of 4 stacked Snackbars at one position is evicted, or when `stack={false}` closes it |
 | action | ReactNode | — | Action content |
 | className | string | — | Additional CSS class |
 

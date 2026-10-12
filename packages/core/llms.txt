@@ -61,7 +61,7 @@ All components follow consistent patterns:
 ### Feedback & Status
 - **Loader** - Loading indicator (orbit/spinner/dots/bar/wave/inchworm/fuse, default orbit), preset or any CSS color. Props: type, size, color, label, fullScreen, overlay, status(orbit only: 'loading'|'done'|'error', dots gather into a check or X), value(fuse only, required: 0-100 progress)
 - **Skeleton** — Content placeholder. Props: variant('text'|'rect'|'circle'|'rounded'), animation('wave'|'pulse'|false), width, height
-- **Snackbar**: Toast notification. Props: open, message, severity('success'|'error'|'warning'|'info'), position, autoHideDuration, action. Snackbars open at the same position stack automatically (newest at the screen edge, max 3; the 4th evicts the oldest via its onClose)
+- **Snackbar**: Toast notification. Props: open, message, severity('success'|'error'|'warning'|'info'), position, autoHideDuration, stack(default true), action. Snackbars open at the same position stack automatically (newest at the screen edge, max 3; the 4th evicts the oldest via its onClose). stack={false} keeps one Snackbar alone at its position
 - **Tooltip** — Hover tooltip. Props: children, content, position, delay, arrow
 
 ### Overlay

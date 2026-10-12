@@ -39,6 +39,13 @@ export function SnackbarPage() {
       description: '자동 닫힘까지 시간(ms). null이면 자동 닫힘 비활성화',
     },
     {
+      name: 'stack',
+      type: 'boolean',
+      default: 'true',
+      description:
+        'false면 같은 위치에 혼자 있다: 열릴 때 다른 스낵바를 닫고, 새 스낵바가 열리면 닫힌다',
+    },
+    {
       name: 'onClose',
       type: '() => void',
       description: '닫기 버튼 클릭 또는 자동 닫힘 시 호출',
@@ -243,7 +250,7 @@ const positions = ['top-left', 'top-center', 'top-right', 'bottom-left', 'bottom
           <h3 className={styles.exampleTitle}>여러 개 쌓기</h3>
           <LivePreview
             title="여러 개 쌓기"
-            description="버튼을 누를 때마다 스낵바를 하나씩 더합니다. 위치를 주지 않으면 오른쪽 아래에 쌓입니다. 4번째부터 가장 오래된 것이 onClose로 빠집니다. severity가 번갈아 나와 흰 글자도 함께 볼 수 있습니다."
+            description="쌓기가 기본입니다. 버튼을 누를 때마다 스낵바를 하나씩 더합니다. 위치를 주지 않으면 오른쪽 아래에 쌓입니다. 4번째부터 가장 오래된 것이 onClose로 빠집니다. severity가 번갈아 나와 흰 글자도 함께 볼 수 있습니다."
             editable
             code={`const [items, setItems] = useState([]);
 const severities = ['success', 'warning', 'error', 'info'];
@@ -254,6 +261,25 @@ const close = (id) => setItems((prev) => prev.map((item) => (item.id === id ? { 
   <Button size="sm" onClick={add}>스낵바 추가</Button>
   {items.map((item) => (
     <Snackbar key={item.id} open={item.open} message={'#' + item.id + ' ' + item.severity + ' 알림'} severity={item.severity} autoHideDuration={null} onClose={() => close(item.id)} />
+  ))}
+</div>`}
+          />
+        </div>
+
+        <div className={styles.example}>
+          <h3 className={styles.exampleTitle}>하나씩만 보이기</h3>
+          <LivePreview
+            title="하나씩만 보이기"
+            description="쌓기는 기본입니다. 한 번에 하나만 보여 주려면 stack={false}"
+            editable
+            code={`const [items, setItems] = useState([]);
+const add = () => setItems((prev) => [...prev, { id: prev.length + 1, open: true }]);
+const close = (id) => setItems((prev) => prev.map((item) => (item.id === id ? { ...item, open: false } : item)));
+
+<div>
+  <Button size="sm" onClick={add}>스낵바 열기</Button>
+  {items.map((item) => (
+    <Snackbar key={item.id} open={item.open} stack={false} message={'#' + item.id + ' 알림'} autoHideDuration={null} onClose={() => close(item.id)} />
   ))}
 </div>`}
           />

@@ -1103,17 +1103,19 @@ describe('Snackbar', () => {
       h: number;
       open?: boolean;
       position?: SnackbarProps['position'];
+      stack?: boolean;
       onClose?: () => void;
     }
 
     const Stack = ({ items }: { items: Item[] }) => (
       <>
-        {items.map(({ id, h, open = true, position, onClose }) => (
+        {items.map(({ id, h, open = true, position, stack, onClose }) => (
           <Snackbar
             key={id}
             open={open}
             message={id}
             position={position}
+            stack={stack}
             onClose={onClose}
             autoHideDuration={null}
             {...{ 'data-h': h }}
@@ -1233,6 +1235,86 @@ describe('Snackbar', () => {
       // 닫히기 시작한 B는 새 밀림 트윈을 받지 않는다. 지금 자리에서 퇴장 트윈으로 나간다.
       expect(sheetOf(container, 'B').__stackTween).toBe(closingTween);
       expect(closingTween?.parent).toBeNull();
+    });
+
+    describe('stack={false}: 같은 위치에 혼자 있다', () => {
+      it('셋이 쌓인 위치에 stack={false}를 열면 셋의 onClose가 불린다', () => {
+        const [a, b, c] = [A, B, C].map((item) => ({
+          ...item,
+          onClose: vi.fn(),
+        }));
+        const s = { ...D, id: 'S', stack: false, onClose: vi.fn() };
+        const { rerender } = render(<Stack items={[a, b, c]} />);
+
+        rerender(<Stack items={[a, b, c, s]} />);
+
+        expect(a.onClose).toHaveBeenCalledTimes(1);
+        expect(b.onClose).toHaveBeenCalledTimes(1);
+        expect(c.onClose).toHaveBeenCalledTimes(1);
+        expect(s.onClose).not.toHaveBeenCalled();
+      });
+
+      it('stack={false}가 열려 있는 위치에 새것이 열리면 stack={false} 쪽의 onClose가 불린다', () => {
+        const s = { ...A, id: 'S', stack: false, onClose: vi.fn() };
+        const b = { ...B, onClose: vi.fn() };
+        const { rerender } = render(<Stack items={[s]} />);
+
+        rerender(<Stack items={[s, b]} />);
+
+        expect(s.onClose).toHaveBeenCalledTimes(1);
+        expect(b.onClose).not.toHaveBeenCalled();
+      });
+
+      it('모두 stack={false}면 새것이 열릴 때마다 이전 것의 onClose만 불린다', () => {
+        const mk = (id: string) => ({
+          id,
+          h: 40,
+          stack: false,
+          onClose: vi.fn(),
+        });
+        const [x, y, z] = [mk('X'), mk('Y'), mk('Z')];
+        const { rerender } = render(<Stack items={[x]} />);
+
+        rerender(<Stack items={[x, y]} />);
+        expect(x.onClose).toHaveBeenCalledTimes(1);
+        expect(y.onClose).not.toHaveBeenCalled();
+
+        rerender(<Stack items={[{ ...x, open: false }, y, z]} />);
+        expect(y.onClose).toHaveBeenCalledTimes(1);
+        expect(z.onClose).not.toHaveBeenCalled();
+        expect(x.onClose).toHaveBeenCalledTimes(1);
+      });
+
+      it('다른 위치의 스낵바는 stack={false}에 닫히지 않는다', () => {
+        const a = { ...A, position: 'top-right' as const, onClose: vi.fn() };
+        const s = { ...D, id: 'S', stack: false, onClose: vi.fn() };
+        const { rerender } = render(<Stack items={[a]} />);
+
+        rerender(<Stack items={[a, s]} />);
+
+        expect(a.onClose).not.toHaveBeenCalled();
+      });
+
+      it('onClose가 없는 스낵바는 stack={false}가 열려도 내보내지 못한다', () => {
+        const s = { ...D, id: 'S', stack: false };
+        const { container, rerender } = render(<Stack items={[A]} />);
+
+        rerender(<Stack items={[A, s]} />);
+
+        expect(sheetOf(container, 'A')).toBeInTheDocument();
+      });
+
+      it('열린 뒤에 stack이 false로 바뀌면 다음에 열리는 스낵바가 열릴 때 그것이 닫힌다', () => {
+        const a = { ...A, onClose: vi.fn() };
+        const b = { ...B, onClose: vi.fn() };
+        const { rerender } = render(<Stack items={[a]} />);
+
+        rerender(<Stack items={[{ ...a, stack: false }]} />);
+        rerender(<Stack items={[{ ...a, stack: false }, b]} />);
+
+        expect(a.onClose).toHaveBeenCalledTimes(1);
+        expect(b.onClose).not.toHaveBeenCalled();
+      });
     });
 
     /** 시트의 등장·퇴장 타임라인이 가진 트윈 중 해당 속성을 만지는 것이 있는가 */
