@@ -9,6 +9,7 @@ import {
   textItem,
   textLabel,
   dropdownSlot,
+  dropdownTrigger,
   dropdownChevron,
   dropdownPanel,
   dropdownLink,
@@ -38,6 +39,8 @@ export const HeaderBarDropdownItem = ({
   const reduced = useReducedMotion();
   const panelId = useId();
   const slotRef = useRef<HTMLDivElement | null>(null);
+  // 마우스가 슬롯 안에 있는가. 클릭이 마우스에서 왔는지 가리는 데 쓴다.
+  const mouseInside = useRef(false);
   const triggerRef = useRef<HTMLButtonElement | null>(null);
   const panelRef = useRef<(HTMLUListElement & PanelTweenHost) | null>(null);
   usePanelTween(panelRef, open, reduced);
@@ -73,14 +76,34 @@ export const HeaderBarDropdownItem = ({
   };
 
   return (
-    <div ref={slotRef} className={dropdownSlot} onBlur={closeOnFocusLeave}>
+    <div
+      ref={slotRef}
+      className={dropdownSlot}
+      onBlur={closeOnFocusLeave}
+      onPointerEnter={(event) => {
+        if (event.pointerType !== 'mouse') return;
+        mouseInside.current = true;
+        onOpenChange(true);
+      }}
+      onPointerLeave={(event) => {
+        if (event.pointerType !== 'mouse') return;
+        mouseInside.current = false;
+        if (open) onOpenChange(false);
+      }}
+    >
       <button
         ref={triggerRef}
         type="button"
-        className={textItem}
+        className={clsx(textItem, dropdownTrigger)}
         aria-expanded={open}
         aria-controls={panelId}
-        onClick={() => onOpenChange(!open)}
+        onClick={(event) => {
+          // 마우스 클릭(detail 1 이상)은 열기만 한다. 호버로 이미 열린 판이 클릭에 닫히면
+          // 안 된다. 키보드의 Enter·Space는 detail 0이라, 터치·펜은 마우스가 아니라 지금처럼
+          // 열고 닫는다.
+          const fromMouse = mouseInside.current && event.detail > 0;
+          onOpenChange(fromMouse ? true : !open);
+        }}
       >
         <span className={textLabel}>{label}</span>
         <span className={dropdownChevron}>

@@ -157,7 +157,15 @@ export const textNav = style({
   gap: themeContract.spacing[1],
 });
 
-// 글자 항목. 라벨 아래 밑줄이 왼쪽에서 그어진다.
+/**
+ * 호버·키보드 포커스·선택된 항목의 옅은 바탕. currentColor라 어두운 바에서도 글자색에
+ * 맞는다. 글자 항목(text·dropdown·판 안 링크)과 icon 알약이 같이 쓴다.
+ */
+export const TINT_HOVER = 'color-mix(in srgb, currentColor 10%, transparent)';
+/** 누르는 동안의 바탕(icon 알약). */
+export const TINT_PRESS = 'color-mix(in srgb, currentColor 16%, transparent)';
+
+// 글자 항목. 호버·키보드 포커스에서 옅은 바탕이 깔리고, 선택된 항목은 그 바탕이 늘 깔린다.
 export const textItem = style({
   display: 'inline-flex',
   alignItems: 'center',
@@ -171,66 +179,40 @@ export const textItem = style({
   textDecoration: 'none',
   cursor: 'pointer',
   touchAction: 'manipulation',
-  borderRadius: themeContract.borderRadius.sm,
+  borderRadius: themeContract.borderRadius.full,
+  transition: `background-color ${duration.fast} ${settle}`,
 
   selectors: {
+    // 키보드 포커스는 호버 게이트 밖이다(터치에도 키보드는 있다).
     '&:focus-visible': {
       ...focusRing('currentColor'),
+      backgroundColor: TINT_HOVER,
     },
+    // 지금 보고 있는 페이지는 바탕이 늘 깔려 있다.
     '&[aria-current="page"]': {
       fontWeight: themeContract.font.weight.semibold,
+      backgroundColor: TINT_HOVER,
+    },
+  },
+
+  '@media': {
+    // 호버는 마우스 같은 정밀 포인터에서만. 터치는 탭 뒤 바탕이 들러붙는다.
+    '(hover: hover) and (pointer: fine)': {
+      selectors: {
+        '&:hover': {
+          backgroundColor: TINT_HOVER,
+        },
+      },
+    },
+    // 축소 선호: 바탕은 전이 없이 바로 깔리고 걷힌다.
+    '(prefers-reduced-motion: reduce)': {
+      transition: 'none',
     },
   },
 });
 
 export const textLabel = style({
-  position: 'relative',
   display: 'inline-block',
-
-  selectors: {
-    // 쉬는 모습: 왼쪽 원점의 scaleX 0. 나갈 때는 fast로 접힌다.
-    '&::after': {
-      content: '""',
-      position: 'absolute',
-      left: 0,
-      right: 0,
-      bottom: `calc(${themeContract.spacing[1]} * -1)`,
-      height: '2px',
-      backgroundColor: 'currentColor',
-      transform: 'scaleX(0)',
-      transformOrigin: 'left',
-      transition: `transform ${duration.fast} ${settle}`,
-    },
-    // 지금 보고 있는 페이지는 늘 그어져 있다.
-    [`${textItem}[aria-current="page"] &::after`]: {
-      transform: 'scaleX(1)',
-    },
-    // 키보드 포커스는 호버 게이트 밖이다(터치에도 키보드는 있다).
-    [`${textItem}:focus-visible &::after`]: {
-      transform: 'scaleX(1)',
-      transitionDuration: duration.base,
-    },
-  },
-
-  '@media': {
-    // 호버는 마우스 같은 정밀 포인터에서만. 터치는 탭 뒤 밑줄이 들러붙는다.
-    '(hover: hover) and (pointer: fine)': {
-      selectors: {
-        [`${textItem}:hover &::after`]: {
-          transform: 'scaleX(1)',
-          transitionDuration: duration.base,
-        },
-      },
-    },
-    // 축소 선호: 밑줄은 전이 없이 즉시 그어지고 걷힌다.
-    '(prefers-reduced-motion: reduce)': {
-      selectors: {
-        '&::after': {
-          transition: 'none',
-        },
-      },
-    },
-  },
 });
 
 // 햄버거. 넓은 화면(768px 이상)에서는 숨는다.
@@ -361,10 +343,14 @@ export const PILL_NAV_HEIGHT = 40;
 export const PILL_NAV_PADDING = 3;
 /** 알약 사이 간격(px). PillNav의 --pill-gap(PillNav.tsx:246). */
 export const PILL_GAP = 3;
-/** active 점 지름(px). */
-export const PILL_DOT_SIZE = 6;
-/** active 점이 알약 아래로 떨어진 거리(px). 점은 바 안쪽에 들어온다. */
-export const PILL_DOT_OFFSET = 4;
+// 선택된 항목의 광휘. 값은 Loader의 loaderGlow(Loader.css.ts:18-19)와 같다: 0 0 6px,
+// 광휘 색 45%. loaderGlow는 Loader 시험이 그 정의 글자를 잠가 옮기지 못해 같은 값을 둔다.
+/** 광휘 번짐 반경(px). */
+const GLOW_BLUR_PX = 6;
+/** 광휘 색의 진하기(%). */
+const GLOW_MIX_PERCENT = 45;
+const pillGlow = (color: string): string =>
+  `0 0 ${GLOW_BLUR_PX}px color-mix(in srgb, ${color} ${GLOW_MIX_PERCENT}%, transparent)`;
 
 // variant가 면·글자·원 색을 바꾼다. 알약 부품은 이 변수만 읽는다.
 const pillFace = createVar();
@@ -372,6 +358,7 @@ const pillBase = createVar();
 const pillText = createVar();
 const pillCircleColor = createVar();
 const pillCoverColor = createVar();
+const pillGlowColor = createVar();
 
 const pillLightVars = {
   [pillFace]: themeContract.color.surface.hover,
@@ -379,6 +366,7 @@ const pillLightVars = {
   [pillText]: themeContract.color.text.primary,
   [pillCircleColor]: themeContract.color.primary.main,
   [pillCoverColor]: themeContract.color.primary.contrast,
+  [pillGlowColor]: themeContract.color.primary.contrast,
 };
 
 export const pillVariantStyles = styleVariants({
@@ -392,6 +380,7 @@ export const pillVariantStyles = styleVariants({
       [pillText]: themeContract.color.text.inverse,
       [pillCircleColor]: themeContract.color.primary.light,
       [pillCoverColor]: themeContract.color.text.primary,
+      [pillGlowColor]: themeContract.color.background.paper,
     },
   },
   transparent: { vars: pillLightVars },
@@ -406,13 +395,6 @@ export const pillNav = style({
   padding: `${PILL_NAV_PADDING}px`,
   borderRadius: themeContract.borderRadius.full,
   backgroundColor: pillFace,
-});
-
-// 알약과 점의 기준. 점은 overflow: hidden인 알약 밖에 있어야 잘리지 않아 형제로 둔다.
-export const pillSlot = style({
-  position: 'relative',
-  display: 'flex',
-  height: '100%',
 });
 
 export const pillItem = style({
@@ -478,18 +460,13 @@ export const pillCover = style({
   color: pillCoverColor,
   opacity: 0,
   zIndex: 3,
-});
 
-export const pillDot = style({
-  position: 'absolute',
-  top: `calc(100% + ${PILL_DOT_OFFSET}px)`,
-  left: '50%',
-  width: `${PILL_DOT_SIZE}px`,
-  height: `${PILL_DOT_SIZE}px`,
-  marginLeft: `-${PILL_DOT_SIZE / 2}px`,
-  borderRadius: themeContract.borderRadius.full,
-  backgroundColor: pillCircleColor,
-  pointerEvents: 'none',
+  selectors: {
+    // 선택된 항목은 늘 채워져 있고, 덮는 글자에 움직이지 않는 광휘가 걸린다.
+    [`${pillItem}[aria-current="page"] &`]: {
+      textShadow: pillGlow(pillGlowColor),
+    },
+  },
 });
 
 // ---------------------------------------------------------------------------
@@ -498,6 +475,17 @@ export const pillDot = style({
 
 /** 드롭다운 판 최소 폭. 짧은 하위 링크도 누르기 쉬운 폭을 갖는다. */
 const DROPDOWN_MIN_WIDTH = '10rem';
+/**
+ * 드롭다운 항목 버튼의 높이(px). 버튼은 바 안에서 세로 가운데라, 높이를 정해 두어야
+ * 버튼 아래 끝에서 판 위 끝까지의 틈(아래 다리의 높이)을 식으로 낼 수 있다.
+ */
+export const DROPDOWN_ITEM_HEIGHT = 36;
+/** 판 위 끝에서 버튼 아래 끝까지: 판과 바 사이 간격 + 바 아래쪽 남는 높이의 절반 */
+const DROPDOWN_BRIDGE_HEIGHT = `calc(${PANEL_GAP} + ${(BAR_HEIGHT - DROPDOWN_ITEM_HEIGHT) / 2}px)`;
+
+export const dropdownTrigger = style({
+  height: `${DROPDOWN_ITEM_HEIGHT}px`,
+});
 
 // 슬롯은 위치를 잡지 않는다. 그래야 absolute인 판의 기준이 슬롯이 아니라 바가 되어
 // "바 아래 spacing[2]"가 된다(가로는 static position이 항목 왼쪽을 준다).
@@ -539,6 +527,20 @@ export const dropdownPanel = style({
   opacity: 0,
   visibility: 'hidden',
   transform: `translateY(${PANEL_OFFSET_Y}px)`,
+
+  selectors: {
+    // 보이지 않는 다리. 마우스가 버튼에서 판으로 틈을 지나는 동안 슬롯을 나간 것으로
+    // 치지 않게 판 위쪽을 버튼 아래 끝까지 이어 붙인다. visibility를 판에서 물려받아
+    // 판이 닫혀 있으면 다리도 숨는다. 타이머는 쓰지 않는다.
+    '&::before': {
+      content: '""',
+      position: 'absolute',
+      bottom: '100%',
+      left: 0,
+      right: 0,
+      height: DROPDOWN_BRIDGE_HEIGHT,
+    },
+  },
 });
 
 export const dropdownLink = style({

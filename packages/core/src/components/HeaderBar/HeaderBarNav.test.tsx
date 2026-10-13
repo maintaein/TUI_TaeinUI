@@ -1,13 +1,12 @@
 /**
  * M3 T8, HeaderBar `navStyle="icon"`(옛 HeaderBarNav). 커서/포커스 근접 확대 + 가드 2개.
  * M5 task-24에서 HeaderBarNav가 공개 export에서 내려가 HeaderBar의 아이콘 형태가
- * 됐다. 순수 함수(itemCenter·proximityScales)는 내부 모듈에서 직접 시험하고,
- * 나머지는 HeaderBar를 `navStyle="icon"`으로 렌더해 시험한다.
+ * 됐고, fix 2에서 근접 보간을 걷어 커서(또는 포커스)가 올라간 항목만 커진다.
+ * HeaderBar를 `navStyle="icon"`으로 렌더해 시험한다.
  *
  * jsdom에는 레이아웃이 없다(getBoundingClientRect 등이 전부 0 — 선결 사실 9).
- * 포인터 경로는 여기서 끝까지 검증할 수 없으므로, 순수 함수(itemCenter·
- * proximityScales)와 "포커스도 같은 신호"라는 사실을 이용해 키보드 경로로
- * 끝까지 검증한다(Ruling 59). GSAP 티커도 jsdom에서 안 돌므로(선결 사실 10)
+ * 포인터는 항목의 pointerenter·pointerleave로, 키보드는 focus로 같은 신호를
+ * 넣는다. GSAP 티커도 jsdom에서 안 돌므로(선결 사실 10)
  * `__navScaleSetters`로 실제 quickTo 트윈을 꺼내 `tween.progress()`로 직접
  * seek한다 — 실제 GSAP 인스턴스를 조작하는 것이므로 무모킹 규칙에 맞다
  * (Snackbar.test.tsx의 `__countdownTween`과 같은 통로 모양).
@@ -19,13 +18,8 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { HeaderBar, type HeaderBarIconItem } from './HeaderBar';
-import { itemCenter, proximityScales } from './HeaderBarNav';
-import {
-  ITEM_SCALE_VAR,
-  RESERVED_SIZE,
-  ITEM_PITCH,
-  MAX_SCALE,
-} from './HeaderBarNav.css';
+import { ITEM_SCALE_VAR, MAX_SCALE } from './HeaderBarNav.css';
+import { TINT_HOVER, TINT_PRESS } from './HeaderBar.css';
 
 /** Snackbar.tsx의 CountdownTweenHost와 같은 모양의 테스트 전용 통로. */
 type NavScaleSetterHost = HTMLElement & {
@@ -67,42 +61,6 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-describe('itemCenter · proximityScales — 순수 함수 (DOM 없음)', () => {
-  it('상수로부터 항목 중심을 계산한다', () => {
-    expect(itemCenter(0)).toBe(RESERVED_SIZE / 2 + 0 * ITEM_PITCH);
-    expect(itemCenter(1)).toBe(RESERVED_SIZE / 2 + 1 * ITEM_PITCH);
-    expect(itemCenter(2)).toBe(RESERVED_SIZE / 2 + 2 * ITEM_PITCH);
-    expect(itemCenter(0)).toBe(28);
-    expect(itemCenter(1)).toBe(92);
-    expect(itemCenter(2)).toBe(156);
-  });
-
-  it('"양옆 이웃은 절반만 부푼다"의 산술 증명', () => {
-    const scales = proximityScales(itemCenter(2), 5);
-    expect(scales[0]).toBeCloseTo(1);
-    expect(scales[1]).toBeCloseTo(1.2);
-    expect(scales[2]).toBeCloseTo(1.4);
-    expect(scales[3]).toBeCloseTo(1.2);
-    expect(scales[4]).toBeCloseTo(1);
-  });
-
-  it('가드 1: 정의역을 훑어도 배율이 [1, MAX_SCALE]을 벗어나지 않는다', () => {
-    const from = -200;
-    const to = itemCenter(4) + 200;
-    for (let origin = from; origin <= to; origin += 1) {
-      const scales = proximityScales(origin, 5);
-      for (const scale of scales) {
-        expect(scale).toBeGreaterThanOrEqual(1);
-        expect(scale).toBeLessThanOrEqual(MAX_SCALE);
-      }
-    }
-  });
-
-  it('origin이 null(쉼)이면 전부 rest다', () => {
-    expect(proximityScales(null, 3)).toEqual([1, 1, 1]);
-  });
-});
-
 describe('HeaderBar icon: 렌더·접근성', () => {
   it('nav 랜드마크가 있고 기본 aria-label(주요 메뉴)이 붙는다', () => {
     render(<HeaderBar navStyle="icon" items={makeItems(3)} />);
@@ -138,8 +96,8 @@ describe('HeaderBar icon: 렌더·접근성', () => {
   });
 });
 
-describe('HeaderBar icon: 키보드 = 포인터와 같은 신호', () => {
-  it('두 번째 항목에 포커스하면 그 항목이 1.4, 양옆이 1.2, 그 밖은 1이다', () => {
+describe('HeaderBar icon: 커서·포커스가 올라간 항목만 커진다', () => {
+  it('두 번째 항목에 포커스하면 그 항목만 1.4고 이웃을 포함해 나머지는 1이다', () => {
     const { container } = render(
       <HeaderBar navStyle="icon" items={makeItems(5)} />
     );
@@ -154,11 +112,90 @@ describe('HeaderBar icon: 키보드 = 포인터와 같은 신호', () => {
     setters.forEach((setter) => setter.tween.progress(1));
 
     const pills = getPills(container);
-    expect(readScale(pills[0])).toBeCloseTo(1.2);
-    expect(readScale(pills[1])).toBeCloseTo(1.4);
-    expect(readScale(pills[2])).toBeCloseTo(1.2);
+    expect(readScale(pills[0])).toBeCloseTo(1);
+    expect(readScale(pills[1])).toBeCloseTo(MAX_SCALE);
+    expect(readScale(pills[2])).toBeCloseTo(1);
     expect(readScale(pills[3])).toBeCloseTo(1);
     expect(readScale(pills[4])).toBeCloseTo(1);
+  });
+
+  it('커서가 올라간 항목만 MAX_SCALE로 커지고 이웃은 그대로 1이다', () => {
+    const { container } = render(
+      <HeaderBar navStyle="icon" items={makeItems(5)} />
+    );
+    const nav = screen.getByRole('navigation', {
+      name: '주요 메뉴',
+    }) as NavScaleSetterHost;
+
+    fireEvent.pointerEnter(screen.getByRole('button', { name: '항목 2' }));
+    (nav.__navScaleSetters ?? []).forEach((setter) => setter.tween.progress(1));
+
+    const pills = getPills(container);
+    expect(readScale(pills[2])).toBeCloseTo(MAX_SCALE);
+    for (const index of [0, 1, 3, 4]) {
+      expect(readScale(pills[index])).toBeCloseTo(1);
+    }
+  });
+
+  it('커서가 나가면 1로 돌아온다', () => {
+    const { container } = render(
+      <HeaderBar navStyle="icon" items={makeItems(3)} />
+    );
+    const nav = screen.getByRole('navigation', {
+      name: '주요 메뉴',
+    }) as NavScaleSetterHost;
+    const setters = nav.__navScaleSetters ?? [];
+    const target = screen.getByRole('button', { name: '항목 1' });
+
+    fireEvent.pointerEnter(target);
+    setters.forEach((setter) => setter.tween.progress(1));
+    expect(readScale(getPills(container)[1])).toBeCloseTo(MAX_SCALE);
+
+    fireEvent.pointerLeave(target);
+    setters.forEach((setter) => setter.tween.progress(1));
+    for (const pill of getPills(container)) {
+      expect(readScale(pill)).toBeCloseTo(1);
+    }
+  });
+
+  it('커서가 이웃 항목으로 옮겨가면 앞 항목은 1로, 새 항목만 커진다', () => {
+    const { container } = render(
+      <HeaderBar navStyle="icon" items={makeItems(3)} />
+    );
+    const nav = screen.getByRole('navigation', {
+      name: '주요 메뉴',
+    }) as NavScaleSetterHost;
+    const first = screen.getByRole('button', { name: '항목 0' });
+    const second = screen.getByRole('button', { name: '항목 1' });
+
+    fireEvent.pointerEnter(first);
+    fireEvent.pointerLeave(first);
+    fireEvent.pointerEnter(second);
+    (nav.__navScaleSetters ?? []).forEach((setter) => setter.tween.progress(1));
+
+    const pills = getPills(container);
+    expect(readScale(pills[0])).toBeCloseTo(1);
+    expect(readScale(pills[1])).toBeCloseTo(MAX_SCALE);
+    expect(readScale(pills[2])).toBeCloseTo(1);
+  });
+
+  it('pointermove는 배율에 영향을 주지 않는다(근접 보간이 없다)', () => {
+    const { container } = render(
+      <HeaderBar navStyle="icon" items={makeItems(3)} />
+    );
+    const nav = screen.getByRole('navigation', {
+      name: '주요 메뉴',
+    }) as NavScaleSetterHost;
+    const setters = nav.__navScaleSetters ?? [];
+
+    fireEvent.pointerEnter(screen.getByRole('button', { name: '항목 0' }));
+    // 커서가 이웃 항목 중심 쪽으로 움직여도 이웃은 부풀지 않는다.
+    fireEvent.pointerMove(nav, { clientX: 90 });
+    setters.forEach((setter) => setter.tween.progress(1));
+    const pills = getPills(container);
+    expect(readScale(pills[0])).toBeCloseTo(MAX_SCALE);
+    expect(readScale(pills[1])).toBeCloseTo(1);
+    expect(readScale(pills[2])).toBeCloseTo(1);
   });
 
   it('정착 전에 포커스를 옮겨도 배율이 0이나 1로 순간이동하지 않는다 (명제 조항 1③, Ruling 87)', () => {
@@ -191,8 +228,8 @@ describe('HeaderBar icon: 키보드 = 포인터와 같은 신호', () => {
     expect(afterInterrupt).not.toBeCloseTo(1, 5);
     expect(afterInterrupt).toBeCloseTo(midValue, 5);
 
-    // 이제 전부 정착한다 — 최종값을 확인한다. 원점이 항목 3으로 옮겨갔으니
-    // 항목 1은 두 칸 이상 떨어져 쉼(1)으로, 항목 3은 1.4로 향한다.
+    // 이제 전부 정착한다. 최종값을 확인한다. 항목 3으로 포커스가 옮겨갔으니
+    // 항목 1은 쉼(1)으로, 항목 3은 1.4로 향한다.
     setters.forEach((setter) => setter.tween.progress(1));
     expect(readScale(pills[1])).toBeCloseTo(1, 5);
     expect(readScale(pills[3])).toBeCloseTo(1.4);
@@ -217,9 +254,9 @@ describe('HeaderBar icon: 키보드 = 포인터와 같은 신호', () => {
     (nav.__navScaleSetters ?? []).forEach((setter) => setter.tween.progress(1));
 
     const pills = getPills(container);
-    expect(readScale(pills[0])).toBeCloseTo(1.2);
+    expect(readScale(pills[0])).toBeCloseTo(1);
     expect(readScale(pills[1])).toBeCloseTo(1.4);
-    expect(readScale(pills[2])).toBeCloseTo(1.2);
+    expect(readScale(pills[2])).toBeCloseTo(1);
   });
 
   it('nav 밖으로 blur가 나가면(relatedTarget이 nav 밖) 모두 1로 돌아온다', () => {
@@ -327,5 +364,40 @@ describe('HeaderBar icon: CSSOM 잠금 (가드 2를 구조로 고정)', () => {
     const rule = findBaseRule(findHeaderBarNavStyleSheet(), 'item');
     expect(rule.style.width).toBe('56px');
     expect(rule.style.height).toBe('56px');
+  });
+
+  // cssstyle이 color-mix()를 버릴 수 있어 선언 텍스트에서 읽는다.
+  const bgOf = (selector: RegExp): string | undefined => {
+    const rule = Array.from(findHeaderBarNavStyleSheet().cssRules).find(
+      (candidate): candidate is CSSStyleRule =>
+        candidate instanceof CSSStyleRule &&
+        selector.test(candidate.selectorText)
+    );
+    if (!rule) throw new Error(`규칙을 찾지 못했다: ${selector}`);
+    return /(?<![\w-])background-color:\s*([^;}]*)/
+      .exec(rule.cssText)?.[1]
+      .trim();
+  };
+
+  it('호버·키보드 포커스 바탕은 currentColor 10% 섞음이다(surface.hover가 아니다)', () => {
+    render(<HeaderBar navStyle="icon" items={makeItems(1)} />);
+    expect(TINT_HOVER).toBe(
+      'color-mix(in srgb, currentColor 10%, transparent)'
+    );
+    expect(bgOf(/:hover [^\s]*pill/)).toBe(TINT_HOVER);
+    expect(bgOf(/:focus-visible [^\s]*pill/)).toBe(TINT_HOVER);
+  });
+
+  it('aria-current="page" 항목은 같은 바탕이 늘 깔린다', () => {
+    render(<HeaderBar navStyle="icon" items={makeItems(1)} />);
+    expect(bgOf(/\[aria-current="page"\] [^\s]*pill/)).toBe(TINT_HOVER);
+  });
+
+  it('누르는 동안은 currentColor 16%다', () => {
+    render(<HeaderBar navStyle="icon" items={makeItems(1)} />);
+    expect(TINT_PRESS).toBe(
+      'color-mix(in srgb, currentColor 16%, transparent)'
+    );
+    expect(bgOf(/:active [^\s]*pill/)).toBe(TINT_PRESS);
   });
 });

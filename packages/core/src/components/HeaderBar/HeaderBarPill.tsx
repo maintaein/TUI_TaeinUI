@@ -6,13 +6,11 @@ import { gsapDuration, gsapEasing } from '../../tokens/gsapEasing';
 import type { HeaderBarItem } from './HeaderBar';
 import {
   pillNav,
-  pillSlot,
   pillItem,
   pillCircle,
   pillLabelStack,
   pillLabel,
   pillCover,
-  pillDot,
 } from './HeaderBar.css';
 
 // 아래 상수와 식의 출처는 전부 PillNav(.claude/고도화/ex/PillNav.tsx)다.
@@ -79,8 +77,12 @@ const HeaderBarPillItem = ({ item }: HeaderBarPillItemProps) => {
   const circleRef = useRef<HTMLSpanElement | null>(null);
   const labelRef = useRef<HTMLSpanElement | null>(null);
   const coverRef = useRef<HTMLSpanElement | null>(null);
-  // 마우스와 키보드 포커스가 따로 채운다. 둘 중 하나라도 있으면 채워 둔다.
-  const held = useRef({ pointer: false, focus: false });
+  // 마우스, 키보드 포커스, 선택(active)이 따로 채운다. 셋 중 하나라도 있으면 채워 둔다.
+  const held = useRef({
+    pointer: false,
+    focus: false,
+    active: Boolean(item.active),
+  });
 
   // 알약 크기를 재서 원과 글자를 놓고 멈춘 타임라인 하나를 만든다(:52-100).
   // 마운트, 글자(=폭) 변화, 창 크기, 글꼴 로딩 때 다시 잰다(:102-109).
@@ -110,9 +112,12 @@ const HeaderBarPillItem = ({ item }: HeaderBarPillItemProps) => {
       gsap.set(cover, { y: g.coverFrom, opacity: 0 });
 
       const timeline = gsap.timeline({ paused: true });
+      // 타임라인 안 트윈은 linear다. 감속은 바깥 tweenTo(settle) 하나만 건다. PillNav는
+      // 안과 밖이 둘 다 power3.out이라(:87-95, :142-162) 감속이 겹쳐 눈에는 약 70ms에
+      // 다 찬다.
       const common = {
         duration: TIMELINE_LENGTH,
-        ease: gsapEasing.settle,
+        ease: gsapEasing.linear,
         overwrite: 'auto',
       } as const;
       timeline.to(
@@ -123,6 +128,8 @@ const HeaderBarPillItem = ({ item }: HeaderBarPillItemProps) => {
       timeline.to(label, { y: g.labelTo, ...common }, 0);
       timeline.to(cover, { y: 0, opacity: 1, ...common }, 0);
       pill.__pillTimeline = timeline;
+      // 선택된 항목은 늘 채워진 끝 상태다. 재생이 아니라 자리를 잡는 것이다.
+      timeline.progress(held.current.active ? 1 : 0);
     };
 
     layout();
@@ -156,13 +163,21 @@ const HeaderBarPillItem = ({ item }: HeaderBarPillItemProps) => {
     );
   };
 
-  const hold = (key: 'pointer' | 'focus', on: boolean) => {
+  const hold = (key: 'pointer' | 'focus' | 'active', on: boolean) => {
     const state = held.current;
-    const before = state.pointer || state.focus;
+    const before = state.pointer || state.focus || state.active;
     state[key] = on;
-    const after = state.pointer || state.focus;
+    const after = state.pointer || state.focus || state.active;
     if (before !== after) play(after);
   };
+
+  // 다른 페이지로 넘어가 active가 바뀌면 새 항목은 들어옴, 옛 항목은 나감이다
+  // (호버와 같은 경로). 마운트 때는 이미 맞아 있어 아무 일도 없다.
+  useLayoutEffect(() => {
+    hold('active', Boolean(item.active));
+    // hold는 렌더마다 새로 만들어지지만 읽는 것은 ref뿐이라 active만 본다.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [item.active]);
 
   const interaction = {
     // 터치에서는 호버가 없고 원이 들러붙는다. 마우스만.
@@ -199,21 +214,14 @@ const HeaderBarPillItem = ({ item }: HeaderBarPillItemProps) => {
     </>
   );
 
-  return (
-    <span className={pillSlot}>
-      {item.href ? (
-        <a href={item.href} {...interaction}>
-          {content}
-        </a>
-      ) : (
-        <button type="button" {...interaction}>
-          {content}
-        </button>
-      )}
-      {item.active && (
-        <span className={pillDot} data-pill-dot="" aria-hidden="true" />
-      )}
-    </span>
+  return item.href ? (
+    <a href={item.href} {...interaction}>
+      {content}
+    </a>
+  ) : (
+    <button type="button" {...interaction}>
+      {content}
+    </button>
   );
 };
 

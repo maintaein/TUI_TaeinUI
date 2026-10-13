@@ -1,20 +1,19 @@
 import { style } from '@vanilla-extract/css';
 import { themeContract } from '../../tokens/theme.css';
 import { focusRing } from '../../tokens/focusRing.css';
+import { TINT_HOVER, TINT_PRESS } from './HeaderBar.css';
 
 /** GSAP이 프레임마다 쓰는 배율 채널. transform은 이 변수만 읽는다 — Ruling 55. */
 export const ITEM_SCALE_VAR = '--header-bar-nav-item-scale';
 
 /** 보이는 알약의 한 변(px). */
 export const PILL_SIZE = 40;
-/** 최대 배율. Dock의 70/50과 같은 비율이다. */
+/** 커서(또는 포커스)가 올라간 항목의 배율. Dock의 70/50과 같은 비율이다. */
 export const MAX_SCALE = 1.4;
 /** 히트 영역 = 예약 박스의 한 변(px). PILL_SIZE * MAX_SCALE이어야 한다 — 가드 2. */
 export const RESERVED_SIZE = PILL_SIZE * MAX_SCALE;
 /** 예약 박스 사이 간격(px). 히트 영역이 8px 이상 떨어지게 한다. */
 export const ITEM_GAP = 8;
-/** 항목 중심 사이 거리(px). 상수여야 "이웃은 절반만"이 정확하다 — Ruling 56. */
-export const ITEM_PITCH = RESERVED_SIZE + ITEM_GAP;
 
 export const nav = style({
   display: 'flex',
@@ -61,14 +60,19 @@ export const pill = style({
   transition: `background-color ${themeContract.animation.duration.fast} ${themeContract.animation.easing.settle}`,
 
   selectors: {
+    // currentColor 섞음이라 어두운 바에서도 글자색에 맞는다(surface.hover는 밝은 면이다).
     [`${item}:hover &`]: {
-      backgroundColor: themeContract.color.surface.hover,
+      backgroundColor: TINT_HOVER,
     },
     [`${item}:focus-visible &`]: {
-      backgroundColor: themeContract.color.surface.hover,
+      backgroundColor: TINT_HOVER,
+    },
+    // 지금 보고 있는 페이지는 바탕이 늘 깔려 있다.
+    [`${item}[aria-current="page"] &`]: {
+      backgroundColor: TINT_HOVER,
     },
     [`${item}:active &`]: {
-      backgroundColor: themeContract.color.surface.active,
+      backgroundColor: TINT_PRESS,
       transform: `scale(var(${ITEM_SCALE_VAR}, 1)) translateY(1px)`,
     },
   },

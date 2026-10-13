@@ -15,12 +15,13 @@ import { pillGeometry } from './HeaderBarPill';
 import { gsapDuration, gsapEasing } from '../../tokens/gsapEasing';
 import { themeContract } from '../../tokens/theme.css';
 import {
+  BAR_HEIGHT,
+  DROPDOWN_ITEM_HEIGHT,
   PANEL_OFFSET_Y,
   PILL_NAV_HEIGHT,
   PILL_NAV_PADDING,
   PILL_GAP,
-  PILL_DOT_SIZE,
-  PILL_DOT_OFFSET,
+  TINT_HOVER,
 } from './HeaderBar.css';
 
 // 알약 하나를 그릴 때 GSAP이 클래스가 붙은 요소의 getComputedStyle을 읽는데, jsdom은
@@ -54,17 +55,25 @@ afterEach(() => {
 });
 
 /** jsdom에는 PointerEvent가 없다. React는 이름이 맞으면 받으므로 pointerType을 얹어 쏜다. */
-const pointer = (el: HTMLElement, type: string, pointerType = 'mouse') =>
+const pointer = (
+  el: HTMLElement,
+  type: string,
+  pointerType = 'mouse',
+  relatedTarget: HTMLElement | null = null
+) =>
   act(() => {
-    const event = new MouseEvent(type, { bubbles: true });
+    const event = new MouseEvent(type, { bubbles: true, relatedTarget });
     Object.defineProperty(event, 'pointerType', { value: pointerType });
     el.dispatchEvent(event);
   });
 const focusEl = (el: HTMLElement) => act(() => el.focus());
 const hoverIn = (el: HTMLElement, pointerType?: string) =>
   pointer(el, 'pointerover', pointerType);
-const hoverOut = (el: HTMLElement, pointerType?: string) =>
-  pointer(el, 'pointerout', pointerType);
+const hoverOut = (
+  el: HTMLElement,
+  pointerType?: string,
+  relatedTarget?: HTMLElement
+) => pointer(el, 'pointerout', pointerType, relatedTarget ?? null);
 
 /** jsdom은 :focus-visible 휴리스틱이 없다. 그 선택자에만 답하는 스텁(Avatar 시험과 같은 선례). */
 const stubFocusVisible = (el: HTMLElement, focusVisible: boolean) =>
@@ -218,15 +227,13 @@ describe('navStyle="pill" 마크업', () => {
     expect(cover).toHaveTextContent('소개');
   });
 
-  it('active 항목만 aria-current="page"와 점을 가진다', () => {
+  it('active 항목만 aria-current="page"를 갖고 밑점은 없다', () => {
     render(<HeaderBar navStyle="pill" items={items} />);
     expect(getPill('홈')).toHaveAttribute('aria-current', 'page');
     expect(getPill('소개')).not.toHaveAttribute('aria-current');
-    const dots = getNav().querySelectorAll('[data-pill-dot]');
-    expect(dots).toHaveLength(1);
-    expect(dots[0]).toHaveAttribute('aria-hidden', 'true');
-    // 점은 overflow: hidden인 알약 밖(형제)에 있어야 잘리지 않는다.
-    expect(getPill('홈').contains(dots[0])).toBe(false);
+    expect(getNav().querySelectorAll('[data-pill-dot]')).toHaveLength(0);
+    // 항목 알약이 바깥 알약의 바로 아래 자식이다(점을 위한 감싸개가 없다).
+    expect(getPill('홈').parentElement).toBe(getNav());
   });
 
   it('버튼 항목을 누르면 onClick이 불린다', () => {
@@ -284,16 +291,49 @@ describe('navStyle="pill" 쉬는 모습 (CSSOM)', () => {
     expect(getNav()).toHaveClass(/pillVariantStyles_dark/);
   });
 
-  it('점: 지름 6px, primary 색, 알약 아래 4px, 가운데', () => {
+  it('밑점 규칙이 없다', () => {
     render(<HeaderBar navStyle="pill" items={items} />);
-    expect(PILL_DOT_SIZE).toBe(6);
-    expect(PILL_DOT_OFFSET).toBe(4);
-    const dot = ruleOf(/\.HeaderBar_pillDot__[^\s:]+$/);
-    expect(decl(dot, 'width')).toBe('6px');
-    expect(decl(dot, 'height')).toBe('6px');
-    expect(decl(dot, 'top')).toBe('calc(100% + 4px)');
-    expect(decl(dot, 'left')).toBe('50%');
-    expect(decl(dot, 'border-radius')).toBe(themeContract.borderRadius.full);
+    expect(
+      headerBarRules().filter(({ rule }) => /pillDot/.test(rule.selectorText))
+    ).toHaveLength(0);
+  });
+
+  it('active 항목의 덮는 글자에만 정적 광휘가 있다: 0 0 6px, 광휘 색 45%', () => {
+    render(<HeaderBar navStyle="pill" items={items} />);
+    const base = ruleOf(/\.HeaderBar_pillCover__[^\s:]+$/);
+    expect(decl(base, 'text-shadow')).toBeUndefined();
+    const current = ruleOf(
+      /\[aria-current="page"\] \.HeaderBar_pillCover__[^\s:]+$/
+    );
+    expect(decl(current, 'text-shadow')).toMatch(
+      /^0 0 6px color-mix\(in srgb, var\(--[\w-]+\) 45%, transparent\)$/
+    );
+    // 맥박이 없다: 광휘 규칙에 animation이 없다.
+    expect(decl(current, 'animation')).toBeUndefined();
+  });
+
+  it('광휘 색은 variant가 정한다: default·transparent는 primary.contrast, dark는 background.paper', () => {
+    render(<HeaderBar navStyle="pill" items={items} />);
+    const current = ruleOf(
+      /\[aria-current="page"\] \.HeaderBar_pillCover__[^\s:]+$/
+    );
+    const glowVar = /var\((--[\w-]+)\)/.exec(
+      decl(current, 'text-shadow') ?? ''
+    )?.[1];
+    expect(glowVar).toBeDefined();
+    const valueIn = (variant: string) =>
+      new RegExp(`${glowVar}:\\s*([^;}]*)`)
+        .exec(
+          ruleOf(
+            new RegExp(
+              String.raw`\.HeaderBar_pillVariantStyles_${variant}__[^\s:]+$`
+            )
+          ).cssText
+        )?.[1]
+        .trim();
+    expect(valueIn('default')).toBe(themeContract.color.primary.contrast);
+    expect(valueIn('transparent')).toBe(themeContract.color.primary.contrast);
+    expect(valueIn('dark')).toBe(themeContract.color.background.paper);
   });
 
   it('원은 알약 아래 가운데에서 시작하고 포인터를 가로채지 않는다', () => {
@@ -450,6 +490,103 @@ describe('navStyle="pill" 타임라인', () => {
     // 죽은 타임라인은 부모에서 떨어진다.
     expect(timeline.parent).toBeNull();
     expect(tween.parent).toBeNull();
+  });
+});
+
+describe('navStyle="pill" 선택된(active) 항목', () => {
+  it('마운트 때 active 항목은 움직임 없이 끝 상태다', () => {
+    render(<HeaderBar navStyle="pill" items={items} />);
+    const pill = getPill('홈');
+    const { circle, label, cover } = partsOf(pill);
+    expect(pill.__pillTween).toBeUndefined();
+    expect(pill.__pillTimeline?.progress()).toBe(1);
+    expect(circle.style.transform).toContain('scale(1.2');
+    expect(label.style.transform).toContain('translate(0px, -8px)');
+    expect(cover.style.transform).toContain('translate(0, 0)');
+    expect(cover.style.opacity).toBe('1');
+    // 다른 항목은 쉬는 모습이다.
+    expect(getPill('소개').__pillTimeline?.progress()).toBe(0);
+  });
+
+  it('호버·포커스가 오가도 active 항목은 비워지지 않는다', () => {
+    render(<HeaderBar navStyle="pill" items={items} />);
+    const pill = getPill('홈');
+    hoverIn(pill);
+    hoverOut(pill);
+    stubFocusVisible(pill, true);
+    act(() => pill.focus());
+    act(() => pill.blur());
+    expect(pill.__pillTween).toBeUndefined();
+    expect(pill.__pillTimeline?.progress()).toBe(1);
+  });
+
+  it('active가 다른 항목으로 옮겨가면 새 항목은 들어옴(slow), 옛 항목은 나감(base)이다', () => {
+    const { rerender } = render(<HeaderBar navStyle="pill" items={items} />);
+    rerender(
+      <HeaderBar
+        navStyle="pill"
+        items={items.map((item) => ({
+          ...item,
+          active: item.label === '소개',
+        }))}
+      />
+    );
+    const entering = getPill('소개').__pillTween;
+    const leaving = getPill('홈').__pillTween;
+    expect(entering?.duration()).toBeCloseTo(gsapDuration.slow);
+    expect(leaving?.duration()).toBeCloseTo(gsapDuration.base);
+    expect(entering?.vars.ease).toBe(gsapEasing.settle);
+    entering?.progress(1);
+    leaving?.progress(1);
+    expect(partsOf(getPill('소개')).circle.style.transform).toContain(
+      'scale(1.2'
+    );
+    expect(partsOf(getPill('홈')).circle.style.transform).toContain('scale(0');
+    expect(getPill('소개')).toHaveAttribute('aria-current', 'page');
+  });
+
+  it('마우스가 올라 있는 동안 active가 떠나도 채운 채로 둔다', () => {
+    const { rerender } = render(<HeaderBar navStyle="pill" items={items} />);
+    const pill = getPill('홈');
+    hoverIn(pill);
+    rerender(
+      <HeaderBar
+        navStyle="pill"
+        items={items.map((item) => ({ ...item, active: false }))}
+      />
+    );
+    expect(pill.__pillTween).toBeUndefined();
+    expect(pill.__pillTimeline?.progress()).toBe(1);
+    hoverOut(pill);
+    expect(pill.__pillTween?.duration()).toBeCloseTo(gsapDuration.base);
+  });
+
+  it('다시 재면 active는 끝 상태로, 아니면 처음으로 돌아온다', () => {
+    rectOf(100, 40);
+    render(<HeaderBar navStyle="pill" items={items} />);
+    hoverIn(getPill('소개'));
+    getPill('소개').__pillTween?.progress(1);
+    act(() => {
+      window.dispatchEvent(new Event('resize'));
+    });
+    expect(partsOf(getPill('홈')).circle.style.transform).toContain(
+      'scale(1.2'
+    );
+    expect(partsOf(getPill('홈')).cover.style.opacity).toBe('1');
+    expect(partsOf(getPill('소개')).circle.style.transform).toContain(
+      'scale(0'
+    );
+  });
+
+  it('타임라인 안의 세 트윈은 linear다(감속은 tweenTo 하나만 건다)', () => {
+    render(<HeaderBar navStyle="pill" items={items} />);
+    const children = (
+      getPill('소개').__pillTimeline as gsap.core.Timeline
+    ).getChildren();
+    expect(children).toHaveLength(3);
+    for (const child of children) {
+      expect(child.vars.ease).toBe(gsapEasing.linear);
+    }
   });
 });
 
@@ -863,6 +1000,142 @@ describe('navStyle="dropdown" 모양 (CSSOM)', () => {
         'transition'
       )
     ).toBe('none');
+  });
+});
+
+const slotOf = (name: string): HTMLElement =>
+  getTrigger(name).parentElement as HTMLElement;
+
+describe('navStyle="dropdown" 호버로 열림', () => {
+  it('마우스가 항목 슬롯에 들어오면 열리고 나가면 닫힌다', () => {
+    render(<HeaderBar navStyle="dropdown" items={dropdownItems} />);
+    hoverIn(slotOf('제품'));
+    expect(getTrigger('제품')).toHaveAttribute('aria-expanded', 'true');
+    expect(getDropPanel('제품').__panelTween?.duration()).toBeCloseTo(
+      gsapDuration.base
+    );
+    hoverOut(slotOf('제품'));
+    expect(getTrigger('제품')).toHaveAttribute('aria-expanded', 'false');
+    expect(getDropPanel('제품').__panelTween?.duration()).toBeCloseTo(
+      gsapDuration.fast
+    );
+  });
+
+  it('터치·펜은 들어와도 열리지 않는다', () => {
+    render(<HeaderBar navStyle="dropdown" items={dropdownItems} />);
+    hoverIn(slotOf('제품'), 'touch');
+    hoverIn(slotOf('제품'), 'pen');
+    expect(getTrigger('제품')).toHaveAttribute('aria-expanded', 'false');
+  });
+
+  it('터치로 누르면 지금처럼 열고 닫는다', () => {
+    render(<HeaderBar navStyle="dropdown" items={dropdownItems} />);
+    hoverIn(slotOf('제품'), 'touch');
+    fireEvent.click(getTrigger('제품'), { detail: 1 });
+    expect(getTrigger('제품')).toHaveAttribute('aria-expanded', 'true');
+    fireEvent.click(getTrigger('제품'), { detail: 1 });
+    expect(getTrigger('제품')).toHaveAttribute('aria-expanded', 'false');
+  });
+
+  it('마우스 클릭은 열기만 한다: 호버로 열린 판이 클릭에 닫히지 않는다', () => {
+    render(<HeaderBar navStyle="dropdown" items={dropdownItems} />);
+    hoverIn(slotOf('제품'));
+    fireEvent.click(getTrigger('제품'), { detail: 1 });
+    expect(getTrigger('제품')).toHaveAttribute('aria-expanded', 'true');
+    fireEvent.click(getTrigger('제품'), { detail: 1 });
+    expect(getTrigger('제품')).toHaveAttribute('aria-expanded', 'true');
+  });
+
+  it('Esc로 닫은 뒤 마우스가 아직 안에 있어도 클릭하면 다시 열린다', () => {
+    render(<HeaderBar navStyle="dropdown" items={dropdownItems} />);
+    hoverIn(slotOf('제품'));
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(getTrigger('제품')).toHaveAttribute('aria-expanded', 'false');
+    fireEvent.click(getTrigger('제품'), { detail: 1 });
+    expect(getTrigger('제품')).toHaveAttribute('aria-expanded', 'true');
+  });
+
+  it('키보드(Enter·Space는 detail 0인 click)는 열고 닫는다. 마우스가 안에 있어도 같다', () => {
+    render(<HeaderBar navStyle="dropdown" items={dropdownItems} />);
+    fireEvent.click(getTrigger('제품'), { detail: 0 });
+    expect(getTrigger('제품')).toHaveAttribute('aria-expanded', 'true');
+    fireEvent.click(getTrigger('제품'), { detail: 0 });
+    expect(getTrigger('제품')).toHaveAttribute('aria-expanded', 'false');
+    hoverIn(slotOf('제품'));
+    fireEvent.click(getTrigger('제품'), { detail: 0 });
+    expect(getTrigger('제품')).toHaveAttribute('aria-expanded', 'false');
+  });
+
+  it('다른 항목 슬롯에 들어오면 앞 것이 닫힌다', () => {
+    render(<HeaderBar navStyle="dropdown" items={dropdownItems} />);
+    hoverIn(slotOf('제품'));
+    hoverIn(slotOf('회사'));
+    expect(getTrigger('제품')).toHaveAttribute('aria-expanded', 'false');
+    expect(getTrigger('회사')).toHaveAttribute('aria-expanded', 'true');
+  });
+
+  it('버튼에서 판으로 건너가는 것은 슬롯을 나간 게 아니라 닫히지 않는다', () => {
+    render(<HeaderBar navStyle="dropdown" items={dropdownItems} />);
+    hoverIn(slotOf('제품'));
+    const panel = getDropPanel('제품');
+    panel.__panelTween?.progress(1);
+    const link = within(panel).getByRole('link', { name: '버튼' });
+    hoverOut(getTrigger('제품'), undefined, link);
+    expect(getTrigger('제품')).toHaveAttribute('aria-expanded', 'true');
+    hoverOut(link);
+    expect(getTrigger('제품')).toHaveAttribute('aria-expanded', 'false');
+  });
+
+  it('닫혀 있을 때 나가도 아무 일이 없다', () => {
+    render(<HeaderBar navStyle="dropdown" items={dropdownItems} />);
+    hoverOut(slotOf('제품'));
+    expect(getTrigger('제품')).toHaveAttribute('aria-expanded', 'false');
+  });
+});
+
+describe('navStyle="dropdown" 보이지 않는 다리 (CSSOM)', () => {
+  it('판 위에 판 폭 전체로 깔리고 높이가 판 위 끝에서 버튼 아래 끝까지다', () => {
+    render(<HeaderBar navStyle="dropdown" items={dropdownItems} />);
+    const bridge = ruleOf(/\.HeaderBar_dropdownPanel__[^\s:]+::before$/);
+    expect(decl(bridge, 'content')).toBe('""');
+    expect(decl(bridge, 'position')).toBe('absolute');
+    expect(decl(bridge, 'bottom')).toBe('100%');
+    expect(decl(bridge, 'left')).toBe('0');
+    expect(decl(bridge, 'right')).toBe('0');
+    // 판은 바 아래 spacing[2]에서 시작하고, 버튼은 바 안 가운데에 있다.
+    expect(decl(bridge, 'height')).toBe(
+      `calc(${themeContract.spacing[2]} + ${(BAR_HEIGHT - DROPDOWN_ITEM_HEIGHT) / 2}px)`
+    );
+  });
+
+  it('버튼 높이가 정해져 있어 다리 높이와 어긋나지 않는다', () => {
+    render(<HeaderBar navStyle="dropdown" items={dropdownItems} />);
+    const trigger = ruleOf(/\.HeaderBar_dropdownTrigger__[^\s:]+$/);
+    expect(decl(trigger, 'height')).toBe(`${DROPDOWN_ITEM_HEIGHT}px`);
+    expect(getTrigger('제품')).toHaveClass(/dropdownTrigger/);
+  });
+
+  it('판이 닫혀 있으면 다리도 숨는다: 다리가 자기 visibility를 정하지 않고 판을 따른다', () => {
+    render(<HeaderBar navStyle="dropdown" items={dropdownItems} />);
+    const bridge = ruleOf(/\.HeaderBar_dropdownPanel__[^\s:]+::before$/);
+    expect(decl(bridge, 'visibility')).toBeUndefined();
+    expect(
+      decl(ruleOf(/\.HeaderBar_dropdownPanel__[^\s:]+$/), 'visibility')
+    ).toBe('hidden');
+  });
+});
+
+describe('navStyle="dropdown" 바탕 (CSSOM)', () => {
+  it('판 안 링크도 textItem이라 같은 옅은 바탕을 쓴다', () => {
+    render(<HeaderBar navStyle="dropdown" items={dropdownItems} />);
+    const link = within(openDrop('제품')).getByRole('link', { name: '버튼' });
+    expect(link).toHaveClass(/textItem/);
+    expect(
+      decl(
+        ruleOf(/\.HeaderBar_textItem__[^\s:]+:focus-visible$/),
+        'background-color'
+      )
+    ).toBe(TINT_HOVER);
   });
 });
 

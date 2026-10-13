@@ -1,49 +1,14 @@
-import {
-  useLayoutEffect,
-  useRef,
-  type PointerEvent,
-  type FocusEvent,
-} from 'react';
+import { useLayoutEffect, useRef, type FocusEvent } from 'react';
 import { gsap } from 'gsap';
 import { settleMotion } from '../../hooks/gateMotion';
 import { useReducedMotion } from '../../hooks/useReducedMotion';
 import type { HeaderBarIconItem } from './HeaderBar';
 import { gsapDuration, gsapEasing } from '../../tokens/gsapEasing';
-import {
-  ITEM_SCALE_VAR,
-  RESERVED_SIZE,
-  ITEM_PITCH,
-  MAX_SCALE,
-  nav,
-  item,
-  pill,
-} from './HeaderBarNav.css';
+import { ITEM_SCALE_VAR, MAX_SCALE, nav, item, pill } from './HeaderBarNav.css';
 
 interface HeaderBarNavProps {
   items: HeaderBarIconItem[];
 }
-
-/** 컨테이너 왼쪽 기준 항목 i의 중심(px). 피치가 상수라 DOM을 읽지 않는다. */
-export const itemCenter = (index: number): number =>
-  RESERVED_SIZE / 2 + index * ITEM_PITCH;
-
-/** 이 거리에서 영향이 0이 된다. 피치의 정확히 2배 — 이웃 한 칸은 절반, 두 칸은 0. */
-const PROXIMITY_RADIUS = 2 * ITEM_PITCH;
-
-/**
- * origin(컨테이너 왼쪽 기준 px, 또는 null=쉼)에서 각 항목의 배율을 낸다.
- * Math.max(0, …)이 가드 1을 구조적으로 보장한다 — 1 미만은 도달 불가능하다.
- */
-export const proximityScales = (
-  origin: number | null,
-  count: number
-): number[] =>
-  Array.from({ length: count }, (_, index) => {
-    if (origin === null) return 1;
-    const distance = Math.abs(origin - itemCenter(index));
-    const nearness = Math.max(0, 1 - distance / PROXIMITY_RADIUS);
-    return 1 + (MAX_SCALE - 1) * nearness;
-  });
 
 /**
  * 테스트가 세터 배열을 읽는 통로. 공개 prop/state로 안 나가고 nav DOM 노드에
@@ -55,19 +20,14 @@ interface NavScaleSetterHost extends HTMLElement {
 }
 
 /**
- * 커서에 가까울수록 항목이 부푸는 헤더 nav. 포커스도 같은 신호에 묶인다
- * (모션 명제:134). `HeaderBar`가 `navStyle="icon"`일 때 그리는 내부 컴포넌트이고
+ * 커서(또는 키보드 포커스)가 올라간 항목만 커지는 헤더 nav. 이웃은 그대로다
+ * (모션 명제:134, fix 2에서 근접 보간을 걷었다). `HeaderBar`가 `navStyle="icon"`일 때 그리는 내부 컴포넌트이고
  * 공개 export가 아니다(M5 task-24, 옛 공개 `HeaderBarNav`를 합쳤다).
  */
 export const HeaderBarNav = ({ items }: HeaderBarNavProps) => {
   const reduced = useReducedMotion();
   const navRef = useRef<HTMLElement | null>(null);
   const pillRefs = useRef<(HTMLElement | null)[]>([]);
-  // pointerenter에서 캐시한다. DOM 읽기는 여기 한 곳뿐이다 — 항목마다
-  // getBoundingClientRect를 읽으면 pointermove마다 GSAP의 쓰기와 엮여 강제
-  // 리플로가 난다(Ruling 59). 호버 중 창이 리사이즈되면 낡을 수 있으나
-  // 다음 pointerenter에서 스스로 낫는다.
-  const containerLeftRef = useRef(0);
   const settersRef = useRef<ReturnType<typeof gsap.quickTo>[]>([]);
 
   // 아래 effect의 deps. `items` 자체는 매 렌더 새 배열이라 쓸모가 없고,
@@ -108,11 +68,10 @@ export const HeaderBarNav = ({ items }: HeaderBarNavProps) => {
     };
   }, [reduced, labelKey]);
 
-  const applyOrigin = (origin: number | null): void => {
-    const setters = settersRef.current;
-    if (setters.length === 0) return; // reduced거나 아직 안 붙었다
-    proximityScales(origin, setters.length).forEach((scale, index) => {
-      setters[index](scale);
+  // index번째 항목만 MAX_SCALE로, 나머지는 1로. null이면 전부 쉼.
+  const select = (index: number | null): void => {
+    settersRef.current.forEach((setter, position) => {
+      setter(position === index ? MAX_SCALE : 1);
     });
   };
 
@@ -121,20 +80,11 @@ export const HeaderBarNav = ({ items }: HeaderBarNavProps) => {
       ref={navRef}
       aria-label="주요 메뉴"
       className={nav}
-      onPointerEnter={() => {
-        containerLeftRef.current =
-          navRef.current?.getBoundingClientRect().left ?? 0;
-      }}
-      onPointerMove={(event: PointerEvent<HTMLElement>) => {
-        applyOrigin(event.clientX - containerLeftRef.current);
-      }}
-      onPointerLeave={() => applyOrigin(null)}
-      onPointerCancel={() => applyOrigin(null)}
       onBlur={(event: FocusEvent<HTMLElement>) => {
         // nav 밖으로 나가는 blur일 때만 쉼으로 되돌린다 — 항목 사이 이동은
-        // 다음 항목의 onFocus가 곧바로 새 원점을 쓰므로 여기서 끊지 않는다.
+        // 다음 항목의 onFocus가 곧바로 새 항목을 고르므로 여기서 끊지 않는다.
         if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
-          applyOrigin(null);
+          select(null);
         }
       }}
     >
@@ -147,7 +97,9 @@ export const HeaderBarNav = ({ items }: HeaderBarNavProps) => {
           'aria-label': navItem.label,
           'aria-current': navItem.active ? ('page' as const) : undefined,
           onClick: navItem.onClick,
-          onFocus: () => applyOrigin(itemCenter(index)),
+          onPointerEnter: () => select(index),
+          onPointerLeave: () => select(null),
+          onFocus: () => select(index),
         };
         const pillNode = (
           <span ref={setPillRef} className={pill} aria-hidden="true">

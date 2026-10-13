@@ -25,9 +25,10 @@ const meta = {
     title: { control: 'text' },
     items: { control: false },
     // icon은 항목마다 아이콘이 필요해 여기서 고르면 빈 알약이 된다. 자기 스토리가 따로 있다.
+    // 기본값은 pill이라 맨 앞에 둔다.
     navStyle: {
       control: 'select',
-      options: ['text', 'pill', 'dropdown', 'cards'],
+      options: ['pill', 'text', 'dropdown', 'cards'],
     },
     actions: { control: false },
     sticky: { control: 'boolean' },
@@ -41,11 +42,12 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-// 기본 예시: 떠 있는 둥근 바 + 텍스트 항목
+// 기본 예시: 떠 있는 둥근 바 + 알약 항목(navStyle의 기본값이 pill)
 export const Default: Story = {
   args: {
     title: 'My Application',
     items: textItems,
+    navStyle: 'pill',
     sticky: false,
     variant: 'default',
   },
@@ -116,7 +118,12 @@ export const WithActions: Story = {
   ),
 };
 
-// 아이콘 항목: 커서가 가까울수록 부푼다
+// 글자 항목: 호버와 active에 옅은 바탕이 깔린다
+export const TextItems: Story = {
+  render: () => <HeaderBar title="Store" navStyle="text" items={textItems} />,
+};
+
+// 아이콘 항목: 커서가 올라간 항목만 커진다
 export const IconItems: Story = {
   render: () => (
     <HeaderBar
@@ -133,7 +140,7 @@ export const IconItems: Story = {
   ),
 };
 
-// 알약 항목: 호버하면 원이 차오르며 글자가 바뀐다
+// 알약 항목: 호버하면 원이 차오르며 글자가 바뀌고, active 항목은 늘 채워진다
 export const PillItems: Story = {
   render: () => (
     <HeaderBar
@@ -149,7 +156,7 @@ export const PillItems: Story = {
   ),
 };
 
-// 드롭다운 항목: links가 있는 항목을 누르면 아래에 작은 판이 열린다
+// 드롭다운 항목: links가 있는 항목에 마우스를 올리면 아래에 작은 판이 열린다
 export const DropdownItems: Story = {
   render: () => (
     <HeaderBar
@@ -381,7 +388,7 @@ export const Interactive: Story = {
     title: 'Interactive Header',
     sticky: true,
     variant: 'default',
-    navStyle: 'text',
+    navStyle: 'pill',
     items: [
       { label: 'Link 1', href: '#', active: true },
       { label: 'Link 2', href: '#' },

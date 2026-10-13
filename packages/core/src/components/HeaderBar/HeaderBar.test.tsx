@@ -23,7 +23,14 @@ import {
   HAMBURGER_LINE_WIDTH,
   HAMBURGER_LINE_HEIGHT,
   HAMBURGER_LINE_GAP,
+  TINT_HOVER,
 } from './HeaderBar.css';
+
+// navStyle의 기본값이 pill이라 이 파일의 많은 시험이 알약을 그린다. 알약 하나를 그릴 때
+// GSAP이 클래스가 붙은 요소의 getComputedStyle을 읽는데 jsdom은 이를 전체 스타일시트를
+// 훑어 계산한다(HeaderBarForms.test.tsx와 같은 이유). 다른 파일과 병렬로 돌면 5초 기본값을
+// 넘기는 일이 있어 이 파일에도 늘린다.
+vi.setConfig({ testTimeout: 20000 });
 
 type PanelTweenHost = HTMLElement & { __panelTween?: gsap.core.Tween };
 
@@ -380,9 +387,32 @@ describe('좁은 화면 넘침 방지 테스트', () => {
   });
 });
 
+describe('navStyle 기본값', () => {
+  it('navStyle을 주지 않으면 알약(pill)이다', () => {
+    render(<HeaderBar items={items} />);
+    const nav = screen.getByRole('navigation', { name: '주요 메뉴' });
+    expect(nav).toHaveClass(/pillNav/);
+    expect(nav).not.toHaveClass(/textNav/);
+  });
+
+  it('navStyle="text"를 주면 글자 링크다', () => {
+    render(<HeaderBar navStyle="text" items={items} />);
+    const nav = screen.getByRole('navigation', { name: '주요 메뉴' });
+    expect(nav).toHaveClass(/textNav/);
+    expect(nav).not.toHaveClass(/pillNav/);
+  });
+
+  it('기본 알약에서도 좁은 화면 햄버거 판은 그대로다', () => {
+    render(<HeaderBar items={items} />);
+    expect(within(openMenu()).getByRole('link', { name: '소개' })).toHaveClass(
+      /textItem/
+    );
+  });
+});
+
 describe('navStyle="text" 항목', () => {
   it('href가 있으면 링크, 없으면 버튼이다', () => {
-    render(<HeaderBar items={items} />);
+    render(<HeaderBar navStyle="text" items={items} />);
     const nav = screen.getByRole('navigation', { name: '주요 메뉴' });
     expect(within(nav).getByRole('link', { name: '홈' })).toHaveAttribute(
       'href',
@@ -394,7 +424,7 @@ describe('navStyle="text" 항목', () => {
   });
 
   it('active 항목만 aria-current="page"를 갖는다', () => {
-    render(<HeaderBar items={items} />);
+    render(<HeaderBar navStyle="text" items={items} />);
     const nav = screen.getByRole('navigation', { name: '주요 메뉴' });
     expect(within(nav).getByRole('link', { name: '홈' })).toHaveAttribute(
       'aria-current',
@@ -407,74 +437,78 @@ describe('navStyle="text" 항목', () => {
 
   it('버튼 항목을 누르면 onClick이 불린다', () => {
     const onClick = vi.fn();
-    render(<HeaderBar items={[{ label: '문의', onClick }]} />);
+    render(<HeaderBar navStyle="text" items={[{ label: '문의', onClick }]} />);
     const nav = screen.getByRole('navigation', { name: '주요 메뉴' });
     fireEvent.click(within(nav).getByRole('button', { name: '문의' }));
     expect(onClick).toHaveBeenCalledTimes(1);
   });
 
-  it('밑줄은 글자 아래 2px 선이고 왼쪽 원점에서 scaleX 0으로 쉰다', () => {
-    render(<HeaderBar items={items} />);
-    const line = ruleOf(/\.HeaderBar_textLabel__[^\s:]+::after$/);
-    expect(decl(line, 'height')).toBe('2px');
-    expect(decl(line, 'transform')).toBe('scaleX(0)');
-    expect(decl(line, 'transform-origin')).toBe('left');
+  it('밑줄 규칙이 없다: 글자 라벨의 ::after가 어디에도 없다', () => {
+    render(<HeaderBar navStyle="text" items={items} />);
+    expect(ruleOf(/\.HeaderBar_textLabel__[^\s:]+$/)).toBeDefined();
+    const underline = headerBarRules().filter(({ rule }) =>
+      /textLabel[^,]*::after/.test(rule.selectorText)
+    );
+    expect(underline).toHaveLength(0);
   });
 
-  it('나갈 때는 fast settle, 들어올 때는 base settle이다', () => {
-    render(<HeaderBar items={items} />);
-    const rest = ruleOf(/\.HeaderBar_textLabel__[^\s:]+::after$/);
-    expect(decl(rest, 'transition')).toContain(
-      themeContract.animation.duration.fast
-    );
-    expect(decl(rest, 'transition')).toContain(
-      themeContract.animation.easing.settle
-    );
-    const enter = ruleOf(
-      /:hover \.HeaderBar_textLabel__[^\s:]+::after$/,
-      HOVER_GATE
-    );
-    expect(decl(enter, 'transition-duration')).toBe(
-      themeContract.animation.duration.base
+  it('항목은 끝이 완전히 둥글고 바탕색을 fast settle로 전이한다', () => {
+    render(<HeaderBar navStyle="text" items={items} />);
+    const rest = ruleOf(/\.HeaderBar_textItem__[^\s:]+$/);
+    expect(decl(rest, 'border-radius')).toBe(themeContract.borderRadius.full);
+    expect(decl(rest, 'transition')).toBe(
+      `background-color ${themeContract.animation.duration.fast} ${themeContract.animation.easing.settle}`
     );
   });
 
-  it('호버로 그어지는 규칙은 전부 (hover: hover) and (pointer: fine) 안에 있다', () => {
-    render(<HeaderBar items={items} />);
+  it('옅은 바탕은 currentColor 10% 섞음이라 dark 바에서도 맞는다', () => {
+    expect(TINT_HOVER).toBe(
+      'color-mix(in srgb, currentColor 10%, transparent)'
+    );
+  });
+
+  it('호버 바탕은 (hover: hover) and (pointer: fine) 안에서만 깔린다', () => {
+    render(<HeaderBar navStyle="text" items={items} />);
     const hovers = headerBarRules().filter(({ rule }) =>
       /\.HeaderBar_textItem__[^\s]*:hover/.test(rule.selectorText)
     );
     expect(hovers.length).toBeGreaterThan(0);
     for (const { media, rule } of hovers) {
       expect(media, rule.selectorText).toBe(HOVER_GATE);
-      expect(decl(rule, 'transform'), rule.selectorText).toBe('scaleX(1)');
+      expect(decl(rule, 'background-color'), rule.selectorText).toBe(
+        TINT_HOVER
+      );
     }
   });
 
-  it('키보드 포커스(:focus-visible)는 호버 게이트 밖에서 밑줄을 긋는다', () => {
-    render(<HeaderBar items={items} />);
-    const focus = ruleOf(
-      /:focus-visible \.HeaderBar_textLabel__[^\s:]+::after$/
-    );
-    expect(decl(focus, 'transform')).toBe('scaleX(1)');
+  it('키보드 포커스(:focus-visible)는 호버 게이트 밖에서 같은 바탕을 깐다', () => {
+    render(<HeaderBar navStyle="text" items={items} />);
+    const focus = ruleOf(/\.HeaderBar_textItem__[^\s:]+:focus-visible$/);
+    expect(decl(focus, 'background-color')).toBe(TINT_HOVER);
   });
 
-  it('active 항목은 밑줄이 늘 그어져 있다', () => {
-    render(<HeaderBar items={items} />);
-    const current = headerBarRules().find(
-      ({ rule, media }) =>
-        media === null &&
-        /\[aria-current="page"\] \.HeaderBar_textLabel__[^\s:]+::after$/.test(
-          rule.selectorText
-        )
+  it('aria-current="page" 항목은 같은 바탕이 늘 깔리고 글자가 semibold다', () => {
+    render(<HeaderBar navStyle="text" items={items} />);
+    const current = ruleOf(
+      /\.HeaderBar_textItem__[^\s:]+\[aria-current="page"\]$/
     );
-    expect(current && decl(current.rule, 'transform')).toBe('scaleX(1)');
+    expect(decl(current, 'background-color')).toBe(TINT_HOVER);
+    expect(decl(current, 'font-weight')).toBe(
+      String(themeContract.font.weight.semibold)
+    );
   });
 
-  it('축소 선호에서는 밑줄 전이가 없다', () => {
-    render(<HeaderBar items={items} />);
-    const reduced = ruleOf(/\.HeaderBar_textLabel__[^\s:]+::after$/, REDUCE);
+  it('축소 선호에서는 바탕 전이가 없다', () => {
+    render(<HeaderBar navStyle="text" items={items} />);
+    const reduced = ruleOf(/\.HeaderBar_textItem__[^\s:]+$/, REDUCE);
     expect(decl(reduced, 'transition')).toBe('none');
+  });
+
+  it('좁은 화면 판의 항목도 같은 textItem 바탕을 쓴다', () => {
+    render(<HeaderBar navStyle="text" items={items} />);
+    expect(within(openMenu()).getByRole('link', { name: '홈' })).toHaveClass(
+      /textItem/
+    );
   });
 });
 

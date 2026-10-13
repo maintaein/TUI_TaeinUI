@@ -101,11 +101,12 @@ export type HeaderBarProps = HeaderBarBaseProps &
   (
     | {
         /**
-         * 항목이 보이는 모습. text는 글자 링크, pill은 호버하면 원이 차오르며 글자가
-         * 바뀌는 알약, dropdown은 `links`가 있는 항목을 누르면 아래에 작은 판이 열린다,
+         * 항목이 보이는 모습. pill은 호버하면 원이 차오르며 글자가 바뀌는 알약(선택된
+         * 항목은 늘 채워진다), text는 글자 링크(호버와 선택은 옅은 바탕), dropdown은
+         * `links`가 있는 항목에 마우스를 올리거나 누르면 아래에 작은 판이 열린다,
          * cards는 햄버거를 누르면 바가 아래로 자라며 항목마다 카드가 솟는다(항목은 바 안이
          * 아니라 카드에만 있고 햄버거가 모든 폭에서 보인다. 카드는 셋 이하를 권한다),
-         * icon은 아이콘 알약 @default 'text'
+         * icon은 커서를 올린 아이콘만 커지는 아이콘 알약 @default 'pill'
          */
         navStyle?: 'text' | 'pill' | 'dropdown' | 'cards';
         /**
@@ -219,6 +220,8 @@ export const HeaderBar = ({
 
   // 판별 유니온은 구조 분해 뒤에도 navStyle로 좁혀진다. icon이면 items가 아이콘 항목이다.
   const iconItems = navStyle === 'icon' ? items : undefined;
+  // 기본은 알약. 구조 분해에 기본값을 두면 위 판별 유니온의 좁힘이 깨져 여기서 푼다.
+  const isPill = navStyle === undefined || navStyle === 'pill';
   const itemList: HeaderBarItem[] = items ?? [];
   const hasItems = itemList.length > 0;
 
@@ -280,7 +283,7 @@ export const HeaderBar = ({
           <div className={centerSection}>
             {iconItems ? (
               <HeaderBarNav items={iconItems} />
-            ) : navStyle === 'pill' ? (
+            ) : isPill ? (
               <HeaderBarPillNav
                 items={itemList}
                 variantClassName={pillVariantStyles[variant]}

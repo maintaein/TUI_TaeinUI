@@ -75,7 +75,7 @@ All components follow consistent patterns:
 - **BoardRow** — Expandable row/accordion. Props: title, variant, expanded, onChange, disabled
 - **Divider** — Content separator. Props: orientation, variant('solid'|'dashed'|'dotted'), spacing, children(text)
 - **Border** — Border wrapper. Props: sides, variant, width, color, rounded('md' default for sides='all', 'none' for partial sides), padding, glow(opt-in hover light)
-- **HeaderBar** - Floating rounded app header bar (centered, max 960px, 60px tall). Props: logo, title, items(`{ label, href?, onClick?, icon?, active?, links? }`), navStyle('text' default | 'pill' | 'dropdown' | 'cards' | 'icon'), actions, sticky, variant('default'|'dark'|'transparent'). Under 768px the items fold into a hamburger + vertical list
+- **HeaderBar** - Floating rounded app header bar (centered, max 960px, 60px tall). Props: logo, title, items(`{ label, href?, onClick?, icon?, active?, links? }`), navStyle('pill' default | 'text' | 'dropdown' | 'cards' | 'icon'), actions, sticky, variant('default'|'dark'|'transparent'). Under 768px the items fold into a hamburger + vertical list
 
 ## Design Tokens
 
@@ -112,7 +112,7 @@ M3에서 GSAP 런타임이 실제로 붙은 컴포넌트와 그 능력. 계획�
 | SegmentedButtons | 타임라인 상대 위치 · 다중 목표 중단 · CSS가 못 보는 값 읽기(인디케이터 좌표: 표시가 새 칸까지 늘어나 두 칸을 덮었다가 뒤쪽 끝이 끌려오며 살짝 지나쳤다 제자리로 돌아온다) |
 | NumericSpinner | 다중 목표 중단 |
 | Slider | 제스처 추적(드래그 중 값 따라붙기) · CSS가 못 보는 값 읽기(머리 속도: 끌면 라인이 머리 둘레에서 속도에 비례해 부풀어 물결치고, `wake`는 그 물결을 눈금 막대로 보여 준다) |
-| HeaderBar | 제스처 추적(`navStyle="icon"`의 포인터 근접) · CSS가 못 보는 값 읽기(컨테이너 좌표) · 다중 목표 중단(768px 미만 메뉴 판과 `navStyle="dropdown"`의 하위 링크 판: `opacity` + `y 8 → 0`, 열림 `base` `settle`, 닫힘 `fast` `settle`) · 멈춘 타임라인 재생(`navStyle="pill"`: `tweenTo` 들어옴 `slow`, 나감 `base`. `navStyle="cards"`: 면 `height`가 `slow` `settle`로 자라고 카드가 `y 50 → 0`·`opacity`를 `slow` `settle`, 시차 80ms로 3/4 지점에서 시작, 열기 `play`·닫기 `reverse`) |
+| HeaderBar | 제스처 추적(`navStyle="icon"`의 커서가 올라간 항목 확대) · CSS가 못 보는 값 읽기(알약 크기, 카드 층 높이) · 다중 목표 중단(768px 미만 메뉴 판과 `navStyle="dropdown"`의 하위 링크 판: `opacity` + `y 8 → 0`, 열림 `base` `settle`, 닫힘 `fast` `settle`) · 멈춘 타임라인 재생(`navStyle="pill"`: `tweenTo` 들어옴 `slow`, 나감 `base`. `navStyle="cards"`: 면 `height`가 `slow` `settle`로 자라고 카드가 `y 50 → 0`·`opacity`를 `slow` `settle`, 시차 80ms로 3/4 지점에서 시작, 열기 `play`·닫기 `reverse`) |
 | Avatar | 다중 목표 중단(떠오름과 눌림이 서로를 덮어쓰며 이어짐) |
 | BoardRow | 타임라인 상대 위치 · CSS가 못 보는 값 읽기(트윈 중간 높이, 내용 높이) |
 | Chip | 타임라인 상대 위치 · CSS가 못 보는 값 읽기(폭과 gap으로 자리 닫기) |
@@ -130,7 +130,7 @@ M3에서 GSAP 런타임이 실제로 붙은 컴포넌트와 그 능력. 계획�
   `Button`, `IconButton`은 누름 상태를 `useClickRebound` 훅이 갖기 때문에
   `'use client'`가 붙는다. 서버 컴포넌트에서 import하는 것은 그대로 된다.
 - `HeaderBar`도 `'use client'`가 붙는다. 좁은 화면 메뉴의 열림 상태와 GSAP 트윈, 그리고
-  `navStyle="icon"`의 포인터 근접 확대가 브라우저에서만 돈다.
+  `navStyle="icon"`의 항목 확대가 브라우저에서만 돈다.
 - `TextField`는 `'use client'`가 붙는다. `multiline`의 `autoResize`가 높이를 읽고 쓰는 훅을 갖는다.
 - 단, 서버 컴포넌트에서 `onClick` 같은 함수 prop을 넘기는 것은 TUI와 무관하게
   React가 막는다. 이벤트 핸들러를 붙이는 쪽 파일에 `'use client'`를 적어야 한다.
