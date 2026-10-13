@@ -65,10 +65,15 @@ export const hoverLift = style({
       },
     },
 
-    // 축소 모드는 "이동 없음"이다. 색·그림자 변화는 둔다(Button과 같다).
+    // 축소 모드는 "이동 없음"이다. 호버 떠오름도 이동이라 끈다(안 끄면 떠오른
+    // 채 누를 때 3px이 순간 이동한다). 그림자 변화는 둔다. 호버 규칙과 특정도가
+    // 같고 이 미디어가 뒤에 나와 이긴다.
     '(prefers-reduced-motion: reduce)': {
       willChange: 'auto',
       selectors: {
+        '&:hover:not([data-pressed])': {
+          transform: 'none',
+        },
         '&[data-pressed]': {
           transform: 'none',
         },

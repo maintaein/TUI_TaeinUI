@@ -43,7 +43,8 @@ export const useClickable = ({
       // 사용자 정의 onKeyDown이 있으면 먼저 호출
       onKeyDown?.(event);
 
-      if (disabled) {
+      // 소비자가 막았으면 활성화하지 않는다.
+      if (disabled || event.defaultPrevented) {
         return;
       }
 

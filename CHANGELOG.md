@@ -40,9 +40,9 @@
 
 ### Removed
 
-- **BREAKING CHANGE:** `Card`와 `Card.Body`의 `padding="none"`을 없앴습니다(`padding`은 `'sm' | 'md' | 'lg'`). 여백 없는 본문이 필요하면 `className`이나 `style`로 `padding: 0`을 주세요: `<Card.Body style={{ padding: 0 }}>`.
-- **BREAKING CHANGE:** `Card`의 `variant="interactive"`를 없앴습니다. 2px 테두리와 떠오르는 호버뿐인 변형이었습니다. `<Card variant="interactive">`는 `<Card variant="outlined" hoverLift>`로 바꾸세요. 테두리는 1px로 얇아집니다.
-- **BREAKING CHANGE:** `Card`의 `accentColor`를 없앴습니다. `--accent-color` CSS 변수를 넘기기만 하고 `Card`는 쓰지 않았습니다. 그 변수를 자식에서 쓰고 있었다면 `style={{ '--accent-color': color }}`로 직접 넘기거나, 자식에 색을 바로 주세요.
+- **BREAKING CHANGE:** `Card`와 `Card.Body`의 `padding="none"`을 없앴습니다(`padding`은 `'sm' | 'md' | 'lg'`). Compound API에서 `<Card.Body padding="none">`을 쓰던 곳은 `<Card.Body style={{ padding: 0 }}>`로 바꾸세요. Flat API(`<Card title="x" padding="none">`)는 본문 `div`에 손이 닿지 않으니 Compound API로 옮긴 뒤 같은 방식으로 주세요.
+- **BREAKING CHANGE:** `Card`의 `variant="interactive"`를 없앴습니다. 2px 테두리와 떠오르는 호버뿐인 변형이었습니다. `<Card variant="interactive">`는 `<Card variant="outlined" hoverLift>`로 바꾸세요. 테두리는 1px로 얇아집니다. `interactive`가 주던 `cursor: pointer`와 `touch-action: manipulation`은 이제 `onClick`이 있는 카드에만 붙습니다.
+- **BREAKING CHANGE:** `Card`의 `accentColor`를 없앴습니다. `--accent-color` CSS 변수를 넘기기만 하고 `Card`는 쓰지 않았습니다. 그 변수를 자식에서 쓰고 있었다면 `style={{ '--accent-color': color } as React.CSSProperties}`로 직접 넘기거나, 자식에 색을 바로 주세요.
 - **BREAKING CHANGE:** `LoadingSpinner`를 제거했습니다. `Loader`가 같은 기능을 덮습니다. `<LoadingSpinner type="dots" size="sm" color="#f00" />` → `<Loader type="dots" size="sm" color="#f00" />`
 - **BREAKING CHANGE:** `Icon` 컴포넌트와 `IconName`·`IconProps` 타입을 제거했습니다. 내장 아이콘 세트를 따로 공개하지 않습니다. `lucide-react` 같은 외부 아이콘 라이브러리를 `IconButton`의 `children`으로 넘기세요: `<IconButton aria-label="닫기"><X /></IconButton>` (`import { X } from 'lucide-react'`). 마운트 시 획이 그려지던 `draw` 모션도 함께 없어졌습니다.
 - **BREAKING CHANGE:** `FormField`와 `FormFieldProps`·`FormFieldRenderProps` 타입을 공개 export에서 내렸습니다. `TextField`·`NumericSpinner`가 라벨, 필수 표시, 도움말, 에러 메시지와 그 사이의 연결을 이미 내장하고 있어 직접 쓸 일이 없습니다(코드는 내부 전용으로 남아 이 둘이 계속 씁니다). 옮기는 법: 라벨·도움말·에러가 필요한 입력은 `<TextField label="이름" helperText="..." error errorMessage="..." required />`처럼 `TextField`의 `label`·`helperText`·`error`·`errorMessage`·`required`를 쓰세요. 다른 입력 요소를 감싸려던 경우는 표준 `<label htmlFor>`와 `aria-describedby`를 직접 연결하세요.

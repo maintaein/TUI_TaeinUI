@@ -40,6 +40,7 @@ export interface UseClickReboundReturn<T extends HTMLElement> {
  * 해제 요청이 설정 후 MIN_PRESS_MS 안에 오면 남은 시간만큼 미룬다.
  * 포인터와 키보드(Enter/Space)가 같은 경로를 쓴다. 포커스된 버튼의 Space
  * 활성화는 클릭과 같은 단일 행동이라 포인터 사용자만 피드백을 받으면 안 된다.
+ * 키는 루트가 대상일 때만 누른다(자식 입력의 Space에 눌리면 안 된다).
  *
  * @param disabled 비활성이 되는 순간 누름 상태를 비운다
  * @param user 소비자의 기존 핸들러. 합성해서 돌려준다
@@ -114,10 +115,13 @@ export const useClickRebound = <T extends HTMLElement>(
         user.onKeyDown?.(event);
         // 길게 누르면 keydown이 반복해 오므로 repeat은 타이머를 다시 시작하지 않는다.
         if (event.repeat) return;
+        // 자식(입력창 등)의 키는 버블로 올라온다. 루트가 대상일 때만 누른다.
+        if (event.target !== event.currentTarget) return;
         if (event.key === 'Enter' || event.key === ' ') press();
       },
       onKeyUp: (event) => {
         user.onKeyUp?.(event);
+        if (event.target !== event.currentTarget) return;
         if (event.key === 'Enter' || event.key === ' ') release();
       },
       onBlur: (event) => {

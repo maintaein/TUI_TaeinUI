@@ -787,6 +787,17 @@ describe('Card 모션 잠금', () => {
     expect(reduced).toContain("willChange: 'auto'");
   });
 
+  it('hoverLift는 축소 선호에서 호버 떠오름도 transform: none으로 끈다', () => {
+    const block = hoverLiftBlock();
+    const reduced = block.slice(
+      block.indexOf("'(prefers-reduced-motion: reduce)'"),
+      block.lastIndexOf("'&[data-pressed]'")
+    );
+    // 무엇을 뒤집으면 빨개지는가: 호버 규칙의 none을 지우면.
+    expect(reduced).toContain("'&:hover:not([data-pressed])'");
+    expect(reduced.match(/transform: 'none'/g)).toHaveLength(2);
+  });
+
   it('willChange: transform은 hoverLift에만 있고 cardRoot에는 없다', () => {
     const root = cssSource.match(
       /export const cardRoot = style\(\{([\s\S]*?)\n\}\);/
@@ -943,6 +954,72 @@ describe('Card hoverLift 누름은 짧은 클릭에도 보인다', () => {
 
     pointerDown(card);
     expect(card).not.toHaveAttribute('data-pressed');
+  });
+
+  it('자식 input의 Space·Enter에는 카드가 눌리지 않는다', () => {
+    const { container } = render(
+      <Card hoverLift>
+        <input aria-label="이름" />
+      </Card>
+    );
+    const card = container.firstChild as HTMLElement;
+    const input = screen.getByLabelText('이름');
+
+    fireEvent.keyDown(input, { key: ' ' });
+    fireEvent.keyDown(input, { key: 'Enter' });
+    expect(card).not.toHaveAttribute('data-pressed');
+  });
+
+  it('클릭 가능한 카드 루트의 Space는 누르지만 안의 input에서는 누르지 않는다', () => {
+    render(
+      <Card hoverLift onClick={() => {}}>
+        <input aria-label="이름" />
+      </Card>
+    );
+    const card = screen.getByRole('button');
+
+    fireEvent.keyDown(screen.getByLabelText('이름'), { key: ' ' });
+    expect(card).not.toHaveAttribute('data-pressed');
+    fireEvent.keyDown(card, { key: ' ' });
+    expect(card).toHaveAttribute('data-pressed');
+  });
+
+  it('누른 채 disabled가 되면 data-pressed가 떨어진다', () => {
+    const { rerender } = render(
+      <Card hoverLift onClick={() => {}}>
+        내용
+      </Card>
+    );
+    const card = screen.getByRole('button');
+
+    pointerDown(card);
+    expect(card).toHaveAttribute('data-pressed');
+    rerender(
+      <Card hoverLift disabled onClick={() => {}}>
+        내용
+      </Card>
+    );
+    expect(card).not.toHaveAttribute('data-pressed');
+    rerender(
+      <Card hoverLift onClick={() => {}}>
+        내용
+      </Card>
+    );
+    expect(card).not.toHaveAttribute('data-pressed');
+  });
+
+  it('소비자 onKeyDown이 preventDefault하면 Enter·Space로 onClick이 불리지 않는다', () => {
+    const onClick = vi.fn();
+    render(
+      <Card onClick={onClick} onKeyDown={(e) => e.preventDefault()}>
+        내용
+      </Card>
+    );
+    const card = screen.getByRole('button');
+
+    fireEvent.keyDown(card, { key: 'Enter' });
+    fireEvent.keyDown(card, { key: ' ' });
+    expect(onClick).not.toHaveBeenCalled();
   });
 
   it('소비자의 onPointerDown은 그대로 불린다', () => {

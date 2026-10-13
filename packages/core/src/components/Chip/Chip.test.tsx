@@ -427,6 +427,19 @@ describe('Chip 누름과 선택 상태', () => {
     );
   });
 
+  it('삭제 버튼에서 Enter·Space를 쳐도 칩이 눌리지 않는다', () => {
+    render(
+      <Chip label="테스트" clickable onClick={() => {}} onDelete={() => {}} />
+    );
+    const del = screen.getByRole('button', { name: /삭제/i });
+
+    fireEvent.keyDown(del, { key: 'Enter' });
+    fireEvent.keyDown(del, { key: ' ' });
+    expect(screen.getByRole('button', { name: '테스트' })).not.toHaveAttribute(
+      'data-pressed'
+    );
+  });
+
   it('클릭 가능한 칩은 selected를 aria-pressed로 알린다', () => {
     const { rerender } = render(
       <Chip label="테스트" clickable onClick={() => {}} selected />

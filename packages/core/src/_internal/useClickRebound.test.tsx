@@ -1,20 +1,23 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { act, fireEvent, render, screen } from '@testing-library/react';
+import { type ReactNode } from 'react';
 import { useClickRebound } from './useClickRebound';
 
 const Probe = ({
   disabled = false,
   onPointerDown,
+  children = 'probe',
 }: {
   disabled?: boolean;
   onPointerDown?: () => void;
+  children?: ReactNode;
 }) => {
   const { pressed, handlers } = useClickRebound<HTMLButtonElement>(disabled, {
     onPointerDown,
   });
   return (
     <button type="button" data-pressed={pressed ? '' : undefined} {...handlers}>
-      probe
+      {children}
     </button>
   );
 };
@@ -124,5 +127,40 @@ describe('useClickRebound', () => {
     expect(el).toHaveAttribute('data-pressed');
     rerender(<Probe disabled />);
     expect(el).not.toHaveAttribute('data-pressed');
+  });
+
+  it('자식의 키 입력에는 누르지 않고, 루트가 대상일 때만 누른다', () => {
+    const { container } = render(
+      <Probe>
+        <input aria-label="자식" />
+      </Probe>
+    );
+    const root = container.firstChild as HTMLElement;
+    const input = screen.getByLabelText('자식');
+
+    fireEvent.keyDown(input, { key: ' ' });
+    fireEvent.keyDown(input, { key: 'Enter' });
+    expect(root).not.toHaveAttribute('data-pressed');
+
+    fireEvent.keyDown(root, { key: ' ' });
+    expect(root).toHaveAttribute('data-pressed');
+  });
+
+  it('자식에서 난 keyup은 해제를 요청하지 않는다', () => {
+    vi.useFakeTimers();
+    const { container } = render(
+      <Probe>
+        <input aria-label="자식" />
+      </Probe>
+    );
+    const root = container.firstChild as HTMLElement;
+
+    fireEvent.keyDown(root, { key: 'Enter' });
+    act(() => {
+      vi.advanceTimersByTime(90);
+    });
+    fireEvent.keyUp(screen.getByLabelText('자식'), { key: 'Enter' });
+    // 자식의 keyup이 해제로 읽혔다면 이미 풀렸을 것이다.
+    expect(root).toHaveAttribute('data-pressed');
   });
 });
