@@ -36,9 +36,13 @@
 - `Loader`에 `type="wave"`(물결 막대)와 `type="inchworm"`(자벌레)을 추가했습니다. `wave`는 가는 막대 한 줄 위를 보이지 않는 머리가 왼쪽에서 오른쪽으로 지나가며 막대가 솟았다 가라앉습니다(앞은 빨리 솟고 뒤는 천천히 가라앉고, 막대 중심 간격은 8px 고정이며 개수는 폭 / 8입니다). `inchworm`은 `bar`와 같은 트랙 안에서 알약이 앞끝을 먼저 뻗고 뒤끝을 끌어와 3px 지나쳤다 앉는 걸음을 5번 되풀이하며 왼쪽에서 오른쪽으로 기어갑니다. 둘 다 `prefers-reduced-motion: reduce`에서는 움직이지 않습니다(막대는 쉬는 높이, 자벌레는 가운데에 머무름). 투명도 맥박 키프레임이 정의되어 있지만 전역 규칙이 반복을 한 번으로 접어, 실제로는 한 번 돌고 멈춘 모습입니다.
 - `Loader`에 `status` prop(`'loading' | 'done' | 'error'`, 기본값 `'loading'`)을 추가했습니다. `type`이 `'orbit'`(또는 생략)일 때만 받고, 다른 `type`에 주면 타입 오류입니다. `done`이면 돌던 점 여덟 개가 체크 모양으로, `error`면 X 모양으로 미끄러져 모이고(색은 흰 바탕 대비 3:1 이상인 성공색 / 실패색), `loading`으로 돌아가면 같은 길로 원 위에 돌아가 다시 돕니다. 이동 중에 상태가 바뀌면 지금 위치에서 이어집니다. `aria-busy`는 `loading`일 때만 `true`이고, `aria-label`·`label`이 없으면 접근 이름은 `loading` "로딩 중", `done` "완료", `error` "실패"입니다. `prefers-reduced-motion: reduce`에서는 바로 표식에 앉습니다.
 - `Loader`에 `type="fuse"`(도화선)와 `value` prop(`number`, 0~100, 범위 밖은 자름)을 추가했습니다. `type="fuse"`일 때 `value`는 필수이고 다른 `type`에 주면 타입 오류입니다. 왼쪽에서 오른쪽으로 `value`만큼 채우고, 채운 끝에 붙은 불똥이 고르지 않게 깜빡이며 따라갑니다. `value`가 100이면 불똥이 사라집니다. `role="progressbar"`와 `aria-valuemin`·`aria-valuemax`·`aria-valuenow`를 가집니다(접근 이름 기본값 "진행률"). `prefers-reduced-motion: reduce`에서는 깜빡임과 전이가 없습니다.
+- `Card`에 `hoverLift` prop(`boolean`, 기본값 `false`)을 추가했습니다. 켜면 마우스를 올릴 때 카드가 3px 떠오르고 그림자가 짙어지며, 누르면 살짝 눌립니다. 호버는 `(hover: hover) and (pointer: fine)`일 때만 적용돼 터치 기기에서 탭 뒤 떠오른 채 들러붙지 않습니다. `disabled`이면 떠오르지 않습니다. `onClick`이 없는 카드에도 줄 수 있습니다.
 
 ### Removed
 
+- **BREAKING CHANGE:** `Card`와 `Card.Body`의 `padding="none"`을 없앴습니다(`padding`은 `'sm' | 'md' | 'lg'`). 여백 없는 본문이 필요하면 `className`이나 `style`로 `padding: 0`을 주세요: `<Card.Body style={{ padding: 0 }}>`.
+- **BREAKING CHANGE:** `Card`의 `variant="interactive"`를 없앴습니다. 2px 테두리와 떠오르는 호버뿐인 변형이었습니다. `<Card variant="interactive">`는 `<Card variant="outlined" hoverLift>`로 바꾸세요. 테두리는 1px로 얇아집니다.
+- **BREAKING CHANGE:** `Card`의 `accentColor`를 없앴습니다. `--accent-color` CSS 변수를 넘기기만 하고 `Card`는 쓰지 않았습니다. 그 변수를 자식에서 쓰고 있었다면 `style={{ '--accent-color': color }}`로 직접 넘기거나, 자식에 색을 바로 주세요.
 - **BREAKING CHANGE:** `LoadingSpinner`를 제거했습니다. `Loader`가 같은 기능을 덮습니다. `<LoadingSpinner type="dots" size="sm" color="#f00" />` → `<Loader type="dots" size="sm" color="#f00" />`
 - **BREAKING CHANGE:** `Icon` 컴포넌트와 `IconName`·`IconProps` 타입을 제거했습니다. 내장 아이콘 세트를 따로 공개하지 않습니다. `lucide-react` 같은 외부 아이콘 라이브러리를 `IconButton`의 `children`으로 넘기세요: `<IconButton aria-label="닫기"><X /></IconButton>` (`import { X } from 'lucide-react'`). 마운트 시 획이 그려지던 `draw` 모션도 함께 없어졌습니다.
 - **BREAKING CHANGE:** `FormField`와 `FormFieldProps`·`FormFieldRenderProps` 타입을 공개 export에서 내렸습니다. `TextField`·`NumericSpinner`가 라벨, 필수 표시, 도움말, 에러 메시지와 그 사이의 연결을 이미 내장하고 있어 직접 쓸 일이 없습니다(코드는 내부 전용으로 남아 이 둘이 계속 씁니다). 옮기는 법: 라벨·도움말·에러가 필요한 입력은 `<TextField label="이름" helperText="..." error errorMessage="..." required />`처럼 `TextField`의 `label`·`helperText`·`error`·`errorMessage`·`required`를 쓰세요. 다른 입력 요소를 감싸려던 경우는 표준 `<label htmlFor>`와 `aria-describedby`를 직접 연결하세요.
@@ -46,6 +50,7 @@
 
 ### Changed
 
+- **BREAKING CHANGE:** `onClick`이 있는 `Card`가 더는 기본으로 호버에 떠오르거나 누를 때 눌리지 않습니다. 손 모양 커서, 터치 지연 없음, 포커스 링은 그대로입니다. 이전처럼 움직이게 하려면 `<Card onClick={...} hoverLift>`를 쓰세요.
 - `Button`의 호버 시 위로 뜨는(`translateY(-1px)`) 이동을 없앴습니다. 호버는 배경색만 바뀝니다. 호버 색은 `(hover: hover) and (pointer: fine)`일 때만 적용돼 터치 기기에서 탭 뒤 색이 들러붙지 않습니다.
 - `Button`의 누름 효과(`scale(0.95)`와 눌린 색)가 입력 시간과 무관하게 완주합니다. 30ms 탭도 최소 90ms 동안 눌린 상태를 유지하고, 포인터뿐 아니라 `Enter`·`Space`도 같은 효과를 냅니다. 누름은 150ms로 단단하게 들어가고, 뗄 때는 200ms 동안 휴지 크기를 약 1% 넘어갔다 정착합니다(이전 `scale(0.98)`은 되밀림이 0.1px라 보이지 않았습니다). `prefers-reduced-motion: reduce`에서는 `scale`만 끄고 색 변화는 남깁니다.
 - `Button`의 `weak` + `danger` 눌림이 호버와 구별되지 않던 것을 고쳤습니다. 호버와 같은 배경색 위에서 `filter: brightness(0.96)`로 배경과 글자를 함께 8.6% 어둡게 해 눌린 상태가 보이고 글자 대비는 AA(4.546:1)를 지킵니다.

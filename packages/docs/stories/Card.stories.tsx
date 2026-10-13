@@ -23,6 +23,10 @@ const meta = {
       control: 'boolean',
       description: '비활성화 상태',
     },
+    hoverLift: {
+      control: 'boolean',
+      description: '마우스를 올리면 떠오르고 누르면 눌린다 (기본 꺼짐)',
+    },
   },
 } satisfies Meta<typeof Card>;
 
@@ -65,17 +69,41 @@ export const Variants: Story = {
   ),
 };
 
+// 떠오르는 호버 (선택). onClick만 있는 카드는 떠오르지 않는다
+export const HoverLift: Story = {
+  render: () => (
+    <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
+      <Card variant="outlined" style={{ width: '200px' }}>
+        <Card.Body>
+          <h3 style={{ marginTop: 0 }}>기본</h3>
+          <p>호버해도 그대로</p>
+        </Card.Body>
+      </Card>
+      <Card variant="outlined" hoverLift style={{ width: '200px' }}>
+        <Card.Body>
+          <h3 style={{ marginTop: 0 }}>hoverLift</h3>
+          <p>호버하면 떠오름</p>
+        </Card.Body>
+      </Card>
+      <Card
+        variant="outlined"
+        hoverLift
+        onClick={() => alert('클릭!')}
+        style={{ width: '200px' }}
+      >
+        <Card.Body>
+          <h3 style={{ marginTop: 0 }}>onClick + hoverLift</h3>
+          <p>클릭도 되고 떠오름</p>
+        </Card.Body>
+      </Card>
+    </div>
+  ),
+};
+
 // Padding 옵션 (Card.Body에서 제어)
 export const Paddings: Story = {
   render: () => (
     <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
-      <Card variant="outlined" style={{ width: '150px' }}>
-        <Card.Body padding="none">
-          <div style={{ padding: '8px', backgroundColor: '#f0f0f0' }}>
-            Padding: none
-          </div>
-        </Card.Body>
-      </Card>
       <Card variant="outlined" style={{ width: '150px' }}>
         <Card.Body padding="sm">
           <div style={{ backgroundColor: '#f0f0f0' }}>Padding: sm</div>

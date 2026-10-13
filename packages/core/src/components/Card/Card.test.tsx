@@ -174,17 +174,6 @@ describe('Card (Compound API)', () => {
   });
 
   describe('Card.Body padding 테스트', () => {
-    it('padding="none"일 때 적절한 클래스가 적용된다', () => {
-      const { container } = render(
-        <Card>
-          <Card.Body padding="none">내용</Card.Body>
-        </Card>
-      );
-
-      const body = container.querySelector('[class*="cardBody"]');
-      expect(body).toHaveClass(/paddingStyles_none/);
-    });
-
     it('padding="lg"일 때 적절한 클래스가 적용된다', () => {
       const { container } = render(
         <Card>
@@ -469,18 +458,6 @@ describe('Card (Flat API)', () => {
   });
 
   describe('padding prop 테스트', () => {
-    it('padding="none"일 때 적절한 클래스가 적용된다', () => {
-      const { container } = render(
-        <Card title="제목" padding="none">
-          내용
-        </Card>
-      );
-
-      const card = container.firstChild as HTMLElement;
-      const content = card.querySelector('[class*="cardBody"]');
-      expect(content).toHaveClass(/paddingStyles_none/);
-    });
-
     it('padding="sm"일 때 적절한 클래스가 적용된다', () => {
       const { container } = render(
         <Card title="제목" padding="sm">
@@ -717,25 +694,6 @@ describe('Card 모션 잠금', () => {
   // 읽는다. Card.css.ts 소스 텍스트에서 직접 확인한다(이미지 기준 박스 관례).
   const cssSource = readFileSync(resolve(__dirname, './Card.css.ts'), 'utf-8');
 
-  /**
-   * hoverActiveMotion의 상태 블록 하나를 꺼낸다. 파일 첫 매치를 그냥 쓰면
-   * 앞에 같은 모양의 블록이 하나 끼어드는 날 조용히 엉뚱한 곳을 검사하므로,
-   * 그런 블록이 몇 개인지까지 같이 고정한다(리뷰 F4).
-   */
-  const hoverActiveMotionBlock = (state: ':hover' | ':active'): string => {
-    const blocks = [
-      ...cssSource.matchAll(
-        new RegExp(`'${state}': \\{([\\s\\S]*?)\\n {2}\\},`, 'g')
-      ),
-    ];
-    // :hover는 2곳 — hoverActiveMotion과 disabled의 되돌리기. :active는
-    // hoverActiveMotion 1곳뿐이다. 둘 다 첫 매치가 hoverActiveMotion이다.
-    expect(blocks, `${state} 블록 개수가 달라졌다`).toHaveLength(
-      state === ':hover' ? 2 : 1
-    );
-    return blocks[0][1];
-  };
-
   it('cardRoot transition의 transform 구간이 snap을, box-shadow/opacity가 settle을 쓴다', () => {
     const rootBlock = cssSource.match(
       /export const cardRoot = style\(\{([\s\S]*?)\n\}\);/
@@ -759,66 +717,157 @@ describe('Card 모션 잠금', () => {
     );
   });
 
-  it('variantStyles.interactive가 hoverActiveMotion + cursor를 갖고 포커스 링은 M3로 미룬다(리뷰 I3)', () => {
-    const variantBlock = cssSource.match(
-      /export const variantStyles = styleVariants\(\{([\s\S]*?)\n\}\);/
+  /**
+   * hoverLift 규칙 블록을 꺼낸다. 호버는 (hover: hover) and (pointer: fine)
+   * 안에, 누름(:active)은 밖에 있다.
+   */
+  const hoverLiftBlock = (): string => {
+    const block = cssSource.match(
+      /export const hoverLift = style\(\{([\s\S]*?)\n\}\);/
     )?.[1];
-    expect(variantBlock, 'variantStyles 블록을 찾지 못했다').toBeDefined();
-    const interactiveBlock = (variantBlock as string).match(
-      /interactive: \{([\s\S]*?)\n {2}\},/
-    )?.[1];
-    expect(interactiveBlock, 'interactive 블록을 찾지 못했다').toBeDefined();
-    // 모션(hover/active)은 clickable과 같은 출처(hoverActiveMotion)를 공유한다
-    // — onClick 없이 쓰여도(LivePreview가 렌더하는 CardPage.tsx 3곳) 살아있다.
-    expect(interactiveBlock).toContain('...hoverActiveMotion');
-    // :hover 리프트만이면 「강조」로 읽히지만 :active 누름까지 붙으면 버튼이라고
-    // 말하는 것이다. 누름 피드백은 어포던스 신호라, 포인터에게 그 신호를 받을
-    // 커서가 있어야 한다(리뷰 I3).
-    // 무엇을 뒤집으면 빨개지는가: interactive에서 cursor 줄을 빼면.
-    expect(interactiveBlock).toContain("cursor: 'pointer'");
-    // 포커스 링은 아직 주지 않는다 — role·tabIndex 없이 링만 붙이면 받을 수
-    // 없는 포커스를 그린다. Card에 진짜 상호작용 API를 주는 건 M3 몫이다.
-    expect(interactiveBlock).not.toContain('focusRing');
-  });
+    expect(block, 'hoverLift 블록을 찾지 못했다').toBeDefined();
+    return block as string;
+  };
 
-  it('clickable :hover가 translateY(-3px)/base로 합쳐진다', () => {
-    const hover = hoverActiveMotionBlock(':hover');
+  it('hoverLift :hover가 translateY(-3px)/base로 뜨고 (hover: hover) and (pointer: fine) 안에만 있다', () => {
+    const block = hoverLiftBlock();
+    const mediaAt = block.indexOf("'(hover: hover) and (pointer: fine)'");
+    expect(mediaAt, '호버 미디어 쿼리가 없다').toBeGreaterThanOrEqual(0);
+    // 미디어 쿼리 앞에는 :hover가 없다. 터치 기기에서 탭 뒤 들러붙지 않는다.
+    expect(block.slice(0, mediaAt)).not.toContain(':hover');
+    const hover = block.slice(mediaAt, block.indexOf(':active'));
     expect(hover).toContain("transform: 'translateY(-3px)'");
     expect(hover).toContain('themeContract.animation.duration.base');
+    expect(hover).toContain("boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)'");
   });
 
-  it(':hover 블록에 transitionTimingFunction이 없다(리뷰 C3)', () => {
+  it('hoverLift :hover 규칙에 transitionTimingFunction이 없다(리뷰 C3)', () => {
     // 포인터를 떼도 요소는 여전히 :hover에 매치된다. 이 블록의 타이밍 함수
     // 롱핸드가 cardRoot의 transition 숏핸드를 이기고 속성별 목록을 값
-    // 하나로 무너뜨려서, 되돌아오는 전이까지 그 커브가 지배했다 —
-    // cardRoot가 transform에 준 snap 오버슛이 포인터 사용자에게 한 번도
-    // 재생되지 않았다(크로미엄 실측).
-    // 무엇을 뒤집으면 빨개지는가: hoverActiveMotion의 ':hover'에
-    // transitionTimingFunction: settle을 되돌려 놓으면 여기가 빨개진다.
-    expect(hoverActiveMotionBlock(':hover')).not.toContain(
-      'transitionTimingFunction'
+    // 하나로 무너뜨려서, 되돌아오는 전이까지 그 커브가 지배했다.
+    // 무엇을 뒤집으면 빨개지는가: :hover에 transitionTimingFunction을 되돌리면.
+    const block = hoverLiftBlock();
+    const hover = block.slice(
+      block.indexOf("'(hover: hover) and (pointer: fine)'"),
+      block.indexOf(':active')
     );
+    expect(hover).not.toContain('transitionTimingFunction');
   });
 
-  it('clickable :active가 scale(0.99) translateY(-1px)/fast/exit로 버틴다', () => {
-    const active = hoverActiveMotionBlock(':active');
+  it('hoverLift :active가 scale(0.99) translateY(-1px)/fast/exit로 버틴다', () => {
+    const block = hoverLiftBlock();
+    const active = block.slice(block.indexOf(':active'));
     expect(active).toContain("transform: 'scale(0.99) translateY(-1px)'");
     expect(active).toContain('themeContract.animation.duration.fast');
     expect(active).toContain('themeContract.animation.easing.exit');
   });
 
-  it('남은 boxShadow rgba 값은 손대지 않는다(M5) — hoverActiveMotion 공유로 3곳 유지', () => {
-    // hoverActiveMotion이 hover(0.15)/active(0.1) 값을 한 번만 갖고 clickable과
-    // variantStyles.interactive가 스프레드로 공유한다(리뷰 F2) — 텍스트에
-    // 새 리터럴이 추가되지 않아 elevated(0.1)까지 여전히 3곳이다. 소스 순서가
-    // hoverActiveMotion(먼저 선언) → elevated(styleVariants 안)로 바뀌어
-    // 등장 순서만 달라졌다.
+  it('clickable은 커서·touch-action·포커스 링만 갖고 떠오르는 모션은 없다', () => {
+    const block = cssSource.match(
+      /export const clickable = style\(\{([\s\S]*?)\n\}\);/
+    )?.[1];
+    expect(block, 'clickable 블록을 찾지 못했다').toBeDefined();
+    expect(block).toContain("cursor: 'pointer'");
+    expect(block).toContain("touchAction: 'manipulation'");
+    expect(block).toContain('focusRing');
+    // 무엇을 뒤집으면 빨개지는가: clickable에 hover/active 모션을 되살리면.
+    expect(block).not.toContain('translateY');
+    expect(block).not.toContain(':hover');
+    expect(block).not.toContain(':active');
+  });
+
+  it('padding none과 interactive 변형이 CSS에 남아 있지 않다', () => {
+    expect(cssSource).not.toMatch(/\binteractive:/);
+    expect(cssSource).not.toMatch(/\bnone: \{/);
+  });
+
+  it('boxShadow rgba 리터럴 셋은 토큰에 같은 값이 없어 둔다(elevated, hover, active)', () => {
+    // tokens/shadows.css.ts에 0 2px 8px / 0 4px 12px 와 같은 값이 없다. 바꾸면
+    // 정지 모습이 바뀐다. 토큰에 같은 값이 생기면 이 시험과 함께 교체한다.
     const rgbaValues = cssSource.match(/rgba\(0, 0, 0, 0\.\d+\)/g) ?? [];
-    expect(rgbaValues).toHaveLength(3);
     expect(rgbaValues).toEqual([
+      'rgba(0, 0, 0, 0.1)',
       'rgba(0, 0, 0, 0.15)',
       'rgba(0, 0, 0, 0.1)',
-      'rgba(0, 0, 0, 0.1)',
     ]);
+  });
+});
+
+describe('Card hoverLift', () => {
+  it('hoverLift를 주면 떠오름 클래스가 붙는다', () => {
+    const { container } = render(
+      <Card hoverLift>
+        <Card.Body>내용</Card.Body>
+      </Card>
+    );
+
+    expect(container.firstChild).toHaveClass(/hoverLift/);
+  });
+
+  it('기본은 떠오르지 않는다', () => {
+    const { container } = render(
+      <Card>
+        <Card.Body>내용</Card.Body>
+      </Card>
+    );
+
+    expect(container.firstChild).not.toHaveClass(/hoverLift/);
+  });
+
+  it('onClick만 있으면 클릭 가능하지만 떠오르지 않는다', () => {
+    const { container } = render(
+      <Card onClick={() => {}}>
+        <Card.Body>내용</Card.Body>
+      </Card>
+    );
+
+    expect(container.firstChild).toHaveClass(/clickable/);
+    expect(container.firstChild).not.toHaveClass(/hoverLift/);
+  });
+
+  it('onClick과 hoverLift를 함께 주면 둘 다 붙는다', () => {
+    const { container } = render(
+      <Card onClick={() => {}} hoverLift>
+        <Card.Body>내용</Card.Body>
+      </Card>
+    );
+
+    expect(container.firstChild).toHaveClass(/clickable/);
+    expect(container.firstChild).toHaveClass(/hoverLift/);
+  });
+
+  it('disabled이면 hoverLift를 줘도 떠오름 클래스가 붙지 않는다', () => {
+    const { container } = render(
+      <Card onClick={() => {}} hoverLift disabled>
+        <Card.Body>내용</Card.Body>
+      </Card>
+    );
+
+    expect(container.firstChild).toHaveClass(/disabled/);
+    expect(container.firstChild).not.toHaveClass(/hoverLift/);
+  });
+});
+
+describe('Card 타입 (@ts-expect-error가 잠근다)', () => {
+  it('걷어낸 padding="none"·variant="interactive"·accentColor는 타입 오류다', () => {
+    // 컴파일 시점 단정이라 런타임에는 렌더만 확인한다. tsc가 검사한다.
+    render(
+      <>
+        {/* @ts-expect-error padding none은 없다 */}
+        <Card title="제목" padding="none">
+          a
+        </Card>
+        <Card>
+          {/* @ts-expect-error padding none은 없다 */}
+          <Card.Body padding="none">b</Card.Body>
+        </Card>
+        {/* @ts-expect-error interactive 변형은 없다 */}
+        <Card variant="interactive">c</Card>
+        {/* @ts-expect-error accentColor는 없다 */}
+        <Card accentColor="#fff">d</Card>
+      </>
+    );
+
+    expect(screen.getByText('a')).toBeInTheDocument();
   });
 });

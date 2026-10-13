@@ -5,6 +5,7 @@ import {
   cardRoot,
   variantStyles,
   clickable as clickableStyle,
+  hoverLift as hoverLiftStyle,
   disabled as disabledStyle,
   cardImage,
   cardImageWrapper,
@@ -25,14 +26,14 @@ export interface CardProps extends Omit<
 > {
   /** 카드 콘텐츠 */
   children: ReactNode;
-  /** 카드 시각적 스타일. interactive는 호버/클릭 효과 포함 @default 'elevated' */
-  variant?: 'outlined' | 'elevated' | 'filled' | 'interactive';
+  /** 카드 시각적 스타일 @default 'elevated' */
+  variant?: 'outlined' | 'elevated' | 'filled';
   /** 클릭 핸들러. 설정 시 카드가 클릭 가능해짐 */
   onClick?: () => void;
   /** 비활성화 상태 */
   disabled?: boolean;
-  /** 카드 상단 액센트 색상 (CSS 색상값) */
-  accentColor?: string;
+  /** 마우스를 올리면 카드가 살짝 떠오르고 그림자가 짙어지며, 누르면 살짝 눌린다. 클릭 가능한 카드도 켜지 않으면 떠오르지 않는다 @default false */
+  hoverLift?: boolean;
   /** Flat: 카드 제목 — 자동으로 header + title 구조 생성 */
   title?: string;
   /** Flat: 카드 헤더 영역 (title보다 우선) */
@@ -44,7 +45,7 @@ export interface CardProps extends Omit<
   /** Flat: 이미지 alt 텍스트 */
   imageAlt?: string;
   /** Flat: 본문 패딩 (Flat 모드에서만 적용) @default 'md' */
-  padding?: 'none' | 'sm' | 'md' | 'lg';
+  padding?: 'sm' | 'md' | 'lg';
 }
 
 const CardRoot = forwardRef<HTMLElement, CardProps>(
@@ -54,7 +55,7 @@ const CardRoot = forwardRef<HTMLElement, CardProps>(
       variant = 'elevated',
       onClick,
       disabled: isDisabled = false,
-      accentColor,
+      hoverLift = false,
       title,
       header,
       footer,
@@ -81,14 +82,11 @@ const CardRoot = forwardRef<HTMLElement, CardProps>(
       variantStyles[variant],
       {
         [clickableStyle]: isClickable,
+        [hoverLiftStyle]: hoverLift && !isDisabled,
         [disabledStyle]: isDisabled,
       },
       className
     );
-
-    const rootStyle = accentColor
-      ? ({ ...style, '--accent-color': accentColor } as React.CSSProperties)
-      : style;
 
     const content = isFlat ? (
       <>
@@ -116,7 +114,7 @@ const CardRoot = forwardRef<HTMLElement, CardProps>(
           ref={ref as React.Ref<HTMLButtonElement>}
           type="button"
           className={rootClasses}
-          style={rootStyle}
+          style={style}
           onClick={clickableProps.onClick}
           onKeyDown={clickableProps.onKeyDown}
           disabled={isDisabled}
@@ -132,7 +130,7 @@ const CardRoot = forwardRef<HTMLElement, CardProps>(
       <article
         ref={ref as React.Ref<HTMLElement>}
         className={rootClasses}
-        style={rootStyle}
+        style={style}
         {...props}
       >
         {content}
@@ -230,7 +228,7 @@ export interface CardBodyProps extends HTMLAttributes<HTMLDivElement> {
   /** 본문 콘텐츠 */
   children: ReactNode;
   /** 내부 여백 @default 'md' */
-  padding?: 'none' | 'sm' | 'md' | 'lg';
+  padding?: 'sm' | 'md' | 'lg';
 }
 
 export const CardBody = forwardRef<HTMLDivElement, CardBodyProps>(

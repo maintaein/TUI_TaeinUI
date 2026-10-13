@@ -65,8 +65,8 @@ export function ComponentsOverviewPage() {
             {components.map((component) => (
               <Card
                 key={component.name}
-                variant="interactive"
-                accentColor={categoryColors[component.category]}
+                variant="outlined"
+                hoverLift
                 onClick={() => navigate(component.path)}
                 className={styles.componentCardCustom}
               >

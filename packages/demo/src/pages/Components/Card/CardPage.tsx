@@ -17,7 +17,7 @@ export function CardPage() {
     },
     {
       name: 'variant',
-      type: "'outlined' | 'elevated' | 'filled' | 'interactive'",
+      type: "'outlined' | 'elevated' | 'filled'",
       default: "'elevated'",
       description: '카드 스타일 변형',
     },
@@ -33,9 +33,11 @@ export function CardPage() {
       description: '비활성화 상태 (onClick과 함께 사용)',
     },
     {
-      name: 'accentColor',
-      type: 'string',
-      description: 'CSS 커스텀 속성(--accent-color)으로 전달되는 강조 색상',
+      name: 'hoverLift',
+      type: 'boolean',
+      default: 'false',
+      description:
+        '마우스를 올리면 카드가 살짝 떠오르고 그림자가 짙어지며, 누르면 살짝 눌립니다. onClick만 있는 카드는 떠오르지 않습니다',
     },
     {
       name: 'title',
@@ -65,7 +67,7 @@ export function CardPage() {
     },
     {
       name: 'padding',
-      type: "'none' | 'sm' | 'md' | 'lg'",
+      type: "'sm' | 'md' | 'lg'",
       default: "'md'",
       description: 'Flat: 본문 내부 여백',
     },
@@ -80,7 +82,7 @@ export function CardPage() {
     },
     {
       name: 'padding',
-      type: "'none' | 'sm' | 'md' | 'lg'",
+      type: "'sm' | 'md' | 'lg'",
       default: "'md'",
       description: '내부 여백 크기',
     },
@@ -248,7 +250,7 @@ export function CardPage() {
             title="본문 여백"
             description="padding prop으로 내부 여백을 조절합니다."
             editable
-            code={`const paddings = ['none', 'sm', 'md', 'lg'];
+            code={`const paddings = ['sm', 'md', 'lg'];
 
 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem' }}>
   {paddings.map((p) => (
@@ -297,7 +299,7 @@ export function CardPage() {
           <h3 className={styles.exampleTitle}>Clickable Card</h3>
           <LivePreview
             title="클릭 가능한 카드"
-            description="onClick을 전달하면 button 요소로 렌더링되어 hover/active 효과가 적용됩니다."
+            description="onClick을 전달하면 button 요소로 렌더링됩니다. 기본으로는 떠오르지 않고, 원하면 hoverLift를 함께 주세요."
             editable
             code={`const [clicked, setClicked] = useState('');
 
@@ -485,34 +487,34 @@ export function CardPage() {
 
         <div className={styles.example}>
           <h3 className={styles.exampleTitle}>
-            Compound 실전 예시 — Interactive + Accent Color
+            Compound 실전 예시: 떠오르는 호버 (hoverLift)
           </h3>
           <LivePreview
-            title="인터랙티브 카드"
-            description="variant='interactive'는 호버 시 카드가 떠오르는 효과를 제공합니다. accentColor로 강조 색상도 설정할 수 있습니다."
+            title="떠오르는 호버"
+            description="hoverLift를 주면 마우스를 올릴 때 카드가 떠오르고, 누르면 살짝 눌립니다. 터치 기기에서는 호버가 없어 떠오르지 않습니다."
             editable
             code={`<div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1.5rem' }}>
-  <Card variant="interactive" accentColor="#3b82f6">
+  <Card variant="outlined" hoverLift>
     <Card.Body padding="lg">
-      <div style={{ width: '100%', height: '4px', backgroundColor: 'var(--accent-color)', borderRadius: '2px', marginBottom: '0.75rem' }} />
+      <div style={{ width: '100%', height: '4px', backgroundColor: '#3b82f6', borderRadius: '2px', marginBottom: '0.75rem' }} />
       <p style={{ margin: '0 0 0.5rem', fontWeight: 700, fontSize: '1.125rem' }}>디자인</p>
       <p style={{ margin: 0, fontSize: '0.875rem', color: '#6b7280', lineHeight: 1.5 }}>
         일관된 디자인 언어로 사용자 경험을 향상시킵니다.
       </p>
     </Card.Body>
   </Card>
-  <Card variant="interactive" accentColor="#10b981">
+  <Card variant="outlined" hoverLift>
     <Card.Body padding="lg">
-      <div style={{ width: '100%', height: '4px', backgroundColor: 'var(--accent-color)', borderRadius: '2px', marginBottom: '0.75rem' }} />
+      <div style={{ width: '100%', height: '4px', backgroundColor: '#10b981', borderRadius: '2px', marginBottom: '0.75rem' }} />
       <p style={{ margin: '0 0 0.5rem', fontWeight: 700, fontSize: '1.125rem' }}>개발</p>
       <p style={{ margin: 0, fontSize: '0.875rem', color: '#6b7280', lineHeight: 1.5 }}>
         재사용 가능한 컴포넌트로 개발 속도를 높입니다.
       </p>
     </Card.Body>
   </Card>
-  <Card variant="interactive" accentColor="#f59e0b">
+  <Card variant="outlined" hoverLift>
     <Card.Body padding="lg">
-      <div style={{ width: '100%', height: '4px', backgroundColor: 'var(--accent-color)', borderRadius: '2px', marginBottom: '0.75rem' }} />
+      <div style={{ width: '100%', height: '4px', backgroundColor: '#f59e0b', borderRadius: '2px', marginBottom: '0.75rem' }} />
       <p style={{ margin: '0 0 0.5rem', fontWeight: 700, fontSize: '1.125rem' }}>접근성</p>
       <p style={{ margin: 0, fontSize: '0.875rem', color: '#6b7280', lineHeight: 1.5 }}>
         웹 접근성 기준을 준수하여 모든 사용자를 지원합니다.

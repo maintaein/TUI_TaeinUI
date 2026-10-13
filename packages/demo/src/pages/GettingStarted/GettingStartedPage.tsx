@@ -178,8 +178,8 @@ function Example() {
 
         <div className={styles.nextStepsGrid}>
           <Card
-            variant="interactive"
-            accentColor="#8b5cf6"
+            variant="outlined"
+            hoverLift
             onClick={() => navigate('/components')}
             className={styles.nextStepCard}
           >
@@ -196,8 +196,8 @@ function Example() {
             </Card.Body>
           </Card>
           <Card
-            variant="interactive"
-            accentColor="#2563eb"
+            variant="outlined"
+            hoverLift
             onClick={() => navigate('/components/bottom-sheet')}
             className={styles.nextStepCard}
           >
@@ -214,8 +214,8 @@ function Example() {
             </Card.Body>
           </Card>
           <Card
-            variant="interactive"
-            accentColor="#16a34a"
+            variant="outlined"
+            hoverLift
             onClick={() => navigate('/')}
             className={styles.nextStepCard}
           >
