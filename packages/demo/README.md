@@ -49,7 +49,7 @@ packages/demo/
 │   ├── pages/                # 페이지 컴포넌트
 │   │   ├── Introduction/
 │   │   ├── GettingStarted/
-│   │   └── Components/       # 컴포넌트별 상세 페이지 (30개)
+│   │   └── Components/       # 컴포넌트별 상세 페이지 (25개)
 │   ├── routes/               # React Router 설정
 │   ├── data/                 # 네비게이션, 검색 인덱스 등
 │   └── styles/               # 글로벌 스타일
