@@ -35,6 +35,8 @@ export const heroTitle = style({
 });
 
 export const heroTitleMain = style({
+  // Text(h1)가 주던 줄 높이. Text를 걷은 뒤에도 같은 모습(M5 7차)
+  lineHeight: 1.2,
   fontSize: '4rem',
   fontWeight: 800,
   color: '#2563eb',
@@ -91,6 +93,9 @@ export const section = style({
 });
 
 export const sectionTitle = style({
+  // Text(h2)가 주던 위쪽 여백 0과 줄 높이. Text를 걷은 뒤에도 같은 모습(M5 7차)
+  marginTop: 0,
+  lineHeight: 1.3,
   fontSize: '2.25rem',
   fontWeight: 700,
   color: '#111827',
