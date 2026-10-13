@@ -1,14 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import {
-  Button,
-  TextField,
-  Card,
-  Text,
-  Badge,
-  Switch,
-  Chip,
-} from '@taein-ui/core';
+import { Button, TextField, Card, Badge, Switch, Chip } from '@taein-ui/core';
 import {
   Sparkles,
   Eye,
@@ -30,9 +22,7 @@ export function IntroductionPage() {
       <section className={styles.hero}>
         <div className={styles.heroContent}>
           <h1 className={styles.heroTitle}>
-            <Text variant="h1" as="span" className={styles.heroTitleMain}>
-              TUI
-            </Text>
+            <span className={styles.heroTitleMain}>TUI</span>
             <span className={styles.heroTitleSub}>TaeinUI</span>
           </h1>
           <p className={styles.heroDescription}>
@@ -70,9 +60,7 @@ export function IntroductionPage() {
 
       {/* TUI goal */}
       <section className={styles.section}>
-        <Text variant="h2" className={styles.sectionTitle}>
-          TUI의 목표
-        </Text>
+        <h2 className={styles.sectionTitle}>TUI의 목표</h2>
         <div className={styles.goalList}>
           {/* 컴포넌트별 모션 */}
           <div className={styles.goalRow}>
@@ -197,9 +185,7 @@ export function IntroductionPage() {
 
       {/* Quick Preview */}
       <section className={styles.section}>
-        <Text variant="h2" className={styles.sectionTitle}>
-          빠른 미리보기
-        </Text>
+        <h2 className={styles.sectionTitle}>빠른 미리보기</h2>
         <p className={styles.sectionDescription}>
           직접 눌러 보세요. 같은 화면 안에서도 컴포넌트마다 움직임이 다릅니다 —
           GSAP이어야 하는 자리는 GSAP이, 그렇지 않은 자리는 CSS 트랜지션이
@@ -281,13 +267,11 @@ function Example() {
 
       {/* Next Steps */}
       <section className={styles.section}>
-        <Text variant="h2" className={styles.sectionTitle}>
-          다음 단계
-        </Text>
+        <h2 className={styles.sectionTitle}>다음 단계</h2>
         <div className={styles.nextStepsGrid}>
           <Card
-            variant="interactive"
-            accentColor="#2563eb"
+            variant="outlined"
+            hoverLift
             onClick={() => navigate('/getting-started')}
             className={styles.nextStepCard}
           >
@@ -303,8 +287,8 @@ function Example() {
             </Card.Body>
           </Card>
           <Card
-            variant="interactive"
-            accentColor="#2563eb"
+            variant="outlined"
+            hoverLift
             onClick={() => navigate('/components/overview')}
             className={styles.nextStepCard}
           >
@@ -321,8 +305,8 @@ function Example() {
             </Card.Body>
           </Card>
           <Card
-            variant="interactive"
-            accentColor="#2563eb"
+            variant="outlined"
+            hoverLift
             onClick={() => navigate('/components/bottom-sheet')}
             className={styles.nextStepCard}
           >
