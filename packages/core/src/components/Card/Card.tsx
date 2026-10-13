@@ -1,6 +1,7 @@
 import { forwardRef, type ReactNode, type HTMLAttributes } from 'react';
 import clsx from 'clsx';
 import { useClickable } from '../../_internal/useClickable';
+import { useClickRebound } from '../../_internal/useClickRebound';
 import {
   cardRoot,
   variantStyles,
@@ -64,6 +65,13 @@ const CardRoot = forwardRef<HTMLElement, CardProps>(
       padding = 'md',
       className,
       style,
+      onPointerDown,
+      onPointerUp,
+      onPointerLeave,
+      onPointerCancel,
+      onKeyDown,
+      onKeyUp,
+      onBlur,
       ...props
     },
     ref
@@ -73,9 +81,30 @@ const CardRoot = forwardRef<HTMLElement, CardProps>(
 
     const clickableProps = useClickable({
       onClick: onClick ? () => onClick() : undefined,
+      onKeyDown,
       disabled: isDisabled,
       role: 'button',
     });
+
+    // 누름 상태의 수명은 useClickRebound가 정한다(:active 대신 data-pressed).
+    // 훅은 disabled여도 포인터 이벤트로 눌림을 켜므로(Button은 네이티브 disabled가
+    // 이벤트를 막는다) hoverLift가 아니거나 disabled면 훅의 핸들러를 달지 않고
+    // 소비자 핸들러만 단다. 클릭 불가 카드의 onKeyDown은 useClickable을 거치지
+    // 않는다(자식 입력의 Space를 막으면 안 된다).
+    const userHandlers = {
+      onPointerDown,
+      onPointerUp,
+      onPointerLeave,
+      onPointerCancel,
+      onKeyDown: isClickable ? clickableProps.onKeyDown : onKeyDown,
+      onKeyUp,
+      onBlur,
+    };
+    const { pressed, handlers } = useClickRebound<HTMLElement>(
+      isDisabled || !hoverLift,
+      userHandlers
+    );
+    const pressHandlers = hoverLift && !isDisabled ? handlers : userHandlers;
 
     const rootClasses = clsx(
       cardRoot,
@@ -116,9 +145,10 @@ const CardRoot = forwardRef<HTMLElement, CardProps>(
           className={rootClasses}
           style={style}
           onClick={clickableProps.onClick}
-          onKeyDown={clickableProps.onKeyDown}
           disabled={isDisabled}
           aria-disabled={isDisabled}
+          data-pressed={pressed ? '' : undefined}
+          {...pressHandlers}
           {...props}
         >
           {content}
@@ -131,6 +161,8 @@ const CardRoot = forwardRef<HTMLElement, CardProps>(
         ref={ref as React.Ref<HTMLElement>}
         className={rootClasses}
         style={style}
+        data-pressed={pressed ? '' : undefined}
+        {...pressHandlers}
         {...props}
       >
         {content}

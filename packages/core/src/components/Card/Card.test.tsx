@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { describe, it, expect, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { describe, it, expect, vi, afterEach } from 'vitest';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { Card } from './index';
 
@@ -719,7 +719,7 @@ describe('Card 모션 잠금', () => {
 
   /**
    * hoverLift 규칙 블록을 꺼낸다. 호버는 (hover: hover) and (pointer: fine)
-   * 안에, 누름(:active)은 밖에 있다.
+   * 안에, 누름(data-pressed)은 밖에 있다.
    */
   const hoverLiftBlock = (): string => {
     const block = cssSource.match(
@@ -735,7 +735,10 @@ describe('Card 모션 잠금', () => {
     expect(mediaAt, '호버 미디어 쿼리가 없다').toBeGreaterThanOrEqual(0);
     // 미디어 쿼리 앞에는 :hover가 없다. 터치 기기에서 탭 뒤 들러붙지 않는다.
     expect(block.slice(0, mediaAt)).not.toContain(':hover');
-    const hover = block.slice(mediaAt, block.indexOf(':active'));
+    const hover = block.slice(
+      mediaAt,
+      block.indexOf("'(prefers-reduced-motion: reduce)'")
+    );
     expect(hover).toContain("transform: 'translateY(-3px)'");
     expect(hover).toContain('themeContract.animation.duration.base');
     expect(hover).toContain("boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)'");
@@ -749,17 +752,47 @@ describe('Card 모션 잠금', () => {
     const block = hoverLiftBlock();
     const hover = block.slice(
       block.indexOf("'(hover: hover) and (pointer: fine)'"),
-      block.indexOf(':active')
+      block.indexOf("'(prefers-reduced-motion: reduce)'")
     );
     expect(hover).not.toContain('transitionTimingFunction');
   });
 
-  it('hoverLift :active가 scale(0.99) translateY(-1px)/fast/exit로 버틴다', () => {
+  it('hoverLift :hover 규칙은 :not([data-pressed])를 달아 호버가 누름을 덮지 않는다', () => {
+    // @media가 selectors 뒤에 나와 특정도가 같은 호버가 누름 transform을 덮는다.
+    // 무엇을 뒤집으면 빨개지는가: :not([data-pressed])를 지우면.
     const block = hoverLiftBlock();
-    const active = block.slice(block.indexOf(':active'));
-    expect(active).toContain("transform: 'scale(0.99) translateY(-1px)'");
-    expect(active).toContain('themeContract.animation.duration.fast');
-    expect(active).toContain('themeContract.animation.easing.exit');
+    expect(block).toContain("'&:hover:not([data-pressed])'");
+  });
+
+  it('hoverLift 누름이 translateY(0) scale(0.98)/fast/settle로 눌리고 :active는 쓰지 않는다', () => {
+    const block = hoverLiftBlock();
+    expect(block).not.toContain("':active'");
+    // 누름 규칙은 블록 맨 끝 selectors에 있다(축소 선호 안의 것이 앞선다).
+    const pressedAt = block.lastIndexOf("'&[data-pressed]'");
+    expect(pressedAt, '누름 규칙이 없다').toBeGreaterThanOrEqual(0);
+    const pressed = block.slice(pressedAt);
+    expect(pressed).toContain("transform: 'translateY(0) scale(0.98)'");
+    expect(pressed).toContain('themeContract.animation.duration.fast');
+    expect(pressed).toContain('themeContract.animation.easing.settle');
+  });
+
+  it('hoverLift 누름은 축소 선호에서 transform: none이고 willChange도 auto다', () => {
+    const block = hoverLiftBlock();
+    const reduced = block.slice(
+      block.indexOf("'(prefers-reduced-motion: reduce)'"),
+      block.lastIndexOf("'&[data-pressed]'")
+    );
+    expect(reduced).toContain("'&[data-pressed]'");
+    expect(reduced).toContain("transform: 'none'");
+    expect(reduced).toContain("willChange: 'auto'");
+  });
+
+  it('willChange: transform은 hoverLift에만 있고 cardRoot에는 없다', () => {
+    const root = cssSource.match(
+      /export const cardRoot = style\(\{([\s\S]*?)\n\}\);/
+    )?.[1];
+    expect(root).not.toContain('willChange');
+    expect(hoverLiftBlock()).toContain("willChange: 'transform'");
   });
 
   it('clickable은 커서·touch-action·포커스 링만 갖고 떠오르는 모션은 없다', () => {
@@ -773,7 +806,7 @@ describe('Card 모션 잠금', () => {
     // 무엇을 뒤집으면 빨개지는가: clickable에 hover/active 모션을 되살리면.
     expect(block).not.toContain('translateY');
     expect(block).not.toContain(':hover');
-    expect(block).not.toContain(':active');
+    expect(block).not.toContain("':active'");
   });
 
   it('padding none과 interactive 변형이 CSS에 남아 있지 않다', () => {
@@ -781,7 +814,7 @@ describe('Card 모션 잠금', () => {
     expect(cssSource).not.toMatch(/\bnone: \{/);
   });
 
-  it('boxShadow rgba 리터럴 셋은 토큰에 같은 값이 없어 둔다(elevated, hover, active)', () => {
+  it('boxShadow rgba 리터럴 셋은 토큰에 같은 값이 없어 둔다(elevated, hover, pressed)', () => {
     // tokens/shadows.css.ts에 0 2px 8px / 0 4px 12px 와 같은 값이 없다. 바꾸면
     // 정지 모습이 바뀐다. 토큰에 같은 값이 생기면 이 시험과 함께 교체한다.
     const rgbaValues = cssSource.match(/rgba\(0, 0, 0, 0\.\d+\)/g) ?? [];
@@ -845,6 +878,83 @@ describe('Card hoverLift', () => {
 
     expect(container.firstChild).toHaveClass(/disabled/);
     expect(container.firstChild).not.toHaveClass(/hoverLift/);
+  });
+});
+
+describe('Card hoverLift 누름은 짧은 클릭에도 보인다', () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  // jsdom에는 PointerEvent가 없어 MouseEvent로 쏜다(Button 시험과 같은 방식).
+  const pointerDown = (el: HTMLElement) =>
+    act(() => {
+      el.dispatchEvent(
+        new MouseEvent('pointerdown', { bubbles: true, button: 0 })
+      );
+    });
+  const wait = (ms: number) => act(() => vi.advanceTimersByTime(ms));
+
+  it('hoverLift면 30ms 탭도 90ms까지 data-pressed가 남고 그 뒤 사라진다', () => {
+    vi.useFakeTimers();
+    const { container } = render(<Card hoverLift>내용</Card>);
+    const card = container.firstChild as HTMLElement;
+
+    pointerDown(card);
+    expect(card).toHaveAttribute('data-pressed');
+    wait(30);
+    fireEvent.pointerUp(card);
+    wait(59);
+    expect(card).toHaveAttribute('data-pressed');
+    wait(1);
+    expect(card).not.toHaveAttribute('data-pressed');
+  });
+
+  it('클릭 가능한 hoverLift 카드도 Enter 키로 눌림이 붙는다', () => {
+    vi.useFakeTimers();
+    const onClick = vi.fn();
+    render(
+      <Card hoverLift onClick={onClick}>
+        내용
+      </Card>
+    );
+    const card = screen.getByRole('button');
+
+    fireEvent.keyDown(card, { key: 'Enter' });
+    expect(card).toHaveAttribute('data-pressed');
+    expect(onClick).toHaveBeenCalledTimes(1);
+  });
+
+  it('hoverLift가 없으면 눌러도 data-pressed가 붙지 않는다', () => {
+    const { container } = render(<Card>내용</Card>);
+    const card = container.firstChild as HTMLElement;
+
+    pointerDown(card);
+    expect(card).not.toHaveAttribute('data-pressed');
+  });
+
+  it('disabled면 hoverLift여도 data-pressed가 붙지 않는다', () => {
+    render(
+      <Card hoverLift disabled onClick={() => {}}>
+        내용
+      </Card>
+    );
+    const card = screen.getByRole('button');
+
+    pointerDown(card);
+    expect(card).not.toHaveAttribute('data-pressed');
+  });
+
+  it('소비자의 onPointerDown은 그대로 불린다', () => {
+    const onPointerDown = vi.fn();
+    const { container } = render(
+      <Card hoverLift onPointerDown={onPointerDown}>
+        내용
+      </Card>
+    );
+
+    pointerDown(container.firstChild as HTMLElement);
+    expect(onPointerDown).toHaveBeenCalledTimes(1);
   });
 });
 

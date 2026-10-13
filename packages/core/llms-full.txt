@@ -843,7 +843,7 @@ import { Card } from '@taein-ui/core';
 | variant | 'outlined' \| 'elevated' \| 'filled' | 'elevated' | Card variant |
 | onClick | () => void | — | Click handler |
 | disabled | boolean | false | Disable interactivity |
-| hoverLift | boolean | false | Lift and deepen the shadow on hover, press down on active (mouse only, off when disabled) |
+| hoverLift | boolean | false | Lift and deepen the shadow on hover, press down briefly on press (lift is mouse only, off when disabled) |
 | title | string | — | Title (Flat mode) |
 | image | string | — | Image URL (Flat mode) |
 | imageAlt | string | '' | Image alt text (Flat mode) |
