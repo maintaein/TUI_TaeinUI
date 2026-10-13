@@ -3,4 +3,5 @@ export type {
   HeaderBarProps,
   HeaderBarItem,
   HeaderBarIconItem,
+  HeaderBarLink,
 } from './HeaderBar';

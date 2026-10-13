@@ -1,4 +1,4 @@
-import { style, styleVariants } from '@vanilla-extract/css';
+import { createVar, style, styleVariants } from '@vanilla-extract/css';
 import { themeContract } from '../../tokens/theme.css';
 import { mediaQuery } from '../../tokens/breakpoints.css';
 import { focusRing } from '../../tokens/focusRing.css';
@@ -333,4 +333,216 @@ export const panelItem = style({
   justifyContent: 'flex-start',
   padding: themeContract.spacing[3],
   fontSize: themeContract.font.size.base,
+});
+
+// 좁은 화면 판의 하위 링크 묶음. dropdown의 links 항목은 접기 없이 펼쳐 둔다.
+export const panelGroup = style({
+  display: 'flex',
+  flexDirection: 'column',
+});
+
+export const panelGroupLabel = style({
+  padding: themeContract.spacing[3],
+  fontSize: themeContract.font.size.base,
+  fontWeight: themeContract.font.weight.semibold,
+});
+
+export const panelSubItem = style({
+  paddingLeft: themeContract.spacing[6],
+});
+
+// ---------------------------------------------------------------------------
+// 알약(navStyle="pill"). 출처는 PillNav(.claude/고도화/ex/PillNav.tsx:228-330)다.
+// ---------------------------------------------------------------------------
+
+/** 바깥 알약 높이(px). PillNav의 --nav-h(PillNav.tsx:243)에 가깝고 바 안쪽(44px)에 들어간다. */
+export const PILL_NAV_HEIGHT = 40;
+/** 바깥 알약 안쪽 여백(px). PillNav.tsx:303의 p-[3px]. */
+export const PILL_NAV_PADDING = 3;
+/** 알약 사이 간격(px). PillNav의 --pill-gap(PillNav.tsx:246). */
+export const PILL_GAP = 3;
+/** active 점 지름(px). */
+export const PILL_DOT_SIZE = 6;
+/** active 점이 알약 아래로 떨어진 거리(px). 점은 바 안쪽에 들어온다. */
+export const PILL_DOT_OFFSET = 4;
+
+// variant가 면·글자·원 색을 바꾼다. 알약 부품은 이 변수만 읽는다.
+const pillFace = createVar();
+const pillBase = createVar();
+const pillText = createVar();
+const pillCircleColor = createVar();
+const pillCoverColor = createVar();
+
+const pillLightVars = {
+  [pillFace]: themeContract.color.surface.hover,
+  [pillBase]: themeContract.color.background.default,
+  [pillText]: themeContract.color.text.primary,
+  [pillCircleColor]: themeContract.color.primary.main,
+  [pillCoverColor]: themeContract.color.primary.contrast,
+};
+
+export const pillVariantStyles = styleVariants({
+  default: { vars: pillLightVars },
+  // 어두운 바: 바깥 알약은 바보다 한 단계 밝은 어두운 면, 원은 어두운 면 위에서 읽히는 밝은 파랑.
+  // 그 위에 얹는 글자는 어두운 색(text.primary)이라 대비가 난다.
+  dark: {
+    vars: {
+      [pillFace]: themeContract.color.text.secondary,
+      [pillBase]: themeContract.color.text.primary,
+      [pillText]: themeContract.color.text.inverse,
+      [pillCircleColor]: themeContract.color.primary.light,
+      [pillCoverColor]: themeContract.color.text.primary,
+    },
+  },
+  transparent: { vars: pillLightVars },
+});
+
+export const pillNav = style({
+  boxSizing: 'border-box',
+  display: 'flex',
+  alignItems: 'center',
+  gap: `${PILL_GAP}px`,
+  height: `${PILL_NAV_HEIGHT}px`,
+  padding: `${PILL_NAV_PADDING}px`,
+  borderRadius: themeContract.borderRadius.full,
+  backgroundColor: pillFace,
+});
+
+// 알약과 점의 기준. 점은 overflow: hidden인 알약 밖에 있어야 잘리지 않아 형제로 둔다.
+export const pillSlot = style({
+  position: 'relative',
+  display: 'flex',
+  height: '100%',
+});
+
+export const pillItem = style({
+  boxSizing: 'border-box',
+  position: 'relative',
+  overflow: 'hidden',
+  display: 'inline-flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  height: `${PILL_NAV_HEIGHT - 2 * PILL_NAV_PADDING}px`,
+  padding: `0 ${themeContract.spacing[4]}`,
+  border: 'none',
+  borderRadius: themeContract.borderRadius.full,
+  backgroundColor: pillBase,
+  color: pillText,
+  font: 'inherit',
+  fontSize: themeContract.font.size.sm,
+  fontWeight: themeContract.font.weight.semibold,
+  textDecoration: 'none',
+  whiteSpace: 'nowrap',
+  cursor: 'pointer',
+  touchAction: 'manipulation',
+
+  selectors: {
+    '&:focus-visible': {
+      ...focusRing('currentColor'),
+    },
+  },
+});
+
+// 위치·크기·모양만 정한다. 지름·bottom·scale·기준점은 JS가 잰 뒤 쓴다(PillNav.tsx:53-73).
+export const pillCircle = style({
+  position: 'absolute',
+  left: '50%',
+  bottom: 0,
+  display: 'block',
+  borderRadius: themeContract.borderRadius.full,
+  backgroundColor: pillCircleColor,
+  pointerEvents: 'none',
+  zIndex: 1,
+});
+
+export const pillLabelStack = style({
+  position: 'relative',
+  display: 'inline-block',
+  lineHeight: 1,
+  zIndex: 2,
+});
+
+export const pillLabel = style({
+  position: 'relative',
+  display: 'inline-block',
+  lineHeight: 1,
+});
+
+// 덮는 글자. 레이아웃 전에는 투명이라 깜박이지 않는다. 움직임은 GSAP이 맡는다.
+export const pillCover = style({
+  position: 'absolute',
+  left: 0,
+  top: 0,
+  display: 'inline-block',
+  lineHeight: 1,
+  color: pillCoverColor,
+  opacity: 0,
+  zIndex: 3,
+});
+
+export const pillDot = style({
+  position: 'absolute',
+  top: `calc(100% + ${PILL_DOT_OFFSET}px)`,
+  left: '50%',
+  width: `${PILL_DOT_SIZE}px`,
+  height: `${PILL_DOT_SIZE}px`,
+  marginLeft: `-${PILL_DOT_SIZE / 2}px`,
+  borderRadius: themeContract.borderRadius.full,
+  backgroundColor: pillCircleColor,
+  pointerEvents: 'none',
+});
+
+// ---------------------------------------------------------------------------
+// 드롭다운(navStyle="dropdown")
+// ---------------------------------------------------------------------------
+
+/** 드롭다운 판 최소 폭. 짧은 하위 링크도 누르기 쉬운 폭을 갖는다. */
+const DROPDOWN_MIN_WIDTH = '10rem';
+
+// 슬롯은 위치를 잡지 않는다. 그래야 absolute인 판의 기준이 슬롯이 아니라 바가 되어
+// "바 아래 spacing[2]"가 된다(가로는 static position이 항목 왼쪽을 준다).
+export const dropdownSlot = style({
+  display: 'flex',
+});
+
+export const dropdownChevron = style({
+  display: 'inline-flex',
+  marginLeft: themeContract.spacing[1],
+  transition: `transform ${duration.base} ${settle}`,
+
+  selectors: {
+    [`${textItem}[aria-expanded="true"] &`]: {
+      transform: 'rotate(180deg)',
+    },
+  },
+
+  '@media': {
+    '(prefers-reduced-motion: reduce)': {
+      transition: 'none',
+    },
+  },
+});
+
+export const dropdownPanel = style({
+  boxSizing: 'border-box',
+  position: 'absolute',
+  top: `calc(100% + ${PANEL_GAP})`,
+  left: 'auto',
+  minWidth: DROPDOWN_MIN_WIDTH,
+  margin: 0,
+  padding: themeContract.spacing[2],
+  listStyle: 'none',
+  display: 'flex',
+  flexDirection: 'column',
+  borderRadius: themeContract.borderRadius.md,
+  boxShadow: themeContract.shadow.md,
+  opacity: 0,
+  visibility: 'hidden',
+  transform: `translateY(${PANEL_OFFSET_Y}px)`,
+});
+
+export const dropdownLink = style({
+  width: '100%',
+  justifyContent: 'flex-start',
+  padding: `${themeContract.spacing[2]} ${themeContract.spacing[3]}`,
 });

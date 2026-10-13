@@ -129,6 +129,50 @@ export const IconItems: Story = {
   ),
 };
 
+// 알약 항목: 호버하면 원이 차오르며 글자가 바뀐다
+export const PillItems: Story = {
+  render: () => (
+    <HeaderBar
+      title="Store"
+      navStyle="pill"
+      items={[
+        { label: '상품', href: '#', active: true },
+        { label: '카테고리', href: '#' },
+        { label: '이벤트', href: '#' },
+        { label: '문의', href: '#' },
+      ]}
+    />
+  ),
+};
+
+// 드롭다운 항목: links가 있는 항목을 누르면 아래에 작은 판이 열린다
+export const DropdownItems: Story = {
+  render: () => (
+    <HeaderBar
+      title="Store"
+      navStyle="dropdown"
+      items={[
+        {
+          label: '상품',
+          links: [
+            { label: '전체 상품', href: '#' },
+            { label: '신상품', href: '#' },
+            { label: '할인', href: '#' },
+          ],
+        },
+        {
+          label: '고객지원',
+          links: [
+            { label: '자주 묻는 질문', href: '#' },
+            { label: '문의하기', href: '#' },
+          ],
+        },
+        { label: '이벤트', href: '#' },
+      ]}
+    />
+  ),
+};
+
 // Sticky 헤더
 export const Sticky: Story = {
   render: () => (

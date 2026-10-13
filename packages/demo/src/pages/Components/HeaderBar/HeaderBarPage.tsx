@@ -22,14 +22,14 @@ export function HeaderBarPage() {
       name: 'items',
       type: 'HeaderBarItem[]',
       description:
-        "가운데 항목. { label, href?, onClick?, icon?, active? }. href가 있으면 <a>, 없으면 <button>이고 active는 aria-current='page'입니다. navStyle='icon'이면 모든 항목에 icon이 필요합니다",
+        "가운데 항목. { label, href?, onClick?, icon?, active?, links? }. href가 있으면 <a>, 없으면 <button>이고 active는 aria-current='page'입니다. navStyle='icon'이면 모든 항목에 icon이 필요합니다. links({ label, href?, onClick? }[])는 navStyle='dropdown'에서만 쓰이고 다른 형태에서는 무시됩니다",
     },
     {
       name: 'navStyle',
-      type: "'text' | 'icon'",
+      type: "'text' | 'pill' | 'dropdown' | 'icon'",
       default: "'text'",
       description:
-        '항목이 보이는 모습. text는 호버 때 밑줄이 왼쪽에서 그어지는 글자 링크, icon은 커서가 가까울수록 부푸는 아이콘 알약',
+        '항목이 보이는 모습. text는 호버 때 밑줄이 왼쪽에서 그어지는 글자 링크, pill은 호버하면 원이 차오르며 글자가 바뀌는 알약, dropdown은 links가 있는 항목을 누르면 아래에 작은 판이 열림, icon은 커서가 가까울수록 부푸는 아이콘 알약',
     },
     {
       name: 'actions',
@@ -165,6 +165,56 @@ export function HeaderBarPage() {
     { icon: <CircleCheck size={20} />, label: '완료함' },
     { icon: <Bell size={20} />, label: '알림' },
     { icon: <Settings size={20} />, label: '설정' },
+  ]}
+/>`}
+          />
+        </div>
+
+        <div className={styles.example}>
+          <h3 className={styles.exampleTitle}>navStyle: pill</h3>
+          <LivePreview
+            title="알약 항목"
+            description="항목이 바깥 알약 안의 알약 버튼이 됩니다. 마우스를 올리거나 키보드로 포커스하면 아래에서 원이 차오르고 글자가 위로 빠지며 같은 글자가 다른 색으로 올라옵니다. 들어올 때 slow, 나갈 때 base이고 도중에 바뀌면 지금 자리에서 이어받습니다. 터치에서는 움직이지 않습니다. active 항목은 아래에 점이 붙습니다."
+            editable
+            code={`<HeaderBar
+  title="Store"
+  navStyle="pill"
+  items={[
+    { label: '상품', href: '#', active: true },
+    { label: '카테고리', href: '#' },
+    { label: '이벤트', href: '#' },
+    { label: '문의', href: '#' },
+  ]}
+/>`}
+          />
+        </div>
+
+        <div className={styles.example}>
+          <h3 className={styles.exampleTitle}>navStyle: dropdown</h3>
+          <LivePreview
+            title="드롭다운 항목"
+            description="items[].links가 있는 항목은 꺾쇠가 붙은 버튼이고, 누르면 바 아래에 하위 링크 판이 열립니다. 한 번에 하나만 열리고 Esc, 판 밖 누름, 링크 누름, 포커스 이탈로 닫힙니다. 좁은 화면에서는 하위 링크가 세로 목록에 펼쳐져 보입니다."
+            editable
+            code={`<HeaderBar
+  title="Store"
+  navStyle="dropdown"
+  items={[
+    {
+      label: '상품',
+      links: [
+        { label: '전체 상품', href: '#' },
+        { label: '신상품', href: '#' },
+        { label: '할인', href: '#' },
+      ],
+    },
+    {
+      label: '고객지원',
+      links: [
+        { label: '자주 묻는 질문', href: '#' },
+        { label: '문의하기', href: '#' },
+      ],
+    },
+    { label: '이벤트', href: '#' },
   ]}
 />`}
           />

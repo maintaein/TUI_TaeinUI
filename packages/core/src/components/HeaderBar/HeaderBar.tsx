@@ -1,21 +1,23 @@
 import {
   useEffect,
   useId,
-  useLayoutEffect,
   useRef,
   useState,
   type HTMLAttributes,
   type ReactNode,
 } from 'react';
 import clsx from 'clsx';
-import { gsap } from 'gsap';
-import { gateMotion, settleMotion } from '../../hooks/gateMotion';
 import { useReducedMotion } from '../../hooks/useReducedMotion';
 import { addDocumentListener } from '../../_internal/dom';
-import { gsapDuration, gsapEasing } from '../../tokens/gsapEasing';
 import { HeaderBarNav } from './HeaderBarNav';
+import { HeaderBarPillNav } from './HeaderBarPill';
+import { HeaderBarDropdownItem } from './HeaderBarDropdown';
+import { usePanelTween, type PanelTweenHost } from './usePanelTween';
 import {
-  PANEL_OFFSET_Y,
+  pillVariantStyles,
+  panelGroup,
+  panelGroupLabel,
+  panelSubItem,
   headerBar,
   stickyStyles,
   bar,
@@ -37,6 +39,13 @@ import {
   panelItem,
 } from './HeaderBar.css';
 
+/** `navStyle="dropdown"`의 하위 링크 하나. href가 있으면 <a>, 없으면 <button> */
+export interface HeaderBarLink {
+  label: string;
+  href?: string;
+  onClick?: () => void;
+}
+
 /** 헤더바 항목 하나. */
 export interface HeaderBarItem {
   /** 보이는 글자이자 접근 이름. React key로도 쓴다 */
@@ -48,6 +57,11 @@ export interface HeaderBarItem {
   icon?: ReactNode;
   /** 지금 보고 있는 페이지. aria-current="page" */
   active?: boolean;
+  /**
+   * 하위 링크. `navStyle="dropdown"`에서만 쓰이고(그때 항목이 누르면 판이 열리는
+   * 버튼이 된다) 다른 형태에서는 무시된다.
+   */
+  links?: HeaderBarLink[];
 }
 
 /** `navStyle="icon"`의 항목. `icon`이 필수다. */
@@ -77,8 +91,12 @@ interface HeaderBarBaseProps extends Omit<
 export type HeaderBarProps = HeaderBarBaseProps &
   (
     | {
-        /** 항목이 보이는 모습. text는 글자 링크, icon은 아이콘 알약 @default 'text' */
-        navStyle?: 'text';
+        /**
+         * 항목이 보이는 모습. text는 글자 링크, pill은 호버하면 원이 차오르며 글자가
+         * 바뀌는 알약, dropdown은 `links`가 있는 항목을 누르면 아래에 작은 판이 열린다,
+         * icon은 아이콘 알약 @default 'text'
+         */
+        navStyle?: 'text' | 'pill' | 'dropdown';
         /** 가운데 항목. 768px 미만에서는 햄버거 뒤 세로 목록으로 들어간다 */
         items?: HeaderBarItem[];
       }
@@ -88,15 +106,6 @@ export type HeaderBarProps = HeaderBarBaseProps &
         items?: HeaderBarIconItem[];
       }
   );
-
-/**
- * 테스트가 열림·닫힘 트윈을 집는 통로. 공개 prop/state로 안 나가고 패널 DOM 노드에
- * 얹는다(타입 전용 확장이라 값으로 export되지 않는다. HeaderBarNav의
- * NavScaleSetterHost와 같은 모양).
- */
-interface PanelTweenHost extends HTMLElement {
-  __panelTween?: gsap.core.Tween;
-}
 
 export const HeaderBar = ({
   logo,
@@ -113,52 +122,11 @@ export const HeaderBar = ({
   const reduced = useReducedMotion();
   const panelId = useId();
   const [open, setOpen] = useState(false);
+  // dropdown에서 열린 항목의 label. 한 번에 하나만 열린다.
+  const [dropdownKey, setDropdownKey] = useState<string | null>(null);
   const hamburgerRef = useRef<HTMLButtonElement | null>(null);
   const panelRef = useRef<PanelTweenHost | null>(null);
-  // 마지막으로 트윈을 건 열림 상태. 처음 마운트(닫힘)와 축소 선호만 바뀐 렌더에서
-  // 같은 방향 트윈을 또 걸지 않게 한다.
-  const shownRef = useRef(false);
-
-  // 열림: opacity 0 -> 1, y 8 -> 0, base settle. 닫힘: 반대로 fast settle.
-  // autoAlpha가 opacity와 visibility를 함께 쓴다(닫힌 목록이 탭 순서에서 빠진다).
-  // overwrite: 'auto'라 도중에 뒤집으면 지금 자리에서 이어진다.
-  useLayoutEffect(() => {
-    const panelEl = panelRef.current;
-    if (!panelEl) return;
-    if (shownRef.current === open) {
-      // 열림 상태는 그대로인데 축소 선호가 켜졌다. 돌던 트윈을 끝 상태로 확정한다.
-      if (reduced && panelEl.__panelTween) settleMotion(panelEl.__panelTween);
-      return;
-    }
-    shownRef.current = open;
-    panelEl.__panelTween = gateMotion(reduced, () =>
-      gsap.to(
-        panelEl,
-        open
-          ? {
-              autoAlpha: 1,
-              y: 0,
-              duration: gsapDuration.base,
-              ease: gsapEasing.settle,
-              overwrite: 'auto',
-            }
-          : {
-              autoAlpha: 0,
-              y: PANEL_OFFSET_Y,
-              duration: gsapDuration.fast,
-              ease: gsapEasing.settle,
-              overwrite: 'auto',
-            }
-      )
-    );
-  }, [open, reduced]);
-
-  useEffect(() => {
-    const panelEl = panelRef.current;
-    return () => {
-      panelEl?.__panelTween?.kill();
-    };
-  }, []);
+  usePanelTween(panelRef, open, reduced);
 
   // 열려 있는 동안 Esc와 판 밖 누름으로 닫는다. 햄버거 자체의 누름은 제외한다.
   // 햄버거의 mousedown이 먼저 닫아 버리면 이어지는 click이 다시 열기 때문이다.
@@ -182,9 +150,13 @@ export const HeaderBar = ({
     };
   }, [open]);
 
-  const renderTextItem = (item: HeaderBarItem, inPanel: boolean) => {
+  const renderTextItem = (
+    item: HeaderBarLink & { active?: boolean },
+    inPanel: boolean,
+    sub = false
+  ) => {
     const shared = {
-      className: clsx(textItemStyle, inPanel && panelItem),
+      className: clsx(textItemStyle, inPanel && panelItem, sub && panelSubItem),
       'aria-current': item.active ? ('page' as const) : undefined,
       onClick: () => {
         item.onClick?.();
@@ -211,6 +183,41 @@ export const HeaderBar = ({
   const itemList: HeaderBarItem[] = items ?? [];
   const hasItems = itemList.length > 0;
 
+  // 좁은 화면 세로 목록 판. dropdown의 links 항목은 접기 없이 하위 링크를 들여 써서 펼쳐 둔다.
+  const renderPanelItem = (item: HeaderBarItem, index: number) => {
+    if (navStyle !== 'dropdown' || !item.links?.length) {
+      return renderTextItem(item, true);
+    }
+    const groupId = `${panelId}-group-${index}`;
+    return (
+      <div
+        key={item.label}
+        role="group"
+        aria-labelledby={groupId}
+        className={panelGroup}
+      >
+        <span id={groupId} className={panelGroupLabel}>
+          {item.label}
+        </span>
+        {item.links.map((link) => renderTextItem(link, true, true))}
+      </div>
+    );
+  };
+
+  const renderDropdownItem = (item: HeaderBarItem) =>
+    item.links?.length ? (
+      <HeaderBarDropdownItem
+        key={item.label}
+        label={item.label}
+        links={item.links}
+        open={dropdownKey === item.label}
+        onOpenChange={(next) => setDropdownKey(next ? item.label : null)}
+        panelFaceClassName={panelVariantStyles[variant]}
+      />
+    ) : (
+      renderTextItem(item, false)
+    );
+
   return (
     <header
       role="banner"
@@ -234,9 +241,18 @@ export const HeaderBar = ({
           <div className={centerSection}>
             {iconItems ? (
               <HeaderBarNav items={iconItems} />
+            ) : navStyle === 'pill' ? (
+              <HeaderBarPillNav
+                items={itemList}
+                variantClassName={pillVariantStyles[variant]}
+              />
             ) : (
               <nav aria-label="주요 메뉴" className={textNav}>
-                {itemList.map((item) => renderTextItem(item, false))}
+                {itemList.map((item) =>
+                  navStyle === 'dropdown'
+                    ? renderDropdownItem(item)
+                    : renderTextItem(item, false)
+                )}
               </nav>
             )}
           </div>
@@ -267,7 +283,7 @@ export const HeaderBar = ({
             aria-label="메뉴 목록"
             className={clsx(panelStyle, panelVariantStyles[variant])}
           >
-            {itemList.map((item) => renderTextItem(item, true))}
+            {itemList.map(renderPanelItem)}
           </nav>
         )}
       </div>
