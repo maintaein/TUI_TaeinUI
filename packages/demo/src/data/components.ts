@@ -240,7 +240,7 @@ export const componentsData: ComponentInfo[] = [
 
 export const categoryLabels: Record<ComponentInfo['category'], string> = {
   form: '폼 & 입력',
-  button: '버튼 & 텍스트',
+  button: '버튼',
   feedback: '피드백 & 상태',
   overlay: '오버레이',
   layout: '레이아웃',

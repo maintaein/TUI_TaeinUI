@@ -9,7 +9,6 @@
   <url><loc>https://tui-taein-ui.vercel.app/components/icon-button</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
   <url><loc>https://tui-taein-ui.vercel.app/components/segmented-buttons</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
   <url><loc>https://tui-taein-ui.vercel.app/components/text-field</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
-  <url><loc>https://tui-taein-ui.vercel.app/components/text-area</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
   <url><loc>https://tui-taein-ui.vercel.app/components/checkbox</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
   <url><loc>https://tui-taein-ui.vercel.app/components/switch</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
   <url><loc>https://tui-taein-ui.vercel.app/components/slider</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
@@ -31,5 +30,4 @@
   <url><loc>https://tui-taein-ui.vercel.app/components/divider</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
   <url><loc>https://tui-taein-ui.vercel.app/components/border</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
   <url><loc>https://tui-taein-ui.vercel.app/components/header-bar</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
-  <url><loc>https://tui-taein-ui.vercel.app/components/form-field</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
 </urlset>

@@ -158,12 +158,12 @@ export const searchIndex: SearchEntry[] = [
     ],
   },
 
-  // ─── 버튼 & 텍스트 ───
+  // ─── 버튼 ───
   {
     id: 'button',
     pageTitle: 'Button',
     path: '/components/button',
-    category: '버튼 & 텍스트',
+    category: '버튼',
     description: '버튼. 4가지 variant와 4가지 size를 지원합니다.',
     sections: [
       {
@@ -199,7 +199,7 @@ export const searchIndex: SearchEntry[] = [
     id: 'icon-button',
     pageTitle: 'IconButton',
     path: '/components/icon-button',
-    category: '버튼 & 텍스트',
+    category: '버튼',
     description: '아이콘 버튼. 정사각형 버튼입니다.',
     sections: [
       { title: 'Basic IconButton', content: '기본 아이콘 버튼 사용법' },
