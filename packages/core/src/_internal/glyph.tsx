@@ -5,6 +5,7 @@ export type GlyphName =
   | 'plus'
   | 'minus'
   | 'chevron-down'
+  | 'arrow-up-right'
   | 'check-circle'
   | 'alert-circle'
   | 'alert-triangle'
@@ -30,6 +31,7 @@ export const GLYPH_PATHS: Record<GlyphName, string> = {
   plus: 'M12 5v14m-7-7h14',
   minus: 'M5 12h14',
   'chevron-down': 'M6 9l6 6 6-6',
+  'arrow-up-right': 'M7 17L17 7M7 7h10v10',
   'check-circle': 'M22 11.08V12a10 10 0 1 1-5.93-9.14M22 4L12 14.01l-3-3',
   'alert-circle': 'M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20M12 8v4M12 16h.01',
   'alert-triangle':

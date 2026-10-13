@@ -173,6 +173,41 @@ export const DropdownItems: Story = {
   ),
 };
 
+// 카드 펼침: 햄버거를 누르면 바가 아래로 자라고 카드가 시차를 두고 솟는다
+export const CardsItems: Story = {
+  render: () => (
+    <div style={{ minHeight: '360px' }}>
+      <HeaderBar
+        title="TUI"
+        navStyle="cards"
+        items={[
+          {
+            label: '회사 소개',
+            links: [
+              { label: '비전', href: '#' },
+              { label: '팀', href: '#' },
+            ],
+          },
+          {
+            label: '프로젝트',
+            links: [
+              { label: '주요 사례', href: '#' },
+              { label: '진행 중', href: '#' },
+            ],
+          },
+          {
+            label: '연락',
+            links: [
+              { label: '이메일', href: '#' },
+              { label: '트위터', href: '#' },
+            ],
+          },
+        ]}
+      />
+    </div>
+  ),
+};
+
 // Sticky 헤더
 export const Sticky: Story = {
   render: () => (

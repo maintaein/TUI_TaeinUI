@@ -22,14 +22,14 @@ export function HeaderBarPage() {
       name: 'items',
       type: 'HeaderBarItem[]',
       description:
-        "가운데 항목. { label, href?, onClick?, icon?, active?, links? }. href가 있으면 <a>, 없으면 <button>이고 active는 aria-current='page'입니다. navStyle='icon'이면 모든 항목에 icon이 필요합니다. links({ label, href?, onClick? }[])는 navStyle='dropdown'에서만 쓰이고 다른 형태에서는 무시됩니다",
+        "가운데 항목. { label, href?, onClick?, icon?, active?, links? }. href가 있으면 <a>, 없으면 <button>이고 active는 aria-current='page'입니다. navStyle='icon'이면 모든 항목에 icon이 필요합니다. links({ label, href?, onClick? }[])는 navStyle='dropdown'(항목을 누르면 열리는 하위 링크 판)과 navStyle='cards'(카드 안 링크 목록)에서 쓰이고 다른 형태에서는 무시됩니다. cards에서 links가 없는 항목은 카드 제목 자리에 그 항목 자체가 링크/버튼으로 놓입니다",
     },
     {
       name: 'navStyle',
-      type: "'text' | 'pill' | 'dropdown' | 'icon'",
+      type: "'text' | 'pill' | 'dropdown' | 'cards' | 'icon'",
       default: "'text'",
       description:
-        '항목이 보이는 모습. text는 호버 때 밑줄이 왼쪽에서 그어지는 글자 링크, pill은 호버하면 원이 차오르며 글자가 바뀌는 알약, dropdown은 links가 있는 항목을 누르면 아래에 작은 판이 열림, icon은 커서가 가까울수록 부푸는 아이콘 알약',
+        '항목이 보이는 모습. text는 호버 때 밑줄이 왼쪽에서 그어지는 글자 링크, pill은 호버하면 원이 차오르며 글자가 바뀌는 알약, dropdown은 links가 있는 항목을 누르면 아래에 작은 판이 열림, cards는 햄버거를 누르면 바가 아래로 자라며 항목마다 카드가 솟음(항목은 바 안이 아니라 카드에만 있고 햄버거가 모든 폭에서 보임. 카드는 셋 이하를 권장), icon은 커서가 가까울수록 부푸는 아이콘 알약',
     },
     {
       name: 'actions',
@@ -217,6 +217,45 @@ export function HeaderBarPage() {
     { label: '이벤트', href: '#' },
   ]}
 />`}
+          />
+        </div>
+
+        <div className={styles.example}>
+          <h3 className={styles.exampleTitle}>navStyle: cards</h3>
+          <LivePreview
+            title="카드 펼침"
+            description="햄버거(모든 폭에서 보임)를 누르면 바 뒤의 면이 아래로 자라고, 면이 3/4쯤 자랐을 때부터 카드가 80ms 시차로 솟습니다. 닫으면 거꾸로 카드가 먼저 가라앉고 면이 줄어듭니다. 면은 겹쳐 자라 아래 내용을 밀지 않습니다. 항목은 바 안이 아니라 카드에만 있고, links가 없는 항목은 카드 제목이 곧 링크입니다. 카드는 셋 이하를 권장합니다. 아래 미리보기는 펼친 카드가 잘리지 않게 높이를 확보했습니다."
+            editable
+            code={`<div style={{ width: '100%', minHeight: '360px' }}>
+  <HeaderBar
+    title="TUI"
+    navStyle="cards"
+    items={[
+      {
+        label: '회사 소개',
+        links: [
+          { label: '비전', href: '#' },
+          { label: '팀', href: '#' },
+        ],
+      },
+      {
+        label: '프로젝트',
+        links: [
+          { label: '주요 사례', href: '#' },
+          { label: '진행 중', href: '#' },
+        ],
+      },
+      {
+        label: '연락',
+        links: [
+          { label: '이메일', href: '#' },
+          { label: '트위터', href: '#' },
+          { label: '링크드인', href: '#' },
+        ],
+      },
+    ]}
+  />
+</div>`}
           />
         </div>
 

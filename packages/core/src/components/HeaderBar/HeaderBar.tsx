@@ -12,6 +12,7 @@ import { addDocumentListener } from '../../_internal/dom';
 import { HeaderBarNav } from './HeaderBarNav';
 import { HeaderBarPillNav } from './HeaderBarPill';
 import { HeaderBarDropdownItem } from './HeaderBarDropdown';
+import { HeaderBarCards, type CardsSurfaceHost } from './HeaderBarCards';
 import { usePanelTween, type PanelTweenHost } from './usePanelTween';
 import {
   pillVariantStyles,
@@ -21,7 +22,9 @@ import {
   headerBar,
   stickyStyles,
   bar,
+  barCards,
   variantStyles,
+  cardsVariantStyles,
   leftSection,
   logo as logoStyle,
   title as titleStyle,
@@ -31,6 +34,7 @@ import {
   textItem as textItemStyle,
   textLabel,
   hamburger,
+  hamburgerAlways,
   hamburgerLine,
   hamburgerLineTop,
   hamburgerLineBottom,
@@ -39,7 +43,7 @@ import {
   panelItem,
 } from './HeaderBar.css';
 
-/** `navStyle="dropdown"`의 하위 링크 하나. href가 있으면 <a>, 없으면 <button> */
+/** `navStyle="dropdown"`·`"cards"`의 하위 링크 하나. href가 있으면 <a>, 없으면 <button> */
 export interface HeaderBarLink {
   label: string;
   href?: string;
@@ -58,8 +62,8 @@ export interface HeaderBarItem {
   /** 지금 보고 있는 페이지. aria-current="page" */
   active?: boolean;
   /**
-   * 하위 링크. `navStyle="dropdown"`에서만 쓰이고(그때 항목이 누르면 판이 열리는
-   * 버튼이 된다) 다른 형태에서는 무시된다.
+   * 하위 링크. `navStyle="dropdown"`(항목이 누르면 판이 열리는 버튼이 된다)과
+   * `"cards"`(카드 안 링크 목록)에서 쓰이고 다른 형태에서는 무시된다.
    */
   links?: HeaderBarLink[];
 }
@@ -94,10 +98,15 @@ export type HeaderBarProps = HeaderBarBaseProps &
         /**
          * 항목이 보이는 모습. text는 글자 링크, pill은 호버하면 원이 차오르며 글자가
          * 바뀌는 알약, dropdown은 `links`가 있는 항목을 누르면 아래에 작은 판이 열린다,
+         * cards는 햄버거를 누르면 바가 아래로 자라며 항목마다 카드가 솟는다(항목은 바 안이
+         * 아니라 카드에만 있고 햄버거가 모든 폭에서 보인다. 카드는 셋 이하를 권한다),
          * icon은 아이콘 알약 @default 'text'
          */
-        navStyle?: 'text' | 'pill' | 'dropdown';
-        /** 가운데 항목. 768px 미만에서는 햄버거 뒤 세로 목록으로 들어간다 */
+        navStyle?: 'text' | 'pill' | 'dropdown' | 'cards';
+        /**
+         * 가운데 항목. 768px 미만에서는 햄버거 뒤 세로 목록으로 들어간다(`cards`는 어느
+         * 폭에서나 카드로 연다)
+         */
         items?: HeaderBarItem[];
       }
     | {
@@ -126,6 +135,7 @@ export const HeaderBar = ({
   const [dropdownKey, setDropdownKey] = useState<string | null>(null);
   const hamburgerRef = useRef<HTMLButtonElement | null>(null);
   const panelRef = useRef<PanelTweenHost | null>(null);
+  const surfaceRef = useRef<CardsSurfaceHost | null>(null);
   usePanelTween(panelRef, open, reduced);
 
   // 열려 있는 동안 Esc와 판 밖 누름으로 닫는다. 햄버거 자체의 누름은 제외한다.
@@ -141,6 +151,7 @@ export const HeaderBar = ({
       const target = event.target;
       if (!(target instanceof Node)) return;
       if (panelRef.current?.contains(target)) return;
+      if (surfaceRef.current?.contains(target)) return;
       if (hamburgerRef.current?.contains(target)) return;
       setOpen(false);
     });
@@ -182,6 +193,7 @@ export const HeaderBar = ({
   const iconItems = navStyle === 'icon' ? items : undefined;
   const itemList: HeaderBarItem[] = items ?? [];
   const hasItems = itemList.length > 0;
+  const isCards = navStyle === 'cards';
 
   // 좁은 화면 세로 목록 판. dropdown의 links 항목은 접기 없이 하위 링크를 들여 써서 펼쳐 둔다.
   const renderPanelItem = (item: HeaderBarItem, index: number) => {
@@ -229,7 +241,7 @@ export const HeaderBar = ({
       )}
       {...props}
     >
-      <div className={clsx(bar, variantStyles[variant])}>
+      <div className={clsx(bar, variantStyles[variant], isCards && barCards)}>
         {(logo || title) && (
           <div className={leftSection}>
             {logo && <div className={logoStyle}>{logo}</div>}
@@ -237,7 +249,7 @@ export const HeaderBar = ({
           </div>
         )}
 
-        {hasItems && (
+        {hasItems && !isCards && (
           <div className={centerSection}>
             {iconItems ? (
               <HeaderBarNav items={iconItems} />
@@ -264,7 +276,7 @@ export const HeaderBar = ({
             <button
               ref={hamburgerRef}
               type="button"
-              className={hamburger}
+              className={clsx(hamburger, isCards && hamburgerAlways)}
               aria-expanded={open}
               aria-controls={panelId}
               aria-label={open ? '메뉴 닫기' : '메뉴 열기'}
@@ -276,7 +288,7 @@ export const HeaderBar = ({
           )}
         </div>
 
-        {hasItems && (
+        {hasItems && !isCards && (
           <nav
             id={panelId}
             ref={panelRef}
@@ -285,6 +297,21 @@ export const HeaderBar = ({
           >
             {itemList.map(renderPanelItem)}
           </nav>
+        )}
+
+        {hasItems && isCards && (
+          <HeaderBarCards
+            items={itemList}
+            open={open}
+            surfaceId={panelId}
+            surfaceRef={surfaceRef}
+            variantClassName={cardsVariantStyles[variant]}
+            onNavigate={() => {
+              setOpen(false);
+              // 포커스가 숨는 카드 층 안에서 떠나므로 햄버거로 돌려 둔다.
+              hamburgerRef.current?.focus();
+            }}
+          />
         )}
       </div>
     </header>

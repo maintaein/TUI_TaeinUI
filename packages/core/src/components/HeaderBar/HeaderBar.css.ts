@@ -546,3 +546,199 @@ export const dropdownLink = style({
   justifyContent: 'flex-start',
   padding: `${themeContract.spacing[2]} ${themeContract.spacing[3]}`,
 });
+
+// ---------------------------------------------------------------------------
+// 카드 펼침(navStyle="cards"). 출처는 CardNav(.claude/고도화/ex/CardNav.tsx)다.
+// 바(60px, 흐름 안) 뒤에 면 하나가 깔리고, 햄버거를 누르면 면만 아래로 자란다.
+// ---------------------------------------------------------------------------
+
+/** 넓은 화면에서 펼친 면의 최소 높이(px). CardNav의 260(:77 calculateHeight 기본값). */
+export const CARDS_OPEN_HEIGHT = 260;
+/** 카드가 솟기 전 아래로 내려가 있는 거리(px). CardNav.tsx:96의 y: 50. */
+export const CARDS_RISE_Y = 50;
+/** 카드 사이 시차(초). CardNav.tsx:96의 stagger: 0.08. */
+export const CARDS_STAGGER = 0.08;
+/**
+ * 카드가 면 트윈의 어디에서 시작하는가(0~1). CardNav는 0.4초 트윈이 끝나기 0.1초
+ * 전('-=0.1', :96)에 시작하니 3/4 지점이다.
+ */
+export const CARDS_START_RATIO = 3 / 4;
+
+// 바에서 배경과 그림자를 걷고 쌓임 맥락을 만든다. 면(z-index -1)이 이 맥락 안에서 바의
+// 줄 뒤에 깔린다. variantStyles보다 뒤에 선언해야 같은 특이도에서 배경을 덮는다.
+export const barCards = style({
+  isolation: 'isolate',
+  backgroundColor: 'transparent',
+  boxShadow: 'none',
+});
+
+// 햄버거는 모든 폭에서 보인다. hamburger의 up.md 숨김을 되돌린다(뒤에 선언).
+export const hamburgerAlways = style({
+  '@media': {
+    [mediaQuery.up.md]: {
+      display: 'inline-flex',
+    },
+  },
+});
+
+// 카드 색. 카드 바탕·카드 글자를 면의 variant가 채운다.
+const cardFace = createVar();
+const cardText = createVar();
+
+// 자라는 면. 높이는 쉴 때 BAR_HEIGHT이고 GSAP이 키운다. absolute라 header의 높이와
+// 문서 흐름은 바뀌지 않는다. 아래 cardsVariantStyles보다 먼저 선언해야 transparent가 그림자를 덮는다.
+export const cardsSurface = style({
+  boxSizing: 'border-box',
+  position: 'absolute',
+  top: 0,
+  left: 0,
+  right: 0,
+  height: `${BAR_HEIGHT}px`,
+  zIndex: -1,
+  overflow: 'hidden',
+  borderRadius: themeContract.borderRadius.lg,
+  boxShadow: themeContract.shadow.md,
+});
+
+// 면은 바의 variant 색을 대신 그린다. transparent는 면이 투명하고 그림자가 없다.
+export const cardsVariantStyles = styleVariants({
+  default: {
+    vars: {
+      [cardFace]: themeContract.color.surface.hover,
+      [cardText]: themeContract.color.text.primary,
+    },
+    backgroundColor: themeContract.color.background.default,
+    color: themeContract.color.text.primary,
+  },
+  dark: {
+    vars: {
+      [cardFace]: themeContract.color.text.secondary,
+      [cardText]: themeContract.color.text.inverse,
+    },
+    backgroundColor: themeContract.color.text.primary,
+    color: themeContract.color.background.paper,
+  },
+  transparent: {
+    vars: {
+      [cardFace]: themeContract.color.surface.hover,
+      [cardText]: themeContract.color.text.primary,
+    },
+    backgroundColor: 'transparent',
+    boxShadow: 'none',
+    color: themeContract.color.text.primary,
+  },
+});
+
+// 카드 층. 높이는 잰 값으로 고정(JS가 인라인으로 쓴다)이라 면이 자라도 카드가 다시
+// 배치되지 않는다. 닫힌 모습이 CSS 기본이다.
+export const cardsLayer = style({
+  boxSizing: 'border-box',
+  position: 'absolute',
+  top: `${BAR_HEIGHT}px`,
+  left: 0,
+  right: 0,
+  display: 'flex',
+  flexDirection: 'row',
+  alignItems: 'stretch',
+  gap: themeContract.spacing[3],
+  padding: themeContract.spacing[2],
+  visibility: 'hidden',
+
+  '@media': {
+    [mediaQuery.down.md]: {
+      flexDirection: 'column',
+      gap: themeContract.spacing[2],
+    },
+  },
+});
+
+export const card = style({
+  boxSizing: 'border-box',
+  display: 'flex',
+  flexDirection: 'column',
+  flex: '1 1 0',
+  minWidth: 0,
+  padding: `${themeContract.spacing[3]} ${themeContract.spacing[4]}`,
+  // 바 반경에서 층 안쪽 여백을 뺀 동심원(CardNav.tsx:218의 rounded-[calc(0.75rem-0.2rem)]).
+  borderRadius: `calc(${themeContract.borderRadius.lg} - ${themeContract.spacing[2]})`,
+  backgroundColor: cardFace,
+  color: cardText,
+
+  '@media': {
+    [mediaQuery.down.md]: {
+      flex: 'none',
+      minHeight: `${BAR_HEIGHT}px`,
+    },
+  },
+});
+
+export const cardTitle = style({
+  margin: 0,
+  fontSize: themeContract.font.size.xl,
+  fontWeight: themeContract.font.weight.medium,
+  lineHeight: themeContract.font.lineHeight.tight,
+
+  '@media': {
+    [mediaQuery.down.md]: {
+      fontSize: themeContract.font.size.lg,
+    },
+  },
+});
+
+export const cardLinks = style({
+  display: 'flex',
+  flexDirection: 'column',
+  gap: '2px',
+  margin: 0,
+  marginTop: 'auto',
+  padding: 0,
+  listStyle: 'none',
+});
+
+// 카드 안 링크와 제목 링크가 나눠 쓰는 누르는 면: 글자색을 잇고, 호버(정밀 포인터)에서
+// opacity 0.75(CardNav.tsx:233의 hover:opacity-75).
+const cardPress = {
+  padding: 0,
+  border: 'none',
+  background: 'none',
+  color: 'inherit',
+  fontFamily: 'inherit',
+  textAlign: 'left',
+  textDecoration: 'none',
+  cursor: 'pointer',
+  touchAction: 'manipulation',
+  transition: `opacity ${duration.base} ${settle}`,
+
+  selectors: {
+    '&:focus-visible': {
+      ...focusRing('currentColor'),
+    },
+  },
+
+  '@media': {
+    '(hover: hover) and (pointer: fine)': {
+      selectors: {
+        '&:hover': {
+          opacity: 0.75,
+        },
+      },
+    },
+    '(prefers-reduced-motion: reduce)': {
+      transition: 'none',
+    },
+  },
+} as const;
+
+export const cardLink = style({
+  ...cardPress,
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: themeContract.spacing[1],
+  fontSize: themeContract.font.size.base,
+});
+
+// links가 없는 항목: 제목 자리에 놓인 링크. cardTitle의 글자 크기·굵기를 그대로 쓴다.
+export const cardTitleLink = style({
+  ...cardPress,
+  alignSelf: 'flex-start',
+});

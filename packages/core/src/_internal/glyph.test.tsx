@@ -21,10 +21,11 @@ describe('Glyph', () => {
   });
 
   describe('글리프 데이터', () => {
-    it('글리프가 정확히 8종이다 (chevron-up은 소비처가 없어 옮기지 않았다)', () => {
+    it('글리프가 정확히 9종이다 (chevron-up은 소비처가 없어 옮기지 않았다)', () => {
       expect([...NAMES].sort()).toEqual([
         'alert-circle',
         'alert-triangle',
+        'arrow-up-right',
         'check-circle',
         'chevron-down',
         'close',
@@ -37,6 +38,7 @@ describe('Glyph', () => {
     it.each([
       ['close', 'M18 6L6 18M6 6l12 12'],
       ['plus', 'M12 5v14m-7-7h14'],
+      ['arrow-up-right', 'M7 17L17 7M7 7h10v10'],
       ['minus', 'M5 12h14'],
       ['chevron-down', 'M6 9l6 6 6-6'],
       ['check-circle', 'M22 11.08V12a10 10 0 1 1-5.93-9.14M22 4L12 14.01l-3-3'],
