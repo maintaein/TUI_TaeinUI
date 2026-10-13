@@ -1,7 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import type { CSSProperties } from 'react';
 import { ArrowRight } from 'lucide-react';
-import { Card, Divider, Badge, Text } from '@taein-ui/core';
+import { Card, Divider, Badge } from '@taein-ui/core';
 import {
   componentsData,
   categoryLabels,
@@ -29,9 +29,7 @@ export function ComponentsOverviewPage() {
   return (
     <div className={styles.container}>
       <header className={styles.header}>
-        <Text variant="h1" className={styles.title}>
-          컴포넌트
-        </Text>
+        <h1 className={styles.title}>컴포넌트</h1>
         <p className={styles.description}>
           컴포넌트 패밀리 30개를 제공합니다. 패키지의 top-level export는
           49개인데, 차이는 개별로도 import할 수 있는 하위

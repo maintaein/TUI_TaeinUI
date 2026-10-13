@@ -333,8 +333,8 @@ const profileMenu = (
     <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '1rem 1rem 0.75rem' }}>
       <Avatar src="https://i.pravatar.cc/150?img=40" alt="홍길동" size="xl" />
       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.125rem' }}>
-        <Text variant="body1" weight="semibold">홍길동</Text>
-        <Text variant="body3" color="secondary">hong@example.com</Text>
+        <p style={{ margin: 0, fontWeight: 600 }}>홍길동</p>
+        <p style={{ margin: 0, fontSize: '0.75rem', color: themeContract.color.text.secondary }}>hong@example.com</p>
       </div>
     </div>
     <Divider spacing="sm" />
@@ -345,7 +345,7 @@ const profileMenu = (
     <Divider spacing="sm" />
     <List spacing="sm" style={{ padding: '0.25rem 0.5rem 0.5rem' }}>
       <ListItem style={{ padding: '0.5rem', borderRadius: '6px', cursor: 'pointer' }}>
-        <Text variant="body2" color="error">로그아웃</Text>
+        <p style={{ margin: 0, fontSize: '0.875rem', color: themeContract.color.error.dark }}>로그아웃</p>
       </ListItem>
     </List>
   </div>

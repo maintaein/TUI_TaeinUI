@@ -13,6 +13,9 @@ export const container = style({
 });
 
 export const title = style({
+  // Text(h1)가 주던 위쪽 여백 0과 줄 높이. Text를 걷은 뒤에도 같은 모습(M5 7차)
+  marginTop: 0,
+  lineHeight: 1.2,
   fontSize: '2.5rem',
   fontWeight: 700,
   color: '#2563eb',
@@ -46,6 +49,9 @@ export const section = style({
 });
 
 export const sectionTitle = style({
+  // Text(h2)가 주던 위쪽 여백 0과 줄 높이. Text를 걷은 뒤에도 같은 모습(M5 7차)
+  marginTop: 0,
+  lineHeight: 1.3,
   fontSize: '1.75rem',
   fontWeight: 600,
   color: '#111827',

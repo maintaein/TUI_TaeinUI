@@ -354,56 +354,6 @@ import { SegmentedButtons } from '@taein-ui/core';
 
 ---
 
-## Text
-
-Typography component with semantic HTML.
-
-```tsx
-import { Text } from '@taein-ui/core';
-
-<Text variant="h1">제목</Text>
-<Text variant="body1" color="secondary">본문 텍스트</Text>
-<Text variant="body2" truncate={2}>긴 텍스트는 2줄로 잘립니다...</Text>
-<Text tabularNums>1,234,567</Text>
-```
-
-### Variant → 실제 값
-
-variant는 기본 태그와 크기를 함께 정한다. `as`로 태그만 바꿀 수 있다.
-
-| variant | 기본 태그 | font-size | font-weight | line-height | font.size 토큰 |
-|---------|----------|-----------|-------------|-------------|----------------|
-| h1 | `h1` | 2.25rem (36px) | 700 | 1.2 | `4xl` |
-| h2 | `h2` | 1.875rem (30px) | 700 | 1.3 | `3xl` |
-| h3 | `h3` | 1.5rem (24px) | 600 | 1.3 | `2xl` |
-| h4 | `h4` | 1.25rem (20px) | 600 | 1.4 | `xl` |
-| h5 | `h5` | 1.125rem (18px) | 600 | 1.4 | `lg` |
-| h6 | `h6` | 1rem (16px) | 600 | 1.5 | `base` |
-| body1 | `p` | 1rem (16px) | 400 | 1.5 | `base` |
-| body2 | `p` | 0.875rem (14px) | 400 | 1.5 | `sm` |
-| body3 | `p` | 0.75rem (12px) | 400 | 1.5 | `xs` |
-
-`weight` prop을 주면 표의 font-weight를 덮어쓴다.
-
-### Props
-| Prop | Type | Default | Description |
-|------|------|---------|-------------|
-| children | ReactNode | — | Text content |
-| variant | 'h1' \| 'h2' \| 'h3' \| 'h4' \| 'h5' \| 'h6' \| 'body1' \| 'body2' \| 'body3' | 'body1' | Text style |
-| as | ElementType | — | Custom HTML element |
-| color | 'primary' \| 'secondary' \| 'success' \| 'warning' \| 'error' \| 'info' | — | Text color |
-| weight | 'regular' \| 'medium' \| 'semibold' \| 'bold' | — | Font weight |
-| align | 'left' \| 'center' \| 'right' | — | Text alignment |
-| truncate | 1 \| 2 \| 3 | — | Line clamp |
-| tabularNums | boolean | false | 숫자를 고정폭으로 렌더 (표·지표용) |
-| className | string | — | Additional CSS class |
-
-semantic 색(`success`/`warning`/`error`/`info`)은 계약의 `dark` 슬롯을 쓴다.
-`main` 슬롯은 UI 요소용(3:1)이라 본문 텍스트로 쓰면 AA에 미달한다.
-`children`이 비어 있으면 `null`을 렌더한다(래퍼 태그도 나오지 않는다).
-
----
-
 ## Badge
 
 Status or count indicator.
@@ -1134,7 +1084,7 @@ Semantic 색상은 역할별 4슬롯이다. 슬롯을 바꿔 쓰면 대비가 �
 - `font.lineHeight` — tight (1.25), normal (1.5), relaxed (1.75)
 - `font.variantNumeric` — normal (normal), tabular (tabular-nums)
   숫자를 세로로 비교하는 표·지표에는 `tabular`를 쓴다. 비례 폰트는 `1`이 `8`보다
-  좁아서 자릿수가 행마다 어긋난다. `Text`는 `tabularNums` prop으로 노출한다.
+  좁아서 자릿수가 행마다 어긋난다.
 
 ### Border Radius
 - `themeContract.borderRadius` — none (0), sm (0.25rem = 4px), base (0.5rem = 8px), md (0.75rem = 12px), lg (1rem = 16px), xl (1.5rem = 24px), full (9999px)
@@ -1234,7 +1184,7 @@ zero-runtime이라 빌드 결과는 정적 CSS 파일 하나다.
 소비자가 래퍼 파일을 만들 필요 없이 서버 컴포넌트에서 바로 import할 수 있다.
 
 지시문이 **없는**(= 서버 컴포넌트로 렌더되는) 컴포넌트:
-`Text`, `Divider`, `Border`, `Badge`, `List`, `Skeleton`, `HeaderBar`,
+`Divider`, `Border`, `Badge`, `List`, `Skeleton`, `HeaderBar`,
 `Loader`.
 
 `Button`과 `IconButton`은 `'use client'`가 붙는다. 누름 상태를 `useClickRebound` 훅이

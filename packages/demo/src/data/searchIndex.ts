@@ -30,7 +30,7 @@ export const searchIndex: SearchEntry[] = [
       {
         title: '빠른 미리보기',
         content:
-          '컴포넌트 패밀리 26개(top-level export 45개), GSAP 모션 14개 컴포넌트, Zero-runtime CSS, Tree-shakable',
+          '컴포넌트 패밀리 25개(top-level export 44개), GSAP 모션 14개 컴포넌트, Zero-runtime CSS, Tree-shakable',
       },
     ],
   },
@@ -214,27 +214,6 @@ export const searchIndex: SearchEntry[] = [
       },
     ],
   },
-  {
-    id: 'text',
-    pageTitle: 'Text',
-    path: '/components/text',
-    category: '버튼 & 텍스트',
-    description: '텍스트 컴포넌트. 9가지 variant와 truncate를 지원합니다.',
-    sections: [
-      {
-        title: 'Typography Variants',
-        content:
-          'headline, title, body, label, caption 등 9가지 타이포그래피 변형',
-      },
-      { title: 'Truncate', content: 'truncate prop으로 텍스트 말줄임 처리' },
-      { title: 'Color', content: 'color prop으로 텍스트 색상 변경' },
-      {
-        title: 'As',
-        content: 'as prop으로 HTML 태그 변경 (h1, h2, p, span 등)',
-      },
-    ],
-  },
-
   // ─── 피드백 & 상태 ───
   {
     id: 'badge',

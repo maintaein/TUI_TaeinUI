@@ -235,7 +235,7 @@ const handleDelete = (chipToDelete) => {
   {chips.map((c) => (
     <Chip key={c} label={c} color="primary" onDelete={() => handleDelete(c)} />
   ))}
-  {chips.length === 0 && <Text variant="body2" color="secondary">모두 삭제됨</Text>}
+  {chips.length === 0 && <p style={{ margin: 0, fontSize: '0.875rem', color: themeContract.color.text.secondary }}>모두 삭제됨</p>}
 </div>`}
           />
         </div>

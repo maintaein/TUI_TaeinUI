@@ -289,7 +289,7 @@ describe('Card (Compound API)', () => {
 describe('이미지 기준 박스 테스트', () => {
   it('cardImageWrapper가 aspectRatio 16:9 기준 박스를 가진다', () => {
     // vanilla-extract가 스타일을 클래스로 직렬화해서 jsdom에서 계산값을 못
-    // 읽는다. Card.css.ts 소스 텍스트에서 직접 확인한다(S7이 Text에 쓴 관례).
+    // 읽는다. Card.css.ts 소스 텍스트에서 직접 확인한다(S7 관례).
     const cssSource = readFileSync(
       resolve(__dirname, './Card.css.ts'),
       'utf-8'

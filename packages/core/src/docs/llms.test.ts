@@ -176,7 +176,7 @@ describe('발행 문서와 소스 일치 검사', () => {
 
 describe('문서가 약속한 대비를 실제 토큰이 지키는지', () => {
   it('본문 텍스트용 색은 paper 배경에서도 AA를 만족한다', () => {
-    // Text 컴포넌트가 실제로 쓰는 색만 검사한다. main 슬롯은 UI 요소용이라
+    // 본문 텍스트에 쓰는 색만 검사한다. main 슬롯은 UI 요소용이라
     // 여기서 제외하는 것이 맞다.
     const { color } = themeTokens;
     const bodyColors = {
@@ -269,7 +269,7 @@ describe('컴포넌트가 실제로 합성하는 색 쌍', () => {
   // 토큰 쌍만 재는 검사(`surface.track` vs 페이지 배경)는 트랙이 어두울수록 더
   // 잘 통과하고 화면은 더 안 보인다 — 결함 방향을 보상한다. 여기서는 .css.ts
   // 소스가 실제로 참조하는 토큰 경로를 뽑아 컴포넌트가 화면에서 합성하는 쌍을
-  // 잰다(Text·Card·HeaderBar가 쓰는 소스 텍스트 대조 관례를 색에 적용).
+  // 잰다(Card·HeaderBar가 쓰는 소스 텍스트 대조 관례를 색에 적용).
   const SLIDER_CSS = read(resolve(ROOT, 'src/components/Slider/Slider.css.ts'));
   const LOADER_CSS = read(resolve(ROOT, 'src/components/Loader/Loader.css.ts'));
 

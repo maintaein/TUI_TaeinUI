@@ -24,7 +24,6 @@ import {
   Tag,
   TextCursorInput,
   ToggleLeft,
-  Type,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -100,14 +99,6 @@ export const componentsData: ComponentInfo[] = [
     description: '닫기, 메뉴 열기 등 아이콘만으로 액션을 표현할 때 사용합니다.',
     category: 'button',
     icon: CirclePlus,
-  },
-  {
-    name: 'Text',
-    path: '/components/text',
-    description:
-      '제목, 본문, 캡션 등 텍스트의 스타일과 크기를 통일할 때 사용합니다.',
-    category: 'button',
-    icon: Type,
   },
 
   // Feedback Components (6개)

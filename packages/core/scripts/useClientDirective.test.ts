@@ -88,9 +88,9 @@ describe('needsUseClientDirective', () => {
     const code = chunk(
       `import { clsx as c } from "clsx";\nconst x = (p) => e("p", { className: c(p.className) });`
     );
-    expect(needsUseClientDirective('components/Text/Text.mjs', code)).toBe(
-      false
-    );
+    expect(
+      needsUseClientDirective('components/Divider/Divider.mjs', code)
+    ).toBe(false);
   });
 
   // 긴 식별자 안에 훅 이름이 들어 있는 경우(reuseContext, houseRefund)는

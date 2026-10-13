@@ -34,9 +34,9 @@ All components follow consistent patterns:
 - `ref` — All components support forwardRef
 - Form components require `label` prop for accessibility
 
-## Components (26 families, 45 exports)
+## Components (25 families, 44 exports)
 
-세는 규칙: 아래 목록은 컴포넌트 **계열** 26개다. 최상위 export는 45개인데,
+세는 규칙: 아래 목록은 컴포넌트 **계열** 25개다. 최상위 export는 44개인데,
 차이는 개별로도 import할 수 있는 합성 하위 컴포넌트(`ModalHeader`,
 `CardBody`, `AvatarGroup`, `ListItem` 등)다. 두 숫자 모두 소스에서 검증된다.
 
@@ -53,7 +53,6 @@ All components follow consistent patterns:
 - **SegmentedButtons** — Button group for single selection. Props: options[{value,label,icon?}], value, onChange, size
 
 ### Display & Data
-- **Text** — Typography component. Props: variant('h1'-'h6'|'body1'-'body3'), as, color('primary'|'secondary'|'success'|'warning'|'error'|'info'), weight, align, truncate, tabularNums
 - **Badge** — Status/count indicator. Props: variant('primary'|'secondary'|'success'|'error'|'warning'|'info'), size, max, dot, showZero
 - **Chip** — Tag/filter chip. Props: label, variant('filled'|'outlined'), color, icon, avatar, onDelete, clickable, selected
 - **Avatar** - User avatar with image, fallback, status. Props: src, alt, size, variant('circular'|'rounded'|'square'), status, bouncy(opt-in hover/focus float + press grow, needs onClick or href)
@@ -126,7 +125,7 @@ M3에서 GSAP 런타임이 실제로 붙은 컴포넌트와 그 능력. 계획�
 
 - App Router에서 훅·컨텍스트를 쓰는 모듈에는 빌드 시 `'use client'`가 주입된다.
   소비자가 래퍼를 만들 필요 없이 서버 컴포넌트에서 바로 import할 수 있다.
-- `Text`, `Divider`, `Border`, `Badge`, `List`, `Skeleton`, `HeaderBar`,
+- `Divider`, `Border`, `Badge`, `List`, `Skeleton`, `HeaderBar`,
   `Loader`는 지시문이 없다 — 서버 컴포넌트로 렌더된다.
   `Button`, `IconButton`은 누름 상태를 `useClickRebound` 훅이 갖기 때문에
   `'use client'`가 붙는다. 서버 컴포넌트에서 import하는 것은 그대로 된다.

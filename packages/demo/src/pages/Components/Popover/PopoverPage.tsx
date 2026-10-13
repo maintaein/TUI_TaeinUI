@@ -128,7 +128,7 @@ export function PopoverPage() {
             title="기본 사용법 (비제어)"
             description="가장 기본적인 비제어 모드 Popover입니다. 트리거를 클릭하면 열리고, 바깥 클릭이나 ESC로 닫힙니다."
             editable
-            code={`<Popover maxWidth="240px" content={<div style={{ padding: '1rem' }}><Text variant="body2">안녕하세요! 팝오버 콘텐츠입니다.</Text></div>}>
+            code={`<Popover maxWidth="240px" content={<div style={{ padding: '1rem' }}><p style={{ margin: 0, fontSize: '0.875rem' }}>안녕하세요! 팝오버 콘텐츠입니다.</p></div>}>
   <Button>팝오버 열기</Button>
 </Popover>`}
           />
@@ -148,7 +148,7 @@ export function PopoverPage() {
     open={open}
     onOpenChange={setOpen}
     maxWidth="200px"
-    content={<div style={{ padding: '1rem' }}><Text variant="body2">제어 모드 팝오버</Text></div>}
+    content={<div style={{ padding: '1rem' }}><p style={{ margin: 0, fontSize: '0.875rem' }}>제어 모드 팝오버</p></div>}
   >
     <Button>트리거</Button>
   </Popover>
@@ -165,16 +165,16 @@ export function PopoverPage() {
             description="top, bottom, left, right 4가지 위치를 지원합니다."
             editable
             code={`<div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', justifyContent: 'center', padding: '4rem 2rem' }}>
-  <Popover position="top" content={<div style={{ padding: '0.75rem' }}><Text variant="body2">Top</Text></div>}>
+  <Popover position="top" content={<div style={{ padding: '0.75rem' }}><p style={{ margin: 0, fontSize: '0.875rem' }}>Top</p></div>}>
     <Button variant="light">Top</Button>
   </Popover>
-  <Popover position="bottom" content={<div style={{ padding: '0.75rem' }}><Text variant="body2">Bottom</Text></div>}>
+  <Popover position="bottom" content={<div style={{ padding: '0.75rem' }}><p style={{ margin: 0, fontSize: '0.875rem' }}>Bottom</p></div>}>
     <Button variant="light">Bottom</Button>
   </Popover>
-  <Popover position="left" content={<div style={{ padding: '0.75rem' }}><Text variant="body2">Left</Text></div>}>
+  <Popover position="left" content={<div style={{ padding: '0.75rem' }}><p style={{ margin: 0, fontSize: '0.875rem' }}>Left</p></div>}>
     <Button variant="light">Left</Button>
   </Popover>
-  <Popover position="right" content={<div style={{ padding: '0.75rem' }}><Text variant="body2">Right</Text></div>}>
+  <Popover position="right" content={<div style={{ padding: '0.75rem' }}><p style={{ margin: 0, fontSize: '0.875rem' }}>Right</p></div>}>
     <Button variant="light">Right</Button>
   </Popover>
 </div>`}
@@ -189,16 +189,16 @@ export function PopoverPage() {
             description="arrow prop으로 팝오버에 화살표를 표시합니다. 트리거와의 시각적 연결성을 높여줍니다."
             editable
             code={`<div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', justifyContent: 'center', padding: '4rem 2rem' }}>
-  <Popover arrow position="top" content={<div style={{ padding: '0.75rem' }}><Text variant="body2">Top Arrow</Text></div>}>
+  <Popover arrow position="top" content={<div style={{ padding: '0.75rem' }}><p style={{ margin: 0, fontSize: '0.875rem' }}>Top Arrow</p></div>}>
     <Button variant="light">Top</Button>
   </Popover>
-  <Popover arrow position="bottom" content={<div style={{ padding: '0.75rem' }}><Text variant="body2">Bottom Arrow</Text></div>}>
+  <Popover arrow position="bottom" content={<div style={{ padding: '0.75rem' }}><p style={{ margin: 0, fontSize: '0.875rem' }}>Bottom Arrow</p></div>}>
     <Button variant="light">Bottom</Button>
   </Popover>
-  <Popover arrow position="left" content={<div style={{ padding: '0.75rem' }}><Text variant="body2">Left Arrow</Text></div>}>
+  <Popover arrow position="left" content={<div style={{ padding: '0.75rem' }}><p style={{ margin: 0, fontSize: '0.875rem' }}>Left Arrow</p></div>}>
     <Button variant="light">Left</Button>
   </Popover>
-  <Popover arrow position="right" content={<div style={{ padding: '0.75rem' }}><Text variant="body2">Right Arrow</Text></div>}>
+  <Popover arrow position="right" content={<div style={{ padding: '0.75rem' }}><p style={{ margin: 0, fontSize: '0.875rem' }}>Right Arrow</p></div>}>
     <Button variant="light">Right</Button>
   </Popover>
 </div>`}
@@ -216,7 +216,7 @@ export function PopoverPage() {
 const menu = (
   <div style={{ minWidth: '200px' }}>
     <div style={{ padding: '0.75rem 1rem' }}>
-      <Text variant="body1" weight="semibold">설정 메뉴</Text>
+      <p style={{ margin: 0, fontWeight: 600 }}>설정 메뉴</p>
     </div>
     <Divider spacing="sm" />
     <List spacing="sm" style={{ padding: '0.25rem 0.5rem' }}>
@@ -227,7 +227,7 @@ const menu = (
     <Divider spacing="sm" />
     <List spacing="sm" style={{ padding: '0.25rem 0.5rem 0.5rem' }}>
       <ListItem style={{ padding: '0.5rem', borderRadius: '6px', cursor: 'pointer' }}>
-        <Text variant="body2" color="error">로그아웃</Text>
+        <p style={{ margin: 0, fontSize: '0.875rem', color: themeContract.color.error.dark }}>로그아웃</p>
       </ListItem>
     </List>
   </div>
@@ -253,7 +253,7 @@ const menu = (
       <ListItem style={{ padding: '0.5rem', borderRadius: '6px', cursor: 'pointer' }}>편집</ListItem>
       <ListItem style={{ padding: '0.5rem', borderRadius: '6px', cursor: 'pointer' }}>복제</ListItem>
       <ListItem style={{ padding: '0.5rem', borderRadius: '6px', cursor: 'pointer' }}>
-        <Text variant="body2" color="error">삭제</Text>
+        <p style={{ margin: 0, fontSize: '0.875rem', color: themeContract.color.error.dark }}>삭제</p>
       </ListItem>
     </List>
   }
@@ -275,14 +275,14 @@ const menu = (
   content={
     <div style={{ minWidth: '220px' }}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.125rem', padding: '0.75rem 1rem' }}>
-        <Text variant="body1" weight="semibold">홍길동</Text>
-        <Text variant="body3" color="secondary">hong@example.com</Text>
+        <p style={{ margin: 0, fontWeight: 600 }}>홍길동</p>
+        <p style={{ margin: 0, fontSize: '0.75rem', color: themeContract.color.text.secondary }}>hong@example.com</p>
       </div>
       <Divider spacing="sm" />
       <List spacing="sm" style={{ padding: '0.25rem 0.5rem 0.5rem' }}>
         <ListItem style={{ padding: '0.5rem', borderRadius: '6px', cursor: 'pointer' }}>설정</ListItem>
         <ListItem style={{ padding: '0.5rem', borderRadius: '6px', cursor: 'pointer' }}>
-          <Text variant="body2" color="error">로그아웃</Text>
+          <p style={{ margin: 0, fontSize: '0.875rem', color: themeContract.color.error.dark }}>로그아웃</p>
         </ListItem>
       </List>
     </div>
@@ -304,14 +304,14 @@ const menu = (
   <Popover
     closeOnOutsideClick={false}
     maxWidth="260px"
-    content={<div style={{ padding: '1rem' }}><Text variant="body2">바깥 클릭으로 닫히지 않습니다.</Text></div>}
+    content={<div style={{ padding: '1rem' }}><p style={{ margin: 0, fontSize: '0.875rem' }}>바깥 클릭으로 닫히지 않습니다.</p></div>}
   >
     <Button variant="light">Outside Click 무시</Button>
   </Popover>
   <Popover
     closeOnEscape={false}
     maxWidth="240px"
-    content={<div style={{ padding: '1rem' }}><Text variant="body2">ESC로 닫히지 않습니다.</Text></div>}
+    content={<div style={{ padding: '1rem' }}><p style={{ margin: 0, fontSize: '0.875rem' }}>ESC로 닫히지 않습니다.</p></div>}
   >
     <Button variant="light">ESC 무시</Button>
   </Popover>

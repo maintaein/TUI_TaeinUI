@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { Button, Card, Text } from '@taein-ui/core';
+import { Button, Card } from '@taein-ui/core';
 import { LayoutGrid, Sparkles, Eye } from 'lucide-react';
 import { CodeBlock } from '../../components/CodeBlock';
 import * as styles from './GettingStartedPage.css';
@@ -8,18 +8,14 @@ export function GettingStartedPage() {
   const navigate = useNavigate();
   return (
     <div className={styles.container}>
-      <Text variant="h1" className={styles.title}>
-        시작하기
-      </Text>
+      <h1 className={styles.title}>시작하기</h1>
       <p className={styles.description}>
         TUI를 프로젝트에 설치하고 사용하는 방법을 알아보세요.
       </p>
 
       {/* Installation Section */}
       <section className={styles.section}>
-        <Text variant="h2" className={styles.sectionTitle}>
-          1. 설치
-        </Text>
+        <h2 className={styles.sectionTitle}>1. 설치</h2>
         <p className={styles.sectionDescription}>
           원하는 패키지 매니저를 사용하여 TUI를 설치하세요.
         </p>
@@ -56,9 +52,7 @@ export function GettingStartedPage() {
 
       {/* Basic Usage Section */}
       <section className={styles.section}>
-        <Text variant="h2" className={styles.sectionTitle}>
-          2. 기본 사용법
-        </Text>
+        <h2 className={styles.sectionTitle}>2. 기본 사용법</h2>
         <p className={styles.sectionDescription}>
           TUI 컴포넌트를 사용하려면 먼저 CSS를 import하고 컴포넌트를 가져옵니다.
         </p>
@@ -120,9 +114,7 @@ function App() {
 
       {/* TypeScript Section */}
       <section className={styles.section}>
-        <Text variant="h2" className={styles.sectionTitle}>
-          3. TypeScript 설정
-        </Text>
+        <h2 className={styles.sectionTitle}>3. TypeScript 설정</h2>
         <p className={styles.sectionDescription}>
           TUI는 TypeScript로 작성되었으며 모든 컴포넌트에 타입 정의가 포함되어
           있습니다. 별도의 @types 패키지가 필요하지 않습니다.
@@ -169,9 +161,7 @@ function Example() {
 
       {/* Next Steps Section */}
       <section className={styles.section}>
-        <Text variant="h2" className={styles.sectionTitle}>
-          4. 다음 단계
-        </Text>
+        <h2 className={styles.sectionTitle}>4. 다음 단계</h2>
         <p className={styles.sectionDescription}>
           TUI를 설치했다면 이제 컴포넌트를 탐색하고 프로젝트에 적용해보세요.
         </p>

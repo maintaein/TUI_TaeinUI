@@ -41,7 +41,6 @@ export const navigationData: NavigationItem[] = [
       { label: 'Slider', path: '/components/slider' },
       { label: 'Snackbar', path: '/components/snackbar' },
       { label: 'Switch', path: '/components/switch' },
-      { label: 'Text', path: '/components/text' },
       { label: 'TextField', path: '/components/text-field' },
       { label: 'Tooltip', path: '/components/tooltip' },
     ],

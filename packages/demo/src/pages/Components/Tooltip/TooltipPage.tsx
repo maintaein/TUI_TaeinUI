@@ -418,7 +418,7 @@ arrow: 화살표 표시/숨김
       <ListItem style={{ padding: '0.5rem', borderRadius: '6px', cursor: 'pointer' }}>편집</ListItem>
       <ListItem style={{ padding: '0.5rem', borderRadius: '6px', cursor: 'pointer' }}>복제</ListItem>
       <ListItem style={{ padding: '0.5rem', borderRadius: '6px', cursor: 'pointer' }}>
-        <Text variant="body2" color="error">삭제</Text>
+        <p style={{ margin: 0, fontSize: '0.875rem', color: themeContract.color.error.dark }}>삭제</p>
       </ListItem>
     </List>
   }

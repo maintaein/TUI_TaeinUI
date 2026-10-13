@@ -284,7 +284,7 @@ export function renderTokenReference(): string {
     `- \`font.lineHeight\` — ${scaleLines(font.lineHeight)}`,
     `- \`font.variantNumeric\` — ${scaleLines(font.variantNumeric)}`,
     '  숫자를 세로로 비교하는 표·지표에는 `tabular`를 쓴다. 비례 폰트는 `1`이 `8`보다',
-    '  좁아서 자릿수가 행마다 어긋난다. `Text`는 `tabularNums` prop으로 노출한다.',
+    '  좁아서 자릿수가 행마다 어긋난다.',
     '',
     '### Border Radius',
     `- \`themeContract.borderRadius\` — ${withPx(borderRadius)}`,

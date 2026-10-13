@@ -23,7 +23,7 @@ const COMPONENTS = resolve(SRC, 'components');
 /**
  * M2 계획서(`.claude/고도화/plan/M2(Tier-A-CSS-모션).md`) 「대상」 14개
  * 에서 M5 Task 1이 스피너 하나를 `Loader`로 흡수해 뺀 13개에서 M5 Task 2가 `Icon`(공개 컴포넌트 삭제, `draw`
- * 폐기)을 더 빼 12개다(점 페이드·회전 키프레임은 `Loader` 디렉터리로 옮겨졌다). `HeaderBar`·`NumericSpinner`·정적 3개(`FormField`(M5 Task 14에서 `_internal/formField`로 내려갔다)·`List`·`Text`)·
+ * 폐기)을 더 빼 12개다(점 페이드·회전 키프레임은 `Loader` 디렉터리로 옮겨졌다). `HeaderBar`·`NumericSpinner`·정적 2개(`FormField`(M5 Task 14에서 `_internal/formField`로 내려갔다)·`List`; 정적이던 `Text`는 M5 7차 Task 23에서 컴포넌트째 삭제됐다)·
  * `SegmentedButtons`·`Slider`·오버레이 4종(`BottomSheet`·`Modal`·`SideSheet`·
  * `Snackbar`)은 M2 밖이다 — 저장소 전체로 스캔하면 M3에 넘긴 오버레이 등장
  * 키프레임이 끌려온다(task-4-brief.md 경고).
@@ -666,29 +666,27 @@ describe("검사 5 — 'use client'가 진짜 지시어로 0건이다 (M2 경계
   });
 });
 
-describe('검사 6 — 정적 3개(FormField·List·Text)에 애니메이션이 0건이다 (task-4-brief.md R8)', () => {
+describe('검사 6: 정적 2개(FormField·List)에 애니메이션이 0건이다 (task-4-brief.md R8)', () => {
   /** `existsSync` 분기 없이 바로 읽는다 — 디렉터리가 옮겨지면 던져야 한다. */
   const STATIC_CSS_FILES = [
     ...findFiles(SRC + '/_internal', (n) => n === 'formField.css.ts'),
-    ...['List', 'Text'].flatMap((name) =>
-      findFiles(join(COMPONENTS, name), (n) => n.endsWith('.css.ts'))
-    ),
+    ...findFiles(join(COMPONENTS, 'List'), (n) => n.endsWith('.css.ts')),
   ];
 
-  it('정적 3개의 .css.ts를 실제로 3개 읽었다 — 0개를 읽고 "0건"이라 보고하는 진공을 막는다', () => {
-    // 무엇을 뒤집으면 빨개지는가: 위 목록에서 이름 하나를 빼면 2개가 되어
-    // 여기가 빨개진다(오타는 findFiles가 그 자리에서 던진다). 이 앵커가
+  it('정적 2개의 .css.ts를 실제로 2개 읽었다. 0개를 읽고 "0건"이라 보고하는 진공을 막는다', () => {
+    // 무엇을 뒤집으면 빨개지는가: 위 목록에서 이름 하나를 빼면 1개가 되어
+    // 여기가 빨개진다(오타는 findFiles가 그 자리에서 던진다). 셋이던 목록이
+    // 둘이 된 것은 M5 7차 Task 23에서 `Text`가 삭제됐기 때문이다. 이 앵커가
     // 없으면 아래 `it`은 파일을 하나도 안 읽고도 초록이다.
     expect(STATIC_CSS_FILES.map(rel)).toEqual([
       '_internal/formField.css.ts',
       'components/List/List.css.ts',
-      'components/Text/Text.css.ts',
     ]);
   });
 
-  it('세 파일에 animation·transition·keyframes가 한 글자도 없다', () => {
-    // 무엇을 뒤집으면 빨개지는가: Text.css.ts에 `transition: ...` 한 줄을
-    // 넣으면(M2가 정적으로 남기기로 한 3개에 모션이 들어오면) 여기가
+  it('두 파일에 animation·transition·keyframes가 한 글자도 없다', () => {
+    // 무엇을 뒤집으면 빨개지는가: List.css.ts에 `transition: ...` 한 줄을
+    // 넣으면(M2가 정적으로 남기기로 한 컴포넌트에 모션이 들어오면) 여기가
     // 빨개진다.
     const offenders: string[] = [];
     for (const file of STATIC_CSS_FILES) {

@@ -57,9 +57,6 @@ const IconButtonPage = lazy(() =>
     default: m.IconButtonPage,
   }))
 );
-const TextPage = lazy(() =>
-  import('../pages/Components/Text').then((m) => ({ default: m.TextPage }))
-);
 const BadgePage = lazy(() =>
   import('../pages/Components/Badge').then((m) => ({ default: m.BadgePage }))
 );
@@ -258,14 +255,6 @@ const router = createBrowserRouter([
             element: (
               <LazyPage>
                 <IconButtonPage />
-              </LazyPage>
-            ),
-          },
-          {
-            path: 'text',
-            element: (
-              <LazyPage>
-                <TextPage />
               </LazyPage>
             ),
           },
