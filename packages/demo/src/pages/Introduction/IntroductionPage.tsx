@@ -26,9 +26,10 @@ export function IntroductionPage() {
             <span className={styles.heroTitleSub}>TaeinUI</span>
           </h1>
           <p className={styles.heroDescription}>
-            컴포넌트마다 다른 움직임을 갖는 React UI 컴포넌트 라이브러리입니다.
-            <br />전 컴포넌트에 같은 전환 하나를 입히지 않는 대신,
-            시인성·가독성·가시성은 어디서도 낮추지 않습니다.
+            재미있는 모션과 인터랙티브한 효과를 추구한 React UI 컴포넌트
+            라이브러리.
+            <br /> 느낌있고 멋진 웹사이트를 만들어 보고 싶으신가요? TaeinUI가
+            무료로 해결해 드립니다.
           </p>
           <div className={styles.heroActions}>
             <Button
@@ -68,54 +69,51 @@ export function IntroductionPage() {
               <Sparkles size={24} />
             </div>
             <div className={styles.goalContent}>
-              <h3 className={styles.goalTitle}>컴포넌트마다 다른 움직임</h3>
+              <h3 className={styles.goalTitle}>모션과 인터랙션</h3>
               <p className={styles.goalDescription}>
-                전 컴포넌트에 같은 전환 하나를 입히지 않습니다.
-                열림·전환·되먹임을 컴포넌트마다 따로 설계해, 어떤 컴포넌트를
-                집어도 그 컴포넌트만의 움직임이 남게 합니다.
+                모션과 인터랙션을 컴포넌트 단위로 설계했습니다.
               </p>
               <ul className={styles.goalDetails}>
                 <li className={styles.goalDetailItem}>
-                  <strong>GSAP이 모션의 메인 런타임</strong> — 현재 12개
+                  컴포넌트마다 기본적인 기능과 접근성은 지키면서도 특징을 살릴
+                  수 있게하여, 어떤 컴포넌트를 활용해도 인상적인 경험을 제공할
+                  수 있습니다.
+                </li>
+                <li className={styles.goalDetailItem}>
+                  <strong>GSAP기반 모션 구현</strong>
                   컴포넌트가 GSAP으로 움직입니다
                 </li>
                 <li className={styles.goalDetailItem}>
-                  CSS로는 못 하는 일이 있는 자리에만 씁니다 — 트리거 좌표 읽기,
-                  제스처 1:1 추적, 여러 목표를 동시에 중단
+                  ㄴ 트리거 좌표 읽기, 제스처 1:1 추적, 여러 목표를 동시에 중단
+                  등
                 </li>
                 <li className={styles.goalDetailItem}>
-                  나머지 컴포넌트는 CSS 트랜지션으로 둡니다. 쓸 수 있으니 쓰는
-                  것이 아니라 GSAP만 할 수 있는 것을 GSAP이 합니다
+                  오버 엔지니어링을 방지하기 위해 CSS 트랜지션으로 구현 가능한
+                  모션은 CSS 트랜지션으로 구현했습니다.
                 </li>
               </ul>
             </div>
           </div>
 
-          {/* 시인성 */}
+          {/* 디자인 토큰 */}
           <div className={styles.goalRow}>
             <div className={styles.goalIcon} aria-hidden="true">
               <Eye size={24} />
             </div>
             <div className={styles.goalContent}>
-              <h3 className={styles.goalTitle}>
-                시인성은 협상 대상이 아닙니다
-              </h3>
+              <h3 className={styles.goalTitle}>디자인 토큰</h3>
               <p className={styles.goalDescription}>
-                통일성을 내려놓는 범위는 모션까지입니다. 모션이
-                시인성·가독성·가시성 중 하나라도 깎으면 틀린 쪽은 모션입니다.
+                컴포넌트의 색상, 폰트, 간격, 그림자 등은 디자인 토큰으로
+                관리됩니다.
               </p>
               <ul className={styles.goalDetails}>
                 <li className={styles.goalDetailItem}>
-                  WCAG 2.2 AA — 본문 대비 4.5:1, 비텍스트 대비 3:1을 테스트로
-                  잠가 두었습니다
+                  이를 통해 테마 변경이나 스타일 조정이 용이하며, 다양한 디자인
+                  요구사항에 유연하게 대응할 수 있습니다.
                 </li>
                 <li className={styles.goalDetailItem}>
-                  <strong>prefers-reduced-motion</strong> — CSS 전역 규칙이
-                  트랜지션을 끄고, 규칙이 닿지 않는 GSAP 트윈은 끝 상태로 확정한
-                  뒤 멈춥니다
-                </li>
-                <li className={styles.goalDetailItem}>
-                  시맨틱 HTML, ARIA, 키보드 네비게이션, 오버레이 포커스 트랩
+                  모션은 컴포넌트마다 다르게 가져가지만 대비와 가독성은 직접
+                  조정할 수 있게 했습니다.
                 </li>
               </ul>
             </div>
@@ -129,26 +127,21 @@ export function IntroductionPage() {
             <div className={styles.goalContent}>
               <h3 className={styles.goalTitle}>AI 친화</h3>
               <p className={styles.goalDescription}>
-                작은 API 범위와 구조화된 문서로 생성형 AI가 컴포넌트 사용법을 더
-                안정적으로 참조할 수 있게 합니다.
+                AI 도구가 컴포넌트 API를 쉽게 이해하고 활용할 수 있도록
+                설계했습니다.
               </p>
               <ul className={styles.goalDetails}>
                 <li className={styles.goalDetailItem}>
-                  <strong>llms.txt</strong> — AI 도구(Cursor, Context7 등)가
-                  읽을 수 있는 구조화된 API 문서를 제공합니다
+                  <strong>llms.txt</strong> : AI 도구(Claude, Codex, Context7
+                  등)가 읽을 수 있는 구조화된 API 문서를 제공합니다
                 </li>
                 <li className={styles.goalDetailItem}>
-                  <strong>JSDoc 주석</strong> — Props 인터페이스에 설명을
+                  <strong>JSDoc 주석</strong> : Props 인터페이스에 설명을
                   제공하여 타입 정보와 사용 의도를 함께 전달합니다
                 </li>
                 <li className={styles.goalDetailItem}>
-                  <strong>일관된 API</strong> — 주요 컴포넌트가 공통 네이밍과
-                  조합 패턴을 공유하므로 AI가 API 구조를 더 쉽게 예측할 수
-                  있습니다
-                </li>
-                <li className={styles.goalDetailItem}>
-                  <strong>TypeScript 기반</strong> — Props 타입을 명확히 제공해
-                  잘못된 조합을 줄이고 자동완성 경험을 개선합니다
+                  <strong>TypeScript 기반</strong> : Props 타입을 명확히 제공해
+                  AI가 임의로 구현하는 행위를 줄이고 타입 오류를 개선합니다
                 </li>
               </ul>
             </div>
