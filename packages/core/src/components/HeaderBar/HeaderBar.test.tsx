@@ -11,7 +11,7 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { render, screen, fireEvent, within } from '@testing-library/react';
+import { render, screen, fireEvent, within, act } from '@testing-library/react';
 import * as components from '../index';
 import { HeaderBar } from './HeaderBar';
 import { gsapDuration, gsapEasing } from '../../tokens/gsapEasing';
@@ -39,6 +39,39 @@ const installReducedMotion = (matches: boolean): void => {
         removeEventListener: () => {},
       }) as unknown as MediaQueryList
   );
+};
+
+/**
+ * 좁은 화면(max-width) 쿼리의 change를 직접 일으키는 matchMedia 스텁. 쿼리 글자를 보고
+ * 좁은 화면만 narrow로 답하고(축소 선호는 늘 false) set()이 값을 바꾸며 리스너를 부른다.
+ */
+const installLiveNarrow = (
+  narrow: boolean
+): { set: (next: boolean) => void } => {
+  let current = narrow;
+  const listeners = new Set<() => void>();
+  vi.stubGlobal(
+    'matchMedia',
+    (media: string): MediaQueryList =>
+      ({
+        get matches() {
+          return media.includes('max-width') ? current : false;
+        },
+        media,
+        addEventListener: (_type: string, listener: () => void) =>
+          listeners.add(listener),
+        removeEventListener: (_type: string, listener: () => void) =>
+          listeners.delete(listener),
+      }) as unknown as MediaQueryList
+  );
+  return {
+    set: (next) => {
+      current = next;
+      act(() => {
+        for (const listener of Array.from(listeners)) listener();
+      });
+    },
+  };
 };
 
 afterEach(() => {
@@ -676,5 +709,82 @@ describe('좁은 화면 메뉴 동작', () => {
     installReducedMotion(true);
     rerender(<HeaderBar items={[...items]} />);
     expect(panel.style.opacity).toBe('1');
+  });
+});
+
+describe('폭이나 형태가 바뀌면 열린 상태를 닫는다', () => {
+  const dropItems = [
+    { label: '제품', links: [{ label: '버튼', href: '#button' }] },
+    { label: '문의', href: '#contact' },
+  ];
+
+  it('좁은 화면 판이 열린 채 넓은 화면으로 넘어가면 닫히고, 다시 좁아져도 닫혀 있다', () => {
+    const media = installLiveNarrow(true);
+    render(<HeaderBar items={items} />);
+    fireEvent.click(getHamburger());
+    expect(getHamburger()).toHaveAttribute('aria-expanded', 'true');
+    media.set(false);
+    expect(getHamburger()).toHaveAttribute('aria-expanded', 'false');
+    media.set(true);
+    expect(getHamburger()).toHaveAttribute('aria-expanded', 'false');
+  });
+
+  it('cards는 햄버거가 모든 폭에서 보이므로 폭이 바뀌어도 열려 있다', () => {
+    const media = installLiveNarrow(true);
+    render(<HeaderBar navStyle="cards" items={items} />);
+    fireEvent.click(getHamburger());
+    media.set(false);
+    expect(getHamburger()).toHaveAttribute('aria-expanded', 'true');
+  });
+
+  it('드롭다운 판이 열린 채 좁은 화면으로 넘어가면 닫힌다', () => {
+    const media = installLiveNarrow(false);
+    render(<HeaderBar navStyle="dropdown" items={dropItems} />);
+    const trigger = screen.getByRole('button', { name: '제품' });
+    fireEvent.click(trigger);
+    expect(trigger).toHaveAttribute('aria-expanded', 'true');
+    media.set(true);
+    expect(trigger).toHaveAttribute('aria-expanded', 'false');
+  });
+
+  it('navStyle이 바뀌면 햄버거와 드롭다운이 둘 다 닫히고 돌아와도 닫혀 있다', () => {
+    installLiveNarrow(false);
+    const { rerender } = render(
+      <HeaderBar navStyle="dropdown" items={dropItems} />
+    );
+    fireEvent.click(screen.getByRole('button', { name: '제품' }));
+    fireEvent.click(getHamburger());
+    expect(getHamburger()).toHaveAttribute('aria-expanded', 'true');
+    rerender(<HeaderBar navStyle="text" items={dropItems} />);
+    expect(getHamburger()).toHaveAttribute('aria-expanded', 'false');
+    rerender(<HeaderBar navStyle="dropdown" items={dropItems} />);
+    expect(screen.getByRole('button', { name: '제품' })).toHaveAttribute(
+      'aria-expanded',
+      'false'
+    );
+    expect(getHamburger()).toHaveAttribute('aria-expanded', 'false');
+  });
+});
+
+describe('usePanelTween 정리', () => {
+  it('언마운트하면 훅이 만든 마지막 트윈을 죽인다', () => {
+    const { unmount } = render(<HeaderBar items={items} />);
+    fireEvent.click(getHamburger());
+    const tween = getPanel().__panelTween as gsap.core.Tween;
+    tween.progress(0.3);
+    expect(tween.parent).not.toBeNull();
+    unmount();
+    expect(tween.parent).toBeNull();
+  });
+
+  it('처음엔 판이 없다가 나중에 생겨도 언마운트하면 그 트윈을 죽인다', () => {
+    const { rerender, unmount } = render(<HeaderBar />);
+    rerender(<HeaderBar items={items} />);
+    fireEvent.click(getHamburger());
+    const tween = getPanel().__panelTween as gsap.core.Tween;
+    tween.progress(0.3);
+    expect(tween.parent).not.toBeNull();
+    unmount();
+    expect(tween.parent).toBeNull();
   });
 });

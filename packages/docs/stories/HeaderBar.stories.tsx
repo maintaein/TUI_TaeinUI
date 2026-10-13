@@ -24,7 +24,11 @@ const meta = {
     logo: { control: false },
     title: { control: 'text' },
     items: { control: false },
-    navStyle: { control: 'select', options: ['text', 'icon'] },
+    // icon은 항목마다 아이콘이 필요해 여기서 고르면 빈 알약이 된다. 자기 스토리가 따로 있다.
+    navStyle: {
+      control: 'select',
+      options: ['text', 'pill', 'dropdown', 'cards'],
+    },
     actions: { control: false },
     sticky: { control: 'boolean' },
     variant: {

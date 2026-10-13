@@ -22,9 +22,9 @@ import {
 } from './HeaderBar.css';
 
 // 카드를 그릴 때 GSAP이 클래스가 붙은 요소의 getComputedStyle을 읽는데, jsdom은 이를 전체
-// 스타일시트를 훑어 계산해 한 번 렌더에 0.5~1.3초가 든다(혼자 돌릴 때 가장 느린 시험이
-// 1.3초). 전체 시험이 병렬로 돌 때 5초 기본값을 넘기는 일이 있어 이 파일만 늘린다
-// (HeaderBarForms.test.tsx와 같은 방식과 이유).
+// 스타일시트를 훑어 계산한다. 혼자 돌려 가장 느린 시험이 1초(리뷰에서 잰 Forms 파일의
+// 최대는 3.6초)이고 전체 시험이 병렬로 돌 때 5초 기본값을 넘기는 일이 있어 이 파일만
+// 늘린다(HeaderBarForms.test.tsx와 같은 방식과 이유).
 vi.setConfig({ testTimeout: 20000 });
 
 type CardsHost = HTMLElement & { __cardsTimeline?: gsap.core.Timeline };
@@ -52,6 +52,43 @@ const installMedia = (state: Partial<MediaState> = {}): MediaState => {
       }) as unknown as MediaQueryList
   );
   return current;
+};
+
+/**
+ * 리스너를 들고 있다가 set()이 값을 바꾸고 알린다. 실행 중에 축소 선호가 켜지는 경로를
+ * 열기 위해서다(useReducedMotion이 change를 구독한다).
+ */
+const installLiveMedia = (
+  initial: Partial<MediaState> = {}
+): { set: (next: Partial<MediaState>) => void } => {
+  const current: MediaState = { reduced: false, narrow: false, ...initial };
+  const listeners = new Set<() => void>();
+  vi.stubGlobal(
+    'matchMedia',
+    (media: string): MediaQueryList =>
+      ({
+        get matches() {
+          return media.includes('prefers-reduced-motion')
+            ? current.reduced
+            : media.includes('max-width')
+              ? current.narrow
+              : false;
+        },
+        media,
+        addEventListener: (_type: string, listener: () => void) =>
+          listeners.add(listener),
+        removeEventListener: (_type: string, listener: () => void) =>
+          listeners.delete(listener),
+      }) as unknown as MediaQueryList
+  );
+  return {
+    set: (next) => {
+      Object.assign(current, next);
+      act(() => {
+        for (const listener of Array.from(listeners)) listener();
+      });
+    },
+  };
 };
 
 interface LayerSnapshot {
@@ -178,8 +215,9 @@ const getLayer = (): HTMLElement => {
   return layer;
 };
 
+// links가 없는 항목의 카드는 role="group"이 아니라서 층의 자식으로 센다.
 const getCards = (): HTMLElement[] =>
-  Array.from(getLayer().querySelectorAll<HTMLElement>('[role="group"]'));
+  Array.from(getLayer().children) as HTMLElement[];
 
 /** 햄버거를 눌러 층을 보이게 한다(접근 이름으로 집으려면 보여야 한다). */
 const openCards = (): void => {
@@ -283,16 +321,29 @@ describe('navStyle="cards" 마크업', () => {
       />
     );
     openCards();
-    const group = screen.getByRole('group', { name: '문의' });
-    const link = within(group).getByRole('link', { name: '문의' });
+    const link = screen.getByRole('link', { name: '문의' });
     expect(link).toHaveAttribute('href', '#contact');
-    expect(group.getAttribute('aria-labelledby')).toBe(link.id);
-    expect(
-      within(screen.getByRole('group', { name: '후원' })).getByRole('button', {
-        name: '후원',
-      })
-    ).toBeInTheDocument();
-    expect(within(group).queryByRole('list')).toBeNull();
+    expect(screen.getByRole('button', { name: '후원' })).toBeInTheDocument();
+    expect(within(getLayer()).queryByRole('list')).toBeNull();
+  });
+
+  it('links가 없는 항목의 카드는 그룹이 아니고(이름이 링크 자신이라 두 번 읽힌다), links가 있는 카드는 그룹이다', () => {
+    render(
+      <HeaderBar
+        navStyle="cards"
+        items={[
+          { label: '소개', links: [{ label: '팀', href: '#team' }] },
+          { label: '후원', href: '#donate' },
+        ]}
+      />
+    );
+    openCards();
+    expect(screen.getAllByRole('group')).toHaveLength(1);
+    expect(screen.getByRole('group', { name: '소개' })).toBeInTheDocument();
+    const card = screen.getByRole('link', { name: '후원' })
+      .parentElement as HTMLElement;
+    expect(card).not.toHaveAttribute('role');
+    expect(card).not.toHaveAttribute('aria-labelledby');
   });
 
   it('active 항목은 aria-current="page"를 가진다', () => {
@@ -430,6 +481,16 @@ describe('navStyle="cards" 기하 (CSSOM)', () => {
     expect(decl(ruleOf(/\.HeaderBar_cardLink__[^\s:]+$/), 'font-size')).toBe(
       themeContract.font.size.base
     );
+  });
+
+  it('카드 링크와 links 없는 항목의 제목 링크는 누르는 높이가 최소 24px다(WCAG 2.5.8)', () => {
+    render(<HeaderBar navStyle="cards" items={cardItems} />);
+    expect(decl(ruleOf(/\.HeaderBar_cardLink__[^\s:]+$/), 'min-height')).toBe(
+      '24px'
+    );
+    expect(
+      decl(ruleOf(/\.HeaderBar_cardTitleLink__[^\s:]+$/), 'min-height')
+    ).toBe('24px');
   });
 
   it('링크 호버는 opacity 0.75, base settle이고 호버 게이트 안에 있다', () => {
@@ -742,6 +803,60 @@ describe('navStyle="cards" 축소 선호', () => {
       fireEvent.click(getHamburger());
       expect(getSurface().style.height).toBe('60px');
     }
+  });
+});
+
+describe('navStyle="cards" 도는 도중 축소 선호가 켜진다', () => {
+  it('여는 도중에 켜지면 끝으로 확정되고 카드 층이 보이며 타임라인은 멈춘다', () => {
+    const media = installLiveMedia();
+    supplyScrollHeight(100);
+    render(<HeaderBar navStyle="cards" items={cardItems} />);
+    openCards();
+    // jsdom은 티커가 안 돌아 play()만으로는 활성이 아니다. 도는 도중을 seek로 만든다.
+    timelineOf().time(0.1);
+    expect(timelineOf().isActive()).toBe(true);
+    media.set({ reduced: true });
+    expect(timelineOf().progress()).toBe(1);
+    expect(timelineOf().isActive()).toBe(false);
+    expect(getSurface().style.height).toBe('260px');
+    expect(getLayer().style.visibility).toBe('visible');
+    for (const card of getCards()) {
+      expect(cardOpacity(card)).toBe(1);
+      expect(cardY(card)).toBe(0);
+    }
+  });
+
+  it('닫는 도중에 켜지면 처음으로 확정되고 카드 층이 숨는다', () => {
+    const media = installLiveMedia();
+    supplyScrollHeight(100);
+    render(<HeaderBar navStyle="cards" items={cardItems} />);
+    openCards();
+    timelineOf().progress(1);
+    openCards();
+    timelineOf().time(0.3);
+    expect(timelineOf().isActive()).toBe(true);
+    media.set({ reduced: true });
+    expect(timelineOf().progress()).toBe(0);
+    expect(timelineOf().isActive()).toBe(false);
+    expect(getSurface().style.height).toBe('60px');
+    expect(getLayer().style.visibility).toBe('hidden');
+  });
+
+  it('확정된 뒤에도 같은 타임라인이 살아 있어 축소 선호를 끄면 다시 움직여 열고 닫는다', () => {
+    const media = installLiveMedia({ reduced: true });
+    supplyScrollHeight(100);
+    render(<HeaderBar navStyle="cards" items={cardItems} />);
+    const before = timelineOf();
+    openCards();
+    expect(before.progress()).toBe(1);
+    media.set({ reduced: false });
+    openCards();
+    expect(timelineOf()).toBe(before);
+    expect(before.reversed()).toBe(true);
+    expect(before.progress()).toBe(1);
+    expect(before.paused()).toBe(false);
+    openCards();
+    expect(before.reversed()).toBe(false);
   });
 });
 

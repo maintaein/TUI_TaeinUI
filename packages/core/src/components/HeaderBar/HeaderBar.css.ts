@@ -698,6 +698,8 @@ export const cardLinks = style({
 // 카드 안 링크와 제목 링크가 나눠 쓰는 누르는 면: 글자색을 잇고, 호버(정밀 포인터)에서
 // opacity 0.75(CardNav.tsx:233의 hover:opacity-75).
 const cardPress = {
+  // 글자 크기와 링크 사이 2px은 그대로 두고 누르는 높이만 24px로(WCAG 2.5.8, Chip 선례).
+  minHeight: '24px',
   padding: 0,
   border: 'none',
   background: 'none',

@@ -226,7 +226,7 @@ export function HeaderBarPage() {
             title="카드 펼침"
             description="햄버거(모든 폭에서 보임)를 누르면 바 뒤의 면이 아래로 자라고, 면이 3/4쯤 자랐을 때부터 카드가 80ms 시차로 솟습니다. 닫으면 거꾸로 카드가 먼저 가라앉고 면이 줄어듭니다. 면은 겹쳐 자라 아래 내용을 밀지 않습니다. 항목은 바 안이 아니라 카드에만 있고, links가 없는 항목은 카드 제목이 곧 링크입니다. 카드는 셋 이하를 권장합니다. 아래 미리보기는 펼친 카드가 잘리지 않게 높이를 확보했습니다."
             editable
-            code={`<div style={{ width: '100%', minHeight: '360px' }}>
+            code={`<div style={{ width: '100%', minHeight: '460px' }}>
   <HeaderBar
     title="TUI"
     navStyle="cards"
@@ -414,6 +414,18 @@ export function HeaderBarPage() {
             effect: '메뉴가 열렸는지와 어떤 목록을 여는지를 알립니다.',
             description:
               '접근 이름은 열림 상태에 따라 "메뉴 열기"와 "메뉴 닫기"로 바뀌고, Esc로 닫으면 포커스가 햄버거로 돌아옵니다.',
+          },
+          {
+            attribute: 'dropdown 버튼의 aria-expanded · aria-controls',
+            effect: '하위 링크 판이 열렸는지와 어떤 판을 여는지를 알립니다.',
+            description:
+              'links가 있는 항목은 버튼이 되어 항상 있는 판을 가리킵니다. 닫힌 판은 visibility: hidden이라 탭 순서와 접근성 트리에서 빠지고, Esc로 닫으면 포커스가 그 버튼으로 돌아옵니다.',
+          },
+          {
+            attribute: 'cards 카드의 role="group" · aria-labelledby',
+            effect: '카드를 제목이 붙은 그룹으로 알립니다.',
+            description:
+              'links가 있는 카드는 제목을 이름으로 갖는 그룹입니다. links가 없는 카드는 이름이 링크 자신이라 두 번 읽히지 않게 그룹이 아닙니다. 닫힌 카드 층은 visibility: hidden이라 탭 순서와 접근성 트리에서 빠집니다.',
           },
         ]}
         additionalGuidance={[

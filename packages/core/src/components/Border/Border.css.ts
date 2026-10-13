@@ -210,8 +210,7 @@ globalStyle(`${border}:hover ${glowRing}`, {
 // 루프와 will-change 둘 다 트리거 상태에서만 붙는다. 링이 켜진 Border마다
 // 존재하므로(예전엔 ::before가 :hover 선택자 안에서만 정의돼 비활성 시 통째로
 // 사라졌다) 여기 두지 않으면 켜진 모든 Border가 안 보이는 채로 영원히
-// 회전을 틱한다. 상주 will-change도 같은 이유로 여기에만 둔다(HeaderBar의
-// 상주 will-change 반례).
+// 회전을 틱한다. 상주 will-change도 같은 이유로 여기에만 둔다.
 //
 // 길이는 loop.slow(6000ms)다: 빠른 기계적 회전이 아니라 느린 환경광. 커브는
 // linear 그대로다. 닫힌 회전에 sine.inOut을 걸면 빛이 매 바퀴 같은 각도에서

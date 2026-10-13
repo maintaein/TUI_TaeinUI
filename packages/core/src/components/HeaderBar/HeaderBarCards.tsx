@@ -8,7 +8,7 @@ import {
 import clsx from 'clsx';
 import { gsap } from 'gsap';
 import { Glyph } from '../../_internal/glyph';
-import { settleMotion } from '../../hooks/gateMotion';
+import { gateMotion } from '../../hooks/gateMotion';
 import { useReducedMotion } from '../../hooks/useReducedMotion';
 import { gsapDuration, gsapEasing } from '../../tokens/gsapEasing';
 import { mediaQuery } from '../../tokens/breakpoints.css';
@@ -114,8 +114,7 @@ export const HeaderBarCards = ({
       surface.__cardsTimeline?.kill();
       const cards = Array.from(layer.children);
       // 지난 타임라인이 남긴 y·opacity가 잰 높이에 섞이지 않게 먼저 지운다.
-      // gsap.set은 즉시 끝나는 트윈이라 settleMotion이 확정할 것이 없다(HeaderBarNav와 같은 관례).
-      settleMotion(gsap.set(cards, { clearProps: 'transform,opacity' }));
+      gsap.set(cards, { clearProps: 'transform,opacity' });
       const target = measureOpenHeight(layer);
       layer.style.height = `${target - BAR_HEIGHT}px`;
 
@@ -163,7 +162,10 @@ export const HeaderBarCards = ({
     if (reduced) {
       // 열림 상태가 그대로여도 돌던 타임라인이 있으면(축소 선호가 방금 켜졌다) 확정한다.
       if (!changed && !timeline.isActive()) return;
-      timeline.pause().progress(open ? 1 : 0);
+      // 게이트가 tweenTo를 끝으로 확정하고 죽인다. 타임라인은 남아 play()/reverse()가 계속 된다.
+      gateMotion(reduced, () =>
+        timeline.tweenTo(open ? timeline.duration() : 0)
+      );
       layer.style.visibility = open ? 'visible' : 'hidden';
       return;
     }
@@ -238,8 +240,9 @@ export const HeaderBarCards = ({
     return (
       <div
         key={item.label}
-        role="group"
-        aria-labelledby={titleId}
+        // links가 없으면 그룹 이름이 링크 자신이라 두 번 읽힌다. 그룹은 links가 있을 때만 둔다.
+        role={hasLinks ? 'group' : undefined}
+        aria-labelledby={hasLinks ? titleId : undefined}
         className={cardStyle}
       >
         {title}

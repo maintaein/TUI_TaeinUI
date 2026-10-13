@@ -27,6 +27,9 @@ export const usePanelTween = (
   // 마지막으로 트윈을 건 열림 상태. 처음 마운트(닫힘)와 축소 선호만 바뀐 렌더에서
   // 같은 방향 트윈을 또 걸지 않게 한다.
   const shownRef = useRef(false);
+  // 이 훅이 만든 마지막 트윈. 판이 처음엔 없다가 나중에 생길 수 있어 정리 때 마운트 시점의
+  // ref를 믿을 수 없으니 훅이 직접 들고 있다.
+  const lastTweenRef = useRef<gsap.core.Tween | null>(null);
 
   useLayoutEffect(() => {
     const panelEl = panelRef.current;
@@ -37,7 +40,7 @@ export const usePanelTween = (
       return;
     }
     shownRef.current = open;
-    panelEl.__panelTween = gateMotion(reduced, () =>
+    panelEl.__panelTween = lastTweenRef.current = gateMotion(reduced, () =>
       gsap.to(
         panelEl,
         open
@@ -59,10 +62,10 @@ export const usePanelTween = (
     );
   }, [panelRef, open, reduced]);
 
-  useEffect(() => {
-    const panelEl = panelRef.current;
-    return () => {
-      panelEl?.__panelTween?.kill();
-    };
-  }, [panelRef]);
+  useEffect(
+    () => () => {
+      lastTweenRef.current?.kill();
+    },
+    []
+  );
 };

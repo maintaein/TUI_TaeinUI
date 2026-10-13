@@ -24,8 +24,9 @@ import {
 } from './HeaderBar.css';
 
 // 알약 하나를 그릴 때 GSAP이 클래스가 붙은 요소의 getComputedStyle을 읽는데, jsdom은
-// 이를 전체 스타일시트를 훑어 계산해 알약 셋에 0.5초 넘게 든다. 다른 파일과 병렬로 돌면
-// 5초 기본값을 넘기는 일이 있어 이 파일만 늘린다.
+// 이를 전체 스타일시트를 훑어 계산한다. 혼자 돌려 가장 느린 시험이 1.6초, 리뷰에서 잰
+// 최대는 3.6초(items가 바뀌면 다시 잰다)이고 다른 파일과 병렬로 돌면 5초 기본값을 넘기는
+// 일이 있어 이 파일만 늘린다.
 vi.setConfig({ testTimeout: 20000 });
 
 type PillHost = HTMLElement & {

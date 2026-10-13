@@ -9,6 +9,7 @@ import {
 import clsx from 'clsx';
 import { useReducedMotion } from '../../hooks/useReducedMotion';
 import { addDocumentListener } from '../../_internal/dom';
+import { mediaQuery } from '../../tokens/breakpoints.css';
 import { HeaderBarNav } from './HeaderBarNav';
 import { HeaderBarPillNav } from './HeaderBarPill';
 import { HeaderBarDropdownItem } from './HeaderBarDropdown';
@@ -54,8 +55,12 @@ export interface HeaderBarLink {
 export interface HeaderBarItem {
   /** 보이는 글자이자 접근 이름. React key로도 쓴다 */
   label: string;
-  /** 주면 <a>, 없으면 <button> */
+  /**
+   * 주면 <a>, 없으면 <button>. `navStyle`이 `dropdown`·`cards`이고 `links`가 있으면
+   * 쓰이지 않는다
+   */
   href?: string;
+  /** `navStyle`이 `dropdown`·`cards`이고 `links`가 있으면 쓰이지 않는다 */
   onClick?: () => void;
   /** navStyle="icon"에서 알약 안에 들어간다(그때 필수) */
   icon?: ReactNode;
@@ -137,6 +142,29 @@ export const HeaderBar = ({
   const panelRef = useRef<PanelTweenHost | null>(null);
   const surfaceRef = useRef<CardsSurfaceHost | null>(null);
   usePanelTween(panelRef, open, reduced);
+  const isCards = navStyle === 'cards';
+
+  // 형태가 바뀌면 열린 메뉴와 드롭다운을 닫는다(렌더 중에 이전 값과 비교하는 React 권장 방식).
+  const [shownStyle, setShownStyle] = useState(navStyle);
+  if (shownStyle !== navStyle) {
+    setShownStyle(navStyle);
+    setOpen(false);
+    setDropdownKey(null);
+  }
+
+  // 폭이 768px 경계를 넘으면 열린 상태가 남지 않게 한다. 넓어지면 좁은 화면 판의 햄버거가
+  // 숨으므로 닫는다(cards는 햄버거가 모든 폭에서 보이고 면이 다시 재어지니 예외). 좁아지면
+  // 드롭다운 판을 비운다(좁은 화면에서는 항목이 햄버거 판으로 들어간다).
+  useEffect(() => {
+    if (typeof window.matchMedia !== 'function') return;
+    const query = window.matchMedia(mediaQuery.down.md);
+    const onChange = () => {
+      if (query.matches) setDropdownKey(null);
+      else if (!isCards) setOpen(false);
+    };
+    query.addEventListener('change', onChange);
+    return () => query.removeEventListener('change', onChange);
+  }, [isCards]);
 
   // 열려 있는 동안 Esc와 판 밖 누름으로 닫는다. 햄버거 자체의 누름은 제외한다.
   // 햄버거의 mousedown이 먼저 닫아 버리면 이어지는 click이 다시 열기 때문이다.
@@ -193,7 +221,6 @@ export const HeaderBar = ({
   const iconItems = navStyle === 'icon' ? items : undefined;
   const itemList: HeaderBarItem[] = items ?? [];
   const hasItems = itemList.length > 0;
-  const isCards = navStyle === 'cards';
 
   // 좁은 화면 세로 목록 판. dropdown의 links 항목은 접기 없이 하위 링크를 들여 써서 펼쳐 둔다.
   const renderPanelItem = (item: HeaderBarItem, index: number) => {
