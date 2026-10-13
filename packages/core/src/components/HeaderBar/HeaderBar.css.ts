@@ -128,13 +128,14 @@ export const title = style({
   },
 });
 
+// minWidth를 0으로 두지 않는다: 내용보다 좁아지면 알약 줄이 왼쪽 제목 위로 넘쳐 그려진다.
+// 공간이 모자라면 줄어드는 쪽은 leftSection의 제목(말줄임)이다.
 export const centerSection = style({
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'center',
   gap: themeContract.spacing[4],
   flex: 1,
-  minWidth: 0,
 
   '@media': {
     [mediaQuery.down.md]: {

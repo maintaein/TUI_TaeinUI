@@ -266,7 +266,7 @@ export function HeaderBarPage() {
             title="배경 변형"
             description="default는 밝은 면, dark는 검은 계열 면(텍스트 자동 반전), transparent는 면과 그림자가 없어 뒤의 콘텐츠가 그대로 보입니다."
             editable
-            code={`<div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            code={`<div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
   <HeaderBar variant="default" title="Default" items={[{ label: '홈', href: '#', active: true }, { label: '소개', href: '#' }]} />
   <HeaderBar variant="dark" title="Dark" items={[{ label: '홈', href: '#', active: true }, { label: '소개', href: '#' }]} />
   <div style={{ borderRadius: '0.75rem', overflow: 'hidden', background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', color: '#ffffff', paddingBottom: '1rem' }}>
@@ -310,7 +310,7 @@ export function HeaderBarPage() {
             title="조합 예제"
             description="로고, 제목, 항목, 액션을 모두 조합한 실제 사용 예시입니다."
             editable
-            code={`<div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+            code={`<div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
   {/* 일반 웹 앱 헤더 */}
   <HeaderBar
     logo={<Package size={20} />}

@@ -379,11 +379,10 @@ describe('좁은 화면 넘침 방지 테스트', () => {
     expect(leftSectionBlock).toContain('minWidth: 0');
   });
 
-  it('centerSection이 minWidth: 0으로 flex 기본 넘침을 막는다', () => {
-    const centerSectionBlock = cssSource().match(
-      /export const centerSection = style\(\{([\s\S]*?)\n\}\);/
-    )?.[1];
-    expect(centerSectionBlock).toContain('minWidth: 0');
+  it('가운데 칸은 자기 내용보다 좁아지지 않아 바가 좁으면 왼쪽 제목이 줄어든다', () => {
+    render(<HeaderBar title="앱" items={items} />);
+    const center = ruleOf(/\.HeaderBar_centerSection__[^\s:]+$/);
+    expect(decl(center, 'min-width') ?? 'auto').not.toMatch(/^0(px)?$/);
   });
 });
 
