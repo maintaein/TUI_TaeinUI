@@ -1,5 +1,8 @@
 /**
- * M3 T8 — HeaderBarNav. 커서/포커스 근접 확대 + 가드 2개.
+ * M3 T8, HeaderBar `navStyle="icon"`(옛 HeaderBarNav). 커서/포커스 근접 확대 + 가드 2개.
+ * M5 task-24에서 HeaderBarNav가 공개 export에서 내려가 HeaderBar의 아이콘 형태가
+ * 됐다. 순수 함수(itemCenter·proximityScales)는 내부 모듈에서 직접 시험하고,
+ * 나머지는 HeaderBar를 `navStyle="icon"`으로 렌더해 시험한다.
  *
  * jsdom에는 레이아웃이 없다(getBoundingClientRect 등이 전부 0 — 선결 사실 9).
  * 포인터 경로는 여기서 끝까지 검증할 수 없으므로, 순수 함수(itemCenter·
@@ -15,12 +18,8 @@
  */
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
-import {
-  HeaderBarNav,
-  itemCenter,
-  proximityScales,
-  type HeaderBarNavItem,
-} from './HeaderBarNav';
+import { HeaderBar, type HeaderBarIconItem } from './HeaderBar';
+import { itemCenter, proximityScales } from './HeaderBarNav';
 import {
   ITEM_SCALE_VAR,
   RESERVED_SIZE,
@@ -47,14 +46,19 @@ const installReducedMotion = (matches: boolean): void => {
   );
 };
 
-const makeItems = (count: number): HeaderBarNavItem[] =>
+const makeItems = (count: number): HeaderBarIconItem[] =>
   Array.from({ length: count }, (_, i) => ({
     icon: `icon-${i}`,
     label: `항목 ${i}`,
   }));
 
+// 햄버거 선 같은 장식 요소가 섞이지 않게 nav 안만 본다.
 const getPills = (container: HTMLElement): HTMLElement[] =>
-  Array.from(container.querySelectorAll('[aria-hidden="true"]'));
+  Array.from(
+    (container.querySelector('nav') as HTMLElement).querySelectorAll(
+      '[aria-hidden="true"]'
+    )
+  );
 
 const readScale = (pill: HTMLElement): number =>
   Number(pill.style.getPropertyValue(ITEM_SCALE_VAR));
@@ -99,23 +103,16 @@ describe('itemCenter · proximityScales — 순수 함수 (DOM 없음)', () => {
   });
 });
 
-describe('HeaderBarNav — 렌더·접근성', () => {
+describe('HeaderBar icon: 렌더·접근성', () => {
   it('nav 랜드마크가 있고 기본 aria-label(주요 메뉴)이 붙는다', () => {
-    render(<HeaderBarNav items={makeItems(3)} />);
+    render(<HeaderBar navStyle="icon" items={makeItems(3)} />);
     expect(
       screen.getByRole('navigation', { name: '주요 메뉴' })
     ).toBeInTheDocument();
   });
 
-  it('aria-label을 넘기면 그 값을 쓴다', () => {
-    render(<HeaderBarNav items={makeItems(3)} aria-label="커스텀 메뉴" />);
-    expect(
-      screen.getByRole('navigation', { name: '커스텀 메뉴' })
-    ).toBeInTheDocument();
-  });
-
   it('모든 항목이 label을 접근성 이름으로 갖는다', () => {
-    render(<HeaderBarNav items={makeItems(3)} />);
+    render(<HeaderBar navStyle="icon" items={makeItems(3)} />);
     expect(screen.getByRole('button', { name: '항목 0' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '항목 1' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '항목 2' })).toBeInTheDocument();
@@ -124,7 +121,7 @@ describe('HeaderBarNav — 렌더·접근성', () => {
   it('href를 준 항목은 link 롤로 잡히고 href가 그 값이다', () => {
     const items = makeItems(2);
     items[0].href = '/home';
-    render(<HeaderBarNav items={items} />);
+    render(<HeaderBar navStyle="icon" items={items} />);
     expect(screen.getByRole('link', { name: '항목 0' })).toHaveAttribute(
       'href',
       '/home'
@@ -135,16 +132,20 @@ describe('HeaderBarNav — 렌더·접근성', () => {
     const onClick = vi.fn();
     const items = makeItems(2);
     items[1].onClick = onClick;
-    render(<HeaderBarNav items={items} />);
+    render(<HeaderBar navStyle="icon" items={items} />);
     fireEvent.click(screen.getByRole('button', { name: '항목 1' }));
     expect(onClick).toHaveBeenCalledTimes(1);
   });
 });
 
-describe('HeaderBarNav — 키보드 = 포인터와 같은 신호', () => {
+describe('HeaderBar icon: 키보드 = 포인터와 같은 신호', () => {
   it('두 번째 항목에 포커스하면 그 항목이 1.4, 양옆이 1.2, 그 밖은 1이다', () => {
-    const { container } = render(<HeaderBarNav items={makeItems(5)} />);
-    const nav = screen.getByRole('navigation') as NavScaleSetterHost;
+    const { container } = render(
+      <HeaderBar navStyle="icon" items={makeItems(5)} />
+    );
+    const nav = screen.getByRole('navigation', {
+      name: '주요 메뉴',
+    }) as NavScaleSetterHost;
 
     fireEvent.focus(screen.getByRole('button', { name: '항목 1' }));
 
@@ -161,8 +162,12 @@ describe('HeaderBarNav — 키보드 = 포인터와 같은 신호', () => {
   });
 
   it('정착 전에 포커스를 옮겨도 배율이 0이나 1로 순간이동하지 않는다 (명제 조항 1③, Ruling 87)', () => {
-    const { container } = render(<HeaderBarNav items={makeItems(5)} />);
-    const nav = screen.getByRole('navigation') as NavScaleSetterHost;
+    const { container } = render(
+      <HeaderBar navStyle="icon" items={makeItems(5)} />
+    );
+    const nav = screen.getByRole('navigation', {
+      name: '주요 메뉴',
+    }) as NavScaleSetterHost;
     const pills = getPills(container);
 
     fireEvent.focus(screen.getByRole('button', { name: '항목 1' }));
@@ -197,15 +202,17 @@ describe('HeaderBarNav — 키보드 = 포인터와 같은 신호', () => {
     // key={label}이라 label이 바뀌면 DOM 노드가 통째로 교체된다. 길이만
     // 의존하는 deps는 이걸 못 보고, 세터들은 떨어져 나간 노드를 계속 가리킨다.
     const { container, rerender } = render(
-      <HeaderBarNav items={makeItems(3)} />
+      <HeaderBar navStyle="icon" items={makeItems(3)} />
     );
-    const renamed: HeaderBarNavItem[] = makeItems(3).map((navItem, index) => ({
+    const renamed: HeaderBarIconItem[] = makeItems(3).map((navItem, index) => ({
       ...navItem,
       label: `바뀜 ${index}`,
     }));
-    rerender(<HeaderBarNav items={renamed} />);
+    rerender(<HeaderBar navStyle="icon" items={renamed} />);
 
-    const nav = screen.getByRole('navigation') as NavScaleSetterHost;
+    const nav = screen.getByRole('navigation', {
+      name: '주요 메뉴',
+    }) as NavScaleSetterHost;
     fireEvent.focus(screen.getByRole('button', { name: '바뀜 1' }));
     (nav.__navScaleSetters ?? []).forEach((setter) => setter.tween.progress(1));
 
@@ -216,8 +223,12 @@ describe('HeaderBarNav — 키보드 = 포인터와 같은 신호', () => {
   });
 
   it('nav 밖으로 blur가 나가면(relatedTarget이 nav 밖) 모두 1로 돌아온다', () => {
-    const { container } = render(<HeaderBarNav items={makeItems(3)} />);
-    const nav = screen.getByRole('navigation') as NavScaleSetterHost;
+    const { container } = render(
+      <HeaderBar navStyle="icon" items={makeItems(3)} />
+    );
+    const nav = screen.getByRole('navigation', {
+      name: '주요 메뉴',
+    }) as NavScaleSetterHost;
 
     fireEvent.focus(screen.getByRole('button', { name: '항목 0' }));
     const setters = nav.__navScaleSetters ?? [];
@@ -233,11 +244,15 @@ describe('HeaderBarNav — 키보드 = 포인터와 같은 신호', () => {
   });
 });
 
-describe('HeaderBarNav — 축소 선호 (Ruling 53의 비용을 막는 왕복)', () => {
+describe('HeaderBar icon: 축소 선호 (Ruling 53의 비용을 막는 왕복)', () => {
   it('축소 선호면 포커스해도 배율이 커지지 않는다', () => {
     installReducedMotion(true);
-    const { container } = render(<HeaderBarNav items={makeItems(3)} />);
-    const nav = screen.getByRole('navigation') as NavScaleSetterHost;
+    const { container } = render(
+      <HeaderBar navStyle="icon" items={makeItems(3)} />
+    );
+    const nav = screen.getByRole('navigation', {
+      name: '주요 메뉴',
+    }) as NavScaleSetterHost;
 
     fireEvent.focus(screen.getByRole('button', { name: '항목 1' }));
 
@@ -251,16 +266,18 @@ describe('HeaderBarNav — 축소 선호 (Ruling 53의 비용을 막는 왕복)'
   it('왕복: 부풀린 뒤 축소 선호로 다시 렌더하면 settleMotion 경로가 전부 1로 되돌린다', () => {
     installReducedMotion(false);
     const { container, rerender } = render(
-      <HeaderBarNav items={makeItems(3)} />
+      <HeaderBar navStyle="icon" items={makeItems(3)} />
     );
-    const nav = screen.getByRole('navigation') as NavScaleSetterHost;
+    const nav = screen.getByRole('navigation', {
+      name: '주요 메뉴',
+    }) as NavScaleSetterHost;
 
     fireEvent.focus(screen.getByRole('button', { name: '항목 1' }));
     (nav.__navScaleSetters ?? []).forEach((setter) => setter.tween.progress(1));
     expect(readScale(getPills(container)[1])).toBeCloseTo(1.4);
 
     installReducedMotion(true);
-    rerender(<HeaderBarNav items={makeItems(3)} />);
+    rerender(<HeaderBar navStyle="icon" items={makeItems(3)} />);
 
     for (const pill of getPills(container)) {
       expect(readScale(pill)).toBeCloseTo(1);
@@ -269,7 +286,7 @@ describe('HeaderBarNav — 축소 선호 (Ruling 53의 비용을 막는 왕복)'
   });
 });
 
-describe('HeaderBarNav — CSSOM 잠금 (가드 2를 구조로 고정)', () => {
+describe('HeaderBar icon: CSSOM 잠금 (가드 2를 구조로 고정)', () => {
   function findHeaderBarNavStyleSheet(): CSSStyleSheet {
     const sheet = Array.from(document.styleSheets).find((candidate) =>
       Array.from(candidate.cssRules).some((rule) =>
@@ -300,13 +317,13 @@ describe('HeaderBarNav — CSSOM 잠금 (가드 2를 구조로 고정)', () => {
   }
 
   it('item(히트 영역) 규칙에 transform이 없다', () => {
-    render(<HeaderBarNav items={makeItems(1)} />);
+    render(<HeaderBar navStyle="icon" items={makeItems(1)} />);
     const rule = findBaseRule(findHeaderBarNavStyleSheet(), 'item');
     expect(rule.style.getPropertyValue('transform')).toBe('');
   });
 
   it('item(히트 영역)은 56px 정사각으로 고정이다', () => {
-    render(<HeaderBarNav items={makeItems(1)} />);
+    render(<HeaderBar navStyle="icon" items={makeItems(1)} />);
     const rule = findBaseRule(findHeaderBarNavStyleSheet(), 'item');
     expect(rule.style.width).toBe('56px');
     expect(rule.style.height).toBe('56px');

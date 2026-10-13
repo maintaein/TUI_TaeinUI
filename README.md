@@ -91,7 +91,7 @@ GSAP 런타임이 붙어 있는 컴포넌트입니다. 여기 없는 컴포넌�
 | -------------------------------------------------- | ------------------------------------------------- |
 | Modal, BottomSheet, SideSheet                      | 타임라인 상대 위치, 트리거 좌표 읽기, 드래그 추적 |
 | Checkbox, Switch, SegmentedButtons, NumericSpinner | 모양 변형, 여러 목표를 동시에 중단                |
-| Slider, HeaderBarNav                               | 제스처·포인터 추적                                |
+| Slider, HeaderBar                                  | 제스처·포인터 추적                                |
 | Snackbar, TextField, TextArea                      | CSS가 못 보는 값 읽기(진행률·줄바꿈 위치)         |
 
 `prefers-reduced-motion: reduce`에서는 CSS 전역 규칙이 트랜지션·애니메이션을 끄고,

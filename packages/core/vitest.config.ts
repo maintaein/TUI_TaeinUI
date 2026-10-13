@@ -28,6 +28,8 @@ export default defineConfig({
     // 글자색이 선택을 따르지 않는지를 CSSOM으로 잠근다.
     // Snackbar도 같은 이유다. 닫기 버튼의 호버·눌림 면 규칙이 IconButton의 같은 상태
     // 규칙보다 특이도가 높은지를 CSSOM으로 잠근다.
+    // HeaderBar도 같은 이유다. 바의 기하(높이·최대 폭·모서리·그림자 토큰), 밑줄의 원점과
+    // 호버 게이트, 좁은 화면 규칙이 어느 미디어 안에 있는지를 CSSOM으로 잠근다.
     css: {
       include: [
         /Slider\.css/,
@@ -35,6 +37,7 @@ export default defineConfig({
         /\/IconButton\.css/,
         /\/Border\.css/,
         /HeaderBarNav\.css/,
+        /\/HeaderBar\.css/,
         /\/TextField\.css/,
         /\/Checkbox\.css/,
         /\/Switch\.css/,

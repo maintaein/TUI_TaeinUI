@@ -19,9 +19,17 @@ export function HeaderBarPage() {
       description: '로고 옆에 표시할 제목 텍스트',
     },
     {
-      name: 'children',
-      type: 'ReactNode',
-      description: '중앙 영역에 표시할 콘텐츠 (네비게이션 등)',
+      name: 'items',
+      type: 'HeaderBarItem[]',
+      description:
+        "가운데 항목. { label, href?, onClick?, icon?, active? }. href가 있으면 <a>, 없으면 <button>이고 active는 aria-current='page'입니다. navStyle='icon'이면 모든 항목에 icon이 필요합니다",
+    },
+    {
+      name: 'navStyle',
+      type: "'text' | 'icon'",
+      default: "'text'",
+      description:
+        '항목이 보이는 모습. text는 호버 때 밑줄이 왼쪽에서 그어지는 글자 링크, icon은 커서가 가까울수록 부푸는 아이콘 알약',
     },
     {
       name: 'actions',
@@ -32,25 +40,13 @@ export function HeaderBarPage() {
       name: 'sticky',
       type: 'boolean',
       default: 'false',
-      description: '스크롤 시 상단에 고정',
+      description: '스크롤 시 화면 위에 붙어 따라옴 (위 여백 유지)',
     },
     {
       name: 'variant',
       type: "'default' | 'dark' | 'transparent'",
       default: "'default'",
-      description: '배경 색상 변형',
-    },
-    {
-      name: 'elevation',
-      type: 'boolean',
-      default: 'false',
-      description: '그림자 효과 표시',
-    },
-    {
-      name: 'border',
-      type: 'boolean',
-      default: 'true',
-      description: '하단 테두리 표시',
+      description: '바 배경 변형. transparent는 면과 그림자가 없음',
     },
     {
       name: 'aria-label',
@@ -70,8 +66,9 @@ export function HeaderBarPage() {
       <header className={styles.header}>
         <h1 className={styles.title}>HeaderBar</h1>
         <p className={styles.description}>
-          HeaderBar 컴포넌트는 페이지 상단에 로고, 제목, 액션 버튼 등을 배치할
-          때 사용합니다. 스크롤 시 상단에 고정할 수도 있습니다.
+          HeaderBar 컴포넌트는 페이지 상단에 떠 있는 둥근 바로 로고, 제목, 항목,
+          액션 버튼을 배치할 때 사용합니다. 스크롤 시 화면 위에 붙일 수 있고,
+          768px 미만에서는 항목이 햄버거 메뉴로 접힙니다.
         </p>
       </header>
 
@@ -91,9 +88,14 @@ export function HeaderBarPage() {
             <h3 className={styles.quickRefTitle}>Basic Usage</h3>
             <CodeBlock
               language="tsx"
-              code={`<HeaderBar title="My App" actions={<Button>Login</Button>}>
-  <nav>Navigation</nav>
-</HeaderBar>`}
+              code={`<HeaderBar
+  title="My App"
+  items={[
+    { label: '홈', href: '#', active: true },
+    { label: '소개', href: '#' },
+  ]}
+  actions={<Button>Login</Button>}
+/>`}
             />
           </Card.Body>
         </Card>
@@ -113,71 +115,57 @@ export function HeaderBarPage() {
           <h3 className={styles.exampleTitle}>Basic HeaderBar</h3>
           <LivePreview
             title="기본 사용법"
-            description="제목과 액션 버튼을 배치한 기본 헤더입니다."
-            editable
-            code={`<HeaderBar title="My Application" actions={<Button size="sm">로그인</Button>} />`}
-          />
-        </div>
-
-        {/* With Logo */}
-        <div className={styles.example}>
-          <h3 className={styles.exampleTitle}>With Logo</h3>
-          <LivePreview
-            title="로고 포함"
-            description="logo prop으로 로고 이미지나 아이콘을 배치할 수 있습니다."
+            description="로고, 제목, 텍스트 항목 넷, 오른쪽 버튼을 배치한 떠 있는 둥근 바입니다. 항목은 items로 넘기고, 지금 보고 있는 페이지는 active로 표시합니다. 창을 768px보다 좁히면 항목이 햄버거 메뉴로 접힙니다."
             editable
             code={`<HeaderBar
   logo={<Palette size={24} />}
   title="TUI"
-  actions={<Button size="sm" variant="dark">시작하기</Button>}
+  items={[
+    { label: '컴포넌트', href: '#', active: true },
+    { label: '토큰', href: '#' },
+    { label: '가이드', href: '#' },
+    { label: '문의', href: '#' },
+  ]}
+  actions={<Button size="sm">시작하기</Button>}
 />`}
           />
         </div>
 
-        {/* With Navigation */}
+        {/* navStyle */}
         <div className={styles.example}>
-          <h3 className={styles.exampleTitle}>With Navigation</h3>
+          <h3 className={styles.exampleTitle}>navStyle: text</h3>
           <LivePreview
-            title="네비게이션 포함"
-            description="children 영역에 네비게이션 링크를 배치합니다. 중앙에 정렬됩니다."
-            editable
-            code={`<HeaderBar
-  logo={<Palette size={24} />}
-  title="TUI"
-  actions={<IconButton aria-label="메뉴" size="sm"><Menu /></IconButton>}
->
-  <div style={{ display: 'flex', gap: '1.5rem', fontSize: '0.875rem' }}>
-    <a href="#" style={{ fontWeight: 600, color: 'inherit', textDecoration: 'none', padding: '0.5rem' }}>Components</a>
-    <a href="#" style={{ color: '#6b7280', textDecoration: 'none', padding: '0.5rem' }}>Tokens</a>
-    <a href="#" style={{ color: '#6b7280', textDecoration: 'none', padding: '0.5rem' }}>Guidelines</a>
-  </div>
-</HeaderBar>`}
-          />
-        </div>
-
-        {/* Proximity Navigation */}
-        <div className={styles.example}>
-          <h3 className={styles.exampleTitle}>
-            Proximity Navigation (HeaderBarNav)
-          </h3>
-          <LivePreview
-            title="근접 확대 네비게이션"
-            description="커서나 키보드 포커스가 가까워질수록 항목이 부풀고, 양옆 이웃은 절반만 부풉니다. 히트 영역은 고정 크기라 레이아웃이 흔들리지 않습니다."
+            title="텍스트 항목"
+            description="기본 형태입니다. 호버나 키보드 포커스 때 글자 아래 밑줄이 왼쪽에서 그어지고, active 항목은 밑줄이 늘 그어져 있습니다."
             editable
             code={`<HeaderBar
   title="Store"
-  actions={
-    <HeaderBarNav
-      aria-label="주요 메뉴"
-      items={[
-        { icon: <House size={20} />, label: '홈', href: '#' },
-        { icon: <Plus size={20} />, label: '새로 만들기' },
-        { icon: <CircleCheck size={20} />, label: '완료함' },
-        { icon: <Bell size={20} />, label: '알림' },
-        { icon: <Settings size={20} />, label: '설정' },
-      ]}
-    />
-  }
+  navStyle="text"
+  items={[
+    { label: '상품', href: '#', active: true },
+    { label: '카테고리', href: '#' },
+    { label: '이벤트', href: '#' },
+  ]}
+/>`}
+          />
+        </div>
+
+        <div className={styles.example}>
+          <h3 className={styles.exampleTitle}>navStyle: icon</h3>
+          <LivePreview
+            title="아이콘 항목"
+            description="커서나 키보드 포커스가 가까워질수록 항목이 부풀고, 양옆 이웃은 절반만 부풉니다. 히트 영역은 고정 크기라 레이아웃이 흔들리지 않습니다. 모든 항목에 icon이 필요하고, label은 접근 이름입니다."
+            editable
+            code={`<HeaderBar
+  title="Store"
+  navStyle="icon"
+  items={[
+    { icon: <House size={20} />, label: '홈', href: '#', active: true },
+    { icon: <Plus size={20} />, label: '새로 만들기' },
+    { icon: <CircleCheck size={20} />, label: '완료함' },
+    { icon: <Bell size={20} />, label: '알림' },
+    { icon: <Settings size={20} />, label: '설정' },
+  ]}
 />`}
           />
         </div>
@@ -187,65 +175,14 @@ export function HeaderBarPage() {
           <h3 className={styles.exampleTitle}>Variants</h3>
           <LivePreview
             title="배경 변형"
-            description="default는 흰색 배경, dark는 검은 계열 배경(텍스트/버튼 자동 반전), transparent는 유리 효과(glassmorphism)로 뒤의 콘텐츠가 비쳐 보입니다."
+            description="default는 밝은 면, dark는 검은 계열 면(텍스트 자동 반전), transparent는 면과 그림자가 없어 뒤의 콘텐츠가 그대로 보입니다."
             editable
             code={`<div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-  <HeaderBar variant="default" title="Default Variant" actions={<Button size="sm">Action</Button>} />
-  <HeaderBar variant="dark" title="Dark Variant" actions={<Button size="sm" variant="light">Action</Button>} />
-  <div style={{ position: 'relative', borderRadius: '0.75rem', overflow: 'hidden', height: '120px' }}>
-    <div style={{ padding: '1rem', lineHeight: 1.8, fontSize: '0.875rem', color: '#374151' }}>
-      디자인 시스템은 일관된 사용자 경험을 제공합니다. 컴포넌트, 토큰, 패턴을 조합하여 빠르고 안정적인 UI를 구축할 수 있습니다. HeaderBar의 transparent 모드는 이렇게 뒤의 콘텐츠가 비쳐 보이는 유리(glassmorphism) 효과를 제공합니다.
-    </div>
-    <div style={{ position: 'absolute', top: 0, left: 0, right: 0 }}>
-      <HeaderBar variant="transparent" title="Transparent" border={false} actions={<Button size="sm">Action</Button>} />
-    </div>
+  <HeaderBar variant="default" title="Default" items={[{ label: '홈', href: '#', active: true }, { label: '소개', href: '#' }]} />
+  <HeaderBar variant="dark" title="Dark" items={[{ label: '홈', href: '#', active: true }, { label: '소개', href: '#' }]} />
+  <div style={{ borderRadius: '0.75rem', overflow: 'hidden', background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', color: '#ffffff', paddingBottom: '1rem' }}>
+    <HeaderBar variant="transparent" title="Transparent" items={[{ label: '홈', href: '#', active: true }, { label: '소개', href: '#' }]} />
   </div>
-</div>`}
-          />
-        </div>
-
-        {/* Custom Background */}
-        <div className={styles.example}>
-          <h3 className={styles.exampleTitle}>Custom Background</h3>
-          <LivePreview
-            title="커스텀 배경색"
-            description="style prop으로 배경색을 자유롭게 지정할 수 있습니다. 단색, 그라데이션 모두 가능하며, 텍스트 색상도 함께 조정하세요."
-            editable
-            code={`<div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-  <HeaderBar
-    title="Brand Blue"
-    border={false}
-    style={{ backgroundColor: '#2563eb', color: '#ffffff' }}
-    actions={<Button size="sm" variant="light">Action</Button>}
-  />
-  <HeaderBar
-    title="Gradient"
-    border={false}
-    style={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', color: '#ffffff' }}
-    actions={<Button size="sm" variant="light">Action</Button>}
-  />
-  <HeaderBar
-    title="Warm Gradient"
-    border={false}
-    style={{ background: 'linear-gradient(90deg, #f97316, #ef4444)', color: '#ffffff' }}
-    actions={<Button size="sm" variant="light">Action</Button>}
-  />
-</div>`}
-          />
-        </div>
-
-        {/* Elevation & Border */}
-        <div className={styles.example}>
-          <h3 className={styles.exampleTitle}>Elevation & Border</h3>
-          <LivePreview
-            title="그림자와 테두리"
-            description="elevation prop으로 그림자를, border prop으로 하단 테두리를 제어합니다."
-            editable
-            code={`<div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-  <HeaderBar title="Border (기본)" border />
-  <HeaderBar title="No Border" border={false} />
-  <HeaderBar title="Elevation" elevation border={false} />
-  <HeaderBar title="Elevation + Border" elevation border />
 </div>`}
           />
         </div>
@@ -255,11 +192,16 @@ export function HeaderBarPage() {
           <h3 className={styles.exampleTitle}>Multiple Actions</h3>
           <LivePreview
             title="다중 액션"
-            description="actions 영역은 검색, 알림, 사용자 메뉴 등 기능적 버튼을 배치하는 우측 영역입니다. children(네비게이션)이 페이지 이동 링크라면, actions는 앱 전역에서 동작하는 기능 버튼입니다."
+            description="actions 영역은 검색, 알림, 사용자 메뉴 등 기능적 버튼을 배치하는 우측 영역입니다. items가 페이지 이동 링크라면, actions는 앱 전역에서 동작하는 기능 버튼입니다."
             editable
             code={`<HeaderBar
   logo={<Package size={24} />}
   title="Store"
+  items={[
+    { label: '상품', href: '#', active: true },
+    { label: '카테고리', href: '#' },
+    { label: '이벤트', href: '#' },
+  ]}
   actions={
     <div style={{ display: 'flex', gap: '0.25rem', alignItems: 'center' }}>
       <IconButton aria-label="검색" size="sm"><Search /></IconButton>
@@ -268,13 +210,7 @@ export function HeaderBarPage() {
       <Button size="sm">로그인</Button>
     </div>
   }
->
-  <div style={{ display: 'flex', gap: '1.5rem', fontSize: '0.875rem' }}>
-    <a href="#" style={{ fontWeight: 600, color: 'inherit', textDecoration: 'none', padding: '0.5rem' }}>상품</a>
-    <a href="#" style={{ color: '#6b7280', textDecoration: 'none', padding: '0.5rem' }}>카테고리</a>
-    <a href="#" style={{ color: '#6b7280', textDecoration: 'none', padding: '0.5rem' }}>이벤트</a>
-  </div>
-</HeaderBar>`}
+/>`}
           />
         </div>
 
@@ -283,13 +219,18 @@ export function HeaderBarPage() {
           <h3 className={styles.exampleTitle}>Combination</h3>
           <LivePreview
             title="조합 예제"
-            description="로고, 제목, 네비게이션, 액션을 모두 조합한 실제 사용 예시입니다."
+            description="로고, 제목, 항목, 액션을 모두 조합한 실제 사용 예시입니다."
             editable
             code={`<div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
   {/* 일반 웹 앱 헤더 */}
   <HeaderBar
     logo={<Package size={20} />}
     title="Store"
+    items={[
+      { label: '상품', href: '#', active: true },
+      { label: '카테고리', href: '#' },
+      { label: '이벤트', href: '#' },
+    ]}
     actions={
       <div style={{ display: 'flex', gap: '0.25rem', alignItems: 'center' }}>
         <IconButton aria-label="검색" size="sm"><Search /></IconButton>
@@ -297,13 +238,7 @@ export function HeaderBarPage() {
         <Button size="sm">로그인</Button>
       </div>
     }
-  >
-    <div style={{ display: 'flex', gap: '1.5rem', fontSize: '0.875rem' }}>
-      <a href="#" style={{ fontWeight: 600, color: 'inherit', textDecoration: 'none', padding: '0.5rem' }}>상품</a>
-      <a href="#" style={{ color: '#6b7280', textDecoration: 'none', padding: '0.5rem' }}>카테고리</a>
-      <a href="#" style={{ color: '#6b7280', textDecoration: 'none', padding: '0.5rem' }}>이벤트</a>
-    </div>
-  </HeaderBar>
+  />
   {/* 관리자 대시보드 헤더 */}
   <HeaderBar
     variant="dark"
@@ -318,6 +253,16 @@ export function HeaderBarPage() {
   />
 </div>`}
           />
+        </div>
+
+        {/* Narrow */}
+        <div className={styles.example}>
+          <h3 className={styles.exampleTitle}>좁은 화면</h3>
+          <p className={styles.sectionDescription}>
+            화면 너비가 768px 미만이면 items가 숨고 햄버거 버튼이 나타납니다.
+            누르면 바 아래에 세로 목록 판이 내용을 밀지 않고 겹쳐 열립니다. Esc,
+            판 밖 누름, 항목 누름으로 닫힙니다. 브라우저 창을 줄여서 확인하세요.
+          </p>
         </div>
       </section>
 
@@ -368,7 +313,18 @@ export function HeaderBarPage() {
             attribute: '3단 레이아웃',
             effect: '논리적 순서로 콘텐츠가 배치됩니다.',
             description:
-              '좌측(로고/제목) → 중앙(네비게이션) → 우측(액션) 순서로 DOM이 구성됩니다.',
+              '좌측(로고/제목) → 중앙(항목 nav) → 우측(액션, 햄버거) 순서로 DOM이 구성됩니다.',
+          },
+          {
+            attribute: 'aria-current="page"',
+            effect: '지금 보고 있는 페이지를 알립니다.',
+            description: 'active 항목에 붙습니다. 밑줄만으로 알리지 않습니다.',
+          },
+          {
+            attribute: '햄버거의 aria-expanded · aria-controls',
+            effect: '메뉴가 열렸는지와 어떤 목록을 여는지를 알립니다.',
+            description:
+              '접근 이름은 열림 상태에 따라 "메뉴 열기"와 "메뉴 닫기"로 바뀌고, Esc로 닫으면 포커스가 햄버거로 돌아옵니다.',
           },
         ]}
         additionalGuidance={[
@@ -378,9 +334,7 @@ export function HeaderBarPage() {
             examples: [
               {
                 code: `// Good - 페이지 최상단에 하나만 배치
-<HeaderBar title="My App" aria-label="메인 헤더">
-  <nav aria-label="주요 네비게이션">...</nav>
-</HeaderBar>
+<HeaderBar title="My App" aria-label="메인 헤더" items={[...]} />
 
 // Bad - 여러 HeaderBar 사용
 <HeaderBar title="Top" />
@@ -391,28 +345,26 @@ export function HeaderBarPage() {
             ],
           },
           {
-            title: '네비게이션에 nav 요소 사용',
+            title: '항목은 items로 넘기기',
             description:
-              'children에 네비게이션을 배치할 때는 nav 요소와 aria-label을 함께 사용하세요.',
+              'items를 쓰면 nav 요소와 이름("주요 메뉴"), 현재 페이지 표시, 좁은 화면 메뉴가 함께 따라옵니다.',
             examples: [
               {
                 code: `// Good
-<HeaderBar title="App">
-  <nav aria-label="주요 네비게이션">
-    <a href="/">홈</a>
-    <a href="/about">소개</a>
-  </nav>
-</HeaderBar>
+<HeaderBar
+  title="App"
+  items={[
+    { label: '홈', href: '/', active: true },
+    { label: '소개', href: '/about' },
+  ]}
+/>
 
-// Bad
+// Bad - 가운데 슬롯(children)은 없습니다
 <HeaderBar title="App">
-  <div>
-    <a href="/">홈</a>
-    <a href="/about">소개</a>
-  </div>
+  <a href="/">홈</a>
 </HeaderBar>`,
                 explanation:
-                  'nav 요소를 사용하면 스크린 리더가 네비게이션 영역을 인식할 수 있습니다.',
+                  'children은 지워졌습니다. 링크 목록은 items로, 버튼 같은 요소는 actions로 넘기세요.',
               },
             ],
           },
@@ -438,7 +390,7 @@ export function HeaderBarPage() {
               <List spacing="sm" className={styles.practiceList}>
                 <ListItem>페이지 최상단에 하나만 배치</ListItem>
                 <ListItem>로고와 제목으로 브랜드 아이덴티티 표현</ListItem>
-                <ListItem>네비게이션은 children 영역에 배치</ListItem>
+                <ListItem>네비게이션 링크는 items로 전달</ListItem>
                 <ListItem>주요 액션 버튼은 actions 영역에 배치</ListItem>
                 <ListItem>긴 페이지에서 sticky 사용 고려</ListItem>
                 <ListItem>aria-label로 헤더 목적 명시</ListItem>
@@ -461,7 +413,9 @@ export function HeaderBarPage() {
                 <ListItem>
                   transparent 배경에 어두운 텍스트 사용하지 않기
                 </ListItem>
-                <ListItem>title 없이 네비게이션만 배치하지 않기</ListItem>
+                <ListItem>
+                  좁은 화면에서 접히므로 items를 6개 넘게 넣지 않기
+                </ListItem>
               </List>
             </Card.Body>
           </Card>

@@ -1,7 +1,7 @@
 # @taein-ui/core
 
 컴포넌트마다 다른 움직임을 갖는 React UI 컴포넌트 라이브러리, TUI(TaeinUI)의 본체입니다.
-컴포넌트 패밀리 25개(top-level export 44개)를 제공하고, 모션은 GSAP이 주도합니다.
+컴포넌트 패밀리 25개(top-level export 43개)를 제공하고, 모션은 GSAP이 주도합니다.
 
 전 컴포넌트에 같은 전환 하나를 입히지 않는 대신, 시인성·가독성·가시성은 어디서도 낮추지
 않습니다. 모션이 이 셋 중 하나라도 깎으면 틀린 쪽은 모션입니다.
@@ -93,7 +93,7 @@ function LoginForm() {
 ## 모션
 
 현재 GSAP 런타임이 붙어 있는 컴포넌트는 14개입니다: Modal, BottomSheet, SideSheet,
-Snackbar, Checkbox, Switch, SegmentedButtons, NumericSpinner, Slider, HeaderBarNav,
+Snackbar, Checkbox, Switch, SegmentedButtons, NumericSpinner, Slider, HeaderBar,
 Avatar, BoardRow, Chip, IconButton. 여기 없는 컴포넌트는 CSS 트랜지션만 씁니다. GSAP은 "쓸 수 있으니
 쓴다"가 아니라 CSS로는 못 하는 일(트리거 좌표 읽기, 제스처 1:1 추적, 여러 목표를 동시에
 중단)이 있는 자리에만 들어갑니다. 최신 목록과 각자 쓰는 능력은 `llms.txt`의

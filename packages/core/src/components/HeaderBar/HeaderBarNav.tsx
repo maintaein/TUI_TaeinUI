@@ -1,14 +1,13 @@
 import {
   useLayoutEffect,
   useRef,
-  type ReactNode,
   type PointerEvent,
   type FocusEvent,
 } from 'react';
-import clsx from 'clsx';
 import { gsap } from 'gsap';
 import { settleMotion } from '../../hooks/gateMotion';
 import { useReducedMotion } from '../../hooks/useReducedMotion';
+import type { HeaderBarIconItem } from './HeaderBar';
 import { gsapDuration, gsapEasing } from '../../tokens/gsapEasing';
 import {
   ITEM_SCALE_VAR,
@@ -20,22 +19,8 @@ import {
   pill,
 } from './HeaderBarNav.css';
 
-/** 근접 확대가 켜진 헤더 nav 항목 하나. */
-export interface HeaderBarNavItem {
-  /** 알약 안에 들어가는 내용. 아이콘 요소를 넣는 것이 일반적이다. */
-  icon: ReactNode;
-  /** 접근성 이름. 시각적으로는 보이지 않는다. React key로도 쓴다. */
-  label: string;
-  /** 주면 <a>, 없으면 <button>으로 렌더된다. */
-  href?: string;
-  onClick?: () => void;
-}
-
-export interface HeaderBarNavProps {
-  items: HeaderBarNavItem[];
-  /** <nav>의 접근성 이름. 기본값 '주요 메뉴'. */
-  'aria-label'?: string;
-  className?: string;
+interface HeaderBarNavProps {
+  items: HeaderBarIconItem[];
 }
 
 /** 컨테이너 왼쪽 기준 항목 i의 중심(px). 피치가 상수라 DOM을 읽지 않는다. */
@@ -71,14 +56,10 @@ interface NavScaleSetterHost extends HTMLElement {
 
 /**
  * 커서에 가까울수록 항목이 부푸는 헤더 nav. 포커스도 같은 신호에 묶인다
- * (모션 명제:134). `HeaderBar`의 children/actions 슬롯은 임의의 ReactNode라
- * 항목 목록을 알 방법이 없어 별도 컴포넌트로 분리했다 — Ruling 61.
+ * (모션 명제:134). `HeaderBar`가 `navStyle="icon"`일 때 그리는 내부 컴포넌트이고
+ * 공개 export가 아니다(M5 task-24, 옛 공개 `HeaderBarNav`를 합쳤다).
  */
-export const HeaderBarNav = ({
-  items,
-  'aria-label': ariaLabel = '주요 메뉴',
-  className,
-}: HeaderBarNavProps) => {
+export const HeaderBarNav = ({ items }: HeaderBarNavProps) => {
   const reduced = useReducedMotion();
   const navRef = useRef<HTMLElement | null>(null);
   const pillRefs = useRef<(HTMLElement | null)[]>([]);
@@ -138,8 +119,8 @@ export const HeaderBarNav = ({
   return (
     <nav
       ref={navRef}
-      aria-label={ariaLabel}
-      className={clsx(nav, className)}
+      aria-label="주요 메뉴"
+      className={nav}
       onPointerEnter={() => {
         containerLeftRef.current =
           navRef.current?.getBoundingClientRect().left ?? 0;
@@ -164,6 +145,7 @@ export const HeaderBarNav = ({
         const sharedProps = {
           className: item,
           'aria-label': navItem.label,
+          'aria-current': navItem.active ? ('page' as const) : undefined,
           onClick: navItem.onClick,
           onFocus: () => applyOrigin(itemCenter(index)),
         };

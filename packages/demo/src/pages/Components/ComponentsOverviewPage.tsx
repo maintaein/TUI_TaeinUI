@@ -32,7 +32,7 @@ export function ComponentsOverviewPage() {
         <h1 className={styles.title}>컴포넌트</h1>
         <p className={styles.description}>
           컴포넌트 패밀리 25개를 제공합니다. 패키지의 top-level export는
-          44개인데, 차이는 개별로도 import할 수 있는 하위
+          43개인데, 차이는 개별로도 import할 수 있는 하위
           컴포넌트입니다(ModalHeader, CardBody, AvatarGroup, ListItem 등). 모두
           React와 TypeScript로 작성되었으며, 접근성과 반응형을 지원합니다.
         </p>
