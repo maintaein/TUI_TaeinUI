@@ -3,29 +3,20 @@ import { resolve } from 'node:path';
 import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { Divider } from './Divider';
+import { themeContract } from '../../tokens/theme.css';
 
 const DIVIDER_CSS = readFileSync(
   resolve(__dirname, './Divider.css.ts'),
   'utf-8'
 );
+const DIVIDER_TSX = readFileSync(resolve(__dirname, './Divider.tsx'), 'utf-8');
 
-/** `anchor` 바로 위의 연속된 주석 줄만 모은다 — 파일 전체 검색은 무관한 한
- * 줄로도 초록이 되기 때문이다(리뷰 F4, animationBoundary.test.ts와 같은 관례). */
-function commentBlockAbove(source: string, anchor: string): string {
-  const at = source.indexOf(anchor);
-  expect(at, `'${anchor}'를 찾지 못했다`).toBeGreaterThan(-1);
-  const lines = source.slice(0, at).split('\n');
-  const comments: string[] = [];
-  for (let i = lines.length - 2; i >= 0; i--) {
-    const trimmed = lines[i].trim();
-    if (!trimmed.startsWith('//')) break;
-    comments.unshift(trimmed);
-  }
-  expect(
-    comments.length,
-    `'${anchor}' 위에 근거 주석 블록이 없다`
-  ).toBeGreaterThan(0);
-  return comments.join('\n');
+/** 주석 줄을 뺀 소스. 근거 주석 속 낱말이 금지어 검사에 걸리지 않게 한다. */
+function code(source: string): string {
+  return source
+    .split('\n')
+    .filter((line) => !line.trim().startsWith('//'))
+    .join('\n');
 }
 
 describe('Divider', () => {
@@ -230,145 +221,191 @@ describe('Divider', () => {
     });
   });
 
-  describe('등장 애니메이션 (장식계) — DOM', () => {
-    it('textAlign이 center일 때 앞선에는 lineBefore, 뒷선에는 lineAfter가 붙는다', () => {
-      const { container } = render(<Divider textAlign="center">중앙</Divider>);
-
-      const divider = container.querySelector('[role="separator"]');
-      const lines = divider?.querySelectorAll(':scope > div');
-
-      expect(lines?.[0].className).toMatch(/lineBefore/);
-      expect(lines?.[2].className).toMatch(/lineAfter/);
-    });
-
-    it('textAlign이 left일 때 뒷선(lineAfter)만 렌더링된다', () => {
+  describe('텍스트 변형의 선 (구조)', () => {
+    it('textAlign이 left일 때 뒷선 하나만 렌더링된다', () => {
       const { container } = render(<Divider textAlign="left">왼쪽</Divider>);
 
-      const divider = container.querySelector('[role="separator"]');
-      const lines = divider?.querySelectorAll(':scope > div');
-
-      expect(lines?.length).toBe(2);
-      expect(lines?.[1].className).toMatch(/lineAfter/);
+      const parts = container.querySelectorAll('[role="separator"] > div');
+      expect(parts).toHaveLength(2);
+      expect(parts[0]).toHaveTextContent('왼쪽');
     });
 
-    it('textAlign이 right일 때 앞선(lineBefore)만 렌더링된다', () => {
+    it('textAlign이 right일 때 앞선 하나만 렌더링된다', () => {
       const { container } = render(<Divider textAlign="right">오른쪽</Divider>);
 
-      const divider = container.querySelector('[role="separator"]');
-      const lines = divider?.querySelectorAll(':scope > div');
-
-      expect(lines?.length).toBe(2);
-      expect(lines?.[0].className).toMatch(/lineBefore/);
+      const parts = container.querySelectorAll('[role="separator"] > div');
+      expect(parts).toHaveLength(2);
+      expect(parts[1]).toHaveTextContent('오른쪽');
     });
 
-    it('세로 방향 텍스트 변형은 lineVertical을 그대로 쓴다 (모션 없음, 기존 동작 유지)', () => {
-      const { container } = render(
-        <Divider orientation="vertical" textAlign="center">
-          세로
-        </Divider>
-      );
+    it('앞선과 뒷선은 같은 선 클래스다 — 그어지는 모션이 없어 방향 구분이 필요 없다', () => {
+      const { container } = render(<Divider>중앙</Divider>);
 
-      const divider = container.querySelector('[role="separator"]');
-      const lines = divider?.querySelectorAll(':scope > div');
-
-      expect(lines?.[0].className).toMatch(/lineVertical/);
-      expect(lines?.[0].className).not.toMatch(/lineBefore|lineAfter/);
+      const parts = container.querySelectorAll('[role="separator"] > div');
+      expect(parts[0].className).toBe(parts[2].className);
+      expect(parts[0].className).not.toMatch(/lineBefore|lineAfter/);
     });
   });
 
-  describe('등장 애니메이션 소스 검증', () => {
-    it('네 경우(가로 평선·세로 평선·텍스트 앞선·텍스트 뒷선)의 transform-origin이 표대로다', () => {
-      const horizontalBlock = DIVIDER_CSS.slice(
-        DIVIDER_CSS.indexOf('horizontal: {'),
-        DIVIDER_CSS.indexOf('vertical: {')
-      );
-      const verticalBlock = DIVIDER_CSS.slice(
-        DIVIDER_CSS.indexOf('vertical: {'),
-        DIVIDER_CSS.indexOf('});', DIVIDER_CSS.indexOf('vertical: {'))
-      );
-      expect(horizontalBlock).toContain("transformOrigin: 'center'");
-      expect(verticalBlock).toContain("transformOrigin: 'center'");
+  describe('루트 하나', () => {
+    const BASE = [
+      /^Divider_divider__/,
+      /orientationStyles_(horizontal|vertical)__/,
+      /variantStyles_solid__/,
+      /spacingStyles_md__/,
+    ];
 
-      const lineBeforeBlock = DIVIDER_CSS.slice(
-        DIVIDER_CSS.indexOf('export const lineBefore'),
-        DIVIDER_CSS.indexOf('export const lineAfter')
-      );
-      const lineAfterBlock = DIVIDER_CSS.slice(
-        DIVIDER_CSS.indexOf('export const lineAfter'),
-        DIVIDER_CSS.indexOf('export const lineVertical')
-      );
-      expect(lineBeforeBlock).toContain("transformOrigin: 'right'");
-      expect(lineAfterBlock).toContain("transformOrigin: 'left'");
+    for (const orientation of ['horizontal', 'vertical'] as const) {
+      it(`${orientation}: 글자 유무와 상관없이 같은 루트 클래스에 role과 aria-orientation을 갖는다`, () => {
+        const plain = render(<Divider orientation={orientation} />);
+        const plainRoot = plain.getByRole('separator');
+        const plainClasses = plainRoot.className.split(' ');
+        plain.unmount();
+
+        const withText = render(
+          <Divider orientation={orientation}>글자</Divider>
+        );
+        const textRoot = withText.getByRole('separator');
+        const textClasses = textRoot.className.split(' ');
+
+        for (const root of [plainRoot, textRoot]) {
+          expect(root).toHaveAttribute('aria-orientation', orientation);
+        }
+        for (const pattern of BASE) {
+          expect(plainClasses.some((c) => pattern.test(c))).toBe(true);
+        }
+        // 글자가 있으면 정렬과 텍스트 변형 클래스 둘만 더해진다.
+        expect(textClasses.filter((c) => !plainClasses.includes(c))).toEqual([
+          expect.stringMatching(/textAlignStyles_center__/),
+          expect.stringMatching(/dividerWithText__/),
+        ]);
+        expect(plainClasses.every((c) => textClasses.includes(c))).toBe(true);
+      });
+    }
+
+    it('소스에 루트가 하나이고 className 재선언이 없다', () => {
+      expect(code(DIVIDER_TSX).match(/role="separator"/g)).toHaveLength(1);
+      expect(code(DIVIDER_TSX)).not.toMatch(/className\?:/);
     });
+  });
 
-    it('세로+텍스트 조합(lineVertical)에는 애니메이션이 없다 — 네 경우에서 제외된 판정', () => {
-      const lineVerticalBlock = DIVIDER_CSS.slice(
-        DIVIDER_CSS.indexOf('export const lineVertical'),
-        DIVIDER_CSS.indexOf('export const textContent')
+  describe('모션 없음', () => {
+    it('Divider CSS에 keyframes·animation·transform·transition이 없다', () => {
+      expect(code(DIVIDER_CSS)).not.toMatch(
+        /keyframes|animation|transform|transition/
       );
-      expect(lineVerticalBlock).not.toContain('animation:');
     });
+  });
 
-    it('텍스트 변형 루트(dividerWithText)는 animation을 none으로 끈다 — 텍스트가 찌그러지지 않는다', () => {
-      const block = DIVIDER_CSS.slice(
-        DIVIDER_CSS.indexOf('export const dividerWithText'),
-        DIVIDER_CSS.indexOf('export const line =')
-      );
-      expect(block).toContain("animation: 'none'");
-    });
-
-    it('그 끄기가 선언 순서가 아니라 특정성으로 이긴다(리뷰 F2)', () => {
-      // 평범한 animation: 'none'은 orientationStyles와 같은 (0,1,0)이라 파일
-      // 뒤쪽에 있다는 사실 하나로만 이긴다. 순서가 바뀌면 텍스트 변형 루트가
-      // scale(0)에서 자라며 텍스트를 찌그러뜨린다 — 주석이 막으려던 바로 그
-      // 결과다. '&&'는 같은 클래스를 두 번 써 (0,2,0)을 만든다.
-      // 무엇을 뒤집으면 빨개지는가: animation: 'none'을 selectors 밖 최상위로
-      // 되돌리면(= 다시 순서에만 기대게 되면).
-      const block = DIVIDER_CSS.slice(
-        DIVIDER_CSS.indexOf('export const dividerWithText'),
-        DIVIDER_CSS.indexOf('export const line =')
-      );
-      const selectorsAt = block.indexOf('selectors: {');
-      expect(
-        selectorsAt,
-        'dividerWithText에 selectors 블록이 없다'
-      ).toBeGreaterThan(-1);
-      expect(block.slice(selectorsAt)).toContain("'&&': {");
-      // animation "선언"이 딱 하나이고(주석 속 언급은 줄 머리가 //라 안 잡힌다),
-      // selectors 바깥에는 하나도 없다.
-      expect(block.match(/^\s+animation:/gm) ?? []).toHaveLength(1);
-      expect(block.slice(0, selectorsAt)).not.toMatch(/^\s+animation:/m);
-    });
-
-    it('축소 모드: base가 scale(1)이고 키프레임 0%만 scale(0)이다 (100% 키프레임 없음)', () => {
-      const keyframesBlock = DIVIDER_CSS.slice(
-        DIVIDER_CSS.indexOf('const grow = keyframes({'),
-        DIVIDER_CSS.indexOf(
-          '});',
-          DIVIDER_CSS.indexOf('const grow = keyframes({')
+  describe('생성 CSS (CSSOM)', () => {
+    function dividerRules(): CSSStyleRule[] {
+      const sheets = Array.from(document.styleSheets).filter((sheet) =>
+        Array.from(sheet.cssRules).some((rule) =>
+          rule.cssText.includes('Divider_')
         )
       );
-      expect(keyframesBlock).toContain("'0%': { transform: 'scale(0)' }");
-      expect(keyframesBlock).not.toContain('100%');
-    });
+      if (sheets.length === 0) throw new Error('Divider 스타일시트가 없다');
+      return sheets
+        .flatMap((sheet) => Array.from(sheet.cssRules))
+        .filter((rule): rule is CSSStyleRule => rule instanceof CSSStyleRule);
+    }
 
-    it('이 파일에 keyframes 정의가 하나뿐이다', () => {
-      const count = (DIVIDER_CSS.match(/= keyframes\(/g) ?? []).length;
-      expect(count).toBe(1);
-    });
+    /** 요소의 클래스 하나가 만든 규칙(단일 클래스 선택자)을 모은다. */
+    function rulesOf(element: Element): CSSStyleRule[] {
+      const classes = element.className.split(' ');
+      return dividerRules().filter((rule) =>
+        classes.some((c) => rule.selectorText === `.${c}`)
+      );
+    }
 
-    it('duration.slow·easing.settle 토큰을 쓴다', () => {
-      expect(DIVIDER_CSS).toContain('${themeContract.animation.duration.slow}');
-      expect(DIVIDER_CSS).toContain('${themeContract.animation.easing.settle}');
-    });
+    function ruleNamed(element: Element, pattern: RegExp): CSSStyleRule {
+      const rule = rulesOf(element).find((r) => pattern.test(r.selectorText));
+      if (!rule) throw new Error(`${pattern} 규칙을 찾지 못했다`);
+      return rule;
+    }
 
-    it('마운트 1회라 조항 1 밖이라는 근거가 그 keyframes 정의 바로 위에 있다', () => {
-      // 파일 전체 toMatch는 "조항 1" 네 글자가 파일 어디에 있기만 하면
-      // 초록이다 — 근거가 딴 데로 옮겨가거나 무관한 문장에 섞여도 모른다.
-      // 무엇을 뒤집으면 빨개지는가: 근거 주석을 const grow = keyframes({ 정의 위에서 떼면.
+    it('모든 Divider 규칙이 animation·transform을 쓰지 않는다 (루트와 선 포함)', () => {
+      const { container } = render(
+        <>
+          <Divider />
+          <Divider orientation="vertical" />
+          <Divider>글자</Divider>
+          <Divider orientation="vertical">글자</Divider>
+        </>
+      );
+
+      const elements = Array.from(container.querySelectorAll('div'));
+      expect(elements.length).toBeGreaterThan(8);
+      for (const element of elements) {
+        const rules = rulesOf(element);
+        expect(rules.length).toBeGreaterThan(0);
+        for (const rule of rules) {
+          expect(rule.cssText).not.toMatch(/animation|transform/);
+        }
+      }
       expect(
-        commentBlockAbove(DIVIDER_CSS, 'const grow = keyframes({')
-      ).toMatch(/조항 1/);
+        dividerRules()
+          .map((r) => r.cssText)
+          .join('')
+      ).not.toMatch(/animation|transform/);
+    });
+
+    it('세로는 min-height 없이 줄 높이를 채우도록 align-self: stretch다', () => {
+      const { getByRole } = render(<Divider orientation="vertical" />);
+      const rule = ruleNamed(
+        getByRole('separator'),
+        /orientationStyles_vertical/
+      );
+
+      expect(rule.style.getPropertyValue('min-height')).toBe('');
+      expect(rule.style.getPropertyValue('align-self')).toBe('stretch');
+      // height가 정해져 있으면(100% 포함) stretch가 먹지 않는다.
+      expect(rule.style.getPropertyValue('height')).toBe('');
+    });
+
+    it('가로는 spacing이 위아래 여백, 세로는 좌우 여백이다', () => {
+      const horizontal = render(<Divider spacing="lg" />);
+      const hRoot = horizontal.getByRole('separator');
+      const gap = ruleNamed(hRoot, /spacingStyles_lg/);
+      const gapName = Array.from(gap.style).find((n) => n.startsWith('--'));
+      expect(gapName).toBeDefined();
+      expect(gap.style.getPropertyValue(gapName!)).toBe(
+        themeContract.spacing[6]
+      );
+      const hMargin = ruleNamed(hRoot, /orientationStyles_horizontal/).style
+        .margin;
+      expect(hMargin).toBe(`var(${gapName}) 0`);
+      horizontal.unmount();
+
+      const vertical = render(<Divider orientation="vertical" spacing="lg" />);
+      const vMargin = ruleNamed(
+        vertical.getByRole('separator'),
+        /orientationStyles_vertical/
+      ).style.margin;
+      expect(vMargin).toBe(`0 var(${gapName})`);
+    });
+
+    it('세로 + 글자: 선이 남은 길이를 나눠 갖는다 (flex: 1)', () => {
+      const { container } = render(
+        <Divider orientation="vertical">글자</Divider>
+      );
+
+      const parts = container.querySelectorAll('[role="separator"] > div');
+      const lineRule = rulesOf(parts[0]).find((r) =>
+        r.style.getPropertyValue('border-left')
+      );
+      expect(lineRule, '세로 선의 border-left 규칙').toBeDefined();
+      expect(lineRule!.style.getPropertyValue('flex')).toBe('1');
+    });
+
+    it('가로 + 글자: 선이 남은 길이를 나눠 갖는다 (보존)', () => {
+      const { container } = render(<Divider>글자</Divider>);
+
+      const parts = container.querySelectorAll('[role="separator"] > div');
+      const lineRule = rulesOf(parts[0]).find((r) =>
+        r.style.getPropertyValue('border-top')
+      );
+      expect(lineRule!.style.getPropertyValue('flex')).toBe('1');
     });
   });
 });

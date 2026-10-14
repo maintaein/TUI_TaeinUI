@@ -1,5 +1,5 @@
 /**
- * M2 T4 — Tier-A 12개의 `@keyframes`가 축소 모드에서 「멈춘다」와 「보인다」를
+ * M2 T4 — Tier-A 11개의 `@keyframes`가 축소 모드에서 「멈춘다」와 「보인다」를
  * 둘 다 지키는지 원문으로 잠근다 (공통 제약 §6, task-4-brief.md 산출물 1).
  *
  * `animationBoundary.test.ts`가 `transition:`/`animation:` 선언의 속성
@@ -23,7 +23,7 @@ const COMPONENTS = resolve(SRC, 'components');
 /**
  * M2 계획서(`.claude/고도화/plan/M2(Tier-A-CSS-모션).md`) 「대상」 14개
  * 에서 M5 Task 1이 스피너 하나를 `Loader`로 흡수해 뺀 13개에서 M5 Task 2가 `Icon`(공개 컴포넌트 삭제, `draw`
- * 폐기)을 더 빼 12개다(점 페이드·회전 키프레임은 `Loader` 디렉터리로 옮겨졌다). `HeaderBar`·`NumericSpinner`·정적 2개(`FormField`(M5 Task 14에서 `_internal/formField`로 내려갔다)·`List`; 정적이던 `Text`는 M5 7차 Task 23에서 컴포넌트째 삭제됐다)·
+ * 폐기)을 더 빼 12개, M5 Task 26이 `Divider`(그어지는 모션을 지워 `@keyframes`와 애니메이션이 없다)를 더 빼 11개다(점 페이드·회전 키프레임은 `Loader` 디렉터리로 옮겨졌다). `HeaderBar`·`NumericSpinner`·정적 2개(`FormField`(M5 Task 14에서 `_internal/formField`로 내려갔다)·`List`; 정적이던 `Text`는 M5 7차 Task 23에서 컴포넌트째 삭제됐다)·
  * `SegmentedButtons`·`Slider`·오버레이 4종(`BottomSheet`·`Modal`·`SideSheet`·
  * `Snackbar`)은 M2 밖이다 — 저장소 전체로 스캔하면 M3에 넘긴 오버레이 등장
  * 키프레임이 끌려온다(task-4-brief.md 경고).
@@ -35,7 +35,6 @@ const TIER_A = [
   'Button',
   'Card',
   'Chip',
-  'Divider',
   'IconButton',
   'Loader',
   'Popover',
@@ -150,7 +149,7 @@ function keyframesOf(file: string): KeyframeDef[] {
 }
 
 /** `animation: \`${keyframe명} ...\`` 참조 전부. 한 keyframe이 여러 곳에서
- * 쓰이면(Divider의 `grow`처럼) 전부 개별로 검사해야 한다. */
+ * 쓰이면(Loader의 `fadeInOut`처럼) 전부 개별로 검사해야 한다. */
 function usagesOf(fileText: string, name: string): Usage[] {
   const re = new RegExp(`animation:\\s*\`\\$\\{${name}\\}([^\`]*)\``, 'g');
   const out: Usage[] = [];
@@ -222,12 +221,12 @@ const CLASSIFIED = KEYFRAMES.map((k) => {
 const LOOP = CLASSIFIED.filter((k) => k.loop);
 const ONCE = CLASSIFIED.filter((k) => !k.loop);
 
-describe('Tier-A 12개 @keyframes 소스 열거 (M2 T4)', () => {
-  it('TIER_A 12개 디렉터리를 전부 읽었다 — 스캔 대상이 0개로 줄면 아래 모든 검사가 진공이 된다', () => {
+describe('Tier-A 11개 @keyframes 소스 열거 (M2 T4)', () => {
+  it('TIER_A 11개 디렉터리를 전부 읽었다 — 스캔 대상이 0개로 줄면 아래 모든 검사가 진공이 된다', () => {
     // 무엇을 뒤집으면 빨개지는가: TIER_A에서 이름 하나를 빼면 11개가 되어
     // 여기가 빨개진다(오타를 내면 findFiles가 그 자리에서 던진다). 한
     // 컴포넌트가 .css.ts를 둘로 쪼개도 개수가 바뀌어 잡힌다.
-    expect(CSS_FILES.map(rel)).toHaveLength(12);
+    expect(CSS_FILES.map(rel)).toHaveLength(11);
   });
 
   it('모든 keyframes 참조가 최소 한 곳에서 쓰인다 — 죽은 키프레임이 없다', () => {
@@ -237,8 +236,8 @@ describe('Tier-A 12개 @keyframes 소스 열거 (M2 T4)', () => {
     expect(unused.map((k) => `${k.file}:${k.name}`)).toEqual([]);
   });
 
-  it('소스에서 찾은 keyframes 총량이 15개다, 늘거나 줄면 이 파일의 분류를 다시 본다', () => {
-    // 무엇을 뒤집으면 빨개지는가: 12개 파일 중 하나에 keyframes를 새로 추가하거나
+  it('소스에서 찾은 keyframes 총량이 14개다, 늘거나 줄면 이 파일의 분류를 다시 본다', () => {
+    // 무엇을 뒤집으면 빨개지는가: 11개 파일 중 하나에 keyframes를 새로 추가하거나
     // 지우면 총량이 바뀐다. (예상 자리 확인용 — 브리프의 「예상되는 자리」는 참고이지
     // 여기서 실제로 세는 것이 진실이다.)
     // M5 task-20: Loader에 점 궤도(orbitLit)와 버블 점(bubbleRise·bubbleSquash)이
@@ -249,10 +248,11 @@ describe('Tier-A 12개 @keyframes 소스 열거 (M2 T4)', () => {
     // 생성형 키프레임 항목이 따로 지킨다).
     // M5 task-20 3부: 도화선 불똥의 깜빡임(fuseFlicker)이 더해 15개가 됐다. 축소
     // 선호에서는 깜빡임을 끄므로(animation: none) 대체 키프레임은 늘지 않았다.
-    expect(KEYFRAMES).toHaveLength(15);
+    // M5 task-26: Divider의 그어지는 모션(grow)이 지워져 14개가 됐다.
+    expect(KEYFRAMES).toHaveLength(14);
   });
 
-  it('keyframes가 있는 파일은 Badge·Border·Divider·Loader·Skeleton 5개뿐이다 — Popover·Tooltip은 0건이다', () => {
+  it('keyframes가 있는 파일은 Badge·Border·Loader·Skeleton 4개뿐이다 — Popover·Tooltip은 0건이다', () => {
     // 무엇을 뒤집으면 빨개지는가: Popover.css.ts나 Tooltip.css.ts에 fadeIn류
     // keyframes를 다시 넣으면(=상태 전이에 @keyframes로 회귀) 여기가 잡는다.
     // Button·Card·Chip·IconButton·BoardRow도 같은 이유로 0건이어야 한다.
@@ -260,13 +260,12 @@ describe('Tier-A 12개 @keyframes 소스 열거 (M2 T4)', () => {
     expect(files).toEqual([
       'components/Badge/Badge.css.ts',
       'components/Border/Border.css.ts',
-      'components/Divider/Divider.css.ts',
       'components/Loader/Loader.css.ts',
       'components/Skeleton/Skeleton.css.ts',
     ]);
   });
 
-  it('무한 루프 12개 · 마운트 1회 3개로 분류된다', () => {
+  it('무한 루프 12개 · 마운트 1회 2개로 분류된다', () => {
     // 무엇을 뒤집으면 빨개지는가: 루프에서 infinite를 빼거나 마운트 1회에
     // infinite를 붙이면(잘못된 도구 선택, 공통 제약 §2) 분류가 바뀌어 잡힌다.
     expect(LOOP.map((k) => `${k.file}:${k.name}`).sort()).toEqual([
@@ -286,7 +285,6 @@ describe('Tier-A 12개 @keyframes 소스 열거 (M2 T4)', () => {
     expect(ONCE.map((k) => `${k.file}:${k.name}`).sort()).toEqual([
       'components/Badge/Badge.css.ts:valueEnter',
       'components/Badge/Badge.css.ts:valueExit',
-      'components/Divider/Divider.css.ts:grow',
     ]);
   });
 
@@ -294,10 +292,10 @@ describe('Tier-A 12개 @keyframes 소스 열거 (M2 T4)', () => {
     // `usagesOf`는 `animation: \`${이름} ...\`` 한 가지 표기만 읽는다. 같은
     // keyframe을 `animationName:` 분리 선언이나 다른 셰이프로 쓰면 그
     // 사용처는 base·fill-mode·duration 검사에서 조용히 빠진다 — 파일 안의
-    // 보간 총량과 대조해 그 구멍을 닫는다(Divider grow가 4곳에서 쓰인다).
-    // 무엇을 뒤집으면 빨개지는가: Divider.css.ts lineAfter의
-    // `animation: \`${grow} ...\``를 `animationName: grow` + 별도 선언으로
-    // 바꾸면 보간 4건 vs 사용처 3건이 되어 여기가 빨개진다.
+    // 보간 총량과 대조해 그 구멍을 닫는다(Loader fadeInOut이 3곳에서 쓰인다).
+    // 무엇을 뒤집으면 빨개지는가: Loader.css.ts 두 번째 fadeInOut 사용처의
+    // `animation: \`${fadeInOut} ...\``를 `animationName: fadeInOut` + 별도
+    // 선언으로 바꾸면 보간 3건 vs 사용처 2건이 되어 여기가 빨개진다.
     const missed = CLASSIFIED.filter((k) => {
       const interpolations =
         FILE_TEXT[k.file].match(new RegExp(`\\$\\{${k.name}\\}`, 'g')) ?? [];
@@ -367,16 +365,16 @@ describe('검사 1: 무한 루프 12개가 축소 모드(iteration 1)에서 보�
     expect(offenders).toEqual([]);
   });
 
-  it('12개 파일 어디에도 animationFillMode 롱핸드가 없다 — 바로 위 검사가 숏핸드 꼬리만 보기 때문이다', () => {
+  it('11개 파일 어디에도 animationFillMode 롱핸드가 없다 — 바로 위 검사가 숏핸드 꼬리만 보기 때문이다', () => {
     // 위 it은 `animation:` 숏핸드에서 키프레임명 뒤 꼬리(`rest`)만 읽는다.
     // 같은 fill-mode를 `animationFillMode: 'forwards'` 롱핸드로 따로 쓰면
     // 그 스캔에 안 걸리고, Loader.css.ts의 dotDelayStyles처럼 소비처
     // 블록 밖에 놓이면 enclosingBlock도 못 닿는다. 그래서 롱핸드 자체를
-    // 12개 파일 전역에서 금지한다 — fill-mode는 숏핸드 꼬리에만 적는다.
+    // 11개 파일 전역에서 금지한다 — fill-mode는 숏핸드 꼬리에만 적는다.
     // 무엇을 뒤집으면 빨개지는가: 아무 .css.ts에나 `animationFillMode:
-    // 'forwards'` 한 줄을 넣으면 여기가 빨개진다. 파일 수가 12에서 줄어도
+    // 'forwards'` 한 줄을 넣으면 여기가 빨개진다. 파일 수가 11에서 줄어도
     // 마찬가지다 — 목록이 비면 아래 루프가 0번 돌고 조용히 초록이 된다.
-    expect(Object.keys(FILE_TEXT)).toHaveLength(12);
+    expect(Object.keys(FILE_TEXT)).toHaveLength(11);
     const offenders: string[] = [];
     for (const [file, text] of Object.entries(FILE_TEXT)) {
       for (const line of text.split('\n')) {
@@ -407,7 +405,7 @@ describe('검사 1: 무한 루프 12개가 축소 모드(iteration 1)에서 보�
 
 describe('검사 2 — 마운트 1회 키프레임은 base가 최종 표시 상태이고 0%만 시작 상태다 (공통 제약 §6)', () => {
   it('프레임이 정확히 하나이고 키가 0%다 — 100%로 뒤집히면 여기서 잡힌다', () => {
-    // 무엇을 뒤집으면 빨개지는가: Divider.css.ts의 grow 키 '0%'를 '100%'로
+    // 무엇을 뒤집으면 빨개지는가: Badge.css.ts의 valueEnter 키 '0%'를 '100%'로
     // 바꾸면(완료 조건 1이 말하는 "0% 프레임이 뒤집힌 것" 그 자체) 여기가
     // 빨개진다.
     const bad = ONCE.filter(
@@ -417,8 +415,8 @@ describe('검사 2 — 마운트 1회 키프레임은 base가 최종 표시 상�
   });
 
   it('0% 프레임이 소비자 base와 다르다 — 같으면 애니메이션이 무의미해진 것이다', () => {
-    // 무엇을 뒤집으면 빨개지는가: Divider.css.ts grow의 0% 프레임 transform을
-    // 소비자 base와 같은 값으로 바꾸면(즉 애니메이션이 아무것도 안 바꾸면)
+    // 무엇을 뒤집으면 빨개지는가: Badge.css.ts valueEnter의 0% 프레임 opacity·
+    // transform을 소비자 base와 같은 값으로 바꾸면(즉 애니메이션이 아무것도 안 바꾸면)
     // 여기가 빨개진다.
     const offenders: string[] = [];
     for (const k of ONCE) {
@@ -446,8 +444,8 @@ describe('검사 2 — 마운트 1회 키프레임은 base가 최종 표시 상�
   ]);
 
   it('base가 숨김 상태인 자리는 허용목록에 있는 것뿐이다', () => {
-    // 무엇을 뒤집으면 빨개지는가: Divider.css.ts horizontal의
-    // transform: 'scaleX(1)'을 'scale(0)'으로 바꾸면(base가 숨김이 됨,
+    // 무엇을 뒤집으면 빨개지는가: Badge.css.ts valueCurrent에
+    // `opacity: 0`을 넣으면(base가 숨김이 됨,
     // 완료 기준을 직접 위반하는 자리) 허용목록에 없어 여기가 빨개진다.
     const offenders: string[] = [];
     for (const k of ONCE) {
@@ -505,9 +503,9 @@ function firstToken(rest: string): string {
 
 describe('검사 3 — keyframes 소비의 duration 자리가 리터럴이 아니라 토큰 참조다 (공통 제약 §3)', () => {
   it('${keyframe명} 바로 다음 토큰이 ${...} 또는 calc(${...} * 배수) 형태다', () => {
-    // 무엇을 뒤집으면 빨개지는가: Divider.css.ts grow의
-    // `${grow} ${themeContract.animation.duration.slow} ...`를
-    // `${grow} 200ms ...`로 리터럴 치환하면 :root 축소 오버라이드를 못
+    // 무엇을 뒤집으면 빨개지는가: Badge.css.ts valueEnter의
+    // `${valueEnter} ${themeContract.animation.duration.base} ...`를
+    // `${valueEnter} 200ms ...`로 리터럴 치환하면 :root 축소 오버라이드를 못
     // 따라가므로(공통 제약 §3) 여기가 빨개진다. Badge.css.ts valueExiting의
     // `calc(${duration.base} * 0.65)`를 `calc(200ms * 0.65)`로 바꿔도
     // 마찬가지로 잡힌다. 뒤에 오는 리터럴 지연(예: Skeleton의 0.5s)은
@@ -529,16 +527,17 @@ describe('검사 3 — keyframes 소비의 duration 자리가 리터럴이 아�
 });
 
 describe('검사 4 — keyframes 본문이 transform·opacity 밖을 안 건드린다', () => {
-  it('15개 전체에서 프레임 33개·프레임 속성 39개를 실제로 순회한다, 파싱이 비면 화이트리스트 검사가 진공이다', () => {
+  it('14개 전체에서 프레임 32개·프레임 속성 38개를 실제로 순회한다, 파싱이 비면 화이트리스트 검사가 진공이다', () => {
     // 무엇을 뒤집으면 빨개지는가: 프레임 값 하나를 백틱 보간(`\`${x}\``)으로
     // 바꾸면 PROP 정규식이 그 속성을 못 읽어 속성 수가 줄고, 프레임 키를
     // `from`/`to`로 바꾸면 FRAME 정규식이 그 프레임을 통째로 놓쳐 프레임 수가
     // 준다 — 둘 다 여기가 먼저 잡는다.
     // M5 task-20 3부: 불똥 깜빡임 프레임 4개, 속성 8개가 더해 33개와 39개다.
-    expect(KEYFRAMES.flatMap((k) => k.frames)).toHaveLength(33);
+    // M5 task-26: Divider의 grow(프레임 1개, 속성 1개)가 지워져 32개와 38개다.
+    expect(KEYFRAMES.flatMap((k) => k.frames)).toHaveLength(32);
     expect(
       KEYFRAMES.flatMap((k) => k.frames).flatMap((f) => Object.keys(f.props))
-    ).toHaveLength(39);
+    ).toHaveLength(38);
   });
 
   /**
@@ -710,7 +709,7 @@ describe('검사 7 — 팔레트 밖 하드코딩 색상이 색상 3채널에 0�
    * `var(--...)`로 들어오므로 이 셋만 걸러내면 된다. */
   const RAW_COLOR = /#[0-9a-fA-F]{3,8}\b|\b(?:rgba?|hsla?)\(/;
 
-  it('TIER_A 12개 파일 전체에서 색상 3채널 선언을 실제로 순회한다', () => {
+  it('TIER_A 11개 파일 전체에서 색상 3채널 선언을 실제로 순회한다', () => {
     // 무엇을 뒤집으면 빨개지는가: CHANNEL 정규식이 아무것도 못 잡게 되면
     // (속성 이름 철자가 바뀌거나 포매팅이 달라지면) 아래 `it`이 진공으로
     // 초록이 된다 — 그 전에 여기가 잡는다. 실측 하한이다.

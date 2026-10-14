@@ -30,6 +30,8 @@ export default defineConfig({
     // 규칙보다 특이도가 높은지를 CSSOM으로 잠근다.
     // HeaderBar도 같은 이유다. 바의 기하(높이·최대 폭·모서리·그림자 토큰), 밑줄의 원점과
     // 호버 게이트, 좁은 화면 규칙이 어느 미디어 안에 있는지를 CSSOM으로 잠근다.
+    // Divider도 같은 이유다. 세로가 줄 높이를 채우는 규칙과 spacing의 방향별 여백,
+    // 어느 규칙에도 animation·transform이 없음을 CSSOM으로 잠근다.
     css: {
       include: [
         /Slider\.css/,
@@ -43,6 +45,7 @@ export default defineConfig({
         /\/Switch\.css/,
         /\/SegmentedButtons\.css/,
         /\/Snackbar\.css/,
+        /\/Divider\.css/,
       ],
     },
     coverage: {

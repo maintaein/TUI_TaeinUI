@@ -897,7 +897,7 @@ import { Divider } from '@taein-ui/core';
 | children | ReactNode | — | Divider text |
 | orientation | 'horizontal' \| 'vertical' | 'horizontal' | Orientation |
 | variant | 'solid' \| 'dashed' \| 'dotted' | 'solid' | Line style |
-| spacing | 'sm' \| 'md' \| 'lg' | 'md' | Spacing |
+| spacing | 'sm' \| 'md' \| 'lg' | 'md' | Margin. Above and below when horizontal, left and right when vertical (a vertical divider fills the height of the flex row it sits in) |
 | textAlign | 'left' \| 'center' \| 'right' | 'center' | Text alignment |
 | className | string | — | Additional CSS class |
 

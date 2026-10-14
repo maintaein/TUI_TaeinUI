@@ -8,8 +8,6 @@ import {
   textAlignStyles,
   dividerWithText,
   line,
-  lineBefore,
-  lineAfter,
   lineVertical,
   textContent,
   textContentVertical,
@@ -23,12 +21,10 @@ export interface DividerProps extends HTMLAttributes<HTMLDivElement> {
   orientation?: 'horizontal' | 'vertical';
   /** 구분선 스타일 @default 'solid' */
   variant?: 'solid' | 'dashed' | 'dotted';
-  /** 구분선 상하 간격 @default 'md' */
+  /** 구분선 간격. 가로는 위아래, 세로는 좌우 @default 'md' */
   spacing?: 'sm' | 'md' | 'lg';
   /** 텍스트 정렬 (children이 있을 때) @default 'center' */
   textAlign?: 'left' | 'center' | 'right';
-  /** 추가 CSS 클래스 */
-  className?: string;
 }
 
 export const Divider = ({
@@ -42,23 +38,6 @@ export const Divider = ({
 }: DividerProps) => {
   const isVertical = orientation === 'vertical';
 
-  if (!children) {
-    return (
-      <div
-        role="separator"
-        aria-orientation={orientation}
-        className={clsx(
-          divider,
-          orientationStyles[orientation],
-          variantStyles[variant],
-          spacingStyles[spacing],
-          className
-        )}
-        {...props}
-      />
-    );
-  }
-
   return (
     <div
       role="separator"
@@ -68,21 +47,24 @@ export const Divider = ({
         orientationStyles[orientation],
         variantStyles[variant],
         spacingStyles[spacing],
-        textAlignStyles[textAlign],
-        dividerWithText,
+        children && [textAlignStyles[textAlign], dividerWithText],
         className
       )}
       {...props}
     >
-      {(textAlign === 'center' || textAlign === 'right') && (
-        <div className={isVertical ? lineVertical : clsx(line, lineBefore)} />
-      )}
-      <div className={isVertical ? textContentVertical : textContent}>
-        {children}
-      </div>
-      {(textAlign === 'center' || textAlign === 'left') && (
-        <div className={isVertical ? lineVertical : clsx(line, lineAfter)} />
-      )}
+      {children ? (
+        <>
+          {(textAlign === 'center' || textAlign === 'right') && (
+            <div className={isVertical ? lineVertical : line} />
+          )}
+          <div className={isVertical ? textContentVertical : textContent}>
+            {children}
+          </div>
+          {(textAlign === 'center' || textAlign === 'left') && (
+            <div className={isVertical ? lineVertical : line} />
+          )}
+        </>
+      ) : null}
     </div>
   );
 };

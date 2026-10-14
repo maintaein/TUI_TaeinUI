@@ -29,7 +29,7 @@ export function DividerPage() {
       name: 'spacing',
       type: "'sm' | 'md' | 'lg'",
       default: "'md'",
-      description: '구분선 위아래 여백',
+      description: '구분선 여백. 가로는 위아래, 세로는 좌우',
     },
     {
       name: 'textAlign',
@@ -176,7 +176,7 @@ export function DividerPage() {
           <h3 className={styles.exampleTitle}>Vertical</h3>
           <LivePreview
             title="수직 구분선"
-            description="orientation='vertical'로 수직 구분선을 사용합니다. 부모 요소에 height가 있어야 합니다."
+            description="orientation='vertical'로 수직 구분선을 사용합니다. 놓인 flex 줄의 높이를 채우고, spacing은 좌우 여백이 됩니다."
             editable
             code={`<div style={{ display: 'flex', alignItems: 'center', gap: '1rem', height: '60px' }}>
   <span style={{ color: '#374151' }}>메뉴 A</span>
@@ -323,9 +323,7 @@ export function DividerPage() {
                 <ListItem>
                   padding/margin으로 대체 가능한 곳에 남용하지 않기
                 </ListItem>
-                <ListItem>
-                  수직 구분선에 height 없는 부모 사용하지 않기
-                </ListItem>
+                <ListItem>수직 구분선을 flex 줄 밖에 두지 않기</ListItem>
                 <ListItem>텍스트에 너무 긴 문장 넣지 않기</ListItem>
                 <ListItem>카드, 리스트 내부에서 중복 구분하지 않기</ListItem>
               </List>
