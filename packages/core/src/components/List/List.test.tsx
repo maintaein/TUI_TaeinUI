@@ -7,12 +7,11 @@ import { themeContract } from '../../tokens/theme.css';
 
 const LIST_TSX = readFileSync(resolve(__dirname, './List.tsx'), 'utf-8');
 
-/** 주석 줄을 뺀 소스. 근거 주석 속 낱말이 검사에 걸리지 않게 한다. */
+/** 주석(줄 주석, 블록 주석, JSDoc)을 뺀 소스. 근거 주석 속 낱말이 검사에 걸리지 않게 한다. */
 function code(source: string): string {
   return source
-    .split(/\r?\n/)
-    .filter((line) => !line.trim().startsWith('//'))
-    .join(' ');
+    .replace(/\/\*[\s\S]*?\*\//g, ' ')
+    .replace(/(^|\s)\/\/.*$/gm, ' ');
 }
 
 describe('List', () => {
@@ -311,8 +310,10 @@ describe('List', () => {
       );
     }
 
+    const ALIGN = { horizontal: 'center', vertical: 'flex-start' } as const;
+
     for (const layout of ['horizontal', 'vertical'] as const) {
-      it(`label-value 항목은 ${layout}에서도 늘 가운데 정렬(align-items: center)이다`, () => {
+      it(`label-value 항목은 ${layout}에서 align-items: ${ALIGN[layout]}이다`, () => {
         const { container } = render(
           <List>
             <ListItem label="이름" value="홍길동" layout={layout} />
@@ -320,18 +321,47 @@ describe('List', () => {
         );
         const li = container.querySelector('li')!;
 
-        const centered = rulesOf(li).filter(
-          (r) => r.style.getPropertyValue('align-items') === 'center'
+        const aligned = rulesOf(li).filter(
+          (r) => r.style.getPropertyValue('align-items') === ALIGN[layout]
         );
-        expect(centered).toHaveLength(1);
-        // 가운데 말고 다른 정렬을 거는 규칙은 없다.
+        expect(aligned).toHaveLength(1);
+        // 그 밖의 정렬을 거는 규칙은 없다.
         for (const rule of rulesOf(li)) {
-          expect(['', 'center']).toContain(
+          expect(['', ALIGN[layout]]).toContain(
             rule.style.getPropertyValue('align-items')
           );
         }
       });
     }
+
+    it('code()는 JSDoc과 블록 주석과 줄 주석을 모두 거른다', () => {
+      const src = [
+        '/** align */',
+        'const a = 1; // custom',
+        '/* align',
+        ' * custom */',
+        'b',
+      ].join('\n');
+      expect(code(src)).not.toMatch(/custom|align/);
+      expect(code(src)).toMatch(/const a = 1;/);
+    });
+
+    it('구분선 규칙은 바로 아래 자식 li(마지막 항목 제외)만 잡는다', () => {
+      const { container } = render(
+        <List divider>
+          <ListItem label="이름" value="홍길동" />
+        </List>
+      );
+      const withDivider = container
+        .querySelector('ul')!
+        .className.split(' ')
+        .find((c) => /withDivider/.test(c))!;
+      const selectors = listRules()
+        .map((r) => r.selectorText)
+        .filter((t) => t.includes(withDivider));
+
+      expect(selectors).toEqual([`.${withDivider} > li:not(:last-child)`]);
+    });
 
     it('children 항목은 자유 배치다: 배치 클래스도 정렬도 걸리지 않는다', () => {
       const { container } = render(

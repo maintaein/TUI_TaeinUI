@@ -38,7 +38,8 @@ export const listItem = style({
   width: '100%',
 });
 
-// label-value 항목은 늘 가운데 정렬이다. children 항목(자유 배치)에는 걸지 않는다.
+// label-value 항목의 정렬은 고정이다. 가로는 세로 가운데, 세로는 왼쪽.
+// children 항목(자유 배치)에는 걸지 않는다.
 export const layoutStyles = styleVariants({
   horizontal: {
     flexDirection: 'row',
@@ -46,7 +47,7 @@ export const layoutStyles = styleVariants({
   },
   vertical: {
     flexDirection: 'column',
-    alignItems: 'center',
+    alignItems: 'flex-start',
   },
 });
 
