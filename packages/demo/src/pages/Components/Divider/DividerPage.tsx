@@ -94,7 +94,7 @@ export function DividerPage() {
             title="기본 사용법"
             description="콘텐츠 사이에 수평 구분선을 배치합니다."
             editable
-            code={`<div>
+            code={`<div style={{ width: '100%' }}>
   <p style={{ color: '#374151' }}>첫 번째 섹션의 내용입니다.</p>
   <Divider />
   <p style={{ color: '#374151' }}>두 번째 섹션의 내용입니다.</p>
@@ -109,7 +109,7 @@ export function DividerPage() {
             title="선 스타일"
             description="solid, dashed, dotted 세 가지 선 스타일을 제공합니다."
             editable
-            code={`<div>
+            code={`<div style={{ width: '100%' }}>
   <p style={{ fontSize: '0.875rem', color: '#6b7280', marginBottom: '0.25rem' }}>solid (기본)</p>
   <Divider variant="solid" />
   <p style={{ fontSize: '0.875rem', color: '#6b7280', marginBottom: '0.25rem' }}>dashed</p>
@@ -127,7 +127,7 @@ export function DividerPage() {
             title="여백 크기"
             description="sm, md, lg 세 가지 여백 옵션을 제공합니다."
             editable
-            code={`<div>
+            code={`<div style={{ width: '100%' }}>
   <p style={{ color: '#374151' }}>sm 여백</p>
   <Divider spacing="sm" />
   <p style={{ color: '#374151' }}>md 여백 (기본)</p>
@@ -146,7 +146,7 @@ export function DividerPage() {
             title="텍스트 포함"
             description="children으로 텍스트를 전달하면 구분선 사이에 텍스트가 표시됩니다."
             editable
-            code={`<div>
+            code={`<div style={{ width: '100%' }}>
   <p style={{ color: '#374151' }}>로그인 폼 영역</p>
   <Divider>또는</Divider>
   <p style={{ color: '#374151' }}>소셜 로그인 영역</p>
@@ -163,7 +163,7 @@ export function DividerPage() {
             title="텍스트 정렬"
             description="textAlign prop으로 텍스트 위치를 left, center, right로 조정합니다."
             editable
-            code={`<div>
+            code={`<div style={{ width: '100%' }}>
   <Divider textAlign="left">LEFT</Divider>
   <Divider textAlign="center">CENTER</Divider>
   <Divider textAlign="right">RIGHT</Divider>
@@ -195,7 +195,7 @@ export function DividerPage() {
             title="조합 예제"
             description="variant, spacing, textAlign을 조합한 실제 사용 예시입니다."
             editable
-            code={`<div>
+            code={`<div style={{ width: '100%' }}>
   <div style={{ textAlign: 'center', padding: '1rem 0' }}>
     <h3 style={{ fontSize: '1.125rem', fontWeight: 600, color: '#1a2332', marginBottom: '0.5rem' }}>이메일로 로그인</h3>
     <p style={{ fontSize: '0.875rem', color: '#6b7280' }}>등록된 이메일과 비밀번호를 입력하세요.</p>
