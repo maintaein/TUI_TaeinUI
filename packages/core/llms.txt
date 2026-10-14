@@ -53,7 +53,7 @@ All components follow consistent patterns:
 - **SegmentedButtons** — Button group for single selection. Props: options[{value,label,icon?}], value, onChange, size
 
 ### Display & Data
-- **Badge** — Status/count indicator. Props: variant('primary'|'secondary'|'success'|'error'|'warning'|'info'), size, max, dot, showZero
+- **Badge**: Status/count indicator. Props: variant('primary'|'secondary'|'success'|'error'|'warning'), size, max, dot. No default role; text is the accessible name, `dot` needs aria-label (role="img") or is hidden
 - **Chip** — Tag/filter chip. Props: label, variant('filled'|'outlined'), color, icon, avatar, onDelete, clickable, selected
 - **Avatar** - User avatar with image, fallback, status. Props: src, alt, size, variant('circular'|'rounded'|'square'), status, bouncy(opt-in hover/focus float + press grow, needs onClick or href)
 

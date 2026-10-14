@@ -58,9 +58,14 @@
 - **BREAKING CHANGE:** `HeaderBar`의 `border`를 없앴습니다. 가장자리까지 닿는 한 줄 모양의 아래 선이었고, 그 모양이 없어졌습니다. 선이 필요하면 `className`으로 바에 직접 주세요.
 - **BREAKING CHANGE:** `HeaderBar`의 `elevation`을 없앴습니다. 떠 있는 바는 늘 그림자(`shadow.md`)를 가집니다. 그림자를 끄려면 `className`을 쓰세요.
 - **BREAKING CHANGE:** `HeaderBar`의 `variant`(`'default' | 'dark' | 'transparent'`)를 없앴습니다. 면은 늘 밝은 면(`background.default`)과 그림자(`shadow.md`)이고 글자는 `text.primary`입니다. 다른 모습이 필요하면 `className`을 쓰세요.
+- **BREAKING CHANGE:** `Badge`의 `variant="info"`를 없앴습니다. 색이 `primary`와 같았습니다. `<Badge variant="info">`는 `<Badge variant="primary">`로 바꾸세요.
+- **BREAKING CHANGE:** `Badge`의 `showZero`를 없앴습니다. 0이면 늘 "0"을 보입니다. 숨기려면 쓰는 쪽에서 `{count > 0 && <Badge>{count}</Badge>}`로 렌더링을 가르세요.
+- **BREAKING CHANGE:** `Badge`가 루트에 `role="status"`를 기본으로 달지 않고, 한국어 자동 `aria-label`("N개의 알림", "알림")도 만들지 않습니다. 글자 배지는 글자가 접근 이름입니다. 점(`dot`) 배지는 `aria-label`을 주면 `role="img"`와 그 이름이 붙고, 주지 않으면 `aria-hidden="true"`인 장식입니다. 알림처럼 읽혀야 하면 `role="status"`나 `aria-live`를 직접 주세요(그대로 붙고, 값이 바뀔 때 루트를 다시 마운트하지 않으므로 라이브 리전으로 쓸 수 있습니다). 점 배지를 이름 없이 쓰던 곳은 `aria-label`을 주세요.
+- **BREAKING CHANGE:** `Badge`의 숨은 CSS 변수 `--badge-color`를 없앴습니다. 색을 바꾸려면 `style={{ backgroundColor: color }}`를 쓰세요.
 
 ### Changed
 
+- `Badge`의 값 교체가 증감 방향을 따릅니다. 숫자가 늘면 지금처럼 새 값이 아래에서 올라오고 헌 값이 위로 빠지고, 숫자가 줄면 반대로 새 값이 위에서 내려오고 헌 값이 아래로 빠집니다. 비교는 표시 문자열이 아니라 숫자 값이며, 숫자가 아닌 값이 끼면 위로 갑니다. 시간과 커브, 움직임 줄이기 설정은 그대로입니다.
 - **BREAKING CHANGE:** `onClick`이 있는 `Card`가 더는 기본으로 호버에 떠오르거나 누를 때 눌리지 않습니다. 손 모양 커서, 터치 지연 없음, 포커스 링은 그대로입니다. 이전처럼 움직이게 하려면 `<Card onClick={...} hoverLift>`를 쓰세요.
 - `Button`의 호버 시 위로 뜨는(`translateY(-1px)`) 이동을 없앴습니다. 호버는 배경색만 바뀝니다. 호버 색은 `(hover: hover) and (pointer: fine)`일 때만 적용돼 터치 기기에서 탭 뒤 색이 들러붙지 않습니다.
 - `Button`의 누름 효과(`scale(0.95)`와 눌린 색)가 입력 시간과 무관하게 완주합니다. 30ms 탭도 최소 90ms 동안 눌린 상태를 유지하고, 포인터뿐 아니라 `Enter`·`Space`도 같은 효과를 냅니다. 누름은 150ms로 단단하게 들어가고, 뗄 때는 200ms 동안 휴지 크기를 약 1% 넘어갔다 정착합니다(이전 `scale(0.98)`은 되밀림이 0.1px라 보이지 않았습니다). `prefers-reduced-motion: reduce`에서는 `scale`만 끄고 색 변화는 남깁니다.

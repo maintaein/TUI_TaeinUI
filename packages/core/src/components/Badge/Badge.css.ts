@@ -1,15 +1,17 @@
 import { style, styleVariants, keyframes } from '@vanilla-extract/css';
 import { themeContract } from '../../tokens/theme.css';
 
-// 값 교체 애니메이션 — "새 값이 들어오고 헌 값이 위로 나간다"(상태계,
+// 값 교체 애니메이션: "새 값이 들어오고 헌 값이 나간다"(상태계,
 // M2-모션-번역 §상태계, task-3c-brief.md 「Badge」). 값마다 key를 갖는 span
 // 두 개(valueCurrent·valueExiting) + 교체 전용 @keyframes 두 벌이 유일한
 // CSS-only 경로다(Badge.tsx 참고) — 등장·퇴장이 같은 축(translateY)을 같은
-// 방향(위)으로 계속 움직이는 컨베이어라, 하나를 역재생해서는 반대쪽 도착
-// 위치(아래)로 되돌아갈 뿐 위로 빠져나가지 않는다. 그래서 조항 3의
+// 방향으로 계속 움직이는 컨베이어라, 하나를 역재생해서는 반대쪽 도착
+// 위치로 되돌아갈 뿐 빠져나가지 않는다. 그래서 조항 3의
 // "퇴장용 애니메이션을 따로 만들지 않는다"를 문자 그대로 재사용이 아니라
 // "새 제스처를 만들지 않는다"로 읽었다 — 두 keyframes 다 translateY+opacity
-// 뿐이고 값도 100%가 같다, 끝점만 위/아래로 다르다.
+// 뿐이고 값도 100%가 같다. 방향은 --badge-dir 하나로 정한다: 기본 1이면 새
+// 값이 아래에서 올라오고 헌 값이 위로 빠진다(값이 늘 때). directionDown이
+// -1로 뒤집으면 새 값이 위에서 내려오고 헌 값이 아래로 빠진다(값이 줄 때).
 //
 // 조항 1(상태 전이는 중단·역재생 가능해야 하고 일회성 @keyframes는 금지다)
 // 위반이 아니다: React가 숫자를 교체할 때 텍스트 노드만 바뀌고 마운트
@@ -23,13 +25,13 @@ import { themeContract } from '../../tokens/theme.css';
 // 어긋날 위험이 생기고, duration이 0.01ms로 줄 때 새 값이 사라질 수 있다.
 const valueEnter = keyframes({
   '0%': {
-    transform: 'translateY(100%)',
+    transform: 'translateY(calc(100% * var(--badge-dir, 1)))',
     opacity: 0,
   },
 });
 
 // 퇴장은 등장과 거울 대칭이다: base 스타일 자체가 "이미 사라진 뒤" 상태고
-// (translateY(-100%)·opacity 0), 0% 프레임만 "아직 보이는" 시작 상태를
+// (translateY(-100%)·opacity 0, 방향이 뒤집히면 +100%), 0% 프레임만 "아직 보이는" 시작 상태를
 // 준다. 축소 모드에서 duration이 0.01ms로 줄면 거의 즉시 사라진 상태가
 // 되는데, 그게 바로 우리가 원하는 동작이다(퇴장이니 사라지는 게 맞다).
 //
@@ -54,7 +56,7 @@ export const badge = style({
   fontWeight: themeContract.font.weight.semibold,
   // 짧은 대문자 라벨(SIZED, RISK_REJECTED 등)은 기본 자간에서 글자가 뭉친다.
   letterSpacing: themeContract.font.letterSpacing.wide,
-  borderRadius: '12px',
+  borderRadius: themeContract.borderRadius.full,
   whiteSpace: 'nowrap',
   transition: `background-color ${themeContract.animation.duration.base} ${themeContract.animation.easing.settle}, color ${themeContract.animation.duration.base} ${themeContract.animation.easing.settle}`,
   lineHeight: 1,
@@ -71,35 +73,31 @@ export const valueCurrent = style({
 // :root 축소 모드 오버라이드를 따라가지 못한다), 커브는 가속(easing.exit).
 export const valueExiting = style({
   gridArea: '1 / 1',
-  transform: 'translateY(-100%)',
+  transform: 'translateY(calc(-100% * var(--badge-dir, 1)))',
   opacity: 0,
   animation: `${valueExit} calc(${themeContract.animation.duration.base} * 0.65) ${themeContract.animation.easing.exit} forwards`,
 });
 
 export const variantStyles = styleVariants({
   primary: {
-    backgroundColor: `var(--badge-color, ${themeContract.color.primary.main})`,
+    backgroundColor: themeContract.color.primary.main,
     color: themeContract.color.primary.contrast,
   },
   secondary: {
-    backgroundColor: `var(--badge-color, ${themeContract.palette.gray[600]})`,
+    backgroundColor: themeContract.palette.gray[600],
     color: themeContract.color.primary.contrast,
   },
   success: {
-    backgroundColor: `var(--badge-color, ${themeContract.color.success.main})`,
+    backgroundColor: themeContract.color.success.main,
     color: themeContract.color.success.contrast,
   },
   error: {
-    backgroundColor: `var(--badge-color, ${themeContract.color.error.main})`,
+    backgroundColor: themeContract.color.error.main,
     color: themeContract.color.error.contrast,
   },
   warning: {
-    backgroundColor: `var(--badge-color, ${themeContract.color.warning.main})`,
+    backgroundColor: themeContract.color.warning.main,
     color: themeContract.color.warning.contrast,
-  },
-  info: {
-    backgroundColor: `var(--badge-color, ${themeContract.color.info.main})`,
-    color: themeContract.color.info.contrast,
   },
 });
 
@@ -130,4 +128,9 @@ export const dotStyles = style({
   width: '8px',
   height: '8px',
   borderRadius: '50%',
+});
+
+// 값이 줄어든 교체: 같은 두 keyframes의 방향 부호를 뒤집는다.
+export const directionDown = style({
+  vars: { '--badge-dir': '-1' },
 });

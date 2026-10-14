@@ -31,10 +31,6 @@ const meta = {
       control: 'boolean',
       description: 'Show as dot instead of number/text',
     },
-    showZero: {
-      control: 'boolean',
-      description: 'Whether to show zero value',
-    },
   },
 } satisfies Meta<typeof Badge>;
 
@@ -128,16 +124,6 @@ export const DotMode: Story = {
       <Badge dot variant="success" />
       <Badge dot variant="error" />
       <Badge dot variant="warning" />
-    </div>
-  ),
-};
-
-export const WithZero: Story = {
-  render: () => (
-    <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-      <Badge showZero>0</Badge>
-      <Badge showZero={false}>0</Badge>
-      <span>← showZero=false는 렌더링되지 않음</span>
     </div>
   ),
 };
@@ -341,6 +327,5 @@ export const Playground: Story = {
     size: 'md',
     max: 99,
     dot: false,
-    showZero: true,
   },
 };

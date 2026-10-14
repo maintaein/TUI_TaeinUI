@@ -3,9 +3,13 @@ import { resolve } from 'node:path';
 import { describe, it, expect } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { Badge } from './Badge';
-import { valueExiting } from './Badge.css';
+import { valueExiting, directionDown } from './Badge.css';
 
 const BADGE_CSS = readFileSync(resolve(__dirname, './Badge.css.ts'), 'utf-8');
+
+// 루트에는 기본 role이 없다(M5 task-25). RTL 컨테이너의 첫 자식 span이 루트다.
+const getRoot = () =>
+  document.body.firstElementChild!.firstElementChild as HTMLElement;
 
 describe('Badge', () => {
   describe('렌더링 테스트', () => {
@@ -62,51 +66,44 @@ describe('Badge', () => {
     });
   });
 
-  // variant·size 클래스는 role="status" 루트가 갖는다. 값(텍스트)은 이제
-  // 그 안의 별도 값 노드에 있으므로(M2 T3c, Badge 값 교체 두 스팬 구조),
-  // 여기서는 getByText 대신 getByRole('status')로 루트를 찾는다 — 각
-  // 테스트가 확인하려는 것(루트에 해당 클래스가 붙는지)은 그대로다.
+  // variant·size 클래스는 루트가 갖는다. 값(텍스트)은 그 안의 별도 값
+  // 노드에 있으므로(M2 T3c, Badge 값 교체 두 스팬 구조) getByText 대신
+  // getRoot()로 루트를 찾는다.
   describe('variant prop 테스트', () => {
     it('primary variant를 렌더링한다', () => {
       render(<Badge variant="primary">5</Badge>);
-      const badge = screen.getByRole('status');
+      const badge = getRoot();
       expect(screen.getByText('5')).toBeInTheDocument();
       expect(badge.className).toContain('primary');
     });
 
     it('secondary variant를 렌더링한다', () => {
       render(<Badge variant="secondary">5</Badge>);
-      const badge = screen.getByRole('status');
+      const badge = getRoot();
       expect(badge.className).toContain('secondary');
     });
 
     it('success variant를 렌더링한다', () => {
       render(<Badge variant="success">5</Badge>);
-      const badge = screen.getByRole('status');
+      const badge = getRoot();
       expect(badge.className).toContain('success');
     });
 
     it('error variant를 렌더링한다', () => {
       render(<Badge variant="error">5</Badge>);
-      const badge = screen.getByRole('status');
+      const badge = getRoot();
       expect(badge.className).toContain('error');
-    });
-
-    it('info variant를 렌더링한다', () => {
-      render(<Badge variant="info">5</Badge>);
-      const badge = screen.getByRole('status');
-      expect(badge.className).toContain('info');
     });
 
     it('warning variant를 렌더링한다', () => {
       render(<Badge variant="warning">5</Badge>);
-      const badge = screen.getByRole('status');
+      const badge = getRoot();
       expect(badge.className).toContain('warning');
     });
 
     it('기본 variant는 primary이다', () => {
       render(<Badge>5</Badge>);
-      const badge = screen.getByRole('status');
+      const badge = getRoot();
       expect(badge.className).toContain('primary');
     });
   });
@@ -114,25 +111,25 @@ describe('Badge', () => {
   describe('size prop 테스트', () => {
     it('sm 크기를 렌더링한다', () => {
       render(<Badge size="sm">5</Badge>);
-      const badge = screen.getByRole('status');
+      const badge = getRoot();
       expect(badge.className).toContain('sm');
     });
 
     it('md 크기를 렌더링한다', () => {
       render(<Badge size="md">5</Badge>);
-      const badge = screen.getByRole('status');
+      const badge = getRoot();
       expect(badge.className).toContain('md');
     });
 
     it('lg 크기를 렌더링한다', () => {
       render(<Badge size="lg">5</Badge>);
-      const badge = screen.getByRole('status');
+      const badge = getRoot();
       expect(badge.className).toContain('lg');
     });
 
     it('기본 크기는 md이다', () => {
       render(<Badge>5</Badge>);
-      const badge = screen.getByRole('status');
+      const badge = getRoot();
       expect(badge.className).toContain('md');
     });
   });
@@ -141,68 +138,140 @@ describe('Badge', () => {
     it('dot 모드에서는 숫자 대신 점만 표시한다', () => {
       render(<Badge dot>5</Badge>);
       expect(screen.queryByText('5')).not.toBeInTheDocument();
-      const badge = screen.getByRole('status');
+      const badge = getRoot();
       expect(badge).toBeInTheDocument();
       expect(badge.className).toContain('dot');
     });
 
     it('dot 모드에서도 variant가 적용된다', () => {
       render(<Badge dot variant="error" />);
-      const badge = screen.getByRole('status');
+      const badge = getRoot();
       expect(badge.className).toContain('dot');
       expect(badge.className).toContain('error');
     });
   });
 
-  describe('접근성 테스트', () => {
-    it('role="status"를 가진다', () => {
-      render(<Badge>5</Badge>);
-      expect(screen.getByRole('status')).toBeInTheDocument();
+  describe('0 표시 (showZero 삭제, M5 task-25 결정 2)', () => {
+    it('0이면 늘 "0"을 보인다', () => {
+      render(<Badge>0</Badge>);
+      expect(screen.getByText('0')).toBeInTheDocument();
     });
 
-    it('aria-label이 설정된다', () => {
-      render(<Badge aria-label="5개의 새 알림">5</Badge>);
-      expect(screen.getByRole('status')).toHaveAttribute(
-        'aria-label',
-        '5개의 새 알림'
-      );
+    it('숫자 0 children도 "0"을 보인다', () => {
+      render(<Badge>{0}</Badge>);
+      expect(screen.getByText('0')).toBeInTheDocument();
     });
 
-    it('숫자 뱃지는 기본 aria-label을 가진다', () => {
-      render(<Badge>5</Badge>);
-      const badge = screen.getByRole('status');
-      expect(badge).toHaveAttribute('aria-label');
+    it('showZero prop이 없다 (타입)', () => {
+      // @ts-expect-error showZero는 삭제됐다
+      render(<Badge showZero={false}>0</Badge>);
+      expect(screen.getByText('0')).toBeInTheDocument();
     });
 
-    it('dot 모드는 aria-label을 가진다', () => {
-      render(<Badge dot aria-label="새 알림" />);
-      const badge = screen.getByRole('status');
-      expect(badge).toHaveAttribute('aria-label', '새 알림');
+    it('info variant가 없다 (타입)', () => {
+      // @ts-expect-error info는 삭제됐다
+      render(<Badge variant="info">5</Badge>);
+      expect(getRoot()).toBeInTheDocument();
     });
   });
 
-  describe('showZero prop 테스트', () => {
-    it('showZero가 false면 0을 렌더링하지 않는다', () => {
-      const { container } = render(<Badge showZero={false}>0</Badge>);
-      expect(container.firstChild).toBeNull();
+  describe('접근성 (M5 task-25 결정 3)', () => {
+    it('루트에 기본 role이 없다', () => {
+      render(<Badge>5</Badge>);
+      expect(getRoot()).not.toHaveAttribute('role');
+      expect(screen.queryByRole('status')).toBeNull();
     });
 
-    it('showZero가 true면 0을 렌더링한다', () => {
-      render(<Badge showZero>0</Badge>);
-      expect(screen.getByText('0')).toBeInTheDocument();
+    it('글자 배지에 자동 aria-label이 없다 (숫자도 텍스트도)', () => {
+      const { rerender } = render(<Badge>5</Badge>);
+      expect(getRoot()).not.toHaveAttribute('aria-label');
+      rerender(<Badge>New</Badge>);
+      expect(getRoot()).not.toHaveAttribute('aria-label');
     });
 
-    it('기본적으로 0을 렌더링한다', () => {
-      render(<Badge>0</Badge>);
-      expect(screen.getByText('0')).toBeInTheDocument();
+    it('글자 배지의 접근 이름은 글자다', () => {
+      render(
+        <button>
+          알림 <Badge>5</Badge>
+        </button>
+      );
+      expect(
+        screen.getByRole('button', { name: '알림 5' })
+      ).toBeInTheDocument();
+    });
+
+    it('aria-label을 주면 글자 배지에 그대로 붙는다', () => {
+      render(<Badge aria-label="5개의 새 알림">5</Badge>);
+      expect(getRoot()).toHaveAttribute('aria-label', '5개의 새 알림');
+    });
+
+    it('소비자가 준 role="status"와 aria-live가 루트에 붙는다', () => {
+      render(
+        <Badge role="status" aria-live="polite">
+          5
+        </Badge>
+      );
+      const root = screen.getByRole('status');
+      expect(root).toBe(getRoot());
+      expect(root).toHaveAttribute('aria-live', 'polite');
+    });
+
+    it('dot에 aria-label을 주면 role="img"와 그 이름을 갖는다', () => {
+      render(<Badge dot aria-label="새 알림" />);
+      const img = screen.getByRole('img', { name: '새 알림' });
+      expect(img).toBe(getRoot());
+      expect(img).not.toHaveAttribute('aria-hidden');
+    });
+
+    it('dot에 aria-label이 없으면 장식(aria-hidden)이고 role·이름이 없다', () => {
+      render(<Badge dot />);
+      const root = getRoot();
+      expect(root).toHaveAttribute('aria-hidden', 'true');
+      expect(root).not.toHaveAttribute('role');
+      expect(root).not.toHaveAttribute('aria-label');
+      expect(screen.queryByRole('img')).toBeNull();
+    });
+
+    it('글자 배지는 aria-hidden이 아니다', () => {
+      render(<Badge>5</Badge>);
+      expect(getRoot()).not.toHaveAttribute('aria-hidden');
+    });
+  });
+
+  describe('숨은 색 변수와 토큰 (M5 task-25 결정 4)', () => {
+    it('--badge-color가 CSS 소스에 없다', () => {
+      expect(BADGE_CSS).not.toContain('--badge-color');
+    });
+
+    it('variant 면은 토큰을 바로 쓴다 (var() 감싸기 없음)', () => {
+      const start = BADGE_CSS.indexOf('export const variantStyles');
+      const end = BADGE_CSS.indexOf('\n});', start);
+      const block = BADGE_CSS.slice(start, end);
+      expect(block).not.toContain('var(');
+      expect(block).toContain(
+        'backgroundColor: themeContract.color.primary.main'
+      );
+    });
+
+    it('badge 반경이 12px 리터럴이 아니라 borderRadius.full 토큰이다', () => {
+      const start = BADGE_CSS.indexOf('export const badge = style({');
+      const end = BADGE_CSS.indexOf('\n});', start);
+      const block = BADGE_CSS.slice(start, end);
+      expect(block).toContain('borderRadius: themeContract.borderRadius.full');
+      expect(block).not.toContain("'12px'");
+    });
+
+    it('style prop으로 면 색을 직접 덮을 수 있다', () => {
+      render(<Badge style={{ backgroundColor: 'rgb(1, 2, 3)' }}>5</Badge>);
+      expect(getRoot().style.backgroundColor).toBe('rgb(1, 2, 3)');
     });
   });
 
   describe('className prop 테스트', () => {
     it('커스텀 className을 적용한다', () => {
       render(<Badge className="custom-class">5</Badge>);
-      // custom className은 role="status" 루트에 붙는다(값 노드가 아니라).
-      const badge = screen.getByRole('status');
+      // custom className은 루트에 붙는다(값 노드가 아니라).
+      const badge = getRoot();
       expect(badge.className).toContain('custom-class');
     });
   });
@@ -240,18 +309,18 @@ describe('Badge', () => {
   });
 
   describe('Badge 모션 잠금 (M2 T3c)', () => {
-    it('값이 바뀌어도 role="status" 루트는 재마운트되지 않는다 (라이브 리전 안정성)', () => {
-      const { container, rerender } = render(<Badge>5</Badge>);
-      const before = container.querySelector('[role="status"]');
-      rerender(<Badge>6</Badge>);
-      const after = container.querySelector('[role="status"]');
+    it('값이 바뀌어도 소비자가 role="status"를 준 루트는 재마운트되지 않는다 (라이브 리전 안정성)', () => {
+      const { rerender } = render(<Badge role="status">5</Badge>);
+      const before = getRoot();
+      rerender(<Badge role="status">6</Badge>);
+      const after = getRoot();
       expect(screen.getByText('6')).toBeInTheDocument();
       expect(after).toBe(before);
     });
 
     it('값이 바뀌면 현재 값 노드는 재마운트된다 (key로 valueEnter를 재생한다)', () => {
-      const { container, rerender } = render(<Badge>5</Badge>);
-      const root = container.querySelector('[role="status"]') as HTMLElement;
+      const { rerender } = render(<Badge>5</Badge>);
+      const root = getRoot();
       const before = root.querySelector('span:not([aria-hidden])');
       rerender(<Badge>6</Badge>);
       const after = root.querySelector('span:not([aria-hidden])');
@@ -261,17 +330,17 @@ describe('Badge', () => {
 
     it('같은 값으로 리렌더링되면 루트도 값 노드도 유지한다', () => {
       const { container, rerender } = render(<Badge>5</Badge>);
-      const root = container.querySelector('[role="status"]');
+      const root = getRoot();
       const value = container.querySelector('span:not([aria-hidden])');
       rerender(<Badge variant="error">5</Badge>);
-      expect(container.querySelector('[role="status"]')).toBe(root);
+      expect(getRoot()).toBe(root);
       expect(container.querySelector('span:not([aria-hidden])')).toBe(value);
     });
 
     it('값이 바뀌면 헌 값이 aria-hidden 퇴장 노드로 남아 valueExiting을 재생한다', () => {
-      const { container, rerender } = render(<Badge>5</Badge>);
+      const { rerender } = render(<Badge>5</Badge>);
       rerender(<Badge>6</Badge>);
-      const root = container.querySelector('[role="status"]') as HTMLElement;
+      const root = getRoot();
       const exiting = root.querySelector('[aria-hidden="true"]');
       expect(exiting).toHaveTextContent('5');
       expect(exiting?.className).toContain(valueExiting);
@@ -280,9 +349,9 @@ describe('Badge', () => {
     });
 
     it('퇴장 애니메이션이 끝나면 헌 값 노드가 제거된다 (스냅백 없이)', () => {
-      const { container, rerender } = render(<Badge>5</Badge>);
+      const { rerender } = render(<Badge>5</Badge>);
       rerender(<Badge>6</Badge>);
-      const root = container.querySelector('[role="status"]') as HTMLElement;
+      const root = getRoot();
       const exiting = root.querySelector('[aria-hidden="true"]') as HTMLElement;
       expect(exiting).toBeInTheDocument();
       fireEvent.animationEnd(exiting);
@@ -304,24 +373,24 @@ describe('Badge', () => {
       );
       const { rerender } = render(<Parent tick={0} />);
       rerender(<Parent tick={1} />);
-      const root = screen.getByRole('status');
+      const root = getRoot();
       expect(root.querySelector('[aria-hidden="true"]')).toBeNull();
     });
 
     it('처음 마운트될 때는 퇴장 노드가 없다 (비교할 헌 값이 없다)', () => {
-      const { container } = render(<Badge>5</Badge>);
-      const root = container.querySelector('[role="status"]') as HTMLElement;
+      render(<Badge>5</Badge>);
+      const root = getRoot();
       expect(root.querySelector('[aria-hidden="true"]')).toBeNull();
     });
 
     it('값이 잠깐 비었다 돌아오면 옛 값 유령이 안 뜬다 (3 → undefined → 7, 리뷰 I2)', () => {
-      const { container, rerender } = render(<Badge>3</Badge>);
+      const { rerender } = render(<Badge>3</Badge>);
 
       // 1) 3 → undefined: setExitingValue(3)이 불리지만 그 직후 조기 반환이
       //    배지를 통째로 언마운트한다. 퇴장 노드가 렌더되지 않으니
       //    onAnimationEnd가 영영 안 불리고 exitingValue는 3으로 박제된다.
       rerender(<Badge>{undefined}</Badge>);
-      expect(container.querySelector('[role="status"]')).toBeNull();
+      expect(getRoot()).toBeNull();
 
       // 2) undefined → 7: 퇴장시킬 헌 값이 없는 경로다(prevValue가 null).
       //    여기서 박제를 지우지 않으면 3이 그대로 살아남는다.
@@ -331,20 +400,20 @@ describe('Badge', () => {
       //    안 된다. aria-hidden이라 AT에는 안 새지만 화면에는 틀린 숫자다 —
       //    개수를 보여주는 것이 존재 이유인 컴포넌트다.
       // 무엇을 뒤집으면 빨개지는가: Badge.tsx의 else { setExitingValue(null) }를 지우면.
-      const root = container.querySelector('[role="status"]') as HTMLElement;
+      const root = getRoot();
       expect(root.querySelector('[aria-hidden="true"]')).toBeNull();
       expect(screen.getByText('7')).toBeInTheDocument();
       expect(screen.queryByText('3')).toBeNull();
     });
 
     it('dot 모드는 값 노드·퇴장 노드를 만들지 않는다', () => {
-      const { container, rerender } = render(<Badge dot>5</Badge>);
+      const { rerender } = render(<Badge dot>5</Badge>);
       rerender(
         <Badge dot variant="error">
           6
         </Badge>
       );
-      const root = container.querySelector('[role="status"]') as HTMLElement;
+      const root = getRoot();
       expect(root.querySelectorAll('span').length).toBe(0);
     });
 
@@ -355,7 +424,7 @@ describe('Badge', () => {
       const block = BADGE_CSS.slice(start, end);
       expect(block).toContain("'0%'");
       expect(block).not.toContain("'100%'");
-      expect(block).toContain('translateY(100%)');
+      expect(block).toContain('translateY(calc(100% * var(--badge-dir, 1)))');
       expect(block).toContain('opacity: 0');
     });
 
@@ -387,7 +456,9 @@ describe('Badge', () => {
         'calc(${themeContract.animation.duration.base} * 0.65)'
       );
       expect(block).toContain('${themeContract.animation.easing.exit}');
-      expect(block).toContain("transform: 'translateY(-100%)'");
+      expect(block).toContain(
+        "transform: 'translateY(calc(-100% * var(--badge-dir, 1)))'"
+      );
       expect(block).toContain('opacity: 0');
     });
 
@@ -397,6 +468,98 @@ describe('Badge', () => {
 
     it('조항 1 위반이 아니라는 판정이 주석으로 남아 있다', () => {
       expect(BADGE_CSS).toMatch(/조항 1|교체|전이가 아니/);
+    });
+  });
+
+  describe('값 교체 방향: 늘면 위로, 줄면 아래로 (M5 task-25)', () => {
+    const isDown = () => getRoot().className.includes(directionDown);
+
+    it('처음에는 위로 간다 (방향 표시 없음)', () => {
+      render(<Badge>5</Badge>);
+      expect(isDown()).toBe(false);
+    });
+
+    it('숫자가 늘면 위로 간다', () => {
+      const { rerender } = render(<Badge>5</Badge>);
+      rerender(<Badge>6</Badge>);
+      expect(isDown()).toBe(false);
+    });
+
+    it('숫자가 줄면 아래로 간다', () => {
+      const { rerender } = render(<Badge>5</Badge>);
+      rerender(<Badge>4</Badge>);
+      expect(isDown()).toBe(true);
+    });
+
+    it('줄었다가 다시 늘면 위로 돌아온다', () => {
+      const { rerender } = render(<Badge>5</Badge>);
+      rerender(<Badge>4</Badge>);
+      expect(isDown()).toBe(true);
+      rerender(<Badge>8</Badge>);
+      expect(isDown()).toBe(false);
+    });
+
+    it('숫자 문자열 "5" → "4"도 줄어든 것으로 본다', () => {
+      const { rerender } = render(<Badge>{'5'}</Badge>);
+      rerender(<Badge>{'4'}</Badge>);
+      expect(isDown()).toBe(true);
+    });
+
+    it('음수로 줄어도 아래로 간다 (0 → -1)', () => {
+      const { rerender } = render(<Badge>0</Badge>);
+      rerender(<Badge>-1</Badge>);
+      expect(isDown()).toBe(true);
+    });
+
+    it('숫자 → 글자, 글자 → 숫자, 글자 → 글자는 위로 간다', () => {
+      const { rerender } = render(<Badge>5</Badge>);
+      rerender(<Badge>4</Badge>);
+      expect(isDown()).toBe(true);
+      rerender(<Badge>NEW</Badge>);
+      expect(isDown()).toBe(false);
+      rerender(<Badge>3</Badge>);
+      expect(isDown()).toBe(false);
+      rerender(<Badge>2</Badge>);
+      expect(isDown()).toBe(true);
+      rerender(<Badge>HOT</Badge>);
+      expect(isDown()).toBe(false);
+      rerender(<Badge>NEW</Badge>);
+      expect(isDown()).toBe(false);
+    });
+
+    it('max+로 잘린 둘은 표시가 같아 교체도 방향 바뀜도 없다 (100 → 150)', () => {
+      const { rerender } = render(<Badge>100</Badge>);
+      const value = getRoot().querySelector('span');
+      rerender(<Badge>150</Badge>);
+      expect(isDown()).toBe(false);
+      expect(getRoot().querySelector('[aria-hidden="true"]')).toBeNull();
+      expect(getRoot().querySelector('span')).toBe(value);
+    });
+
+    it('max+에서 내려오면 숫자 값으로 줄었다고 본다 (150 → 50)', () => {
+      const { rerender } = render(<Badge>150</Badge>);
+      rerender(<Badge>50</Badge>);
+      expect(isDown()).toBe(true);
+    });
+
+    it('max+로 올라가는 것은 늘었다고 본다 (50 → 150)', () => {
+      const { rerender } = render(<Badge>50</Badge>);
+      rerender(<Badge>150</Badge>);
+      expect(isDown()).toBe(false);
+    });
+
+    it('줄어드는 교체에서도 헌 값 퇴장 노드와 새 값 노드가 함께 뜬다', () => {
+      const { rerender } = render(<Badge>5</Badge>);
+      rerender(<Badge>4</Badge>);
+      expect(getRoot().querySelector('[aria-hidden="true"]')).toHaveTextContent(
+        '5'
+      );
+      expect(screen.getByText('4')).toBeInTheDocument();
+    });
+
+    it('방향은 --badge-dir 하나로 정해지고 directionDown이 -1로 뒤집는다', () => {
+      expect(BADGE_CSS).toContain('export const directionDown = style({');
+      expect(BADGE_CSS).toContain("vars: { '--badge-dir': '-1' }");
     });
   });
 });

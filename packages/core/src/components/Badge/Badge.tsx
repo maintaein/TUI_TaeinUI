@@ -7,6 +7,7 @@ import {
   dotStyles,
   valueCurrent,
   valueExiting,
+  directionDown,
 } from './Badge.css';
 
 /** 숫자 또는 상태를 표시하는 배지 컴포넌트 */
@@ -17,21 +18,13 @@ export interface BadgeProps extends Omit<
   /** 배지에 표시할 내용. 숫자일 경우 max 초과 시 "max+" 형태로 표시 */
   children?: ReactNode;
   /** 배지 색상 테마 @default 'primary' */
-  variant?: 'primary' | 'secondary' | 'success' | 'error' | 'warning' | 'info';
+  variant?: 'primary' | 'secondary' | 'success' | 'error' | 'warning';
   /** 배지 크기 @default 'md' */
   size?: 'sm' | 'md' | 'lg';
   /** 숫자 최대값. 초과 시 "99+" 형태로 표시 @default 99 */
   max?: number;
   /** true면 내용 없이 작은 점만 표시 @default false */
   dot?: boolean;
-  /** children이 0일 때 표시 여부 @default true */
-  showZero?: boolean;
-  /** 스크린 리더용 레이블 */
-  'aria-label'?: string;
-  /** 추가 CSS 클래스 */
-  className?: string;
-  /** 인라인 스타일 */
-  style?: React.CSSProperties;
 }
 
 export const Badge = ({
@@ -40,141 +33,88 @@ export const Badge = ({
   size = 'md',
   max = 99,
   dot = false,
-  showZero = true,
   'aria-label': ariaLabel,
   className,
-  style,
   ...props
 }: BadgeProps) => {
-  // 표시할 내용 결정 — 아래 훅보다 먼저 계산해 둔다. 훅은 이 컴포넌트가
-  // 렌더될 때마다 같은 순서로 호출돼야 하므로, 조기 return이 있는 검증
-  // 블록들보다 앞에 와야 한다.
-  const getDisplayContent = () => {
-    if (dot) {
-      return null;
-    }
+  // 판정은 여기 하나다: 비었는가, 숫자인가. 빈 값(null·undefined·'')이면
+  // 아래에서 렌더하지 않는다.
+  const isEmpty =
+    children === null || children === undefined || children === '';
+  const num = isEmpty ? NaN : Number(children);
+  const isNumeric = !Number.isNaN(num);
 
-    // 숫자인 경우 max 처리
-    const numValue = Number(children);
-    const isNumeric =
-      !isNaN(numValue) &&
-      children !== '' &&
-      children !== null &&
-      children !== undefined;
-
-    if (isNumeric) {
-      // showZero가 false이고 값이 0이면 빈 문자열 반환 (렌더링되지 않도록)
-      if (numValue === 0 && !showZero) {
-        return '';
-      }
-
-      if (numValue > max) {
-        return `${max}+`;
-      }
-      return String(numValue);
-    }
-
-    // 텍스트인 경우 그대로 반환
-    return children;
-  };
-
-  const displayContent = getDisplayContent();
+  // 표시할 내용 결정. 아래 훅보다 먼저 계산해 둔다: 훅은 이 컴포넌트가
+  // 렌더될 때마다 같은 순서로 호출돼야 하므로 조기 return보다 앞에 와야 한다.
+  let displayContent: ReactNode = children;
+  if (dot) {
+    displayContent = null;
+  } else if (isNumeric) {
+    displayContent = num > max ? `${max}+` : String(num);
+  }
 
   // 값 교체 애니메이션: 직전 값을 훅 상태로 들고 있다가 값이 바뀌면 그
-  // 직전 값을 퇴장 노드로 넘긴다 — 이펙트 없이 렌더 중에 상태를 조정하는
+  // 직전 값을 퇴장 노드로 넘긴다. 이펙트 없이 렌더 중에 상태를 조정하는
   // 패턴이다. dot 모드는 표시값이 없어 대상에서 뺀다. prevValue가
   // null/undefined였다면(예: children이 잠깐 비었다가 돌아온 경우) 퇴장시킬
   // "헌 값"이 없으므로 새로 넘기는 대신 남아 있을 수 있는 옛 값을 지운다.
   const [prevValue, setPrevValue] = useState(displayContent);
+  const [prevNum, setPrevNum] = useState(num);
   const [exitingValue, setExitingValue] = useState<typeof displayContent>(null);
+  // 값이 줄어든 교체면 true: 새 값이 위에서 내려오고 헌 값이 아래로 빠진다.
+  const [down, setDown] = useState(false);
 
   // key도 String(displayContent)로 매기므로(아래 valueCurrent), 변경
   // 감지도 반드시 같은 identity(String 형)로 비교해야 한다. 참조
   // 비교(!==)를 쓰면 JSX 자식(children이 텍스트/숫자가 아닌 경우)이 부모
-  // 리렌더마다 새 객체로 오는 것과 key가 어긋난다 — 비교는 "바뀌었다"고
+  // 리렌더마다 새 객체로 오는 것과 key가 어긋난다. 비교는 "바뀌었다"고
   // 보는데 key는 "같다"고 봐서(React 엘리먼트는 String()하면 다 같은
   // "[object Object]"가 된다) 헌 값 유령이 뜨고 들어올 자리가 없어 제자리
   // 걸음만 반복한다. 이건 의도적으로 모든 JSX 엘리먼트를 하나의 identity로
-  // 뭉갠다 — Badge의 계약은 숫자·짧은 텍스트(getDisplayContent 참고)라,
-  // 부모가 무관하게 리렌더될 때마다 조용히 애니메이션이 도는 게 JSX를
-  // 값으로 쓰는 드문 케이스를 못 알아채는 것보다 나쁘다. 이 비교를 다시
-  // 참조 비교로 "고치지" 말 것.
+  // 뭉갠다. Badge의 계약은 숫자·짧은 텍스트라, 부모가 무관하게 리렌더될
+  // 때마다 조용히 애니메이션이 도는 게 JSX를 값으로 쓰는 드문 케이스를 못
+  // 알아채는 것보다 나쁘다. 이 비교를 다시 참조 비교로 "고치지" 말 것.
   if (!dot && String(displayContent) !== String(prevValue)) {
     if (prevValue != null) {
       setExitingValue(prevValue);
     } else {
       // 퇴장시킬 헌 값이 없다 = 직전에 배지가 비어 있었다는 뜻이다. 그때
-      // 박제된 옛 값이 남아 있을 수 있으므로 여기서 지운다 — 안 지우면 배지가
+      // 박제된 옛 값이 남아 있을 수 있으므로 여기서 지운다. 안 지우면 배지가
       // 잠깐 사라졌다 돌아올 때 옛 숫자가 현재 값 옆에서 퇴장을 재생한다.
       setExitingValue(null);
     }
+    // 방향은 표시 문자열이 아니라 숫자 값으로 가른다. 둘 중 하나라도 숫자가
+    // 아니면 NaN 비교가 false라 위로 간다.
+    setDown(num < prevNum);
     setPrevValue(displayContent);
+    setPrevNum(num);
   }
 
-  // dot 모드가 아닐 때 children 검증
-  if (!dot) {
-    // children이 없으면 렌더링하지 않음
-    if (children === null || children === undefined) {
-      return null;
-    }
-
-    // 빈 문자열은 렌더링하지 않음
-    if (children === '') {
-      return null;
-    }
-
-    // 0 처리
-    if (children === 0 && !showZero) {
-      return null;
-    }
-  }
-
-  // displayContent가 빈 문자열이면 렌더링하지 않음
-  if (displayContent === '') {
+  if (!dot && isEmpty) {
     return null;
   }
 
-  // aria-label 자동 생성
-  const getAriaLabel = () => {
-    if (ariaLabel) {
-      return ariaLabel;
-    }
-
-    if (dot) {
-      return '알림';
-    }
-
-    const numValue = Number(children);
-    const isNumeric =
-      !isNaN(numValue) &&
-      children !== '' &&
-      children !== null &&
-      children !== undefined;
-
-    if (isNumeric) {
-      return `${displayContent}개의 알림`;
-    }
-
-    return String(children);
-  };
-
-  const finalAriaLabel = getAriaLabel();
-
   return (
-    // key를 여기 두지 않는다: 이 span이 role="status" 라이브 리전이라,
-    // 값이 바뀔 때마다 재마운트하면 스크린 리더가 매번 새 라이브 리전으로
-    // 취급해 알림이 불안정해진다. 재마운트는 아래 값 노드에서만 일어난다.
+    // key를 여기 두지 않는다: 소비자가 role="status"나 aria-live를 줘서 이
+    // span을 라이브 리전으로 쓸 수 있다. 값이 바뀔 때마다 재마운트하면
+    // 스크린 리더가 매번 새 라이브 리전으로 취급해 알림이 불안정해진다.
+    // 재마운트는 아래 값 노드에서만 일어난다.
     <span
-      role="status"
-      {...(finalAriaLabel ? { 'aria-label': finalAriaLabel } : {})}
+      // 글자 배지는 글자가 곧 접근 이름이다. 점은 이름을 주면 이미지, 안
+      // 주면 장식이다.
+      {...(dot
+        ? ariaLabel
+          ? { role: 'img', 'aria-label': ariaLabel }
+          : { 'aria-hidden': true }
+        : { 'aria-label': ariaLabel })}
       className={clsx(
         badge,
         variantStyles[variant],
         sizeStyles[size],
         dot && dotStyles,
+        down && directionDown,
         className
       )}
-      style={style}
       {...props}
     >
       {!dot && exitingValue !== null && (

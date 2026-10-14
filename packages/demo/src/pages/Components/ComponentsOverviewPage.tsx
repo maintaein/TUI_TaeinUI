@@ -1,5 +1,4 @@
 import { useNavigate } from 'react-router-dom';
-import type { CSSProperties } from 'react';
 import { ArrowRight } from 'lucide-react';
 import { Card, Divider, Badge } from '@taein-ui/core';
 import {
@@ -48,12 +47,10 @@ export function ComponentsOverviewPage() {
               variant="primary"
               size="md"
               className={styles.categoryBadgeCustom}
-              style={
-                {
-                  '--badge-color':
-                    categoryColors[category as ComponentInfo['category']],
-                } as CSSProperties
-              }
+              style={{
+                backgroundColor:
+                  categoryColors[category as ComponentInfo['category']],
+              }}
             >
               {components.length}개
             </Badge>

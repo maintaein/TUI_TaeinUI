@@ -30,7 +30,8 @@ export function BadgePage() {
       name: 'max',
       type: 'number',
       default: '99',
-      description: '숫자 최대값 (초과 시 max+ 표시)',
+      description:
+        '숫자 최대값 (초과 시 max+ 표시). 0은 늘 "0"으로 보이며, 숨기려면 쓰는 쪽에서 조건부로 렌더링',
     },
     {
       name: 'dot',
@@ -39,15 +40,10 @@ export function BadgePage() {
       description: '점 모드 (내용 없이 작은 원으로 표시)',
     },
     {
-      name: 'showZero',
-      type: 'boolean',
-      default: 'true',
-      description: '값이 0일 때 표시 여부',
-    },
-    {
       name: 'aria-label',
       type: 'string',
-      description: '접근성 레이블 (자동 생성되지만 커스텀 가능)',
+      description:
+        '접근성 이름. dot 배지에 주면 role="img"와 그 이름이 붙고, 글자 배지는 글자가 이름이라 보통 필요 없음',
     },
     {
       name: 'className',
@@ -204,21 +200,23 @@ export function BadgePage() {
           />
         </div>
 
-        {/* showZero */}
+        {/* Zero */}
         <div className={styles.example}>
-          <h3 className={styles.exampleTitle}>Show Zero</h3>
+          <h3 className={styles.exampleTitle}>Zero</h3>
           <LivePreview
-            title="0 표시 여부"
-            description="showZero prop으로 값이 0일 때 표시 여부를 제어합니다. 기본값은 true입니다."
+            title="0 숨기기"
+            description="0이면 Badge는 늘 0을 보여 줍니다. 숨기려면 쓰는 쪽에서 조건부로 렌더링하세요."
             editable
-            code={`<div style={{ display: 'flex', gap: '1.5rem', alignItems: 'center' }}>
+            code={`const count = 0;
+
+<div style={{ display: 'flex', gap: '1.5rem', alignItems: 'center' }}>
   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem' }}>
-    <Badge variant="error">{0}</Badge>
-    <span style={{ fontSize: '0.75rem', color: '#6b7280' }}>showZero=true</span>
+    <Badge variant="error">{count}</Badge>
+    <span style={{ fontSize: '0.75rem', color: '#6b7280' }}>그대로</span>
   </div>
-  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem' }}>
-    <Badge variant="error" showZero={false}>{0}</Badge>
-    <span style={{ fontSize: '0.75rem', color: '#6b7280' }}>showZero=false (숨김)</span>
+  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem', minWidth: '4rem' }}>
+    {count > 0 && <Badge variant="error">{count}</Badge>}
+    <span style={{ fontSize: '0.75rem', color: '#6b7280' }}>count &gt; 0 일 때만</span>
   </div>
 </div>`}
           />
@@ -313,13 +311,13 @@ export function BadgePage() {
           <h3 className={styles.exampleTitle}>Interactive Counter</h3>
           <LivePreview
             title="인터랙티브 카운터"
-            description="상태와 함께 사용하여 동적으로 배지 값을 변경하는 예제입니다."
+            description="상태와 함께 사용하여 동적으로 배지 값을 변경하는 예제입니다. 숫자가 늘면 새 값이 아래에서 올라오고, 줄면 위에서 내려옵니다."
             editable
             code={`const [count, setCount] = useState(0);
 
 <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
   <Button size="sm" variant="light" onClick={() => setCount((c) => Math.max(0, c - 1))}>-</Button>
-  <Badge variant={count > 0 ? 'error' : 'secondary'} showZero={true}>{count}</Badge>
+  <Badge variant={count > 0 ? 'error' : 'secondary'}>{count}</Badge>
   <Button size="sm" variant="light" onClick={() => setCount((c) => c + 1)}>+</Button>
   <Button size="sm" variant="dark" buttonStyle="weak" onClick={() => setCount(0)}>초기화</Button>
 </div>`}
@@ -344,25 +342,25 @@ export function BadgePage() {
       {/* Accessibility */}
       <AccessibilitySection
         componentName="Badge"
-        intro="Badge 컴포넌트는 다음과 같은 접근성 기능을 기본 제공합니다."
+        intro="Badge는 글자를 그대로 이름으로 쓰고, 별도의 role은 쓰는 쪽이 정합니다."
         features={[
           {
+            attribute: '글자가 접근 이름',
+            effect: '숫자와 글자 배지는 안의 글자가 그대로 읽힙니다.',
+            description:
+              '글자 배지에는 role과 aria-label을 달지 않습니다. 버튼 안에 둔 배지는 버튼 이름의 일부로 읽힙니다.',
+          },
+          {
+            attribute: 'dot의 aria-label',
+            effect: '점이 무엇을 뜻하는지 알립니다.',
+            description:
+              'dot 배지에 aria-label을 주면 role="img"와 그 이름이 붙습니다. 주지 않으면 aria-hidden="true"인 장식으로 숨깁니다.',
+          },
+          {
             attribute: 'role="status"',
-            effect: '배지가 상태 정보임을 전달합니다.',
+            effect: '값이 바뀔 때 스크린 리더가 알립니다.',
             description:
-              'role="status"로 설정되어 스크린 리더가 배지의 역할을 올바르게 인식합니다.',
-          },
-          {
-            attribute: 'aria-label 자동 생성',
-            effect: '배지 내용을 스크린 리더가 읽습니다.',
-            description:
-              '숫자 배지는 "5개의 알림", dot 배지는 "알림", 텍스트 배지는 텍스트 자체를 aria-label로 자동 생성합니다.',
-          },
-          {
-            attribute: 'aria-label 커스텀',
-            effect: '원하는 레이블을 직접 지정할 수 있습니다.',
-            description:
-              'aria-label prop으로 자동 생성된 레이블 대신 커스텀 레이블을 사용할 수 있습니다.',
+              '기본으로는 달지 않습니다. 알림처럼 읽혀야 하면 role="status"(또는 aria-live)를 직접 주세요. 값이 바뀔 때 루트를 다시 마운트하지 않으므로 라이브 리전으로 쓸 수 있습니다.',
           },
         ]}
         additionalGuidance={[
@@ -377,7 +375,7 @@ export function BadgePage() {
 // Bad - 맥락 부족
 <Badge variant="error">{3}</Badge>`,
                 explanation:
-                  '자동 생성되는 "3개의 알림" 대신, 구체적인 맥락을 포함하면 더 좋습니다.',
+                  '글자 배지는 "3"만 읽힙니다. 무엇의 개수인지 구체적인 맥락을 aria-label로 주면 더 좋습니다.',
               },
             ],
           },
@@ -425,7 +423,8 @@ export function BadgePage() {
                 <ListItem>장식 목적으로만 배지 사용하지 않기</ListItem>
                 <ListItem>한 화면에 너무 많은 배지 남용하지 않기</ListItem>
                 <ListItem>
-                  의미 없는 0 표시하지 않기 (showZero={false} 활용)
+                  의미 없는 0 표시하지 않기 ({'{count > 0 && <Badge>}'}로 조건부
+                  렌더링)
                 </ListItem>
                 <ListItem>
                   색상만으로 정보를 전달하지 않기 (텍스트 병행)

@@ -370,12 +370,14 @@ import { Badge } from '@taein-ui/core';
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
 | children | ReactNode | — | Badge content |
-| variant | 'primary' \| 'secondary' \| 'success' \| 'error' \| 'warning' \| 'info' | 'primary' | Badge variant |
+| variant | 'primary' \| 'secondary' \| 'success' \| 'error' \| 'warning' | 'primary' | Badge variant |
 | size | 'sm' \| 'md' \| 'lg' | 'md' | Badge size |
 | max | number | 99 | Maximum value |
 | dot | boolean | false | Dot mode |
-| showZero | boolean | true | Show when value is 0 |
 | className | string | — | Additional CSS class |
+| aria-label | string | - | Accessible name. On `dot` it adds role="img"; without it a dot is `aria-hidden` |
+
+No default `role`. Text is the accessible name. Pass `role="status"` or `aria-live` to make it a live region. When the number decreases the old value leaves downward.
 
 ---
 

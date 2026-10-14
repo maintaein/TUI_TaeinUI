@@ -311,7 +311,7 @@ export function HeaderBarPage() {
     title="Admin"
     actions={
       <div style={{ display: 'flex', gap: '0.25rem', alignItems: 'center' }}>
-        <Badge variant="danger" size="sm">3</Badge>
+        <Badge variant="error" size="sm">3</Badge>
         <IconButton aria-label="알림" size="sm"><Bell /></IconButton>
       </div>
     }
