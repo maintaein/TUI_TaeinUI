@@ -323,7 +323,10 @@ export function DividerPage() {
                 <ListItem>
                   padding/margin으로 대체 가능한 곳에 남용하지 않기
                 </ListItem>
-                <ListItem>수직 구분선을 flex 줄 밖에 두지 않기</ListItem>
+                <ListItem>
+                  수직 구분선을 가로 flex 줄 밖에 두지 않기(블록 부모에서는
+                  높이가 0이 된다. 그럴 땐 구분선에 height를 직접 준다)
+                </ListItem>
                 <ListItem>텍스트에 너무 긴 문장 넣지 않기</ListItem>
                 <ListItem>카드, 리스트 내부에서 중복 구분하지 않기</ListItem>
               </List>
