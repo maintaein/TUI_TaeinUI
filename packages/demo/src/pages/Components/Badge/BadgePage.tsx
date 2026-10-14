@@ -12,7 +12,7 @@ export function BadgePage() {
       name: 'children',
       type: 'ReactNode',
       description:
-        '배지에 표시할 내용 (숫자 또는 텍스트). dot 모드에서는 무시됨',
+        '배지에 표시할 내용 (숫자 또는 텍스트). dot 모드에서는 무시됨. 0도 그대로 보인다. 숨기려면 `{count > 0 && <Badge>{count}</Badge>}`처럼 감싼다',
     },
     {
       name: 'variant',
@@ -196,28 +196,6 @@ export function BadgePage() {
   <Badge dot variant="success" />
   <Badge dot variant="error" />
   <Badge dot variant="warning" />
-</div>`}
-          />
-        </div>
-
-        {/* Zero */}
-        <div className={styles.example}>
-          <h3 className={styles.exampleTitle}>Zero</h3>
-          <LivePreview
-            title="0 숨기기"
-            description="0이면 Badge는 늘 0을 보여 줍니다. 숨기려면 쓰는 쪽에서 조건부로 렌더링하세요."
-            editable
-            code={`const count = 0;
-
-<div style={{ display: 'flex', gap: '1.5rem', alignItems: 'center' }}>
-  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem' }}>
-    <Badge variant="error">{count}</Badge>
-    <span style={{ fontSize: '0.75rem', color: '#6b7280' }}>그대로</span>
-  </div>
-  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem', minWidth: '4rem' }}>
-    {count > 0 && <Badge variant="error">{count}</Badge>}
-    <span style={{ fontSize: '0.75rem', color: '#6b7280' }}>count &gt; 0 일 때만</span>
-  </div>
 </div>`}
           />
         </div>
