@@ -419,6 +419,23 @@ export const CustomSizes: Story = {
   ),
 };
 
+/** 스켈레톤은 장식(`aria-hidden`)이다. 로딩 알림은 감싸는 영역이 맡는다. */
+export const LoadingRegion: Story = {
+  render: () => (
+    <section
+      aria-busy="true"
+      aria-label="프로필 로딩 중"
+      style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}
+    >
+      <Skeleton variant="circle" width={48} />
+      <div style={{ width: '200px' }}>
+        <Skeleton variant="text" width="60%" />
+        <Skeleton variant="text" width="40%" />
+      </div>
+    </section>
+  ),
+};
+
 export const Playground: Story = {
   args: {
     variant: 'text',

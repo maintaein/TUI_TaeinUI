@@ -2,7 +2,10 @@ import type { HTMLAttributes } from 'react';
 import clsx from 'clsx';
 import { skeleton, variantStyles, animationStyles } from './Skeleton.css';
 
-/** 콘텐츠 로딩 중 표시하는 플레이스홀더 컴포넌트 */
+/**
+ * 콘텐츠 로딩 중 표시하는 플레이스홀더 컴포넌트. 장식이라 스크린 리더에서
+ * 숨는다(`aria-hidden`). 로딩 알림은 감싸는 영역에 `aria-busy`와 이름을 줘서 한다.
+ */
 export interface SkeletonProps extends HTMLAttributes<HTMLSpanElement> {
   /** 스켈레톤 형태 @default 'text' */
   variant?: 'text' | 'rect' | 'circle' | 'rounded';
@@ -12,63 +15,37 @@ export interface SkeletonProps extends HTMLAttributes<HTMLSpanElement> {
   width?: number | string;
   /** 높이 (숫자면 px, 문자열이면 CSS 단위) */
   height?: number | string;
-  /** 스크린 리더용 레이블 */
-  'aria-label'?: string;
-  /** 추가 CSS 클래스 */
-  className?: string;
 }
+
+// 숫자면 px, 문자열은 그대로. undefined는 인라인 크기를 달지 않는다.
+const toCss = (value?: number | string) =>
+  typeof value === 'number' ? `${value}px` : value;
 
 export const Skeleton = ({
   variant = 'text',
   animation = 'wave',
   width,
   height,
-  'aria-label': ariaLabel,
   className,
   ...props
-}: SkeletonProps) => {
-  const getDimensions = () => {
-    const style: React.CSSProperties = {};
-
-    if (width !== undefined) {
-      style.width = typeof width === 'number' ? `${width}px` : width;
-    }
-
-    if (height !== undefined) {
-      style.height = typeof height === 'number' ? `${height}px` : height;
-    }
-
-    // circle variant는 width만 설정하면 height도 동일하게
-    if (variant === 'circle' && width !== undefined && height === undefined) {
-      style.height = style.width;
-    }
-
-    return style;
-  };
-
-  const getAriaLabel = () => {
-    if (ariaLabel) {
-      return ariaLabel;
-    }
-    return '콘텐츠 로딩 중';
-  };
-
-  return (
-    <span
-      role="status"
-      aria-live="polite"
-      aria-busy="true"
-      aria-label={getAriaLabel()}
-      className={clsx(
-        skeleton,
-        variantStyles[variant],
-        animation && animationStyles[animation],
-        className
-      )}
-      style={getDimensions()}
-      {...props}
-    />
-  );
-};
+}: SkeletonProps) => (
+  <span
+    // 스켈레톤은 장식이다: 로딩 알림은 감싸는 영역(aria-busy와 이름)이 맡는다.
+    // 소비자가 이름이나 role을 주면 숨기지 않는다(Badge 점과 같은 규칙).
+    aria-hidden={props['aria-label'] || props.role ? undefined : true}
+    className={clsx(
+      skeleton,
+      variantStyles[variant],
+      animation && animationStyles[animation],
+      className
+    )}
+    // circle은 width만 주면 height도 같게 한다.
+    style={{
+      width: toCss(width),
+      height: toCss(height ?? (variant === 'circle' ? width : undefined)),
+    }}
+    {...props}
+  />
+);
 
 Skeleton.displayName = 'Skeleton';

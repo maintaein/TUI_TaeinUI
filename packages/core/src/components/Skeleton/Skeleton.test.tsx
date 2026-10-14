@@ -111,22 +111,20 @@ describe('Skeleton', () => {
     });
   });
 
-  describe('접근성 테스트', () => {
-    it('aria-busy="true"를 가진다', () => {
+  describe('접근성 테스트: 스켈레톤은 장식이다(로딩 알림은 감싸는 영역이 맡는다)', () => {
+    it('기본은 aria-hidden="true"이고 role, aria-live, aria-busy, aria-label이 없다', () => {
       const { container } = render(<Skeleton />);
       const skeleton = container.firstChild as HTMLElement;
-      expect(skeleton).toHaveAttribute('aria-busy', 'true');
+      expect(skeleton).toHaveAttribute('aria-hidden', 'true');
+      expect(skeleton).not.toHaveAttribute('role');
+      expect(skeleton).not.toHaveAttribute('aria-live');
+      expect(skeleton).not.toHaveAttribute('aria-busy');
+      expect(skeleton).not.toHaveAttribute('aria-label');
     });
 
-    it('aria-live="polite"를 가진다', () => {
-      const { container } = render(<Skeleton />);
-      const skeleton = container.firstChild as HTMLElement;
-      expect(skeleton).toHaveAttribute('aria-live', 'polite');
-    });
-
-    it('role="status"를 가진다', () => {
+    it('라이브 리전이 아니라서 접근성 트리에 status가 없다', () => {
       render(<Skeleton />);
-      expect(screen.getByRole('status')).toBeInTheDocument();
+      expect(screen.queryByRole('status')).toBeNull();
     });
 
     it('커스텀 aria-label을 설정할 수 있다', () => {
@@ -137,10 +135,72 @@ describe('Skeleton', () => {
       expect(skeleton).toHaveAttribute('aria-label', '프로필 이미지 로딩 중');
     });
 
-    it('기본 aria-label을 가진다', () => {
+    it('소비자가 aria-label을 주면 aria-hidden을 달지 않는다', () => {
+      const { container } = render(<Skeleton aria-label="프로필 로딩 중" />);
+      const skeleton = container.firstChild as HTMLElement;
+      expect(skeleton).not.toHaveAttribute('aria-hidden');
+    });
+
+    it('소비자가 role을 주면 aria-hidden을 달지 않고 role을 그대로 붙인다', () => {
+      render(<Skeleton role="status" />);
+      const skeleton = screen.getByRole('status');
+      expect(skeleton).not.toHaveAttribute('aria-hidden');
+    });
+
+    it('소비자의 aria-hidden이 우선한다({...props}가 접근성 속성 뒤에 온다)', () => {
+      const { container } = render(
+        <Skeleton aria-label="로딩" aria-hidden="true" />
+      );
+      expect(container.firstChild).toHaveAttribute('aria-hidden', 'true');
+    });
+
+    it('감싸는 영역의 aria-busy와 이름이 로딩을 알린다(문서 예제 패턴)', () => {
+      render(
+        <section aria-busy="true" aria-label="프로필 로딩 중">
+          <Skeleton />
+          <Skeleton variant="circle" width={40} />
+        </section>
+      );
+      const region = screen.getByRole('region', { name: '프로필 로딩 중' });
+      expect(region).toHaveAttribute('aria-busy', 'true');
+    });
+  });
+
+  describe('소비자 속성 병합 테스트', () => {
+    it('소비자의 style이 계산된 크기를 덮는다({...props}가 style 뒤에 온다)', () => {
+      const { container } = render(
+        <Skeleton width={200} style={{ width: '10px' }} data-testid="sk" />
+      );
+      const skeleton = container.firstChild as HTMLElement;
+      expect(skeleton.style.width).toBe('10px');
+      expect(skeleton).toHaveAttribute('data-testid', 'sk');
+    });
+
+    it('width, height가 없으면 인라인 크기를 달지 않는다', () => {
       const { container } = render(<Skeleton />);
       const skeleton = container.firstChild as HTMLElement;
-      expect(skeleton).toHaveAttribute('aria-label', '콘텐츠 로딩 중');
+      expect(skeleton.style.width).toBe('');
+      expect(skeleton.style.height).toBe('');
+    });
+
+    it('circle에 height를 따로 주면 width를 따라가지 않는다', () => {
+      const { container } = render(
+        <Skeleton variant="circle" width={40} height={20} />
+      );
+      const skeleton = container.firstChild as HTMLElement;
+      expect(skeleton.style.height).toBe('20px');
+    });
+
+    it('circle이 아니면 width만 줘도 height를 달지 않는다', () => {
+      const { container } = render(<Skeleton variant="rect" width={40} />);
+      const skeleton = container.firstChild as HTMLElement;
+      expect(skeleton.style.height).toBe('');
+    });
+
+    it('circle에 문자열 width만 줘도 height가 같다', () => {
+      const { container } = render(<Skeleton variant="circle" width="3rem" />);
+      const skeleton = container.firstChild as HTMLElement;
+      expect(skeleton.style.height).toBe('3rem');
     });
   });
 
@@ -183,8 +243,11 @@ describe('Skeleton', () => {
           <Skeleton variant="circle" width={40} />
         </div>
       );
-      const skeletons = container.querySelectorAll('[role="status"]');
-      expect(skeletons).toHaveLength(3);
+      // 스켈레톤 여럿이 라이브 리전을 여럿 만들지 않는다: 전부 장식이다.
+      expect(container.querySelectorAll('[role]')).toHaveLength(0);
+      expect(container.querySelectorAll('[aria-hidden="true"]')).toHaveLength(
+        3
+      );
     });
   });
 

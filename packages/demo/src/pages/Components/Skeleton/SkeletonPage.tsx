@@ -34,8 +34,8 @@ export function SkeletonPage() {
     {
       name: 'aria-label',
       type: 'string',
-      default: "'콘텐츠 로딩 중'",
-      description: '접근성 레이블',
+      description:
+        '기본은 없음(스켈레톤은 장식이라 aria-hidden). 주면 aria-hidden 없이 접근 이름이 되고, role을 줘도 마찬가지입니다. 로딩 알림은 감싸는 영역에 줍니다',
     },
     {
       name: 'className',
@@ -316,7 +316,7 @@ export function SkeletonPage() {
           <h3 className={styles.exampleTitle}>Loading to Content</h3>
           <LivePreview
             title="로딩 → 콘텐츠 전환"
-            description="버튼 클릭으로 스켈레톤에서 실제 콘텐츠로 전환되는 패턴입니다."
+            description="버튼 클릭으로 스켈레톤에서 실제 콘텐츠로 전환되는 패턴입니다. 로딩 알림은 스켈레톤이 아니라 감싸는 section의 aria-busy와 이름이 맡습니다."
             editable
             centered={false}
             code={`const [loaded, setLoaded] = useState(false);
@@ -329,7 +329,7 @@ const handleLoad = () => {
   <Button size="sm" variant="light" onClick={handleLoad}>
     {loaded ? '다시 로드' : '콘텐츠 불러오기'}
   </Button>
-  <div style={{ maxWidth: '400px', padding: '1rem', border: '1px solid #e5e7eb', borderRadius: '0.75rem' }}>
+  <section aria-busy={!loaded} aria-label="프로필 카드" style={{ maxWidth: '400px', padding: '1rem', border: '1px solid #e5e7eb', borderRadius: '0.75rem' }}>
     {loaded ? (
       <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
         <div style={{ width: '44px', height: '44px', borderRadius: '50%', backgroundColor: '#dbeafe', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><User size={20} /></div>
@@ -347,7 +347,7 @@ const handleLoad = () => {
         </div>
       </div>
     )}
-  </div>
+  </section>
 </div>`}
           />
         </div>
@@ -370,34 +370,31 @@ const handleLoad = () => {
       {/* Accessibility */}
       <AccessibilitySection
         componentName="Skeleton"
-        intro="Skeleton 컴포넌트는 다음과 같은 접근성 기능을 기본 제공합니다."
+        intro="Skeleton은 장식이라 스크린 리더에서 숨습니다. 로딩 알림은 스켈레톤을 감싸는 영역이 맡습니다."
         features={[
           {
-            attribute: 'role="status"',
-            effect: '로딩 상태임을 전달합니다.',
+            attribute: 'aria-hidden="true"',
+            effect: '스크린 리더가 스켈레톤을 읽지 않습니다.',
             description:
-              'role="status"로 설정되어 스크린 리더가 콘텐츠가 로딩 중임을 인식합니다.',
-          },
-          {
-            attribute: 'aria-busy="true"',
-            effect: '콘텐츠가 아직 준비 중임을 알려줍니다.',
-            description:
-              'aria-busy="true"로 설정되어 현재 콘텐츠가 로딩 중이라는 것을 전달합니다.',
-          },
-          {
-            attribute: 'aria-live="polite"',
-            effect: '상태 변화를 자동으로 읽어줍니다.',
-            description:
-              '로딩 완료 시 스크린 리더가 변경 사항을 사용자에게 알려줍니다.',
-          },
-          {
-            attribute: 'aria-label',
-            effect: '"콘텐츠 로딩 중"이라고 읽어줍니다.',
-            description:
-              '기본 "콘텐츠 로딩 중" 또는 커스텀 aria-label로 로딩 내용을 설명합니다.',
+              '기본으로 붙습니다. 카드 하나에 스켈레톤이 다섯이어도 다섯 번 알리지 않습니다. role이나 aria-label을 직접 주면 붙지 않고 그대로 전달됩니다.',
           },
         ]}
         additionalGuidance={[
+          {
+            title: '로딩 알림은 감싸는 영역에',
+            description:
+              '스켈레톤들을 감싸는 영역에 aria-busy와 이름을 주세요. 로딩이 끝나면 aria-busy를 거둡니다.',
+            examples: [
+              {
+                code: `<section aria-busy="true" aria-label="프로필 로딩 중">
+  <Skeleton variant="circle" width={48} />
+  <Skeleton variant="text" width="60%" />
+</section>`,
+                explanation:
+                  '영역 하나가 한 번만 알립니다. 스켈레톤마다 라이브 리전을 두지 않습니다.',
+              },
+            ],
+          },
           {
             title: 'prefers-reduced-motion 대응',
             description:
