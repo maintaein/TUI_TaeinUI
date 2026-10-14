@@ -43,7 +43,7 @@ export function BadgePage() {
       name: 'aria-label',
       type: 'string',
       description:
-        '접근성 이름. dot 배지에 주면 role="img"와 그 이름이 붙고, 글자 배지는 글자가 이름이라 보통 필요 없음',
+        '점 배지의 접근성 이름(role="img"가 붙음). 글자 배지는 글자가 이름이라 보통 필요 없고, 쓰려면 role과 함께 줌',
     },
     {
       name: 'className',
@@ -365,17 +365,20 @@ export function BadgePage() {
         ]}
         additionalGuidance={[
           {
-            title: '맥락에 맞는 aria-label',
+            title: '맥락에 맞는 이름',
             description: '배지가 어디에 연결되어 있는지 명확히 설명하세요.',
             examples: [
               {
-                code: `// Good
-<Badge variant="error" aria-label="읽지 않은 메시지 3개">{3}</Badge>
+                code: `// Good - 알림으로 읽혀야 하면 role과 함께
+<Badge variant="error" role="status" aria-label="읽지 않은 메시지 3개">{3}</Badge>
+
+// Good - 점 배지는 aria-label이 곧 이름
+<Badge dot aria-label="새 알림" />
 
 // Bad - 맥락 부족
 <Badge variant="error">{3}</Badge>`,
                 explanation:
-                  '글자 배지는 "3"만 읽힙니다. 무엇의 개수인지 구체적인 맥락을 aria-label로 주면 더 좋습니다.',
+                  '글자 배지는 "3"만 읽힙니다. 무엇의 개수인지 알리려면 role과 함께 aria-label을 주고, 점 배지는 aria-label로 이름을 줍니다.',
               },
             ],
           },
@@ -407,7 +410,9 @@ export function BadgePage() {
                 <ListItem>
                   의미에 맞는 variant 선택 (success=완료, warning=주의)
                 </ListItem>
-                <ListItem>맥락에 맞는 aria-label 커스텀</ListItem>
+                <ListItem>
+                  맥락에 맞는 aria-label 커스텀 (글자 배지는 role과 함께)
+                </ListItem>
               </List>
             </Card.Body>
           </Card>

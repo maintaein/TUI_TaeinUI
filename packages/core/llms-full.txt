@@ -375,7 +375,7 @@ import { Badge } from '@taein-ui/core';
 | max | number | 99 | Maximum value |
 | dot | boolean | false | Dot mode |
 | className | string | — | Additional CSS class |
-| aria-label | string | - | Accessible name. On `dot` it adds role="img"; without it a dot is `aria-hidden` |
+| aria-label | string | - | Accessible name of a `dot` (adds role="img"), or use it together with `role`. Without a name or `role`, a dot is `aria-hidden`. Text badges are named by their text |
 
 No default `role`. Text is the accessible name. Pass `role="status"` or `aria-live` to make it a live region. When the number decreases the old value leaves downward.
 

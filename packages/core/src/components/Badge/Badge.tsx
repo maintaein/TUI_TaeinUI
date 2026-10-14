@@ -59,7 +59,7 @@ export const Badge = ({
   // null/undefined였다면(예: children이 잠깐 비었다가 돌아온 경우) 퇴장시킬
   // "헌 값"이 없으므로 새로 넘기는 대신 남아 있을 수 있는 옛 값을 지운다.
   const [prevValue, setPrevValue] = useState(displayContent);
-  const [prevNum, setPrevNum] = useState(num);
+  const [prevNum, setPrevNum] = useState(dot ? NaN : num);
   const [exitingValue, setExitingValue] = useState<typeof displayContent>(null);
   // 값이 줄어든 교체면 true: 새 값이 위에서 내려오고 헌 값이 아래로 빠진다.
   const [down, setDown] = useState(false);
@@ -74,7 +74,15 @@ export const Badge = ({
   // 뭉갠다. Badge의 계약은 숫자·짧은 텍스트라, 부모가 무관하게 리렌더될
   // 때마다 조용히 애니메이션이 도는 게 JSX를 값으로 쓰는 드문 케이스를 못
   // 알아채는 것보다 나쁘다. 이 비교를 다시 참조 비교로 "고치지" 말 것.
-  if (!dot && String(displayContent) !== String(prevValue)) {
+  if (dot) {
+    // dot인 동안은 직전 값을 비워 둔다. 안 비우면 5 → dot → 3에서 보이지
+    // 않던 5가 퇴장 노드로 뜨고 방향도 그 5와 비교한다.
+    if (prevValue !== null) {
+      setPrevValue(null);
+      setPrevNum(NaN);
+      setExitingValue(null);
+    }
+  } else if (String(displayContent) !== String(prevValue)) {
     if (prevValue != null) {
       setExitingValue(prevValue);
     } else {
@@ -100,12 +108,14 @@ export const Badge = ({
     // 스크린 리더가 매번 새 라이브 리전으로 취급해 알림이 불안정해진다.
     // 재마운트는 아래 값 노드에서만 일어난다.
     <span
-      // 글자 배지는 글자가 곧 접근 이름이다. 점은 이름을 주면 이미지, 안
-      // 주면 장식이다.
+      // 글자 배지는 글자가 곧 접근 이름이다. 점은 이름을 주면 이미지, 이름도
+      // role도 없으면 장식이다. 소비자가 role을 주면 숨기지 않는다.
       {...(dot
         ? ariaLabel
           ? { role: 'img', 'aria-label': ariaLabel }
-          : { 'aria-hidden': true }
+          : props.role
+            ? {}
+            : { 'aria-hidden': true }
         : { 'aria-label': ariaLabel })}
       className={clsx(
         badge,

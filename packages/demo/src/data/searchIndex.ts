@@ -226,7 +226,10 @@ export const searchIndex: SearchEntry[] = [
       { title: 'Dot', content: 'dot 모드로 알림 표시' },
       { title: 'Count', content: '숫자 카운트 뱃지' },
       { title: 'Max', content: 'max prop으로 최대 숫자 제한 (예: 99+)' },
-      { title: 'Colors', content: 'primary, danger, warning, success 색상' },
+      {
+        title: 'Colors',
+        content: 'primary, secondary, success, error, warning 색상',
+      },
     ],
   },
   {

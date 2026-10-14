@@ -232,6 +232,20 @@ describe('Badge', () => {
       expect(screen.queryByRole('img')).toBeNull();
     });
 
+    it('dot에 소비자 role이 오면 aria-hidden을 달지 않는다', () => {
+      render(<Badge dot role="status" />);
+      const root = getRoot();
+      expect(root).toHaveAttribute('role', 'status');
+      expect(root).not.toHaveAttribute('aria-hidden');
+    });
+
+    it('dot에 aria-label과 소비자 role이 같이 오면 소비자 role이 이긴다', () => {
+      render(<Badge dot aria-label="새 알림" role="status" />);
+      const root = getRoot();
+      expect(root).toHaveAttribute('role', 'status');
+      expect(root).toHaveAttribute('aria-label', '새 알림');
+    });
+
     it('글자 배지는 aria-hidden이 아니다', () => {
       render(<Badge>5</Badge>);
       expect(getRoot()).not.toHaveAttribute('aria-hidden');
@@ -545,6 +559,17 @@ describe('Badge', () => {
     it('max+로 올라가는 것은 늘었다고 본다 (50 → 150)', () => {
       const { rerender } = render(<Badge>50</Badge>);
       rerender(<Badge>150</Badge>);
+      expect(isDown()).toBe(false);
+    });
+
+    it('dot을 거쳐 값이 돌아와도 보이지 않던 직전 값이 퇴장 노드로 뜨지 않는다 (5 → dot → 3)', () => {
+      const { rerender } = render(<Badge>5</Badge>);
+      rerender(<Badge dot />);
+      rerender(<Badge>3</Badge>);
+      expect(getRoot().querySelector('[aria-hidden="true"]')).toBeNull();
+      expect(screen.getByText('3')).toBeInTheDocument();
+      expect(screen.queryByText('5')).toBeNull();
+      // 비교할 직전 값이 없으니 위로 간다.
       expect(isDown()).toBe(false);
     });
 
