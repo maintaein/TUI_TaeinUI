@@ -227,15 +227,11 @@ const HeaderBarPillItem = ({ item }: HeaderBarPillItemProps) => {
 
 interface HeaderBarPillNavProps {
   items: HeaderBarItem[];
-  variantClassName: string;
 }
 
 /** `HeaderBar`가 `navStyle="pill"`일 때 그리는 내부 컴포넌트. 공개 export가 아니다. */
-export const HeaderBarPillNav = ({
-  items,
-  variantClassName,
-}: HeaderBarPillNavProps) => (
-  <nav aria-label="주요 메뉴" className={`${pillNav} ${variantClassName}`}>
+export const HeaderBarPillNav = ({ items }: HeaderBarPillNavProps) => (
+  <nav aria-label="주요 메뉴" className={pillNav}>
     {items.map((item) => (
       <HeaderBarPillItem key={item.label} item={item} />
     ))}

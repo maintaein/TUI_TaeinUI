@@ -1,4 +1,4 @@
-import { createVar, style, styleVariants } from '@vanilla-extract/css';
+import { style, styleVariants } from '@vanilla-extract/css';
 import { themeContract } from '../../tokens/theme.css';
 import { mediaQuery } from '../../tokens/breakpoints.css';
 import { focusRing } from '../../tokens/focusRing.css';
@@ -67,26 +67,11 @@ export const bar = style({
   padding: themeContract.spacing[2],
   paddingLeft: themeContract.spacing[4],
   borderRadius: themeContract.borderRadius.lg,
+  backgroundColor: themeContract.color.background.default,
+  color: themeContract.color.text.primary,
   boxShadow: themeContract.shadow.md,
   // header의 pointerEvents: none을 바에서 되돌린다.
   pointerEvents: 'auto',
-});
-
-// bar보다 뒤에 선언해야 같은 특이도에서 boxShadow를 덮는다.
-export const variantStyles = styleVariants({
-  default: {
-    backgroundColor: themeContract.color.background.default,
-    color: themeContract.color.text.primary,
-  },
-  dark: {
-    backgroundColor: themeContract.color.text.primary,
-    color: themeContract.color.background.paper,
-  },
-  transparent: {
-    backgroundColor: 'transparent',
-    boxShadow: 'none',
-    color: themeContract.color.text.primary,
-  },
 });
 
 export const leftSection = style({
@@ -159,8 +144,7 @@ export const textNav = style({
 });
 
 /**
- * 호버·키보드 포커스·선택된 항목의 옅은 바탕. currentColor라 어두운 바에서도 글자색에
- * 맞는다. 글자 항목(text·dropdown·판 안 링크)과 icon 알약이 같이 쓴다.
+ * 호버·키보드 포커스·선택된 항목의 옅은 바탕. currentColor라 글자색에 맞는다. 글자 항목(text·dropdown·판 안 링크)과 icon 알약이 같이 쓴다.
  */
 export const TINT_HOVER = 'color-mix(in srgb, currentColor 10%, transparent)';
 /** 누르는 동안의 바탕(icon 알약). */
@@ -283,6 +267,8 @@ export const panel = style({
   flexDirection: 'column',
   padding: themeContract.spacing[2],
   borderRadius: themeContract.borderRadius.lg,
+  backgroundColor: themeContract.color.background.default,
+  color: themeContract.color.text.primary,
   boxShadow: themeContract.shadow.md,
   opacity: 0,
   visibility: 'hidden',
@@ -292,22 +278,6 @@ export const panel = style({
     [mediaQuery.up.md]: {
       display: 'none',
     },
-  },
-});
-
-// 패널 면. transparent 바도 패널은 읽을 수 있는 면이 필요하다.
-export const panelVariantStyles = styleVariants({
-  default: {
-    backgroundColor: themeContract.color.background.default,
-    color: themeContract.color.text.primary,
-  },
-  dark: {
-    backgroundColor: themeContract.color.text.primary,
-    color: themeContract.color.background.paper,
-  },
-  transparent: {
-    backgroundColor: themeContract.color.background.default,
-    color: themeContract.color.text.primary,
   },
 });
 
@@ -353,40 +323,6 @@ const GLOW_MIX_PERCENT = 45;
 const pillGlow = (color: string): string =>
   `0 0 ${GLOW_BLUR_PX}px color-mix(in srgb, ${color} ${GLOW_MIX_PERCENT}%, transparent)`;
 
-// variant가 면·글자·원 색을 바꾼다. 알약 부품은 이 변수만 읽는다.
-const pillFace = createVar();
-const pillBase = createVar();
-const pillText = createVar();
-const pillCircleColor = createVar();
-const pillCoverColor = createVar();
-const pillGlowColor = createVar();
-
-const pillLightVars = {
-  [pillFace]: themeContract.color.surface.hover,
-  [pillBase]: themeContract.color.background.default,
-  [pillText]: themeContract.color.text.primary,
-  [pillCircleColor]: themeContract.color.primary.main,
-  [pillCoverColor]: themeContract.color.primary.contrast,
-  [pillGlowColor]: themeContract.color.primary.contrast,
-};
-
-export const pillVariantStyles = styleVariants({
-  default: { vars: pillLightVars },
-  // 어두운 바: 바깥 알약은 바보다 한 단계 밝은 어두운 면, 원은 어두운 면 위에서 읽히는 밝은 파랑.
-  // 그 위에 얹는 글자는 어두운 색(text.primary)이라 대비가 난다.
-  dark: {
-    vars: {
-      [pillFace]: themeContract.color.text.secondary,
-      [pillBase]: themeContract.color.text.primary,
-      [pillText]: themeContract.color.text.inverse,
-      [pillCircleColor]: themeContract.color.primary.light,
-      [pillCoverColor]: themeContract.color.text.primary,
-      [pillGlowColor]: themeContract.color.background.paper,
-    },
-  },
-  transparent: { vars: pillLightVars },
-});
-
 export const pillNav = style({
   boxSizing: 'border-box',
   display: 'flex',
@@ -395,7 +331,7 @@ export const pillNav = style({
   height: `${PILL_NAV_HEIGHT}px`,
   padding: `${PILL_NAV_PADDING}px`,
   borderRadius: themeContract.borderRadius.full,
-  backgroundColor: pillFace,
+  backgroundColor: themeContract.color.surface.hover,
 });
 
 export const pillItem = style({
@@ -409,8 +345,8 @@ export const pillItem = style({
   padding: `0 ${themeContract.spacing[4]}`,
   border: 'none',
   borderRadius: themeContract.borderRadius.full,
-  backgroundColor: pillBase,
-  color: pillText,
+  backgroundColor: themeContract.color.background.default,
+  color: themeContract.color.text.primary,
   font: 'inherit',
   fontSize: themeContract.font.size.sm,
   fontWeight: themeContract.font.weight.semibold,
@@ -433,7 +369,7 @@ export const pillCircle = style({
   bottom: 0,
   display: 'block',
   borderRadius: themeContract.borderRadius.full,
-  backgroundColor: pillCircleColor,
+  backgroundColor: themeContract.color.primary.main,
   pointerEvents: 'none',
   zIndex: 1,
 });
@@ -458,14 +394,14 @@ export const pillCover = style({
   top: 0,
   display: 'inline-block',
   lineHeight: 1,
-  color: pillCoverColor,
+  color: themeContract.color.primary.contrast,
   opacity: 0,
   zIndex: 3,
 
   selectors: {
     // 선택된 항목은 늘 채워져 있고, 덮는 글자에 움직이지 않는 광휘가 걸린다.
     [`${pillItem}[aria-current="page"] &`]: {
-      textShadow: pillGlow(pillGlowColor),
+      textShadow: pillGlow(themeContract.color.primary.contrast),
     },
   },
 });
@@ -524,6 +460,8 @@ export const dropdownPanel = style({
   display: 'flex',
   flexDirection: 'column',
   borderRadius: themeContract.borderRadius.md,
+  backgroundColor: themeContract.color.background.default,
+  color: themeContract.color.text.primary,
   boxShadow: themeContract.shadow.md,
   opacity: 0,
   visibility: 'hidden',
@@ -568,7 +506,7 @@ export const CARDS_STAGGER = 0.08;
 export const CARDS_START_RATIO = 3 / 4;
 
 // 바에서 배경과 그림자를 걷고 쌓임 맥락을 만든다. 면(z-index -1)이 이 맥락 안에서 바의
-// 줄 뒤에 깔린다. variantStyles보다 뒤에 선언해야 같은 특이도에서 배경을 덮는다.
+// 줄 뒤에 깔린다. bar보다 뒤에 선언해야 같은 특이도에서 배경을 덮는다.
 export const barCards = style({
   isolation: 'isolate',
   backgroundColor: 'transparent',
@@ -584,12 +522,8 @@ export const hamburgerAlways = style({
   },
 });
 
-// 카드 색. 카드 바탕·카드 글자를 면의 variant가 채운다.
-const cardFace = createVar();
-const cardText = createVar();
-
 // 자라는 면. 높이는 쉴 때 BAR_HEIGHT이고 GSAP이 키운다. absolute라 header의 높이와
-// 문서 흐름은 바뀌지 않는다. 아래 cardsVariantStyles보다 먼저 선언해야 transparent가 그림자를 덮는다.
+// 문서 흐름은 바뀌지 않는다. 바가 걷은 면과 글자색을 대신 그리고, 카드가 글자색을 잇는다.
 export const cardsSurface = style({
   boxSizing: 'border-box',
   position: 'absolute',
@@ -600,36 +534,9 @@ export const cardsSurface = style({
   zIndex: -1,
   overflow: 'hidden',
   borderRadius: themeContract.borderRadius.lg,
+  backgroundColor: themeContract.color.background.default,
+  color: themeContract.color.text.primary,
   boxShadow: themeContract.shadow.md,
-});
-
-// 면은 바의 variant 색을 대신 그린다. transparent는 면이 투명하고 그림자가 없다.
-export const cardsVariantStyles = styleVariants({
-  default: {
-    vars: {
-      [cardFace]: themeContract.color.surface.hover,
-      [cardText]: themeContract.color.text.primary,
-    },
-    backgroundColor: themeContract.color.background.default,
-    color: themeContract.color.text.primary,
-  },
-  dark: {
-    vars: {
-      [cardFace]: themeContract.color.text.secondary,
-      [cardText]: themeContract.color.text.inverse,
-    },
-    backgroundColor: themeContract.color.text.primary,
-    color: themeContract.color.background.paper,
-  },
-  transparent: {
-    vars: {
-      [cardFace]: themeContract.color.surface.hover,
-      [cardText]: themeContract.color.text.primary,
-    },
-    backgroundColor: 'transparent',
-    boxShadow: 'none',
-    color: themeContract.color.text.primary,
-  },
 });
 
 // 카드 층. 높이는 잰 값으로 고정(JS가 인라인으로 쓴다)이라 면이 자라도 카드가 다시
@@ -664,8 +571,7 @@ export const card = style({
   padding: `${themeContract.spacing[3]} ${themeContract.spacing[4]}`,
   // 바 반경에서 층 안쪽 여백을 뺀 동심원(CardNav.tsx:218의 rounded-[calc(0.75rem-0.2rem)]).
   borderRadius: `calc(${themeContract.borderRadius.lg} - ${themeContract.spacing[2]})`,
-  backgroundColor: cardFace,
-  color: cardText,
+  backgroundColor: themeContract.color.surface.hover,
 
   '@media': {
     [mediaQuery.down.md]: {

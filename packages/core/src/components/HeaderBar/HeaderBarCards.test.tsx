@@ -514,40 +514,17 @@ describe('navStyle="cards" 기하 (CSSOM)', () => {
     ).toHaveLength(0);
   });
 
-  it('variant 색: default·transparent는 surface.hover 카드에 text.primary 글자', () => {
+  it('색: 면은 background.default에 text.primary 글자와 shadow.md, 카드는 surface.hover다', () => {
     render(<HeaderBar navStyle="cards" items={cardItems} />);
-    const vars = ruleOf(
-      /\.HeaderBar_cardsVariantStyles_default__[^\s:]+$/
-    ).cssText;
-    expect(vars).toContain(themeContract.color.surface.hover);
-    expect(vars).toContain(themeContract.color.text.primary);
-    expect(vars).toContain(themeContract.color.background.default);
-    expect(
-      ruleOf(/\.HeaderBar_cardsVariantStyles_transparent__[^\s:]+$/).cssText
-    ).toContain(themeContract.color.surface.hover);
-  });
-
-  it('variant 색: dark는 text.secondary 카드에 text.inverse 글자, 면은 text.primary', () => {
-    render(<HeaderBar navStyle="cards" variant="dark" items={cardItems} />);
-    const vars = ruleOf(
-      /\.HeaderBar_cardsVariantStyles_dark__[^\s:]+$/
-    ).cssText;
-    expect(vars).toContain(themeContract.color.text.secondary);
-    expect(vars).toContain(themeContract.color.text.inverse);
-    expect(vars).not.toContain(themeContract.color.surface.hover);
-    expect(
-      decl(ruleOf(/cardsVariantStyles_dark__[^\s:]+$/), 'background-color')
-    ).toBe(themeContract.color.text.primary);
-    expect(getSurface()).toHaveClass(/cardsVariantStyles_dark/);
-  });
-
-  it('variant transparent: 면은 투명이고 그림자가 없다', () => {
-    render(
-      <HeaderBar navStyle="cards" variant="transparent" items={cardItems} />
+    const surface = ruleOf(/\.HeaderBar_cardsSurface__[^\s:]+$/);
+    expect(decl(surface, 'background-color')).toBe(
+      themeContract.color.background.default
     );
-    const rule = ruleOf(/cardsVariantStyles_transparent__[^\s:]+$/);
-    expect(decl(rule, 'background-color')).toBe('transparent');
-    expect(decl(rule, 'box-shadow')).toBe('none');
+    expect(decl(surface, 'color')).toBe(themeContract.color.text.primary);
+    expect(decl(surface, 'box-shadow')).toBe(themeContract.shadow.md);
+    expect(decl(ruleOf(/\.HeaderBar_card__[^\s:]+$/), 'background-color')).toBe(
+      themeContract.color.surface.hover
+    );
   });
 });
 

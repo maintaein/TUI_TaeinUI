@@ -984,7 +984,6 @@ The items hide and a hamburger button (two lines that gather into an X, `aria-ex
 | navStyle | 'pill' \| 'text' \| 'dropdown' \| 'cards' \| 'icon' | 'pill' | How the items look |
 | actions | ReactNode | - | Right side actions |
 | sticky | boolean | false | Sticks to the top of the viewport (keeps its top margin) |
-| variant | 'default' \| 'dark' \| 'transparent' | 'default' | Bar surface. `transparent` has no surface and no shadow |
 | aria-label | string | - | Accessibility label |
 | className | string | - | Additional CSS class |
 

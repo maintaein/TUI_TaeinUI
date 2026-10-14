@@ -43,12 +43,6 @@ export function HeaderBarPage() {
       description: '스크롤 시 화면 위에 붙어 따라옴 (위 여백 유지)',
     },
     {
-      name: 'variant',
-      type: "'default' | 'dark' | 'transparent'",
-      default: "'default'",
-      description: '바 배경 변형. transparent는 면과 그림자가 없음',
-    },
-    {
       name: 'aria-label',
       type: 'string',
       description: '접근성 레이블',
@@ -259,23 +253,6 @@ export function HeaderBarPage() {
           />
         </div>
 
-        {/* Variants */}
-        <div className={styles.example}>
-          <h3 className={styles.exampleTitle}>Variants</h3>
-          <LivePreview
-            title="배경 변형"
-            description="default는 밝은 면, dark는 검은 계열 면(텍스트 자동 반전), transparent는 면과 그림자가 없어 뒤의 콘텐츠가 그대로 보입니다."
-            editable
-            code={`<div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-  <HeaderBar variant="default" title="Default" items={[{ label: '홈', href: '#', active: true }, { label: '소개', href: '#' }]} />
-  <HeaderBar variant="dark" title="Dark" items={[{ label: '홈', href: '#', active: true }, { label: '소개', href: '#' }]} />
-  <div style={{ borderRadius: '0.75rem', overflow: 'hidden', background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', color: '#ffffff', paddingBottom: '1rem' }}>
-    <HeaderBar variant="transparent" title="Transparent" items={[{ label: '홈', href: '#', active: true }, { label: '소개', href: '#' }]} />
-  </div>
-</div>`}
-          />
-        </div>
-
         {/* Actions */}
         <div className={styles.example}>
           <h3 className={styles.exampleTitle}>Multiple Actions</h3>
@@ -330,7 +307,6 @@ export function HeaderBarPage() {
   />
   {/* 관리자 대시보드 헤더 */}
   <HeaderBar
-    variant="dark"
     logo={<Settings size={20} />}
     title="Admin"
     actions={
@@ -408,7 +384,7 @@ export function HeaderBarPage() {
             attribute: 'aria-current="page"',
             effect: '지금 보고 있는 페이지를 알립니다.',
             description:
-              'active 항목에 붙습니다. 보이는 선택 표시는 바탕입니다(알약 형태는 채워진 알약과 글자 광휘, 글자·아이콘 형태는 옅은 바탕과 굵은 글자). 바탕은 글자색에서 만들어 어두운 바에서도 맞고, 스크린 리더에는 aria-current가 알립니다.',
+              'active 항목에 붙습니다. 보이는 선택 표시는 바탕입니다(알약 형태는 채워진 알약과 글자 광휘, 글자·아이콘 형태는 옅은 바탕과 굵은 글자). 스크린 리더에는 aria-current가 알립니다.',
           },
           {
             attribute: '햄버거의 aria-expanded · aria-controls',
@@ -512,9 +488,6 @@ export function HeaderBarPage() {
                   actions에 너무 많은 요소 넣지 않기 (3개 이하 권장)
                 </ListItem>
                 <ListItem>sticky 사용 시 z-index 충돌 주의</ListItem>
-                <ListItem>
-                  transparent 배경에 어두운 텍스트 사용하지 않기
-                </ListItem>
                 <ListItem>
                   좁은 화면에서 접히므로 items를 6개 넘게 넣지 않기
                 </ListItem>

@@ -21,8 +21,6 @@ interface HeaderBarDropdownItemProps {
   open: boolean;
   /** 한 번에 하나만 열리는 규칙은 부모가 state로 지킨다 */
   onOpenChange: (open: boolean) => void;
-  /** 바 variant의 면 클래스(좁은 화면 판과 같은 것) */
-  panelFaceClassName: string;
 }
 
 /**
@@ -34,7 +32,6 @@ export const HeaderBarDropdownItem = ({
   links,
   open,
   onOpenChange,
-  panelFaceClassName,
 }: HeaderBarDropdownItemProps) => {
   const reduced = useReducedMotion();
   const panelId = useId();
@@ -110,11 +107,7 @@ export const HeaderBarDropdownItem = ({
           <Glyph name="chevron-down" size="sm" />
         </span>
       </button>
-      <ul
-        id={panelId}
-        ref={panelRef}
-        className={clsx(dropdownPanel, panelFaceClassName)}
-      >
+      <ul id={panelId} ref={panelRef} className={dropdownPanel}>
         {links.map((link) => {
           const shared = {
             className: clsx(textItem, dropdownLink),

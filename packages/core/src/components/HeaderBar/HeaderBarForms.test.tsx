@@ -269,26 +269,26 @@ describe('navStyle="pill" 쉬는 모습 (CSSOM)', () => {
     expect(decl(pill, 'overflow')).toBe('hidden');
   });
 
-  it('바깥 면은 surface.hover, 원은 primary.main, 덮는 글자는 primary.contrast다', () => {
+  it('바깥 면은 surface.hover, 알약 바탕은 background.default, 글자는 text.primary다', () => {
     render(<HeaderBar navStyle="pill" items={items} />);
-    const vars = ruleOf(
-      /\.HeaderBar_pillVariantStyles_default__[^\s:]+$/
-    ).cssText;
-    expect(vars).toContain(themeContract.color.surface.hover);
-    expect(vars).toContain(themeContract.color.primary.main);
-    expect(vars).toContain(themeContract.color.primary.contrast);
+    expect(
+      decl(ruleOf(/\.HeaderBar_pillNav__[^\s:]+$/), 'background-color')
+    ).toBe(themeContract.color.surface.hover);
+    const pill = ruleOf(/\.HeaderBar_pillItem__[^\s:]+$/);
+    expect(decl(pill, 'background-color')).toBe(
+      themeContract.color.background.default
+    );
+    expect(decl(pill, 'color')).toBe(themeContract.color.text.primary);
   });
 
-  it('dark에서는 어두운 면과 밝은 원을 쓴다', () => {
-    render(<HeaderBar navStyle="pill" variant="dark" items={items} />);
-    const vars = ruleOf(/\.HeaderBar_pillVariantStyles_dark__[^\s:]+$/).cssText;
-    expect(vars).toContain(themeContract.color.primary.light);
-    expect(vars).not.toContain(themeContract.color.surface.hover);
-  });
-
-  it('variant 클래스가 바깥 알약에 붙는다', () => {
-    render(<HeaderBar navStyle="pill" variant="dark" items={items} />);
-    expect(getNav()).toHaveClass(/pillVariantStyles_dark/);
+  it('원은 primary.main, 덮는 글자는 primary.contrast다', () => {
+    render(<HeaderBar navStyle="pill" items={items} />);
+    expect(
+      decl(ruleOf(/\.HeaderBar_pillCircle__[^\s:]+$/), 'background-color')
+    ).toBe(themeContract.color.primary.main);
+    expect(decl(ruleOf(/\.HeaderBar_pillCover__[^\s:]+$/), 'color')).toBe(
+      themeContract.color.primary.contrast
+    );
   });
 
   it('밑점 규칙이 없다', () => {
@@ -312,28 +312,14 @@ describe('navStyle="pill" 쉬는 모습 (CSSOM)', () => {
     expect(decl(current, 'animation')).toBeUndefined();
   });
 
-  it('광휘 색은 variant가 정한다: default·transparent는 primary.contrast, dark는 background.paper', () => {
+  it('광휘 색은 primary.contrast다', () => {
     render(<HeaderBar navStyle="pill" items={items} />);
     const current = ruleOf(
       /\[aria-current="page"\] \.HeaderBar_pillCover__[^\s:]+$/
     );
-    const glowVar = /var\((--[\w-]+)\)/.exec(
-      decl(current, 'text-shadow') ?? ''
-    )?.[1];
-    expect(glowVar).toBeDefined();
-    const valueIn = (variant: string) =>
-      new RegExp(`${glowVar}:\\s*([^;}]*)`)
-        .exec(
-          ruleOf(
-            new RegExp(
-              String.raw`\.HeaderBar_pillVariantStyles_${variant}__[^\s:]+$`
-            )
-          ).cssText
-        )?.[1]
-        .trim();
-    expect(valueIn('default')).toBe(themeContract.color.primary.contrast);
-    expect(valueIn('transparent')).toBe(themeContract.color.primary.contrast);
-    expect(valueIn('dark')).toBe(themeContract.color.background.paper);
+    expect(decl(current, 'text-shadow')).toContain(
+      `color-mix(in srgb, ${themeContract.color.primary.contrast} 45%, transparent)`
+    );
   });
 
   it('원은 알약 아래 가운데에서 시작하고 포인터를 가로채지 않는다', () => {
@@ -970,11 +956,13 @@ describe('navStyle="dropdown" 모양 (CSSOM)', () => {
     expect(decl(slot, 'position')).toBeUndefined();
   });
 
-  it('variant 면을 따른다', () => {
-    render(
-      <HeaderBar navStyle="dropdown" variant="dark" items={dropdownItems} />
+  it('판의 면은 background.default, 글자는 text.primary다', () => {
+    render(<HeaderBar navStyle="dropdown" items={dropdownItems} />);
+    const panel = ruleOf(/\.HeaderBar_dropdownPanel__[^\s:]+$/);
+    expect(decl(panel, 'background-color')).toBe(
+      themeContract.color.background.default
     );
-    expect(getDropPanel('제품')).toHaveClass(/panelVariantStyles_dark/);
+    expect(decl(panel, 'color')).toBe(themeContract.color.text.primary);
   });
 
   it('열리면 꺾쇠가 180도 돌고 base settle이다', () => {

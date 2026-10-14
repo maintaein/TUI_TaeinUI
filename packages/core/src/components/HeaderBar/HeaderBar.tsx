@@ -16,7 +16,6 @@ import { HeaderBarDropdownItem } from './HeaderBarDropdown';
 import { HeaderBarCards, type CardsSurfaceHost } from './HeaderBarCards';
 import { usePanelTween, type PanelTweenHost } from './usePanelTween';
 import {
-  pillVariantStyles,
   panelGroup,
   panelGroupLabel,
   panelSubItem,
@@ -24,8 +23,6 @@ import {
   stickyStyles,
   bar,
   barCards,
-  variantStyles,
-  cardsVariantStyles,
   leftSection,
   logo as logoStyle,
   title as titleStyle,
@@ -40,7 +37,6 @@ import {
   hamburgerLineTop,
   hamburgerLineBottom,
   panel as panelStyle,
-  panelVariantStyles,
   panelItem,
 } from './HeaderBar.css';
 
@@ -89,8 +85,6 @@ interface HeaderBarBaseProps extends Omit<
   actions?: ReactNode;
   /** 스크롤 시 화면 위에 붙어 따라온다(위 여백 유지) @default false */
   sticky?: boolean;
-  /** 바 배경 스타일. transparent는 면과 그림자가 없다 @default 'default' */
-  variant?: 'default' | 'dark' | 'transparent';
   /** 스크린 리더용 레이블 */
   'aria-label'?: string;
   /** 추가 CSS 클래스 */
@@ -127,7 +121,6 @@ export const HeaderBar = ({
   title,
   actions,
   sticky = false,
-  variant = 'default',
   items,
   navStyle,
   'aria-label': ariaLabel,
@@ -254,7 +247,6 @@ export const HeaderBar = ({
         links={item.links}
         open={dropdownKey === item.label}
         onOpenChange={(next) => setDropdownKey(next ? item.label : null)}
-        panelFaceClassName={panelVariantStyles[variant]}
       />
     ) : (
       renderTextItem(item, false)
@@ -271,7 +263,7 @@ export const HeaderBar = ({
       )}
       {...props}
     >
-      <div className={clsx(bar, variantStyles[variant], isCards && barCards)}>
+      <div className={clsx(bar, isCards && barCards)}>
         {(logo || title) && (
           <div className={leftSection}>
             {logo && <div className={logoStyle}>{logo}</div>}
@@ -284,10 +276,7 @@ export const HeaderBar = ({
             {iconItems ? (
               <HeaderBarNav items={iconItems} />
             ) : isPill ? (
-              <HeaderBarPillNav
-                items={itemList}
-                variantClassName={pillVariantStyles[variant]}
-              />
+              <HeaderBarPillNav items={itemList} />
             ) : (
               <nav aria-label="주요 메뉴" className={textNav}>
                 {itemList.map((item) =>
@@ -323,7 +312,7 @@ export const HeaderBar = ({
             id={panelId}
             ref={panelRef}
             aria-label="메뉴 목록"
-            className={clsx(panelStyle, panelVariantStyles[variant])}
+            className={panelStyle}
           >
             {itemList.map(renderPanelItem)}
           </nav>
@@ -335,7 +324,6 @@ export const HeaderBar = ({
             open={open}
             surfaceId={panelId}
             surfaceRef={surfaceRef}
-            variantClassName={cardsVariantStyles[variant]}
             onNavigate={() => {
               setOpen(false);
               // 포커스가 숨는 카드 층 안에서 떠나므로 햄버거로 돌려 둔다.

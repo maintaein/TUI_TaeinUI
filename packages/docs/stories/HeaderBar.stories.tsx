@@ -32,10 +32,6 @@ const meta = {
     },
     actions: { control: false },
     sticky: { control: 'boolean' },
-    variant: {
-      control: 'select',
-      options: ['default', 'dark', 'transparent'],
-    },
   },
 } satisfies Meta<typeof HeaderBar>;
 
@@ -49,7 +45,6 @@ export const Default: Story = {
     items: textItems,
     navStyle: 'pill',
     sticky: false,
-    variant: 'default',
   },
   render: (args) => (
     <div style={{ height: '200vh', background: '#f5f5f5' }}>
@@ -243,64 +238,6 @@ export const Sticky: Story = {
   ),
 };
 
-// Dark Variant
-export const DarkVariant: Story = {
-  render: () => (
-    <HeaderBar
-      title="Dark Header"
-      variant="dark"
-      logo={circle}
-      items={[
-        { label: 'Explore', href: '#', active: true },
-        { label: 'Collections', href: '#' },
-      ]}
-      actions={
-        <button
-          type="button"
-          style={{
-            padding: '0.5rem 1rem',
-            border: '1px solid white',
-            borderRadius: '4px',
-            background: 'transparent',
-            color: 'white',
-            cursor: 'pointer',
-          }}
-        >
-          Get Started
-        </button>
-      }
-    />
-  ),
-};
-
-// Transparent Variant: 면과 그림자가 없다
-export const TransparentVariant: Story = {
-  render: () => (
-    <div
-      style={{
-        minHeight: '100vh',
-        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-        color: 'white',
-      }}
-    >
-      <HeaderBar
-        variant="transparent"
-        title="Transparent Header"
-        items={[
-          { label: 'Home', href: '#', active: true },
-          { label: 'Features', href: '#' },
-        ]}
-      />
-      <div style={{ padding: '4rem 2rem', textAlign: 'center' }}>
-        <h1 style={{ fontSize: '3rem', marginBottom: '1rem' }}>Welcome</h1>
-        <p style={{ fontSize: '1.25rem' }}>
-          Transparent header blends with the background
-        </p>
-      </div>
-    </div>
-  ),
-};
-
 // 완전한 예시 (Logo + Items + Actions)
 export const CompleteExample: Story = {
   render: () => (
@@ -387,7 +324,6 @@ export const Interactive: Story = {
   args: {
     title: 'Interactive Header',
     sticky: true,
-    variant: 'default',
     navStyle: 'pill',
     items: [
       { label: 'Link 1', href: '#', active: true },

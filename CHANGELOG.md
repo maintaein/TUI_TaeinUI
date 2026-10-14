@@ -56,7 +56,8 @@
 - **BREAKING CHANGE:** `HeaderBarNav`와 `HeaderBarNavItem`·`HeaderBarNavProps` 타입을 공개 export에서 내렸습니다. `HeaderBar`의 `navStyle="icon"`이 대신합니다. 옮기는 법: `<HeaderBar actions={<HeaderBarNav items={[...]} />} />`는 `<HeaderBar navStyle="icon" items={[...]} />`로 바꾸세요. 항목 모양(`{ icon, label, href?, onClick? }`)은 그대로이고 `active?`가 늘었습니다. `HeaderBarNav`의 `aria-label`·`className` prop은 없어졌고 nav의 접근 이름은 늘 "주요 메뉴"입니다.
 - **BREAKING CHANGE:** `HeaderBar`의 `children`을 없앴습니다. 가운데 슬롯은 `items`가 맡습니다. 링크 목록을 `children`으로 넣었다면 `items={[{ label, href }]}`로 바꾸고, 버튼 등 다른 요소는 `actions`로 옮기세요.
 - **BREAKING CHANGE:** `HeaderBar`의 `border`를 없앴습니다. 가장자리까지 닿는 한 줄 모양의 아래 선이었고, 그 모양이 없어졌습니다. 선이 필요하면 `className`으로 바에 직접 주세요.
-- **BREAKING CHANGE:** `HeaderBar`의 `elevation`을 없앴습니다. 떠 있는 바는 늘 그림자(`shadow.md`)를 가집니다. 그림자를 끄려면 `variant="transparent"`(면도 함께 투명해집니다)나 `className`을 쓰세요.
+- **BREAKING CHANGE:** `HeaderBar`의 `elevation`을 없앴습니다. 떠 있는 바는 늘 그림자(`shadow.md`)를 가집니다. 그림자를 끄려면 `className`을 쓰세요.
+- **BREAKING CHANGE:** `HeaderBar`의 `variant`(`'default' | 'dark' | 'transparent'`)를 없앴습니다. 면은 늘 밝은 면(`background.default`)과 그림자(`shadow.md`)이고 글자는 `text.primary`입니다. 다른 모습이 필요하면 `className`을 쓰세요.
 
 ### Changed
 
@@ -100,7 +101,7 @@
 - `Snackbar`의 warning 면이 겨자색 노랑 #BF8A00(`palette.warning[750]`)이 되었습니다. 흰 글자 대비는 3.07:1로 글자 AA(4.5:1)에는 못 미치고 3:1은 넘으며, 더 노란 색을 원한다는 결정에 따른 의도된 예외입니다. 닫기 버튼에 마우스를 올리거나 누를 때 깔리는 면은 흰색 섞기에서 어두운 회색(`color.text.primary` 12%·18%) 섞기로 바뀌어 살짝 어두워집니다. 색을 직접 덮어쓰지 않았다면 할 일은 없습니다.
 - `Snackbar`가 같은 `position`에 동시에 열려 있으면 겹치지 않고 자동으로 줄을 섭니다. 새것이 화면 가장자리(bottom이면 맨 아래, top이면 맨 위)에 서고 먼저 있던 것은 안쪽으로 밀리며, 간격은 `spacing[2]`(8px)이고 밀리는 움직임은 `base` 길이의 `settle`입니다. 높이가 달라도(여러 줄 메시지, `action`) 실제 높이만큼 밀립니다. 닫히기 시작한 것은 줄에서 빠지고 나머지가 메워 들어옵니다. 한 위치에 최대 3개이고, 4개째가 열리면 가장 오래된 것의 `onClose`가 불립니다(`onClose`가 없는 스낵바는 닫을 수단이 없어 그대로 남습니다). 쌓기는 새 prop 없이 기본으로 동작합니다. `style={{ bottom: ... }}`로 직접 간격을 띄워 쌓던 코드는 이제 이중으로 밀리니 그 `style`을 지우세요.
 - `Snackbar`의 `position` 기본값이 `'bottom-center'`에서 `'bottom-right'`로 바뀌었습니다. 위치를 주지 않은 스낵바는 이제 화면 오른쪽 아래에 함께 쌓입니다. 예전 위치를 쓰려면 `position="bottom-center"`를 명시하세요.
-- **BREAKING CHANGE:** `HeaderBar`가 가장자리까지 닿는 한 줄 모양에서 떠 있는 둥근 바로 바뀌었습니다. 가운데 정렬, 폭은 양쪽 `spacing[4]`를 뺀 100%(최대 960px), 높이 60px, 모서리 `borderRadius.lg`, 그림자 `shadow.md`이고, 바 높이와 위 여백(`spacing[4]`)만큼 자리를 미리 차지해 바 아래 메뉴 판이 열려도 내용이 밀리지 않습니다. 이전 모양으로 되돌리는 prop은 없습니다. `variant`의 `default`는 `background.default` 면, `dark`는 이전 dark 색 그대로, `transparent`는 면과 그림자가 없는 투명(이전의 흐림·불투명도 0.9는 없어졌습니다)입니다. `sticky`는 화면 위에 붙을 때 위 여백을 유지합니다. 바 안쪽 여백은 `spacing[2]`(왼쪽 `spacing[4]`)입니다. `HeaderBar`는 이제 클라이언트 컴포넌트(`'use client'`)입니다.
+- **BREAKING CHANGE:** `HeaderBar`가 가장자리까지 닿는 한 줄 모양에서 떠 있는 둥근 바로 바뀌었습니다. 가운데 정렬, 폭은 양쪽 `spacing[4]`를 뺀 100%(최대 960px), 높이 60px, 모서리 `borderRadius.lg`, 그림자 `shadow.md`이고, 바 높이와 위 여백(`spacing[4]`)만큼 자리를 미리 차지해 바 아래 메뉴 판이 열려도 내용이 밀리지 않습니다. 이전 모양으로 되돌리는 prop은 없습니다. 면은 `background.default`입니다(이전의 흐림·불투명도 0.9는 없어졌습니다). `sticky`는 화면 위에 붙을 때 위 여백을 유지합니다. 바 안쪽 여백은 `spacing[2]`(왼쪽 `spacing[4]`)입니다. `HeaderBar`는 이제 클라이언트 컴포넌트(`'use client'`)입니다.
 - **BREAKING CHANGE:** `HeaderBar`의 `navStyle` 기본값이 `'pill'`입니다. `navStyle`을 주지 않으면 글자 링크가 아니라 알약(호버하면 원이 차오르며 글자가 바뀌고 `active` 항목은 늘 채워짐)으로 그려집니다. 글자 링크가 필요하면 `navStyle="text"`를 주세요. 글자 링크의 선택·호버 표시는 밑줄이 아니라 옅은 바탕입니다.
 
 ### Fixed

@@ -68,8 +68,6 @@ interface HeaderBarCardsProps {
   /** 햄버거 aria-controls가 가리키는 면의 id */
   surfaceId: string;
   surfaceRef: RefObject<CardsSurfaceHost | null>;
-  /** 바 variant의 면 클래스(색 변수도 여기서 온다) */
-  variantClassName: string;
   /** 링크·항목을 누른 뒤 닫는다(포커스를 햄버거로 돌리는 일까지 부모가 맡는다) */
   onNavigate: () => void;
 }
@@ -83,7 +81,6 @@ export const HeaderBarCards = ({
   open,
   surfaceId,
   surfaceRef,
-  variantClassName,
   onNavigate,
 }: HeaderBarCardsProps) => {
   const reduced = useReducedMotion();
@@ -254,11 +251,7 @@ export const HeaderBarCards = ({
   };
 
   return (
-    <div
-      id={surfaceId}
-      ref={surfaceRef}
-      className={clsx(cardsSurface, variantClassName)}
-    >
+    <div id={surfaceId} ref={surfaceRef} className={cardsSurface}>
       <nav ref={layerRef} aria-label="메뉴 목록" className={cardsLayer}>
         {items.map(renderCard)}
       </nav>

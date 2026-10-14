@@ -269,51 +269,33 @@ describe('HeaderBar 바의 기하 (CSSOM)', () => {
   });
 });
 
-describe('variant', () => {
-  it('세 variant 클래스가 바에 붙는다', () => {
-    const { rerender } = render(<HeaderBar variant="default" title="앱" />);
-    const bar = () => screen.getByRole('banner').firstElementChild;
-    expect(bar()).toHaveClass(/variantStyles_default/);
-    rerender(<HeaderBar variant="dark" title="앱" />);
-    expect(bar()).toHaveClass(/variantStyles_dark/);
-    rerender(<HeaderBar variant="transparent" title="앱" />);
-    expect(bar()).toHaveClass(/variantStyles_transparent/);
-  });
-
-  it('default는 background.default 면이다', () => {
+describe('바 면', () => {
+  it('바 자체가 밝은 면, text.primary 글자, shadow.md 그림자를 가진다', () => {
     render(<HeaderBar title="앱" />);
-    expect(
-      decl(
-        ruleOf(/\.HeaderBar_variantStyles_default__[^\s:]+$/),
-        'background-color'
-      )
-    ).toBe(themeContract.color.background.default);
-  });
-
-  it('dark는 지금의 dark 색(text.primary 면, background.paper 글자)이다', () => {
-    render(<HeaderBar variant="dark" title="앱" />);
-    const dark = ruleOf(/\.HeaderBar_variantStyles_dark__[^\s:]+$/);
-    expect(decl(dark, 'background-color')).toBe(
-      themeContract.color.text.primary
+    const rule = ruleOf(/\.HeaderBar_bar__[^\s:]+$/);
+    expect(decl(rule, 'background-color')).toBe(
+      themeContract.color.background.default
     );
-    expect(decl(dark, 'color')).toBe(themeContract.color.background.paper);
+    expect(decl(rule, 'color')).toBe(themeContract.color.text.primary);
+    expect(decl(rule, 'box-shadow')).toBe(themeContract.shadow.md);
   });
 
-  it('transparent는 면이 투명하고 그림자가 없다', () => {
-    render(<HeaderBar variant="transparent" title="앱" />);
-    const rule = ruleOf(/\.HeaderBar_variantStyles_transparent__[^\s:]+$/);
-    expect(decl(rule, 'background-color')).toBe('transparent');
-    expect(decl(rule, 'box-shadow')).toBe('none');
+  it('좁은 화면 패널도 같은 밝은 면과 글자색을 가진다', () => {
+    render(<HeaderBar items={items} />);
+    const rule = ruleOf(/\.HeaderBar_panel__[^\s:]+$/);
+    expect(decl(rule, 'background-color')).toBe(
+      themeContract.color.background.default
+    );
+    expect(decl(rule, 'color')).toBe(themeContract.color.text.primary);
   });
 
-  it('transparent여도 패널은 읽을 수 있는 면을 가진다', () => {
-    render(<HeaderBar variant="transparent" items={items} />);
+  it('variant로 갈라 둔 스타일 규칙이 없다', () => {
+    render(<HeaderBar items={items} />);
     expect(
-      decl(
-        ruleOf(/\.HeaderBar_panelVariantStyles_transparent__[^\s:]+$/),
-        'background-color'
+      headerBarRules().filter(({ rule }) =>
+        /[vV]ariantStyles/.test(rule.selectorText)
       )
-    ).toBe(themeContract.color.background.default);
+    ).toHaveLength(0);
   });
 });
 
@@ -341,6 +323,11 @@ describe('지운 표면', () => {
     render(<HeaderBar elevation />);
     // @ts-expect-error children은 지워졌다(가운데 슬롯은 items가 맡는다)
     render(<HeaderBar>가운데</HeaderBar>);
+  });
+
+  it('variant는 타입 오류다(바는 밝은 면 하나)', () => {
+    // @ts-expect-error variant는 지워졌다
+    render(<HeaderBar variant="dark" />);
   });
 
   it('HeaderBarNav는 공개 export가 아니다', () => {
@@ -460,7 +447,7 @@ describe('navStyle="text" 항목', () => {
     );
   });
 
-  it('옅은 바탕은 currentColor 10% 섞음이라 dark 바에서도 맞는다', () => {
+  it('옅은 바탕은 currentColor 10% 섞음이라 글자색이 어떻든 맞는다', () => {
     expect(TINT_HOVER).toBe(
       'color-mix(in srgb, currentColor 10%, transparent)'
     );
