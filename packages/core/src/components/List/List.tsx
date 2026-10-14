@@ -6,7 +6,6 @@ import {
   withDivider,
   listItem,
   layoutStyles,
-  alignStyles,
   label as labelStyle,
   value as valueStyle,
   horizontalGap,
@@ -21,26 +20,20 @@ export interface ListProps extends HTMLAttributes<HTMLUListElement> {
   spacing?: 'none' | 'sm' | 'md' | 'lg';
   /** 항목 사이 구분선 표시 @default false */
   divider?: boolean;
-  /** 추가 CSS 클래스 */
-  className?: string;
 }
 
-/** 리스트 내 개별 항목. label-value 쌍 또는 커스텀 레이아웃 지원 */
+/** 리스트 내 개별 항목. label-value 쌍 또는 children 자유 배치 */
 export interface ListItemProps extends HTMLAttributes<HTMLLIElement> {
   /** 항목 레이블 (왼쪽 또는 상단) */
   label?: ReactNode;
   /** 항목 값 (오른쪽 또는 하단) */
   value?: ReactNode;
-  /** 커스텀 레이아웃용 콘텐츠 (layout="custom"일 때 사용) */
+  /** 자유 배치용 콘텐츠. 있으면 label·value·layout을 쓰지 않는다 */
   children?: ReactNode;
   /** 레이아웃 방향 @default 'horizontal' */
-  layout?: 'horizontal' | 'vertical' | 'custom';
-  /** label-value 정렬 @default 'center' */
-  align?: 'start' | 'center' | 'end' | 'baseline';
+  layout?: 'horizontal' | 'vertical';
   /** label 영역 고정 너비 (CSS 단위) */
   labelWidth?: string;
-  /** 추가 CSS 클래스 */
-  className?: string;
 }
 
 export const List = ({
@@ -72,7 +65,6 @@ export const ListItem = ({
   value,
   children,
   layout = 'horizontal',
-  align = 'center',
   labelWidth,
   className,
   ...props
@@ -80,13 +72,7 @@ export const ListItem = ({
   // children이 있으면 자유 레이아웃 모드
   if (children) {
     return (
-      <li
-        className={clsx(
-          listItem,
-          className
-        )}
-        {...props}
-      >
+      <li className={clsx(listItem, className)} {...props}>
         {children}
       </li>
     );
@@ -97,8 +83,7 @@ export const ListItem = ({
     <li
       className={clsx(
         listItem,
-        layoutStyles[layout as 'horizontal' | 'vertical'],
-        alignStyles[align],
+        layoutStyles[layout],
         layout === 'horizontal' ? horizontalGap : verticalGap,
         className
       )}

@@ -62,6 +62,8 @@
 - **BREAKING CHANGE:** `Badge`의 `showZero`를 없앴습니다. 0이면 늘 "0"을 보입니다. 숨기려면 쓰는 쪽에서 `{count > 0 && <Badge>{count}</Badge>}`로 렌더링을 가르세요.
 - **BREAKING CHANGE:** `Badge`가 루트에 `role="status"`를 기본으로 달지 않고, 한국어 자동 `aria-label`("N개의 알림", "알림")도 만들지 않습니다. 글자 배지는 글자가 접근 이름입니다. 점(`dot`) 배지는 `aria-label`을 주면 `role="img"`와 그 이름이 붙고, 주지 않으면 `aria-hidden="true"`인 장식입니다. 알림처럼 읽혀야 하면 `role="status"`나 `aria-live`를 직접 주세요(그대로 붙고, 값이 바뀔 때 루트를 다시 마운트하지 않으므로 라이브 리전으로 쓸 수 있습니다). 점 배지를 이름 없이 쓰던 곳은 `aria-label`을 주세요.
 - **BREAKING CHANGE:** `Badge`의 숨은 CSS 변수 `--badge-color`를 없앴습니다. 색을 바꾸려면 `style={{ backgroundColor: color }}`를 쓰세요.
+- **BREAKING CHANGE:** `ListItem`의 `layout="custom"`을 없앴습니다(`layout`은 `'horizontal' | 'vertical'`). 하는 일이 없는 값이었습니다. `children`을 주면 `layout`과 상관없이 이미 자유 배치였고, `children` 없이 `custom`을 주면 배치 클래스가 빠졌습니다. 자유 배치는 `<ListItem>` 안에 `children`을 넣으세요.
+- **BREAKING CHANGE:** `ListItem`의 `align`을 없앴습니다. label-value 항목은 늘 가운데 정렬(`align-items: center`)입니다. 다른 정렬이 필요하면 `className`이나 `style={{ alignItems: 'flex-start' }}`를 쓰세요. `children`으로 자유 배치한 항목은 이전에도 `align`을 쓰지 않았습니다.
 
 ### Changed
 
@@ -115,3 +117,4 @@
 
 - `Avatar`의 상태 배지(`status`)가 원형 아바타에서 오른쪽 아래가 깎여 반만 보이던 것을 고쳤습니다. 이미지와 이니셜을 모양대로 깎는 클립을 루트에서 안쪽 래퍼로 옮겨, 배지가 클립 밖에서 온전히 보입니다. 루트의 배경색과 `borderRadius`는 그대로입니다. `Avatar`의 자식 DOM이 `span` 하나 더 깊어졌으므로, 아바타 내부를 직접 선택하는 CSS가 있다면 확인하세요.
 - `Snackbar`와 `Loader`가 스크린 리더용으로 숨겨 둔 글자가 위치 기준 없이 놓여, 스크롤 컨테이너 안에서 쓰면 문서 높이를 늘려 페이지 바깥에 스크롤이 하나 더 생기던 것을 고쳤습니다. 숨은 글자를 문서 왼쪽 위(`top: 0`, `left: 0`)에 놓아 더는 늘리지 않습니다. 눈에 보이는 모습은 그대로이고 할 일은 없습니다.
+- `List`의 `divider`가 그리는 구분선 위 여백이 그 `List`의 `spacing`을 따릅니다. 이전에는 선 위 여백이 `spacing`과 상관없이 16px로 고정이라 `spacing`이 `md`가 아니면 선 위아래가 어긋났습니다(`sm`은 16/8, `lg`는 16/24, `none`은 16/0). 이제 선 위아래가 모두 `spacing` 값입니다(`none`이면 둘 다 0). `spacing="md"`는 그대로입니다.

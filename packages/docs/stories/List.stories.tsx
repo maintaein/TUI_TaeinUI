@@ -136,58 +136,6 @@ export const Layout: Story = {
   ),
 };
 
-// Align 예시
-export const Align: Story = {
-  render: () => (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '3rem' }}>
-      <div>
-        <h3 style={{ marginBottom: '1rem' }}>Start - 시작점 정렬</h3>
-        <List divider>
-          <ListItem
-            label="제목"
-            value="긴 텍스트 예시입니다. 여러 줄로 표시될 수 있습니다. 정렬 방식을 확인하세요."
-            align="start"
-          />
-          <ListItem label="짧은 제목" value="짧은 내용" align="start" />
-        </List>
-      </div>
-      <div>
-        <h3 style={{ marginBottom: '1rem' }}>Center - 중앙 정렬 (기본값)</h3>
-        <List divider>
-          <ListItem
-            label="제목"
-            value="긴 텍스트 예시입니다. 여러 줄로 표시될 수 있습니다. 정렬 방식을 확인하세요."
-            align="center"
-          />
-          <ListItem label="짧은 제목" value="짧은 내용" align="center" />
-        </List>
-      </div>
-      <div>
-        <h3 style={{ marginBottom: '1rem' }}>End - 끝점 정렬</h3>
-        <List divider>
-          <ListItem
-            label="제목"
-            value="긴 텍스트 예시입니다. 여러 줄로 표시될 수 있습니다. 정렬 방식을 확인하세요."
-            align="end"
-          />
-          <ListItem label="짧은 제목" value="짧은 내용" align="end" />
-        </List>
-      </div>
-      <div>
-        <h3 style={{ marginBottom: '1rem' }}>Baseline - 베이스라인 정렬</h3>
-        <List divider>
-          <ListItem
-            label="제목"
-            value="긴 텍스트 예시입니다. 여러 줄로 표시될 수 있습니다. 정렬 방식을 확인하세요."
-            align="baseline"
-          />
-          <ListItem label="짧은 제목" value="짧은 내용" align="baseline" />
-        </List>
-      </div>
-    </div>
-  ),
-};
-
 // LabelWidth 예시
 export const LabelWidth: Story = {
   render: () => (
@@ -309,7 +257,6 @@ export const SettingsMenu: Story = {
             </label>
           }
           layout="vertical"
-          align="start"
         />
         <ListItem
           label="언어 설정"
@@ -327,7 +274,6 @@ export const SettingsMenu: Story = {
             </select>
           }
           layout="vertical"
-          align="start"
         />
       </List>
     </div>
@@ -431,7 +377,6 @@ export const MixedLayout: Story = {
           label="설명"
           value="React와 TypeScript 기반의 재사용 가능한 컴포넌트 라이브러리입니다. Vanilla Extract CSS를 사용하여 타입 안전한 스타일링을 제공합니다."
           layout="vertical"
-          align="start"
         />
         <ListItem
           label="기술 스택"
@@ -480,7 +425,6 @@ export const MixedLayout: Story = {
             </div>
           }
           layout="vertical"
-          align="start"
         />
         <ListItem
           label="시작일"

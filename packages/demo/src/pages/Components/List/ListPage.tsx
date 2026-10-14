@@ -47,15 +47,9 @@ export function ListPage() {
     },
     {
       name: 'layout',
-      type: "'horizontal' | 'vertical' | 'custom'",
+      type: "'horizontal' | 'vertical'",
       default: "'horizontal'",
       description: 'label-value 배치 방향',
-    },
-    {
-      name: 'align',
-      type: "'start' | 'center' | 'end' | 'baseline'",
-      default: "'center'",
-      description: '항목 내 수직 정렬',
     },
     {
       name: 'labelWidth',
@@ -223,58 +217,6 @@ export function ListPage() {
       </List>
     </Border>
   </div>
-</div>`}
-          />
-        </div>
-
-        {/* Align */}
-        <div className={styles.example}>
-          <h3 className={styles.exampleTitle}>Align</h3>
-          <LivePreview
-            title="수직 정렬"
-            description="ListItem의 align prop으로 수직 정렬 방식을 지정합니다. 여러 줄 콘텐츠에서 차이가 드러납니다."
-            editable
-            code={`<div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-  <Border padding="md" rounded="md">
-    <List>
-      <ListItem
-        align="start"
-        label="start"
-        value="여러 줄의 긴 텍스트입니다. 정렬 차이를 확인하기 위해 텍스트가 길어야 합니다."
-        labelWidth="80px"
-      />
-    </List>
-  </Border>
-  <Border padding="md" rounded="md">
-    <List>
-      <ListItem
-        align="center"
-        label="center"
-        value="여러 줄의 긴 텍스트입니다. 정렬 차이를 확인하기 위해 텍스트가 길어야 합니다."
-        labelWidth="80px"
-      />
-    </List>
-  </Border>
-  <Border padding="md" rounded="md">
-    <List>
-      <ListItem
-        align="end"
-        label="end"
-        value="여러 줄의 긴 텍스트입니다. 정렬 차이를 확인하기 위해 텍스트가 길어야 합니다."
-        labelWidth="80px"
-      />
-    </List>
-  </Border>
-  <Border padding="md" rounded="md">
-    <List>
-      <ListItem
-        align="baseline"
-        label="baseline"
-        value="여러 줄의 긴 텍스트입니다. 정렬 차이를 확인하기 위해 텍스트가 길어야 합니다."
-        labelWidth="80px"
-      />
-    </List>
-  </Border>
 </div>`}
           />
         </div>

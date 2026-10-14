@@ -32,6 +32,8 @@ export default defineConfig({
     // 호버 게이트, 좁은 화면 규칙이 어느 미디어 안에 있는지를 CSSOM으로 잠근다.
     // Divider도 같은 이유다. 세로가 줄 높이를 채우는 규칙과 spacing의 방향별 여백,
     // 어느 규칙에도 animation·transform이 없음을 CSSOM으로 잠근다.
+    // List도 같은 이유다. 구분선 위 여백이 gap과 같은 변수를 읽는지, 라벨-값 항목이
+    // 늘 가운데 정렬이고 children 항목에는 정렬이 걸리지 않는지를 CSSOM으로 잠근다.
     css: {
       include: [
         /Slider\.css/,
@@ -46,6 +48,7 @@ export default defineConfig({
         /\/SegmentedButtons\.css/,
         /\/Snackbar\.css/,
         /\/Divider\.css/,
+        /\/List\.css/,
       ],
     },
     coverage: {

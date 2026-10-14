@@ -839,8 +839,7 @@ import { List, ListItem } from '@taein-ui/core';
 | label | ReactNode | — | Label (left) |
 | value | ReactNode | — | Value (right) |
 | children | ReactNode | — | Custom content |
-| layout | 'horizontal' \| 'vertical' \| 'custom' | 'horizontal' | Layout |
-| align | 'start' \| 'center' \| 'end' \| 'baseline' | 'center' | Alignment |
+| layout | 'horizontal' \| 'vertical' | 'horizontal' | Layout |
 | labelWidth | string | — | Custom label width |
 | className | string | — | Additional CSS class |
 
