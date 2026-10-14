@@ -238,7 +238,7 @@ describe('Divider', () => {
       expect(parts[1]).toHaveTextContent('오른쪽');
     });
 
-    it('앞선과 뒷선은 같은 선 클래스다 — 그어지는 모션이 없어 방향 구분이 필요 없다', () => {
+    it('앞선과 뒷선은 같은 선 클래스다. 그어지는 모션이 없어 방향 구분이 필요 없다', () => {
       const { container } = render(<Divider>중앙</Divider>);
 
       const parts = container.querySelectorAll('[role="separator"] > div');

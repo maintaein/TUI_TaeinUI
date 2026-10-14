@@ -1,5 +1,5 @@
 /**
- * M2 T4 — Tier-A 11개의 `@keyframes`가 축소 모드에서 「멈춘다」와 「보인다」를
+ * M2 T4: Tier-A 11개의 `@keyframes`가 축소 모드에서 「멈춘다」와 「보인다」를
  * 둘 다 지키는지 원문으로 잠근다 (공통 제약 §6, task-4-brief.md 산출물 1).
  *
  * `animationBoundary.test.ts`가 `transition:`/`animation:` 선언의 속성
@@ -222,7 +222,7 @@ const LOOP = CLASSIFIED.filter((k) => k.loop);
 const ONCE = CLASSIFIED.filter((k) => !k.loop);
 
 describe('Tier-A 11개 @keyframes 소스 열거 (M2 T4)', () => {
-  it('TIER_A 11개 디렉터리를 전부 읽었다 — 스캔 대상이 0개로 줄면 아래 모든 검사가 진공이 된다', () => {
+  it('TIER_A 11개 디렉터리를 전부 읽었다. 스캔 대상이 0개로 줄면 아래 모든 검사가 진공이 된다', () => {
     // 무엇을 뒤집으면 빨개지는가: TIER_A에서 이름 하나를 빼면 11개가 되어
     // 여기가 빨개진다(오타를 내면 findFiles가 그 자리에서 던진다). 한
     // 컴포넌트가 .css.ts를 둘로 쪼개도 개수가 바뀌어 잡힌다.
@@ -252,7 +252,7 @@ describe('Tier-A 11개 @keyframes 소스 열거 (M2 T4)', () => {
     expect(KEYFRAMES).toHaveLength(14);
   });
 
-  it('keyframes가 있는 파일은 Badge·Border·Loader·Skeleton 4개뿐이다 — Popover·Tooltip은 0건이다', () => {
+  it('keyframes가 있는 파일은 Badge·Border·Loader·Skeleton 4개뿐이다. Popover·Tooltip은 0건이다', () => {
     // 무엇을 뒤집으면 빨개지는가: Popover.css.ts나 Tooltip.css.ts에 fadeIn류
     // keyframes를 다시 넣으면(=상태 전이에 @keyframes로 회귀) 여기가 잡는다.
     // Button·Card·Chip·IconButton·BoardRow도 같은 이유로 0건이어야 한다.
@@ -365,12 +365,12 @@ describe('검사 1: 무한 루프 12개가 축소 모드(iteration 1)에서 보�
     expect(offenders).toEqual([]);
   });
 
-  it('11개 파일 어디에도 animationFillMode 롱핸드가 없다 — 바로 위 검사가 숏핸드 꼬리만 보기 때문이다', () => {
+  it('11개 파일 어디에도 animationFillMode 롱핸드가 없다. 바로 위 검사가 숏핸드 꼬리만 보기 때문이다', () => {
     // 위 it은 `animation:` 숏핸드에서 키프레임명 뒤 꼬리(`rest`)만 읽는다.
     // 같은 fill-mode를 `animationFillMode: 'forwards'` 롱핸드로 따로 쓰면
     // 그 스캔에 안 걸리고, Loader.css.ts의 dotDelayStyles처럼 소비처
     // 블록 밖에 놓이면 enclosingBlock도 못 닿는다. 그래서 롱핸드 자체를
-    // 11개 파일 전역에서 금지한다 — fill-mode는 숏핸드 꼬리에만 적는다.
+    // 11개 파일 전역에서 금지한다. fill-mode는 숏핸드 꼬리에만 적는다.
     // 무엇을 뒤집으면 빨개지는가: 아무 .css.ts에나 `animationFillMode:
     // 'forwards'` 한 줄을 넣으면 여기가 빨개진다. 파일 수가 11에서 줄어도
     // 마찬가지다 — 목록이 비면 아래 루프가 0번 돌고 조용히 초록이 된다.
