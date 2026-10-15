@@ -147,6 +147,31 @@ describe('Skeleton', () => {
       expect(skeleton).not.toHaveAttribute('aria-hidden');
     });
 
+    it('aria-label만 주면 role="img"를 같이 달아 접근 이름이 되게 한다', () => {
+      render(<Skeleton aria-label="프로필 이미지 로딩 중" />);
+      expect(
+        screen.getByRole('img', { name: '프로필 이미지 로딩 중' })
+      ).toBeInTheDocument();
+    });
+
+    it('소비자가 role을 주면 그 role이 이기고 role="img"를 달지 않는다', () => {
+      render(<Skeleton role="status" aria-label="로딩" />);
+      expect(screen.getByRole('status', { name: '로딩' })).toBeInTheDocument();
+      expect(screen.queryByRole('img')).toBeNull();
+    });
+
+    it('aria-label이 빈 문자열이면 숨기고 role을 달지 않는다', () => {
+      const { container } = render(<Skeleton aria-label="" />);
+      const skeleton = container.firstChild as HTMLElement;
+      expect(skeleton).toHaveAttribute('aria-hidden', 'true');
+      expect(skeleton).not.toHaveAttribute('role');
+    });
+
+    it('소비자의 aria-hidden={false}가 우선한다', () => {
+      const { container } = render(<Skeleton aria-hidden={false} />);
+      expect(container.firstChild).toHaveAttribute('aria-hidden', 'false');
+    });
+
     it('소비자의 aria-hidden이 우선한다({...props}가 접근성 속성 뒤에 온다)', () => {
       const { container } = render(
         <Skeleton aria-label="로딩" aria-hidden="true" />

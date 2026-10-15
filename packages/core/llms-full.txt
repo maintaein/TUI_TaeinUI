@@ -519,10 +519,10 @@ import { Skeleton } from '@taein-ui/core';
 | animation | 'wave' \| 'pulse' \| false | 'wave' | Animation type |
 | width | number \| string | — | Width |
 | height | number \| string | — | Height |
+| aria-label | string | - | Optional. Without it (and without `role`) the Skeleton is `aria-hidden`. With it, `aria-hidden` is dropped and `role="img"` is added so it is the accessible name (a `role` you pass wins) |
 | className | string | — | Additional CSS class |
-| aria-label | string | - | Optional. Without it (and without `role`) the Skeleton is `aria-hidden`. With it, `aria-hidden` is dropped and it is the accessible name |
 
-A Skeleton is decoration: `aria-hidden="true"`, no `role`, `aria-live`, `aria-busy` or automatic name. Announce loading on the wrapping region instead, once for the whole group:
+A Skeleton is decoration: `aria-hidden="true"`, no `role`, `aria-live`, `aria-busy` or automatic name. Announce loading on the wrapping region instead, once for the whole group, and remove its `aria-busy` when loading ends:
 
 ```tsx
 <section aria-busy="true" aria-label="Loading profile">

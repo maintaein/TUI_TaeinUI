@@ -65,7 +65,7 @@
 - **BREAKING CHANGE:** `Badge`의 숨은 CSS 변수 `--badge-color`를 없앴습니다. 색을 바꾸려면 `style={{ backgroundColor: color }}`를 쓰세요.
 - **BREAKING CHANGE:** `ListItem`의 `layout="custom"`을 없앴습니다(`layout`은 `'horizontal' | 'vertical'`). 하는 일이 없는 값이었습니다. `children`을 주면 `layout`과 상관없이 이미 자유 배치였고, `children` 없이 `custom`을 주면 배치 클래스가 빠졌습니다. 자유 배치는 `<ListItem>` 안에 `children`을 넣으세요.
 - **BREAKING CHANGE:** `ListItem`의 `align`을 없앴습니다. label-value 항목의 정렬은 고정입니다. 세로 항목(`layout="vertical"`)은 왼쪽(`align-items: flex-start`), 가로 항목은 세로 가운데(`align-items: center`)입니다. 다른 정렬이 필요하면 `className`이나 `style={{ alignItems: 'flex-start' }}`를 쓰세요. `children`으로 자유 배치한 항목은 이전에도 `align`을 쓰지 않았습니다.
-- **BREAKING CHANGE:** `Skeleton`이 기본으로 달던 `role="status"`, `aria-live="polite"`, `aria-busy="true"`, 자동 이름 "콘텐츠 로딩 중"을 없앴습니다. 스켈레톤은 장식이라 `aria-hidden="true"`만 붙습니다(스켈레톤이 여럿이면 라이브 리전도 여럿이라 매번 알리던 문제). 로딩 알림은 감싸는 영역이 맡으세요: `<section aria-busy="true" aria-label="프로필 로딩 중">…</section>`처럼 스켈레톤들을 감싸고 로딩이 끝나면 `aria-busy`를 거두세요. 스켈레톤 하나가 직접 알려야 하면 `aria-label`이나 `role`을 주세요. 주면 `aria-hidden`을 달지 않고 그대로 붙습니다(`role="status"`를 주면 이전과 같은 라이브 리전). 모양, 크기, 모션은 그대로입니다.
+- **BREAKING CHANGE:** `Skeleton`이 기본으로 달던 `role="status"`, `aria-live="polite"`, `aria-busy="true"`, 자동 이름 "콘텐츠 로딩 중"을 없앴습니다. 스켈레톤은 장식이라 `aria-hidden="true"`만 붙습니다(스켈레톤이 여럿이면 라이브 리전도 여럿이라 매번 알리던 문제). 로딩 알림은 감싸는 영역이 맡으세요: `<section aria-busy="true" aria-label="프로필 로딩 중">…</section>`처럼 스켈레톤들을 감싸고 로딩이 끝나면 `aria-busy`를 거두세요. 스켈레톤 하나가 직접 알려야 하면 `aria-label`이나 `role`을 주세요. 주면 `aria-hidden`을 달지 않고 그대로 붙고, `aria-label`만 주면 `role="img"`가 같이 붙습니다. `role="status"`를 주면 라이브 리전이 되지만 `aria-busy`와 자동 이름은 붙지 않으니, 알림은 감싸는 영역 패턴을 권합니다. 모양, 크기, 모션은 그대로입니다.
 
 ### Changed
 

@@ -32,7 +32,10 @@ export const Skeleton = ({
   <span
     // 스켈레톤은 장식이다: 로딩 알림은 감싸는 영역(aria-busy와 이름)이 맡는다.
     // 소비자가 이름이나 role을 주면 숨기지 않는다(Badge 점과 같은 규칙).
+    // role 없는 span의 aria-label은 이름이 되지 않을 수 있어 이름만 주면
+    // role="img"를 같이 단다. 소비자 role은 {...props}가 덮어 이긴다.
     aria-hidden={props['aria-label'] || props.role ? undefined : true}
+    role={props['aria-label'] ? 'img' : undefined}
     className={clsx(
       skeleton,
       variantStyles[variant],

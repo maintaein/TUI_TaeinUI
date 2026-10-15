@@ -35,7 +35,7 @@ export function SkeletonPage() {
       name: 'aria-label',
       type: 'string',
       description:
-        '기본은 없음(스켈레톤은 장식이라 aria-hidden). 주면 aria-hidden 없이 접근 이름이 되고, role을 줘도 마찬가지입니다. 로딩 알림은 감싸는 영역에 줍니다',
+        '기본은 없음(스켈레톤은 장식이라 aria-hidden). 주면 aria-hidden 없이 role="img"와 함께 접근 이름이 됩니다(role을 따로 주면 그 role이 이깁니다). 로딩 알림은 감싸는 영역에 줍니다',
     },
     {
       name: 'className',
