@@ -99,9 +99,9 @@ interface InputNudgeHost extends HTMLInputElement {
   __nudgeTween?: gsap.core.Tween;
 }
 
-/** step의 소수 자릿수. 0.1 + 0.2 같은 부동소수 오차를 자르는 데 쓴다. */
-const decimalsOf = (step: number): number => {
-  const [mantissa, exponent] = String(step).split('e');
+/** 수의 소수 자릿수. 0.1 + 0.2 같은 부동소수 오차를 자르는 데 쓴다. */
+const decimalsOf = (n: number): number => {
+  const [mantissa, exponent] = String(n).split('e');
   return Math.max(
     0,
     (mantissa.split('.')[1]?.length ?? 0) - Number(exponent ?? 0)
@@ -218,6 +218,19 @@ export const NumericSpinner = forwardRef<HTMLInputElement, NumericSpinnerProps>(
     const draftNumber =
       draft === null || draft.trim() === '' ? NaN : Number(draft);
 
+    // 입력 중에 disabled가 켜지면 친 글자를 버린다. 브라우저는 포커스된 칸이
+    // 비활성이 될 때 blur를 안 쏘므로, 안 비우면 다시 켜졌을 때 낡은 글자가 남는다.
+    const [prevDisabled, setPrevDisabled] = useState(disabled);
+    if (disabled !== prevDisabled) {
+      setPrevDisabled(disabled);
+      if (disabled) setDraft(null);
+    }
+
+    // 입력 중인 글자가 숫자면 그것, 아니면 확정 값. 증감의 기준이자 버튼 비활성의 기준이다.
+    const effectiveValue = Number.isFinite(draftNumber)
+      ? draftNumber
+      : currentValue;
+
     // 값이 바뀌는 길은 모두 여기 하나다: 증감 버튼·화살표 키·직접 입력 확정.
     const commit = useCallback(
       (next: number) => {
@@ -245,11 +258,13 @@ export const NumericSpinner = forwardRef<HTMLInputElement, NumericSpinnerProps>(
     const stepBy = useCallback(
       (direction: 1 | -1) => {
         if (disabled) return;
-        const base = Number.isFinite(draftNumber) ? draftNumber : currentValue;
+        const base = effectiveValue;
         setDraft(null);
-        commit(Number((base + direction * step).toFixed(decimalsOf(step))));
+        // step 격자 밖 값(0.25 + 0.1 등)을 깎지 않도록 step과 지금 값 중 긴 자릿수로 맞춘다.
+        const digits = Math.max(decimalsOf(step), decimalsOf(base));
+        commit(Number((base + direction * step).toFixed(digits)));
       },
-      [disabled, draftNumber, currentValue, step, commit]
+      [disabled, effectiveValue, step, commit]
     );
 
     const handleInputChange = (e: ChangeEvent<HTMLInputElement>) => {
@@ -267,20 +282,18 @@ export const NumericSpinner = forwardRef<HTMLInputElement, NumericSpinnerProps>(
       if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
         e.preventDefault();
         stepBy(e.key === 'ArrowUp' ? 1 : -1);
-      } else if (e.key === 'Enter') {
+      } else if (e.key === 'Enter' && !e.nativeEvent.isComposing) {
         commitDraft();
       }
     };
 
     // 증가 버튼 비활성화 여부
     const isIncrementDisabled =
-      disabled ||
-      (max !== undefined && currentValue !== undefined && currentValue >= max);
+      disabled || (max !== undefined && effectiveValue >= max);
 
     // 감소 버튼 비활성화 여부
     const isDecrementDisabled =
-      disabled ||
-      (min !== undefined && currentValue !== undefined && currentValue <= min);
+      disabled || (min !== undefined && effectiveValue <= min);
 
     // 길게 누르기 타이머(setTimeout 산술, Ruling 34)의 콜백은 수백 ms 뒤에도
     // 계속 살아있어 매 렌더마다 새로 만들어지는 클로저를 그대로 캡처하면 낡은

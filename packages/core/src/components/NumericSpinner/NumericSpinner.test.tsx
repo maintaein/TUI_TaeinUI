@@ -866,6 +866,136 @@ describe('NumericSpinner', () => {
       expect(input).toHaveValue(9);
     });
 
+    it('값이 max일 때 3을 입력 중이면 증가 버튼이 켜져 있고 누르면 4가 된다', () => {
+      const { onChange, input } = setup({ defaultValue: 10 });
+      const up = screen.getByRole('button', { name: '값 증가' });
+      expect(up).toBeDisabled();
+
+      fireEvent.change(input, { target: { value: '3' } });
+      expect(up).toBeEnabled();
+
+      fireEvent.click(up);
+      expect(onChange).toHaveBeenLastCalledWith(4);
+      expect(input).toHaveValue(4);
+    });
+
+    it('값이 5일 때 max인 10을 입력 중이면 증가 버튼이 꺼진다', () => {
+      const { input } = setup();
+      const up = screen.getByRole('button', { name: '값 증가' });
+      expect(up).toBeEnabled();
+
+      fireEvent.change(input, { target: { value: '10' } });
+      expect(up).toBeDisabled();
+    });
+
+    it('값이 min일 때 7을 입력 중이면 감소 버튼이 켜진다', () => {
+      const { input } = setup({ defaultValue: 0 });
+      const down = screen.getByRole('button', { name: '값 감소' });
+      expect(down).toBeDisabled();
+
+      fireEvent.change(input, { target: { value: '7' } });
+      expect(down).toBeEnabled();
+    });
+
+    it('입력 중에 disabled가 켜졌다 꺼지면 친 글자를 버리고 부모 값을 보여 준다', () => {
+      const onChange = vi.fn();
+      const { rerender } = render(
+        <NumericSpinner label="수량" value={7} onChange={onChange} />
+      );
+      const input = screen.getByLabelText('수량');
+
+      fireEvent.change(input, { target: { value: '42' } });
+      expect(input).toHaveValue(42);
+
+      rerender(
+        <NumericSpinner label="수량" value={7} onChange={onChange} disabled />
+      );
+      rerender(<NumericSpinner label="수량" value={7} onChange={onChange} />);
+
+      expect(input).toHaveValue(7);
+      expect(onChange).not.toHaveBeenCalled();
+    });
+
+    it('step 격자 밖 값에서는 step과 지금 값 중 긴 소수 자릿수로 반올림한다', () => {
+      const first = setup({
+        defaultValue: 0.25,
+        step: 0.1,
+        min: undefined,
+        max: undefined,
+      });
+      fireEvent.click(screen.getByRole('button', { name: '값 증가' }));
+      expect(first.onChange).toHaveBeenLastCalledWith(0.35);
+    });
+
+    it('직접 입력한 1.234에서 위 화살표는 step 1을 더해 2.234가 된다', () => {
+      const { onChange, input } = setup({
+        defaultValue: 0,
+        min: undefined,
+        max: undefined,
+      });
+
+      fireEvent.change(input, { target: { value: '1.234' } });
+      fireEvent.keyDown(input, { key: 'ArrowUp' });
+
+      expect(onChange).toHaveBeenLastCalledWith(2.234);
+    });
+
+    it('소수 step 0.1을 세 번 올려도 0.3 그대로다(자릿수 확장이 오차를 키우지 않는다)', () => {
+      const { onChange } = setup({
+        defaultValue: 0,
+        step: 0.1,
+        min: undefined,
+        max: undefined,
+      });
+      const up = screen.getByRole('button', { name: '값 증가' });
+
+      fireEvent.click(up);
+      fireEvent.click(up);
+      fireEvent.click(up);
+
+      expect(onChange).toHaveBeenLastCalledWith(0.3);
+    });
+
+    it('화살표 키는 기본 동작을 막는다(네이티브 증감과 겹치지 않는다)', () => {
+      const { input } = setup();
+
+      expect(fireEvent.keyDown(input, { key: 'ArrowUp' })).toBe(false);
+      expect(fireEvent.keyDown(input, { key: 'ArrowDown' })).toBe(false);
+    });
+
+    it('소비자 onKeyDown이 preventDefault하면 화살표 증감을 하지 않는다', () => {
+      const { onChange, input } = setup({
+        onKeyDown: (e) => e.preventDefault(),
+      });
+
+      fireEvent.keyDown(input, { key: 'ArrowUp' });
+
+      expect(onChange).not.toHaveBeenCalled();
+      expect(input).toHaveValue(5);
+    });
+
+    it('소비자 onKeyDown이 preventDefault하면 Enter 확정도 하지 않는다', () => {
+      const { onChange, input } = setup({
+        onKeyDown: (e) => e.preventDefault(),
+      });
+
+      fireEvent.change(input, { target: { value: '8' } });
+      fireEvent.keyDown(input, { key: 'Enter' });
+
+      expect(onChange).not.toHaveBeenCalled();
+    });
+
+    it('IME 조합 중의 Enter는 확정하지 않고, 조합이 끝난 Enter는 확정한다', () => {
+      const { onChange, input } = setup();
+
+      fireEvent.change(input, { target: { value: '8' } });
+      fireEvent.keyDown(input, { key: 'Enter', isComposing: true });
+      expect(onChange).not.toHaveBeenCalled();
+
+      fireEvent.keyDown(input, { key: 'Enter' });
+      expect(onChange).toHaveBeenCalledWith(8);
+    });
+
     it('inputWidth prop은 없고 style로 너비를 준다', () => {
       render(
         // @ts-expect-error - inputWidth는 삭제됐다
