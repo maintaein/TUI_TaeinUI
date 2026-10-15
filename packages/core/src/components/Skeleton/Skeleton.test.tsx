@@ -304,9 +304,10 @@ describe('Skeleton', () => {
       expect(pulseBlock).not.toContain('themeContract.animation.easing');
     });
 
-    it('shimmer 그라디언트가 하드코딩 rgba 대신 overlay.shimmer 토큰을 쓴다', () => {
+    it('빛 그라디언트가 하드코딩 rgba 대신 background.default 토큰을 쓴다', () => {
       expect(SKELETON_CSS).not.toContain('rgba(255, 255, 255, 0.3)');
-      expect(SKELETON_CSS).toContain('themeContract.color.overlay.shimmer');
+      expect(SKELETON_CSS).toContain('themeContract.color.background.default');
+      expect(SKELETON_CSS).not.toContain('overlay.shimmer');
     });
   });
 });
@@ -356,10 +357,17 @@ describe('Skeleton 생성 CSS (색·속도, task-28 관문)', () => {
     expect(animation).toContain('0.5s');
   });
 
-  it('shimmer 색은 그대로 overlay.shimmer 토큰이다', () => {
+  it('빛은 가운데 35%~65%가 불투명 흰색(background.default)인 그라디언트다', () => {
+    // 사용자 관문: "회색 영역이 사라졌다가 다시 생성되는 느낌". 흰색 30% 한 점이
+    // 아니라 불투명 구간이어야 그 구간에서 회색이 완전히 가려진다.
     const wave = rule(/wave__\w+::after$/)!;
-    expect(wave.style.getPropertyValue('background-image')).toContain(
-      'shimmer'
+    const image = wave.style.getPropertyValue('background-image');
+    const white = String.raw`var\(--[\w-]*background[\w-]*default[\w-]*\)`;
+    expect(image).toMatch(
+      new RegExp(
+        String.raw`linear-gradient\(\s*90deg,\s*transparent 0%,\s*${white} 35%,\s*${white} 65%,\s*transparent 100%\s*\)`
+      )
     );
+    expect(image).not.toContain('shimmer');
   });
 });

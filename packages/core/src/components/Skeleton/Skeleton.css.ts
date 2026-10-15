@@ -9,6 +9,12 @@ import { loopRhythmEasing } from '../../tokens/loopRhythm.css';
 // 토큰 참조와 리터럴 배수를 직접 읽는다(animationBoundary의 시작 지연 집계,
 // tierAKeyframesReducedMotion의 duration 자리 형태).
 
+// 사용자 관문 2(M5 task-28): "회색 영역이 사라졌다가 다시 생성되는 느낌". 빛은
+// 흰색 30% 한 점이 아니라 가운데 30%(35%~65%)가 불투명 흰색인 띠다. 이 구간을
+// 지나는 동안 회색이 완전히 가려졌다가 지나간 뒤 다시 드러난다.
+const GLOW_START = '35%';
+const GLOW_END = '65%';
+
 // 애니메이션 정의
 // wave의 방향(좌→우)이 상태계 계열 기준이다(S1) — Loader 스윕·점 페이드가
 // 이 방향·리듬을 따른다. 커브는 T5 공유 자산(loopRhythm)에서, 주기는
@@ -41,7 +47,7 @@ const pulse = keyframes({
 export const skeleton = style({
   display: 'inline-block',
   // 사용자 관문(M5 task-28): surface.hover(gray[100])보다 한 단계 진한 gray[200]
-  // (흰 바탕 대비 1.09 -> 1.16). shimmer는 그대로다.
+  // (흰 바탕 대비 1.09 -> 1.16).
   backgroundColor: themeContract.palette.gray[200],
   position: 'relative',
   overflow: 'hidden',
@@ -86,9 +92,10 @@ export const animationStyles = styleVariants({
         left: 0,
         transform: 'translateX(-100%)',
         backgroundImage: `linear-gradient(90deg,
-          transparent,
-          ${themeContract.color.overlay.shimmer},
-          transparent
+          transparent 0%,
+          ${themeContract.color.background.default} ${GLOW_START},
+          ${themeContract.color.background.default} ${GLOW_END},
+          transparent 100%
         )`,
         animation: `${wave} calc(${themeContract.animation.loop.base} * 1.2) ${loopRhythmEasing} 0.5s infinite`,
       },
