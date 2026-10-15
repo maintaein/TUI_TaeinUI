@@ -35,6 +35,8 @@ export default defineConfig({
     // List도 같은 이유다. 구분선 위 여백이 gap과 같은 변수를 읽는지, 라벨-값 항목이
     // 늘 가운데 정렬이고 children 항목에는 정렬이 걸리지 않는지를 CSSOM으로 잠근다.
     // Skeleton도 같은 이유다. 면 색 토큰과 두 애니메이션의 주기 식을 CSSOM으로 잠근다.
+    // NumericSpinner도 같은 이유다. 입력칸 포커스가 테두리 색 한 겹뿐이고 바깥 상자에
+    // 테두리가 없음을 CSSOM으로 잠근다.
     css: {
       include: [
         /Slider\.css/,
@@ -51,6 +53,7 @@ export default defineConfig({
         /\/Divider\.css/,
         /\/List\.css/,
         /\/Skeleton\.css/,
+        /\/NumericSpinner\.css/,
       ],
     },
     coverage: {

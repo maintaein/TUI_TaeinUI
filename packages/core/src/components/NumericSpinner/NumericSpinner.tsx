@@ -54,6 +54,16 @@ const NUDGE_PX = 4;
  */
 const NUDGE_MIN_MS = 60;
 
+/**
+ * 채널 A(눌림 깊이)를 거는 대상. 누른 버튼과 숫자 칸을 한 트윈에 담아 값·시간·커브가
+ * 같고 뗄 때도 함께 돌아오게 한다(사용자 관문, M5 task-29). 숫자 칸의 넛지(채널 B)는
+ * y만 쓰고 GSAP이 scale과 y를 한 transform에 따로 가진다.
+ */
+const pressTargets = (
+  button: HTMLButtonElement,
+  input: HTMLInputElement | null
+): HTMLElement[] => (input ? [button, input] : [button]);
+
 /** 버튼 하나(증가 또는 감소)의 길게 누르기 상태. */
 interface HoldState {
   isHolding: boolean;
@@ -350,7 +360,7 @@ export const NumericSpinner = forwardRef<HTMLInputElement, NumericSpinnerProps>(
       const button = buttonRef.current;
       if (button) {
         const tween = gateMotion(reducedRef.current, () =>
-          gsap.to(button, {
+          gsap.to(pressTargets(button, inputRef.current), {
             scale: 1,
             duration: gsapDuration.fast,
             ease: gsapEasing.exit,
@@ -468,13 +478,14 @@ export const NumericSpinner = forwardRef<HTMLInputElement, NumericSpinnerProps>(
         const button = buttonRef.current;
         if (button) {
           const tween = gateMotion(reducedRef.current, () => {
+            const targets = pressTargets(button, inputRef.current);
             const tl = gsap.timeline({ defaults: { overwrite: 'auto' } });
-            tl.to(button, {
+            tl.to(targets, {
               scale: PRESS_SCALE,
               duration: gsapDuration.fast,
               ease: gsapEasing.snap,
             });
-            tl.to(button, {
+            tl.to(targets, {
               scale: PRESS_SCALE_DEEP,
               duration: REPEAT_RAMP_MS / 1000,
               ease: gsapEasing.drift,
@@ -553,13 +564,7 @@ export const NumericSpinner = forwardRef<HTMLInputElement, NumericSpinnerProps>(
         fullWidth={fullWidth}
       >
         {({ inputId, helperId, hasHelper, isError }) => (
-          <div
-            className={clsx(
-              styles.inputContainer,
-              styles.size[size],
-              isError && styles.error
-            )}
-          >
+          <div className={clsx(styles.inputContainer, styles.size[size])}>
             {/* Decrement Button */}
             <button
               ref={decrementButtonRef}

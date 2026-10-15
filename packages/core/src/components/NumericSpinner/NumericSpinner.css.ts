@@ -8,15 +8,15 @@ export const inputContainer = style({
   display: 'inline-flex',
   alignItems: 'center',
   backgroundColor: themeContract.color.background.paper,
-  border: `1px solid ${themeContract.color.border.strong}`,
+  // 바깥 테두리는 없다(사용자 관문, M5 task-29): 입력칸 자신의 테두리가 이미 한 겹
+  // 있어 상자 안에 상자로 읽혔다. 면과 반경은 남겨 한 덩어리로 읽히게 한다.
   borderRadius: '8px',
-  transition: `background-color ${themeContract.animation.duration.fast} ease-in-out, border-color ${themeContract.animation.duration.fast} ease-in-out, box-shadow ${themeContract.animation.duration.fast} ease-in-out`,
+  transition: `background-color ${themeContract.animation.duration.fast} ease-in-out`,
   width: 'fit-content',
 
   selectors: {
     '&:has(input:disabled)': {
       backgroundColor: themeContract.color.surface.default,
-      borderColor: themeContract.color.background.paper,
       cursor: 'not-allowed',
     },
     '&:has(input:read-only)': {
@@ -56,7 +56,7 @@ export const input = style({
   borderRadius: '6px',
   // y(자리수 nudge)는 이제 GSAP이 소유한다(M3 T3d) — transform을 여기서 전이하면
   // GSAP이 매 프레임 쓰는 인라인 transform과 CSS 전이가 같은 속성을 놓고 싸운다.
-  transition: `background-color ${themeContract.animation.duration.base} ease, color ${themeContract.animation.duration.base} ease, box-shadow ${themeContract.animation.duration.fast} ${themeContract.animation.easing.settle}`,
+  transition: `background-color ${themeContract.animation.duration.base} ease, color ${themeContract.animation.duration.base} ease`,
 
   selectors: {
     // 눌림 중 색만 CSS가 맡는다(단독 채널 금지, Article 4) — 굴곡(채널 B의
@@ -77,10 +77,12 @@ export const input = style({
     '&:read-only': {
       cursor: 'default',
     },
+    // 사용자 요구(M5 task-29): 클릭 때 테두리 색에 3px 후광과 2px 바깥 링이 겹쳐
+    // 세 겹으로 칠해지던 것을 걷고, TextField와 같이 테두리 색 한 겹으로 둔다.
+    // 포커스 표시는 테두리 색 변화와 캐럿이 맡는다(WCAG 2.4.7). 증감 버튼은 캐럿이
+    // 없어 :focus-visible 링을 그대로 둔다.
     '&:focus': {
       borderColor: themeContract.color.primary.main,
-      boxShadow: `0 0 0 3px ${themeContract.color.overlay.focusHalo}`,
-      ...focusRing(),
     },
     '&::-webkit-outer-spin-button': {
       appearance: 'none',
@@ -161,14 +163,8 @@ export const buttonSize = styleVariants({
 export const decrementButton = style({});
 export const incrementButton = style({});
 
-// error 상태
+// error 상태. 입력칸에만 건다: 오류는 입력칸 테두리 하나만 빨갛다. !important는
+// 같은 입력칸의 :focus 테두리 색(primary)보다 이겨 포커스 때도 빨강을 지킨다.
 export const error = style({
   borderColor: `${themeContract.color.error.main} !important`,
-
-  selectors: {
-    '&:focus-within': {
-      borderColor: `${themeContract.color.error.main} !important`,
-      boxShadow: `0 0 0 3px ${themeContract.color.overlay.errorHalo}`,
-    },
-  },
 });

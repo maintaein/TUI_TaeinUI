@@ -568,9 +568,10 @@ const LITERAL_EASING_EXCEPTIONS: Exception[] = [
   },
   {
     at: 'components/NumericSpinner/NumericSpinner.css.ts',
-    values: ['ease-in-out', 'ease-in-out', 'ease-in-out'],
+    values: ['ease-in-out'],
     owner: 'M2',
-    reason: '컨테이너 focus·error halo 전이 곡선',
+    reason:
+      '컨테이너 배경색 전이 곡선 — 테두리 색·후광 전이는 M5 task-29 관문에서 테두리와 후광을 걷어 빠졌다',
   },
   {
     at: 'components/NumericSpinner/NumericSpinner.css.ts',
@@ -814,8 +815,8 @@ describe('전이 목록 잠금 (T3)', () => {
   });
 
   it('자기 전이를 가진 블록이 상태에서 boxShadow를 바꾸면 그 목록에 box-shadow가 있다', () => {
-    // NumericSpinner.css.ts:13 컨테이너(d03c209), NumericSpinner.css.ts:64
-    // input(63a2b53)에 box-shadow를 넣은 이유다(TextField는 M5 task-15에서
+    // NumericSpinner.css.ts 컨테이너(d03c209)와 input(63a2b53)에 box-shadow를 넣은
+    // 이유다(TextField는 M5 task-15에서, NumericSpinner는 M5 task-29 관문에서
     // 후광을 걷어 더는 해당하지 않는다). 빠지면 focus·error halo가 페이드
     // 없이 툭 튄다.
     //
@@ -1179,14 +1180,16 @@ describe('리터럴 이징 잠금 (T8 · R32)', () => {
     );
   });
 
-  it('.css.ts 쪽 실측이 6줄 13건 3파일이다', () => {
+  it('.css.ts 쪽 실측이 6줄 11건 3파일이다', () => {
     // M3 T3d에서 11줄 20건 → 8줄 15건. SegmentedButtons의 activeIndicator 전이에서
     // transform·width가 GSAP으로 넘어가며 리터럴 이징 3건이 사라졌다. M5 task-18에서
     // Slider의 채움 전이(ease-out)가 SVG 경로로 바뀌며 1줄 1건 1파일이 더 사라졌다.
     // M5 task-19에서 SegmentedButtons 표시가 clip-path로 바뀌며 box-shadow 전이(ease)
     // 1줄 1건이 더 사라졌다(파일은 라벨 전이가 남아 그대로 3개).
+    // M5 task-29 관문에서 NumericSpinner 바깥 상자가 테두리 색·후광 전이를 잃어
+    // 한 줄에서 2건(ease-in-out)이 더 사라졌다(줄은 배경색 전이가 남아 그대로 6줄).
     expect(new Set(cssEasings.map((e) => `${e.file}:${e.line}`)).size).toBe(6);
-    expect(cssEasings).toHaveLength(13);
+    expect(cssEasings).toHaveLength(11);
     expect(new Set(cssEasings.map((e) => e.file)).size).toBe(3);
   });
 
