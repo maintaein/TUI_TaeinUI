@@ -4,7 +4,7 @@ import userEvent from '@testing-library/user-event';
 import '@testing-library/jest-dom';
 import React, { createRef } from 'react';
 import { NumericSpinner } from './NumericSpinner';
-import { gsapDuration } from '../../tokens/gsapEasing';
+import { gsapDuration, gsapEasing } from '../../tokens/gsapEasing';
 
 describe('NumericSpinner', () => {
   describe('렌더링 테스트', () => {
@@ -1270,8 +1270,8 @@ describe('NumericSpinner', () => {
     });
 
     it(
-      '채널 A: 누르면 0.92로, 길게 누르면 0.86까지 깊어지고 떼면 현재 ' +
-        '위치에서 1로 돌아온다',
+      '채널 A: 누르면 버튼 0.90으로, 길게 누르면 0.86까지 깊어지고 떼면 ' +
+        '현재 위치에서 1로 돌아온다',
       () => {
         render(<NumericSpinner label="수량" defaultValue={0} />);
         const incrementButton = screen.getByRole('button', {
@@ -1288,29 +1288,30 @@ describe('NumericSpinner', () => {
         act(() => {
           holdTimeline.progress(firstLegEnd);
         });
-        expect(readScale(incrementButton)).toBeCloseTo(0.92, 2);
+        expect(readScale(incrementButton)).toBeCloseTo(0.9, 2);
 
         act(() => {
           holdTimeline.progress((firstLegEnd + 1) / 2); // 2단계 진행 중
         });
         const scaleAtInterrupt = readScale(incrementButton);
-        expect(scaleAtInterrupt).toBeLessThan(0.92);
+        expect(scaleAtInterrupt).toBeLessThan(0.9);
         expect(scaleAtInterrupt).toBeGreaterThan(0.86);
 
         fireEvent.pointerUp(incrementButton);
-        const releaseTween = incrementButton.__pressTween as gsap.core.Tween;
-        expect(releaseTween).not.toBe(holdTimeline);
+        const releaseTimeline =
+          incrementButton.__pressTween as gsap.core.Timeline;
+        expect(releaseTimeline).not.toBe(holdTimeline);
 
         act(() => {
-          releaseTween.progress(0.001);
+          releaseTimeline.progress(0.001);
         });
-        // 뗀 직후엔 1로 점프하지 않고 중단 당시 값에서 이어받는다.
+        // 뗀 직후엔 점프하지 않고 중단 당시 값에서 이어받는다.
         expect(
           Math.abs(readScale(incrementButton) - scaleAtInterrupt)
         ).toBeLessThan(0.05);
 
         act(() => {
-          releaseTween.progress(1);
+          releaseTimeline.progress(1);
         });
         expect(readScale(incrementButton)).toBeCloseTo(1, 2);
       }
@@ -1383,15 +1384,16 @@ describe('NumericSpinner', () => {
       vi.unstubAllGlobals();
     });
 
-    describe('채널 A는 숫자 칸에도 같은 값으로 걸린다 (task-29 관문)', () => {
+    describe('채널 A는 숫자 칸에도 걸린다, 숫자는 더 깊게 (task-29 관문 3)', () => {
       const firstLegEnd =
         gsapDuration.fast / (gsapDuration.fast + REPEAT_RAMP_MS / 1000);
 
-      it('누르는 순간 0.92, 길게 누르면 0.86까지 버튼과 같은 값으로 깊어진다', () => {
+      const pressButton = (name: '값 증가' | '값 감소') =>
+        screen.getByRole('button', { name }) as PressTweenHost;
+
+      it('누르는 순간 버튼 0.90 숫자 0.82, 길게 누르면 버튼 0.86 숫자 0.76까지 깊어진다', () => {
         render(<NumericSpinner label="수량" defaultValue={0} />);
-        const incrementButton = screen.getByRole('button', {
-          name: '값 증가',
-        }) as PressTweenHost;
+        const incrementButton = pressButton('값 증가');
         const input = screen.getByLabelText('수량');
 
         fireEvent.pointerDown(incrementButton);
@@ -1400,47 +1402,63 @@ describe('NumericSpinner', () => {
         act(() => {
           holdTimeline.progress(firstLegEnd);
         });
-        expect(readScale(input)).toBeCloseTo(0.92, 2);
-        expect(readScale(input)).toBeCloseTo(readScale(incrementButton), 5);
+        expect(readScale(incrementButton)).toBeCloseTo(0.9, 2);
+        expect(readScale(input)).toBeCloseTo(0.82, 2);
 
         act(() => {
           holdTimeline.progress((firstLegEnd + 1) / 2);
         });
-        expect(readScale(input)).toBeLessThan(0.92);
-        expect(readScale(input)).toBeGreaterThan(0.86);
-        expect(readScale(input)).toBeCloseTo(readScale(incrementButton), 5);
+        expect(readScale(incrementButton)).toBeLessThan(0.9);
+        expect(readScale(incrementButton)).toBeGreaterThan(0.86);
+        expect(readScale(input)).toBeLessThan(0.82);
+        expect(readScale(input)).toBeGreaterThan(0.76);
 
         act(() => {
           holdTimeline.progress(1);
         });
-        expect(readScale(input)).toBeCloseTo(0.86, 2);
-        expect(readScale(input)).toBeCloseTo(readScale(incrementButton), 5);
+        expect(readScale(incrementButton)).toBeCloseTo(0.86, 2);
+        expect(readScale(input)).toBeCloseTo(0.76, 2);
+
+        fireEvent.pointerUp(incrementButton);
+      });
+
+      it('누름 1단계는 떨림 없이 단단한 settle, 2단계는 drift이고 시간은 fast와 REPEAT_RAMP_MS다', () => {
+        render(<NumericSpinner label="수량" defaultValue={0} />);
+        const incrementButton = pressButton('값 증가');
+
+        fireEvent.pointerDown(incrementButton);
+        const [first, second] = (
+          incrementButton.__pressTween as gsap.core.Timeline
+        ).getChildren() as gsap.core.Tween[];
+
+        expect(first.vars.ease).toBe(gsapEasing.settle);
+        expect(first.duration()).toBeCloseTo(gsapDuration.fast, 5);
+        expect(second.vars.ease).toBe(gsapEasing.drift);
+        expect(second.duration()).toBeCloseTo(REPEAT_RAMP_MS / 1000, 5);
 
         fireEvent.pointerUp(incrementButton);
       });
 
       it('감소 버튼을 눌러도 숫자 칸이 같이 눌린다', () => {
         render(<NumericSpinner label="수량" defaultValue={5} />);
-        const decrementButton = screen.getByRole('button', {
-          name: '값 감소',
-        }) as PressTweenHost;
+        const decrementButton = pressButton('값 감소');
         const input = screen.getByLabelText('수량');
 
         fireEvent.pointerDown(decrementButton);
-        const holdTimeline = decrementButton.__pressTween as gsap.core.Timeline;
         act(() => {
-          holdTimeline.progress(firstLegEnd);
+          (decrementButton.__pressTween as gsap.core.Timeline).progress(
+            firstLegEnd
+          );
         });
-        expect(readScale(input)).toBeCloseTo(0.92, 2);
+        expect(readScale(decrementButton)).toBeCloseTo(0.9, 2);
+        expect(readScale(input)).toBeCloseTo(0.82, 2);
 
         fireEvent.pointerUp(decrementButton);
       });
 
       it('키보드(스페이스)로 눌러도 숫자 칸이 같이 눌린다', () => {
         render(<NumericSpinner label="수량" defaultValue={0} />);
-        const incrementButton = screen.getByRole('button', {
-          name: '값 증가',
-        }) as PressTweenHost;
+        const incrementButton = pressButton('값 증가');
         const input = screen.getByLabelText('수량');
 
         fireEvent.keyDown(incrementButton, { key: ' ' });
@@ -1449,49 +1467,14 @@ describe('NumericSpinner', () => {
             firstLegEnd
           );
         });
-        expect(readScale(input)).toBeCloseTo(0.92, 2);
+        expect(readScale(input)).toBeCloseTo(0.82, 2);
 
         fireEvent.keyUp(incrementButton, { key: ' ' });
       });
 
-      it('중간에 떼면 숫자 칸도 지금 값에서 이어받아 함께 1로 돌아온다', () => {
-        render(<NumericSpinner label="수량" defaultValue={0} />);
-        const incrementButton = screen.getByRole('button', {
-          name: '값 증가',
-        }) as PressTweenHost;
-        const input = screen.getByLabelText('수량');
-
-        fireEvent.pointerDown(incrementButton);
-        const holdTimeline = incrementButton.__pressTween as gsap.core.Timeline;
-        act(() => {
-          holdTimeline.progress((firstLegEnd + 1) / 2);
-        });
-        const scaleAtInterrupt = readScale(input);
-
-        fireEvent.pointerUp(incrementButton);
-        const releaseTween = incrementButton.__pressTween as gsap.core.Tween;
-        expect(releaseTween).not.toBe(holdTimeline);
-
-        act(() => {
-          releaseTween.progress(0.001);
-        });
-        expect(Math.abs(readScale(input) - scaleAtInterrupt)).toBeLessThan(
-          0.05
-        );
-        expect(readScale(input)).toBeCloseTo(readScale(incrementButton), 5);
-
-        act(() => {
-          releaseTween.progress(1);
-        });
-        expect(readScale(input)).toBeCloseTo(1, 2);
-        expect(readScale(incrementButton)).toBeCloseTo(1, 2);
-      });
-
       it('눌림(scale)과 넛지(y)는 한 transform에서 서로를 지우지 않는다', () => {
         render(<NumericSpinner label="수량" defaultValue={0} />);
-        const incrementButton = screen.getByRole('button', {
-          name: '값 증가',
-        }) as PressTweenHost;
+        const incrementButton = pressButton('값 증가');
         const input = screen.getByLabelText('수량') as InputNudgeHost;
 
         fireEvent.pointerDown(incrementButton);
@@ -1503,16 +1486,14 @@ describe('NumericSpinner', () => {
           input.__nudgeTween!.progress(0);
         });
         expect(readY(input)).toBeCloseTo(-NUDGE_PX, 1);
-        expect(readScale(input)).toBeCloseTo(0.86, 2);
+        expect(readScale(input)).toBeCloseTo(0.76, 2);
 
         fireEvent.pointerUp(incrementButton);
       });
 
       it('눌림과 넛지는 <input>에만 걸리고 숫자 칸 상자와 컨테이너는 움직이지 않는다', () => {
         render(<NumericSpinner label="수량" defaultValue={0} />);
-        const incrementButton = screen.getByRole('button', {
-          name: '값 증가',
-        }) as PressTweenHost;
+        const incrementButton = pressButton('값 증가');
         const input = screen.getByLabelText('수량');
         const box = input.parentElement!;
 
@@ -1523,7 +1504,7 @@ describe('NumericSpinner', () => {
         act(() => {
           (incrementButton.__pressTween as gsap.core.Timeline).progress(1);
         });
-        expect(readScale(input)).toBeCloseTo(0.86, 2);
+        expect(readScale(input)).toBeCloseTo(0.76, 2);
         expect(box.style.transform).toBe('');
         expect(box.parentElement!.style.transform).toBe('');
 
@@ -1535,7 +1516,7 @@ describe('NumericSpinner', () => {
         fireEvent.pointerUp(incrementButton);
       });
 
-      it('모션 축소 선호에서는 숫자 칸도 즉시 0.86에 정착하고 떼면 즉시 1이다', () => {
+      it('모션 축소 선호에서는 숫자 칸도 즉시 0.76에 정착하고 떼면 부풂 없이 즉시 1이다', () => {
         vi.stubGlobal(
           'matchMedia',
           (media: string): MediaQueryList =>
@@ -1548,16 +1529,15 @@ describe('NumericSpinner', () => {
         );
 
         render(<NumericSpinner label="수량" defaultValue={0} />);
-        const incrementButton = screen.getByRole('button', {
-          name: '값 증가',
-        }) as PressTweenHost;
+        const incrementButton = pressButton('값 증가');
         const input = screen.getByLabelText('수량');
 
         fireEvent.pointerDown(incrementButton);
-        expect(readScale(input)).toBeCloseTo(0.86, 2);
+        expect(readScale(input)).toBeCloseTo(0.76, 2);
 
         fireEvent.pointerUp(incrementButton);
         expect(readScale(input)).toBeCloseTo(1, 2);
+        expect(readScale(incrementButton)).toBeCloseTo(1, 2);
 
         vi.unstubAllGlobals();
       });
@@ -1566,9 +1546,7 @@ describe('NumericSpinner', () => {
         const { unmount } = render(
           <NumericSpinner label="수량" defaultValue={0} />
         );
-        const incrementButton = screen.getByRole('button', {
-          name: '값 증가',
-        }) as PressTweenHost;
+        const incrementButton = pressButton('값 증가');
         const input = screen.getByLabelText('수량');
 
         fireEvent.pointerDown(incrementButton);
@@ -1585,8 +1563,126 @@ describe('NumericSpinner', () => {
       });
     });
 
+    describe('뗌은 부풀었다 내려앉는다 (task-29 관문 3)', () => {
+      // 부풂 1.06(버튼)·1.12(숫자), 내려앉음 1. 타임라인 하나에 두 상이 든다.
+      const releaseLegEnd =
+        gsapDuration.fast / (gsapDuration.fast + gsapDuration.slow);
+
+      /** 누름 타임라인을 끝(가장 깊은 값)까지 보낸 뒤 뗀다. */
+      const pressAndRelease = (name: '값 증가' | '값 감소') => {
+        const button = screen.getByRole('button', { name }) as PressTweenHost;
+        fireEvent.pointerDown(button);
+        const hold = button.__pressTween as gsap.core.Timeline;
+        act(() => {
+          hold.progress(1);
+        });
+        fireEvent.pointerUp(button);
+        const release = button.__pressTween as gsap.core.Timeline;
+        return { button, hold, release };
+      };
+
+      it('뗌은 타임라인 하나이고 1상 settle fast, 2상 drift slow 두 트윈을 담는다', () => {
+        render(<NumericSpinner label="수량" defaultValue={0} />);
+        const { hold, release } = pressAndRelease('값 증가');
+
+        expect(release).not.toBe(hold);
+        const legs = release.getChildren() as gsap.core.Tween[];
+        expect(legs).toHaveLength(2);
+        expect(legs[0].vars.ease).toBe(gsapEasing.settle);
+        expect(legs[0].duration()).toBeCloseTo(gsapDuration.fast, 5);
+        expect(legs[1].vars.ease).toBe(gsapEasing.drift);
+        expect(legs[1].duration()).toBeCloseTo(gsapDuration.slow, 5);
+      });
+
+      it('1상 끝에서 버튼 1.06 숫자 1.12까지 부풀고, 2상 끝에서 둘 다 1로 내려앉는다', () => {
+        render(<NumericSpinner label="수량" defaultValue={0} />);
+        const input = screen.getByLabelText('수량');
+        const { button, release } = pressAndRelease('값 증가');
+
+        act(() => {
+          release.progress(releaseLegEnd);
+        });
+        expect(readScale(button)).toBeCloseTo(1.06, 2);
+        expect(readScale(input)).toBeCloseTo(1.12, 2);
+
+        act(() => {
+          release.progress((releaseLegEnd + 1) / 2);
+        });
+        expect(readScale(button)).toBeLessThan(1.06);
+        expect(readScale(button)).toBeGreaterThan(1);
+        expect(readScale(input)).toBeLessThan(1.12);
+        expect(readScale(input)).toBeGreaterThan(1);
+
+        act(() => {
+          release.progress(1);
+        });
+        expect(readScale(button)).toBeCloseTo(1, 2);
+        expect(readScale(input)).toBeCloseTo(1, 2);
+      });
+
+      it('감소 버튼도 같은 부풂을 한다', () => {
+        render(<NumericSpinner label="수량" defaultValue={5} />);
+        const input = screen.getByLabelText('수량');
+        const { button, release } = pressAndRelease('값 감소');
+
+        act(() => {
+          release.progress(releaseLegEnd);
+        });
+        expect(readScale(button)).toBeCloseTo(1.06, 2);
+        expect(readScale(input)).toBeCloseTo(1.12, 2);
+      });
+
+      it('부풂은 지금 자리에서 시작한다(깊게 눌린 값에서 점프하지 않는다)', () => {
+        render(<NumericSpinner label="수량" defaultValue={0} />);
+        const input = screen.getByLabelText('수량');
+        const { button, release } = pressAndRelease('값 증가');
+
+        act(() => {
+          release.progress(0.001);
+        });
+        expect(Math.abs(readScale(button) - 0.86)).toBeLessThan(0.05);
+        expect(Math.abs(readScale(input) - 0.76)).toBeLessThan(0.05);
+      });
+
+      it('뗌 도중 다시 누르면 뗌 타임라인이 죽고 누름이 지금 자리에서 시작한다', () => {
+        render(<NumericSpinner label="수량" defaultValue={0} />);
+        const input = screen.getByLabelText('수량');
+        const { button, release } = pressAndRelease('값 증가');
+
+        act(() => {
+          release.progress(releaseLegEnd);
+        });
+        const swellButton = readScale(button);
+        const swellInput = readScale(input);
+
+        fireEvent.pointerDown(button);
+        const nextHold = button.__pressTween as gsap.core.Timeline;
+        expect(release.parent).toBeNull();
+        expect(nextHold).not.toBe(release);
+        expect(nextHold.parent).not.toBeNull();
+
+        act(() => {
+          nextHold.progress(0.001);
+        });
+        expect(Math.abs(readScale(button) - swellButton)).toBeLessThan(0.05);
+        expect(Math.abs(readScale(input) - swellInput)).toBeLessThan(0.05);
+
+        fireEvent.pointerUp(button);
+      });
+
+      it('언마운트하면 뗌 타임라인도 죽는다', () => {
+        const { unmount } = render(
+          <NumericSpinner label="수량" defaultValue={0} />
+        );
+        const { release } = pressAndRelease('값 증가');
+
+        unmount();
+        expect(release.parent).toBeNull();
+      });
+    });
+
     describe('빨리 누르면 크기가 남던 결함 (task-29 관문 2)', () => {
-      // 원인: 누름 타임라인은 1단계(0.92)와 2단계(0.86)를 차례로 담는다. 1단계 도중에
+      // 원인: 누름 타임라인은 1단계(버튼 0.90)와 2단계(0.86)를 차례로 담는다. 1단계 도중에
       // 떼면 릴리즈 트윈의 overwrite: 'auto'는 돌고 있던 1단계만 죽이고, 아직 시작
       // 안 한 2단계는 살아남아 나중에 릴리즈를 덮고 0.86으로 간다. 그래서 시간이
       // 정말 흐르는 실제 타이머로 확인한다(가짜 타이머는 gsap 티커를 못 돌린다).
@@ -1660,7 +1756,7 @@ describe('NumericSpinner', () => {
 
         fireEvent.pointerDown(button);
         await settle(700);
-        expect(readScale(button)).toBeLessThan(0.92);
+        expect(readScale(button)).toBeLessThan(0.9);
         fireEvent.pointerUp(button);
         await settle(600);
 
@@ -1677,7 +1773,7 @@ describe('NumericSpinner', () => {
         fireEvent.pointerDown(button);
         const firstTimeline = button.__pressTween as gsap.core.Timeline;
         fireEvent.pointerUp(button);
-        const release = button.__pressTween as gsap.core.Tween;
+        const release = button.__pressTween as gsap.core.Timeline;
 
         fireEvent.pointerDown(button);
         const secondTimeline = button.__pressTween as gsap.core.Timeline;

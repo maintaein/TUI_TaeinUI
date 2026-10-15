@@ -19,10 +19,25 @@ import { gateMotion } from '../../hooks/gateMotion';
 import { useReducedMotion } from '../../hooks/useReducedMotion';
 import { gsapEasing, gsapDuration } from '../../tokens/gsapEasing';
 
-/** 눌림 깊이 1단계 — 누르는 순간 바로 여기까지 간다. */
-const PRESS_SCALE = 0.92;
-/** 눌림 깊이 2단계 — 길게 누르는 동안 여기까지 더 깊어진다. */
-const PRESS_SCALE_DEEP = 0.86;
+// 사용자 관문 3(M5 task-29): "numericspinner의 +, - , 숫자 클릭효과가 좀 더 bubble이나
+// bouncy했으면 좋겠어. 지금은 좀 부자연스러워보이네." 눌림은 깊게 들어가고, 뗄 때
+// 1을 넘게 부풀었다 부드럽게 내려앉는 두 상이다. 넘침은 "이동거리 x 정점"이 보여야
+// 한다. 버튼 40px 기준 부풂 1.06이면 한쪽 1.2px(폭 2.4px)가 넘치고, 숫자 글자 14px
+// 안팎은 같은 6%면 한쪽 0.4px라 안 보여서 1.12로 올려 한쪽 약 0.8px를 만든다. 이전
+// 뗌은 넘침 0이었다. 숫자 칸은 버튼과 같은 깊이면 8%가 거의 안 보여 더 깊게 누른다.
+
+/** 눌림 1단계(누르는 순간) 깊이: 버튼. */
+const PRESS_SCALE_BUTTON = 0.9;
+/** 눌림 1단계 깊이: 숫자 칸. */
+const PRESS_SCALE_INPUT = 0.82;
+/** 눌림 2단계(길게 누르는 동안) 깊이: 버튼. */
+const PRESS_SCALE_DEEP_BUTTON = 0.86;
+/** 눌림 2단계 깊이: 숫자 칸. */
+const PRESS_SCALE_DEEP_INPUT = 0.76;
+/** 뗄 때 1을 넘어 부푸는 정점: 버튼. */
+const RELEASE_SWELL_BUTTON = 1.06;
+/** 뗄 때 부푸는 정점: 숫자 칸. */
+const RELEASE_SWELL_INPUT = 1.12;
 
 /** 이 시간 안에 떼면 반복 없이 한 걸음만 간다. */
 const REPEAT_DELAY_MS = 400;
@@ -55,14 +70,19 @@ const NUDGE_PX = 4;
 const NUDGE_MIN_MS = 60;
 
 /**
- * 채널 A(눌림 깊이)를 거는 대상. 누른 버튼과 숫자 칸을 한 트윈에 담아 값·시간·커브가
+ * 채널 A(눌림 깊이)를 거는 대상. 누른 버튼과 숫자 칸을 한 트윈에 담아 시간·커브가
  * 같고 뗄 때도 함께 돌아오게 한다(사용자 관문, M5 task-29). 숫자 칸의 넛지(채널 B)는
- * y만 쓰고 GSAP이 scale과 y를 한 transform에 따로 가진다.
+ * y만 쓰고 GSAP이 scale과 y를 한 transform에 따로 가진다. 버튼이 항상 첫 대상이다.
  */
 const pressTargets = (
   button: HTMLButtonElement,
   input: HTMLInputElement | null
 ): HTMLElement[] => (input ? [button, input] : [button]);
+
+/** 대상마다 다른 scale을 주는 GSAP 함수형 값. 0번 대상이 버튼, 그다음이 숫자 칸이다. */
+const scaleFor =
+  (buttonValue: number, inputValue: number) => (index: number) =>
+    index === 0 ? buttonValue : inputValue;
 
 /** 버튼 하나(증가 또는 감소)의 길게 누르기 상태. */
 interface HoldState {
@@ -361,16 +381,24 @@ export const NumericSpinner = forwardRef<HTMLInputElement, NumericSpinnerProps>(
       if (button) {
         // 누름 타임라인을 먼저 죽인다. 1단계 도중에 떼면 overwrite: 'auto'는 돌고 있던
         // 1단계만 죽이고, 아직 시작 안 한 2단계는 살아남아 나중에 릴리즈를 덮고
-        // 0.86으로 간다(빨리 누르면 크기가 남던 결함). 릴리즈는 지금 자리에서 1로 간다.
+        // 깊은 값으로 간다(빨리 누르면 크기가 남던 결함). 뗌은 지금 자리에서 부풀어
+        // 1로 내려앉는 타임라인 하나다.
         (button as PressTweenHost).__pressTween?.kill();
-        const tween = gateMotion(reducedRef.current, () =>
-          gsap.to(pressTargets(button, inputRef.current), {
-            scale: 1,
+        const tween = gateMotion(reducedRef.current, () => {
+          const targets = pressTargets(button, inputRef.current);
+          const tl = gsap.timeline({ defaults: { overwrite: 'auto' } });
+          tl.to(targets, {
+            scale: scaleFor(RELEASE_SWELL_BUTTON, RELEASE_SWELL_INPUT),
             duration: gsapDuration.fast,
-            ease: gsapEasing.exit,
-            overwrite: 'auto',
-          })
-        );
+            ease: gsapEasing.settle,
+          });
+          tl.to(targets, {
+            scale: 1,
+            duration: gsapDuration.slow,
+            ease: gsapEasing.drift,
+          });
+          return tl;
+        });
         (button as PressTweenHost).__pressTween = tween;
       }
     }, []);
@@ -487,12 +515,12 @@ export const NumericSpinner = forwardRef<HTMLInputElement, NumericSpinnerProps>(
             const targets = pressTargets(button, inputRef.current);
             const tl = gsap.timeline({ defaults: { overwrite: 'auto' } });
             tl.to(targets, {
-              scale: PRESS_SCALE,
+              scale: scaleFor(PRESS_SCALE_BUTTON, PRESS_SCALE_INPUT),
               duration: gsapDuration.fast,
-              ease: gsapEasing.snap,
+              ease: gsapEasing.settle,
             });
             tl.to(targets, {
-              scale: PRESS_SCALE_DEEP,
+              scale: scaleFor(PRESS_SCALE_DEEP_BUTTON, PRESS_SCALE_DEEP_INPUT),
               duration: REPEAT_RAMP_MS / 1000,
               ease: gsapEasing.drift,
             });

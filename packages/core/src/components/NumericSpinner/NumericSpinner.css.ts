@@ -140,7 +140,7 @@ export const button = style({
   cursor: 'pointer',
   touchAction: 'manipulation',
   // scale(눌림 깊이)은 이제 GSAP이 소유한다(M3 T3d, 채널 A) — 길게 누르는
-  // 동안 0.92→0.86로 깊어지는 걸 CSS 전이는 표현할 수 없고, 같이 두면 서로 싸운다.
+  // 동안 더 깊어지고 뗄 때 부푸는 걸 CSS 전이는 표현할 수 없고, 같이 두면 서로 싸운다.
   transition: `background-color ${themeContract.animation.duration.fast} ease-in-out, color ${themeContract.animation.duration.fast} ease-in-out`,
   flexShrink: 0,
   minWidth: '44px',
