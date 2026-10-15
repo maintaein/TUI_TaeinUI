@@ -220,7 +220,7 @@ import { NumericSpinner } from '@taein-ui/core';
 | size | 'sm' \| 'md' \| 'lg' | 'md' | Input size |
 | min | number | — | Minimum value |
 | max | number | — | Maximum value |
-| step | number | 1 | Increment step (rounded to the decimals of `step`, so 0.1 three times is 0.3) |
+| step | number | 1 | Increment step (rounded to the longer of the decimals of `step` and of the current value, so 0.1 three times is 0.3 and 0.25 + 0.1 is 0.35) |
 | error | boolean | false | Error state |
 | errorMessage | string | — | Error message |
 | helperText | string | — | Helper text |

@@ -37,7 +37,7 @@ export function NumericSpinnerPage() {
       type: 'number',
       default: '1',
       description:
-        '증감 단위. 소수(0.1)여도 step의 소수 자릿수로 맞춰 0.1 + 0.2 같은 오차가 화면에 나오지 않습니다.',
+        '증감 단위. 소수(0.1)여도 step과 지금 값 중 더 긴 소수 자릿수로 맞춰 0.1 + 0.2 같은 오차가 화면에 나오지 않습니다(0.25에서 + 하면 0.35).',
     },
     {
       name: 'error',
