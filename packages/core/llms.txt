@@ -45,7 +45,7 @@ All components follow consistent patterns:
 - **Checkbox** — Checkbox with label, indeterminate state. Props: label, size, error, errorMessage, helperText, indeterminate
 - **Switch** — Toggle switch. Props: label, size, error, errorMessage, helperText
 - **Slider**: Range slider with marks and value display. Props: label, size, variant, min, max, step, showValue, showThumbValue, marks, trackColor
-- **NumericSpinner** — Number input with increment/decrement buttons. Props: label, size, min, max, step, inputWidth
+- **NumericSpinner**: Number input with increment/decrement buttons. Props: label, size, min, max, step. Type a number directly (committed on blur/Enter, clamped to min/max) or use ArrowUp/ArrowDown
 
 ### Button & Action
 - **Button** — Primary action button. Props: variant('primary'|'dark'|'danger'|'light'), buttonStyle('fill'|'weak'), size, loading, leftIcon, rightIcon, fullWidth, customColor

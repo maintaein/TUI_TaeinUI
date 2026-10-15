@@ -218,10 +218,9 @@ import { NumericSpinner } from '@taein-ui/core';
 | value | number | — | Controlled value |
 | defaultValue | number | — | Initial value (uncontrolled) |
 | size | 'sm' \| 'md' \| 'lg' | 'md' | Input size |
-| inputWidth | string | — | Custom input width |
 | min | number | — | Minimum value |
 | max | number | — | Maximum value |
-| step | number | 1 | Increment step |
+| step | number | 1 | Increment step (rounded to the decimals of `step`, so 0.1 three times is 0.3) |
 | error | boolean | false | Error state |
 | errorMessage | string | — | Error message |
 | helperText | string | — | Helper text |
@@ -229,6 +228,8 @@ import { NumericSpinner } from '@taein-ui/core';
 | required | boolean | — | Required attribute |
 | disabled | boolean | — | Disabled attribute |
 | className | string | — | Additional CSS class |
+
+The input is not read-only. The user can type a number; while typing the field may be empty or out of range, and the value is committed on blur and Enter (clamped to `min`/`max`; an empty or non-numeric field reverts to the previous value; `onChange` is not called when the committed value equals the previous one). ArrowUp/ArrowDown change the value by `step`. For a custom input width use `style={{ width: '60px' }}`.
 
 ---
 

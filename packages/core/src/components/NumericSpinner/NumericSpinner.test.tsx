@@ -178,11 +178,11 @@ describe('NumericSpinner', () => {
       expect(decrementButton).toBeDisabled();
     });
 
-    it('input은 항상 readOnly 상태이다', () => {
+    it('input은 읽기 전용이 아니다(직접 입력을 연다)', () => {
       render(<NumericSpinner label="수량" />);
       const input = screen.getByLabelText('수량');
 
-      expect(input).toHaveAttribute('readonly');
+      expect(input).not.toHaveAttribute('readonly');
     });
 
     it('required 상태를 적용한다', () => {
@@ -589,6 +589,292 @@ describe('NumericSpinner', () => {
 
       fireEvent.click(incrementButton);
       expect(input).toHaveValue(1);
+    });
+  });
+
+  describe('직접 입력과 화살표 키 (M5 task-29)', () => {
+    const setup = (
+      props: Partial<React.ComponentProps<typeof NumericSpinner>> = {}
+    ) => {
+      const onChange = vi.fn();
+      render(
+        <NumericSpinner
+          label="수량"
+          defaultValue={5}
+          min={0}
+          max={10}
+          onChange={onChange}
+          {...props}
+        />
+      );
+      return {
+        onChange,
+        input: screen.getByLabelText('수량') as HTMLInputElement,
+      };
+    };
+
+    it('지우고 15를 치는 동안은 onChange가 안 불리고, blur 때 15로 확정한다', async () => {
+      const user = userEvent.setup();
+      const { onChange, input } = setup({ max: 100 });
+
+      await user.clear(input);
+      await user.type(input, '15');
+      expect(input).toHaveValue(15);
+      expect(onChange).not.toHaveBeenCalled();
+
+      await user.tab();
+      expect(onChange).toHaveBeenCalledTimes(1);
+      expect(onChange).toHaveBeenCalledWith(15);
+    });
+
+    it('입력 중에는 범위 밖 숫자와 빈칸을 그대로 둔다', async () => {
+      const user = userEvent.setup();
+      const { onChange, input } = setup();
+
+      await user.clear(input);
+      expect(input).toHaveValue(null);
+      await user.type(input, '999');
+      expect(input).toHaveValue(999);
+      expect(onChange).not.toHaveBeenCalled();
+    });
+
+    it('999는 max로 자른다', async () => {
+      const user = userEvent.setup();
+      const { onChange, input } = setup();
+
+      await user.clear(input);
+      await user.type(input, '999');
+      await user.tab();
+
+      expect(onChange).toHaveBeenCalledWith(10);
+      expect(input).toHaveValue(10);
+    });
+
+    it('-5는 min으로 자른다', async () => {
+      const user = userEvent.setup();
+      const { onChange, input } = setup();
+
+      await user.clear(input);
+      await user.type(input, '-5');
+      await user.tab();
+
+      expect(onChange).toHaveBeenCalledWith(0);
+      expect(input).toHaveValue(0);
+    });
+
+    it('빈칸으로 blur하면 직전 값으로 돌아오고 onChange는 안 불린다', async () => {
+      const user = userEvent.setup();
+      const { onChange, input } = setup();
+
+      await user.clear(input);
+      await user.tab();
+
+      expect(input).toHaveValue(5);
+      expect(onChange).not.toHaveBeenCalled();
+    });
+
+    it('숫자가 아닌 글자는 입력되지 않아 blur 때 직전 값으로 돌아온다', async () => {
+      const user = userEvent.setup();
+      const { onChange, input } = setup();
+
+      await user.clear(input);
+      await user.type(input, 'abc');
+      await user.tab();
+
+      expect(input).toHaveValue(5);
+      expect(onChange).not.toHaveBeenCalled();
+    });
+
+    it('Enter도 확정한다', async () => {
+      const user = userEvent.setup();
+      const { onChange, input } = setup();
+
+      await user.clear(input);
+      await user.type(input, '7{Enter}');
+
+      expect(onChange).toHaveBeenCalledTimes(1);
+      expect(onChange).toHaveBeenCalledWith(7);
+    });
+
+    it('확정한 값이 직전 값과 같으면 onChange를 부르지 않는다', async () => {
+      const user = userEvent.setup();
+      const { onChange, input } = setup();
+
+      await user.clear(input);
+      await user.type(input, '5');
+      await user.tab();
+
+      expect(onChange).not.toHaveBeenCalled();
+    });
+
+    it('확정 뒤에도 사용자 onBlur는 불린다', async () => {
+      const user = userEvent.setup();
+      const onBlur = vi.fn();
+      const { input } = setup({ onBlur });
+
+      await user.click(input);
+      await user.tab();
+
+      expect(onBlur).toHaveBeenCalledTimes(1);
+    });
+
+    it('사용자 onKeyDown도 화살표 키 처리와 함께 불린다', async () => {
+      const user = userEvent.setup();
+      const onKeyDown = vi.fn();
+      const { input } = setup({ onKeyDown });
+
+      await user.click(input);
+      await user.keyboard('{ArrowUp}');
+
+      expect(onKeyDown).toHaveBeenCalledTimes(1);
+      expect(input).toHaveValue(6);
+    });
+
+    it('위 화살표는 step만큼 올리고 아래 화살표는 step만큼 내린다', async () => {
+      const user = userEvent.setup();
+      const { onChange, input } = setup({ step: 2 });
+
+      await user.click(input);
+      await user.keyboard('{ArrowUp}');
+      expect(input).toHaveValue(7);
+      expect(onChange).toHaveBeenLastCalledWith(7);
+
+      await user.keyboard('{ArrowDown}{ArrowDown}');
+      expect(input).toHaveValue(3);
+      expect(onChange).toHaveBeenLastCalledWith(3);
+      expect(onChange).toHaveBeenCalledTimes(3);
+    });
+
+    it('화살표 키는 경계에서 자르고, 이미 경계면 onChange를 부르지 않는다', async () => {
+      const user = userEvent.setup();
+      const { onChange, input } = setup({ defaultValue: 9, step: 5 });
+
+      await user.click(input);
+      await user.keyboard('{ArrowUp}');
+      expect(input).toHaveValue(10);
+      expect(onChange).toHaveBeenCalledTimes(1);
+
+      await user.keyboard('{ArrowUp}');
+      expect(input).toHaveValue(10);
+      expect(onChange).toHaveBeenCalledTimes(1);
+    });
+
+    it('입력 중에 화살표를 누르면 친 글자를 기준으로 증감한다', async () => {
+      const user = userEvent.setup();
+      const { onChange, input } = setup();
+
+      await user.clear(input);
+      await user.type(input, '8{ArrowUp}');
+
+      expect(onChange).toHaveBeenCalledTimes(1);
+      expect(onChange).toHaveBeenCalledWith(9);
+      expect(input).toHaveValue(9);
+    });
+
+    it('disabled면 화살표 키가 값을 바꾸지 못한다', () => {
+      const { onChange, input } = setup({ disabled: true });
+
+      fireEvent.keyDown(input, { key: 'ArrowUp' });
+
+      expect(onChange).not.toHaveBeenCalled();
+      expect(input).toHaveValue(5);
+    });
+
+    it('소수 step 0.1로 세 번 올리면 0.3이다(부동소수 오차 없음)', () => {
+      const { onChange, input } = setup({
+        defaultValue: 0,
+        step: 0.1,
+        min: undefined,
+        max: undefined,
+      });
+      const up = screen.getByRole('button', { name: '값 증가' });
+
+      fireEvent.click(up);
+      fireEvent.click(up);
+      fireEvent.click(up);
+
+      expect(onChange).toHaveBeenLastCalledWith(0.3);
+      expect(input).toHaveValue(0.3);
+    });
+
+    it('소수 step으로 내릴 때도 오차가 없다', () => {
+      const { onChange } = setup({
+        defaultValue: 0.3,
+        step: 0.1,
+        min: undefined,
+        max: undefined,
+      });
+      const down = screen.getByRole('button', { name: '값 감소' });
+
+      fireEvent.click(down);
+      fireEvent.click(down);
+      fireEvent.click(down);
+
+      expect(onChange).toHaveBeenLastCalledWith(0);
+    });
+
+    it('제어 모드: 입력 중이 아니면 부모 value 변경이 칸에 반영된다', () => {
+      const onChange = vi.fn();
+      const { rerender } = render(
+        <NumericSpinner label="수량" value={5} onChange={onChange} />
+      );
+      rerender(<NumericSpinner label="수량" value={9} onChange={onChange} />);
+
+      expect(screen.getByLabelText('수량')).toHaveValue(9);
+    });
+
+    it('제어 모드: 입력 중에 부모 value가 바뀌어도 친 글자를 덮지 않는다', async () => {
+      const user = userEvent.setup();
+      const onChange = vi.fn();
+      const { rerender } = render(
+        <NumericSpinner label="수량" value={5} onChange={onChange} />
+      );
+      const input = screen.getByLabelText('수량');
+
+      await user.clear(input);
+      await user.type(input, '42');
+      rerender(<NumericSpinner label="수량" value={9} onChange={onChange} />);
+      expect(input).toHaveValue(42);
+
+      await user.tab();
+      expect(onChange).toHaveBeenCalledWith(42);
+      expect(input).toHaveValue(9); // 부모가 안 바꿨으니 부모 값으로 돌아온다
+    });
+
+    it('입력 중에 버튼을 누르면 친 글자를 먼저 확정하고 그 값에서 증감한다', async () => {
+      const user = userEvent.setup();
+      const { onChange, input } = setup();
+
+      await user.clear(input);
+      await user.type(input, '8');
+      await user.click(screen.getByRole('button', { name: '값 증가' }));
+
+      expect(onChange).toHaveBeenNthCalledWith(1, 8);
+      expect(onChange).toHaveBeenNthCalledWith(2, 9);
+      expect(input).toHaveValue(9);
+    });
+
+    it('포커스 이동 없이 버튼 클릭만 와도 친 글자에서 증감한다', async () => {
+      const user = userEvent.setup();
+      const { onChange, input } = setup();
+
+      await user.clear(input);
+      await user.type(input, '8');
+      fireEvent.click(screen.getByRole('button', { name: '값 증가' }));
+
+      expect(onChange).toHaveBeenLastCalledWith(9);
+      expect(input).toHaveValue(9);
+    });
+
+    it('inputWidth prop은 없고 style로 너비를 준다', () => {
+      render(
+        // @ts-expect-error - inputWidth는 삭제됐다
+        <NumericSpinner label="수량" inputWidth="60px" />
+      );
+      expect(screen.getByLabelText('수량').style.width).toBe('');
+
+      render(<NumericSpinner label="너비" style={{ width: '60px' }} />);
+      expect(screen.getByLabelText('너비').style.width).toBe('60px');
     });
   });
 

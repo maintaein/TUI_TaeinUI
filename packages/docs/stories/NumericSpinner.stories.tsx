@@ -119,10 +119,14 @@ export const Disabled: Story = {
   },
 };
 
-export const ReadOnly: Story = {
+/** 숫자를 직접 칠 수 있다. 확정은 blur와 Enter이고 min·max 안으로 맞춘다. 위/아래 화살표 키는 step만큼 오르내린다. */
+export const DirectInput: Story = {
   args: {
     label: '수량',
-    defaultValue: 5,
+    defaultValue: 0.5,
+    min: 0,
+    max: 1,
+    step: 0.1,
   },
 };
 

@@ -21,12 +21,6 @@ export function NumericSpinnerPage() {
       description: 'NumericSpinner 크기',
     },
     {
-      name: 'inputWidth',
-      type: 'string',
-      default: 'undefined',
-      description: "Input 너비 (CSS 단위, 예: '100px', '10rem')",
-    },
-    {
       name: 'min',
       type: 'number',
       default: 'undefined',
@@ -42,7 +36,8 @@ export function NumericSpinnerPage() {
       name: 'step',
       type: 'number',
       default: '1',
-      description: '증감 단위',
+      description:
+        '증감 단위. 소수(0.1)여도 step의 소수 자릿수로 맞춰 0.1 + 0.2 같은 오차가 화면에 나오지 않습니다.',
     },
     {
       name: 'error',
@@ -154,7 +149,7 @@ export function NumericSpinnerPage() {
           <h3 className={styles.exampleTitle}>Basic NumericSpinner</h3>
           <LivePreview
             title="기본 사용법"
-            description="가장 기본적인 NumericSpinner 사용 예제입니다."
+            description="가장 기본적인 NumericSpinner 사용 예제입니다. 버튼뿐 아니라 숫자를 직접 칠 수도 있습니다. 치는 동안에는 칸을 비우거나 범위 밖 숫자를 잠시 둘 수 있고, 칸을 벗어나거나 Enter를 누르면 min·max 안으로 맞춰 확정합니다(비었거나 숫자가 아니면 직전 값으로 돌아갑니다). 칸에서 위/아래 화살표 키를 누르면 step만큼 오르내립니다."
             editable
             code={`const [value, setValue] = useState(1);
 
@@ -380,7 +375,7 @@ const [value3, setValue3] = useState(0);
           <h3 className={styles.exampleTitle}>Custom Input Width</h3>
           <LivePreview
             title="커스텀 입력 너비"
-            description="inputWidth prop으로 input 필드의 너비를 직접 지정할 수 있습니다."
+            description="style={{ width }}로 input 필드의 너비를 직접 지정할 수 있습니다."
             editable
             code={`const [value, setValue] = useState(100);
 
@@ -389,13 +384,13 @@ const [value3, setValue3] = useState(0);
     label="좁은 너비 (60px)"
     value={value}
     onChange={setValue}
-    inputWidth="60px"
+    style={{ width: '60px' }}
   />
   <NumericSpinner
     label="넓은 너비 (150px)"
     value={value}
     onChange={setValue}
-    inputWidth="150px"
+    style={{ width: '150px' }}
   />
 </div>`}
           />
@@ -431,6 +426,12 @@ const [value3, setValue3] = useState(0);
             effect: '증가/감소 버튼의 역할을 스크린 리더에 알립니다.',
             description:
               '"값 증가", "값 감소" 레이블이 각 버튼에 설정되어 버튼의 기능을 명확히 전달합니다.',
+          },
+          {
+            attribute: '직접 입력',
+            effect: '읽기 전용이 아닌 스핀 버튼으로 읽힙니다.',
+            description:
+              '입력칸은 읽기 전용이 아니라서 숫자를 직접 칠 수 있고, 위/아래 화살표 키로 step만큼 오르내릴 수 있습니다. 확정은 칸을 벗어날 때와 Enter입니다.',
           },
           {
             attribute: 'min + max',

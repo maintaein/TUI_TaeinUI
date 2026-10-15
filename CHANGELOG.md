@@ -45,6 +45,7 @@
 
 ### Removed
 
+- **BREAKING CHANGE:** `NumericSpinner`의 `inputWidth`를 없앴습니다. `style={{ width }}`와 같은 일이었고 둘을 같이 주면 `style`이 이겼습니다. `<NumericSpinner inputWidth="60px" />`는 `<NumericSpinner style={{ width: '60px' }} />`로 바꾸세요.
 - **BREAKING CHANGE:** `Card`와 `Card.Body`의 `padding="none"`을 없앴습니다(`padding`은 `'sm' | 'md' | 'lg'`). Compound API에서 `<Card.Body padding="none">`을 쓰던 곳은 `<Card.Body style={{ padding: 0 }}>`로 바꾸세요. Flat API(`<Card title="x" padding="none">`)는 본문 `div`에 손이 닿지 않으니 Compound API로 옮긴 뒤 같은 방식으로 주세요.
 - **BREAKING CHANGE:** `Card`의 `variant="interactive"`를 없앴습니다. 2px 테두리와 떠오르는 호버뿐인 변형이었습니다. `<Card variant="interactive">`는 `<Card variant="outlined" hoverLift>`로 바꾸세요. 테두리는 1px로 얇아집니다. `interactive`가 주던 `cursor: pointer`와 `touch-action: manipulation`은 이제 `onClick`이 있는 카드에만 붙습니다.
 - **BREAKING CHANGE:** `Card`의 `accentColor`를 없앴습니다. `--accent-color` CSS 변수를 넘기기만 하고 `Card`는 쓰지 않았습니다. 그 변수를 자식에서 쓰고 있었다면 `style={{ '--accent-color': color } as React.CSSProperties}`로 직접 넘기거나, 자식에 색을 바로 주세요.
@@ -68,6 +69,7 @@
 
 ### Changed
 
+- `NumericSpinner`의 입력칸이 읽기 전용이 아니게 되었습니다. 숫자를 직접 칠 수 있고, 치는 동안에는 칸을 비우거나 범위 밖 숫자를 잠시 둘 수 있습니다. 값은 칸을 벗어날 때(blur)와 Enter에서 확정되어 `min`·`max` 안으로 잘린 뒤 `onChange`가 불립니다. 비었거나 숫자가 아니면 직전 값으로 돌아가고, 확정한 값이 직전 값과 같으면 `onChange`를 부르지 않습니다. 입력칸에서 위/아래 화살표 키가 `step`만큼 값을 올리고 내립니다. `step`이 소수여도 `step`의 소수 자릿수로 맞춰 `0.1 + 0.2` 같은 오차가 나오지 않습니다. 스크린 리더는 읽기 전용이 아닌 스핀 버튼으로 읽습니다. 입력 중에 증감 버튼을 누르면 친 글자를 먼저 확정하고 그 값에서 증감합니다. 할 일은 없습니다.
 - `Divider`의 선이 가운데에서 양끝으로 그어지는 마운트 모션을 없앴습니다. 구분선이 처음부터 다 그려진 채로 나타납니다. 할 일은 없습니다.
 - `Divider`의 세로 구분선(`orientation="vertical"`)이 놓인 flex 줄의 높이를 채우고 넘지 않습니다(`height: 100%`와 `min-height: 100px`가 `align-self: stretch`로 바뀌었습니다). 이전에는 줄이 100px보다 낮으면 위아래로 넘쳤습니다. `spacing`은 세로에서 좌우 여백이 됩니다(이전에는 위아래 여백이 붙었습니다). 세로 구분선을 가로 flex 줄 밖에 두면 높이가 0이 되어 보이지 않습니다. 블록 부모나 세로 방향(`flex-direction: column`) flex 부모에서 그렇고, 이전처럼 부모에만 `height`를 주는 것으로는 부족합니다. 그런 자리라면 구분선에 `style={{ height }}`를 직접 주세요(grid 부모에서는 칸 높이를 채웁니다). 세로 구분선에 글자를 넣으면 위아래 선이 남은 길이를 나눠 갖고 보입니다(이전에는 크기가 0이라 보이지 않았습니다).
 - `Badge`의 값 교체가 증감 방향을 따릅니다. 숫자가 늘면 지금처럼 새 값이 아래에서 올라오고 헌 값이 위로 빠지고, 숫자가 줄면 반대로 새 값이 위에서 내려오고 헌 값이 아래로 빠집니다. 비교는 표시 문자열이 아니라 숫자 값이며, 숫자가 아닌 값이 끼면 위로 갑니다. 시간과 커브, 움직임 줄이기 설정은 그대로입니다.

@@ -5,6 +5,7 @@ import {
   useLayoutEffect,
   useState,
   type ChangeEvent,
+  type FocusEvent,
   type KeyboardEvent,
 } from 'react';
 import type { InputHTMLAttributes } from 'react';
@@ -98,6 +99,15 @@ interface InputNudgeHost extends HTMLInputElement {
   __nudgeTween?: gsap.core.Tween;
 }
 
+/** step의 소수 자릿수. 0.1 + 0.2 같은 부동소수 오차를 자르는 데 쓴다. */
+const decimalsOf = (step: number): number => {
+  const [mantissa, exponent] = String(step).split('e');
+  return Math.max(
+    0,
+    (mantissa.split('.')[1]?.length ?? 0) - Number(exponent ?? 0)
+  );
+};
+
 /** 증감 버튼이 있는 숫자 입력 컴포넌트. 제어/비제어 모드 지원 */
 export interface NumericSpinnerProps extends Omit<
   InputHTMLAttributes<HTMLInputElement>,
@@ -119,8 +129,6 @@ export interface NumericSpinnerProps extends Omit<
   // 공통 props
   /** Input size */
   size?: 'sm' | 'md' | 'lg';
-  /** Input width (CSS 단위, 예: '100px', '10rem') */
-  inputWidth?: string;
   /** 최소값 */
   min?: number;
   /** 최대값 */
@@ -145,7 +153,6 @@ export const NumericSpinner = forwardRef<HTMLInputElement, NumericSpinnerProps>(
       defaultValue,
       onChange,
       size = 'md',
-      inputWidth,
       min,
       max,
       step = 1,
@@ -156,6 +163,8 @@ export const NumericSpinner = forwardRef<HTMLInputElement, NumericSpinnerProps>(
       required = false,
       disabled = false,
       className,
+      onBlur,
+      onKeyDown,
       ...rest
     },
     ref
@@ -202,57 +211,66 @@ export const NumericSpinner = forwardRef<HTMLInputElement, NumericSpinnerProps>(
       }
     }
 
-    // 값 변경 핸들러
-    const handleChange = useCallback(
-      (e: ChangeEvent<HTMLInputElement>) => {
-        const newValue = Number(e.target.value);
+    // 입력 중인 글자. null이면 입력 중이 아니라 currentValue를 그대로 보여 준다.
+    // 입력 중에는 빈칸이나 범위 밖 숫자를 잠시 둘 수 있고, 확정은 blur와 Enter다.
+    const [draft, setDraft] = useState<string | null>(null);
 
-        // 비제어 모드: 내부 상태 업데이트
+    const draftNumber =
+      draft === null || draft.trim() === '' ? NaN : Number(draft);
+
+    // 값이 바뀌는 길은 모두 여기 하나다: 증감 버튼·화살표 키·직접 입력 확정.
+    const commit = useCallback(
+      (next: number) => {
+        let clamped = next;
+        if (min !== undefined) clamped = Math.max(clamped, min);
+        if (max !== undefined) clamped = Math.min(clamped, max);
+        if (clamped === currentValue) return;
+
         if (!isControlled) {
-          setUncontrolledValue(newValue);
+          setUncontrolledValue(clamped);
         }
-
-        // onChange 호출 (있는 경우)
-        onChange?.(newValue);
+        onChange?.(clamped);
       },
-      [isControlled, onChange]
+      [min, max, currentValue, isControlled, onChange]
     );
 
-    // 증가 버튼 클릭 핸들러
-    const handleIncrement = useCallback(() => {
-      if (disabled) return;
+    // 입력 중인 글자를 숫자로 확정한다. 비었거나 숫자가 아니면 직전 값으로 돌아간다.
+    const commitDraft = useCallback(() => {
+      if (draft === null) return;
+      setDraft(null);
+      if (Number.isFinite(draftNumber)) commit(draftNumber);
+    }, [draft, draftNumber, commit]);
 
-      let newValue = currentValue + step;
-      if (max !== undefined) {
-        newValue = Math.min(newValue, max);
+    // 한 단계 증감. 입력 중이면 친 글자를 기준으로 삼는다.
+    const stepBy = useCallback(
+      (direction: 1 | -1) => {
+        if (disabled) return;
+        const base = Number.isFinite(draftNumber) ? draftNumber : currentValue;
+        setDraft(null);
+        commit(Number((base + direction * step).toFixed(decimalsOf(step))));
+      },
+      [disabled, draftNumber, currentValue, step, commit]
+    );
+
+    const handleInputChange = (e: ChangeEvent<HTMLInputElement>) => {
+      setDraft(e.target.value);
+    };
+
+    const handleInputBlur = (e: FocusEvent<HTMLInputElement>) => {
+      commitDraft();
+      onBlur?.(e);
+    };
+
+    const handleInputKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
+      onKeyDown?.(e);
+      if (e.defaultPrevented) return;
+      if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+        e.preventDefault();
+        stepBy(e.key === 'ArrowUp' ? 1 : -1);
+      } else if (e.key === 'Enter') {
+        commitDraft();
       }
-
-      // 비제어 모드: 내부 상태 업데이트
-      if (!isControlled) {
-        setUncontrolledValue(newValue);
-      }
-
-      // onChange 호출 (있는 경우)
-      onChange?.(newValue);
-    }, [currentValue, step, max, disabled, isControlled, onChange]);
-
-    // 감소 버튼 클릭 핸들러
-    const handleDecrement = useCallback(() => {
-      if (disabled) return;
-
-      let newValue = currentValue - step;
-      if (min !== undefined) {
-        newValue = Math.max(newValue, min);
-      }
-
-      // 비제어 모드: 내부 상태 업데이트
-      if (!isControlled) {
-        setUncontrolledValue(newValue);
-      }
-
-      // onChange 호출 (있는 경우)
-      onChange?.(newValue);
-    }, [currentValue, step, min, disabled, isControlled, onChange]);
+    };
 
     // 증가 버튼 비활성화 여부
     const isIncrementDisabled =
@@ -273,8 +291,7 @@ export const NumericSpinner = forwardRef<HTMLInputElement, NumericSpinnerProps>(
     const isIncrementDisabledRef = useRef(isIncrementDisabled);
     const isDecrementDisabledRef = useRef(isDecrementDisabled);
     const currentValueRef = useRef(currentValue);
-    const handleIncrementRef = useRef(handleIncrement);
-    const handleDecrementRef = useRef(handleDecrement);
+    const stepByRef = useRef(stepBy);
 
     useLayoutEffect(() => {
       reducedRef.current = reduced;
@@ -282,8 +299,7 @@ export const NumericSpinner = forwardRef<HTMLInputElement, NumericSpinnerProps>(
       isIncrementDisabledRef.current = isIncrementDisabled;
       isDecrementDisabledRef.current = isDecrementDisabled;
       currentValueRef.current = currentValue;
-      handleIncrementRef.current = handleIncrement;
-      handleDecrementRef.current = handleDecrement;
+      stepByRef.current = stepBy;
     });
 
     const decrementButtonRef = useRef<HTMLButtonElement | null>(null);
@@ -372,17 +388,13 @@ export const NumericSpinner = forwardRef<HTMLInputElement, NumericSpinnerProps>(
         hold.lastValue = currentValueRef.current;
         hold.hasTicked = true;
 
-        const action =
-          direction === 'increment'
-            ? handleIncrementRef.current
-            : handleDecrementRef.current;
         // 다음 tick이 currentValueRef를 볼 때 이번 호출의 결과가 이미
         // 반영돼 있어야 한다 — setTimeout 체인이 한 매크로태스크(또는 가짜
         // 타이머의 한 번의 advance) 안에서 연달아 도는 경우 React의 자동
         // batching 탓에 커밋이 다음 tick 전까지 미뤄질 수 있고, 그러면
         // "값이 안 바뀌었다"고 잘못 판단해 위험 5-가 가드가 오발동한다.
         flushSync(() => {
-          action();
+          stepByRef.current(direction === 'increment' ? 1 : -1);
         });
 
         const heldMs = Date.now() - hold.repeatStartTime;
@@ -475,11 +487,7 @@ export const NumericSpinner = forwardRef<HTMLInputElement, NumericSpinnerProps>(
         ctx.hold.suppressClick = false;
         return;
       }
-      const action =
-        ctx.direction === 'increment'
-          ? handleIncrementRef.current
-          : handleDecrementRef.current;
-      action();
+      stepByRef.current(ctx.direction === 'increment' ? 1 : -1);
     }, []);
 
     const makeKeyDownHandler = useCallback(
@@ -570,15 +578,15 @@ export const NumericSpinner = forwardRef<HTMLInputElement, NumericSpinnerProps>(
               min={min}
               max={max}
               step={step}
-              value={currentValue}
-              onChange={handleChange}
+              value={draft ?? String(currentValue)}
+              onChange={handleInputChange}
+              onBlur={handleInputBlur}
+              onKeyDown={handleInputKeyDown}
               required={required}
               disabled={disabled}
-              readOnly
               aria-invalid={isError}
               aria-disabled={disabled}
               aria-describedby={hasHelper ? helperId : undefined}
-              style={inputWidth ? { width: inputWidth } : undefined}
               className={clsx(
                 styles.input,
                 styles.inputSize[size],
