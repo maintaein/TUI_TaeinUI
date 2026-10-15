@@ -51,19 +51,22 @@ describe('NumericSpinner', () => {
   describe('size prop 테스트', () => {
     it('sm size를 적용한다', () => {
       render(<NumericSpinner label="수량" size="sm" />);
-      const container = screen.getByLabelText('수량').parentElement;
+      const container =
+        screen.getByLabelText('수량').parentElement?.parentElement;
       expect(container?.className).toContain('size_sm');
     });
 
     it('md size를 적용한다 (기본값)', () => {
       render(<NumericSpinner label="수량" />);
-      const container = screen.getByLabelText('수량').parentElement;
+      const container =
+        screen.getByLabelText('수량').parentElement?.parentElement;
       expect(container?.className).toContain('size_md');
     });
 
     it('lg size를 적용한다', () => {
       render(<NumericSpinner label="수량" size="lg" />);
-      const container = screen.getByLabelText('수량').parentElement;
+      const container =
+        screen.getByLabelText('수량').parentElement?.parentElement;
       expect(container?.className).toContain('size_lg');
     });
   });
@@ -243,14 +246,16 @@ describe('NumericSpinner', () => {
     it('fullWidth가 true이면 전체 너비를 사용한다', () => {
       render(<NumericSpinner label="수량" fullWidth />);
       const wrapper =
-        screen.getByLabelText('수량').parentElement?.parentElement;
+        screen.getByLabelText('수량').parentElement?.parentElement
+          ?.parentElement;
       expect(wrapper?.className).toContain('fullWidth');
     });
 
     it('fullWidth가 false이면 기본 너비를 사용한다', () => {
       render(<NumericSpinner label="수량" />);
       const wrapper =
-        screen.getByLabelText('수량').parentElement?.parentElement;
+        screen.getByLabelText('수량').parentElement?.parentElement
+          ?.parentElement;
       expect(wrapper?.className).not.toContain('fullWidth');
     });
   });
@@ -1503,6 +1508,33 @@ describe('NumericSpinner', () => {
         fireEvent.pointerUp(incrementButton);
       });
 
+      it('눌림과 넛지는 <input>에만 걸리고 숫자 칸 상자와 컨테이너는 움직이지 않는다', () => {
+        render(<NumericSpinner label="수량" defaultValue={0} />);
+        const incrementButton = screen.getByRole('button', {
+          name: '값 증가',
+        }) as PressTweenHost;
+        const input = screen.getByLabelText('수량');
+        const box = input.parentElement!;
+
+        fireEvent.pointerDown(incrementButton);
+        act(() => {
+          vi.advanceTimersByTime(400);
+        });
+        act(() => {
+          (incrementButton.__pressTween as gsap.core.Timeline).progress(1);
+        });
+        expect(readScale(input)).toBeCloseTo(0.86, 2);
+        expect(box.style.transform).toBe('');
+        expect(box.parentElement!.style.transform).toBe('');
+
+        const targets = (incrementButton.__pressTween as gsap.core.Timeline)
+          .getChildren()
+          .flatMap((child) => child.targets());
+        expect(targets).not.toContain(box);
+
+        fireEvent.pointerUp(incrementButton);
+      });
+
       it('모션 축소 선호에서는 숫자 칸도 즉시 0.86에 정착하고 떼면 즉시 1이다', () => {
         vi.stubGlobal(
           'matchMedia',
@@ -1550,6 +1582,112 @@ describe('NumericSpinner', () => {
         unmount();
         // kill()된 트윈은 parent를 잃는다. 숫자 칸의 트윈은 따로 없어 이것 하나로 끝난다.
         expect(pressTween.parent).toBeNull();
+      });
+    });
+
+    describe('빨리 누르면 크기가 남던 결함 (task-29 관문 2)', () => {
+      // 원인: 누름 타임라인은 1단계(0.92)와 2단계(0.86)를 차례로 담는다. 1단계 도중에
+      // 떼면 릴리즈 트윈의 overwrite: 'auto'는 돌고 있던 1단계만 죽이고, 아직 시작
+      // 안 한 2단계는 살아남아 나중에 릴리즈를 덮고 0.86으로 간다. 그래서 시간이
+      // 정말 흐르는 실제 타이머로 확인한다(가짜 타이머는 gsap 티커를 못 돌린다).
+      const settle = (ms: number) =>
+        act(() => new Promise<void>((resolve) => setTimeout(resolve, ms)));
+
+      beforeEach(() => {
+        vi.useRealTimers();
+      });
+
+      it('1단계 도중에 떼면 누름 타임라인이 죽고, 시간이 흘러도 버튼과 숫자는 1이다', async () => {
+        render(<NumericSpinner label="수량" defaultValue={0} />);
+        const button = screen.getByRole('button', {
+          name: '값 증가',
+        }) as PressTweenHost;
+        const input = screen.getByLabelText('수량');
+
+        fireEvent.pointerDown(button);
+        const holdTimeline = button.__pressTween as gsap.core.Timeline;
+        await settle(50);
+        fireEvent.pointerUp(button);
+
+        // kill()된 트윈은 parent를 잃는다(아래 언마운트 시험과 같은 판별).
+        expect(holdTimeline.parent).toBeNull();
+
+        await settle(1700);
+        expect(readScale(button)).toBeCloseTo(1, 2);
+        expect(readScale(input)).toBeCloseTo(1, 2);
+      }, 10000);
+
+      it('빠른 연속 누름 여섯 번 뒤에도 버튼과 숫자는 1로 돌아온다', async () => {
+        render(<NumericSpinner label="수량" defaultValue={0} />);
+        const button = screen.getByRole('button', { name: '값 증가' });
+        const input = screen.getByLabelText('수량');
+
+        for (let i = 0; i < 6; i += 1) {
+          fireEvent.pointerDown(button);
+          await settle(30);
+          fireEvent.pointerUp(button);
+          fireEvent.click(button);
+          await settle(30);
+        }
+        await settle(1700);
+
+        expect(readScale(button)).toBeCloseTo(1, 2);
+        expect(readScale(input)).toBeCloseTo(1, 2);
+      }, 10000);
+
+      it('감소 버튼도 빠른 연속 누름 뒤 1로 돌아온다', async () => {
+        render(<NumericSpinner label="수량" defaultValue={9} />);
+        const button = screen.getByRole('button', { name: '값 감소' });
+        const input = screen.getByLabelText('수량');
+
+        for (let i = 0; i < 4; i += 1) {
+          fireEvent.pointerDown(button);
+          await settle(20);
+          fireEvent.pointerUp(button);
+          fireEvent.click(button);
+          await settle(20);
+        }
+        await settle(1700);
+
+        expect(readScale(button)).toBeCloseTo(1, 2);
+        expect(readScale(input)).toBeCloseTo(1, 2);
+      }, 10000);
+
+      it('길게 눌러 2단계까지 간 뒤 떼면 1로 돌아온다', async () => {
+        render(<NumericSpinner label="수량" defaultValue={0} />);
+        const button = screen.getByRole('button', { name: '값 증가' });
+        const input = screen.getByLabelText('수량');
+
+        fireEvent.pointerDown(button);
+        await settle(700);
+        expect(readScale(button)).toBeLessThan(0.92);
+        fireEvent.pointerUp(button);
+        await settle(600);
+
+        expect(readScale(button)).toBeCloseTo(1, 2);
+        expect(readScale(input)).toBeCloseTo(1, 2);
+      }, 10000);
+
+      it('새로 누르면 남아 있던 릴리즈 트윈과 누름 타임라인을 정리하고 시작한다', () => {
+        render(<NumericSpinner label="수량" defaultValue={0} />);
+        const button = screen.getByRole('button', {
+          name: '값 증가',
+        }) as PressTweenHost;
+
+        fireEvent.pointerDown(button);
+        const firstTimeline = button.__pressTween as gsap.core.Timeline;
+        fireEvent.pointerUp(button);
+        const release = button.__pressTween as gsap.core.Tween;
+
+        fireEvent.pointerDown(button);
+        const secondTimeline = button.__pressTween as gsap.core.Timeline;
+
+        expect(release.parent).toBeNull();
+        expect(firstTimeline.parent).toBeNull();
+        expect(secondTimeline).not.toBe(release);
+        expect(secondTimeline.parent).not.toBeNull();
+
+        fireEvent.pointerUp(button);
       });
     });
 
@@ -1623,7 +1761,7 @@ function sheetRules(marker: string): CSSStyleRule[] {
   return flat;
 }
 
-describe('NumericSpinner 생성 CSS (포커스 한 겹, 바깥 테두리 제거, task-29 관문)', () => {
+describe('NumericSpinner 생성 CSS (숫자 칸 상자, task-29 관문 2)', () => {
   const rules = () => sheetRules('NumericSpinner_input');
   /** 클래스 이름(debugId) 뒤에 suffix가 정확히 붙은 규칙들. suffix는 정규식 조각이다. */
   const named = (name: string, suffix: string) =>
@@ -1638,19 +1776,79 @@ describe('NumericSpinner 생성 CSS (포커스 한 겹, 바깥 테두리 제거,
     return found[0];
   };
 
-  describe('포커스는 테두리 색 한 겹이다', () => {
-    it('입력칸 :focus는 테두리 색만 바꾼다(후광도 바깥 링도 없다)', () => {
-      const focus = one('input', ':focus');
+  describe('DOM 구조', () => {
+    it('입력칸은 숫자 칸 상자 안에 있고, 상자는 두 버튼 사이에 있다', () => {
+      render(<NumericSpinner label="수량" />);
+      const input = screen.getByLabelText('수량');
+      const box = input.parentElement!;
+      expect(box.className).toMatch(/NumericSpinner_inputBox__/);
+      expect(box.children).toHaveLength(1);
+      const container = box.parentElement!;
+      expect(container.className).toMatch(/NumericSpinner_inputContainer__/);
+      expect(Array.from(container.children).map((el) => el.tagName)).toEqual([
+        'BUTTON',
+        'SPAN',
+        'BUTTON',
+      ]);
+    });
+
+    it('className·rest·style은 상자가 아니라 <input>에 붙는다', () => {
+      render(
+        <NumericSpinner
+          label="수량"
+          className="mine"
+          data-probe="x"
+          style={{ width: '90px' }}
+        />
+      );
+      const input = screen.getByLabelText('수량');
+      expect(input).toHaveClass('mine');
+      expect(input).toHaveAttribute('data-probe', 'x');
+      expect(input.style.width).toBe('90px');
+      expect(input.parentElement).not.toHaveClass('mine');
+      expect(input.parentElement).not.toHaveAttribute('data-probe');
+    });
+  });
+
+  describe('테두리와 겉모습은 상자가 가진다', () => {
+    it('상자는 border.default 1px 테두리와 6px 반경을 갖고 넘치는 것을 자른다', () => {
+      const box = one('inputBox', '');
+      expect(box.style.getPropertyValue('border')).toMatch(
+        /^1px solid var\(--color-border-default/
+      );
+      expect(box.style.getPropertyValue('border-radius')).toBe('6px');
+      expect(box.style.getPropertyValue('overflow')).toBe('hidden');
+      expect(box.style.getPropertyValue('display')).toBe('inline-flex');
+      expect(box.style.getPropertyValue('background-color')).toContain('paper');
+    });
+
+    it('상자 :focus-within은 테두리 색만 primary로 바꾼다(후광도 외곽선도 없다)', () => {
+      const focus = one('inputBox', ':focus-within');
       expect(focus.style.getPropertyValue('border-color')).toContain('primary');
       expect(focus.style.getPropertyValue('box-shadow')).toBe('');
       expect(focus.style.getPropertyValue('outline')).toBe('');
-      expect(focus.style.getPropertyValue('outline-offset')).toBe('');
     });
 
-    it('입력칸의 어느 규칙에도 box-shadow와 outline-offset 선언이 없다', () => {
-      const all = named('input', '.*');
-      expect(all.length).toBeGreaterThan(3);
+    it('상자 비활성은 면을 surface.default로 바꾼다', () => {
+      const disabled = one('inputBox', ':has\\(input:disabled\\)');
+      expect(disabled.style.getPropertyValue('background-color')).toContain(
+        'surface-default'
+      );
+    });
+
+    it('상자 규칙 어디에도 transform이 없다(움직이는 것은 <input>뿐이다)', () => {
+      const all = named('inputBox', '.*');
+      expect(all.length).toBeGreaterThan(1);
       for (const rule of all) {
+        expect(
+          rule.style.getPropertyValue('transform'),
+          rule.selectorText
+        ).toBe('');
+      }
+    });
+
+    it('상자의 어느 규칙에도 box-shadow와 outline-offset 선언이 없다', () => {
+      for (const rule of named('inputBox', '.*')) {
         expect(
           rule.style.getPropertyValue('box-shadow'),
           rule.selectorText
@@ -1661,18 +1859,43 @@ describe('NumericSpinner 생성 CSS (포커스 한 겹, 바깥 테두리 제거,
         ).toBe('');
       }
     });
+  });
 
-    it('입력칸 자신의 테두리는 border.default 1px 그대로다', () => {
+  describe('<input>은 투명하고 테두리가 없다', () => {
+    it('테두리·면·외곽선이 없다', () => {
       const base = one('input', '');
-      expect(base.style.getPropertyValue('border')).toMatch(
-        /^1px solid var\(--color-border-default/
+      expect(base.style.getPropertyValue('border')).toMatch(/^(none|0)/);
+      expect(base.style.getPropertyValue('background-color')).toBe(
+        'transparent'
       );
+      expect(base.style.getPropertyValue('outline')).toMatch(/^(none|0)/);
+      expect(base.style.getPropertyValue('display')).toBe('block');
     });
 
-    it('입력칸 transition 목록에 쓸모없어진 box-shadow가 없다', () => {
-      expect(
-        one('input', '').style.getPropertyValue('transition')
-      ).not.toContain('box-shadow');
+    it('어느 규칙도 border-color·box-shadow·outline-offset을 건드리지 않고 :focus 규칙이 없다', () => {
+      const all = named('input', '.*');
+      expect(all.length).toBeGreaterThan(3);
+      for (const rule of all) {
+        for (const prop of ['border-color', 'box-shadow', 'outline-offset']) {
+          expect(
+            rule.style.getPropertyValue(prop),
+            `${rule.selectorText} ${prop}`
+          ).toBe('');
+        }
+      }
+      expect(named('input', ':focus')).toEqual([]);
+    });
+
+    it('transform은 CSS가 아니라 GSAP이 소유한다(규칙에 transform·scale 전이가 없다)', () => {
+      for (const rule of named('input', '.*')) {
+        expect(
+          rule.style.getPropertyValue('transform'),
+          rule.selectorText
+        ).toBe('');
+      }
+      expect(one('input', '').style.getPropertyValue('transition')).not.toMatch(
+        /transform|scale|all/
+      );
     });
 
     it('증감 버튼의 :focus-visible 링은 그대로다', () => {
@@ -1681,7 +1904,7 @@ describe('NumericSpinner 생성 CSS (포커스 한 겹, 바깥 테두리 제거,
     });
   });
 
-  describe('바깥 상자에는 테두리가 없다', () => {
+  describe('바깥 컨테이너에는 테두리가 없다', () => {
     it('inputContainer에 border가 없고 면과 반경은 남는다', () => {
       const container = one('inputContainer', '');
       expect(container.style.getPropertyValue('border')).toBe('');
@@ -1702,24 +1925,25 @@ describe('NumericSpinner 생성 CSS (포커스 한 겹, 바깥 테두리 제거,
         ).toBe('');
       }
     });
-
-    it('inputContainer transition에 테두리 색과 후광이 없다', () => {
-      const transition = one('inputContainer', '').style.getPropertyValue(
-        'transition'
-      );
-      expect(transition).not.toContain('border-color');
-      expect(transition).not.toContain('box-shadow');
-    });
   });
 
-  describe('오류는 입력칸 테두리 하나만 빨갛다', () => {
-    it('error 클래스는 입력칸에만 붙고 바깥 상자에는 붙지 않는다', () => {
+  describe('오류는 상자 테두리 하나만 빨갛다', () => {
+    it('error 클래스는 상자에만 붙고 <input>과 컨테이너에는 붙지 않는다', () => {
       render(<NumericSpinner label="수량" error />);
       const input = screen.getByLabelText('수량');
-      expect(input.className).toMatch(/NumericSpinner_error__/);
-      expect(input.parentElement!.className).not.toMatch(
+      const box = input.parentElement!;
+      expect(box.className).toMatch(/NumericSpinner_error__/);
+      expect(input.className).not.toMatch(/NumericSpinner_error__/);
+      expect(box.parentElement!.className).not.toMatch(
         /NumericSpinner_error__/
       );
+    });
+
+    it('error가 아니면 상자에 error 클래스가 없다', () => {
+      render(<NumericSpinner label="수량" />);
+      expect(
+        screen.getByLabelText('수량').parentElement!.className
+      ).not.toMatch(/NumericSpinner_error__/);
     });
 
     it('error 규칙은 포커스 때도 이기는 빨강 테두리 색뿐이고 후광과 :focus-within 규칙이 없다', () => {

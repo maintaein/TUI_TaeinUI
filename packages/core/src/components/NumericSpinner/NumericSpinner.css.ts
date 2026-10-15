@@ -39,10 +39,39 @@ export const size = styleVariants({
   },
 });
 
-export const input = style({
+// 숫자 칸 상자(사용자 관문 2, M5 task-29): 숫자 칸의 겉모습(테두리·반경·면·포커스·오류)은
+// 이 상자가 갖고 상자는 움직이지 않는다. <input>의 글자만 따로 변형할 수 없어서
+// 눌림(채널 A)과 넛지(채널 B)는 안쪽 <input>에만 걸고, 상자는 그 움직임이 밖으로
+// 새지 않게 overflow를 자른다. 상자는 inline-flex라 입력의 폭이 상자의 폭을 정한다
+// (소비자의 style={{ width }}가 <input>에 붙어도 상자가 따라 넓어진다).
+export const inputBox = style({
+  display: 'inline-flex',
+  overflow: 'hidden',
   border: `1px solid ${themeContract.color.border.default}`,
-  outline: 'none',
   backgroundColor: themeContract.color.background.paper,
+  borderRadius: '6px',
+  margin: '0 8px',
+  transition: `background-color ${themeContract.animation.duration.base} ease`,
+
+  selectors: {
+    '&:has(input:disabled)': {
+      backgroundColor: themeContract.color.surface.default,
+    },
+    // 사용자 요구(M5 task-29): 클릭 때 테두리 색에 3px 후광과 2px 바깥 링이 겹쳐
+    // 세 겹으로 칠해지던 것을 걷고, TextField와 같이 테두리 색 한 겹으로 둔다.
+    // 포커스 표시는 테두리 색 변화와 캐럿이 맡는다(WCAG 2.4.7). 증감 버튼은 캐럿이
+    // 없어 :focus-visible 링을 그대로 둔다.
+    '&:focus-within': {
+      borderColor: themeContract.color.primary.main,
+    },
+  },
+});
+
+export const input = style({
+  display: 'block',
+  border: 'none',
+  outline: 'none',
+  backgroundColor: 'transparent',
   color: themeContract.color.text.primary,
   fontFamily: 'inherit',
   textAlign: 'center',
@@ -52,11 +81,11 @@ export const input = style({
   fontSize: '0.875rem',
   fontWeight: 500,
   padding: '0.5rem 0',
-  margin: '0 8px',
-  borderRadius: '6px',
-  // y(자리수 nudge)는 이제 GSAP이 소유한다(M3 T3d) — transform을 여기서 전이하면
-  // GSAP이 매 프레임 쓰는 인라인 transform과 CSS 전이가 같은 속성을 놓고 싸운다.
-  transition: `background-color ${themeContract.animation.duration.base} ease, color ${themeContract.animation.duration.base} ease`,
+  margin: 0,
+  // scale(눌림)과 y(자리수 nudge)는 GSAP이 소유한다(M3 T3d) — transform을 여기서
+  // 전이하면 GSAP이 매 프레임 쓰는 인라인 transform과 CSS 전이가 같은 속성을 놓고
+  // 싸운다.
+  transition: `color ${themeContract.animation.duration.base} ease`,
 
   selectors: {
     // 눌림 중 색만 CSS가 맡는다(단독 채널 금지, Article 4) — 굴곡(채널 B의
@@ -72,17 +101,9 @@ export const input = style({
     '&:disabled': {
       color: themeContract.color.text.disabled,
       cursor: 'not-allowed',
-      backgroundColor: themeContract.color.surface.default,
     },
     '&:read-only': {
       cursor: 'default',
-    },
-    // 사용자 요구(M5 task-29): 클릭 때 테두리 색에 3px 후광과 2px 바깥 링이 겹쳐
-    // 세 겹으로 칠해지던 것을 걷고, TextField와 같이 테두리 색 한 겹으로 둔다.
-    // 포커스 표시는 테두리 색 변화와 캐럿이 맡는다(WCAG 2.4.7). 증감 버튼은 캐럿이
-    // 없어 :focus-visible 링을 그대로 둔다.
-    '&:focus': {
-      borderColor: themeContract.color.primary.main,
     },
     '&::-webkit-outer-spin-button': {
       appearance: 'none',
@@ -163,8 +184,8 @@ export const buttonSize = styleVariants({
 export const decrementButton = style({});
 export const incrementButton = style({});
 
-// error 상태. 입력칸에만 건다: 오류는 입력칸 테두리 하나만 빨갛다. !important는
-// 같은 입력칸의 :focus 테두리 색(primary)보다 이겨 포커스 때도 빨강을 지킨다.
+// error 상태. 숫자 칸 상자에만 건다: 오류는 상자 테두리 하나만 빨갛다. !important는
+// 같은 상자의 :focus-within 테두리 색(primary)보다 이겨 포커스 때도 빨강을 지킨다.
 export const error = style({
   borderColor: `${themeContract.color.error.main} !important`,
 });

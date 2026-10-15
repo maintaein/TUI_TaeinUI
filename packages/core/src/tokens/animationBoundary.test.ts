@@ -578,7 +578,7 @@ const LITERAL_EASING_EXCEPTIONS: Exception[] = [
     values: ['ease', 'ease'],
     owner: 'M2',
     reason:
-      '색 전이 곡선 — transform은 M3 T3d에서 GSAP(채널 A·B)로 옮겨 여기서 빠졌다',
+      '숫자 칸 상자의 배경색과 입력칸의 글자색 전이 곡선 — transform은 M3 T3d에서 GSAP(채널 A·B)로 옮겨 여기서 빠졌다',
   },
   {
     at: 'components/NumericSpinner/NumericSpinner.css.ts',
@@ -1180,7 +1180,7 @@ describe('리터럴 이징 잠금 (T8 · R32)', () => {
     );
   });
 
-  it('.css.ts 쪽 실측이 6줄 11건 3파일이다', () => {
+  it('.css.ts 쪽 실측이 7줄 11건 3파일이다', () => {
     // M3 T3d에서 11줄 20건 → 8줄 15건. SegmentedButtons의 activeIndicator 전이에서
     // transform·width가 GSAP으로 넘어가며 리터럴 이징 3건이 사라졌다. M5 task-18에서
     // Slider의 채움 전이(ease-out)가 SVG 경로로 바뀌며 1줄 1건 1파일이 더 사라졌다.
@@ -1188,7 +1188,9 @@ describe('리터럴 이징 잠금 (T8 · R32)', () => {
     // 1줄 1건이 더 사라졌다(파일은 라벨 전이가 남아 그대로 3개).
     // M5 task-29 관문에서 NumericSpinner 바깥 상자가 테두리 색·후광 전이를 잃어
     // 한 줄에서 2건(ease-in-out)이 더 사라졌다(줄은 배경색 전이가 남아 그대로 6줄).
-    expect(new Set(cssEasings.map((e) => `${e.file}:${e.line}`)).size).toBe(6);
+    // M5 task-29 관문 2에서 입력칸의 테두리·면이 새 숫자 칸 상자로 옮겨 가며 색 전이
+    // 'ease' 2건이 상자와 입력칸 두 줄로 갈라졌다(건수는 그대로, 줄만 7줄).
+    expect(new Set(cssEasings.map((e) => `${e.file}:${e.line}`)).size).toBe(7);
     expect(cssEasings).toHaveLength(11);
     expect(new Set(cssEasings.map((e) => e.file)).size).toBe(3);
   });

@@ -359,6 +359,10 @@ export const NumericSpinner = forwardRef<HTMLInputElement, NumericSpinnerProps>(
 
       const button = buttonRef.current;
       if (button) {
+        // 누름 타임라인을 먼저 죽인다. 1단계 도중에 떼면 overwrite: 'auto'는 돌고 있던
+        // 1단계만 죽이고, 아직 시작 안 한 2단계는 살아남아 나중에 릴리즈를 덮고
+        // 0.86으로 간다(빨리 누르면 크기가 남던 결함). 릴리즈는 지금 자리에서 1로 간다.
+        (button as PressTweenHost).__pressTween?.kill();
         const tween = gateMotion(reducedRef.current, () =>
           gsap.to(pressTargets(button, inputRef.current), {
             scale: 1,
@@ -477,6 +481,8 @@ export const NumericSpinner = forwardRef<HTMLInputElement, NumericSpinnerProps>(
 
         const button = buttonRef.current;
         if (button) {
+          // 남아 있는 릴리즈 트윈과 누름 타임라인을 정리하고 시작한다(stopHold와 같은 이유).
+          (button as PressTweenHost).__pressTween?.kill();
           const tween = gateMotion(reducedRef.current, () => {
             const targets = pressTargets(button, inputRef.current);
             const tl = gsap.timeline({ defaults: { overwrite: 'auto' } });
@@ -588,31 +594,32 @@ export const NumericSpinner = forwardRef<HTMLInputElement, NumericSpinnerProps>(
               <Glyph name="minus" size="sm" />
             </button>
 
-            {/* Number Input */}
-            <input
-              ref={setInputRef}
-              id={inputId}
-              type="number"
-              min={min}
-              max={max}
-              step={step}
-              value={draft ?? String(currentValue)}
-              onChange={handleInputChange}
-              onBlur={handleInputBlur}
-              onKeyDown={handleInputKeyDown}
-              required={required}
-              disabled={disabled}
-              aria-invalid={isError}
-              aria-disabled={disabled}
-              aria-describedby={hasHelper ? helperId : undefined}
-              className={clsx(
-                styles.input,
-                styles.inputSize[size],
-                isError && styles.error,
-                className
-              )}
-              {...rest}
-            />
+            {/* Number Input. 상자는 테두리·면을 갖고 움직이지 않는다. 눌리는 건 <input>뿐이다. */}
+            <span className={clsx(styles.inputBox, isError && styles.error)}>
+              <input
+                ref={setInputRef}
+                id={inputId}
+                type="number"
+                min={min}
+                max={max}
+                step={step}
+                value={draft ?? String(currentValue)}
+                onChange={handleInputChange}
+                onBlur={handleInputBlur}
+                onKeyDown={handleInputKeyDown}
+                required={required}
+                disabled={disabled}
+                aria-invalid={isError}
+                aria-disabled={disabled}
+                aria-describedby={hasHelper ? helperId : undefined}
+                className={clsx(
+                  styles.input,
+                  styles.inputSize[size],
+                  className
+                )}
+                {...rest}
+              />
+            </span>
 
             {/* Increment Button */}
             <button
