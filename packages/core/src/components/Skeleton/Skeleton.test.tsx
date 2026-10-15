@@ -277,7 +277,7 @@ describe('Skeleton', () => {
   });
 
   describe('Skeleton 모션 잠금 (M2 T3c)', () => {
-    it('wave가 T5 공유 자산(loopRhythmEasing)의 커브로, loop.base의 1.2배 주기로 좌→우 훑는다', () => {
+    it('wave가 T5 공유 자산(loopRhythmEasing)의 커브로, loop.base의 1.4배 주기로 좌→우 훑는다', () => {
       expect(SKELETON_CSS).toMatch(
         /import \{ loopRhythmEasing \} from '\.\.\/\.\.\/tokens\/loopRhythm\.css'/
       );
@@ -285,7 +285,7 @@ describe('Skeleton', () => {
       const end = SKELETON_CSS.indexOf('\n        },', start);
       const afterBlock = SKELETON_CSS.slice(start, end);
       expect(afterBlock).toContain(
-        'animation: `${wave} calc(${themeContract.animation.loop.base} * 1.2) ${loopRhythmEasing} 0.5s infinite`'
+        'animation: `${wave} calc(${themeContract.animation.loop.base} * 1.4) ${loopRhythmEasing} 0.5s infinite`'
       );
       expect(afterBlock).not.toContain(' linear ');
     });
@@ -343,10 +343,10 @@ describe('Skeleton 생성 CSS (색·속도, task-28 관문)', () => {
     );
   });
 
-  it('wave 반복 주기는 loop.base의 1.2배다', () => {
+  it('wave 반복 주기는 loop.base의 1.4배다(pulse의 1.2배와 갈라졌다)', () => {
     const wave = rule(/wave__\w+::after$/)!;
     const animation = wave.style.getPropertyValue('animation');
-    expect(animation).toMatch(/calc\(var\(--[\w-]*base[\w-]*\) \* 1\.2\)/);
+    expect(animation).toMatch(/calc\(var\(--[\w-]*base[\w-]*\) \* 1\.4\)/);
     expect(animation).toContain('0.5s');
   });
 

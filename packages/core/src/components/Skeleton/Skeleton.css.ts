@@ -2,10 +2,13 @@ import { style, styleVariants, keyframes } from '@vanilla-extract/css';
 import { themeContract } from '../../tokens/theme.css';
 import { loopRhythmEasing } from '../../tokens/loopRhythm.css';
 
-// 사용자 관문(M5 task-28): "살짝만 느리게". loop.base(1500ms)의 1.2배(1800ms)다.
+// 사용자 관문(M5 task-28): "살짝만 느리게". pulse는 loop.base(1500ms)의 1.2배
+// (1800ms)다. 관문 3에서 "빛 지나가는 속도를 살짝만 더 줄여줘"라고 해서 wave
+// (빛)만 1.4배(2100ms)로 갈랐다. 빛이 지나가는 구간은 주기의 절반이라 900ms에서
+// 1050ms가 된다(원래 750ms). pulse는 빛이 아니라 불투명도 맥박이므로 1.2 그대로다.
 // S1은 Loader가 Skeleton의 방향·리듬을 따른다고 적었지만, 이 배율은 Skeleton
-// 주기에만 걸고 Loader는 그대로 둔다. 배율 1.2는 상수로 빼지 않고 animation 줄에
-// `calc(토큰 * 1.2)`로 쓴다(Loader의 `* 2`와 같은 관례): 가드 둘이 줄에서 loop
+// 주기에만 걸고 Loader는 그대로 둔다. 배율은 상수로 빼지 않고 animation 줄에
+// `calc(토큰 * 1.4)`로 쓴다(Loader의 `* 2`와 같은 관례): 가드 둘이 줄에서 loop
 // 토큰 참조와 리터럴 배수를 직접 읽는다(animationBoundary의 시작 지연 집계,
 // tierAKeyframesReducedMotion의 duration 자리 형태).
 
@@ -97,7 +100,7 @@ export const animationStyles = styleVariants({
           ${themeContract.color.background.default} ${GLOW_END},
           transparent 100%
         )`,
-        animation: `${wave} calc(${themeContract.animation.loop.base} * 1.2) ${loopRhythmEasing} 0.5s infinite`,
+        animation: `${wave} calc(${themeContract.animation.loop.base} * 1.4) ${loopRhythmEasing} 0.5s infinite`,
       },
     },
   },
