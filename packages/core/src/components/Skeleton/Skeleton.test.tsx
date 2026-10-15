@@ -277,7 +277,7 @@ describe('Skeleton', () => {
   });
 
   describe('Skeleton 모션 잠금 (M2 T3c)', () => {
-    it('wave가 T5 공유 자산(loopRhythmEasing)의 커브로, loop.base 주기로 좌→우 훑는다', () => {
+    it('wave가 T5 공유 자산(loopRhythmEasing)의 커브로, loop.base의 1.2배 주기로 좌→우 훑는다', () => {
       expect(SKELETON_CSS).toMatch(
         /import \{ loopRhythmEasing \} from '\.\.\/\.\.\/tokens\/loopRhythm\.css'/
       );
@@ -285,7 +285,7 @@ describe('Skeleton', () => {
       const end = SKELETON_CSS.indexOf('\n        },', start);
       const afterBlock = SKELETON_CSS.slice(start, end);
       expect(afterBlock).toContain(
-        'animation: `${wave} ${themeContract.animation.loop.base} ${loopRhythmEasing} 0.5s infinite`'
+        'animation: `${wave} calc(${themeContract.animation.loop.base} * 1.2) ${loopRhythmEasing} 0.5s infinite`'
       );
       expect(afterBlock).not.toContain(' linear ');
     });
@@ -299,7 +299,7 @@ describe('Skeleton', () => {
       const end = SKELETON_CSS.indexOf('\n  },', start);
       const pulseBlock = SKELETON_CSS.slice(start, end);
       expect(pulseBlock).toContain(
-        'animation: `${pulse} ${themeContract.animation.loop.base} ${loopRhythmEasing} 0.5s infinite`'
+        'animation: `${pulse} calc(${themeContract.animation.loop.base} * 1.2) ${loopRhythmEasing} 0.5s infinite`'
       );
       expect(pulseBlock).not.toContain('themeContract.animation.easing');
     });
@@ -308,5 +308,58 @@ describe('Skeleton', () => {
       expect(SKELETON_CSS).not.toContain('rgba(255, 255, 255, 0.3)');
       expect(SKELETON_CSS).toContain('themeContract.color.overlay.shimmer');
     });
+  });
+});
+
+/** jsdom에 주입된 생성 CSS(CSSOM)에서 규칙을 평탄하게 읽는다. */
+function sheetRules(marker: string): CSSStyleRule[] {
+  const sheet = Array.from(document.styleSheets).find((candidate) =>
+    Array.from(candidate.cssRules).some((rule) => rule.cssText.includes(marker))
+  );
+  if (!sheet) {
+    throw new Error(`${marker}를 가진 스타일시트를 찾지 못했다`);
+  }
+  const flat: CSSStyleRule[] = [];
+  const walk = (rules: CSSRuleList) => {
+    for (const rule of Array.from(rules)) {
+      if (rule instanceof CSSStyleRule) flat.push(rule);
+      else if ('cssRules' in rule) walk((rule as CSSGroupingRule).cssRules);
+    }
+  };
+  walk(sheet.cssRules);
+  return flat;
+}
+
+describe('Skeleton 생성 CSS (색·속도, task-28 관문)', () => {
+  const rules = () => sheetRules('Skeleton_skeleton');
+  const rule = (pattern: RegExp) =>
+    rules().find((candidate) => pattern.test(candidate.selectorText));
+
+  it('면 색은 hover 면보다 한 단계 진한 gray[200]이다', () => {
+    const base = rule(/^\.Skeleton_skeleton__\w+$/)!;
+    expect(base.style.getPropertyValue('background-color')).toContain(
+      'gray-200'
+    );
+  });
+
+  it('wave 반복 주기는 loop.base의 1.2배다', () => {
+    const wave = rule(/wave__\w+::after$/)!;
+    const animation = wave.style.getPropertyValue('animation');
+    expect(animation).toMatch(/calc\(var\(--[\w-]*base[\w-]*\) \* 1\.2\)/);
+    expect(animation).toContain('0.5s');
+  });
+
+  it('pulse 반복 주기도 loop.base의 1.2배다', () => {
+    const pulse = rule(/pulse__\w+$/)!;
+    const animation = pulse.style.getPropertyValue('animation');
+    expect(animation).toMatch(/calc\(var\(--[\w-]*base[\w-]*\) \* 1\.2\)/);
+    expect(animation).toContain('0.5s');
+  });
+
+  it('shimmer 색은 그대로 overlay.shimmer 토큰이다', () => {
+    const wave = rule(/wave__\w+::after$/)!;
+    expect(wave.style.getPropertyValue('background-image')).toContain(
+      'shimmer'
+    );
   });
 });

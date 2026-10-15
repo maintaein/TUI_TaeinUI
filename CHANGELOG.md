@@ -116,6 +116,7 @@
 - `Snackbar`의 `position` 기본값이 `'bottom-center'`에서 `'bottom-right'`로 바뀌었습니다. 위치를 주지 않은 스낵바는 이제 화면 오른쪽 아래에 함께 쌓입니다. 예전 위치를 쓰려면 `position="bottom-center"`를 명시하세요.
 - **BREAKING CHANGE:** `HeaderBar`가 가장자리까지 닿는 한 줄 모양에서 떠 있는 둥근 바로 바뀌었습니다. 가운데 정렬, 폭은 양쪽 `spacing[4]`를 뺀 100%(최대 960px), 높이 60px, 모서리 `borderRadius.lg`, 그림자 `shadow.md`이고, 바 높이와 위 여백(`spacing[4]`)만큼 자리를 미리 차지해 바 아래 메뉴 판이 열려도 내용이 밀리지 않습니다. 이전 모양으로 되돌리는 prop은 없습니다. 면은 `background.default`입니다(이전의 흐림·불투명도 0.9는 없어졌습니다). `sticky`는 화면 위에 붙을 때 위 여백을 유지합니다. 바 안쪽 여백은 `spacing[2]`(왼쪽 `spacing[4]`)입니다. `HeaderBar`는 이제 클라이언트 컴포넌트(`'use client'`)입니다.
 - **BREAKING CHANGE:** `HeaderBar`의 `navStyle` 기본값이 `'pill'`입니다. `navStyle`을 주지 않으면 글자 링크가 아니라 알약(호버하면 원이 차오르며 글자가 바뀌고 `active` 항목은 늘 채워짐)으로 그려집니다. 글자 링크가 필요하면 `navStyle="text"`를 주세요. 글자 링크의 선택·호버 표시는 밑줄이 아니라 옅은 바탕입니다.
+- `Skeleton`의 면이 한 단계 진한 회색(`palette.gray[200]` #EEEEEE, 이전 `color.surface.hover` #F5F5F5)이 되었고, `wave`와 `pulse`의 반복 주기가 1500ms에서 1800ms로 1.2배 느려졌습니다. 흰 바탕 대비는 1.09에서 1.16으로 올랐고 shimmer 색과 시작 지연은 그대로입니다. 할 일은 없습니다.
 
 ### Fixed
 
