@@ -118,7 +118,7 @@ export function SearchDropdown({
                           <span className={styles.sectionTitle}>
                             <HighlightText text={section.title} query={query} />
                           </span>
-                          {' — '}
+                          {': '}
                           <HighlightText text={section.content} query={query} />
                         </div>
                       ))}

@@ -206,7 +206,7 @@ export const guidelineText = style({
   lineHeight: 1.6,
 });
 
-/* 패턴 비교 테이블 — PropsTable과 동일한 구조 사용 */
+/* 패턴 비교 테이블: PropsTable과 동일한 구조 사용 */
 export const patternCompareTable = style({
   width: '100%',
   borderCollapse: 'collapse',

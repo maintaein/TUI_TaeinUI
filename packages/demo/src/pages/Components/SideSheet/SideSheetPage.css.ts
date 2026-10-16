@@ -167,7 +167,7 @@ export const practiceList = style({
   color: '#475569',
 });
 
-/* 패턴 비교 테이블 — PropsTable과 동일한 구조 */
+/* 패턴 비교 테이블: PropsTable과 동일한 구조 */
 export const patternCompareTableWrapper = style({
   width: '100%',
   overflowX: 'auto',

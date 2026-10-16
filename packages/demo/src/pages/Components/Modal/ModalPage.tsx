@@ -54,7 +54,7 @@ export function ModalPage() {
     {
       name: 'title',
       type: 'string',
-      description: 'Flat: 모달 제목 — 자동으로 Header + Title 구조 생성',
+      description: 'Flat: 모달 제목. 자동으로 Header + Title 구조 생성',
     },
     {
       name: 'showClose',
@@ -508,7 +508,7 @@ const triggerRef = useRef(null);
         {/* Compound 실전 예시 */}
         <div className={styles.example} style={{ marginTop: '2rem' }}>
           <h3 className={styles.exampleTitle}>
-            Compound 실전 예시 — 도메인 전용 모달 컴포넌트
+            Compound 실전 예시: 도메인 전용 모달 컴포넌트
           </h3>
           <p
             className={styles.sectionDescription}
@@ -561,7 +561,7 @@ export function ConfirmModal({
         {/* Compound 커스텀 확장 예시 */}
         <div className={styles.example}>
           <h3 className={styles.exampleTitle}>
-            Compound 커스텀 확장 — 서브컴포넌트 교체
+            Compound 커스텀 확장: 서브컴포넌트 교체
           </h3>
           <p
             className={styles.sectionDescription}

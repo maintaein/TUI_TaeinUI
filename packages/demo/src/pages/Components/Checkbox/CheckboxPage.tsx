@@ -259,7 +259,7 @@ export function CheckboxPage() {
           />
         </div>
 
-        {/* Dense Grid Example (M3 T3e — GSAP 런타임 인스턴스 비용 확인용) */}
+        {/* Dense Grid Example (M3 T3e: GSAP 런타임 인스턴스 비용 확인용) */}
         <div className={styles.example}>
           <h3 className={styles.exampleTitle}>Dense Grid (24 instances)</h3>
           <LivePreview

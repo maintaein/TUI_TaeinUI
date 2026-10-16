@@ -135,7 +135,7 @@ export function ChipPage() {
           />
         </div>
 
-        {/* Colors — Filled */}
+        {/* Colors: Filled */}
         <div className={styles.example}>
           <h3 className={styles.exampleTitle}>Colors (Filled)</h3>
           <LivePreview
@@ -152,7 +152,7 @@ export function ChipPage() {
           />
         </div>
 
-        {/* Colors — Outlined */}
+        {/* Colors: Outlined */}
         <div className={styles.example}>
           <h3 className={styles.exampleTitle}>Colors (Outlined)</h3>
           <LivePreview

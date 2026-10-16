@@ -42,7 +42,7 @@ export function CardPage() {
     {
       name: 'title',
       type: 'string',
-      description: 'Flat: 카드 제목 — 자동으로 header + title 구조 생성',
+      description: 'Flat: 카드 제목. 자동으로 header + title 구조 생성',
     },
     {
       name: 'header',
@@ -410,10 +410,10 @@ export function CardPage() {
               <tr className={styles.patternCompareTr}>
                 <td className={styles.patternCompareTdLabel}>유연성</td>
                 <td className={styles.patternCompareTd}>
-                  낮음 — props 기반 고정 구조
+                  낮음: props 기반 고정 구조
                 </td>
                 <td className={styles.patternCompareTd}>
-                  높음 — 서브 컴포넌트 자유 조합
+                  높음: 서브 컴포넌트 자유 조합
                 </td>
               </tr>
               <tr className={styles.patternCompareTr}>
@@ -447,7 +447,7 @@ export function CardPage() {
 
         <div className={styles.example} style={{ marginTop: '2rem' }}>
           <h3 className={styles.exampleTitle}>
-            Compound 실전 예시 — 이미지 오버레이
+            Compound 실전 예시: 이미지 오버레이
           </h3>
           <LivePreview
             title="이미지 + 오버레이"
@@ -528,7 +528,7 @@ export function CardPage() {
 
         <div className={styles.example}>
           <h3 className={styles.exampleTitle}>
-            Compound 커스텀 확장 — 도메인 전용 카드 컴포넌트
+            Compound 커스텀 확장: 도메인 전용 카드 컴포넌트
           </h3>
           <p
             className={styles.sectionDescription}

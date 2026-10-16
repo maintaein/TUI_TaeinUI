@@ -1,7 +1,7 @@
 {
   "name": "@taein-ui/core",
   "version": "0.3.0",
-  "description": "A React UI component library where every component has its own motion — GSAP-driven, zero-runtime CSS, tree-shakable, RSC-ready, WCAG 2.2 AA.",
+  "description": "A React UI component library where every component has its own motion: GSAP-driven, zero-runtime CSS, tree-shakable, RSC-ready, WCAG 2.2 AA.",
   "keywords": [
     "component-library",
     "react",

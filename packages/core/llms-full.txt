@@ -1,4 +1,4 @@
-# TUI (TaeinUI) — Full API Reference
+# TUI (TaeinUI): Full API Reference
 
 > A React + TypeScript UI component library where each component carries its own motion.
 > GSAP is the motion runtime (14 components today); visibility, legibility and readability
@@ -27,11 +27,11 @@ function App() {
 ## API Patterns
 
 All components follow consistent patterns:
-- `variant` — Visual style (e.g., 'primary' | 'dark' | 'light')
-- `size` — Component size ('sm' | 'md' | 'lg')
-- `disabled` — Disabled state (boolean)
-- `className` — Additional CSS class (string)
-- `ref` — All components support forwardRef
+- `variant`: Visual style (e.g., 'primary' | 'dark' | 'light')
+- `size`: Component size ('sm' | 'md' | 'lg')
+- `disabled`: Disabled state (boolean)
+- `className`: Additional CSS class (string)
+- `ref`: All components support forwardRef
 - Form components require `label` prop for accessibility
 
 ---
@@ -72,12 +72,12 @@ import { TextField } from '@taein-ui/core';
 | autoResize | boolean | false | Grow to fit the content. Only with `multiline` (a type error otherwise) |
 | size | 'sm' \| 'md' \| 'lg' | 'md' | Input size |
 | error | boolean | false | Error state |
-| errorMessage | string | — | Error message |
-| helperText | string | — | Helper text |
+| errorMessage | string | - | Error message |
+| helperText | string | - | Helper text |
 | fullWidth | boolean | false | Full width |
-| required | boolean | — | Required attribute |
-| disabled | boolean | — | Disabled attribute |
-| className | string | — | Additional CSS class |
+| required | boolean | - | Required attribute |
+| disabled | boolean | - | Disabled attribute |
+| className | string | - | Additional CSS class |
 
 ### Accessibility
 - `aria-invalid` set automatically when `error` is true
@@ -112,12 +112,12 @@ import { Checkbox } from '@taein-ui/core';
 | label | string | (required) | Label text |
 | size | 'sm' \| 'md' \| 'lg' | 'md' | Checkbox size |
 | error | boolean | false | Error state |
-| errorMessage | string | — | Error message |
-| helperText | string | — | Helper text |
+| errorMessage | string | - | Error message |
+| helperText | string | - | Helper text |
 | indeterminate | boolean | false | Indeterminate state |
-| required | boolean | — | Required attribute |
-| disabled | boolean | — | Disabled attribute |
-| className | string | — | Additional CSS class |
+| required | boolean | - | Required attribute |
+| disabled | boolean | - | Disabled attribute |
+| className | string | - | Additional CSS class |
 
 ---
 
@@ -142,11 +142,11 @@ import { Switch } from '@taein-ui/core';
 | label | string | (required) | Label text |
 | size | 'sm' \| 'md' \| 'lg' | 'md' | Switch size |
 | error | boolean | false | Error state |
-| errorMessage | string | — | Error message |
-| helperText | string | — | Helper text |
-| required | boolean | — | Required attribute |
-| disabled | boolean | — | Disabled attribute |
-| className | string | — | Additional CSS class |
+| errorMessage | string | - | Error message |
+| helperText | string | - | Helper text |
+| required | boolean | - | Required attribute |
+| disabled | boolean | - | Disabled attribute |
+| className | string | - | Additional CSS class |
 
 ---
 
@@ -182,13 +182,13 @@ import { Slider } from '@taein-ui/core';
 | step | number | 1 | Step increment |
 | showValue | boolean | false | Display current value |
 | showThumbValue | boolean | false | Show the value above the thumb while grabbing or dragging. Off by default. It sits at the label and `showValue` line height, so it can overlap them when the thumb is at either end |
-| helperText | string | — | Helper text |
-| marks | { value: number; label: string }[] | — | Marks on track |
-| trackColor | string | — | Fill track color |
-| value | number | — | Controlled value |
+| helperText | string | - | Helper text |
+| marks | { value: number; label: string }[] | - | Marks on track |
+| trackColor | string | - | Fill track color |
+| value | number | - | Controlled value |
 | defaultValue | number | 0 | Initial value (uncontrolled) |
-| disabled | boolean | — | Disabled attribute |
-| className | string | — | Additional CSS class |
+| disabled | boolean | - | Disabled attribute |
+| className | string | - | Additional CSS class |
 
 ---
 
@@ -214,19 +214,19 @@ import { NumericSpinner } from '@taein-ui/core';
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
 | label | string | (required) | Label text |
-| value | number | — | Controlled value |
-| defaultValue | number | — | Initial value (uncontrolled) |
+| value | number | - | Controlled value |
+| defaultValue | number | - | Initial value (uncontrolled) |
 | size | 'sm' \| 'md' \| 'lg' | 'md' | Input size |
-| min | number | — | Minimum value |
-| max | number | — | Maximum value |
+| min | number | - | Minimum value |
+| max | number | - | Maximum value |
 | step | number | 1 | Increment step (rounded to the longer of the decimals of `step` and of the current value, so 0.1 three times is 0.3 and 0.25 + 0.1 is 0.35) |
 | error | boolean | false | Error state |
-| errorMessage | string | — | Error message |
-| helperText | string | — | Helper text |
+| errorMessage | string | - | Error message |
+| helperText | string | - | Helper text |
 | fullWidth | boolean | false | Full width |
-| required | boolean | — | Required attribute |
-| disabled | boolean | — | Disabled attribute |
-| className | string | — | Additional CSS class |
+| required | boolean | - | Required attribute |
+| disabled | boolean | - | Disabled attribute |
+| className | string | - | Additional CSS class |
 
 The input is not read-only. The user can type a number; while typing the field may be empty or out of range, and the value is committed on blur and Enter (clamped to `min`/`max`; an empty or non-numeric field reverts to the previous value; `onChange` is not called when the committed value equals the previous one). ArrowUp/ArrowDown change the value by `step`. For a custom input width use `style={{ width: '60px' }}`.
 
@@ -260,11 +260,11 @@ import { Plus } from 'lucide-react';
 | fullWidth | boolean | false | Stretch to full width |
 | loading | boolean | false | Show loading spinner |
 | disabled | boolean | false | Disable button |
-| leftIcon | ReactNode | — | Icon before text |
-| rightIcon | ReactNode | — | Icon after text |
-| customColor | { bg: string; text: string; hoverBg?: string; activeBg?: string } | — | Custom colors |
-| children | ReactNode | — | Button text |
-| className | string | — | Additional CSS class |
+| leftIcon | ReactNode | - | Icon before text |
+| rightIcon | ReactNode | - | Icon after text |
+| customColor | { bg: string; text: string; hoverBg?: string; activeBg?: string } | - | Custom colors |
+| children | ReactNode | - | Button text |
+| className | string | - | Additional CSS class |
 
 ### Accessibility
 - `aria-disabled` set when disabled or loading
@@ -313,9 +313,9 @@ import { Plus, X } from 'lucide-react';
 | hoverEffect | 'none' \| 'jelly' | 'jelly' | On by default; set "none" to turn it off. jelly: when the mouse enters, the icon spreads sideways (scaleX 1.15, scaleY 1/1.15, volume kept) and wobbles back with a spring. Only the icon moves, not the button. Re-entry while it is running is ignored. Mouse only (no effect for touch or keyboard focus, disabled or loading); with reduced motion nothing moves. Works in all three buttonStyles |
 | loading | boolean | false | Loading state |
 | disabled | boolean | false | Disabled state |
-| children | ReactNode | — | Icon content |
-| aria-label | string | — | Required accessibility label |
-| className | string | — | Additional CSS class |
+| children | ReactNode | - | Icon content |
+| aria-label | string | - | Required accessibility label |
+| className | string | - | Additional CSS class |
 
 ---
 
@@ -343,15 +343,15 @@ import { SegmentedButtons } from '@taein-ui/core';
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
 | options | { value: string; label: string; icon?: ReactNode; iconOnly?: boolean; disabled?: boolean }[] | (required) | Button options |
-| value | string | — | Selected value (controlled) |
-| onChange | (value: string) => void | — | Change handler |
-| defaultValue | string | — | Initial value (uncontrolled) |
+| value | string | - | Selected value (controlled) |
+| onChange | (value: string) => void | - | Change handler |
+| defaultValue | string | - | Initial value (uncontrolled) |
 | size | 'sm' \| 'md' \| 'lg' | 'md' | Size. `sm` is 36px tall but the press area stays 44px (an invisible band above and below) |
 | fullWidth | boolean | false | Full width |
 | disabled | boolean | false | Disable all buttons |
 | aria-label | string | - | Group name. Either `aria-label` or `aria-labelledby` is required (type error otherwise) |
 | aria-labelledby | string | - | Id of the element that names the group. Alternative to `aria-label` |
-| className | string | — | Additional CSS class |
+| className | string | - | Additional CSS class |
 
 ---
 
@@ -370,12 +370,12 @@ import { Badge } from '@taein-ui/core';
 ### Props (extends HTMLAttributes<HTMLSpanElement>)
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
-| children | ReactNode | — | Badge content |
+| children | ReactNode | - | Badge content |
 | variant | 'primary' \| 'secondary' \| 'success' \| 'error' \| 'warning' | 'primary' | Badge variant |
 | size | 'sm' \| 'md' \| 'lg' | 'md' | Badge size |
 | max | number | 99 | Maximum value |
 | dot | boolean | false | Dot mode |
-| className | string | — | Additional CSS class |
+| className | string | - | Additional CSS class |
 | aria-label | string | - | Accessible name of a `dot` (adds role="img"), or use it together with `role`. Without a name or `role`, a dot is `aria-hidden`. Text badges are named by their text |
 
 No default `role`. Text is the accessible name. Pass `role="status"` or `aria-live` to make it a live region. When the number decreases the old value leaves downward.
@@ -410,13 +410,13 @@ const [tags, setTags] = useState(['React', 'Vite']);
 | size | 'sm' \| 'md' \| 'lg' | 'md' | Chip size |
 | variant | 'filled' \| 'outlined' | 'filled' | Chip variant |
 | color | 'default' \| 'primary' \| 'success' \| 'error' \| 'warning' | 'default' | Color |
-| icon | ReactNode | — | Leading icon |
-| avatar | ReactNode | — | Avatar element |
+| icon | ReactNode | - | Leading icon |
+| avatar | ReactNode | - | Avatar element |
 | onDelete | () => void | - | Delete callback. Called after the exit animation ends (not called if the chip unmounts during the exit); if you do not remove the chip from your list it stays in place, invisible |
 | selected | boolean | - | Selected state. On a chip with `onClick`, passing it makes the chip a toggle (`aria-pressed`); omit it for a non-toggle chip. Without `onClick` it only styles the chip as selected (no `aria-pressed`) |
 | disabled | boolean | false | Disabled state |
 | onClick | () => void | - | Click handler. Passing it makes the chip a pressable `<button>` (no `clickable` prop). With `onDelete` the chip is a `<div>` holding the action `<button>` and the delete `<button>` side by side |
-| className | string | — | Additional CSS class |
+| className | string | - | Additional CSS class |
 
 ---
 
@@ -441,26 +441,26 @@ import { Avatar, AvatarGroup } from '@taein-ui/core';
 ### AvatarProps
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
-| src | string | — | Image URL |
+| src | string | - | Image URL |
 | alt | string | (required) | Alt text |
 | size | 'xs' \| 'sm' \| 'md' \| 'lg' \| 'xl' | 'md' | Avatar size |
 | variant | 'circular' \| 'rounded' \| 'square' | 'circular' | Border style |
-| status | 'online' \| 'offline' \| 'busy' \| 'away' | — | Status indicator |
-| children | ReactNode | — | Fallback content |
-| onClick | () => void | — | Click handler |
-| href | string | — | Link URL |
+| status | 'online' \| 'offline' \| 'busy' \| 'away' | - | Status indicator |
+| children | ReactNode | - | Fallback content |
+| onClick | () => void | - | Click handler |
+| href | string | - | Link URL |
 | bouncy | boolean | false | Springy float on hover/keyboard focus and a press scale-up. Static by default. Only works when onClick or href is set. No movement under prefers-reduced-motion |
-| onError | () => void | — | Image error callback |
-| className | string | — | Additional CSS class |
+| onError | () => void | - | Image error callback |
+| className | string | - | Additional CSS class |
 
 ### AvatarGroupProps
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
 | children | ReactNode | (required) | Avatar components |
-| max | number | — | Max visible avatars |
-| size | 'xs' \| 'sm' \| 'md' \| 'lg' \| 'xl' | — | Avatar size |
+| max | number | - | Max visible avatars |
+| size | 'xs' \| 'sm' \| 'md' \| 'lg' \| 'xl' | - | Avatar size |
 | spacing | 'sm' \| 'md' \| 'lg' | 'md' | Overlap spacing |
-| className | string | — | Additional CSS class |
+| className | string | - | Additional CSS class |
 
 ---
 
@@ -496,8 +496,8 @@ The status region carries no `aria-busy` (a busy live region may defer its updat
 | label | string | - | Text label. Changing the text cross-fades with a blur. When the accessible name equals the label (no `aria-label`, or the same text) the visible label is `aria-hidden` so it is read once: through the hidden message in the status region, or for `fuse` through the progressbar's accessible name |
 | fullScreen | boolean | false | Full screen overlay |
 | overlay | boolean | false | Semi-transparent overlay |
-| aria-label | string | — | Accessibility label |
-| className | string | — | Additional CSS class |
+| aria-label | string | - | Accessibility label |
+| className | string | - | Additional CSS class |
 
 ---
 
@@ -518,10 +518,10 @@ import { Skeleton } from '@taein-ui/core';
 |------|------|---------|-------------|
 | variant | 'text' \| 'rect' \| 'circle' \| 'rounded' | 'text' | Shape variant |
 | animation | 'wave' \| 'pulse' \| false | 'wave' | Animation type |
-| width | number \| string | — | Width |
-| height | number \| string | — | Height |
+| width | number \| string | - | Width |
+| height | number \| string | - | Height |
 | aria-label | string | - | Optional. Without it (and without `role`) the Skeleton is `aria-hidden`. With it, `aria-hidden` is dropped and `role="img"` is added so it is the accessible name (a `role` you pass wins) |
-| className | string | — | Additional CSS class |
+| className | string | - | Additional CSS class |
 
 A Skeleton is decoration: `aria-hidden="true"`, no `role`, `aria-live`, `aria-busy` or automatic name. Announce loading on the wrapping region instead, once for the whole group, and remove its `aria-busy` when loading ends:
 
@@ -563,9 +563,9 @@ import { Snackbar, Button } from '@taein-ui/core';
 | position | 'top-left' \| 'top-center' \| 'top-right' \| 'bottom-left' \| 'bottom-center' \| 'bottom-right' | 'bottom-right' | Position |
 | autoHideDuration | number \| null | 6000 | Auto-close duration (ms) |
 | stack | boolean | true | If false, stays alone at its position: closes the others when it opens, and is closed when another opens there |
-| onClose | () => void | — | Close callback. Also called when the oldest of 4 stacked Snackbars at one position is evicted, or when `stack={false}` closes it |
-| action | ReactNode | — | Action content |
-| className | string | — | Additional CSS class |
+| onClose | () => void | - | Close callback. Also called when the oldest of 4 stacked Snackbars at one position is evicted, or when `stack={false}` closes it |
+| action | ReactNode | - | Action content |
+| className | string | - | Additional CSS class |
 
 ---
 
@@ -586,13 +586,13 @@ import { Tooltip, Button } from '@taein-ui/core';
 |------|------|---------|-------------|
 | children | ReactElement | (required) | Single trigger element. aria-describedby is attached to it directly. Received aria-* and onClick are forwarded to it, so a Tooltip can sit inside a Popover |
 | content | ReactNode | (required) | Tooltip content |
-| open | boolean | — | Controlled visibility |
-| onOpenChange | (open: boolean) => void | — | State change callback |
+| open | boolean | - | Controlled visibility |
+| onOpenChange | (open: boolean) => void | - | State change callback |
 | position | 'top' \| 'bottom' \| 'left' \| 'right' | 'top' | Position |
 | delay | number | 200 | Show delay (ms). Skipped while another tooltip is open or closed within 300ms |
 | disabled | boolean | false | Disable tooltip |
 | arrow | boolean | true | Show arrow |
-| className | string | — | Additional CSS class |
+| className | string | - | Additional CSS class |
 
 ---
 
@@ -633,12 +633,12 @@ import { Modal, Button } from '@taein-ui/core';
 | closeOnBackdropClick | boolean | true | Close on backdrop click |
 | closeOnEscape | boolean | true | Close on ESC key |
 | triggerRef | RefObject<HTMLElement \| null> | - | 안 주면 열 때 포커스된 요소에서 자란다. Safari·Firefox(macOS)는 버튼 클릭에 포커스를 주지 않아 가운데에서 열린다. 주면 모든 브라우저에서 그 요소 자리에서 자란다. |
-| title | string | — | Title (Flat mode) |
+| title | string | - | Title (Flat mode) |
 | showClose | boolean | false | Show close button (Flat mode) |
-| footer | ReactNode | — | Footer (Flat mode) |
+| footer | ReactNode | - | Footer (Flat mode) |
 | footerAlign | 'left' \| 'center' \| 'right' | 'left' | Footer alignment |
-| aria-label | string | — | Accessibility label |
-| className | string | — | Additional CSS class |
+| aria-label | string | - | Accessibility label |
+| className | string | - | Additional CSS class |
 
 ### Compound Components
 
@@ -679,7 +679,7 @@ import { BottomSheet } from '@taein-ui/core';
 |------|------|---------|-------------|
 | open | boolean | (required) | Visibility state |
 | onClose | () => void | (required) | Close handler |
-| title | ReactNode | — | Sheet title |
+| title | ReactNode | - | Sheet title |
 | children | ReactNode | (required) | Content |
 | height | 'auto' \| 'sm' \| 'md' \| 'lg' \| 'full' | 'auto' | Sheet height |
 | closeOnBackdropClick | boolean | true | Close on backdrop click |
@@ -687,12 +687,12 @@ import { BottomSheet } from '@taein-ui/core';
 | showHandle | boolean | true | Show drag handle |
 | showClose | boolean | false | Show close button |
 | enableDrag | boolean | true | Enable drag to close |
-| className | string | — | Additional CSS class |
+| className | string | - | Additional CSS class |
 
 ### Compound Components
-- `BottomSheet.Header` / `BottomSheetHeader` — Header. Props: showClose
-- `BottomSheet.Title` / `BottomSheetTitle` — Title heading
-- `BottomSheet.Content` / `BottomSheetContent` — Scrollable content
+- `BottomSheet.Header` / `BottomSheetHeader`: Header. Props: showClose
+- `BottomSheet.Title` / `BottomSheetTitle`: Title heading
+- `BottomSheet.Content` / `BottomSheetContent`: Scrollable content
 
 ---
 
@@ -718,19 +718,19 @@ import { SideSheet } from '@taein-ui/core';
 |------|------|---------|-------------|
 | open | boolean | (required) | Visibility state |
 | onClose | () => void | (required) | Close handler |
-| title | ReactNode | — | Sheet title |
+| title | ReactNode | - | Sheet title |
 | children | ReactNode | (required) | Content |
 | width | 'sm' \| 'md' \| 'lg' \| 'full' | 'md' | Sheet width |
 | position | 'left' \| 'right' | 'right' | Position |
 | closeOnBackdropClick | boolean | true | Close on backdrop |
 | closeOnEscape | boolean | true | Close on ESC |
 | showClose | boolean | false | Show close button |
-| className | string | — | Additional CSS class |
+| className | string | - | Additional CSS class |
 
 ### Compound Components
-- `SideSheet.Header` / `SideSheetHeader` — Header. Props: showClose
-- `SideSheet.Title` / `SideSheetTitle` — Title heading
-- `SideSheet.Content` / `SideSheetContent` — Scrollable content
+- `SideSheet.Header` / `SideSheetHeader`: Header. Props: showClose
+- `SideSheet.Title` / `SideSheetTitle`: Title heading
+- `SideSheet.Content` / `SideSheetContent`: Scrollable content
 
 ---
 
@@ -755,15 +755,15 @@ import { Popover, Button } from '@taein-ui/core';
 |------|------|---------|-------------|
 | children | ReactElement | (required) | Single interactive trigger element (Button, IconButton, Avatar). onClick and aria-haspopup/expanded/controls are attached to it directly |
 | content | ReactNode | (required) | Popover content |
-| open | boolean | — | Controlled visibility |
-| onOpenChange | (open: boolean) => void | — | State change callback |
+| open | boolean | - | Controlled visibility |
+| onOpenChange | (open: boolean) => void | - | State change callback |
 | position | 'top' \| 'bottom' \| 'left' \| 'right' | 'bottom' | Position |
 | closeOnOutsideClick | boolean | true | Close on outside click |
 | closeOnEscape | boolean | true | Close on ESC |
 | arrow | boolean | false | Show arrow |
-| maxWidth | string | — | Maximum width |
+| maxWidth | string | - | Maximum width |
 | disabled | boolean | false | Disable popover |
-| className | string | — | Additional CSS class |
+| className | string | - | Additional CSS class |
 
 ---
 
@@ -804,14 +804,14 @@ import { Card } from '@taein-ui/core';
 |------|------|---------|-------------|
 | children | ReactNode | (required) | Content |
 | variant | 'outlined' \| 'elevated' \| 'filled' | 'elevated' | Card variant |
-| onClick | () => void | — | Click handler |
+| onClick | () => void | - | Click handler |
 | disabled | boolean | false | Disable interactivity |
 | hoverLift | boolean | false | Lift and deepen the shadow on hover, press down briefly on press (lift is mouse only, off when disabled) |
-| title | string | — | Title (Flat mode) |
-| image | string | — | Image URL (Flat mode) |
+| title | string | - | Title (Flat mode) |
+| image | string | - | Image URL (Flat mode) |
 | imageAlt | string | '' | Image alt text (Flat mode) |
 | padding | 'sm' \| 'md' \| 'lg' | 'md' | Body padding (Flat mode) |
-| className | string | — | Additional CSS class |
+| className | string | - | Additional CSS class |
 
 ### Compound Components
 
@@ -845,17 +845,17 @@ import { List, ListItem } from '@taein-ui/core';
 | children | ReactNode | (required) | List items |
 | spacing | 'none' \| 'sm' \| 'md' \| 'lg' | 'md' | Item spacing |
 | divider | boolean | false | Show dividers |
-| className | string | — | Additional CSS class |
+| className | string | - | Additional CSS class |
 
 ### ListItemProps (extends HTMLAttributes<HTMLLIElement>)
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
-| label | ReactNode | — | Label (left) |
-| value | ReactNode | — | Value (right) |
-| children | ReactNode | — | Custom content |
+| label | ReactNode | - | Label (left) |
+| value | ReactNode | - | Value (right) |
+| children | ReactNode | - | Custom content |
 | layout | 'horizontal' \| 'vertical' | 'horizontal' | Layout |
-| labelWidth | string | — | Custom label width |
-| className | string | — | Additional CSS class |
+| labelWidth | string | - | Custom label width |
+| className | string | - | Additional CSS class |
 
 ---
 
@@ -884,10 +884,10 @@ import { BoardRow } from '@taein-ui/core';
 | children | ReactNode | (required) | Content |
 | variant | 'default' \| 'outlined' \| 'filled' | 'default' | Row variant |
 | defaultExpanded | boolean | false | Initial state (uncontrolled) |
-| expanded | boolean | — | Expanded state (controlled) |
-| onChange | (expanded: boolean) => void | — | State change callback |
+| expanded | boolean | - | Expanded state (controlled) |
+| onChange | (expanded: boolean) => void | - | State change callback |
 | disabled | boolean | false | Disable expansion |
-| className | string | — | Additional CSS class |
+| className | string | - | Additional CSS class |
 
 ---
 
@@ -907,12 +907,12 @@ import { Divider } from '@taein-ui/core';
 ### Props (extends HTMLAttributes<HTMLDivElement>)
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
-| children | ReactNode | — | Divider text |
+| children | ReactNode | - | Divider text |
 | orientation | 'horizontal' \| 'vertical' | 'horizontal' | Orientation |
 | variant | 'solid' \| 'dashed' \| 'dotted' | 'solid' | Line style |
 | spacing | 'sm' \| 'md' \| 'lg' | 'md' | Margin. Above and below when horizontal, left and right when vertical (a vertical divider fills the height of the flex row it sits in) |
 | textAlign | 'left' \| 'center' \| 'right' | 'center' | Text alignment |
-| className | string | — | Additional CSS class |
+| className | string | - | Additional CSS class |
 
 ---
 
@@ -939,7 +939,7 @@ import { Border } from '@taein-ui/core';
 | rounded | 'none' \| 'sm' \| 'md' \| 'lg' \| 'full' | 'md' if sides='all', else 'none' | Border radius. An explicit value always wins |
 | padding | 'none' \| 'sm' \| 'md' \| 'lg' | 'none' | Inner padding |
 | glow | boolean | false | Light that circles the border on hover/focus. Only with sides='all'. Hover is gated to (hover: hover) and (pointer: fine) |
-| className | string | — | Additional CSS class |
+| className | string | - | Additional CSS class |
 
 ---
 
@@ -1008,108 +1008,108 @@ The items hide and a hamburger button (two lines that gather into an X, `aria-ex
 
 TUI uses `themeContract` for type-safe, theme-aware styling. 테마는 라이트
 단일 테마 하나뿐이며 `:root`에 전역 CSS 변수로 선언된다. `ThemeProvider`,
-`useTheme`, `createTheme`, 다크 테마는 존재하지 않는다 — import하면 실패한다.
+`useTheme`, `createTheme`, 다크 테마는 존재하지 않는다. import하면 실패한다.
 
 아래 값과 대비비는 모두 소스(`tokens/contract.ts`)에서 생성되므로 코드와
 어긋날 수 없다.
 
-### Color — Brand & Neutral
+### Color: Brand & Neutral
 
 판정 기준은 흰 배경이 아니라 더 불리한 `background.paper`다.
 
-- `themeContract.color.primary.main` — #1976D2 — 4.60:1 on white / 4.40:1 on paper — AA UI only — not for body text
-- `themeContract.color.primary.light` — #42A5F5 — 2.64:1 on white / 2.53:1 on paper — decorative only — fails AA
-- `themeContract.color.primary.dark` — #1565C0 — 5.74:1 on white / 5.50:1 on paper — AA text
-- `themeContract.color.primary.contrast` — #FFFFFF — `primary.main` 위 글자색 — 4.60:1
-- `themeContract.color.text.primary` — #212121 — 16.10:1 on white / 15.42:1 on paper — AA text
-- `themeContract.color.text.secondary` — #717171 — 4.88:1 on white / 4.67:1 on paper — AA text
-- `themeContract.color.text.disabled` — #BDBDBD — 비활성 표시용. 대비가 낮으므로 색만으로 상태를 전달하지 않는다 (`disabled`/`aria-disabled`를 함께 쓴다)
-- `themeContract.color.text.inverse` — #FFFFFF — 어두운 면 위 글자색 (Button·IconButton의 dark 변형, 스크림 위 텍스트)
-- `themeContract.color.background.default` — #FFFFFF — 페이지 배경
-- `themeContract.color.background.paper` — #FAFAFA — 카드·패널 배경. 대비 판정의 기준 배경이다
-- `themeContract.color.surface.default` — #FFFFFF — 표면 기본
-- `themeContract.color.surface.hover` — #F5F5F5 — 표면 hover
-- `themeContract.color.surface.active` — #EEEEEE — 표면 active
-- `themeContract.color.surface.track` — #878787 — 흰 배경 대비 3.59:1 — 1.4.11의 3:1을 넘긴다. 컨트롤을 식별시키는 면(Switch·Slider의 트랙과 Loader `color="white"`의 트랙)에 쓴다. `border.strong`과 값은 같지만 경계선이 아니라 면이라 따로 둔다
-- `themeContract.color.border.default` — #E0E0E0 — 흰 배경 대비 1.32:1 — UI 요소 기준 3:1 미달이므로 구분선·비활성 테두리처럼 정보를 전달하지 않는 자리에만 쓴다. 경계가 정보를 전달하면 `border.strong`
-- `themeContract.color.border.strong` — #878787 — 흰 배경 대비 3.59:1 — 1.4.11의 3:1을 넘긴다. 폼 컨트롤·카드 경계처럼 있고 없고가 의미를 바꾸는 자리에 쓴다
-- `themeContract.color.border.focus` — #1976D2 — 포커스 링 색
-- `themeContract.color.overlay.scrim` — rgba(0, 0, 0, 0.5) — Modal·BottomSheet·SideSheet 백드롭. 반투명 합성색이라 단일 대비값이 없다
-- `themeContract.color.overlay.focusHalo` — rgba(25, 118, 210, 0.16) — 포커스 halo(장식). 실제 포커스 표시는 focusRing 유틸의 outline이 맡는다(TextField는 예외로 outline 없이 테두리 색이 맡는다)
-- `themeContract.color.overlay.errorHalo` — rgba(211, 47, 47, 0.16) — 에러 halo(장식). 위와 같은 이유로 포커스 표시를 겸하지 않는다
+- `themeContract.color.primary.main`: #1976D2, 4.60:1 on white / 4.40:1 on paper, AA UI only, not for body text
+- `themeContract.color.primary.light`: #42A5F5, 2.64:1 on white / 2.53:1 on paper, decorative only, fails AA
+- `themeContract.color.primary.dark`: #1565C0, 5.74:1 on white / 5.50:1 on paper, AA text
+- `themeContract.color.primary.contrast`: #FFFFFF, `primary.main` 위 글자색: 4.60:1
+- `themeContract.color.text.primary`: #212121, 16.10:1 on white / 15.42:1 on paper, AA text
+- `themeContract.color.text.secondary`: #717171, 4.88:1 on white / 4.67:1 on paper, AA text
+- `themeContract.color.text.disabled`: #BDBDBD, 비활성 표시용. 대비가 낮으므로 색만으로 상태를 전달하지 않는다 (`disabled`/`aria-disabled`를 함께 쓴다)
+- `themeContract.color.text.inverse`: #FFFFFF, 어두운 면 위 글자색 (Button·IconButton의 dark 변형, 스크림 위 텍스트)
+- `themeContract.color.background.default`: #FFFFFF, 페이지 배경
+- `themeContract.color.background.paper`: #FAFAFA, 카드·패널 배경. 대비 판정의 기준 배경이다
+- `themeContract.color.surface.default`: #FFFFFF, 표면 기본
+- `themeContract.color.surface.hover`: #F5F5F5, 표면 hover
+- `themeContract.color.surface.active`: #EEEEEE, 표면 active
+- `themeContract.color.surface.track`: #878787, 흰 배경 대비 3.59:1, 1.4.11의 3:1을 넘긴다. 컨트롤을 식별시키는 면(Switch·Slider의 트랙과 Loader `color="white"`의 트랙)에 쓴다. `border.strong`과 값은 같지만 경계선이 아니라 면이라 따로 둔다
+- `themeContract.color.border.default`: #E0E0E0, 흰 배경 대비 1.32:1, UI 요소 기준 3:1 미달이므로 구분선·비활성 테두리처럼 정보를 전달하지 않는 자리에만 쓴다. 경계가 정보를 전달하면 `border.strong`
+- `themeContract.color.border.strong`: #878787, 흰 배경 대비 3.59:1, 1.4.11의 3:1을 넘긴다. 폼 컨트롤·카드 경계처럼 있고 없고가 의미를 바꾸는 자리에 쓴다
+- `themeContract.color.border.focus`: #1976D2, 포커스 링 색
+- `themeContract.color.overlay.scrim`: rgba(0, 0, 0, 0.5), Modal·BottomSheet·SideSheet 백드롭. 반투명 합성색이라 단일 대비값이 없다
+- `themeContract.color.overlay.focusHalo`: rgba(25, 118, 210, 0.16), 포커스 halo(장식). 실제 포커스 표시는 focusRing 유틸의 outline이 맡는다(TextField는 예외로 outline 없이 테두리 색이 맡는다)
+- `themeContract.color.overlay.errorHalo`: rgba(211, 47, 47, 0.16), 에러 halo(장식). 위와 같은 이유로 포커스 표시를 겸하지 않는다
 
-### Color — Semantic
+### Color: Semantic
 
 Semantic 색상은 역할별 4슬롯이다. 슬롯을 바꿔 쓰면 대비가 깨진다:
-- `main` — 글자(`contrast`)를 얹는 면. 판정 기준은 페이지 배경이 아니라
+- `main`: 글자(`contrast`)를 얹는 면. 판정 기준은 페이지 배경이 아니라
   `contrast`와의 대비 4.5:1이다. 배경과의 3:1은 보장 대상이 아니다
   (`success.main` 2.77, `warning.main` 2.15). **본문 텍스트로 쓰지 말 것**
-- `light` — 연한 배경용. 위에는 `color.text.primary`를 얹는다
-- `dark` — 흰 배경 위 본문 텍스트용 (기준 4.5:1). 글자를 얹지 않는 도형
-  (아이콘 단독·차트 마커·상태 점)도 이 슬롯을 쓴다 — 1.4.11의 3:1을 넘긴다
-- `contrast` — `main` 위에 얹는 글자색
+- `light`: 연한 배경용. 위에는 `color.text.primary`를 얹는다
+- `dark`: 흰 배경 위 본문 텍스트용 (기준 4.5:1). 글자를 얹지 않는 도형
+  (아이콘 단독·차트 마커·상태 점)도 이 슬롯을 쓴다. 1.4.11의 3:1을 넘긴다
+- `contrast`: `main` 위에 얹는 글자색
 
-- `themeContract.color.success.main` — #4CAF50 — 2.77:1 on white / 2.66:1 on paper — decorative only — fails AA
-- `themeContract.color.success.light` — #C8E6C9 — 배경용 — 위에 `text.primary`를 얹으면 11.97:1
-- `themeContract.color.success.dark` — #2E7D32 — 5.12:1 on white / 4.91:1 on paper — AA text
-- `themeContract.color.success.contrast` — #212121 — `success.main` 위 글자색 — 5.79:1
-- `themeContract.color.warning.main` — #FF9800 — 2.15:1 on white / 2.06:1 on paper — decorative only — fails AA
-- `themeContract.color.warning.light` — #FFE0B2 — 배경용 — 위에 `text.primary`를 얹으면 12.69:1
-- `themeContract.color.warning.dark` — #A65200 — 5.48:1 on white / 5.25:1 on paper — AA text
-- `themeContract.color.warning.contrast` — #212121 — `warning.main` 위 글자색 — 7.47:1
-- `themeContract.color.error.main` — #D32F2F — 4.97:1 on white / 4.77:1 on paper — AA text
-- `themeContract.color.error.light` — #FFCDD2 — 배경용 — 위에 `text.primary`를 얹으면 11.43:1
-- `themeContract.color.error.dark` — #C62828 — 5.62:1 on white / 5.38:1 on paper — AA text
-- `themeContract.color.error.contrast` — #FFFFFF — `error.main` 위 글자색 — 4.97:1
-- `themeContract.color.info.main` — #1976D2 — 4.60:1 on white / 4.40:1 on paper — AA UI only — not for body text
-- `themeContract.color.info.light` — #BBDEFB — 배경용 — 위에 `text.primary`를 얹으면 11.46:1
-- `themeContract.color.info.dark` — #1565C0 — 5.74:1 on white / 5.50:1 on paper — AA text
-- `themeContract.color.info.contrast` — #FFFFFF — `info.main` 위 글자색 — 4.60:1
+- `themeContract.color.success.main`: #4CAF50, 2.77:1 on white / 2.66:1 on paper, decorative only, fails AA
+- `themeContract.color.success.light`: #C8E6C9, 배경용. 위에 `text.primary`를 얹으면 11.97:1
+- `themeContract.color.success.dark`: #2E7D32, 5.12:1 on white / 4.91:1 on paper, AA text
+- `themeContract.color.success.contrast`: #212121, `success.main` 위 글자색: 5.79:1
+- `themeContract.color.warning.main`: #FF9800, 2.15:1 on white / 2.06:1 on paper, decorative only, fails AA
+- `themeContract.color.warning.light`: #FFE0B2, 배경용. 위에 `text.primary`를 얹으면 12.69:1
+- `themeContract.color.warning.dark`: #A65200, 5.48:1 on white / 5.25:1 on paper, AA text
+- `themeContract.color.warning.contrast`: #212121, `warning.main` 위 글자색: 7.47:1
+- `themeContract.color.error.main`: #D32F2F, 4.97:1 on white / 4.77:1 on paper, AA text
+- `themeContract.color.error.light`: #FFCDD2, 배경용. 위에 `text.primary`를 얹으면 11.43:1
+- `themeContract.color.error.dark`: #C62828, 5.62:1 on white / 5.38:1 on paper, AA text
+- `themeContract.color.error.contrast`: #FFFFFF, `error.main` 위 글자색: 4.97:1
+- `themeContract.color.info.main`: #1976D2, 4.60:1 on white / 4.40:1 on paper, AA UI only, not for body text
+- `themeContract.color.info.light`: #BBDEFB, 배경용. 위에 `text.primary`를 얹으면 11.46:1
+- `themeContract.color.info.dark`: #1565C0, 5.74:1 on white / 5.50:1 on paper, AA text
+- `themeContract.color.info.contrast`: #FFFFFF, `info.main` 위 글자색: 4.60:1
 
 `color.info`는 값이 `color.primary`와 같다(#1976D2). 의도한 것이며
 정보 알림을 브랜드 블루로 표현한다. 그래도 `primary`를 빌려 쓰지 말고 `info`를
-쓴다 — 브랜드 색을 바꿀 때 알림 색이 따라 바뀌지 않으려면 어휘가 분리되어
+쓴다. 브랜드 색을 바꿀 때 알림 색이 따라 바뀌지 않으려면 어휘가 분리되어
 있어야 한다.
 
-### Color — Raw Palette
+### Color: Raw Palette
 `themeContract.palette.{primary,gray,error,success,warning}[단계]`(정의된 단계만, 예: `warning`은 50·100·500·700·750·800): hover/active처럼 4슬롯으로
 표현되지 않는 미세 단계가 필요할 때만 쓴다. 역할이 있는 자리에는 위의 역할
 토큰을 쓴다.
 
 ### Spacing (8pt grid)
-- `themeContract.spacing[n]` — 0 (0), 1 (0.25rem = 4px), 2 (0.5rem = 8px), 3 (0.75rem = 12px), 4 (1rem = 16px), 5 (1.25rem = 20px), 6 (1.5rem = 24px), 8 (2rem = 32px), 10 (2.5rem = 40px), 12 (3rem = 48px), 16 (4rem = 64px), 20 (5rem = 80px)
+- `themeContract.spacing[n]`: 0 (0), 1 (0.25rem = 4px), 2 (0.5rem = 8px), 3 (0.75rem = 12px), 4 (1rem = 16px), 5 (1.25rem = 20px), 6 (1.5rem = 24px), 8 (2rem = 32px), 10 (2.5rem = 40px), 12 (3rem = 48px), 16 (4rem = 64px), 20 (5rem = 80px)
 - 12단계에서 닫혀 있다. `spacing[7]`, `[9]`, `[11]`, `[13]`–`[15]`, `[17]`–`[19]`는
   정의되지 않았고 `undefined`를 반환한다. 최대값은 80px이다.
 
 ### Typography
-- `font.family.sans` — "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif
-- `font.family.mono` — "SF Mono", Monaco, "Cascadia Code", "Roboto Mono", Consolas, "Courier New", monospace
-- `font.size` — 2xs (0.625rem = 10px), xs (0.75rem = 12px), sm (0.875rem = 14px), base (1rem = 16px), lg (1.125rem = 18px), xl (1.25rem = 20px), 2xl (1.5rem = 24px), 3xl (1.875rem = 30px), 4xl (2.25rem = 36px)
-- `font.weight` — regular (400), medium (500), semibold (600), bold (700)
-- `font.lineHeight` — tight (1.25), normal (1.5), relaxed (1.75)
-- `font.variantNumeric` — normal (normal), tabular (tabular-nums)
+- `font.family.sans`: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif
+- `font.family.mono`: "SF Mono", Monaco, "Cascadia Code", "Roboto Mono", Consolas, "Courier New", monospace
+- `font.size`: 2xs (0.625rem = 10px), xs (0.75rem = 12px), sm (0.875rem = 14px), base (1rem = 16px), lg (1.125rem = 18px), xl (1.25rem = 20px), 2xl (1.5rem = 24px), 3xl (1.875rem = 30px), 4xl (2.25rem = 36px)
+- `font.weight`: regular (400), medium (500), semibold (600), bold (700)
+- `font.lineHeight`: tight (1.25), normal (1.5), relaxed (1.75)
+- `font.variantNumeric`: normal (normal), tabular (tabular-nums)
   숫자를 세로로 비교하는 표·지표에는 `tabular`를 쓴다. 비례 폰트는 `1`이 `8`보다
   좁아서 자릿수가 행마다 어긋난다.
 
 ### Border Radius
-- `themeContract.borderRadius` — none (0), sm (0.25rem = 4px), base (0.5rem = 8px), md (0.75rem = 12px), lg (1rem = 16px), xl (1.5rem = 24px), full (9999px)
+- `themeContract.borderRadius`: none (0), sm (0.25rem = 4px), base (0.5rem = 8px), md (0.75rem = 12px), lg (1rem = 16px), xl (1.5rem = 24px), full (9999px)
 
 ### Shadow
-- `themeContract.shadow` — none, sm, base, md, lg, xl, 2xl, inner
+- `themeContract.shadow`: none, sm, base, md, lg, xl, 2xl, inner
 
 ### Animation
-- `animation.duration` — fast (150ms), base (200ms), slow (300ms), slower (500ms)
-- `animation.loop` — fast (800ms), base (1500ms), slow (6000ms)
+- `animation.duration`: fast (150ms), base (200ms), slow (300ms), slower (500ms)
+- `animation.loop`: fast (800ms), base (1500ms), slow (6000ms)
   전이(A→B)가 아니라 무한 반복 한 바퀴의 길이라 duration과 다른 양이다.
   같은 스케일에 끼우면 전이를 느리게 만드는 압력이 된다.
-- `animation.easing` — settle (linear(0.0000,0.1565,0.2939,0.4138,0.5177,0.6072,0.6836,0.7483,0.8025,0.8474,0.8842,0.9139,0.9375,0.9559,0.9699,0.9802,0.9877,0.9928,0.9961,0.9981,0.9992,0.9998,1.0000,1.0000,1.0000)), snap (linear(0.0000,0.1849,0.3488,0.4928,0.6181,0.7258,0.8172,0.8934,0.9556,1.0049,1.0425,1.0697,1.0875,1.0972,1.0998,1.0967,1.0889,1.0776,1.0641,1.0494,1.0347,1.0213,1.0102,1.0028,1.0000)), spring (linear(0.0000,0.3512,0.7194,1.0000,1.1575,1.2044,1.1768,1.1147,1.0496,1.0000,0.9722,0.9639,0.9688,0.9797,0.9912,1.0000,1.0049,1.0064,1.0055,1.0036,1.0016,1.0000,0.9991,0.9989,1.0000)), exit (linear(0.0000,0.0001,0.0006,0.0020,0.0046,0.0090,0.0156,0.0248,0.0370,0.0527,0.0723,0.0963,0.1250,0.1589,0.1985,0.2441,0.2963,0.3554,0.4219,0.4962,0.5787,0.6699,0.7703,0.8801,1.0000)), linear (linear(0.0000,0.0417,0.0833,0.1250,0.1667,0.2083,0.2500,0.2917,0.3333,0.3750,0.4167,0.4583,0.5000,0.5417,0.5833,0.6250,0.6667,0.7083,0.7500,0.7917,0.8333,0.8750,0.9167,0.9583,1.0000)), drift (linear(0.0000,0.0043,0.0170,0.0381,0.0670,0.1033,0.1464,0.1956,0.2500,0.3087,0.3706,0.4347,0.5000,0.5653,0.6294,0.6913,0.7500,0.8044,0.8536,0.8967,0.9330,0.9619,0.9830,0.9957,1.0000))
-- **토큰 경계** — 여러 컴포넌트가 공유하는 의미(전이 속도, 반복 주기,
+- `animation.easing`: settle (linear(0.0000,0.1565,0.2939,0.4138,0.5177,0.6072,0.6836,0.7483,0.8025,0.8474,0.8842,0.9139,0.9375,0.9559,0.9699,0.9802,0.9877,0.9928,0.9961,0.9981,0.9992,0.9998,1.0000,1.0000,1.0000)), snap (linear(0.0000,0.1849,0.3488,0.4928,0.6181,0.7258,0.8172,0.8934,0.9556,1.0049,1.0425,1.0697,1.0875,1.0972,1.0998,1.0967,1.0889,1.0776,1.0641,1.0494,1.0347,1.0213,1.0102,1.0028,1.0000)), spring (linear(0.0000,0.3512,0.7194,1.0000,1.1575,1.2044,1.1768,1.1147,1.0496,1.0000,0.9722,0.9639,0.9688,0.9797,0.9912,1.0000,1.0049,1.0064,1.0055,1.0036,1.0016,1.0000,0.9991,0.9989,1.0000)), exit (linear(0.0000,0.0001,0.0006,0.0020,0.0046,0.0090,0.0156,0.0248,0.0370,0.0527,0.0723,0.0963,0.1250,0.1589,0.1985,0.2441,0.2963,0.3554,0.4219,0.4962,0.5787,0.6699,0.7703,0.8801,1.0000)), linear (linear(0.0000,0.0417,0.0833,0.1250,0.1667,0.2083,0.2500,0.2917,0.3333,0.3750,0.4167,0.4583,0.5000,0.5417,0.5833,0.6250,0.6667,0.7083,0.7500,0.7917,0.8333,0.8750,0.9167,0.9583,1.0000)), drift (linear(0.0000,0.0043,0.0170,0.0381,0.0670,0.1033,0.1464,0.1956,0.2500,0.3087,0.3706,0.4347,0.5000,0.5653,0.6294,0.6913,0.7500,0.8044,0.8536,0.8967,0.9330,0.9619,0.9830,0.9957,1.0000))
+- **토큰 경계**: 여러 컴포넌트가 공유하는 의미(전이 속도, 반복 주기,
   등장·퇴장 커브)만 토큰이다. 한 컴포넌트에만 있는 연출의 내부 타이밍
   (Skeleton wave 시작 지연, Loader 점 스태거 같은 delay)은 토큰이 아니고,
   그래도 duration·loop 토큰의 배수로 적는다. `.css.ts`에 duration을 리터럴로 박지 않는다.
 - 오버슈트 이징 `snap`(피크 1.0998)·`spring`(피크 1.2044)은 `transform`에만 건다.
   값이 1을 넘어야 튕김이 보이는데 `opacity`·색은 1에서 잘려 인공물만 남는다.
-- `transition: all`을 쓰지 않는다. 전이할 속성을 적는다 — 합성·페인트 속성
+- `transition: all`을 쓰지 않는다. 전이할 속성을 적는다. 합성·페인트 속성
   (transform/opacity/filter/색/box-shadow/text-shadow) 밖을 전이하려면 근거를 남긴다.
 - 이 경계는 `src/tokens/animationBoundary.test.ts`가 소스 스캔으로 잠근다.
 - `prefers-reduced-motion: reduce`이면 duration 넷과 loop 셋, 일곱 개가 모두 `0.01ms`로
@@ -1118,7 +1118,7 @@ Semantic 색상은 역할별 4슬롯이다. 슬롯을 바꿔 쓰면 대비가 �
   (Skeleton의 무한 wave/pulse 등)도 멈춘다.
 
 ### Z-Index
-- `themeContract.zIndex` — base (0), dropdown (1000), sticky (1100), overlay (1200), modal (1300), popover (1400), toast (1500), tooltip (1600)
+- `themeContract.zIndex`: base (0), dropdown (1000), sticky (1100), overlay (1200), modal (1300), popover (1400), toast (1500), tooltip (1600)
 - 층 이름으로 참조한다. 숫자를 직접 쓰면 소비자가 자기 오버레이를 안전하게
   얹을 값을 알 수 없다.
 - `sticky` HeaderBar · `overlay` 배경 딤 · `modal` Modal/BottomSheet/SideSheet/
@@ -1127,9 +1127,9 @@ Semantic 색상은 역할별 4슬롯이다. 슬롯을 바꿔 쓰면 대비가 �
   띄우거나 모달 위에 Snackbar를 올리는 조합이 흔하다.
 
 ### Breakpoints
-- `breakpoint` — sm (360px), md (768px), lg (1024px), xl (1280px)
-- `mediaQuery.up.md` — `screen and (min-width: 768px)`
-- `mediaQuery.down.md` — `screen and (max-width: 767.98px)`
+- `breakpoint`: sm (360px), md (768px), lg (1024px), xl (1280px)
+- `mediaQuery.up.md`: `screen and (min-width: 768px)`
+- `mediaQuery.down.md`: `screen and (max-width: 767.98px)`
 - `themeContract`에 없다. CSS 변수는 `@media` 조건에서 동작하지 않으므로
   (`@media (min-width: var(--x))`는 무효) 브레이크포인트는 빌드 타임 상수이며
   테마로 바꿀 수 없다. `mediaQuery`를 import해 `.css.ts`의 `@media` 키에 그대로
@@ -1139,14 +1139,14 @@ Semantic 색상은 역할별 4슬롯이다. 슬롯을 바꿔 쓰면 대비가 �
 ## Motion (GSAP Runtime)
 
 M3(Tier-B GSAP 런타임)에서 실제로 GSAP이 붙은 컴포넌트와 그 능력이다. 계획서의
-예측이 아니라 구현된 소스에서 읽었다 — 아래에 없는 컴포넌트는 CSS 트랜지션만
+예측이 아니라 구현된 소스에서 읽었다. 아래에 없는 컴포넌트는 CSS 트랜지션만
 쓴다. 공유 easing·duration 토큰은 위 Design Tokens > Animation 절 참고.
 
 | 컴포넌트 | 쓰는 능력 | 근거 |
 | --- | --- | --- |
 | Modal | 타임라인 상대 위치 · CSS가 못 보는 값 읽기(트리거 좌표) | 백드롭·다이얼로그를 한 타임라인의 위치 `0`에 넣고, `enterStart`가 트리거·다이얼로그의 `getBoundingClientRect()` 차이로 시작 x/y를 계산한다 |
 | BottomSheet | 타임라인 상대 위치 · 제스처 추적(터치 드래그 1:1) | 등장·퇴장은 `useOverlayTransition`, 터치 드래그는 `gsap.quickSetter(sheet, 'y', 'px')`로 손가락을 1:1로 따라간다 |
-| SideSheet | 타임라인 상대 위치 | `useOverlayTransition`만 쓴다 — 직접 `gsap` import도, 트리거 좌표도, 드래그도 없다 |
+| SideSheet | 타임라인 상대 위치 | `useOverlayTransition`만 쓴다. 직접 `gsap` import도, 트리거 좌표도, 드래그도 없다 |
 | Snackbar | CSS가 못 보는 값 읽기(카운트다운 진행률 read-back) · 같은 위치 쌓임 오프셋(`y`, base settle) | `gsap.to(proxy, { remaining: 0, ... })`의 `remaining` 값 자체를 막대 렌더와 닫힘 판정이 함께 읽는다. CSS/WAAPI로는 진행률을 밖에서 못 읽는다. 유일한 GATE_ENFORCEMENT_EXCEPTIONS 항목이다. 같은 위치 쌓임 오프셋은 등장 타임라인과 따로 시트의 `y`를 `gsapDuration.base` `settle`로 트윈하고 `gateMotion`을 거친다(축소 선호면 즉시) |
 | Checkbox | 모양 변형(checked ↔ indeterminate) · 다중 목표 중단 · CSS가 못 보는 값 읽기(스프링 진행값 하나로 채움·상자 구동) | `MorphSVGPlugin`으로 체크 표시 경로를 모핑한다. 체크·해제는 진행값 `t`(0↔1)를 트윈하고 `onUpdate`가 채움 층 `scale(max(t, 0))`과 상자 `scale(1 + 0.35 × max(0, t - 1))`를 쓰고, 획 `strokeDashoffset`은 스프링을 따르지 않고 같은 타임라인의 자기 트윈(`slow` `settle`)으로 그어진다. 스프링이 1을 넘는 순간에만 상자가 부푼다. 체크와 해제 모두 두 번째 진행값 `s`가 1 → 0.88(`base` `drift`)로 상자를 먼저 안으로 움츠렸다가 `base` 시점에 1로 `slower` `spring`으로 되튀고, 체크는 이때 채움·부풂(`slower` `spring`)과 획 트윈이 같이 시작해 채움이 터진다(해제는 파란색이 빨려 들어간 뒤 되튄다). 상자 scale은 부풂 × `s`로 합성해 한 곳에서만 쓴다. 도중에 반대로 바뀌면 트윈을 죽이고 지금 `t`·`s`·획에서 새 목표로 다시 트윈한다. checked ↔ indeterminate 모프는 `t`와 `s`가 1이 아니면 1로 돌려 상자가 틀어진 크기로 남지 않게 한다 |
 | Switch | 타임라인 상대 위치 · 다중 목표 중단 | 이동 하나를 진행값 `p`(`slow` `drift`, 300ms)로 트윈하고, 머리 x · 늘임 `1 + 0.144 × sin(π p)`(가로에 곱하고 세로에 나눠 부피 보존) · 파란 채움이 같은 `p`를 따른다(채움은 트랙 알약 모양으로 자르는 칸 안의 직사각형이라 차오르는 도중에도 트랙 밖으로 나가지 않는다). 늘임은 이동 속도에서만 나오고 출발 전 늘임은 없다. 켜진 머리 크기는 `(트랙 높이 + 2) / 머리 크기`(`md` 1.3)이고 이동 80% 시점에 `base` `drift`로 바뀌어 켜짐이면 그 크기로 머물고 꺼짐이면 1로 돌아온다. 도중에 반대로 바뀌면 지금 x · 크기 · 늘임에서 이어진다(늘임 초과분을 `1 - p`로 줄여 간다). 호버 부풂(1.06)은 GSAP이 쓰는 머리 칸이 아니라 안쪽 면의 CSS라 서로 곱해져 합성된다 |
@@ -1244,14 +1244,14 @@ All components follow WCAG 2.2 AA standards:
   1. `animation`의 duration 넷과 loop 셋, 일곱 개 변수가 모두 `0.01ms`로
      덮어써진다. 토큰을 쓰는 컴포넌트와, 그 토큰을 참조하는 소비자 스타일이
      함께 따라온다.
-  2. 전역 규칙이 `*, *::before, *::after`에 여섯 줄을 `!important`로 건다 —
+  2. 전역 규칙이 `*, *::before, *::after`에 여섯 줄을 `!important`로 건다:
      `animation-duration` · `animation-delay` · `transition-duration` ·
      `transition-delay`를 `0.01ms`로, `animation-iteration-count`를 `1`로,
      `scroll-behavior`를 `auto`로 내린다. 토큰을 안 쓰고 초를 리터럴로 박은
      애니메이션도 여기서 멈춘다.
 - 2번이 필요한 이유는 무한 반복 애니메이션이다. `Skeleton`의 wave/pulse는
   `infinite`라 duration만 줄이면 더 빨리 깜빡일 뿐 멈추지 않는다.
-- GSAP으로 움직이는 컴포넌트(Motion 절 참고)는 위 두 겹으로 못 잡는다 —
+- GSAP으로 움직이는 컴포넌트(Motion 절 참고)는 위 두 겹으로 못 잡는다.
   인라인 스타일로 도는 트윈이라 전역 CSS 규칙이 안 닿는다. 그래서 각 컴포넌트가
   훅 안에서 `useReducedMotion()`으로 같은 선호를 직접 확인하고, `gateMotion`이
   트윈을 끝 상태로 확정한 뒤 끈다(`hooks/gateMotion.ts`). 중간 상태에 멈추는

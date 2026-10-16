@@ -295,10 +295,10 @@ export function ListPage() {
         </div>
       </section>
 
-      {/* Props API — List */}
+      {/* Props API: List */}
       <section className={styles.section}>
         <div className={styles.sectionHeader}>
-          <h2 className={styles.sectionTitle}>Props API — List</h2>
+          <h2 className={styles.sectionTitle}>Props API: List</h2>
           <p className={styles.sectionDescription}>
             List 컴포넌트의 Props입니다. HTML ul 속성도 모두 사용 가능합니다.
           </p>
@@ -308,10 +308,10 @@ export function ListPage() {
         </div>
       </section>
 
-      {/* Props API — ListItem */}
+      {/* Props API: ListItem */}
       <section className={styles.section}>
         <div className={styles.sectionHeader}>
-          <h2 className={styles.sectionTitle}>Props API — ListItem</h2>
+          <h2 className={styles.sectionTitle}>Props API: ListItem</h2>
           <p className={styles.sectionDescription}>
             ListItem 컴포넌트의 Props입니다. HTML li 속성도 모두 사용
             가능합니다.

@@ -413,7 +413,7 @@ const [name, setName] = useState('');
         {/* Compound 실전 예시 */}
         <div className={styles.example} style={{ marginTop: '2rem' }}>
           <h3 className={styles.exampleTitle}>
-            Compound 실전 예시 — 도메인 전용 바텀시트
+            Compound 실전 예시: 도메인 전용 바텀시트
           </h3>
           <p
             className={styles.sectionDescription}
@@ -465,7 +465,7 @@ export function ShareBottomSheet({ open, onClose, onShare }: ShareBottomSheetPro
 
         <div className={styles.example}>
           <h3 className={styles.exampleTitle}>
-            Compound 커스텀 확장 — 점 표기법
+            Compound 커스텀 확장: 점 표기법
           </h3>
           <p
             className={styles.sectionDescription}

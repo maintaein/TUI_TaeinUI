@@ -422,7 +422,7 @@ const menuItems = ['대시보드', '프로젝트', '팀 멤버', '설정', '도�
 
         <div className={styles.example} style={{ marginTop: '2rem' }}>
           <h3 className={styles.exampleTitle}>
-            Compound 실전 예시 — 도메인 전용 사이드시트
+            Compound 실전 예시: 도메인 전용 사이드시트
           </h3>
           <p
             className={styles.sectionDescription}
@@ -470,7 +470,7 @@ export function NotificationPanel({ open, onClose, notifications }: Notification
 
         <div className={styles.example}>
           <h3 className={styles.exampleTitle}>
-            Compound 커스텀 확장 — 점 표기법
+            Compound 커스텀 확장: 점 표기법
           </h3>
           <p
             className={styles.sectionDescription}

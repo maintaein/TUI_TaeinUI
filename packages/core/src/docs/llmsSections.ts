@@ -63,9 +63,9 @@ function ratioLabel(fg: string): string {
     onPaper >= AA_TEXT
       ? 'AA text'
       : onPaper >= AA_UI
-        ? 'AA UI only — not for body text'
-        : 'decorative only — fails AA';
-  return `${onWhite.toFixed(2)}:1 on white / ${onPaper.toFixed(2)}:1 on paper — ${verdict}`;
+        ? 'AA UI only, not for body text'
+        : 'decorative only, fails AA';
+  return `${onWhite.toFixed(2)}:1 on white / ${onPaper.toFixed(2)}:1 on paper, ${verdict}`;
 }
 
 /**
@@ -77,11 +77,11 @@ function ratioLabel(fg: string): string {
  * 오해를 만든다.
  */
 function foregroundLine(path: string, hex: string): string {
-  return `- \`${path}\` — ${hex} — ${ratioLabel(hex)}`;
+  return `- \`${path}\`: ${hex}, ${ratioLabel(hex)}`;
 }
 
 function plainLine(path: string, hex: string, note: string): string {
-  return `- \`${path}\` — ${hex} — ${note}`;
+  return `- \`${path}\`: ${hex}, ${note}`;
 }
 
 /** semantic 4슬롯 한 벌. 슬롯마다 기준이 다르므로 따로 만든다. */
@@ -94,13 +94,13 @@ function semanticLines(name: string, slots: Record<string, string>): string[] {
     plainLine(
       `${base}.light`,
       slots.light,
-      `배경용 — 위에 \`text.primary\`를 얹으면 ${onLight}:1`
+      `배경용. 위에 \`text.primary\`를 얹으면 ${onLight}:1`
     ),
     foregroundLine(`${base}.dark`, slots.dark),
     plainLine(
       `${base}.contrast`,
       slots.contrast,
-      `\`${name}.main\` 위 글자색 — ${onMain}:1`
+      `\`${name}.main\` 위 글자색: ${onMain}:1`
     ),
   ];
 }
@@ -132,24 +132,24 @@ const SEMANTIC_NAMES = ['success', 'warning', 'error', 'info'] as const;
 export function renderTokenReference(): string {
   const semanticNote = [
     'Semantic 색상은 역할별 4슬롯이다. 슬롯을 바꿔 쓰면 대비가 깨진다:',
-    '- `main` — 글자(`contrast`)를 얹는 면. 판정 기준은 페이지 배경이 아니라',
+    '- `main`: 글자(`contrast`)를 얹는 면. 판정 기준은 페이지 배경이 아니라',
     '  `contrast`와의 대비 4.5:1이다. 배경과의 3:1은 보장 대상이 아니다',
     '  (`success.main` 2.77, `warning.main` 2.15). **본문 텍스트로 쓰지 말 것**',
-    '- `light` — 연한 배경용. 위에는 `color.text.primary`를 얹는다',
-    '- `dark` — 흰 배경 위 본문 텍스트용 (기준 4.5:1). 글자를 얹지 않는 도형',
-    '  (아이콘 단독·차트 마커·상태 점)도 이 슬롯을 쓴다 — 1.4.11의 3:1을 넘긴다',
-    '- `contrast` — `main` 위에 얹는 글자색',
+    '- `light`: 연한 배경용. 위에는 `color.text.primary`를 얹는다',
+    '- `dark`: 흰 배경 위 본문 텍스트용 (기준 4.5:1). 글자를 얹지 않는 도형',
+    '  (아이콘 단독·차트 마커·상태 점)도 이 슬롯을 쓴다. 1.4.11의 3:1을 넘긴다',
+    '- `contrast`: `main` 위에 얹는 글자색',
   ].join('\n');
 
   return [
     'TUI uses `themeContract` for type-safe, theme-aware styling. 테마는 라이트',
     '단일 테마 하나뿐이며 `:root`에 전역 CSS 변수로 선언된다. `ThemeProvider`,',
-    '`useTheme`, `createTheme`, 다크 테마는 존재하지 않는다 — import하면 실패한다.',
+    '`useTheme`, `createTheme`, 다크 테마는 존재하지 않는다. import하면 실패한다.',
     '',
     '아래 값과 대비비는 모두 소스(`tokens/contract.ts`)에서 생성되므로 코드와',
     '어긋날 수 없다.',
     '',
-    '### Color — Brand & Neutral',
+    '### Color: Brand & Neutral',
     '',
     '판정 기준은 흰 배경이 아니라 더 불리한 `background.paper`다.',
     '',
@@ -159,7 +159,7 @@ export function renderTokenReference(): string {
     plainLine(
       'themeContract.color.primary.contrast',
       color.primary.contrast,
-      `\`primary.main\` 위 글자색 — ${contrastRatio(
+      `\`primary.main\` 위 글자색: ${contrastRatio(
         color.primary.contrast,
         color.primary.main
       ).toFixed(2)}:1`
@@ -210,7 +210,7 @@ export function renderTokenReference(): string {
         color.background.default
       ).toFixed(
         2
-      )}:1 — 1.4.11의 3:1을 넘긴다. 컨트롤을 식별시키는 면(Switch·Slider의 트랙과 ` +
+      )}:1, 1.4.11의 3:1을 넘긴다. 컨트롤을 식별시키는 면(Switch·Slider의 트랙과 ` +
         'Loader `color="white"`의 트랙)에 쓴다. `border.strong`과 값은 같지만 경계선이 아니라 ' +
         '면이라 따로 둔다'
     ),
@@ -220,7 +220,7 @@ export function renderTokenReference(): string {
       `흰 배경 대비 ${contrastRatio(
         color.border.default,
         color.background.default
-      ).toFixed(2)}:1 — UI 요소 기준 3:1 미달이므로 구분선·비활성 테두리처럼 ` +
+      ).toFixed(2)}:1, UI 요소 기준 3:1 미달이므로 구분선·비활성 테두리처럼 ` +
         '정보를 전달하지 않는 자리에만 쓴다. 경계가 정보를 전달하면 `border.strong`'
     ),
     plainLine(
@@ -231,7 +231,7 @@ export function renderTokenReference(): string {
         color.background.default
       ).toFixed(
         2
-      )}:1 — 1.4.11의 3:1을 넘긴다. 폼 컨트롤·카드 경계처럼 있고 없고가 ` +
+      )}:1, 1.4.11의 3:1을 넘긴다. 폼 컨트롤·카드 경계처럼 있고 없고가 ` +
         '의미를 바꾸는 자리에 쓴다'
     ),
     plainLine(
@@ -255,7 +255,7 @@ export function renderTokenReference(): string {
       '에러 halo(장식). 위와 같은 이유로 포커스 표시를 겸하지 않는다'
     ),
     '',
-    '### Color — Semantic',
+    '### Color: Semantic',
     '',
     semanticNote,
     '',
@@ -263,48 +263,48 @@ export function renderTokenReference(): string {
     '',
     `\`color.info\`는 값이 \`color.primary\`와 같다(${color.info.main}). 의도한 것이며`,
     '정보 알림을 브랜드 블루로 표현한다. 그래도 `primary`를 빌려 쓰지 말고 `info`를',
-    '쓴다 — 브랜드 색을 바꿀 때 알림 색이 따라 바뀌지 않으려면 어휘가 분리되어',
+    '쓴다. 브랜드 색을 바꿀 때 알림 색이 따라 바뀌지 않으려면 어휘가 분리되어',
     '있어야 한다.',
     '',
-    '### Color — Raw Palette',
+    '### Color: Raw Palette',
     '`themeContract.palette.{primary,gray,error,success,warning}[단계]`(정의된 단계만, 예: `warning`은 50·100·500·700·750·800): hover/active처럼 4슬롯으로',
     '표현되지 않는 미세 단계가 필요할 때만 쓴다. 역할이 있는 자리에는 위의 역할',
     '토큰을 쓴다.',
     '',
     '### Spacing (8pt grid)',
-    `- \`themeContract.spacing[n]\` — ${withPx(spacing)}`,
+    `- \`themeContract.spacing[n]\`: ${withPx(spacing)}`,
     '- 12단계에서 닫혀 있다. `spacing[7]`, `[9]`, `[11]`, `[13]`–`[15]`, `[17]`–`[19]`는',
     '  정의되지 않았고 `undefined`를 반환한다. 최대값은 80px이다.',
     '',
     '### Typography',
-    `- \`font.family.sans\` — ${font.family.sans}`,
-    `- \`font.family.mono\` — ${font.family.mono}`,
-    `- \`font.size\` — ${withPx(font.size)}`,
-    `- \`font.weight\` — ${scaleLines(font.weight)}`,
-    `- \`font.lineHeight\` — ${scaleLines(font.lineHeight)}`,
-    `- \`font.variantNumeric\` — ${scaleLines(font.variantNumeric)}`,
+    `- \`font.family.sans\`: ${font.family.sans}`,
+    `- \`font.family.mono\`: ${font.family.mono}`,
+    `- \`font.size\`: ${withPx(font.size)}`,
+    `- \`font.weight\`: ${scaleLines(font.weight)}`,
+    `- \`font.lineHeight\`: ${scaleLines(font.lineHeight)}`,
+    `- \`font.variantNumeric\`: ${scaleLines(font.variantNumeric)}`,
     '  숫자를 세로로 비교하는 표·지표에는 `tabular`를 쓴다. 비례 폰트는 `1`이 `8`보다',
     '  좁아서 자릿수가 행마다 어긋난다.',
     '',
     '### Border Radius',
-    `- \`themeContract.borderRadius\` — ${withPx(borderRadius)}`,
+    `- \`themeContract.borderRadius\`: ${withPx(borderRadius)}`,
     '',
     '### Shadow',
-    `- \`themeContract.shadow\` — ${Object.keys(shadow).join(', ')}`,
+    `- \`themeContract.shadow\`: ${Object.keys(shadow).join(', ')}`,
     '',
     '### Animation',
-    `- \`animation.duration\` — ${scaleLines(animation.duration)}`,
-    `- \`animation.loop\` — ${scaleLines(animation.loop)}`,
+    `- \`animation.duration\`: ${scaleLines(animation.duration)}`,
+    `- \`animation.loop\`: ${scaleLines(animation.loop)}`,
     '  전이(A→B)가 아니라 무한 반복 한 바퀴의 길이라 duration과 다른 양이다.',
     '  같은 스케일에 끼우면 전이를 느리게 만드는 압력이 된다.',
-    `- \`animation.easing\` — ${scaleLines(animation.easing)}`,
-    '- **토큰 경계** — 여러 컴포넌트가 공유하는 의미(전이 속도, 반복 주기,',
+    `- \`animation.easing\`: ${scaleLines(animation.easing)}`,
+    '- **토큰 경계**: 여러 컴포넌트가 공유하는 의미(전이 속도, 반복 주기,',
     '  등장·퇴장 커브)만 토큰이다. 한 컴포넌트에만 있는 연출의 내부 타이밍',
     '  (Skeleton wave 시작 지연, Loader 점 스태거 같은 delay)은 토큰이 아니고,',
     '  그래도 duration·loop 토큰의 배수로 적는다. `.css.ts`에 duration을 리터럴로 박지 않는다.',
     '- 오버슈트 이징 `snap`(피크 1.0998)·`spring`(피크 1.2044)은 `transform`에만 건다.',
     '  값이 1을 넘어야 튕김이 보이는데 `opacity`·색은 1에서 잘려 인공물만 남는다.',
-    '- `transition: all`을 쓰지 않는다. 전이할 속성을 적는다 — 합성·페인트 속성',
+    '- `transition: all`을 쓰지 않는다. 전이할 속성을 적는다. 합성·페인트 속성',
     '  (transform/opacity/filter/색/box-shadow/text-shadow) 밖을 전이하려면 근거를 남긴다.',
     '- 이 경계는 `src/tokens/animationBoundary.test.ts`가 소스 스캔으로 잠근다.',
     '- `prefers-reduced-motion: reduce`이면 duration 넷과 loop 셋, 일곱 개가 모두 `0.01ms`로',
@@ -313,7 +313,7 @@ export function renderTokenReference(): string {
     '  (Skeleton의 무한 wave/pulse 등)도 멈춘다.',
     '',
     '### Z-Index',
-    `- \`themeContract.zIndex\` — ${scaleLines(zIndex)}`,
+    `- \`themeContract.zIndex\`: ${scaleLines(zIndex)}`,
     '- 층 이름으로 참조한다. 숫자를 직접 쓰면 소비자가 자기 오버레이를 안전하게',
     '  얹을 값을 알 수 없다.',
     '- `sticky` HeaderBar · `overlay` 배경 딤 · `modal` Modal/BottomSheet/SideSheet/',
@@ -322,11 +322,11 @@ export function renderTokenReference(): string {
     '  띄우거나 모달 위에 Snackbar를 올리는 조합이 흔하다.',
     '',
     '### Breakpoints',
-    `- \`breakpoint\` — ${Object.entries(breakpoint)
+    `- \`breakpoint\`: ${Object.entries(breakpoint)
       .map(([k, v]) => `${k} (${v}px)`)
       .join(', ')}`,
-    `- \`mediaQuery.up.md\` — \`${mediaQuery.up.md}\``,
-    `- \`mediaQuery.down.md\` — \`${mediaQuery.down.md}\``,
+    `- \`mediaQuery.up.md\`: \`${mediaQuery.up.md}\``,
+    `- \`mediaQuery.down.md\`: \`${mediaQuery.down.md}\``,
     '- `themeContract`에 없다. CSS 변수는 `@media` 조건에서 동작하지 않으므로',
     '  (`@media (min-width: var(--x))`는 무효) 브레이크포인트는 빌드 타임 상수이며',
     '  테마로 바꿀 수 없다. `mediaQuery`를 import해 `.css.ts`의 `@media` 키에 그대로',
@@ -342,17 +342,17 @@ export function renderTokenSummary(): string {
     'TUI uses a theme contract (`themeContract`) for consistent styling. 라이트 단일',
     '테마이며 `:root`의 전역 CSS 변수로 선언된다 (`ThemeProvider`·다크 테마 없음).',
     '',
-    `- **Color** — primary, text (${Object.keys(color.text).join('/')}), background, surface, border, overlay, semantic (${SEMANTIC_NAMES.join('/')})`,
+    `- **Color**: primary, text (${Object.keys(color.text).join('/')}), background, surface, border, overlay, semantic (${SEMANTIC_NAMES.join('/')})`,
     '  semantic은 main(면, contrast와 4.5:1) / light(배경) / dark(본문 텍스트·단독 도형, 4.5:1) / contrast 4슬롯',
-    `- **Spacing** — 8pt grid, 12단계 (${spacing[1]} = 4px ~ ${spacing[20]} = 80px). 중간 번호는 비어 있음`,
-    `- **Typography** — sizes ${sizeKeys.length}단계 (${sizeKeys[0]} ~ ${sizeKeys[sizeKeys.length - 1]}), weights, line heights, variantNumeric(tabular-nums)`,
-    `- **Border Radius** — ${Object.keys(borderRadius).join(', ')}`,
-    `- **Shadow** — ${Object.keys(shadow).join(', ')}`,
-    `- **Animation** — durations (${Object.keys(animation.duration).join('/')}), loops (${Object.keys(animation.loop).join('/')}), easings (${Object.keys(animation.easing).join('/')})`,
+    `- **Spacing**: 8pt grid, 12단계 (${spacing[1]} = 4px ~ ${spacing[20]} = 80px). 중간 번호는 비어 있음`,
+    `- **Typography**: sizes ${sizeKeys.length}단계 (${sizeKeys[0]} ~ ${sizeKeys[sizeKeys.length - 1]}), weights, line heights, variantNumeric(tabular-nums)`,
+    `- **Border Radius**: ${Object.keys(borderRadius).join(', ')}`,
+    `- **Shadow**: ${Object.keys(shadow).join(', ')}`,
+    `- **Animation**: durations (${Object.keys(animation.duration).join('/')}), loops (${Object.keys(animation.loop).join('/')}), easings (${Object.keys(animation.easing).join('/')})`,
     '  공유하는 의미만 토큰이다. 컴포넌트 고유 연출의 delay도 duration·loop의 배수로',
     '  적고, 오버슈트 이징(snap/spring)은 transform 전용이며 `transition: all`은 안 쓴다',
-    `- **Z-Index** — ${Object.keys(zIndex).join(' < ')}`,
-    `- **Breakpoints** — ${Object.entries(breakpoint)
+    `- **Z-Index**: ${Object.keys(zIndex).join(' < ')}`,
+    `- **Breakpoints**: ${Object.entries(breakpoint)
       .map(([k, v]) => `${k} ${v}px`)
       .join(', ')} (계약 밖의 빌드 타임 상수)`,
     '',

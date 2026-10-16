@@ -94,6 +94,18 @@ describe('발행 문서와 소스 일치 검사', () => {
     expect(componentHeadings(read(FILES.full))).toEqual(componentFamilies());
   });
 
+  it('발행물(llms.txt·llms-full.txt)에 줄표(U+2014)가 없다', () => {
+    // 사용자 지시: 줄표를 쓰지 않는다. 생성 형식과 손으로 쓴 문장 모두 막는다.
+    // 글자 자체를 소스에 두지 않으려고 이스케이프로 적는다.
+    const dash = '\u2014';
+    const offenders = Object.entries(FILES).flatMap(([name, path]) =>
+      read(path)
+        .split('\n')
+        .flatMap((line, i) => (line.includes(dash) ? [`${name}:${i + 1}`] : []))
+    );
+    expect(offenders).toEqual([]);
+  });
+
   it('llms-full.txt가 최상위 컴포넌트 export를 하나도 빠뜨리지 않는다', () => {
     // 계열 절만 검사하면 CardImageOverlay처럼 개별 export되는 합성 조각이
     // 문서에서 누락돼도 통과한다. prop 단위 표류는 여기서 못 잡지만,

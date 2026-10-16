@@ -27,11 +27,11 @@ function App() {
 ## API Patterns
 
 All components follow consistent patterns:
-- `variant` — Visual style (e.g., 'primary' | 'dark' | 'light')
-- `size` — Component size ('sm' | 'md' | 'lg')
-- `disabled` — Disabled state (boolean)
-- `className` — Additional CSS class (string)
-- `ref` — All components support forwardRef
+- `variant`: Visual style (e.g., 'primary' | 'dark' | 'light')
+- `size`: Component size ('sm' | 'md' | 'lg')
+- `disabled`: Disabled state (boolean)
+- `className`: Additional CSS class (string)
+- `ref`: All components support forwardRef
 - Form components require `label` prop for accessibility
 
 ## Components (25 families, 33 exports)
@@ -42,8 +42,8 @@ All components follow consistent patterns:
 
 ### Form & Input
 - **TextField** - Text input with label, validation, helper text. Add `multiline` for a multiline textarea. Props: label, type, size, error, errorMessage, helperText, fullWidth, multiline, rows, autoResize (rows and autoResize only with multiline; type only without)
-- **Checkbox** — Checkbox with label, indeterminate state. Props: label, size, error, errorMessage, helperText, indeterminate
-- **Switch** — Toggle switch. Props: label, size, error, errorMessage, helperText
+- **Checkbox**: Checkbox with label, indeterminate state. Props: label, size, error, errorMessage, helperText, indeterminate
+- **Switch**: Toggle switch. Props: label, size, error, errorMessage, helperText
 - **Slider**: Range slider with marks and value display. Props: label, variant, min, max, step, showValue, showThumbValue, marks, trackColor
 - **NumericSpinner**: Number input with increment/decrement buttons. Props: label, size, min, max, step. Type a number directly (committed on blur/Enter, clamped to min/max) or use ArrowUp/ArrowDown
 
@@ -61,20 +61,20 @@ All components follow consistent patterns:
 - **Loader** - Loading indicator (orbit/spinner/dots/bar/wave/inchworm/fuse, default orbit), preset or any CSS color. Props: type, size, color, label, fullScreen, overlay, status(orbit only: 'loading'|'done'|'error', dots gather into a check or X), value(fuse only, required: 0-100 progress)
 - **Skeleton** - Content placeholder. Props: variant('text'|'rect'|'circle'|'rounded'), animation('wave'|'pulse'|false), width, height. Decorative (`aria-hidden`), no live region: put `aria-busy` and an `aria-label` on the wrapping element
 - **Snackbar**: Toast notification. Props: open, message, severity('success'|'error'|'warning'|'info'), position, autoHideDuration, stack(default true), action. Snackbars open at the same position stack automatically (newest at the screen edge, max 3; the 4th evicts the oldest via its onClose). stack={false} keeps one Snackbar alone at its position
-- **Tooltip** — Hover tooltip. Props: children, content, position, delay, arrow
+- **Tooltip**: Hover tooltip. Props: children, content, position, delay, arrow
 
 ### Overlay
 - **Modal**: Dialog modal. Props: open, onClose, size('sm'-'xl'|'full'), closeOnBackdropClick, closeOnEscape. Compound: Modal.Header, Modal.Title, Modal.Content, Modal.Footer. 간단하면 prop(`title`·`footer`), 직접 꾸미려면 조합(`Modal.Header` 등)
-- **BottomSheet** — Mobile bottom drawer. Props: open, onClose, height('auto'|'sm'-'lg'|'full'), enableDrag, showHandle. Compound: BottomSheet.Header, BottomSheet.Title, BottomSheet.Content
-- **SideSheet** — Side panel drawer. Props: open, onClose, width('sm'-'lg'|'full'), position('left'|'right'). Compound: SideSheet.Header, SideSheet.Title, SideSheet.Content
-- **Popover** — Popover panel. Props: children(trigger), content, position, closeOnOutsideClick, arrow
+- **BottomSheet**: Mobile bottom drawer. Props: open, onClose, height('auto'|'sm'-'lg'|'full'), enableDrag, showHandle. Compound: BottomSheet.Header, BottomSheet.Title, BottomSheet.Content
+- **SideSheet**: Side panel drawer. Props: open, onClose, width('sm'-'lg'|'full'), position('left'|'right'). Compound: SideSheet.Header, SideSheet.Title, SideSheet.Content
+- **Popover**: Popover panel. Props: children(trigger), content, position, closeOnOutsideClick, arrow
 
 ### Layout
 - **Card**: Content container. Props: variant('outlined'|'elevated'|'filled'), onClick, hoverLift(opt-in lift on hover). Compound: Card.Image, Card.Header, Card.Title, Card.Body, Card.Footer. 간단하면 prop(`title`·`footer`·`image`), 직접 꾸미려면 조합(`Card.Body` 등)
-- **List** — Ordered list with spacing. Props: spacing, divider. Child: ListItem(label, value, layout)
-- **BoardRow** — Expandable row/accordion. Props: title, variant, expanded, onChange, disabled
-- **Divider** — Content separator. Props: orientation, variant('solid'|'dashed'|'dotted'), spacing, children(text)
-- **Border** — Border wrapper. Props: sides, variant, width, color, rounded('md' default for sides='all', 'none' for partial sides), padding, glow(opt-in hover light)
+- **List**: Ordered list with spacing. Props: spacing, divider. Child: ListItem(label, value, layout)
+- **BoardRow**: Expandable row/accordion. Props: title, variant, expanded, onChange, disabled
+- **Divider**: Content separator. Props: orientation, variant('solid'|'dashed'|'dotted'), spacing, children(text)
+- **Border**: Border wrapper. Props: sides, variant, width, color, rounded('md' default for sides='all', 'none' for partial sides), padding, glow(opt-in hover light)
 - **HeaderBar** - Floating rounded app header bar (centered, max 960px, 60px tall). Props: logo, title, items(`{ label, href?, onClick?, icon?, active?, links? }`), navStyle('pill' default | 'text' | 'dropdown' | 'cards' | 'icon'), actions, sticky. Under 768px the items fold into a hamburger + vertical list
 
 ## Design Tokens
@@ -82,24 +82,24 @@ All components follow consistent patterns:
 TUI uses a theme contract (`themeContract`) for consistent styling. 라이트 단일
 테마이며 `:root`의 전역 CSS 변수로 선언된다 (`ThemeProvider`·다크 테마 없음).
 
-- **Color** — primary, text (primary/secondary/disabled/inverse), background, surface, border, overlay, semantic (success/warning/error/info)
+- **Color**: primary, text (primary/secondary/disabled/inverse), background, surface, border, overlay, semantic (success/warning/error/info)
   semantic은 main(면, contrast와 4.5:1) / light(배경) / dark(본문 텍스트·단독 도형, 4.5:1) / contrast 4슬롯
-- **Spacing** — 8pt grid, 12단계 (0.25rem = 4px ~ 5rem = 80px). 중간 번호는 비어 있음
-- **Typography** — sizes 9단계 (2xs ~ 4xl), weights, line heights, variantNumeric(tabular-nums)
-- **Border Radius** — none, sm, base, md, lg, xl, full
-- **Shadow** — none, sm, base, md, lg, xl, 2xl, inner
-- **Animation** — durations (fast/base/slow/slower), loops (fast/base/slow), easings (settle/snap/spring/exit/linear/drift)
+- **Spacing**: 8pt grid, 12단계 (0.25rem = 4px ~ 5rem = 80px). 중간 번호는 비어 있음
+- **Typography**: sizes 9단계 (2xs ~ 4xl), weights, line heights, variantNumeric(tabular-nums)
+- **Border Radius**: none, sm, base, md, lg, xl, full
+- **Shadow**: none, sm, base, md, lg, xl, 2xl, inner
+- **Animation**: durations (fast/base/slow/slower), loops (fast/base/slow), easings (settle/snap/spring/exit/linear/drift)
   공유하는 의미만 토큰이다. 컴포넌트 고유 연출의 delay도 duration·loop의 배수로
   적고, 오버슈트 이징(snap/spring)은 transform 전용이며 `transition: all`은 안 쓴다
-- **Z-Index** — base < dropdown < sticky < overlay < modal < popover < toast < tooltip
-- **Breakpoints** — sm 360px, md 768px, lg 1024px, xl 1280px (계약 밖의 빌드 타임 상수)
+- **Z-Index**: base < dropdown < sticky < overlay < modal < popover < toast < tooltip
+- **Breakpoints**: sm 360px, md 768px, lg 1024px, xl 1280px (계약 밖의 빌드 타임 상수)
 
 전체 값과 대비비는 [Full API Reference](/llms-full.txt)의 Design Tokens 절 참고.
 
 ## Motion (GSAP Runtime)
 
 M3에서 GSAP 런타임이 실제로 붙은 컴포넌트와 그 능력. 계획이 아니라 코드에서
-읽었다 — 아래 목록에 없는 컴포넌트는 CSS 트랜지션만 쓴다.
+읽었다. 아래 목록에 없는 컴포넌트는 CSS 트랜지션만 쓴다.
 
 | 컴포넌트 | 쓰는 능력 |
 | --- | --- |
@@ -126,7 +126,7 @@ M3에서 GSAP 런타임이 실제로 붙은 컴포넌트와 그 능력. 계획�
 - App Router에서 훅·컨텍스트를 쓰는 모듈에는 빌드 시 `'use client'`가 주입된다.
   소비자가 래퍼를 만들 필요 없이 서버 컴포넌트에서 바로 import할 수 있다.
 - `Divider`, `Border`, `Badge`, `List`, `Skeleton`,
-  `Loader`는 지시문이 없다 — 서버 컴포넌트로 렌더된다.
+  `Loader`는 지시문이 없다. 서버 컴포넌트로 렌더된다.
   `Button`, `IconButton`은 누름 상태를 `useClickRebound` 훅이 갖기 때문에
   `'use client'`가 붙는다. 서버 컴포넌트에서 import하는 것은 그대로 된다.
 - `HeaderBar`도 `'use client'`가 붙는다. 좁은 화면 메뉴의 열림 상태와 GSAP 트윈, 그리고
@@ -146,14 +146,14 @@ M3에서 GSAP 런타임이 실제로 붙은 컴포넌트와 그 능력. 계획�
 - Keyboard navigation (Tab, Enter, Space, Escape, Arrow keys)
 - Focus indicators (2px outline, 2px offset, 4.6:1 contrast)
 - Focus traps in overlays (Modal, BottomSheet, SideSheet)
-- Color contrast 4.5:1 (text), 3:1 (UI elements) — 값과 실측 대비비는 Design Tokens 절 참고
+- Color contrast 4.5:1 (text), 3:1 (UI elements). 값과 실측 대비비는 Design Tokens 절 참고
 - Target size: WCAG 2.2 AA(2.5.8)의 최소 요구치는 **24x24 CSS px**이고
   44x44는 AAA(2.5.5) 수준의 TUI 자체 권장치다. 인터랙티브 컴포넌트는 기본으로
   44x44를 확보하되, 좁은 화면에서 줄일 때 24x24가 AA 하한선이다.
 - `prefers-reduced-motion: reduce`에서 duration 토큰과 전역 `*` 규칙이 함께
   적용돼 애니메이션·트랜지션이 멈춘다 (무한 반복도 1회로 끊긴다). GSAP으로
-  움직이는 컴포넌트는 인라인 스타일로 도는 트윈이라 전역 CSS 규칙이 못 잡는다
-  — 그래서 각자 훅 안에서 같은 선호를 직접 확인해 트윈을 끝 상태로 확정하고
+  움직이는 컴포넌트는 인라인 스타일로 도는 트윈이라 전역 CSS 규칙이 못 잡는다.
+  그래서 각자 훅 안에서 같은 선호를 직접 확인해 트윈을 끝 상태로 확정하고
   끈다(`gateMotion`/`settleMotion`)
 
 ## Links

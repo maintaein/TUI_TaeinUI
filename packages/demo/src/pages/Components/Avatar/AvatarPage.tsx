@@ -320,9 +320,9 @@ export function AvatarPage() {
           />
         </div>
 
-        {/* Clickable Avatar — onClick */}
+        {/* Clickable Avatar: onClick */}
         <div className={styles.example}>
-          <h3 className={styles.exampleTitle}>Clickable Avatar — onClick</h3>
+          <h3 className={styles.exampleTitle}>Clickable Avatar: onClick</h3>
           <LivePreview
             title="클릭 이벤트"
             description="onClick을 전달하면 button으로 렌더링됩니다. Popover와 조합하면 프로필 메뉴 팝업을 구현할 수 있습니다."
@@ -382,9 +382,9 @@ const profileMenu = (
           />
         </div>
 
-        {/* Clickable Avatar — href */}
+        {/* Clickable Avatar: href */}
         <div className={styles.example}>
-          <h3 className={styles.exampleTitle}>Clickable Avatar — href</h3>
+          <h3 className={styles.exampleTitle}>Clickable Avatar: href</h3>
           <LivePreview
             title="링크 라우팅"
             description="href를 전달하면 a 태그로 렌더링되어 페이지 라우팅이 가능합니다. target='_blank'로 새 탭에서 열 수도 있습니다."
@@ -408,10 +408,10 @@ const profileMenu = (
         </div>
       </section>
 
-      {/* Props API — Avatar */}
+      {/* Props API: Avatar */}
       <section className={styles.section}>
         <div className={styles.sectionHeader}>
-          <h2 className={styles.sectionTitle}>Props API — Avatar</h2>
+          <h2 className={styles.sectionTitle}>Props API: Avatar</h2>
           <p className={styles.sectionDescription}>
             Avatar 컴포넌트의 Props입니다.
           </p>
@@ -421,10 +421,10 @@ const profileMenu = (
         </div>
       </section>
 
-      {/* Props API — AvatarGroup */}
+      {/* Props API: AvatarGroup */}
       <section className={styles.section}>
         <div className={styles.sectionHeader}>
-          <h2 className={styles.sectionTitle}>Props API — AvatarGroup</h2>
+          <h2 className={styles.sectionTitle}>Props API: AvatarGroup</h2>
           <p className={styles.sectionDescription}>
             AvatarGroup 컴포넌트의 Props입니다.
           </p>

@@ -1,4 +1,4 @@
-# TUI — TaeinUI
+# TUI: TaeinUI
 
 재미있는 모션과 인터랙티브한 효과를 추구한 React UI 컴포넌트 라이브러리입니다.
 
