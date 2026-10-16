@@ -292,6 +292,16 @@ describe('Divider', () => {
           );
         });
 
+        it('aria-label을 빈 문자열로 주면 소비자 값으로 취급해 이름은 비고 안쪽 글자는 그대로 둔다', () => {
+          render(<Divider aria-label="">또는</Divider>);
+
+          expect(screen.getByRole('separator')).toHaveAttribute(
+            'aria-label',
+            ''
+          );
+          expect(screen.getByText('또는')).not.toHaveAttribute('aria-hidden');
+        });
+
         it('aria-label을 undefined로 넘기면 주지 않은 것과 같아 글자가 이름이 되고 숨는다', () => {
           render(<Divider aria-label={undefined}>또는</Divider>);
 

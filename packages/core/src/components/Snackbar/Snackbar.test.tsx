@@ -1395,6 +1395,30 @@ describe('Snackbar', () => {
           expect(a.onClose).not.toHaveBeenCalled();
         });
 
+        it('넘침 onClose가 던져도 한 커밋 첫 마운트에서 한 번만 불리고 오류도 하나다 (표시를 부르기 전에 세운다)', async () => {
+          const boom = new Error('S가 던짐');
+          const s = {
+            ...A,
+            id: 'S',
+            stack: false,
+            onClose: vi.fn(() => {
+              throw boom;
+            }),
+          };
+          const a = { ...B, onClose: vi.fn() };
+
+          const errors = await collectAsyncErrors(() => {
+            render(
+              <StrictMode>
+                <Stack items={[s, a]} />
+              </StrictMode>
+            );
+          });
+
+          expect(s.onClose).toHaveBeenCalledTimes(1);
+          expect(errors).toEqual([boom]);
+        });
+
         it('쌓는 넷을 한 커밋에 마운트해도 가장 오래된 것의 onClose는 한 번이다', () => {
           const [a, b, c, d] = [A, B, C, D].map((item) => ({
             ...item,
