@@ -255,7 +255,7 @@ import { Plus } from 'lucide-react';
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
 | variant | 'primary' \| 'dark' \| 'danger' \| 'light' | 'primary' | Button variant |
-| buttonStyle | 'fill' \| 'weak' | 'fill' | Fill or outline style |
+| buttonStyle | 'strong' \| 'weak' | 'strong' | strong: solid background, weak: light background |
 | size | 'sm' \| 'md' \| 'lg' \| 'xl' | 'md' | Button size |
 | fullWidth | boolean | false | Stretch to full width |
 | loading | boolean | false | Show loading spinner |

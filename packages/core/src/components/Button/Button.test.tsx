@@ -37,11 +37,11 @@ describe('Button', () => {
   });
 
   describe('스타일 및 Variant 테스트', () => {
-    it('기본 스타일(fill + primary + md) 클래스가 적용된다', () => {
+    it('기본 스타일(strong + primary + md) 클래스가 적용된다', () => {
       render(<Button>기본</Button>);
       const button = screen.getByRole('button');
       expect(button).toHaveClass(
-        styles.button({ size: 'md', buttonStyle: 'fill', variant: 'primary' })
+        styles.button({ size: 'md', buttonStyle: 'strong', variant: 'primary' })
       );
     });
 
@@ -57,12 +57,55 @@ describe('Button', () => {
       );
     });
 
+    it('buttonStyle을 주지 않으면 strong과 같은 클래스와 같은 계산 스타일이다', () => {
+      render(
+        <>
+          <Button>기본</Button>
+          <Button buttonStyle="strong">진함</Button>
+        </>
+      );
+      const [byDefault, strong] = screen.getAllByRole('button');
+      expect(byDefault.className).toBe(strong.className);
+      expect(byDefault).toHaveClass(
+        styles.button({ size: 'md', buttonStyle: 'strong', variant: 'primary' })
+      );
+      const bg = getComputedStyle(byDefault).backgroundColor;
+      expect(bg).not.toBe('');
+      expect(getComputedStyle(strong).backgroundColor).toBe(bg);
+    });
+
+    it('strong과 weak의 클래스는 서로 다르다', () => {
+      render(
+        <>
+          <Button buttonStyle="strong">진함</Button>
+          <Button buttonStyle="weak">옅음</Button>
+        </>
+      );
+      const [strong, weak] = screen.getAllByRole('button');
+      expect(strong.className).not.toBe(weak.className);
+      expect(getComputedStyle(strong).backgroundColor).not.toBe(
+        getComputedStyle(weak).backgroundColor
+      );
+    });
+
+    it('fill은 없다: 타입 오류이고 변형 클래스도 만들어지지 않는다', () => {
+      render(
+        // @ts-expect-error fill은 strong으로 바뀌었다
+        <Button buttonStyle="fill">옛 이름</Button>
+      );
+      const button = screen.getByRole('button');
+      expect(button).not.toHaveClass(
+        styles.button({ size: 'md', buttonStyle: 'strong', variant: 'primary' })
+      );
+      expect(button.className).not.toMatch(/buttonStyle_fill/);
+    });
+
     it('모든 사이즈(sm, md, lg, xl) 클래스가 올바르게 적용된다', () => {
       const sizes = ['sm', 'md', 'lg', 'xl'] as const;
       sizes.forEach((size) => {
         const { unmount } = render(<Button size={size}>{size}</Button>);
         expect(screen.getByRole('button')).toHaveClass(
-          styles.button({ size, buttonStyle: 'fill', variant: 'primary' })
+          styles.button({ size, buttonStyle: 'strong', variant: 'primary' })
         );
         unmount();
       });
@@ -181,7 +224,7 @@ describe('Button', () => {
       const button = screen.getByRole('button');
       expect(button).toHaveClass(styles.customVariant);
       expect(button).toHaveClass(
-        styles.button({ size: 'md', buttonStyle: 'fill', variant: 'primary' })
+        styles.button({ size: 'md', buttonStyle: 'strong', variant: 'primary' })
       );
     });
 
@@ -250,7 +293,7 @@ describe('Button', () => {
       expect(button).toHaveClass(styles.customOutlineVariant);
       expect(button).not.toHaveClass(styles.customVariant);
       expect(button).toHaveClass(
-        styles.button({ size: 'md', buttonStyle: 'fill', variant: 'light' })
+        styles.button({ size: 'md', buttonStyle: 'strong', variant: 'light' })
       );
     });
 
@@ -290,7 +333,7 @@ describe('Button', () => {
       render(<Button className="custom-class">커스텀</Button>);
       const button = screen.getByRole('button');
       expect(button).toHaveClass(
-        styles.button({ size: 'md', buttonStyle: 'fill', variant: 'primary' })
+        styles.button({ size: 'md', buttonStyle: 'strong', variant: 'primary' })
       );
       expect(button).toHaveClass('custom-class');
     });
@@ -745,7 +788,7 @@ describe('Button 생성 CSS: 합성 레이어', () => {
   });
 });
 
-describe.each(['fill', 'weak'] as const)(
+describe.each(['strong', 'weak'] as const)(
   'Button %s 변형의 색 단조성 (조항 2: rest < hover < pressed)',
   (buttonStyle) => {
     const source = readFileSync(resolve(__dirname, './Button.css.ts'), 'utf-8');

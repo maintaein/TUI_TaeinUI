@@ -49,7 +49,7 @@ function LoginForm() {
 
 ### 버튼
 
-- **Button** — 기본 버튼 (variant: primary, dark, danger, light / buttonStyle: fill, weak)
+- **Button**: 기본 버튼 (variant: primary, dark, danger, light / buttonStyle: strong, weak)
 - **IconButton** — 아이콘 전용 버튼
 - **SegmentedButtons** — 세그먼트 선택 버튼 그룹
 

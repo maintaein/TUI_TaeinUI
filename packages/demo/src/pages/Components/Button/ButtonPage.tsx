@@ -22,8 +22,8 @@ export function ButtonPage() {
     },
     {
       name: 'buttonStyle',
-      type: "'fill' | 'weak'",
-      default: "'fill'",
+      type: "'strong' | 'weak'",
+      default: "'strong'",
       description: '버튼 스타일 (채움 / 약한)',
     },
     {
@@ -134,7 +134,7 @@ export function ButtonPage() {
           <h3 className={styles.exampleTitle}>Variants (Fill)</h3>
           <LivePreview
             title="Fill 스타일 변형"
-            description="buttonStyle='fill' (기본값)일 때 4가지 variant를 제공합니다. primary는 주요 행동, dark는 보조 행동, danger는 삭제/경고, light는 취소/보조에 사용합니다."
+            description="buttonStyle='strong' (기본값)일 때 4가지 variant를 제공합니다. primary는 주요 행동, dark는 보조 행동, danger는 삭제/경고, light는 취소/보조에 사용합니다."
             editable
             code={`<div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem', alignItems: 'center' }}>
   <Button variant="primary">Primary</Button>
@@ -251,7 +251,7 @@ const handleClick = () => {
           <h3 className={styles.exampleTitle}>Custom Color</h3>
           <LivePreview
             title="커스텀 색상"
-            description="customColor prop으로 색상을 자유롭게 지정할 수 있습니다. 기본은 fill 스타일이며, variant='light'와 조합하면 border+텍스트 색상이 커스텀됩니다."
+            description="customColor prop으로 색상을 자유롭게 지정할 수 있습니다. 기본은 strong 스타일이며, variant='light'와 조합하면 border+텍스트 색상이 커스텀됩니다."
             editable
             code={`<div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
   {/* Fill 커스텀 */}
@@ -415,7 +415,7 @@ const handleClick = () => {
                 <h3 className={styles.practiceTitle}>Do</h3>
               </div>
               <List spacing="sm" className={styles.practiceList}>
-                <ListItem>주요 행동에 fill + primary 사용</ListItem>
+                <ListItem>주요 행동에 strong + primary 사용</ListItem>
                 <ListItem>보조 행동에 weak 또는 light variant 사용</ListItem>
                 <ListItem>위험한 행동에 danger variant 사용</ListItem>
                 <ListItem>비동기 작업 시 loading 상태 표시</ListItem>
@@ -432,7 +432,7 @@ const handleClick = () => {
               </div>
               <List spacing="sm" className={styles.practiceList}>
                 <ListItem>
-                  같은 영역에 fill primary 버튼 여러 개 배치하지 않기
+                  같은 영역에 strong primary 버튼 여러 개 배치하지 않기
                 </ListItem>
                 <ListItem>
                   텍스트 없이 아이콘만 사용하지 않기 (IconButton 사용)

@@ -11,7 +11,7 @@ import { Loader } from '../Loader';
 import { useClickRebound } from '../../_internal/useClickRebound';
 
 type ButtonVariant = 'primary' | 'dark' | 'danger' | 'light';
-type ButtonStyle = 'fill' | 'weak';
+type ButtonStyle = 'strong' | 'weak';
 
 /** 커스텀 색상 설정 */
 export interface ButtonCustomColor {
@@ -29,7 +29,7 @@ export interface ButtonCustomColor {
 export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   /** 버튼 색상 테마 @default 'primary' */
   variant?: ButtonVariant;
-  /** 버튼 채우기 스타일. fill: 배경 채움, weak: 배경 투명 @default 'fill' */
+  /** 버튼 채우기 스타일. strong: 배경 채움, weak: 배경 투명 @default 'strong' */
   buttonStyle?: ButtonStyle;
   /** 버튼 크기 @default 'md' */
   size?: 'sm' | 'md' | 'lg' | 'xl';
@@ -53,7 +53,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
   (
     {
       variant = 'primary',
-      buttonStyle = 'fill',
+      buttonStyle = 'strong',
       size = 'md',
       fullWidth: isFullWidth = false,
       loading = false,

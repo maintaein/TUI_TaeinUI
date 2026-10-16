@@ -16,8 +16,8 @@ const meta = {
     },
     buttonStyle: {
       control: 'select',
-      options: ['fill', 'weak'],
-      description: '버튼의 스타일 (fill: 채워진, weak: 연한)',
+      options: ['strong', 'weak'],
+      description: '버튼의 스타일 (strong: 채워진, weak: 연한)',
     },
     size: {
       control: 'select',
@@ -82,16 +82,16 @@ export const FillVariants: Story = {
         padding: '2rem',
       }}
     >
-      <Button variant="primary" buttonStyle="fill">
+      <Button variant="primary" buttonStyle="strong">
         Primary
       </Button>
-      <Button variant="dark" buttonStyle="fill">
+      <Button variant="dark" buttonStyle="strong">
         Dark
       </Button>
-      <Button variant="danger" buttonStyle="fill">
+      <Button variant="danger" buttonStyle="strong">
         Danger
       </Button>
-      <Button variant="light" buttonStyle="fill">
+      <Button variant="light" buttonStyle="strong">
         Light
       </Button>
     </div>
@@ -189,7 +189,7 @@ export const LoadingAndDisabled: Story = {
 export const PrimaryFill: Story = {
   args: {
     variant: 'primary',
-    buttonStyle: 'fill',
+    buttonStyle: 'strong',
     children: 'Primary',
   },
 };

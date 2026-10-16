@@ -48,7 +48,7 @@ All components follow consistent patterns:
 - **NumericSpinner**: Number input with increment/decrement buttons. Props: label, size, min, max, step. Type a number directly (committed on blur/Enter, clamped to min/max) or use ArrowUp/ArrowDown
 
 ### Button & Action
-- **Button** — Primary action button. Props: variant('primary'|'dark'|'danger'|'light'), buttonStyle('fill'|'weak'), size, loading, leftIcon, rightIcon, fullWidth, customColor
+- **Button**: Primary action button. Props: variant('primary'|'dark'|'danger'|'light'), buttonStyle('strong'|'weak'), size, loading, leftIcon, rightIcon, fullWidth, customColor
 - **IconButton**: Turns an icon from any icon library (lucide-react, react-icons, etc.) into a button. Pass the icon as children; the button size sets the icon size. Props: variant, buttonStyle('ghost'|'weak'|'strong', default ghost), size, hoverEffect('none'|'jelly', default jelly, on by default and turned off with "none"; the icon spreads and wobbles back when the mouse enters), loading, aria-label (required)
 - **SegmentedButtons** — Button group for single selection. Props: options[{value,label,icon?}], value, onChange, size
 

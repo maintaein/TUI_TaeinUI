@@ -113,7 +113,7 @@ export const button = recipe({
     // buttonStyle과 variant는 여기서는 빈 키만 선언한다.
     // 실제 색상 값은 두 축이 만나는 지점(compoundVariants)에서만 정해진다.
     buttonStyle: {
-      fill: {},
+      strong: {},
       weak: {},
     },
 
@@ -133,7 +133,7 @@ export const button = recipe({
   // 터치는 탭하면 호버가 발생해 색이 들러붙는다.
   compoundVariants: [
     {
-      variants: { buttonStyle: 'fill', variant: 'primary' },
+      variants: { buttonStyle: 'strong', variant: 'primary' },
       style: {
         backgroundColor: themeContract.color.primary.main,
         color: themeContract.color.primary.contrast,
@@ -154,7 +154,7 @@ export const button = recipe({
       },
     },
     {
-      variants: { buttonStyle: 'fill', variant: 'dark' },
+      variants: { buttonStyle: 'strong', variant: 'dark' },
       style: {
         backgroundColor: themeContract.palette.gray[700],
         color: themeContract.color.text.inverse,
@@ -175,7 +175,7 @@ export const button = recipe({
       },
     },
     {
-      variants: { buttonStyle: 'fill', variant: 'danger' },
+      variants: { buttonStyle: 'strong', variant: 'danger' },
       style: {
         backgroundColor: themeContract.color.error.main,
         color: themeContract.color.error.contrast,
@@ -196,7 +196,7 @@ export const button = recipe({
       },
     },
     {
-      variants: { buttonStyle: 'fill', variant: 'light' },
+      variants: { buttonStyle: 'strong', variant: 'light' },
       style: {
         backgroundColor: themeContract.color.background.default,
         // primary.main(#1976D2)은 rest(4.60)만 간신히 AA(4.5:1)를 넘고 hover
@@ -329,7 +329,7 @@ export const button = recipe({
 
   defaultVariants: {
     size: 'md',
-    buttonStyle: 'fill',
+    buttonStyle: 'strong',
     variant: 'primary',
   },
 });
