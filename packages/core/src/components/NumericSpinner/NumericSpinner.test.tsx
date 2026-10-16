@@ -1681,6 +1681,206 @@ describe('NumericSpinner', () => {
       });
     });
 
+    describe('두 버튼을 함께 누르면 숫자는 마지막 버튼을 뗄 때만 펴진다 (8차 기술 정리)', () => {
+      type InputPressHost = HTMLElement & {
+        __inputPressTween?: gsap.core.Tween;
+      };
+      const releaseLegEnd =
+        gsapDuration.fast / (gsapDuration.fast + gsapDuration.slow);
+
+      const press = (name: '값 증가' | '값 감소') =>
+        screen.getByRole('button', { name }) as PressTweenHost;
+      const timelineOf = (button: PressTweenHost) =>
+        button.__pressTween as gsap.core.Timeline;
+
+      /** 누름 타임라인을 끝(가장 깊은 값)까지 보낸다. */
+      const down = (button: PressTweenHost) => {
+        fireEvent.pointerDown(button);
+        act(() => {
+          timelineOf(button).progress(1);
+        });
+      };
+
+      it('증가 누름, 감소 누름, 증가 뗌이면 숫자는 눌림에 남고 감소까지 떼면 부풀었다 1로 내려앉는다', () => {
+        render(<NumericSpinner label="수량" defaultValue={5} />);
+        const increment = press('값 증가');
+        const decrement = press('값 감소');
+        const input = screen.getByLabelText('수량') as InputPressHost;
+
+        down(increment);
+        down(decrement);
+        expect(readScale(input)).toBeCloseTo(0.76, 2);
+
+        fireEvent.pointerUp(increment);
+        act(() => {
+          timelineOf(increment).progress(1);
+        });
+        // 증가 버튼은 1로 돌아왔어도 감소가 눌려 있으니 숫자는 눌림 그대로다.
+        expect(readScale(increment)).toBeCloseTo(1, 2);
+        expect(readScale(input)).toBeCloseTo(0.76, 2);
+        act(() => {
+          input.__inputPressTween?.progress(1);
+        });
+        expect(readScale(input)).toBeCloseTo(0.76, 2);
+
+        fireEvent.pointerUp(decrement);
+        const release = timelineOf(decrement);
+        act(() => {
+          release.progress(releaseLegEnd);
+        });
+        expect(readScale(input)).toBeCloseTo(1.12, 2);
+        act(() => {
+          release.progress(1);
+        });
+        expect(readScale(input)).toBeCloseTo(1, 2);
+        expect(readScale(decrement)).toBeCloseTo(1, 2);
+      });
+
+      it('감소를 먼저 누르고 먼저 떼도 같다(눌린 순서·뗀 순서에 상관없다)', () => {
+        render(<NumericSpinner label="수량" defaultValue={5} />);
+        const increment = press('값 증가');
+        const decrement = press('값 감소');
+        const input = screen.getByLabelText('수량');
+
+        down(decrement);
+        down(increment);
+        fireEvent.pointerUp(decrement);
+        act(() => {
+          timelineOf(decrement).progress(1);
+        });
+        expect(readScale(input)).toBeCloseTo(0.76, 2);
+
+        fireEvent.pointerUp(increment);
+        act(() => {
+          timelineOf(increment).progress(releaseLegEnd);
+        });
+        expect(readScale(input)).toBeCloseTo(1.12, 2);
+      });
+
+      it('나중에 누른 버튼을 먼저 떼면 숫자는 그대로 눌려 있다', () => {
+        render(<NumericSpinner label="수량" defaultValue={5} />);
+        const increment = press('값 증가');
+        const decrement = press('값 감소');
+        const input = screen.getByLabelText('수량');
+
+        down(increment);
+        down(decrement);
+        fireEvent.pointerUp(decrement);
+        act(() => {
+          timelineOf(decrement).progress(1);
+        });
+        expect(readScale(input)).toBeCloseTo(0.76, 2);
+        // 감소 버튼의 뗌은 숫자 칸을 건드리지 않는다.
+        const targets = timelineOf(decrement)
+          .getChildren()
+          .flatMap((child) => child.targets());
+        expect(targets).not.toContain(input);
+      });
+
+      it('먼저 누른 버튼이 1단계 도중에 떼어져도 숫자는 눌림 깊이로 이어서 간다', () => {
+        render(<NumericSpinner label="수량" defaultValue={5} />);
+        const increment = press('값 증가');
+        const decrement = press('값 감소');
+        const input = screen.getByLabelText('수량') as InputPressHost;
+
+        fireEvent.pointerDown(increment);
+        act(() => {
+          timelineOf(increment).progress(0.01);
+        });
+        down(decrement);
+        fireEvent.pointerUp(increment);
+
+        const carry = input.__inputPressTween as gsap.core.Tween;
+        expect(carry).toBeDefined();
+        act(() => {
+          carry.progress(1);
+        });
+        expect(readScale(input)).toBeCloseTo(0.76, 2);
+      });
+
+      it('한쪽을 뗐다가 다시 눌러도 다른 쪽이 눌려 있는 동안 숫자는 펴지지 않는다', () => {
+        render(<NumericSpinner label="수량" defaultValue={5} />);
+        const increment = press('값 증가');
+        const decrement = press('값 감소');
+        const input = screen.getByLabelText('수량');
+
+        down(increment);
+        down(decrement);
+        fireEvent.pointerUp(increment);
+        down(increment);
+        fireEvent.pointerUp(decrement);
+        act(() => {
+          timelineOf(decrement).progress(1);
+        });
+        expect(readScale(input)).toBeCloseTo(0.76, 2);
+
+        fireEvent.pointerUp(increment);
+        act(() => {
+          timelineOf(increment).progress(releaseLegEnd);
+        });
+        expect(readScale(input)).toBeCloseTo(1.12, 2);
+      });
+
+      it('마지막 버튼을 떼면 이어 가던 숫자 트윈은 죽는다', () => {
+        render(<NumericSpinner label="수량" defaultValue={5} />);
+        const increment = press('값 증가');
+        const decrement = press('값 감소');
+        const input = screen.getByLabelText('수량') as InputPressHost;
+
+        down(increment);
+        down(decrement);
+        fireEvent.pointerUp(increment);
+        const carry = input.__inputPressTween as gsap.core.Tween;
+        expect(carry.parent).not.toBeNull();
+
+        fireEvent.pointerUp(decrement);
+        expect(carry.parent).toBeNull();
+      });
+
+      it('언마운트하면 이어 가던 숫자 트윈도 죽는다', () => {
+        const { unmount } = render(
+          <NumericSpinner label="수량" defaultValue={5} />
+        );
+        const increment = press('값 증가');
+        const decrement = press('값 감소');
+        const input = screen.getByLabelText('수량') as InputPressHost;
+
+        down(increment);
+        down(decrement);
+        fireEvent.pointerUp(increment);
+        const carry = input.__inputPressTween as gsap.core.Tween;
+
+        unmount();
+        expect(carry.parent).toBeNull();
+      });
+
+      it('모션 축소 선호에서도 마지막 버튼을 뗄 때만 숫자가 1로 돌아온다', () => {
+        vi.stubGlobal(
+          'matchMedia',
+          (media: string): MediaQueryList =>
+            ({
+              matches: true,
+              media,
+              addEventListener: () => {},
+              removeEventListener: () => {},
+            }) as unknown as MediaQueryList
+        );
+        render(<NumericSpinner label="수량" defaultValue={5} />);
+        const increment = press('값 증가');
+        const decrement = press('값 감소');
+        const input = screen.getByLabelText('수량');
+
+        fireEvent.pointerDown(increment);
+        fireEvent.pointerDown(decrement);
+        fireEvent.pointerUp(increment);
+        expect(readScale(input)).toBeCloseTo(0.76, 2);
+        fireEvent.pointerUp(decrement);
+        expect(readScale(input)).toBeCloseTo(1, 2);
+
+        vi.unstubAllGlobals();
+      });
+    });
+
     describe('빨리 누르면 크기가 남던 결함 (task-29 관문 2)', () => {
       // 원인: 누름 타임라인은 1단계(버튼 0.90)와 2단계(0.86)를 차례로 담는다. 1단계 도중에
       // 떼면 릴리즈 트윈의 overwrite: 'auto'는 돌고 있던 1단계만 죽이고, 아직 시작

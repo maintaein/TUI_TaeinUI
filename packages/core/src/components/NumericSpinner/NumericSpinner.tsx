@@ -93,6 +93,11 @@ interface HoldState {
   hasTicked: boolean;
   /** 자기 정지(위험 5-가) 판단용 — 직전 tick 시점의 값. */
   lastValue: number;
+  /**
+   * 이 버튼이 혼자 눌렸을 때 시작해 숫자 칸의 눌림 트윈(채널 A)을 쥐고 있다. 다른
+   * 버튼이 눌려 있는 채로 이 버튼이 떼어지면 숫자 칸은 놓지 않고 이어 간다.
+   */
+  drivesInput: boolean;
   /** 반복이 실제로 시작된 시각(ms). REPEAT_DELAY_MS가 지난 시점이지 pointerdown 시각이 아니다. */
   repeatStartTime: number;
   delayTimer: ReturnType<typeof setTimeout> | null;
@@ -104,6 +109,7 @@ const createHoldState = (): HoldState => ({
   suppressClick: false,
   hasTicked: false,
   lastValue: 0,
+  drivesInput: false,
   repeatStartTime: 0,
   delayTimer: null,
   tickTimer: null,
@@ -124,9 +130,13 @@ interface PressTweenHost extends HTMLButtonElement {
   __pressTween?: gsap.core.Tween | gsap.core.Timeline;
 }
 
-/** 채널 B(숫자 넛지) 트윈을 테스트가 읽을 수 있는 통로. */
+/**
+ * 채널 B(숫자 넛지) 트윈과, 두 버튼이 함께 눌린 채 숫자 칸의 눌림을 쥔 버튼이 먼저
+ * 떼어졌을 때 숫자 칸의 눌림을 이어 가는 트윈을 테스트가 읽을 수 있는 통로.
+ */
 interface InputNudgeHost extends HTMLInputElement {
   __nudgeTween?: gsap.core.Tween;
+  __inputPressTween?: gsap.core.Tween;
 }
 
 /** 수의 소수 자릿수. 0.1 + 0.2 같은 부동소수 오차를 자르는 데 쓴다. */
@@ -364,44 +374,75 @@ export const NumericSpinner = forwardRef<HTMLInputElement, NumericSpinnerProps>(
     // 채널 A(눌림 깊이) — 뗄 때 "현재 위치에서" 1로 돌아온다. 타이머만 멈추고
     // 새 릴리즈 트윈은 시작하지 않는다(예전 clickPulse의 결함: 중간에 멈출 수
     // 없는 1회성이었다).
-    const stopHold = useCallback((ctx: HoldContext) => {
-      const { hold, buttonRef } = ctx;
-      if (hold.delayTimer) {
-        clearTimeout(hold.delayTimer);
-        hold.delayTimer = null;
-      }
-      if (hold.tickTimer) {
-        clearTimeout(hold.tickTimer);
-        hold.tickTimer = null;
-      }
-      if (!hold.isHolding) return;
-      hold.isHolding = false;
+    // 숫자 칸의 눌림은 두 버튼이 합쳐서 정한다: 어느 한쪽이라도 눌려 있으면 눌림을
+    // 유지하고, 마지막 버튼을 뗄 때만 부풀었다 내려앉는다. 그래서 다른 버튼이 눌려
+    // 있으면 이 버튼의 뗌은 버튼만 대상으로 삼는다.
+    const stopHold = useCallback(
+      (ctx: HoldContext) => {
+        const { hold, buttonRef } = ctx;
+        if (hold.delayTimer) {
+          clearTimeout(hold.delayTimer);
+          hold.delayTimer = null;
+        }
+        if (hold.tickTimer) {
+          clearTimeout(hold.tickTimer);
+          hold.tickTimer = null;
+        }
+        if (!hold.isHolding) return;
+        hold.isHolding = false;
+        const otherHolding = (
+          ctx === incrementCtx ? decrementCtx : incrementCtx
+        ).hold.isHolding;
+        const drivesInput = hold.drivesInput;
+        hold.drivesInput = false;
+        const input = inputRef.current as InputNudgeHost | null;
 
-      const button = buttonRef.current;
-      if (button) {
-        // 누름 타임라인을 먼저 죽인다. 1단계 도중에 떼면 overwrite: 'auto'는 돌고 있던
-        // 1단계만 죽이고, 아직 시작 안 한 2단계는 살아남아 나중에 릴리즈를 덮고
-        // 깊은 값으로 간다(빨리 누르면 크기가 남던 결함). 뗌은 지금 자리에서 부풀어
-        // 1로 내려앉는 타임라인 하나다.
-        (button as PressTweenHost).__pressTween?.kill();
-        const tween = gateMotion(reducedRef.current, () => {
-          const targets = pressTargets(button, inputRef.current);
-          const tl = gsap.timeline({ defaults: { overwrite: 'auto' } });
-          tl.to(targets, {
-            scale: scaleFor(RELEASE_SWELL_BUTTON, RELEASE_SWELL_INPUT),
-            duration: gsapDuration.fast,
-            ease: gsapEasing.settle,
+        const button = buttonRef.current;
+        if (button) {
+          // 누름 타임라인을 먼저 죽인다. 1단계 도중에 떼면 overwrite: 'auto'는 돌고 있던
+          // 1단계만 죽이고, 아직 시작 안 한 2단계는 살아남아 나중에 릴리즈를 덮고
+          // 깊은 값으로 간다(빨리 누르면 크기가 남던 결함). 뗌은 지금 자리에서 부풀어
+          // 1로 내려앉는 타임라인 하나다.
+          (button as PressTweenHost).__pressTween?.kill();
+          if (otherHolding) {
+            // 이 버튼의 누름 타임라인이 쥐고 있던 숫자 칸의 눌림은 죽으면서 멈춘다.
+            // 눌림 깊이로 마저 이어 가는 트윈 하나가 이어받는다.
+            if (drivesInput && input) {
+              input.__inputPressTween = gateMotion(reducedRef.current, () =>
+                gsap.to(input, {
+                  scale: PRESS_SCALE_DEEP_INPUT,
+                  duration: REPEAT_RAMP_MS / 1000,
+                  ease: gsapEasing.drift,
+                  overwrite: 'auto',
+                })
+              );
+            }
+          } else {
+            input?.__inputPressTween?.kill();
+          }
+          const tween = gateMotion(reducedRef.current, () => {
+            const targets = pressTargets(
+              button,
+              otherHolding ? null : inputRef.current
+            );
+            const tl = gsap.timeline({ defaults: { overwrite: 'auto' } });
+            tl.to(targets, {
+              scale: scaleFor(RELEASE_SWELL_BUTTON, RELEASE_SWELL_INPUT),
+              duration: gsapDuration.fast,
+              ease: gsapEasing.settle,
+            });
+            tl.to(targets, {
+              scale: 1,
+              duration: gsapDuration.slow,
+              ease: gsapEasing.drift,
+            });
+            return tl;
           });
-          tl.to(targets, {
-            scale: 1,
-            duration: gsapDuration.slow,
-            ease: gsapEasing.drift,
-          });
-          return tl;
-        });
-        (button as PressTweenHost).__pressTween = tween;
-      }
-    }, []);
+          (button as PressTweenHost).__pressTween = tween;
+        }
+      },
+      [incrementCtx, decrementCtx]
+    );
 
     // pointercancel/pointerleave/blur — 뒤이은 click이 없으니 suppressClick도
     // 같이 지운다(다음 정상 탭이 잘못 씹히지 않게).
@@ -506,13 +547,22 @@ export const NumericSpinner = forwardRef<HTMLInputElement, NumericSpinnerProps>(
         hold.isHolding = true;
         hold.suppressClick = false;
         hold.hasTicked = false;
+        // 다른 버튼이 이미 눌려 있으면 숫자 칸의 눌림은 그쪽(또는 이어받은 트윈)이 쥐고
+        // 있다. 이 버튼은 자기 버튼만 누른다.
+        const otherHolding = (
+          ctx === incrementCtx ? decrementCtx : incrementCtx
+        ).hold.isHolding;
+        hold.drivesInput = !otherHolding;
 
         const button = buttonRef.current;
         if (button) {
           // 남아 있는 릴리즈 트윈과 누름 타임라인을 정리하고 시작한다(stopHold와 같은 이유).
           (button as PressTweenHost).__pressTween?.kill();
           const tween = gateMotion(reducedRef.current, () => {
-            const targets = pressTargets(button, inputRef.current);
+            const targets = pressTargets(
+              button,
+              otherHolding ? null : inputRef.current
+            );
             const tl = gsap.timeline({ defaults: { overwrite: 'auto' } });
             tl.to(targets, {
               scale: scaleFor(PRESS_SCALE_BUTTON, PRESS_SCALE_INPUT),
@@ -535,7 +585,7 @@ export const NumericSpinner = forwardRef<HTMLInputElement, NumericSpinnerProps>(
           runTick(ctx);
         }, REPEAT_DELAY_MS);
       },
-      [runTick]
+      [runTick, incrementCtx, decrementCtx]
     );
 
     // 뒤이은 click(포인터) 또는 keyup의 수동 tap(키보드)을 해소한다 — 반복이
@@ -585,6 +635,7 @@ export const NumericSpinner = forwardRef<HTMLInputElement, NumericSpinnerProps>(
           (buttonRef.current as PressTweenHost | null)?.__pressTween?.kill();
         }
         (inputRef.current as InputNudgeHost | null)?.__nudgeTween?.kill();
+        (inputRef.current as InputNudgeHost | null)?.__inputPressTween?.kill();
       };
     }, [decrementCtx, incrementCtx]);
 
