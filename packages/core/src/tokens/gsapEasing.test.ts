@@ -4,7 +4,7 @@
  *
  * animation.css.ts는 GSAP 이징을 CSS `linear()`로 **구운 결과**만 들고 있어
  * 런타임 GSAP에 먹일 수 없다. 그래서 같은 6쌍의 GSAP 이름을 gsapEasing.ts가
- * 따로 내보낸다 — 출처가 둘이 되는 순간 CSS 커브와 GSAP 커브가 조용히 갈라진다.
+ * 따로 내보낸다. 출처가 둘이 되는 순간 CSS 커브와 GSAP 커브가 조용히 갈라진다.
  * 이 검사가 그 갈라짐을 막는다. (animation.build.test.ts가 `.mjs`를 직접
  * import하는 선례를 이미 만들어 뒀다.)
  */
@@ -18,7 +18,7 @@ describe('gsapEasing과 build-easing.mjs 일치 검사', () => {
     expect({ ...gsapEasing }).toEqual(EASE_SOURCES);
   });
 
-  it('모션 명제가 확정한 6쌍 그대로다 — 새 커브를 만들지 않았다', () => {
+  it('모션 명제가 확정한 6쌍 그대로다. 새 커브를 만들지 않았다', () => {
     expect({ ...gsapEasing }).toEqual({
       settle: 'power3.out',
       snap: 'back.out(1.7)',
@@ -30,7 +30,7 @@ describe('gsapEasing과 build-easing.mjs 일치 검사', () => {
   });
 });
 
-describe('gsapDuration — ms 토큰의 초 환산', () => {
+describe('gsapDuration: ms 토큰의 초 환산', () => {
   it('duration 토큰과 키가 같다', () => {
     expect(Object.keys(gsapDuration)).toEqual(Object.keys(duration));
   });

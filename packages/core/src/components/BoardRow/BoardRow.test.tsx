@@ -508,7 +508,7 @@ describe('BoardRow 모션 잠금', () => {
 
     const activeBlock = guardedBlock('active');
     expect(activeBlock).toContain('themeContract.color.surface.active');
-    // 배경색 단독 채널이면 article 4 위반이다(리뷰 F3) — scale이 companion.
+    // 배경색 단독 채널이면 article 4 위반이다(리뷰 F3). scale이 companion.
     expect(activeBlock).toContain("transform: 'scale(0.995)'");
     expect(activeBlock).toContain('themeContract.animation.duration.fast');
     expect(activeBlock).toContain('themeContract.animation.easing.exit');
@@ -533,7 +533,7 @@ describe('BoardRow 모션 잠금', () => {
   it('header :hover 블록에 transitionTimingFunction이 없다(리뷰 C3)', () => {
     // 포인터를 떼도 요소는 여전히 :hover에 매치된다. 이 블록의 타이밍 함수
     // 롱핸드가 header의 transition 숏핸드를 이기고 속성별 목록을 값 하나로
-    // 무너뜨려서, 되돌아오는 전이까지 그 커브가 지배했다 — header가
+    // 무너뜨려서, 되돌아오는 전이까지 그 커브가 지배했다. header가
     // transform에 준 snap 오버슛이 포인터 사용자에게 한 번도 재생되지
     // 않았다(크로미엄 실측).
     // 무엇을 뒤집으면 빨개지는가: header의 :hover에

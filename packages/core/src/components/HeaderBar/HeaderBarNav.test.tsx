@@ -4,14 +4,14 @@
  * 됐고, fix 2에서 근접 보간을 걷어 커서(또는 포커스)가 올라간 항목만 커진다.
  * HeaderBar를 `navStyle="icon"`으로 렌더해 시험한다.
  *
- * jsdom에는 레이아웃이 없다(getBoundingClientRect 등이 전부 0 — 선결 사실 9).
+ * jsdom에는 레이아웃이 없다(getBoundingClientRect 등이 전부 0, 선결 사실 9).
  * 포인터는 항목의 pointerenter·pointerleave로, 키보드는 focus로 같은 신호를
  * 넣는다. GSAP 티커도 jsdom에서 안 돌므로(선결 사실 10)
  * `__navScaleSetters`로 실제 quickTo 트윈을 꺼내 `tween.progress()`로 직접
- * seek한다 — 실제 GSAP 인스턴스를 조작하는 것이므로 무모킹 규칙에 맞다
+ * seek한다. 실제 GSAP 인스턴스를 조작하는 것이므로 무모킹 규칙에 맞다
  * (Snackbar.test.tsx의 `__countdownTween`과 같은 통로 모양).
  *
- * gsap은 타입 전용으로만 쓴다 — 값 import를 안 해도 `gsap.quickTo`가 앰비언트
+ * gsap은 타입 전용으로만 쓴다. 값 import를 안 해도 `gsap.quickTo`가 앰비언트
  * 전역 네임스페이스로 잡힌다(`_internal/useOverlayTransition.test.ts:26,59`가
  * 선례). 그래서 이 파일은 `gsapGateEnforcement.test.ts`의 스캔 대상이 아니다.
  */
@@ -26,7 +26,7 @@ type NavScaleSetterHost = HTMLElement & {
   __navScaleSetters?: ReturnType<typeof gsap.quickTo>[];
 };
 
-/** jsdom은 matchMedia를 구현하지 않는다 — 축소 선호 경로를 열려면 깔아야 한다. */
+/** jsdom은 matchMedia를 구현하지 않는다. 축소 선호 경로를 열려면 깔아야 한다. */
 const installReducedMotion = (matches: boolean): void => {
   vi.stubGlobal(
     'matchMedia',
@@ -211,18 +211,18 @@ describe('HeaderBar icon: 커서·포커스가 올라간 항목만 커진다', (
     const setters = nav.__navScaleSetters ?? [];
     expect(setters).toHaveLength(5);
 
-    // 항목 1의 트윈만 부분 진행시킨다 — progress(1)로 정착하지 않는다.
+    // 항목 1의 트윈만 부분 진행시킨다. progress(1)로 정착하지 않는다.
     setters[1].tween.progress(0.3);
     const midValue = readScale(pills[1]);
     expect(midValue).toBeGreaterThan(1);
     expect(midValue).toBeLessThan(1.4);
 
-    // 정착 전에 다른 항목(3)으로 포커스를 옮긴다 — quickTo 재목표(다중 목표 중단).
+    // 정착 전에 다른 항목(3)으로 포커스를 옮긴다. quickTo 재목표(다중 목표 중단).
     fireEvent.focus(screen.getByRole('button', { name: '항목 3' }));
 
-    // 여기서 곧장 읽는다 — settle(progress(1))을 아직 아무 트윈에도 안 걸었다.
+    // 여기서 곧장 읽는다. settle(progress(1))을 아직 아무 트윈에도 안 걸었다.
     // quickTo는 재목표해도 progress()는 새 트윈 기준 0으로 보이지만, 렌더된 값은
-    // 그 순간의 값에서 그대로 이어받는다 — 0(쉼)이나 1.4(항목 1이 새로 원점일 때의
+    // 그 순간의 값에서 그대로 이어받는다. 0(쉼)이나 1.4(항목 1이 새로 원점일 때의
     // 최댓값)로 순간이동했다면 이 재현이 실패한다.
     const afterInterrupt = readScale(pills[1]);
     expect(afterInterrupt).not.toBeCloseTo(1, 5);
@@ -336,7 +336,7 @@ describe('HeaderBar icon: CSSOM 잠금 (가드 2를 구조로 고정)', () => {
     return sheet;
   }
 
-  /** pseudo 선택자(`:`)가 없는 기본 규칙만 잡는다 — hover/active 규칙과 안 섞이게. */
+  /** pseudo 선택자(`:`)가 없는 기본 규칙만 잡는다. hover/active 규칙과 안 섞이게. */
   function findBaseRule(
     sheet: CSSStyleSheet,
     selectorSubstring: string

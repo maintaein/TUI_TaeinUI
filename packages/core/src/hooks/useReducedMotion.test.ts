@@ -5,7 +5,7 @@ import { useReducedMotion } from './useReducedMotion';
 const REDUCE_QUERY = '(prefers-reduced-motion: reduce)';
 
 // jsdom은 matchMedia를 구현하지 않는다. 호출 횟수만 세는 껍데기 대신 EventTarget을
-// 상속한 진짜 동작 객체를 깐다 — setMatches로 값을 바꾸면 change 리스너가 실제로
+// 상속한 진짜 동작 객체를 깐다. setMatches로 값을 바꾸면 change 리스너가 실제로
 // 호출된다. 플랫폼 API 공백을 메우는 환경 보급이지 협력자 모킹이 아니다.
 class FakeMediaQueryList extends EventTarget {
   matches: boolean;
@@ -46,7 +46,7 @@ const installMatchMedia = (matches: boolean): FakeMediaQueryList => {
   const list = new FakeMediaQueryList(matches);
 
   vi.stubGlobal('matchMedia', (query: string): MediaQueryList => {
-    // 훅이 다른 쿼리를 물으면 여기서 터진다 — 쿼리 문자열도 같이 잠근다.
+    // 훅이 다른 쿼리를 물으면 여기서 터진다. 쿼리 문자열도 같이 잠근다.
     if (query !== REDUCE_QUERY) {
       throw new Error(`예상하지 못한 미디어 쿼리: ${query}`);
     }
@@ -104,7 +104,7 @@ describe('useReducedMotion', () => {
   });
 
   it('matchMedia가 없는 환경에서도 터지지 않고 false를 반환해야 한다', () => {
-    // jsdom 기본 상태 그대로 — window는 있지만 matchMedia가 없다.
+    // jsdom 기본 상태 그대로. window는 있지만 matchMedia가 없다.
     expect(window.matchMedia).toBeUndefined();
 
     const { result, unmount } = renderHook(() => useReducedMotion());

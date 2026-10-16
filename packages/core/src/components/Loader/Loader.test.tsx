@@ -35,7 +35,7 @@ function block(source: string, name: string): string {
   return source.slice(start, end);
 }
 
-/** `anchor` 바로 위의 연속된 주석 줄만 모은다 — 파일 전체 검색은 무관한 한
+/** `anchor` 바로 위의 연속된 주석 줄만 모은다. 파일 전체 검색은 무관한 한
  * 줄로도 초록이 되기 때문이다(animationBoundary.test.ts와 같은 관례). */
 function commentBlockAbove(source: string, anchor: string): string {
   const at = source.indexOf(anchor);
@@ -348,7 +348,7 @@ describe('Loader', () => {
       expect(barFillBlock).toContain(
         'animation: `${progress} ${themeContract.animation.loop.base} ${loopRhythmEasing} infinite`'
       );
-      // 리터럴 cubic-bezier가 남아 있으면 안 된다 — T5 공유 자산 경유로 대체됐다.
+      // 리터럴 cubic-bezier가 남아 있으면 안 된다. T5 공유 자산 경유로 대체됐다.
       expect(barFillBlock).not.toContain('cubic-bezier');
     });
   });
@@ -497,7 +497,7 @@ describe('Loader', () => {
       });
 
       it('dot 페이드가 T5 공유 자산(loopRhythmEasing)을 거치고 backwards를 유지한다(리뷰 F3)', () => {
-        // 점 페이드는 주기·커브가 Skeleton wave와 같다 — 회전이라서 제외된다는
+        // 점 페이드는 주기·커브가 Skeleton wave와 같다. 회전이라서 제외된다는
         // 사유가 이 선언에는 적용되지 않는다. 계열이 커브를 공유한다는 S1이
         // 코드에서 보여야 한다.
         // 무엇을 뒤집으면 빨개지는가: dot을 themeContract…easing.drift로 되돌리면.
@@ -511,7 +511,7 @@ describe('Loader', () => {
       });
 
       it('회전만 공유 자산 밖이고 그 이유가 회전 정의 바로 위에 적혀 있다', () => {
-        // 제외 대상은 컴포넌트가 아니라 회전 하나다(리뷰 F3 — 옛 사유는
+        // 제외 대상은 컴포넌트가 아니라 회전 하나다(리뷰 F3: 옛 사유는
         // 점 페이드까지 통째로 제외한다고 적어 놓고 있었다).
         const spinnerBlock = block(LOADER_CSS, 'spinner');
         expect(spinnerBlock).not.toContain('loopRhythmEasing');

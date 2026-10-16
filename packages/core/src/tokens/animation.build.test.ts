@@ -3,7 +3,7 @@
  *
  * easing 값은 GSAP 이징을 구워 만든 산출물이라 손으로 고치기 쉽다. 소스와
  * 생성기가 갈라지면 `node scripts/build-easing.mjs`로 다시 구운 결과가
- * 커밋된 파일과 달라진다 — 이 테스트가 그 차이를 잡는다.
+ * 커밋된 파일과 달라진다. 이 테스트가 그 차이를 잡는다.
  */
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';

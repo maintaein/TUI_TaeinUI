@@ -887,7 +887,7 @@ describe('Chip 모션 잠금', () => {
     expect(selectedBlock).toContain('themeContract.animation.easing.spring');
   });
 
-  it('selected가 transition을 통째로 재선언해 spring이 transform에만 걸린다(리뷰 F6 — box-shadow/opacity는 settle)', () => {
+  it('selected가 transition을 통째로 재선언해 spring이 transform에만 걸린다(리뷰 F6: box-shadow/opacity는 settle)', () => {
     const selectedBlock = cssSource.match(
       /export const selected = style\(\{([\s\S]*?)\n\}\);/
     )?.[1];
@@ -896,7 +896,7 @@ describe('Chip 모션 잠금', () => {
       /transition: `transform \$\{themeContract\.animation\.duration\.base\} \$\{themeContract\.animation\.easing\.spring\}, box-shadow \$\{themeContract\.animation\.duration\.base\} \$\{themeContract\.animation\.easing\.settle\}, opacity \$\{themeContract\.animation\.duration\.base\} \$\{themeContract\.animation\.easing\.settle\}`,/
     );
     // 예전엔 transitionDuration/TimingFunction만 얹어 transition-property를
-    // chip 베이스(transform·box-shadow·opacity)에서 그대로 물려받았다 — 그
+    // chip 베이스(transform·box-shadow·opacity)에서 그대로 물려받았다. 그
     // 결과 bare 오버라이드가 box-shadow/opacity에도 spring을 흘렸다.
     expect(selectedBlock).not.toMatch(/transitionDuration:/);
     expect(selectedBlock).not.toMatch(/transitionTimingFunction:/);

@@ -703,7 +703,7 @@ describe('Popover', () => {
     });
   });
 
-  describe('모션 잠금 — @keyframes 제거 + transform-origin', () => {
+  describe('모션 잠금: @keyframes 제거 + transform-origin', () => {
     // vanilla-extract가 스타일을 클래스로 직렬화해서 jsdom에서 계산값을 못
     // 읽는다. 클래스 대신 _internal/bubble.ts가 만든 스타일 객체를 직접 읽는다.
     // 객체의 값은 Popover.css.ts가 export한 bubbleSpec에서 나온다.
@@ -715,7 +715,7 @@ describe('Popover', () => {
     const { duration, easing } = themeContract.animation;
     const POSITIONS = ['top', 'bottom', 'left', 'right'] as const;
 
-    it('@keyframes(fadeIn)가 없다 — 등장·퇴장 모두 transition이다', () => {
+    it('@keyframes(fadeIn)가 없다. 등장·퇴장 모두 transition이다', () => {
       expect(cssSource).not.toContain('keyframes');
       expect(cssSource).not.toContain('fadeIn');
       expect(cssSource).not.toContain('animation:');
@@ -786,7 +786,7 @@ describe('Popover', () => {
     );
 
     it.each(POSITIONS)(
-      'position="%s" 닫힘 변형의 visibility가 퇴장 길이를 다 쓴다 — 페이드가 살아 있다(리뷰 I1)',
+      'position="%s" 닫힘 변형의 visibility가 퇴장 길이를 다 쓴다. 페이드가 살아 있다(리뷰 I1)',
       (position) => {
         // visibility는 한쪽 끝이 visible이면 중간값이 전부 visible이고 p=1에서만
         // 넘어간다. 그래서 퇴장과 같은 길이를 주면 페이드가 다 보인 뒤에 숨는다.
@@ -803,7 +803,7 @@ describe('Popover', () => {
       'position="%s" 열림 변형은 지연 없이 즉시 visible이다(리뷰 I1)',
       (position) => {
         // 열림 쪽 목록에 visibility가 있으면 열 때도 끝에서 넘어가 첫 프레임이
-        // 안 보인다 — 등장 페이드가 죽는다.
+        // 안 보인다. 등장 페이드가 죽는다.
         // 무엇을 뒤집으면 빨개지는가: 열림 transition에 visibility를 끼워 넣으면.
         expect(open[position].visibility).toBe('visible');
         expect(String(open[position].transition)).not.toContain('visibility');
@@ -811,7 +811,7 @@ describe('Popover', () => {
     );
   });
 
-  describe('조항 1 — 중단 가능·역재생 가능', () => {
+  describe('조항 1: 중단 가능·역재생 가능', () => {
     beforeEach(() => {
       vi.useFakeTimers();
     });

@@ -8,7 +8,7 @@ import { loop } from '../../tokens/animation.css';
 
 const BORDER_CSS = readFileSync(resolve(__dirname, './Border.css.ts'), 'utf-8');
 
-/** `anchor` 바로 위의 연속된 주석 줄만 모은다 — 파일 전체 검색은 무관한 한
+/** `anchor` 바로 위의 연속된 주석 줄만 모은다. 파일 전체 검색은 무관한 한
  * 줄로도 초록이 되기 때문이다(리뷰 F4, animationBoundary.test.ts와 같은 관례). */
 function commentBlockAbove(source: string, anchor: string): string {
   const at = source.indexOf(anchor);
@@ -417,24 +417,24 @@ describe('Border', () => {
       expect(BORDER_CSS).toContain('rotate(360deg)');
       // <geometry-box>(content-box)는 mask 숏핸드에만 올 수 있다. 롱핸드
       // maskImage에 넣으면 선언이 통째로 버려져(계산값 none) 마스크가 아예
-      // 안 걸린다 — 빛이 링이 아니라 박스 전체를 덮는다(리뷰 C1).
+      // 안 걸린다. 빛이 링이 아니라 박스 전체를 덮는다(리뷰 C1).
       expect(BORDER_CSS).not.toContain('maskImage');
       expect(BORDER_CSS).toContain(
         "mask: 'linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0)'"
       );
       expect(BORDER_CSS).toContain('WebkitMask:');
-      // 표준 exclude에 대응하는 레거시 WebKit 값은 xor다 — 접두사만 붙이면
+      // 표준 exclude에 대응하는 레거시 WebKit 값은 xor다. 접두사만 붙이면
       // 없는 값이라 무시되고 마스크가 꽉 찬 사각형이 된다.
       expect(BORDER_CSS).toContain("maskComposite: 'exclude'");
       expect(BORDER_CSS).toContain("WebkitMaskComposite: 'xor'");
-      // 실제 @property 규칙(예: `@property --angle`) 사용 여부만 본다 —
+      // 실제 @property 규칙(예: `@property --angle`) 사용 여부만 본다.
       // 이 판정 자체를 설명하는 주석 문구 속 "@property" 언급은 걸리지
       // 않아야 한다.
       expect(BORDER_CSS).not.toMatch(/@property\s+--/);
     });
 
     it('회전 링이 아니라 그 자식 그라디언트만 돈다 (리뷰 C2)', () => {
-      // 마스크는 요소 좌표계에 정의된다 — 링 요소 자체를 돌리면 사각 링이
+      // 마스크는 요소 좌표계에 정의된다. 링 요소 자체를 돌리면 사각 링이
       // 같이 돌아 모서리가 박스 밖으로 튀어나가고 링의 변이 children을
       // 가로지른다. 링은 고정하고 ::before만 돌린다.
       const ringBlock = BORDER_CSS.match(
@@ -449,7 +449,7 @@ describe('Border', () => {
         /globalStyle\(`\$\{glowRing\}::before`, \{([\s\S]*?)^\}\);/m
       )?.[1];
       expect(beforeBlock, 'glowRing::before 블록을 찾지 못했다').toBeDefined();
-      // 회전은 여기가 아니라 트리거 규칙에 있다 — 아래 it이 그것을 잠근다.
+      // 회전은 여기가 아니라 트리거 규칙에 있다. 아래 it이 그것을 잠근다.
       expect(beforeBlock).not.toContain('${rotate}');
     });
 
@@ -464,13 +464,13 @@ describe('Border', () => {
       expectGlowLoopOnlyInTriggers();
     });
 
-    it('빛 색이 color prop을 따라간다 — default만 강조색을 유지한다', () => {
+    it('빛 색이 color prop을 따라간다. default만 강조색을 유지한다', () => {
       const block = BORDER_CSS.match(
         /export const colorStyles = styleVariants\(\{([\s\S]*?)^\}\);/m
       )?.[1];
       expect(block, 'colorStyles 블록을 찾지 못했다').toBeDefined();
 
-      // default는 회색 테두리라 회색 빛이 안 보인다 — 판정대로 강조색을
+      // default는 회색 테두리라 회색 빛이 안 보인다. 판정대로 강조색을
       // 유지한다(나머지 넷만 자기 색을 따라간다).
       const expected: Record<string, string> = {
         default: 'themeContract.color.primary.main',
@@ -502,7 +502,7 @@ describe('Border', () => {
 
     it('자율 루프라 조항 1 밖이라는 근거가 그 keyframes 정의 바로 위에 있다', () => {
       // 파일 전체 toMatch는 "조항 1" 네 글자가 파일 어디에 있기만 하면
-      // 초록이다 — 근거가 딴 데로 옮겨가거나 무관한 문장에 섞여도 모른다.
+      // 초록이다. 근거가 딴 데로 옮겨가거나 무관한 문장에 섞여도 모른다.
       // 무엇을 뒤집으면 빨개지는가: 근거 주석을 const rotate = keyframes({ 정의 위에서 떼면.
       expect(
         commentBlockAbove(BORDER_CSS, 'const rotate = keyframes({')

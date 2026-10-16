@@ -340,7 +340,7 @@ describe('Switch', () => {
       switchElement.nextElementSibling as HTMLElement;
 
     // yPercent(-50)가 "translate(0%, -50%)"로 따로 렌더되고, x는 px 단위의
-    // 별도 translate(...)로 렌더된다 — px 표기가 있는 쪽만 집어야 x다.
+    // 별도 translate(...)로 렌더된다. px 표기가 있는 쪽만 집어야 x다.
     // 트윈 도중에는 GPU 합성용 translate3d(...)로 렌더된다.
     const readX = (el: HTMLElement): number => {
       const match = el.style.transform.match(/translate(?:3d)?\(([-\d.]+)px/);
@@ -355,7 +355,7 @@ describe('Switch', () => {
       return match ? Number(match[2]) : 1;
     };
 
-    /** jsdom은 matchMedia를 구현하지 않는다 — 축소 선호 경로를 열려면 깔아야 한다. */
+    /** jsdom은 matchMedia를 구현하지 않는다. 축소 선호 경로를 열려면 깔아야 한다. */
     const installReducedMotion = (): void => {
       vi.stubGlobal(
         'matchMedia',

@@ -19,7 +19,7 @@ type MarkTweenHost = SVGPathElement & { __markTween?: gsap.core.Animation };
 const getMarkPath = (container: HTMLElement): MarkTweenHost =>
   container.querySelector('svg path') as MarkTweenHost;
 
-/** jsdom은 matchMedia를 구현하지 않는다 — 축소 선호 경로를 열려면 깔아야 한다. */
+/** jsdom은 matchMedia를 구현하지 않는다. 축소 선호 경로를 열려면 깔아야 한다. */
 const installReducedMotion = (): void => {
   vi.stubGlobal(
     'matchMedia',
@@ -950,7 +950,7 @@ describe('Checkbox', () => {
         );
 
         rerender(<Checkbox label="동의" checked onChange={() => {}} />);
-        getMarkPath(container).__markTween?.progress(0.4); // 등장 중단 — dashoffset이 중간값에 걸림
+        getMarkPath(container).__markTween?.progress(0.4); // 등장 중단: dashoffset이 중간값에 걸림
 
         rerender(
           <Checkbox label="동의" checked indeterminate onChange={() => {}} />
@@ -980,7 +980,7 @@ describe('Checkbox', () => {
         const path = getMarkPath(container);
         path.__markTween?.progress(1);
 
-        // 중단 시점의 논리 상태는 indeterminate였다 — prev는 checked가 아니라 indeterminate다.
+        // 중단 시점의 논리 상태는 indeterminate였다. prev는 checked가 아니라 indeterminate다.
         expect(path.getAttribute('d')).toBe('M5 12 L19 12');
         expect(Number(path.style.strokeDasharray)).toBe(14);
         expect(Number(path.style.strokeDashoffset)).toBe(14);

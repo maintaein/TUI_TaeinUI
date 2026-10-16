@@ -1152,7 +1152,7 @@ describe('NumericSpinner', () => {
 
         fireEvent.pointerDown(incrementButton);
         act(() => {
-          vi.advanceTimersByTime(400); // tick1 — 값이 안 바뀌어도 최초 1회는 부른다
+          vi.advanceTimersByTime(400); // tick1: 값이 안 바뀌어도 최초 1회는 부른다
         });
         expect(onChange).toHaveBeenCalledTimes(1);
 
@@ -1263,7 +1263,7 @@ describe('NumericSpinner', () => {
       fireEvent.keyDown(incrementButton, { key: ' ', repeat: true });
       fireEvent.keyDown(incrementButton, { key: ' ', repeat: true });
 
-      // 새 채널 A 트윈이 다시 시작되지 않았다 — 같은 인스턴스를 계속 쓴다.
+      // 새 채널 A 트윈이 다시 시작되지 않았다. 같은 인스턴스를 계속 쓴다.
       expect(incrementButton.__pressTween).toBe(tweenAfterFirstDown);
 
       fireEvent.keyUp(incrementButton, { key: ' ' });
@@ -1370,7 +1370,7 @@ describe('NumericSpinner', () => {
       const input = screen.getByLabelText('수량');
 
       fireEvent.pointerDown(incrementButton);
-      // gateMotion이 즉시 progress(1) 후 kill한다 — 이미 다 깊어져 있다.
+      // gateMotion이 즉시 progress(1) 후 kill한다. 이미 다 깊어져 있다.
       expect(readScale(incrementButton)).toBeCloseTo(0.86, 2);
       expect(incrementButton.__pressTween!.parent).toBeNull();
 
@@ -2087,7 +2087,7 @@ describe('NumericSpinner', () => {
 
       fireEvent.pointerDown(incrementButton);
       act(() => {
-        vi.advanceTimersByTime(400); // 반복 시작 — 채널 A·B 트윈이 생긴다
+        vi.advanceTimersByTime(400); // 반복 시작: 채널 A·B 트윈이 생긴다
       });
 
       const pressTween = incrementButton.__pressTween;
@@ -2097,7 +2097,7 @@ describe('NumericSpinner', () => {
 
       unmount();
 
-      // kill()된 트윈은 parent를 잃는다 — isActive()는 parent가 없어도 true를
+      // kill()된 트윈은 parent를 잃는다. isActive()는 parent가 없어도 true를
       // 내므로(Slider.test.tsx:747과 같은 이유) kill 여부 판별에 못 쓴다.
       expect(pressTween?.parent).toBeNull();
       expect(nudgeTween?.parent).toBeNull();

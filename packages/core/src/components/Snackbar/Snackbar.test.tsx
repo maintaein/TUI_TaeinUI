@@ -1,15 +1,15 @@
 /**
- * M3 T3 — 막대와 타이머가 GSAP 트윈 하나로 합쳐진 뒤의 스낵바 테스트.
+ * M3 T3: 막대와 타이머가 GSAP 트윈 하나로 합쳐진 뒤의 스낵바 테스트.
  *
  * jsdom + 가짜 타이머 환경에서 GSAP 티커는 rAF로 도는데 그 틱이 안 온다
- * (실측 — 함정 2). `vi.advanceTimersByTime`으로 카운트다운 트윈을 흘려보낼
- * 수 없다는 뜻이라, 트윈을 직접 `progress()`/`time()`으로 seek해서 단언한다
- * — 실제 GSAP 인스턴스를 조작하는 것이므로 무모킹 규칙에 맞다.
+ * (실측: 함정 2). `vi.advanceTimersByTime`으로 카운트다운 트윈을 흘려보낼
+ * 수 없다는 뜻이라, 트윈을 직접 `progress()`/`time()`으로 seek해서 단언한다.
+ * 실제 GSAP 인스턴스를 조작하는 것이므로 무모킹 규칙에 맞다.
  *
  * 트윈은 공개 API로 안 나간다. `Snackbar.tsx`가 막대 DOM 노드에
  * `__countdownTween`이라는 테스트 전용 통로를 얹어 두고, 여기서 그걸 읽는다
- * (Task 2의 `timelineRef`와 같은 모양 — `useOverlayTransition.ts` 참고).
- * 등장·퇴장 타임라인은 이 통로가 없다 — 그쪽은 손대지 않는 범위다(Task 2 소관).
+ * (Task 2의 `timelineRef`와 같은 모양, `useOverlayTransition.ts` 참고).
+ * 등장·퇴장 타임라인은 이 통로가 없다. 그쪽은 손대지 않는 범위다(Task 2 소관).
  */
 import { StrictMode } from 'react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
@@ -39,7 +39,7 @@ const readScaleX = (bar: HTMLElement | null): number => {
   return match ? Number(match[1]) : NaN;
 };
 
-/** jsdom은 matchMedia를 구현하지 않는다 — 축소 선호 경로를 열려면 깔아야 한다. */
+/** jsdom은 matchMedia를 구현하지 않는다. 축소 선호 경로를 열려면 깔아야 한다. */
 const installReducedMotion = (): void => {
   vi.stubGlobal(
     'matchMedia',
@@ -196,7 +196,7 @@ describe('Snackbar', () => {
   describe('center 위치 가로 중앙 정렬 (함정 1)', () => {
     it('xPercent(-50)이 등장 시작값에 이미 반영돼 있다', () => {
       // fromTo의 xPercent는 from·to가 둘 다 -50이라 진행도(progress)와 무관하게
-      // 항상 -50으로 계산된다 — 진행이 전혀 안 되는 이 테스트 환경(함정 2)에서
+      // 항상 -50으로 계산된다. 진행이 전혀 안 되는 이 테스트 환경(함정 2)에서
       // 확인해도, rest·퇴장 후의 값도 같은 상수라 함께 증명된다.
       const { container } = render(
         <Snackbar open message="메시지" position="top-center" />
@@ -221,7 +221,7 @@ describe('Snackbar', () => {
 
   describe('카운트다운 트윈 테스트 (막대·타이머 단일 진실)', () => {
     it('트윈의 progress가 1이 되면 onClose가 호출된다', () => {
-      // 가짜 타이머로는 GSAP을 못 돌린다(함정 2 실측) — 트윈을 progress(1)로
+      // 가짜 타이머로는 GSAP을 못 돌린다(함정 2 실측). 트윈을 progress(1)로
       // 직접 몰아 onComplete를 발화시킨다. 실제 GSAP 인스턴스를 seek하는
       // 것이라 무모킹 규칙에 맞다.
       const handleClose = vi.fn();
@@ -243,7 +243,7 @@ describe('Snackbar', () => {
       expect(handleClose).toHaveBeenCalledTimes(1);
     });
 
-    it('autoHideDuration 기본값은 6000ms이다 — 트윈 duration이 6초다', () => {
+    it('autoHideDuration 기본값은 6000ms이다. 트윈 duration이 6초다', () => {
       const { container } = render(
         <Snackbar open message="메시지" onClose={vi.fn()} />
       );
@@ -290,8 +290,8 @@ describe('Snackbar', () => {
       // autoHideDuration이 개폐 사이에 안 바뀌어도, open=false는 진행 중이던
       // 트윈을 죽인다(설계상 다시 열면 새 트윈 — 보고서 "도중에 바뀌면" 절 참고).
       // 옛 트윈이 죽었는지 progress() 재호출로 확인하는 대신(킬 이후 동작이
-      // GSAP 내부 구현에 기댄다), 관측 가능한 사실 — 인스턴스가 바뀌고 새
-      // 트윈이 0에서 시작한다 — 로 "누수 없이 정리됐다"를 증명한다.
+      // GSAP 내부 구현에 기댄다), 관측 가능한 사실(인스턴스가 바뀌고 새
+      // 트윈이 0에서 시작한다)로 "누수 없이 정리됐다"를 증명한다.
       const handleClose = vi.fn();
       const { container, rerender } = render(
         <Snackbar
@@ -328,7 +328,7 @@ describe('Snackbar', () => {
 
   describe('수정 라운드 1 회귀 테스트 (C1·C2)', () => {
     it('onClose 아이덴티티가 리렌더마다 바뀌어도 트윈이 재생성되지 않고 progress가 유지된다 (C1)', () => {
-      // 부모가 인라인 onClose(예: () => setOpen(false))를 넘기는 흔한 패턴 —
+      // 부모가 인라인 onClose(예: () => setOpen(false))를 넘기는 흔한 패턴.
       // 이 프로젝트의 SnackbarPage 데모가 실제로 이렇게 쓴다. onClose가
       // deps에 raw로 남아 있으면 매 리렌더마다 effect가 재실행돼 막대와
       // 시계가 처음으로 되돌아간다.
@@ -384,7 +384,7 @@ describe('Snackbar', () => {
       await user.hover(sheet);
       expect(firstTween?.paused()).toBe(true);
 
-      // autoHideDuration 변경 — effect가 재실행돼 트윈이 새로 만들어지는
+      // autoHideDuration 변경: effect가 재실행돼 트윈이 새로 만들어지는
       // 유일하게 남은 경로(C1 수정 후).
       rerender(
         <Snackbar
@@ -402,7 +402,7 @@ describe('Snackbar', () => {
   });
 
   describe('막대 시각 테스트', () => {
-    it('막대가 scaleX로만 움직인다 — width는 안 바뀐다', () => {
+    it('막대가 scaleX로만 움직인다. width는 안 바뀐다', () => {
       const { container } = render(
         <Snackbar
           open
@@ -474,7 +474,7 @@ describe('Snackbar', () => {
     });
   });
 
-  describe('호버·포커스 일시정지 테스트 (2.2.1 — 완료 조건 3·4·5)', () => {
+  describe('호버·포커스 일시정지 테스트 (2.2.1: 완료 조건 3·4·5)', () => {
     it('호버하면 카운트다운 트윈이 선다', async () => {
       const user = userEvent.setup({ delay: null });
       const { container } = render(
@@ -511,7 +511,7 @@ describe('Snackbar', () => {
       expect(tween?.paused()).toBe(false);
     });
 
-    it('호버를 떼면 멈춘 자리에서 이어진다 — 처음부터 다시가 아니다', async () => {
+    it('호버를 떼면 멈춘 자리에서 이어진다. 처음부터 다시가 아니다', async () => {
       const user = userEvent.setup({ delay: null });
       const { container } = render(
         <Snackbar
@@ -591,7 +591,7 @@ describe('Snackbar', () => {
   });
 
   describe('축소 모드 테스트 (Ruling 14)', () => {
-    it('축소 모드에서도 카운트다운 duration이 그대로다 — 즉시 닫히지 않는다', () => {
+    it('축소 모드에서도 카운트다운 duration이 그대로다. 즉시 닫히지 않는다', () => {
       installReducedMotion();
       const handleClose = vi.fn();
       const { container } = render(
@@ -607,7 +607,7 @@ describe('Snackbar', () => {
       expect(handleClose).not.toHaveBeenCalled();
     });
 
-    it('축소 모드에서는 막대 값이 스텝 단위로 끊긴다 — 연속으로 안 흐른다', () => {
+    it('축소 모드에서는 막대 값이 스텝 단위로 끊긴다. 연속으로 안 흐른다', () => {
       installReducedMotion();
       const { container } = render(
         <Snackbar
@@ -645,8 +645,8 @@ describe('Snackbar', () => {
       expect(readScaleX(bar)).toBeCloseTo(0.47, 5);
     });
 
-    it('축소 모드 막대는 progress 0에서 정확히 scaleX(1)이다 (Minor 2 — 끝값 고정)', () => {
-      // Math.ceil(1 * 8) / 8 = 1 — 부동소수 오차 없이 정확히 1이어야 한다.
+    it('축소 모드 막대는 progress 0에서 정확히 scaleX(1)이다 (Minor 2: 끝값 고정)', () => {
+      // Math.ceil(1 * 8) / 8 = 1, 부동소수 오차 없이 정확히 1이어야 한다.
       // 0.3으로 먼저 옮겼다가 0으로 되돌려 실제 렌더(onUpdate)가 일어나게 한다.
       installReducedMotion();
       const { container } = render(
@@ -667,8 +667,8 @@ describe('Snackbar', () => {
       expect(readScaleX(bar)).toBe(1);
     });
 
-    it('축소 모드 막대는 progress 1에서 정확히 scaleX(0)이다 (Minor 2 — 끝값 고정)', () => {
-      // Math.ceil(0 * 8) / 8 = 0 — 부동소수 오차 없이 정확히 0이어야 한다.
+    it('축소 모드 막대는 progress 1에서 정확히 scaleX(0)이다 (Minor 2: 끝값 고정)', () => {
+      // Math.ceil(0 * 8) / 8 = 0, 부동소수 오차 없이 정확히 0이어야 한다.
       installReducedMotion();
       const { container } = render(
         <Snackbar
@@ -1007,7 +1007,7 @@ describe('Snackbar', () => {
       // 퇴장 길이를 "등장 타임라인이 실제로 진행된 시간의 65%"로 계산한다
       // (`useOverlayTransition.ts`). 이 테스트 환경은 GSAP 티커가 안 돌아
       // 등장 타임라인이 progress 0에 머물러 있으므로(함정 2), 퇴장 길이도
-      // 0에 가깝다 — 충분히 큰 값으로 흘려보내 만료를 확인한다.
+      // 0에 가깝다. 충분히 큰 값으로 흘려보내 만료를 확인한다.
       const { container, rerender } = render(
         <Snackbar open message="메시지" />
       );

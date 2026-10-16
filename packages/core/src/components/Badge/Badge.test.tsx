@@ -358,7 +358,7 @@ describe('Badge', () => {
       const exiting = root.querySelector('[aria-hidden="true"]');
       expect(exiting).toHaveTextContent('5');
       expect(exiting?.className).toContain(valueExiting);
-      // 현재 값(6)도 동시에 존재한다 — 두 스팬이 같이 떠 있는 교체 구간이다.
+      // 현재 값(6)도 동시에 존재한다. 두 스팬이 같이 떠 있는 교체 구간이다.
       expect(screen.getByText('6')).toBeInTheDocument();
     });
 
@@ -379,7 +379,7 @@ describe('Badge', () => {
     it('참조만 다른 동일 JSX 자식으로 부모가 리렌더돼도 퇴장 노드를 만들지 않는다 (변경 감지가 key와 같은 identity를 써야 한다)', () => {
       const Parent = ({ tick }: { tick: number }) => (
         <div data-tick={tick}>
-          {/* JSX 리터럴은 렌더될 때마다 새 객체다 — 내용이 같아도 참조는
+          {/* JSX 리터럴은 렌더될 때마다 새 객체다. 내용이 같아도 참조는
               다르다. 값 비교(prevValue)가 참조 비교면 "바뀌었다"고 오판해
               헌 값 유령이 뜬다. */}
           <Badge>{<span>ready</span>}</Badge>
@@ -411,7 +411,7 @@ describe('Badge', () => {
       rerender(<Badge>7</Badge>);
 
       // 3) 배지가 다시 나타날 때 현재 값 7 옆에서 옛 값 3이 퇴장을 재생하면
-      //    안 된다. aria-hidden이라 AT에는 안 새지만 화면에는 틀린 숫자다 —
+      //    안 된다. aria-hidden이라 AT에는 안 새지만 화면에는 틀린 숫자다.
       //    개수를 보여주는 것이 존재 이유인 컴포넌트다.
       // 무엇을 뒤집으면 빨개지는가: Badge.tsx의 else { setExitingValue(null) }를 지우면.
       const root = getRoot();
@@ -464,7 +464,7 @@ describe('Badge', () => {
       expect(start).toBeGreaterThan(-1);
       const end = BADGE_CSS.indexOf('\n});', start);
       const block = BADGE_CSS.slice(start, end);
-      // 리터럴이 아니라 calc() 관례를 쓴다 — :root 축소 모드 오버라이드를
+      // 리터럴이 아니라 calc() 관례를 쓴다. :root 축소 모드 오버라이드를
       // 따라가려면 반드시 토큰 참조여야 한다.
       expect(block).toContain(
         'calc(${themeContract.animation.duration.base} * 0.65)'

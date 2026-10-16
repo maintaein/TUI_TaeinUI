@@ -1,7 +1,7 @@
 /**
  * GSAP 진입점 강제 검사 (M3 T1 · 계획서 T2 기반).
  *
- * useReducedMotion()은 신호만 준다 — 축소 선호를 실제로 반영하는 건 gateMotion()·
+ * useReducedMotion()은 신호만 준다. 축소 선호를 실제로 반영하는 건 gateMotion()·
  * settleMotion()이다. gsap을 쓰는 파일이 이 둘을 거치지 않으면 축소 선호가
  * 조용히 무시된다. 지금은 컴포넌트가 0개라 위반 대상도 0건이지만, 이 검사가
  * 없으면 다음 Task부터 컴포넌트가 하나씩 늘 때마다 아무도 강제하지 않는 규칙이
@@ -9,7 +9,7 @@
  * 검사가 자동으로 살아나게 한다.
  *
  * 예외가 필요해질 수 있다(게이트 없이 gsap 타입만 쓰는 파일 등). 그럴 땐
- * GATE_ENFORCEMENT_EXCEPTIONS에 상대 경로와 이유를 같이 적어 올린다 — 목록이
+ * GATE_ENFORCEMENT_EXCEPTIONS에 상대 경로와 이유를 같이 적어 올린다. 목록이
  * 저절로 늘어나지 않도록 길이 자체를 단언해 둔다.
  */
 import { readFileSync } from 'node:fs';
@@ -24,11 +24,11 @@ import {
 
 const SRC_FILES = findFiles(SRC, (name) => /\.tsx?$/.test(name));
 
-/** 실제 호출만 게이트 사용으로 친다 — 주석·문자열에 이름만 있는 건 호출이 아니다. */
+/** 실제 호출만 게이트 사용으로 친다. 주석·문자열에 이름만 있는 건 호출이 아니다. */
 const GATE_USAGE = /\b(?:gateMotion|settleMotion)\s*\(/;
 
 /** 게이트 없이 gsap을 쓰는 게 정당한 파일 한 항목. 경로와 이유를 같이 갖는다
- * (Ruling 14 — 예전엔 `string[]`이라 이유를 못 적었다). */
+ * (Ruling 14: 예전엔 `string[]`이라 이유를 못 적었다). */
 interface GateEnforcementException {
   /** `src` 기준 상대 경로 */
   path: string;
@@ -38,7 +38,7 @@ interface GateEnforcementException {
 
 /**
  * 게이트 없이 gsap을 쓰는 게 정당한 파일의 목록. 첫 입주자는 M3 T3
- * `Snackbar`다 — 아래 "정확히 이 항목들" 검사가 목록이 몰래 늘지 않는지 잠근다.
+ * `Snackbar`다. 아래 "정확히 이 항목들" 검사가 목록이 몰래 늘지 않는지 잠근다.
  */
 const GATE_ENFORCEMENT_EXCEPTIONS: GateEnforcementException[] = [
   {
@@ -46,7 +46,7 @@ const GATE_ENFORCEMENT_EXCEPTIONS: GateEnforcementException[] = [
     reason:
       'autoHideDuration 카운트다운 gsap.to가 스낵바의 시계다. gateMotion은 진행 중 ' +
       '애니메이션을 progress(1)로 확정하고 kill하므로, 축소 선호에서 이걸 거치면 ' +
-      '카운트다운이 즉시 끝나 스낵바가 열리자마자 닫힌다(Ruling 14) — 2.2.1은 ' +
+      '카운트다운이 즉시 끝나 스낵바가 열리자마자 닫힌다(Ruling 14). 2.2.1은 ' +
       '시간을 줄이지 말라는 뜻이라 게이트 대상이 아니다. 축소 모드가 바꾸는 건 ' +
       '막대의 그림(연속→이산 단계)뿐이고 시계는 그대로 둔다. 등장·퇴장 타임라인은 ' +
       '같은 파일의 useOverlayTransition을 통해 이미 게이트를 거치고, 같은 위치 쌓임 ' +
@@ -86,7 +86,7 @@ describe('GSAP 진입점은 게이트를 거친다 (T2 강제)', () => {
     ).toBe(true);
   });
 
-  it('판정 함수 표본 검사 — 주석에 적힌 gateMotion·settleMotion은 실제 호출로 치지 않는다', () => {
+  it('판정 함수 표본 검사. 주석에 적힌 gateMotion·settleMotion은 실제 호출로 치지 않는다', () => {
     // 위반 아님: gsap을 import하고 게이트를 실제로 호출한다.
     const usesGate = [
       "import { gsap } from 'gsap';",
@@ -102,7 +102,7 @@ describe('GSAP 진입점은 게이트를 거친다 (T2 강제)', () => {
     ].join('\n');
     expect(violatesGateEnforcement(noGate)).toBe(true);
 
-    // 위반: 게이트를 주석으로만 언급한다 — 실제 호출이 없다(리뷰 재현 사례).
+    // 위반: 게이트를 주석으로만 언급한다. 실제 호출이 없다(리뷰 재현 사례).
     const gateOnlyInComment = [
       "import { gsap } from 'gsap';",
       '// see gateMotion.ts for the settleMotion pattern, applied manually below',
@@ -110,7 +110,7 @@ describe('GSAP 진입점은 게이트를 거친다 (T2 강제)', () => {
     ].join('\n');
     expect(violatesGateEnforcement(gateOnlyInComment)).toBe(true);
 
-    // 위반: 게이트 호출이 주석 안에만 있다 — stripComments가 없으면 GATE_USAGE가
+    // 위반: 게이트 호출이 주석 안에만 있다. stripComments가 없으면 GATE_USAGE가
     // 이 주석의 `gateMotion(`에 걸려 위반이 아니라고 오판한다(산출물 3이 닫은 구멍).
     const gateCallOnlyInComment = [
       "import { gsap } from 'gsap';",

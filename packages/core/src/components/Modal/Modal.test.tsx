@@ -295,7 +295,7 @@ describe('Modal', () => {
 
     // 예전엔 퇴장이 `modalBackdropExit` 클래스였고 이 자리에서 클래스 유무를
     // 단언했다. M3 T2가 등장·퇴장을 한 GSAP 타임라인의 양방향으로 바꿨으므로
-    // 퇴장 클래스는 존재하지 않는다 — 단언 대상을 "타임라인이 상태를 소유한다"로
+    // 퇴장 클래스는 존재하지 않는다. 단언 대상을 "타임라인이 상태를 소유한다"로
     // 옮긴다. 퇴장이 재생될 자리를 남기는지는 아래 `언마운트 지연 테스트`가 잠근다.
     it('등장 시작 상태를 CSS가 아니라 타임라인이 소유한다', () => {
       render(<Modal {...defaultProps} />);
@@ -305,7 +305,7 @@ describe('Modal', () => {
       );
       const dialog = screen.getByRole('dialog');
 
-      // fromTo의 시작값은 만들어지는 순간 인라인으로 박힌다(immediateRender) —
+      // fromTo의 시작값은 만들어지는 순간 인라인으로 박힌다(immediateRender).
       // 첫 페인트가 이미 닫힌 상태라 열린 판이 한 프레임 번쩍이지 않는다.
       expect(backdrop?.style.opacity).toBe('0');
       expect(dialog.style.opacity).toBe('0');
@@ -321,10 +321,10 @@ describe('Modal', () => {
     });
   });
 
-  describe('triggerRef — 버튼 자리에서 자란다', () => {
+  describe('triggerRef: 버튼 자리에서 자란다', () => {
     /**
      * jsdom은 레이아웃을 구현하지 않아 모든 getBoundingClientRect가 0을 준다.
-     * matchMedia와 같은 성격의 환경 보급이다 — 협력 객체를 가짜로 바꾸는 게
+     * matchMedia와 같은 성격의 환경 보급이다. 협력 객체를 가짜로 바꾸는 게
      * 아니라, 이 환경에 없는 레이아웃 값을 넣어 준다.
      */
     const installLayout = (
@@ -394,7 +394,7 @@ describe('Modal', () => {
       expect(dialog.style.transform).toBe('translate(-360px, -90px)');
     });
 
-    it('transform만 쓴다 — 레이아웃 속성은 건드리지 않는다', () => {
+    it('transform만 쓴다. 레이아웃 속성은 건드리지 않는다', () => {
       installLayout(
         { left: 100, top: 200, width: 80, height: 20 },
         { left: 200, top: 100, width: 600, height: 400 }
@@ -909,7 +909,7 @@ describe('Modal', () => {
     });
 
     it('레이아웃이 없는 환경(크기 0)이면 가운데에서 자란다', () => {
-      // jsdom 기본값 그대로 — getBoundingClientRect를 보급하지 않는다.
+      // jsdom 기본값 그대로, getBoundingClientRect를 보급하지 않는다.
       render(<TriggeredModal open />);
 
       expect(screen.getByRole('dialog').style.transform).toBe(
@@ -934,7 +934,7 @@ describe('Modal', () => {
       expect(screen.getByRole('dialog')).toBeInTheDocument();
     });
 
-    // 퇴장 길이(등장의 65%) 자체는 여기서 잠글 수 없다 — 티커가 없어 타이머가 0ms로
+    // 퇴장 길이(등장의 65%) 자체는 여기서 잠글 수 없다. 티커가 없어 타이머가 0ms로
     // 접힌다. 길이는 `useOverlayTransition.test.ts`의
     // `전부 열린 상태에서 닫으면 퇴장 길이가 등장의 65%다`가 잠근다. 여기서 잠그는 건
     // "애니메이션 이벤트가 아니라 타이머가 DOM을 내린다"는 것뿐이다.
@@ -950,7 +950,7 @@ describe('Modal', () => {
     });
 
     // "닫히는 도중 다시 열리면 언마운트가 취소된다"를 여기서 검증할 수 없어 지웠다.
-    // jsdom엔 rAF 티커가 없어 `timeline.time()`이 0이고 퇴장 타이머가 0ms로 접힌다 —
+    // jsdom엔 rAF 티커가 없어 `timeline.time()`이 0이고 퇴장 타이머가 0ms로 접힌다.
     // 타이머를 조금만 진전시키면 취소가 아니라 재마운트를 보게 된다. 진짜 취소를
     // 만들려면 타임라인을 0이 아닌 위치로 seek해야 하는데 그러려면 이 파일이 gsap을
     // import해야 하고(게이트 검사가 막는다), 취소 메커니즘은 훅이 100% 소유한다.
@@ -1112,7 +1112,7 @@ describe('Modal Compound API', () => {
 
     it('Title이 없으면 dangling IDREF가 되지만 이름 계산이 깨지지 않는다', () => {
       // compound 경로의 루트는 항상 생성 titleId를 가리킨다. 그 id를 가진
-      // 요소가 없으면 accname 1.2는 그 단계를 건너뛴다 — 이름은 빈 문자열이고
+      // 요소가 없으면 accname 1.2는 그 단계를 건너뛴다. 이름은 빈 문자열이고
       // id 문자열이 이름으로 새어 나오지 않는다. 라이브러리가 이 동작을 바꾸는
       // 날 여기서 잡힌다.
       render(

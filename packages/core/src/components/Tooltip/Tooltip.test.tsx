@@ -14,7 +14,7 @@ import { WARM_MS, resetTooltipWarmth } from '../../_internal/tooltipWarmth';
 
 // Tooltip.tsx의 EXIT_DURATION_MS와 반드시 같은 값이어야 한다. isOpen이
 // false가 된 뒤 DOM이 실제로 사라지기까지 퇴장 전이 재생 시간만큼 더
-// 기다려야 한다 — 그 시간을 만드는 setTimeout은 isOpen 변화를 반영하는
+// 기다려야 한다. 그 시간을 만드는 setTimeout은 isOpen 변화를 반영하는
 // effect가 플러시된 뒤에야 등록되므로, 닫는 이벤트/타이머 advance와
 // 같은 act() 안에서는 잡히지 않고 별도의 advance가 필요하다.
 const EXIT_DURATION_MS = 130;
@@ -769,7 +769,7 @@ describe('Tooltip', () => {
 
       expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
 
-      // 포인터는 트리거를 벗어나지 않았다 — 남아있는 타이머가 있어도 다시 열리면 안 된다
+      // 포인터는 트리거를 벗어나지 않았다. 남아있는 타이머가 있어도 다시 열리면 안 된다
       act(() => {
         vi.advanceTimersByTime(2000);
       });
@@ -802,7 +802,7 @@ describe('Tooltip', () => {
 
       expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
 
-      // 포인터가 트리거를 벗어나지 않은 채로 다시 mouseEnter가 온다 — 가드가 없으면 재개방된다
+      // 포인터가 트리거를 벗어나지 않은 채로 다시 mouseEnter가 온다. 가드가 없으면 재개방된다
       fireEvent.mouseEnter(button);
 
       act(() => {
@@ -1168,7 +1168,7 @@ describe('Tooltip', () => {
     });
   });
 
-  describe('조항 1 — 중단 가능·역재생 가능', () => {
+  describe('조항 1: 중단 가능·역재생 가능', () => {
     it('EXIT_DURATION_MS 경계: 130ms 직전에는 DOM이 있고 직후에는 없다', () => {
       render(
         <Tooltip content="툴팁 내용" delay={0}>
@@ -1211,7 +1211,7 @@ describe('Tooltip', () => {
       // 블러는 유예 없이 즉시 닫는다. 퇴장 타이머(130ms)가 예약된다.
       fireEvent.blur(button);
 
-      // 타이머가 끝나기 전에(절반 지점) 다시 포커스한다 — 처음부터 다시
+      // 타이머가 끝나기 전에(절반 지점) 다시 포커스한다. 처음부터 다시
       // 마운트되는 게 아니라 같은 DOM 노드가 계속 살아 있어야 한다(조항 1 ③).
       act(() => {
         vi.advanceTimersByTime(EXIT_DURATION_MS / 2);
@@ -1269,7 +1269,7 @@ describe('Tooltip', () => {
   });
 
   describe('그레이스 타이머 동결 (WCAG 1.4.13)', () => {
-    it('hide 유예(HIDE_GRACE_MS) 동안은 isOpen이 그대로라 전이가 돌지 않는다 — 열림 클래스가 유지된다', () => {
+    it('hide 유예(HIDE_GRACE_MS) 동안은 isOpen이 그대로라 전이가 돌지 않는다. 열림 클래스가 유지된다', () => {
       render(
         <Tooltip content="툴팁 내용">
           <button>호버하세요</button>
@@ -1288,7 +1288,7 @@ describe('Tooltip', () => {
 
       fireEvent.mouseLeave(button); // hide 유예 시작(300ms)
 
-      // 유예 중간 지점 — isOpen은 아직 true다(그레이스 타이머가 끝나야
+      // 유예 중간 지점: isOpen은 아직 true다(그레이스 타이머가 끝나야
       // setOpen(false)가 불린다). 전이를 일으키는 클래스가 바뀌면 안 된다.
       act(() => {
         vi.advanceTimersByTime(150);
@@ -1305,7 +1305,7 @@ describe('Tooltip', () => {
     });
   });
 
-  describe('빠른 호버 아웃/인 반복 — 타이머 누수 없음', () => {
+  describe('빠른 호버 아웃/인 반복: 타이머 누수 없음', () => {
     it('빠르게 mouseLeave→mouseEnter를 반복해도 열림 상태로 수렴하고 잔여 타이머가 뒤늦게 닫지 않는다', () => {
       render(
         <Tooltip content="툴팁 내용">
@@ -1332,7 +1332,7 @@ describe('Tooltip', () => {
         });
       }
 
-      // 반복 끝에 열림 상태로 수렴했다 — 닫히지 않았다
+      // 반복 끝에 열림 상태로 수렴했다. 닫히지 않았다
       expect(screen.getByRole('tooltip')).toBeInTheDocument();
 
       // 충분히 기다려도 잔여 타이머가 뒤늦게 닫지 않는다

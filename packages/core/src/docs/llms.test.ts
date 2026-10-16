@@ -187,7 +187,7 @@ describe('발행 문서와 소스 일치 검사', () => {
     // 여기서 같이 닫힌다. 참조가 생긴 scrim도 함께 확인한다.
     // llms.txt(요약)는 `## Design Tokens` 절에 그룹 이름만 나열해 점 표기
     // 전체 경로를 구조적으로 쓰지 않는다(surface.track·border.strong 같은
-    // 기존 토큰도 마찬가지다) — 점 표기 경로가 실제로 나타나는 llms-full.txt만
+    // 기존 토큰도 마찬가지다). 점 표기 경로가 실제로 나타나는 llms-full.txt만
     // 검사한다.
     const names = [
       'overlay.scrim',
@@ -298,7 +298,7 @@ describe('문서가 약속한 대비를 실제 토큰이 지키는지', () => {
   it('발행 문서가 약속한 포커스 링 폭이 유틸의 실제 폭과 일치한다', () => {
     // 문서가 다시 거짓말을 못 하게 막는 테스트. focusRing.css.ts를 모듈로
     // import하면 vanilla-extract가 함수 export를 직렬화하지 못해 빌드가
-    // 깨진다(recipe()류만 __recipe__ 마커로 예외 처리된다) — 그래서 소스
+    // 깨진다(recipe()류만 __recipe__ 마커로 예외 처리된다). 그래서 소스
     // 텍스트에서 폭을 뽑아 llms.txt·llms-full.txt의 Focus indicators 줄과
     // 대조한다.
     const focusRingSource = read(resolve(ROOT, 'src/tokens/focusRing.css.ts'));
@@ -317,7 +317,7 @@ describe('문서가 약속한 대비를 실제 토큰이 지키는지', () => {
 
 describe('컴포넌트가 실제로 합성하는 색 쌍', () => {
   // 토큰 쌍만 재는 검사(`surface.track` vs 페이지 배경)는 트랙이 어두울수록 더
-  // 잘 통과하고 화면은 더 안 보인다 — 결함 방향을 보상한다. 여기서는 .css.ts
+  // 잘 통과하고 화면은 더 안 보인다. 결함 방향을 보상한다. 여기서는 .css.ts
   // 소스가 실제로 참조하는 토큰 경로를 뽑아 컴포넌트가 화면에서 합성하는 쌍을
   // 잰다(Card·HeaderBar가 쓰는 소스 텍스트 대조 관례를 색에 적용).
   const SLIDER_CSS = read(resolve(ROOT, 'src/components/Slider/Slider.css.ts'));
@@ -385,7 +385,7 @@ describe('컴포넌트가 실제로 합성하는 색 쌍', () => {
 
   it('Loader bar의 세 색 변형이 각자의 트랙 대비 3:1을 지킨다', () => {
     const barBlock = declBlock(LOADER_CSS, 'bar');
-    // white 변형은 어두운 면 위에서 쓰는 것이라 밝은 fill이 올라탄다 —
+    // white 변형은 어두운 면 위에서 쓰는 것이라 밝은 fill이 올라탄다.
     // 이 변형만 트랙이 어두워야 해서 분기가 있어야 한다.
     const whiteAt = barBlock.indexOf('data-color="white"');
     expect(whiteAt, 'bar에 white 변형 트랙 분기가 없다').toBeGreaterThan(-1);

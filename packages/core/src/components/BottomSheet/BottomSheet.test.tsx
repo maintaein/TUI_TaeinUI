@@ -402,7 +402,7 @@ describe('BottomSheet', () => {
   // 예전엔 드래그 닫기가 자체 CSS transition을 걸고 `transitionend`를 기다렸고,
   // 그 이벤트가 안 올 때를 위한 300ms 폴백 타이머가 있었다. M3 T2가 닫기를
   // 타임라인에 넘겨 전이도 폴백 타이머도 사라졌으므로, 이 자리는 그 둘이
-  // 없어도 닫힘이 확정된다는 사실을 잠근다 — 폴백이 지키려던 바로 그 성질이다.
+  // 없어도 닫힘이 확정된다는 사실을 잠근다. 폴백이 지키려던 바로 그 성질이다.
   describe('드래그 닫기는 애니메이션 이벤트에 기대지 않는다', () => {
     beforeEach(() => {
       vi.useFakeTimers();
@@ -420,7 +420,7 @@ describe('BottomSheet', () => {
       fireEvent.touchMove(sheet, { touches: [{ clientY: 300 }] });
       fireEvent.touchEnd(sheet, { changedTouches: [{ clientY: 300 }] });
 
-      // transitionend를 일부러 발생시키지 않는다 — 기다리는 이벤트가 없다.
+      // transitionend를 일부러 발생시키지 않는다. 기다리는 이벤트가 없다.
       expect(defaultProps.onClose).toHaveBeenCalledTimes(1);
     });
 
@@ -469,7 +469,7 @@ describe('BottomSheet', () => {
     });
 
     // "닫히는 도중 다시 열리면 언마운트가 취소된다"를 여기서 검증할 수 없어 지웠다.
-    // jsdom엔 rAF 티커가 없어 `timeline.time()`이 0이고 퇴장 타이머가 0ms로 접힌다 —
+    // jsdom엔 rAF 티커가 없어 `timeline.time()`이 0이고 퇴장 타이머가 0ms로 접힌다.
     // 타이머를 조금만 진전시키면 취소가 아니라 재마운트를 보게 된다. 진짜 취소를
     // 만들려면 타임라인을 0이 아닌 위치로 seek해야 하는데 그러려면 이 파일이 gsap을
     // import해야 하고(게이트 검사가 막는다), 취소 메커니즘은 훅이 100% 소유한다.
@@ -490,7 +490,7 @@ describe('BottomSheet', () => {
     // jsdom은 애니메이션을 돌리지도 계산값을 주지도 않아 소스 텍스트를 읽는다
     // (tokens/animationBoundary.test.ts와 같은 방식).
     // M3 T2 전까지 퇴장은 CSS transition 클래스였고 이 검사가 그 존재를 잠갔다.
-    // 지금은 등장·퇴장이 한 GSAP 타임라인의 양방향이므로 잠글 대상이 뒤집힌다 —
+    // 지금은 등장·퇴장이 한 GSAP 타임라인의 양방향이므로 잠글 대상이 뒤집힌다.
     // CSS가 모션을 **다시 갖지 않는다**. 키프레임이 돌아오면 조항 1이 또 깨지고
     // (진행 중 progress를 못 읽어 중단 지점에서 점프한다) 드래그가 다시 같은
     // transform을 놓고 다투게 된다.
@@ -517,7 +517,7 @@ describe('BottomSheet', () => {
       expect(source).not.toMatch(/export const \w*Exit\w* = style/);
     });
 
-    it('시트 시작 위치를 타임라인이 소유한다 — 화면 아래 밖에서 시작한다', () => {
+    it('시트 시작 위치를 타임라인이 소유한다. 화면 아래 밖에서 시작한다', () => {
       render(<BottomSheet {...defaultProps} />);
 
       expect(screen.getByRole('dialog').style.transform).toBe(
@@ -526,8 +526,8 @@ describe('BottomSheet', () => {
     });
   });
 
-  describe('축소 선호 — 드래그 복귀', () => {
-    /** jsdom은 matchMedia를 구현하지 않는다 — 축소 선호 경로를 열려면 깔아야 한다. */
+  describe('축소 선호: 드래그 복귀', () => {
+    /** jsdom은 matchMedia를 구현하지 않는다. 축소 선호 경로를 열려면 깔아야 한다. */
     beforeEach(() => {
       vi.stubGlobal(
         'matchMedia',
@@ -555,14 +555,14 @@ describe('BottomSheet', () => {
 
       fireEvent.touchEnd(sheet, { changedTouches: [{ clientY: 160 }] });
 
-      // 게이트가 트윈을 끝 상태로 확정하고 죽인다 — 중간 어딘가에 멈추지 않는다.
+      // 게이트가 트윈을 끝 상태로 확정하고 죽인다. 중간 어딘가에 멈추지 않는다.
       expect(sheet.style.transform).not.toContain('60px');
       expect(defaultProps.onClose).not.toHaveBeenCalled();
     });
 
     // 드래그 effect의 deps에 onClose가 있어서, 소비자가 인라인 화살표를 넘기면
     // 부모 리렌더마다 effect가 다시 돈다. 진입 때 무조건 복귀 트윈을 걸면 손가락이
-    // 아직 내려가 있는데 시트를 끌어올린다 — 채널 분리로 막은 싸움이 같은 `y`
+    // 아직 내려가 있는데 시트를 끌어올린다. 채널 분리로 막은 싸움이 같은 `y`
     // 채널 안에서 재발한다. 축소 선호를 깔아 둔 이유: jsdom엔 rAF 티커가 없어
     // 평소엔 트윈이 한 프레임도 안 돌아 이 결함이 관측되지 않는다. 게이트는
     // 트윈을 즉시 끝 상태로 확정하므로 y=0이 곧바로 보인다.
@@ -591,7 +591,7 @@ describe('BottomSheet', () => {
       fireEvent.touchStart(sheet, { touches: [{ clientY: 100 }] });
       fireEvent.touchMove(sheet, { touches: [{ clientY: 160 }] });
 
-      // 두 채널이 한 transform으로 합성된다 — 손가락이 60px 끌었고 타임라인의
+      // 두 채널이 한 transform으로 합성된다. 손가락이 60px 끌었고 타임라인의
       // 100%는 그대로 남아 있다. 예전처럼 style.transform에 직접 쓰면
       // yPercent가 지워져 시트가 튀었다.
       expect(sheet.style.transform).toContain('60px');
@@ -1238,7 +1238,7 @@ describe('BottomSheet', () => {
 
       it('Title이 없으면 dangling IDREF가 되지만 이름 계산이 깨지지 않는다', () => {
         // compound 경로의 루트는 항상 생성 titleId를 가리킨다. 그 id를 가진
-        // 요소가 없으면 accname 1.2는 그 단계를 건너뛴다 — 이름은 빈 문자열이고
+        // 요소가 없으면 accname 1.2는 그 단계를 건너뛴다. 이름은 빈 문자열이고
         // id 문자열이 이름으로 새어 나오지 않는다. 라이브러리가 이 동작을 바꾸는
         // 날 여기서 잡힌다.
         render(

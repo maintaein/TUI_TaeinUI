@@ -354,7 +354,7 @@ describe('SideSheet', () => {
     });
 
     // "닫히는 도중 다시 열리면 언마운트가 취소된다"를 여기서 검증할 수 없어 지웠다.
-    // jsdom엔 rAF 티커가 없어 `timeline.time()`이 0이고 퇴장 타이머가 0ms로 접힌다 —
+    // jsdom엔 rAF 티커가 없어 `timeline.time()`이 0이고 퇴장 타이머가 0ms로 접힌다.
     // 타이머를 조금만 진전시키면 취소가 아니라 재마운트를 보게 된다. 진짜 취소를
     // 만들려면 타임라인을 0이 아닌 위치로 seek해야 하는데 그러려면 이 파일이 gsap을
     // import해야 하고(게이트 검사가 막는다), 취소 메커니즘은 훅이 100% 소유한다.
@@ -375,7 +375,7 @@ describe('SideSheet', () => {
     // jsdom은 애니메이션을 돌리지도 계산값을 주지도 않아 소스 텍스트를 읽는다
     // (tokens/animationBoundary.test.ts와 같은 방식).
     // M3 T2 전까지 퇴장은 CSS transition 클래스였고 이 검사가 그 존재를 잠갔다.
-    // 지금은 등장·퇴장이 한 GSAP 타임라인의 양방향이므로 잠글 대상이 뒤집힌다 —
+    // 지금은 등장·퇴장이 한 GSAP 타임라인의 양방향이므로 잠글 대상이 뒤집힌다.
     // CSS가 모션을 **다시 갖지 않는다**. 키프레임이 돌아오면 조항 1이 또 깨진다
     // (진행 중 progress를 읽을 수 없어 중단 지점에서 점프한다).
     it('CSS가 등장·퇴장 모션을 갖지 않는다 (명제 조항 1)', () => {
@@ -389,7 +389,7 @@ describe('SideSheet', () => {
       expect(source).not.toMatch(/export const \w*Exit\w* = style/);
     });
 
-    it('시트 시작 위치를 타임라인이 소유한다 — 오른쪽은 화면 오른쪽 밖', () => {
+    it('시트 시작 위치를 타임라인이 소유한다. 오른쪽은 화면 오른쪽 밖', () => {
       render(<SideSheet {...defaultProps} position="right" />);
 
       expect(screen.getByRole('dialog').style.transform).toBe(
@@ -397,7 +397,7 @@ describe('SideSheet', () => {
       );
     });
 
-    it('시트 시작 위치를 타임라인이 소유한다 — 왼쪽은 화면 왼쪽 밖', () => {
+    it('시트 시작 위치를 타임라인이 소유한다. 왼쪽은 화면 왼쪽 밖', () => {
       render(<SideSheet {...defaultProps} position="left" />);
 
       expect(screen.getByRole('dialog').style.transform).toBe(
@@ -831,7 +831,7 @@ describe('SideSheet', () => {
 
       it('Title이 없으면 dangling IDREF가 되지만 이름 계산이 깨지지 않는다', () => {
         // compound 경로의 루트는 항상 생성 titleId를 가리킨다. 그 id를 가진
-        // 요소가 없으면 accname 1.2는 그 단계를 건너뛴다 — 이름은 빈 문자열이고
+        // 요소가 없으면 accname 1.2는 그 단계를 건너뛴다. 이름은 빈 문자열이고
         // id 문자열이 이름으로 새어 나오지 않는다. 라이브러리가 이 동작을 바꾸는
         // 날 여기서 잡힌다.
         render(

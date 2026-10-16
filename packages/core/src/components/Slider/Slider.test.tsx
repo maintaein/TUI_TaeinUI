@@ -147,7 +147,7 @@ const getFollower = (container: HTMLElement): HTMLSpanElement | null =>
 const getHead = (container: HTMLElement): HTMLSpanElement | null =>
   container.querySelector('[class*="sliderHead__"]');
 
-/** jsdom은 matchMedia를 구현하지 않는다 — 축소 선호 경로를 열려면 깔아야 한다. */
+/** jsdom은 matchMedia를 구현하지 않는다. 축소 선호 경로를 열려면 깔아야 한다. */
 const installReducedMotion = (): void => {
   vi.stubGlobal(
     'matchMedia',
@@ -848,7 +848,7 @@ describe('Slider', () => {
 
       fireEvent.pointerDown(slider);
 
-      // 잡은 동안: 고정 출력과 따라붙기 표시가 공존한다 — 대체가 아니다.
+      // 잡은 동안: 고정 출력과 따라붙기 표시가 공존한다. 대체가 아니다.
       const follower = getFollower(container);
       expect(
         container.querySelector('[class*="valueDisplay__"]')
@@ -905,7 +905,7 @@ describe('Slider', () => {
       expect(getFollower(container)).not.toBeInTheDocument();
     });
 
-    it('연타 중에는 놓은 것으로 처리되지 않는다 — 무입력 타이머가 매 입력마다 갱신된다', () => {
+    it('연타 중에는 놓은 것으로 처리되지 않는다. 무입력 타이머가 매 입력마다 갱신된다', () => {
       vi.useFakeTimers();
       const { container } = render(
         <Slider
@@ -935,11 +935,11 @@ describe('Slider', () => {
         vi.advanceTimersByTime(300);
       });
 
-      // 마지막 입력 이후 300ms밖에 안 지났다 — 아직 놓은 게 아니다.
+      // 마지막 입력 이후 300ms밖에 안 지났다. 아직 놓은 게 아니다.
       expect(getFollower(container)).toBeInTheDocument();
     });
 
-    it('키보드로 잡은 유휴창 안에서 언마운트하면 유휴 타이머가 정리된다 — 언마운트 뒤 setState가 돌지 않는다', () => {
+    it('키보드로 잡은 유휴창 안에서 언마운트하면 유휴 타이머가 정리된다. 언마운트 뒤 setState가 돌지 않는다', () => {
       vi.useFakeTimers();
       const { unmount } = render(
         <Slider label="슬라이더" value={50} onChange={() => {}} />
