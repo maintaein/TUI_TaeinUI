@@ -58,6 +58,8 @@ export const hoverLift = style({
         // 내보내 특정도가 같은 호버가 누름 transform을 덮기 때문이다(Button과 같다).
         '&:hover:not([data-pressed])': {
           transform: 'translateY(-3px)',
+          // 토큰에 같은 값이 없다(shadows.css.ts에 0 4px 12px가 없다). elevated의
+          // 휴지 그림자보다 오프셋·번짐·농도가 한 단계 크다.
           boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
           transitionDuration: themeContract.animation.duration.base,
           willChange: 'transform',
@@ -93,6 +95,8 @@ export const hoverLift = style({
     // 0.95~0.98의 얕은 끝이다.
     '&[data-pressed]': {
       transform: 'translateY(0) scale(0.98)',
+      // 누르면 내려앉으니 그림자도 elevated의 휴지 값으로 돌아간다. 위 elevated와
+      // 같은 값이어야 한다.
       boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
       willChange: 'transform',
       transitionDuration: themeContract.animation.duration.fast,

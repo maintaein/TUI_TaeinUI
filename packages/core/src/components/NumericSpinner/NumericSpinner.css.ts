@@ -10,6 +10,7 @@ export const inputContainer = style({
   backgroundColor: themeContract.color.background.paper,
   // 바깥 테두리는 없다(사용자 관문, M5 task-29): 입력칸 자신의 테두리가 이미 한 겹
   // 있어 상자 안에 상자로 읽혔다. 면과 반경은 남겨 한 덩어리로 읽히게 한다.
+  // 8px은 반경 토큰 base(0.5rem)와 px로 같다. 안쪽 입력 상자(6px)가 이 안에 든다.
   borderRadius: '8px',
   transition: `background-color ${themeContract.animation.duration.fast} ease-in-out`,
   width: 'fit-content',
@@ -49,6 +50,7 @@ export const inputBox = style({
   overflow: 'hidden',
   border: `1px solid ${themeContract.color.border.default}`,
   backgroundColor: themeContract.color.background.paper,
+  // 바깥 상자(8px)보다 한 단계 작은 안쪽 상자 반경. 토큰에 6px이 없다.
   borderRadius: '6px',
   margin: '0 8px',
   transition: `background-color ${themeContract.animation.duration.base} ease`,
@@ -146,6 +148,7 @@ export const button = style({
   minWidth: '44px',
   minHeight: '44px',
   padding: '0.5rem',
+  // 증감 버튼의 반경. 토큰 sm(0.25rem)과 px로 같다.
   borderRadius: '4px',
 
   selectors: {

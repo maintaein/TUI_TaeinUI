@@ -71,6 +71,7 @@ export const checkmark = style({
   width: '100%',
   height: '100%',
   border: `${BORDER_WIDTH}px solid ${themeContract.color.text.secondary}`,
+  // 반경 토큰 sm(0.25rem)과 px로는 같다. 상자 크기가 px 고정이라 반경도 px로 둔다.
   borderRadius: '4px',
   backgroundColor: themeContract.color.background.paper,
   transition: `background-color ${themeContract.animation.duration.fast} ${themeContract.animation.easing.settle}, border-color ${themeContract.animation.duration.fast} ${themeContract.animation.easing.settle}, box-shadow ${themeContract.animation.duration.fast} ${themeContract.animation.easing.settle}`,
@@ -161,6 +162,7 @@ export const error = style({
   selectors: {
     'input:focus + &': {
       borderColor: `${themeContract.color.error.main} !important`,
+      // 후광 두께 3px은 Switch의 error와 같다. 색은 토큰이다.
       boxShadow: `0 0 0 3px ${themeContract.color.overlay.errorHalo}`,
     },
   },

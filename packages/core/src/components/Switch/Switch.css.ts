@@ -71,6 +71,8 @@ export const trackHeight = { sm: 20, md: 24, lg: 28 } as const;
 export const thumbDiameter = { sm: 16, md: 20, lg: 24 } as const;
 
 // Size Variants for Container (Track)
+// borderRadius는 트랙 높이(trackHeight)의 절반이라 끝이 알약으로 둥글다. 높이와
+// 함께 움직이는 값이라 반경 토큰(rem)이 아니라 px로 둔다.
 const baseSizeContainer = {
   sm: { width: '36px', height: `${trackHeight.sm}px`, borderRadius: '10px' },
   md: { width: '44px', height: `${trackHeight.md}px`, borderRadius: '12px' },
@@ -166,6 +168,7 @@ export const thumbFace = style({
   borderRadius: '50%',
   backgroundColor: themeContract.color.background.paper,
   transition: `transform ${themeContract.animation.duration.base} ${themeContract.animation.easing.settle}, box-shadow ${themeContract.animation.duration.fast} ${themeContract.animation.easing.settle}, opacity ${themeContract.animation.duration.fast} ${themeContract.animation.easing.settle}`,
+  // 머리 그림자. shadows.css.ts의 sm·base와 오프셋·농도가 달라 리터럴로 둔다.
   boxShadow: '0 2px 4px rgba(0, 0, 0, 0.2)',
 
   selectors: {
@@ -231,6 +234,7 @@ export const error = style({
   selectors: {
     'input:focus ~ &': {
       borderColor: `${themeContract.color.error.main} !important`,
+      // 후광 두께 3px은 Checkbox의 error와 같다. 색은 토큰이다.
       boxShadow: `0 0 0 3px ${themeContract.color.overlay.errorHalo} !important`,
     },
   },

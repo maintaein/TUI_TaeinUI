@@ -413,6 +413,8 @@ export const Loader = ({
       case 'secondary':
         return gray[600];
       case 'white':
+        // 테마와 무관하게 늘 흰색이다. 같은 hex의 text.inverse 토큰이 있으나 테마가
+        // 바뀌면 따라가므로 쓰지 않는다. 위 두 preset도 팔레트 원본 값이다.
         return '#FFFFFF';
       default:
         return value;

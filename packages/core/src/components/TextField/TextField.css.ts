@@ -43,6 +43,7 @@ export const input = style({
   boxSizing: 'border-box',
   padding: TEXT_PADDING,
   border: `${BORDER_WIDTH}px solid ${themeContract.color.text.secondary}`,
+  // 토큰 base(0.5rem)와 px로 같다. 입력칸 높이와 테두리가 px 고정이라 반경도 px로 둔다.
   borderRadius: '8px',
   backgroundColor: themeContract.color.background.paper,
   color: themeContract.color.text.primary,

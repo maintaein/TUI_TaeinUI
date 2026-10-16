@@ -227,6 +227,8 @@ export const sliderHead = style({
   borderRadius: '50%',
   backgroundColor: themeContract.color.background.paper,
   border: `2px solid ${themeContract.color.primary.main}`,
+  // 머리 그림자 세 단계(휴지 0 1px 4px .15, 호버 0 2px 6px .2, 누름 0 1px 3px .2)는
+  // shadows.css.ts 스케일에 같은 값이 없다. 호버에서 커지고 누르면 작아진다.
   boxShadow: '0 1px 4px rgba(0, 0, 0, 0.15)',
   transition: `border-color ${themeContract.animation.duration.base} ${themeContract.animation.easing.settle}, box-shadow ${themeContract.animation.duration.base} ${themeContract.animation.easing.settle}, transform ${themeContract.animation.duration.base} ${themeContract.animation.easing.settle}`,
   pointerEvents: 'none',

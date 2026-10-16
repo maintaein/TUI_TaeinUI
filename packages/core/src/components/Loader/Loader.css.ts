@@ -145,6 +145,7 @@ export const bar = style({
   // paper(1.04:1)로는 모자라 gray[200]을 쓴다(SegmentedButtons 트랙과 같다).
   // 채움(primary.main)과는 3:1을 넘는다.
   backgroundColor: themeContract.palette.gray[200],
+  // 막대 높이(6px)의 절반이라 끝이 알약이다. barFill·barClip도 같은 값이다.
   borderRadius: '3px',
 
   selectors: {
@@ -163,6 +164,7 @@ export const barFill = style({
   left: 0,
   height: '100%',
   width: '25%',
+  // bar와 같은 반경(높이 6px의 절반).
   borderRadius: '3px',
   backgroundColor: 'var(--loader-color)',
   // 빛은 채움이 아니라 자르기 층(barClip)의 필터 하나가 건다.
@@ -190,6 +192,7 @@ export const barClip = style({
   width: '100%',
   height: '100%',
   overflow: 'hidden',
+  // bar와 같은 반경이어야 자른 모서리가 막대 모서리와 겹친다.
   borderRadius: '3px',
   pointerEvents: 'none',
   filter: `drop-shadow(${loaderGlow('var(--loader-color)')})`,
@@ -344,6 +347,7 @@ export const waveBar = style({
   width: '2px',
   height: '100%',
   margin: '0 3px',
+  // 막대 폭(2px)의 절반이라 끝이 알약이다.
   borderRadius: '1px',
   backgroundColor: 'var(--spinner-color)',
   boxShadow: loaderGlow('var(--spinner-color)'),

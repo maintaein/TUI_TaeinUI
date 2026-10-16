@@ -35,6 +35,8 @@ export const indicatorShadow = style({
   width: '100%',
   height: `calc(100% - ${INDICATOR_INSET_PX * 2}px)`,
   pointerEvents: 'none',
+  // 표시의 파란 빛. 팔레트에 rgb(0, 102, 255)가 없고 shadows.css.ts에도 같은 그림자가
+  // 없다. 토큰으로 바꾸면 보이는 색이 달라져 리터럴로 둔다.
   filter: 'drop-shadow(0 2px 8px rgba(0, 102, 255, 0.25))',
   // 진짜 라벨(zIndex 1) 위. 표시 안의 라벨 한 벌이 글자색을 표시 가장자리에서
   // 정확히 가른다. pointerEvents none이라 클릭은 아래 진짜 라벨로 간다.
@@ -163,6 +165,7 @@ export const button = style({
     // 선택 칸 호버 글자 빛. 진짜 라벨은 표시에 덮이므로 안쪽 글자가 대신 낸다.
     // 이 빛을 지우기로 하면 이 두 규칙만 걷는다.
     [`${container}:has(label.selected:hover) ${indicatorLabels} &.selected`]: {
+      // 흰색 반투명 토큰은 overlay.shimmer(0.3)뿐이라 0.5인 이 빛은 리터럴로 둔다.
       textShadow: '0 0 8px rgba(255, 255, 255, 0.5)',
     },
     [`${container}:has(label.selected:active) ${indicatorLabels} &.selected`]: {
