@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, afterEach } from 'vitest';
+import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest';
 import { render, screen, fireEvent, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
@@ -2412,6 +2412,97 @@ describe('Slider', () => {
       for (const bar of getWakeBars(container)) {
         expect(bar.style.getPropertyValue('transform')).toBe('');
       }
+    });
+  });
+
+  describe('잡은 채 비활성이 되면 잡힘이 풀린다', () => {
+    // 앞 시험이 남긴 축소 선호 스텁이 있으면 보이는 위치가 값 자리로 바로 간다.
+    beforeEach(() => {
+      vi.unstubAllGlobals();
+    });
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    const jsx = (disabled: boolean, value = 50) => (
+      <Slider
+        showThumbValue
+        label="슬라이더"
+        value={value}
+        step={0.001}
+        disabled={disabled}
+        onChange={() => {}}
+      />
+    );
+    const press = (slider: HTMLElement) => {
+      slider.focus();
+      act(() => {
+        slider.dispatchEvent(
+          new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true })
+        );
+      });
+    };
+    const headAt = (container: HTMLElement) =>
+      Number(getHead(container)!.style.getPropertyValue(HEAD_PERCENT_VAR));
+
+    it('포인터로 끄는 중 비활성이 되면 값 따라붙기가 사라진다', () => {
+      const { container, rerender } = render(jsx(false));
+      fireEvent.pointerDown(screen.getByRole('slider'));
+      expect(getFollower(container)).toBeInTheDocument();
+
+      rerender(jsx(true));
+
+      expect(getFollower(container)).not.toBeInTheDocument();
+    });
+
+    it('포인터로 끄는 중 비활성이 되면 끄는 중도 끝난다: 값이 바뀌어도 목표를 그대로 따라붙지 않고 스프링으로 좇는다', () => {
+      const { container, rerender } = render(jsx(false));
+      fireEvent.pointerDown(screen.getByRole('slider'));
+      rerender(jsx(true));
+
+      rerender(jsx(true, 51.5));
+
+      expect(headAt(container)).toBeLessThan(51.5);
+    });
+
+    it('키보드로 잡은 중 비활성이 되면 풀리고 해제 타이머도 정리된다', () => {
+      vi.useFakeTimers();
+      const { container, rerender } = render(jsx(false));
+      press(screen.getByRole('slider'));
+      expect(getFollower(container)).toBeInTheDocument();
+      expect(vi.getTimerCount()).toBe(1);
+
+      rerender(jsx(true));
+
+      expect(getFollower(container)).not.toBeInTheDocument();
+      expect(vi.getTimerCount()).toBe(0);
+    });
+
+    it('비활성인 동안에는 잡히지 않는다: 포인터도 키보드도 값 따라붙기와 타이머를 만들지 않는다', () => {
+      vi.useFakeTimers();
+      const { container } = render(jsx(true));
+      const slider = screen.getByRole('slider');
+
+      fireEvent.pointerDown(slider);
+      press(slider);
+
+      expect(getFollower(container)).not.toBeInTheDocument();
+      expect(vi.getTimerCount()).toBe(0);
+    });
+
+    it('풀린 뒤 다시 켜면 정상으로 잡히고 놓인다: 풀린 잡힘이 되살아나지 않는다', () => {
+      const { container, rerender } = render(jsx(false));
+      const slider = screen.getByRole('slider');
+      fireEvent.pointerDown(slider);
+      rerender(jsx(true));
+
+      rerender(jsx(false));
+      expect(getFollower(container)).not.toBeInTheDocument();
+
+      fireEvent.pointerDown(slider);
+      expect(getFollower(container)).toBeInTheDocument();
+      fireEvent.pointerUp(slider);
+      expect(getFollower(container)).not.toBeInTheDocument();
     });
   });
 });

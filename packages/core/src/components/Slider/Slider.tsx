@@ -222,14 +222,14 @@ export const Slider = forwardRef<HTMLInputElement, SliderProps>(
     const [initialPct] = useState(fillPercent);
     const displayRef = useRef(initialPct);
 
+    // 놓기는 비활성이어도 막지 않는다: 잡은 채 비활성이 되면 풀어야 한다.
     const handleRelease = useCallback(() => {
-      if (disabled) return;
       if (keyboardReleaseTimerRef.current !== null) {
         clearTimeout(keyboardReleaseTimerRef.current);
         keyboardReleaseTimerRef.current = null;
       }
       setIsGrabbed(false);
-    }, [disabled]);
+    }, []);
 
     const handleGrab = () => {
       if (disabled) return;
@@ -237,7 +237,7 @@ export const Slider = forwardRef<HTMLInputElement, SliderProps>(
     };
 
     const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
-      if (!GRAB_KEYS.has(e.key)) return;
+      if (disabled || !GRAB_KEYS.has(e.key)) return;
       handleGrab();
       if (keyboardReleaseTimerRef.current !== null) {
         clearTimeout(keyboardReleaseTimerRef.current);
@@ -263,6 +263,19 @@ export const Slider = forwardRef<HTMLInputElement, SliderProps>(
       draggingRef.current = false;
       if (isGrabbed) handleRelease();
     };
+
+    // 잡은 채 비활성이 되면 바로 푼다. 잡힘 상태는 렌더 중에 내리고(되살아나지 않게 같은
+    // 렌더에서), 끄는 중 표시와 키보드 해제 타이머는 효과가 정리한다. 이 효과는 값을 머리에
+    // 알리는 효과보다 앞에 있어야 한다(그 효과가 끄는 중인지 읽는다).
+    if (disabled && isGrabbed) setIsGrabbed(false);
+    useEffect(() => {
+      if (!disabled) return;
+      draggingRef.current = false;
+      if (keyboardReleaseTimerRef.current !== null) {
+        clearTimeout(keyboardReleaseTimerRef.current);
+        keyboardReleaseTimerRef.current = null;
+      }
+    }, [disabled]);
 
     // keyboardReleaseTimerRef 마운트 범위 정리. 재잡음·해제 경로만 정리하면
     // 유휴창(≤500ms) 안에 언마운트될 때 정리할 곳이 없어 언마운트 뒤에
