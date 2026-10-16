@@ -566,7 +566,7 @@ const handleLoad = () => {
             attribute: '감싸는 영역의 aria-busy',
             effect: '이 영역이 로딩 중임을 알립니다.',
             description:
-              'Loader의 status 요소에는 aria-busy를 달지 않습니다. busy인 살아 있는 영역은 갱신 낭독이 미뤄질 수 있어 메시지가 안 읽힐 수 있기 때문입니다. 영역이 로딩 중임은 Loader를 감싸는 요소에 aria-busy와 이름을 주세요(Skeleton과 같은 안내). Loader에 직접 넘긴 aria-busy는 어디에도 닿지 않습니다.',
+              'Loader의 status 요소에는 aria-busy를 달지 않습니다. busy인 살아 있는 영역은 갱신 낭독이 미뤄질 수 있어 메시지가 안 읽힐 수 있기 때문입니다. 영역이 로딩 중임은 Loader를 감싸는 요소에 aria-busy와 이름을 주세요(예: <section aria-busy="true" aria-label="목록 로딩 중"><Loader /></section>, 로딩이 끝나면 aria-busy를 거둡니다. Skeleton과 같은 안내). Loader에 직접 넘긴 aria-busy는 어디에도 닿지 않습니다.',
           },
           {
             attribute: 'role="progressbar"',
@@ -578,13 +578,13 @@ const handleLoad = () => {
             attribute: 'aria-live="polite"',
             effect: '상태 변화를 자동으로 읽습니다.',
             description:
-              'bar 타입에서 aria-live="polite"로 설정되어 로딩 완료 시 스크린 리더가 알립니다.',
+              'fuse를 뺀 모든 타입의 상태 영역이 aria-live="polite"라, 숨은 메시지 글자가 바뀌면(예: orbit의 status가 완료·실패로) 스크린 리더가 읽습니다.',
           },
           {
             attribute: 'aria-label',
             effect: '로더의 용도를 설명합니다.',
             description:
-              'label prop 또는 aria-label로 "로딩 중" 등 기본 레이블이 제공됩니다. label이 접근 이름과 같으면 보이는 라벨은 aria-hidden이 되어, 상태 영역 안의 숨은 메시지로 한 번만 읽힙니다. aria-label이 label과 다르면 둘 다 읽힙니다.',
+              'label prop 또는 aria-label로 "로딩 중" 등 기본 레이블이 제공됩니다. label이 접근 이름과 같으면 보이는 라벨은 aria-hidden이 되어 한 번만 읽힙니다(상태 영역은 숨은 메시지가, fuse는 progressbar 이름이 읽습니다). aria-label이 label과 다르면 둘 다 읽힙니다.',
           },
         ]}
         additionalGuidance={[
