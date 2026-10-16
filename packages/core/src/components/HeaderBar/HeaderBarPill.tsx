@@ -86,7 +86,7 @@ const HeaderBarPillItem = ({ item }: HeaderBarPillItemProps) => {
 
   // 알약 크기를 재서 원과 글자를 놓고 멈춘 타임라인 하나를 만든다(:52-100).
   // 마운트, 글자(=폭) 변화, 창 크기, 글꼴 로딩 때 다시 잰다(:102-109).
-  // 다시 만들면 진행 중 상태는 0으로 돌아간다.
+  // 다시 만들면 돌던 tweenTo는 죽고 진행 상태는 채움 판정의 끝 또는 처음으로 확정된다.
   useLayoutEffect(() => {
     const pill = pillRef.current;
     const circle = circleRef.current;
@@ -94,10 +94,16 @@ const HeaderBarPillItem = ({ item }: HeaderBarPillItemProps) => {
     const cover = coverRef.current;
     if (!pill || !circle || !label || !cover) return;
 
+    // 마지막으로 만든 알약 크기. 폭·높이가 그대로면 다시 만들지 않는다(높이만 바뀌는
+    // 모바일 주소창 resize, 같은 크기의 반복 resize). 효과가 다시 돌면 이 값도 새로다.
+    let measured: { width: number; height: number } | null = null;
+
     const layout = () => {
+      const { width, height } = pill.getBoundingClientRect();
+      if (measured?.width === width && measured.height === height) return;
+      measured = { width, height };
       pill.__pillTween?.kill();
       pill.__pillTimeline?.kill();
-      const { width, height } = pill.getBoundingClientRect();
       const g = pillGeometry(width, height);
 
       circle.style.width = `${g.diameter}px`;
@@ -128,8 +134,10 @@ const HeaderBarPillItem = ({ item }: HeaderBarPillItemProps) => {
       timeline.to(label, { y: g.labelTo, ...common }, 0);
       timeline.to(cover, { y: 0, opacity: 1, ...common }, 0);
       pill.__pillTimeline = timeline;
-      // 선택된 항목은 늘 채워진 끝 상태다. 재생이 아니라 자리를 잡는 것이다.
-      timeline.progress(held.current.active ? 1 : 0);
+      // 채움 판정(선택, 마우스, 키보드 포커스)대로 끝 또는 처음에 자리를 잡는다.
+      // 재생이 아니라 확정이라 호버로 채워 둔 알약이 resize에 비지 않는다.
+      const { pointer, focus, active } = held.current;
+      timeline.progress(pointer || focus || active ? 1 : 0);
     };
 
     layout();

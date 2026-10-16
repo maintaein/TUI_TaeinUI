@@ -548,10 +548,11 @@ describe('navStyle="pill" 선택된(active) 항목', () => {
   });
 
   it('다시 재면 active는 끝 상태로, 아니면 처음으로 돌아온다', () => {
-    rectOf(100, 40);
+    const spy = rectOf(100, 40);
     render(<HeaderBar navStyle="pill" items={items} />);
-    hoverIn(getPill('소개'));
-    getPill('소개').__pillTween?.progress(1);
+    spy.mockImplementation(
+      () => ({ width: 101, height: 40 }) as unknown as DOMRect
+    );
     act(() => {
       window.dispatchEvent(new Event('resize'));
     });
@@ -592,7 +593,7 @@ describe('navStyle="pill" 기하 측정', () => {
     expect(label.style.transform).toContain('translate(0px, -48px)');
   });
 
-  it('창 크기가 바뀌면 다시 재고 진행 중 상태는 0으로 돌린다', () => {
+  it('창 크기가 바뀌면 다시 재고 호버로 채워 둔 알약은 채운 채로 둔다', () => {
     const spy = rectOf(100, 40);
     render(<HeaderBar navStyle="pill" items={items} />);
     const pill = getPill('소개');
@@ -607,8 +608,77 @@ describe('navStyle="pill" 기하 측정', () => {
       window.dispatchEvent(new Event('resize'));
     });
     expect(circle.style.width).toBe('63px');
-    expect(circle.style.transform).toContain('scale(0');
-    expect(partsOf(pill).cover.style.opacity).toBe('0');
+    expect(circle.style.transform).toContain('scale(1.2');
+    expect(partsOf(pill).cover.style.opacity).toBe('1');
+  });
+
+  it('호버로 채운 뒤 폭이 바뀌어도 돌던 tweenTo는 죽고 끝에서 쉰다', () => {
+    const spy = rectOf(100, 40);
+    render(<HeaderBar navStyle="pill" items={items} />);
+    const pill = getPill('소개');
+    hoverIn(pill);
+    const running = pill.__pillTween as gsap.core.Tween;
+    running.progress(0.3);
+    spy.mockImplementation(
+      () => ({ width: 60, height: 34 }) as unknown as DOMRect
+    );
+    act(() => {
+      window.dispatchEvent(new Event('resize'));
+    });
+    const timeline = pill.__pillTimeline as gsap.core.Timeline;
+    expect(timeline.progress()).toBe(1);
+    expect(running.parent).toBeNull();
+  });
+
+  it('키보드 포커스로 채운 알약도 창 크기가 바뀌면 채운 채로 둔다', () => {
+    const spy = rectOf(100, 40);
+    render(<HeaderBar navStyle="pill" items={items} />);
+    const pill = getPill('소개');
+    stubFocusVisible(pill, true);
+    act(() => pill.focus());
+    pill.__pillTween?.progress(1);
+    spy.mockImplementation(
+      () => ({ width: 60, height: 34 }) as unknown as DOMRect
+    );
+    act(() => {
+      window.dispatchEvent(new Event('resize'));
+    });
+    expect(partsOf(pill).circle.style.transform).toContain('scale(1.2');
+  });
+
+  it('알약 폭·높이가 그대로면 resize가 와도 타임라인을 다시 만들지 않는다', () => {
+    rectOf(100, 40);
+    render(<HeaderBar navStyle="pill" items={items} />);
+    const pill = getPill('소개');
+    hoverIn(pill);
+    const timeline = pill.__pillTimeline;
+    const tween = pill.__pillTween;
+    act(() => {
+      window.dispatchEvent(new Event('resize'));
+      window.dispatchEvent(new Event('resize'));
+    });
+    expect(pill.__pillTimeline).toBe(timeline);
+    expect(pill.__pillTween).toBe(tween);
+    expect(tween?.parent).not.toBeNull();
+  });
+
+  it('폭이 같고 높이만 달라지면 다시 만들고, 높이도 같으면 만들지 않는다', () => {
+    const spy = rectOf(100, 40);
+    render(<HeaderBar navStyle="pill" items={items} />);
+    const pill = getPill('소개');
+    const first = pill.__pillTimeline;
+    spy.mockImplementation(
+      () => ({ width: 100, height: 44 }) as unknown as DOMRect
+    );
+    act(() => {
+      window.dispatchEvent(new Event('resize'));
+    });
+    const second = pill.__pillTimeline;
+    expect(second).not.toBe(first);
+    act(() => {
+      window.dispatchEvent(new Event('resize'));
+    });
+    expect(pill.__pillTimeline).toBe(second);
   });
 
   it('글꼴 로딩이 끝나면 다시 잰다', async () => {
