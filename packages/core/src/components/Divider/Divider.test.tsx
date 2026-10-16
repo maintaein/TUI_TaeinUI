@@ -247,6 +247,83 @@ describe('Divider', () => {
 
         expect(screen.getByRole('separator')).not.toHaveAttribute('aria-label');
       });
+
+      describe('이름과 글자가 두 번 읽히지 않는다', () => {
+        it('이름을 글자에서 만들었으면 안쪽 글자는 보조 기술에서 숨긴다', () => {
+          render(<Divider>또는</Divider>);
+
+          expect(screen.getByText('또는')).toHaveAttribute(
+            'aria-hidden',
+            'true'
+          );
+        });
+
+        it.each(['left', 'center', 'right'] as const)(
+          'textAlign=%s, 세로여도 안쪽 글자를 숨긴다',
+          (textAlign) => {
+            render(
+              <Divider orientation="vertical" textAlign={textAlign}>
+                또는
+              </Divider>
+            );
+
+            expect(screen.getByText('또는')).toHaveAttribute(
+              'aria-hidden',
+              'true'
+            );
+          }
+        );
+
+        it('소비자가 aria-label을 직접 주면 안쪽 글자는 그대로 둔다', () => {
+          render(<Divider aria-label="구간 나눔">또는</Divider>);
+
+          expect(screen.getByText('또는')).not.toHaveAttribute('aria-hidden');
+        });
+
+        it('요소 children이면 이름을 만들지 않으므로 안쪽 글자를 숨기지 않는다', () => {
+          render(
+            <Divider>
+              <span>또는</span>
+            </Divider>
+          );
+
+          expect(screen.getByText('또는').parentElement).not.toHaveAttribute(
+            'aria-hidden'
+          );
+        });
+
+        it('aria-label을 undefined로 넘기면 주지 않은 것과 같아 글자가 이름이 되고 숨는다', () => {
+          render(<Divider aria-label={undefined}>또는</Divider>);
+
+          expect(
+            screen.getByRole('separator', { name: '또는' })
+          ).toBeInTheDocument();
+          expect(screen.getByText('또는')).toHaveAttribute(
+            'aria-hidden',
+            'true'
+          );
+        });
+      });
+
+      describe('숫자 children', () => {
+        it('숫자도 문자열처럼 접근 이름이 되고 안쪽 글자는 숨는다', () => {
+          render(<Divider>{3}</Divider>);
+
+          expect(screen.getByRole('separator', { name: '3' })).toHaveAttribute(
+            'aria-label',
+            '3'
+          );
+          expect(screen.getByText('3')).toHaveAttribute('aria-hidden', 'true');
+        });
+
+        it('0은 렌더되지 않으므로 이름도 만들지 않는다', () => {
+          render(<Divider>{0}</Divider>);
+
+          expect(screen.getByRole('separator')).not.toHaveAttribute(
+            'aria-label'
+          );
+        });
+      });
     });
   });
 

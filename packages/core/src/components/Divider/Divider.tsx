@@ -34,19 +34,24 @@ export const Divider = ({
   spacing = 'md',
   textAlign = 'center',
   className,
+  'aria-label': ariaLabel,
   ...props
 }: DividerProps) => {
   const isVertical = orientation === 'vertical';
+  // separator의 이름은 자식 글자에서 계산되지 않아 일부 보조 기술이 글자를 읽지 않는다.
+  // 글자가 문자열이나 숫자면 그 글자를 이름으로 준다. 소비자가 aria-label을 주면 그것이 이긴다.
+  const textLabel =
+    (typeof children === 'string' || typeof children === 'number') && children
+      ? String(children)
+      : undefined;
+  // 이름을 글자에서 만들었으면 안쪽 글자는 숨겨 이름과 함께 두 번 읽히지 않게 한다.
+  const hideText = ariaLabel === undefined && textLabel !== undefined;
 
   return (
     <div
       role="separator"
       aria-orientation={orientation}
-      // separator의 이름은 자식 글자에서 계산되지 않아 일부 보조 기술이 글자를 읽지 않는다.
-      // 글자가 문자열이면 이름으로 준다. 소비자가 aria-label을 주면 아래 props가 덮는다.
-      aria-label={
-        typeof children === 'string' && children ? children : undefined
-      }
+      aria-label={ariaLabel ?? textLabel}
       className={clsx(
         divider,
         orientationStyles[orientation],
@@ -62,7 +67,10 @@ export const Divider = ({
           {(textAlign === 'center' || textAlign === 'right') && (
             <div className={isVertical ? lineVertical : line} />
           )}
-          <div className={isVertical ? textContentVertical : textContent}>
+          <div
+            className={isVertical ? textContentVertical : textContent}
+            aria-hidden={hideText ? true : undefined}
+          >
             {children}
           </div>
           {(textAlign === 'center' || textAlign === 'left') && (

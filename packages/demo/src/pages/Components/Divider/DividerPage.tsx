@@ -250,7 +250,7 @@ export function DividerPage() {
             attribute: 'aria-label',
             effect: '구분선 글자를 이름으로 전달합니다.',
             description:
-              'separator의 이름은 안쪽 글자에서 계산되지 않아 일부 보조 기술이 글자를 읽지 않습니다. 글자(children)가 문자열이면 aria-label로 함께 줍니다. 직접 aria-label을 주면 그 값을 따르고, 요소를 넣었을 때는 이름을 만들지 않습니다.',
+              'separator의 이름은 안쪽 글자에서 계산되지 않아 일부 보조 기술이 글자를 읽지 않습니다. 글자(children)가 문자열이나 숫자면 aria-label로 주고 안쪽 글자는 aria-hidden으로 가려 두 번 읽히지 않게 합니다. 직접 aria-label을 주면 그 값을 따르고 안쪽 글자도 그대로 읽히며, 요소를 넣었을 때는 이름을 만들지 않습니다.',
           },
           {
             attribute: '시각적 구분',
