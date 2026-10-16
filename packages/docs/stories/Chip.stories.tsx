@@ -29,13 +29,9 @@ const meta = {
       options: ['default', 'primary', 'success', 'error', 'warning'],
       description: '칩 색상',
     },
-    clickable: {
-      control: 'boolean',
-      description: '클릭 가능 여부',
-    },
     selected: {
       control: 'boolean',
-      description: '선택 상태',
+      description: '선택 상태. 주면 토글 칩(aria-pressed)',
     },
     disabled: {
       control: 'boolean',
@@ -221,7 +217,6 @@ const ClickableComponent = () => {
         <Chip
           key={index}
           label={label}
-          clickable
           selected={selected === index}
           onClick={() => setSelected(index)}
           color="primary"
@@ -261,7 +256,6 @@ const MultiSelectComponent = () => {
           <Chip
             key={index}
             label={label}
-            clickable
             selected={selected.includes(index)}
             onClick={() => toggleSelection(index)}
             color="success"
@@ -291,7 +285,7 @@ export const Disabled: Story = {
     >
       <Chip label="Disabled" disabled />
       <Chip label="Disabled Primary" color="primary" disabled />
-      <Chip label="Disabled Clickable" clickable onClick={() => {}} disabled />
+      <Chip label="Disabled Clickable" onClick={() => {}} disabled />
       <Chip label="Disabled Deletable" onDelete={() => {}} disabled />
     </div>
   ),
@@ -370,7 +364,6 @@ const FilterChipsComponent = () => {
           <Chip
             key={option.value}
             label={option.label}
-            clickable
             selected={filters.includes(option.value)}
             onClick={() => toggleFilter(option.value)}
             variant="outlined"
@@ -445,7 +438,6 @@ export const Interactive: Story = {
     size: 'md',
     variant: 'filled',
     color: 'primary',
-    clickable: false,
     selected: false,
     disabled: false,
   },

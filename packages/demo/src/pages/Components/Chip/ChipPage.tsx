@@ -52,16 +52,11 @@ export function ChipPage() {
         '삭제 핸들러 (설정 시 삭제 아이콘 표시). 퇴장 애니메이션이 끝난 뒤 불린다. 퇴장 중 칩이 언마운트되면 불리지 않는다. 칩을 목록에서 지우지 않으면 보이지 않는 채로 남는다',
     },
     {
-      name: 'clickable',
-      type: 'boolean',
-      default: 'false',
-      description: '클릭 가능 여부 (true + onClick 시 button으로 렌더링)',
-    },
-    {
       name: 'selected',
       type: 'boolean',
-      default: 'false',
-      description: '선택 상태 (색상별 inset border 표시)',
+      default: 'undefined',
+      description:
+        '선택 상태 (색상별 inset border 표시). 주면 토글 칩(aria-pressed)이 된다. 안 주면 토글이 아니라 aria-pressed가 없다',
     },
     {
       name: 'disabled',
@@ -73,7 +68,7 @@ export function ChipPage() {
       name: 'onClick',
       type: '() => void',
       default: 'undefined',
-      description: '클릭 핸들러 (clickable과 함께 사용)',
+      description: '클릭 핸들러. 주면 눌리는 칩(button)이 된다',
     },
     {
       name: 'className',
@@ -245,13 +240,13 @@ const handleDelete = (chipToDelete) => {
           <h3 className={styles.exampleTitle}>Clickable</h3>
           <LivePreview
             title="클릭 가능"
-            description="clickable과 onClick을 함께 사용하면 button으로 렌더링되어 클릭 인터랙션을 제공합니다."
+            description="onClick을 전달하면 button으로 렌더링되어 호버·포커스·누름 인터랙션을 제공합니다."
             editable
             code={`const [count, setCount] = useState(0);
 
 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', alignItems: 'center' }}>
-  <Chip label={'클릭: ' + count + '회'} clickable onClick={() => setCount(count + 1)} color="primary" />
-  <Chip label="Outlined" clickable onClick={() => alert('클릭!')} variant="outlined" />
+  <Chip label={'클릭: ' + count + '회'} onClick={() => setCount(count + 1)} color="primary" />
+  <Chip label="Outlined" onClick={() => alert('클릭!')} variant="outlined" />
 </div>`}
           />
         </div>
@@ -261,7 +256,7 @@ const handleDelete = (chipToDelete) => {
           <h3 className={styles.exampleTitle}>Selected</h3>
           <LivePreview
             title="선택 상태"
-            description="selected prop으로 선택 상태를 표시합니다. 필터, 토글 그룹 등에 활용합니다."
+            description="selected prop을 주면 토글 칩이 되어 선택 상태를 표시하고 aria-pressed로 알립니다. 필터, 토글 그룹 등에 활용합니다."
             editable
             code={`const [selected, setSelected] = useState(['React']);
 const tags = ['React', 'Vue', 'Angular', 'Svelte'];
@@ -277,7 +272,6 @@ const toggle = (tag) => {
       color="primary"
       variant="outlined"
       selected={selected.includes(tag)}
-      clickable
       onClick={() => toggle(tag)}
     />
   ))}
@@ -359,15 +353,21 @@ const toggle = (tag) => {
         features={[
           {
             attribute: '<button> / <div>',
-            effect: 'clickable 여부에 따라 적절한 요소로 렌더링됩니다.',
+            effect: 'onClick 여부에 따라 적절한 요소로 렌더링됩니다.',
             description:
-              'clickable + onClick이면 button으로, 아니면 div로 렌더링되어 역할이 올바르게 전달됩니다.',
+              'onClick이 있으면 button으로, 아니면 div로 렌더링되어 역할이 올바르게 전달됩니다. 삭제 버튼은 늘 진짜 button이고, onClick과 onDelete를 함께 주면 div 안에 주 동작 button과 삭제 button이 나란히 놓입니다(Tab 순서: 주 동작, 삭제).',
+          },
+          {
+            attribute: 'aria-pressed',
+            effect: '토글 칩의 켜짐 상태를 알립니다.',
+            description:
+              'selected를 준 눌리는 칩에만 aria-pressed가 설정됩니다. selected를 안 주면 토글이 아니라 속성이 없습니다.',
           },
           {
             attribute: 'aria-label',
             effect: '칩의 라벨을 스크린 리더에 전달합니다.',
             description:
-              'clickable 칩에 aria-label이 label 값으로 자동 설정됩니다.',
+              '눌리는 칩의 주 동작 button에 aria-label이 label 값으로 자동 설정됩니다.',
           },
           {
             attribute: 'aria-disabled',
@@ -384,7 +384,7 @@ const toggle = (tag) => {
             attribute: 'focus-visible',
             effect: '키보드 포커스 시 아웃라인이 표시됩니다.',
             description:
-              'clickable 칩과 삭제 버튼에 포커스 인디케이터가 제공됩니다.',
+              '눌리는 칩과 삭제 버튼에 포커스 인디케이터가 제공됩니다.',
           },
         ]}
         additionalGuidance={[
@@ -399,7 +399,7 @@ const toggle = (tag) => {
 <Chip label="완료" color="success" />
 
 // Badge: 다른 요소에 부착되는 카운터/상태
-<Badge count={5}>알림</Badge>`,
+<Badge>{5}</Badge>`,
                 explanation:
                   'Chip은 독립적으로 사용하고, Badge는 다른 요소에 부착하여 사용합니다.',
               },
@@ -432,7 +432,7 @@ const toggle = (tag) => {
                 <ListItem>
                   색상으로 상태 구분 (success=완료, error=오류 등)
                 </ListItem>
-                <ListItem>selected + clickable로 토글 필터 구현</ListItem>
+                <ListItem>selected + onClick으로 토글 필터 구현</ListItem>
                 <ListItem>아바타 칩으로 사용자/멤버 표시</ListItem>
               </List>
             </Card.Body>
@@ -451,7 +451,6 @@ const toggle = (tag) => {
                 <ListItem>
                   버튼 대용으로 사용하지 않기 (액션은 Button 사용)
                 </ListItem>
-                <ListItem>clickable 없이 onClick만 전달하지 않기</ListItem>
                 <ListItem>한 영역에 너무 많은 색상을 혼용하지 않기</ListItem>
                 <ListItem>disabled 칩에 onDelete를 사용하지 않기</ListItem>
               </List>

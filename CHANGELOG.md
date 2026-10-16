@@ -67,6 +67,7 @@
 - **BREAKING CHANGE:** `ListItem`의 `layout="custom"`을 없앴습니다(`layout`은 `'horizontal' | 'vertical'`). 하는 일이 없는 값이었습니다. `children`을 주면 `layout`과 상관없이 이미 자유 배치였고, `children` 없이 `custom`을 주면 배치 클래스가 빠졌습니다. 자유 배치는 `<ListItem>` 안에 `children`을 넣으세요.
 - **BREAKING CHANGE:** `ListItem`의 `align`을 없앴습니다. label-value 항목의 정렬은 고정입니다. 세로 항목(`layout="vertical"`)은 왼쪽(`align-items: flex-start`), 가로 항목은 세로 가운데(`align-items: center`)입니다. 다른 정렬이 필요하면 `className`이나 `style={{ alignItems: 'flex-start' }}`를 쓰세요. `children`으로 자유 배치한 항목은 이전에도 `align`을 쓰지 않았습니다.
 - **BREAKING CHANGE:** `Skeleton`이 기본으로 달던 `role="status"`, `aria-live="polite"`, `aria-busy="true"`, 자동 이름 "콘텐츠 로딩 중"을 없앴습니다. 스켈레톤은 장식이라 `aria-hidden="true"`만 붙습니다(스켈레톤이 여럿이면 라이브 리전도 여럿이라 매번 알리던 문제). 로딩 알림은 감싸는 영역이 맡으세요: `<section aria-busy="true" aria-label="프로필 로딩 중">…</section>`처럼 스켈레톤들을 감싸고 로딩이 끝나면 `aria-busy`를 거두세요. 스켈레톤 하나가 직접 알려야 하면 `aria-label`이나 `role`을 주세요. 주면 `aria-hidden`을 달지 않고 그대로 붙고, `aria-label`만 주면 `role="img"`가 같이 붙습니다. `role="status"`를 주면 라이브 리전이 되지만 `aria-busy`와 자동 이름은 붙지 않으니, 알림은 감싸는 영역 패턴을 권합니다. 모양, 크기, 모션은 그대로입니다.
+- **BREAKING CHANGE:** `Chip`의 `clickable`을 없앴습니다. `onClick`을 주면 눌리는 칩(호버·포커스·누름·`aria-label`)이 됩니다. `clickable`은 늘 `onClick`과 같이 쓰였고 `onClick`만 주면 조용히 아무 일도 안 했습니다. `<Chip clickable onClick={f} />`는 `<Chip onClick={f} />`로 바꾸세요.
 
 ### Changed
 
@@ -123,6 +124,9 @@
 - `NumericSpinner`의 입력칸 포커스가 테두리 색 한 겹(`primary.main`)이 되었습니다. 이전에는 테두리 색 위에 3px 후광과 2px 바깥 링이 겹쳐 세 겹으로 칠해졌습니다. 포커스 표시는 테두리 색과 캐럿이 맡고(`TextField`와 같습니다), 증감 버튼의 키보드 포커스 링은 그대로입니다. 바깥 상자의 테두리(`border.strong` 1px)를 없애 상자 안에 상자로 읽히던 모양을 걷었습니다. 면과 모서리는 그대로이고 입력칸 자신의 테두리가 남습니다. `error`는 입력칸 테두리 하나만 빨갛게 하며(포커스 때도 유지), 바깥 상자의 빨간 테두리와 포커스 후광은 없어졌습니다. 증감 버튼을 누르면 숫자 칸도 함께 눌려 한 몸처럼 움직입니다(깊이와 뗄 때의 모양은 아래 별도 항목). 모션 축소 선호에서는 즉시 정착합니다. 할 일은 없습니다.
 - `NumericSpinner`는 숫자 칸(테두리가 있는 상자)은 그대로 두고 안의 숫자만 눌립니다. 이전에는 증감 버튼을 누르면 숫자 칸 테두리 상자째 눌리고 움직였습니다. 이제 테두리, 반경, 면, 포커스와 오류의 테두리 색은 새 상자 요소(`<span>`)가 갖고 움직이지 않으며, 눌림과 숫자가 자리를 잡는 움직임은 안쪽 `<input>`에만 걸립니다. `ref`, `className`, `style`, 나머지 속성은 지금처럼 `<input>`에 붙고 `style={{ width }}`로 폭을 줘도 상자가 따라갑니다. 오류의 빨간 테두리는 상자에 칠합니다(`:focus-within`일 때도 유지). 입력칸의 부모 요소가 컨테이너에서 이 상자로 한 단계 깊어졌으니, `input.parentElement`로 컨테이너를 찾던 코드가 있다면 `closest`로 바꾸세요. 할 일은 따로 없습니다.
 - `NumericSpinner`의 증감 버튼과 숫자가 떼는 순간 부풀었다 내려앉습니다. 이전에는 누르는 순간 안쪽으로 떨리듯 0.92까지 들어갔다가 뗄 때 가속하며 1에 부딪혀 툭 끊겼습니다. 이제 누르는 순간은 떨림 없이 단단하게 들어가고(버튼 0.90, 숫자 0.82), 길게 누르면 더 깊어지며(버튼 0.86, 숫자 0.76), 떼면 지금 크기에서 곧바로 버튼은 1.06, 숫자는 1.12까지 부풀었다가 부드럽게 1로 내려앉습니다. 숫자는 글자가 작아 버튼보다 더 깊게 누르고 더 크게 부풉니다. 떼는 도중에 다시 누르면 부풂을 멈추고 지금 크기에서 다시 눌립니다. 모션 축소 선호에서는 부풂 없이 즉시 정착합니다. 할 일은 없습니다.
+- `Chip`의 `selected` 기본값이 `false`에서 없음(`undefined`)이 되었습니다. `aria-pressed`는 `selected`를 준 눌리는 칩에만 붙습니다. 이전에는 `onClick`이 있는 모든 칩에 `aria-pressed="false"`가 붙었으니, 토글이 아닌 칩은 이제 속성이 없습니다. 토글 칩은 `selected={bool}`을 주세요. 선택 표시 스타일은 `selected`가 `true`일 때만 켜지는 것 그대로입니다.
+- `Chip`의 삭제 버튼이 `span role="button"`에서 진짜 `<button type="button">`이 되었습니다(이름 `"{label} 삭제"` 그대로, 비활성이면 `disabled`와 `aria-disabled`). 키보드(Enter·Space)는 기본 동작으로 됩니다.
+- `Chip`에 `onClick`과 `onDelete`를 함께 주면 구조가 바뀝니다. 이전에는 `<button>` 안에 삭제 `span`이 들어 있었고, 이제 칩 겉모습을 가진 `<div>` 안에 주 동작 `<button>`(아바타·아이콘·라벨)과 삭제 `<button>`이 나란히 놓입니다. 겉모습은 같고, 주 동작을 누르면 칩 전체가 눌려 보이며 삭제를 누를 때는 눌리지 않습니다. Tab 순서는 주 동작, 삭제입니다. 루트가 `<button>`이라고 가정한 선택자(`button.chip` 등)를 쓰던 곳은 확인하세요. `onClick`만 있는 칩은 여전히 루트가 `<button>`입니다.
 
 ### Fixed
 

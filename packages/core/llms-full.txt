@@ -400,7 +400,7 @@ const [tags, setTags] = useState(['React', 'Vite']);
     onDelete={() => setTags((prev) => prev.filter((t) => t !== tag))}
   />
 ))}
-<Chip label="선택됨" clickable selected onClick={() => {}} />
+<Chip label="선택됨" selected onClick={() => {}} />
 ```
 
 ### Props
@@ -413,10 +413,9 @@ const [tags, setTags] = useState(['React', 'Vite']);
 | icon | ReactNode | — | Leading icon |
 | avatar | ReactNode | — | Avatar element |
 | onDelete | () => void | - | Delete callback. Called after the exit animation ends (not called if the chip unmounts during the exit); if you do not remove the chip from your list it stays in place, invisible |
-| clickable | boolean | false | Make clickable |
-| selected | boolean | false | Selected state |
+| selected | boolean | - | Selected state. Passing it makes the chip a toggle (`aria-pressed`); omit it for a non-toggle chip |
 | disabled | boolean | false | Disabled state |
-| onClick | () => void | — | Click handler |
+| onClick | () => void | - | Click handler. Passing it makes the chip a pressable `<button>` (no `clickable` prop). With `onDelete` the chip is a `<div>` holding the action `<button>` and the delete `<button>` side by side |
 | className | string | — | Additional CSS class |
 
 ---

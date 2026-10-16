@@ -18,6 +18,7 @@ import { gateMotion } from '../../hooks/gateMotion';
 import {
   chip,
   clickable as clickableStyle,
+  action as actionStyle,
   selected as selectedStyle,
   disabled as disabledStyle,
   exiting as exitingStyle,
@@ -45,13 +46,11 @@ export interface ChipProps {
   avatar?: ReactNode;
   /** 삭제(X) 버튼 핸들러. 설정 시 삭제 버튼 표시. 퇴장 애니메이션이 끝난 뒤 불린다. 퇴장 중 칩이 언마운트되면 불리지 않는다. 칩을 목록에서 지우지 않으면 보이지 않는 채로 남는다 */
   onDelete?: () => void;
-  /** 클릭 가능 여부. true면 호버/포커스 효과 추가 @default false */
-  clickable?: boolean;
-  /** 선택 상태 @default false */
+  /** 선택 상태. 주면 토글 칩이라 aria-pressed로 알린다. 안 주면 토글이 아니다 */
   selected?: boolean;
   /** 비활성화 상태 @default false */
   disabled?: boolean;
-  /** 클릭 핸들러 */
+  /** 클릭 핸들러. 주면 눌리는 칩(button, 호버·포커스·누름 효과)이 된다 */
   onClick?: () => void;
   /** 추가 CSS 클래스 */
   className?: string;
@@ -65,8 +64,7 @@ export const Chip = ({
   icon,
   avatar,
   onDelete,
-  clickable = false,
-  selected = false,
+  selected,
   disabled = false,
   onClick,
   className,
@@ -116,9 +114,7 @@ export const Chip = ({
   // 1) 가속하며 빨려 들어간다(scale 1 -> 0, ease-in). bubble이 사라지는 느낌이다.
   // 2) 보이지 않게 된 칩이 자기 자리를 닫아 오른쪽 칩이 미끄러져 온다.
   // 축소 모드는 gateMotion이 끝 상태로 확정해 onComplete가 즉시 불린다.
-  const handleDelete = (
-    e: React.MouseEvent<HTMLElement> | React.KeyboardEvent<HTMLElement>
-  ) => {
+  const handleDelete = (e: React.MouseEvent<HTMLElement>) => {
     e.stopPropagation();
     const el = rootRef.current;
     if (disabled || exitingRef.current || !el) return;
@@ -167,10 +163,10 @@ export const Chip = ({
     });
   };
 
-  // 클릭 가능 여부에 따라 button 또는 div로 렌더링
-  const isClickable = clickable && onClick;
+  // onClick이 있으면 눌리는 칩이다.
+  const isClickable = !!onClick;
 
-  // useClickable 훅으로 클릭 가능한 div 처리
+  // useClickable 훅으로 Enter/Space 처리
   const clickableProps = useClickable({
     onClick: onClick
       ? () => {
@@ -181,14 +177,7 @@ export const Chip = ({
     role: 'button',
   });
 
-  // 삭제 버튼용 useClickable
-  const deleteButtonProps = useClickable({
-    onClick: onDelete ? handleDelete : undefined,
-    disabled,
-    role: 'button',
-  });
-
-  // 누름 상태(data-pressed)와 Enter/Space 누름. 클릭 가능한 칩에만 건다.
+  // 누름 상태(data-pressed)와 Enter/Space 누름. 눌리는 칩에만 건다.
   const { pressed, handlers } = useClickRebound<HTMLButtonElement>(disabled, {
     onKeyDown: clickableProps.onKeyDown,
   });
@@ -197,7 +186,7 @@ export const Chip = ({
     chip({ size, variant, color }),
     isClickable && clickableStyle({ variant, color }),
     {
-      [selectedStyle]: selected,
+      [selectedStyle]: selected === true,
       [disabledStyle]: disabled,
       [exitingStyle]: exiting,
     },
@@ -209,21 +198,25 @@ export const Chip = ({
       {avatar && <span className={iconContainer}>{avatar}</span>}
       {icon && <span className={iconContainer}>{icon}</span>}
       <span className={labelStyle}>{label}</span>
-      {onDelete && (
-        <span
-          {...deleteButtonProps}
-          // 삭제 버튼을 누를 때 칩 전체가 눌려 보이지 않게 한다.
-          onPointerDown={(e) => e.stopPropagation()}
-          className={deleteButton}
-          aria-label={`${label} 삭제`}
-        >
-          <Glyph name="close" size="sm" />
-        </span>
-      )}
     </>
   );
 
-  if (isClickable) {
+  // 삭제 버튼은 늘 진짜 button이다. 눌리는 칩이라도 주 동작 button의 자식이 아니라 형제다.
+  const deleteNode = onDelete && (
+    <button
+      type="button"
+      className={deleteButton}
+      onClick={handleDelete}
+      disabled={disabled}
+      aria-disabled={disabled ? true : undefined}
+      aria-label={`${label} 삭제`}
+    >
+      <Glyph name="close" size="sm" />
+    </button>
+  );
+
+  // 눌리는 칩 하나(삭제 없음)는 루트가 곧 button이다.
+  if (isClickable && !onDelete) {
     return (
       <button
         ref={rootRef as React.Ref<HTMLButtonElement>}
@@ -244,6 +237,35 @@ export const Chip = ({
     );
   }
 
+  // 누르기 + 삭제: 칩 겉모습은 루트 div가 갖고, 주 동작 button과 삭제 button이
+  // 나란히 놓인다(button 안에 button을 두지 않는다). 누름 표시는 칩 전체에 걸어야
+  // 해서 data-pressed가 루트에 붙고, 삭제 button은 누름 핸들러가 없어 칩이 눌리지 않는다.
+  if (isClickable) {
+    return (
+      <div
+        ref={rootRef as React.Ref<HTMLDivElement>}
+        inert={exiting}
+        className={chipClasses}
+        data-pressed={pressed ? '' : undefined}
+        style={markerStyle}
+      >
+        <button
+          type="button"
+          className={actionStyle}
+          onClick={clickableProps.onClick}
+          {...handlers}
+          disabled={disabled}
+          aria-disabled={disabled}
+          aria-pressed={selected}
+          aria-label={label}
+        >
+          {chipContent}
+        </button>
+        {deleteNode}
+      </div>
+    );
+  }
+
   return (
     <div
       ref={rootRef as React.Ref<HTMLDivElement>}
@@ -252,6 +274,7 @@ export const Chip = ({
       style={markerStyle}
     >
       {chipContent}
+      {deleteNode}
     </div>
   );
 };

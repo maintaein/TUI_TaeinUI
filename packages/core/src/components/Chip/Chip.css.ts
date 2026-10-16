@@ -378,6 +378,38 @@ export const label = style({
   lineHeight: 1,
 });
 
+// 누르기 + 삭제의 주 동작 버튼. 칩 겉모습은 루트 div가 갖고, 이 버튼은 아바타·아이콘·
+// 라벨을 감싸는 투명한 껍데기다(간격·글꼴·색을 루트에서 이어받는다). 삭제 버튼과 나란히
+// 놓이므로 버튼 안에 버튼이 없다. position을 주지 않아 ::after가 루트 기준으로 칩 전체를
+// 덮고, 그 덕에 패딩 영역을 눌러도 주 동작이다(삭제 버튼은 DOM 뒤라 그 위에 얹힌다).
+// 포커스 링도 이 ::after에 그려 칩 전체를 두른다.
+export const action = style({
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: 'inherit',
+  padding: 0,
+  margin: 0,
+  border: 'none',
+  background: 'none',
+  font: 'inherit',
+  color: 'inherit',
+  whiteSpace: 'inherit',
+  userSelect: 'inherit',
+  cursor: 'pointer',
+  touchAction: 'manipulation',
+  outline: 'none',
+
+  selectors: {
+    '&::after': {
+      content: '""',
+      position: 'absolute',
+      inset: 0,
+      borderRadius: themeContract.borderRadius.full,
+    },
+    '&:focus-visible::after': focusRing(),
+  },
+});
+
 export const iconContainer = style({
   display: 'inline-flex',
   alignItems: 'center',
@@ -434,8 +466,7 @@ export const deleteButton = style({
       height: '24px',
       transform: 'translate(-50%, -50%)',
     },
-    // 이 요소는 <span>이라 :disabled가 절대 매칭되지 않는다.
-    // useClickable이 주는 aria-disabled로 옮긴다.
+    // 비활성은 disabled와 함께 주는 aria-disabled로 읽는다(호버 규칙의 :not과 같은 손잡이).
     '&[aria-disabled="true"]': {
       cursor: 'not-allowed',
       opacity: 0.4,

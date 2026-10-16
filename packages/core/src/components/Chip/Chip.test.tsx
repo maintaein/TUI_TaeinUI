@@ -192,10 +192,10 @@ describe('Chip', () => {
   });
 
   describe('선택 기능 테스트', () => {
-    it('clickable이 true이면 클릭할 수 있다', async () => {
+    it('onClick만 있어도 클릭할 수 있다', async () => {
       const user = userEvent.setup();
       const handleClick = vi.fn();
-      render(<Chip label="테스트" clickable onClick={handleClick} />);
+      render(<Chip label="테스트" onClick={handleClick} />);
 
       const chip = screen.getByRole('button');
       await user.click(chip);
@@ -203,7 +203,7 @@ describe('Chip', () => {
       expect(handleClick).toHaveBeenCalledTimes(1);
     });
 
-    it('clickable이 false이면 button role이 없다', () => {
+    it('onClick과 onDelete가 없으면 button role이 없다', () => {
       render(<Chip label="테스트" />);
 
       expect(screen.queryByRole('button')).not.toBeInTheDocument();
@@ -232,7 +232,7 @@ describe('Chip', () => {
     it('disabled일 때 클릭 이벤트가 발생하지 않는다', async () => {
       const user = userEvent.setup();
       const handleClick = vi.fn();
-      render(<Chip label="테스트" clickable onClick={handleClick} disabled />);
+      render(<Chip label="테스트" onClick={handleClick} disabled />);
 
       const chip = screen.getByRole('button');
       await user.click(chip);
@@ -260,20 +260,20 @@ describe('Chip', () => {
   });
 
   describe('접근성 테스트', () => {
-    it('clickable일 때 role="button"이 있다', () => {
-      render(<Chip label="테스트" clickable onClick={() => {}} />);
+    it('onClick이 있으면 role="button"이 있다', () => {
+      render(<Chip label="테스트" onClick={() => {}} />);
 
       expect(screen.getByRole('button')).toBeInTheDocument();
     });
 
-    it('clickable이 아닐 때는 div로 렌더링된다', () => {
+    it('onClick이 없을 때는 div로 렌더링된다', () => {
       const { container } = render(<Chip label="테스트" />);
 
       expect(container.firstChild?.nodeName).toBe('DIV');
     });
 
     it('disabled일 때 aria-disabled가 있다', () => {
-      render(<Chip label="테스트" clickable onClick={() => {}} disabled />);
+      render(<Chip label="테스트" onClick={() => {}} disabled />);
 
       const chip = screen.getByRole('button');
       expect(chip).toHaveAttribute('aria-disabled', 'true');
@@ -284,7 +284,7 @@ describe('Chip', () => {
     it('Enter 키로 클릭할 수 있다', async () => {
       const user = userEvent.setup();
       const handleClick = vi.fn();
-      render(<Chip label="테스트" clickable onClick={handleClick} />);
+      render(<Chip label="테스트" onClick={handleClick} />);
 
       const chip = screen.getByRole('button');
       chip.focus();
@@ -296,7 +296,7 @@ describe('Chip', () => {
     it('Space 키로 클릭할 수 있다', async () => {
       const user = userEvent.setup();
       const handleClick = vi.fn();
-      render(<Chip label="테스트" clickable onClick={handleClick} />);
+      render(<Chip label="테스트" onClick={handleClick} />);
 
       const chip = screen.getByRole('button');
       chip.focus();
@@ -308,7 +308,7 @@ describe('Chip', () => {
     it('disabled일 때 키보드 이벤트가 발생하지 않는다', async () => {
       const user = userEvent.setup();
       const handleClick = vi.fn();
-      render(<Chip label="테스트" clickable onClick={handleClick} disabled />);
+      render(<Chip label="테스트" onClick={handleClick} disabled />);
 
       const chip = screen.getByRole('button');
       chip.focus();
@@ -340,7 +340,6 @@ describe('Chip', () => {
       const { container } = render(
         <Chip
           label="테스트"
-          clickable
           selected
           onClick={handleClick}
           onDelete={handleDelete}
@@ -385,7 +384,7 @@ describe('Chip 누름과 선택 상태', () => {
     });
 
   it('pointerdown에 data-pressed가 붙는다', () => {
-    render(<Chip label="테스트" clickable onClick={() => {}} />);
+    render(<Chip label="테스트" onClick={() => {}} />);
     const chip = screen.getByRole('button');
 
     pointer(chip, 'pointerdown');
@@ -394,7 +393,7 @@ describe('Chip 누름과 선택 상태', () => {
 
   it('짧은 누름도 90ms는 유지한다', () => {
     vi.useFakeTimers();
-    render(<Chip label="테스트" clickable onClick={() => {}} />);
+    render(<Chip label="테스트" onClick={() => {}} />);
     const chip = screen.getByRole('button');
 
     pointer(chip, 'pointerdown');
@@ -408,7 +407,7 @@ describe('Chip 누름과 선택 상태', () => {
 
   it('Enter 누름에도 data-pressed가 붙고 onClick은 한 번이다', () => {
     const onClick = vi.fn();
-    render(<Chip label="테스트" clickable onClick={onClick} />);
+    render(<Chip label="테스트" onClick={onClick} />);
     const chip = screen.getByRole('button');
 
     fireEvent.keyDown(chip, { key: 'Enter' });
@@ -417,37 +416,42 @@ describe('Chip 누름과 선택 상태', () => {
   });
 
   it('삭제 버튼을 눌러도 칩이 눌리지 않는다', () => {
-    render(
-      <Chip label="테스트" clickable onClick={() => {}} onDelete={() => {}} />
+    const { container } = render(
+      <Chip label="테스트" onClick={() => {}} onDelete={() => {}} />
     );
 
     pointer(screen.getByRole('button', { name: /삭제/i }), 'pointerdown');
+    expect(container.firstChild).not.toHaveAttribute('data-pressed');
     expect(screen.getByRole('button', { name: '테스트' })).not.toHaveAttribute(
       'data-pressed'
     );
   });
 
   it('삭제 버튼에서 Enter·Space를 쳐도 칩이 눌리지 않는다', () => {
-    render(
-      <Chip label="테스트" clickable onClick={() => {}} onDelete={() => {}} />
+    const { container } = render(
+      <Chip label="테스트" onClick={() => {}} onDelete={() => {}} />
     );
     const del = screen.getByRole('button', { name: /삭제/i });
 
     fireEvent.keyDown(del, { key: 'Enter' });
     fireEvent.keyDown(del, { key: ' ' });
-    expect(screen.getByRole('button', { name: '테스트' })).not.toHaveAttribute(
-      'data-pressed'
-    );
+    expect(container.firstChild).not.toHaveAttribute('data-pressed');
   });
 
-  it('클릭 가능한 칩은 selected를 aria-pressed로 알린다', () => {
+  it('selected를 주면 토글 칩이라 aria-pressed로 알린다', () => {
     const { rerender } = render(
-      <Chip label="테스트" clickable onClick={() => {}} selected />
+      <Chip label="테스트" onClick={() => {}} selected />
     );
     expect(screen.getByRole('button')).toHaveAttribute('aria-pressed', 'true');
 
-    rerender(<Chip label="테스트" clickable onClick={() => {}} />);
+    rerender(<Chip label="테스트" onClick={() => {}} selected={false} />);
     expect(screen.getByRole('button')).toHaveAttribute('aria-pressed', 'false');
+  });
+
+  it('selected를 안 주면 토글이 아니라 aria-pressed 속성이 없다', () => {
+    render(<Chip label="테스트" onClick={() => {}} />);
+
+    expect(screen.getByRole('button')).not.toHaveAttribute('aria-pressed');
   });
 
   it('클릭 불가 칩에는 aria-pressed가 없다', () => {
@@ -921,5 +925,513 @@ describe('Chip 모션 잠금', () => {
     const root = container.firstChild as HTMLElement;
     expect(root.style.getPropertyValue('--chip-marker-color')).toBeTruthy();
     expect(root.style.boxShadow).toBe('');
+  });
+});
+
+describe('Chip 공개 API 묶음 (clickable 삭제, aria-pressed, 나란한 삭제 버튼)', () => {
+  afterEach(() => vi.useRealTimers());
+
+  const pointer = (el: HTMLElement, type: string, button = 0) =>
+    act(() => {
+      el.dispatchEvent(new MouseEvent(type, { bubbles: true, button }));
+    });
+
+  type Host = HTMLElement & {
+    __chipExitTimeline?: { progress(value: number): unknown };
+  };
+
+  describe('clickable 삭제', () => {
+    it('clickable prop은 타입에서 사라졌다', () => {
+      // @ts-expect-error clickable은 없다. onClick만 주면 눌리는 칩이다.
+      render(<Chip label="테스트" clickable onClick={() => {}} />);
+
+      expect(screen.getByRole('button')).toBeInTheDocument();
+    });
+
+    it('onClick만 주면 button이고 호버 클래스가 붙는다', () => {
+      const { container } = render(<Chip label="테스트" onClick={() => {}} />);
+      const root = container.firstChild as HTMLElement;
+
+      expect(root.nodeName).toBe('BUTTON');
+      expect(root).toHaveClass(
+        styles.clickable({ variant: 'filled', color: 'default' })
+      );
+      expect(root).toHaveAttribute('aria-label', '테스트');
+    });
+
+    it('onClick이 없으면 호버 클래스가 없다', () => {
+      const { container } = render(<Chip label="테스트" />);
+
+      expect(container.firstChild).not.toHaveClass(
+        styles.clickable({ variant: 'filled', color: 'default' })
+      );
+    });
+
+    it('onClick만으로 눌린다(pointerdown에 data-pressed)', () => {
+      render(<Chip label="테스트" onClick={() => {}} />);
+      const chip = screen.getByRole('button');
+
+      pointer(chip, 'pointerdown');
+      expect(chip).toHaveAttribute('data-pressed');
+    });
+  });
+
+  describe('aria-pressed는 토글 칩에만', () => {
+    it('selected를 안 준 눌리는 칩에는 속성이 없다', () => {
+      render(<Chip label="테스트" onClick={() => {}} />);
+
+      expect(screen.getByRole('button')).not.toHaveAttribute('aria-pressed');
+    });
+
+    it('selected가 true/false면 그 값이다', () => {
+      const { rerender } = render(
+        <Chip label="테스트" onClick={() => {}} selected />
+      );
+      expect(screen.getByRole('button')).toHaveAttribute(
+        'aria-pressed',
+        'true'
+      );
+
+      rerender(<Chip label="테스트" onClick={() => {}} selected={false} />);
+      expect(screen.getByRole('button')).toHaveAttribute(
+        'aria-pressed',
+        'false'
+      );
+    });
+
+    it('selected=false는 선택 스타일을 안 켜고 selected=true만 켠다', () => {
+      const { container, rerender } = render(
+        <Chip label="테스트" onClick={() => {}} />
+      );
+      expect(container.firstChild).not.toHaveClass(styles.selected);
+
+      rerender(<Chip label="테스트" onClick={() => {}} selected />);
+      expect(container.firstChild).toHaveClass(styles.selected);
+    });
+
+    it('누르기 + 삭제에서는 주 동작 버튼이 aria-pressed를 갖고 삭제 버튼은 갖지 않는다', () => {
+      render(
+        <Chip label="테스트" onClick={() => {}} onDelete={() => {}} selected />
+      );
+
+      expect(screen.getByRole('button', { name: '테스트' })).toHaveAttribute(
+        'aria-pressed',
+        'true'
+      );
+      expect(
+        screen.getByRole('button', { name: '테스트 삭제' })
+      ).not.toHaveAttribute('aria-pressed');
+    });
+
+    it('div 칩에는 selected를 줘도 aria-pressed가 없다', () => {
+      const { container } = render(
+        <Chip label="테스트" onDelete={() => {}} selected />
+      );
+
+      expect(container.querySelector('[aria-pressed]')).toBeNull();
+    });
+  });
+
+  describe('네 경우의 구조', () => {
+    it('보통 칩: 루트 div, 버튼 없음', () => {
+      const { container } = render(<Chip label="테스트" />);
+
+      expect((container.firstChild as HTMLElement).nodeName).toBe('DIV');
+      expect(container.querySelector('button')).toBeNull();
+    });
+
+    it('삭제만: 루트 div 안에 삭제 button 하나', () => {
+      const { container } = render(<Chip label="테스트" onDelete={() => {}} />);
+      const root = container.firstChild as HTMLElement;
+      const del = screen.getByRole('button', { name: '테스트 삭제' });
+
+      expect(root.nodeName).toBe('DIV');
+      expect(del.nodeName).toBe('BUTTON');
+      expect(del).toHaveAttribute('type', 'button');
+      expect(del.parentElement).toBe(root);
+      expect(root.querySelectorAll('button')).toHaveLength(1);
+    });
+
+    it('누르기만: 루트가 button이고 안에 button이 없다', () => {
+      const { container } = render(<Chip label="테스트" onClick={() => {}} />);
+      const root = container.firstChild as HTMLElement;
+
+      expect(root.nodeName).toBe('BUTTON');
+      expect(root.querySelector('button')).toBeNull();
+    });
+
+    it('누르기 + 삭제: 루트 div 안에 button 둘이 나란히, button 안에 button이 없다', () => {
+      const { container } = render(
+        <Chip
+          label="테스트"
+          avatar={<span data-testid="av" />}
+          icon={<span data-testid="ic" />}
+          onClick={() => {}}
+          onDelete={() => {}}
+        />
+      );
+      const root = container.firstChild as HTMLElement;
+      const main = screen.getByRole('button', { name: '테스트' });
+      const del = screen.getByRole('button', { name: '테스트 삭제' });
+
+      expect(root.nodeName).toBe('DIV');
+      expect(main.nodeName).toBe('BUTTON');
+      expect(del.nodeName).toBe('BUTTON');
+      expect(main.parentElement).toBe(root);
+      expect(del.parentElement).toBe(root);
+      expect(container.querySelector('button button')).toBeNull();
+      // 아바타·아이콘·라벨은 주 동작 버튼이 감싼다.
+      expect(main).toContainElement(screen.getByTestId('av'));
+      expect(main).toContainElement(screen.getByTestId('ic'));
+      expect(main).toContainElement(screen.getByText('테스트'));
+      expect(main).not.toContainElement(del);
+    });
+
+    it('삭제 버튼은 두 경우 모두 aria-label이 "{label} 삭제"인 진짜 button이다', () => {
+      render(
+        <>
+          <Chip label="가" onDelete={() => {}} />
+          <Chip label="나" onClick={() => {}} onDelete={() => {}} />
+        </>
+      );
+
+      for (const name of ['가 삭제', '나 삭제']) {
+        const del = screen.getByRole('button', { name });
+        expect(del.nodeName).toBe('BUTTON');
+        expect(del).toHaveAttribute('type', 'button');
+        expect(del).not.toHaveAttribute('role');
+      }
+    });
+  });
+
+  describe('누르기 + 삭제의 누름 표시', () => {
+    it('주 동작을 누르면 칩 겉모습 요소(루트)에 data-pressed가 붙는다', () => {
+      const { container } = render(
+        <Chip label="테스트" onClick={() => {}} onDelete={() => {}} />
+      );
+      const root = container.firstChild as HTMLElement;
+
+      pointer(screen.getByRole('button', { name: '테스트' }), 'pointerdown');
+      expect(root).toHaveAttribute('data-pressed');
+    });
+
+    it('삭제 버튼을 누르면 data-pressed가 붙지 않는다', () => {
+      const { container } = render(
+        <Chip label="테스트" onClick={() => {}} onDelete={() => {}} />
+      );
+
+      pointer(
+        screen.getByRole('button', { name: '테스트 삭제' }),
+        'pointerdown'
+      );
+      expect(container.firstChild).not.toHaveAttribute('data-pressed');
+    });
+
+    it('주 동작을 뗀 뒤 90ms가 지나면 data-pressed가 풀린다', () => {
+      vi.useFakeTimers();
+      const { container } = render(
+        <Chip label="테스트" onClick={() => {}} onDelete={() => {}} />
+      );
+      const main = screen.getByRole('button', { name: '테스트' });
+
+      pointer(main, 'pointerdown');
+      pointer(main, 'pointerup');
+      expect(container.firstChild).toHaveAttribute('data-pressed');
+      act(() => {
+        vi.advanceTimersByTime(90);
+      });
+      expect(container.firstChild).not.toHaveAttribute('data-pressed');
+    });
+
+    it('주 동작의 Enter 누름에도 루트에 data-pressed가 붙고 onClick은 한 번이다', () => {
+      const onClick = vi.fn();
+      const { container } = render(
+        <Chip label="테스트" onClick={onClick} onDelete={() => {}} />
+      );
+
+      fireEvent.keyDown(screen.getByRole('button', { name: '테스트' }), {
+        key: 'Enter',
+      });
+      expect(container.firstChild).toHaveAttribute('data-pressed');
+      expect(onClick).toHaveBeenCalledTimes(1);
+    });
+
+    it('주 동작을 클릭하면 onClick만 불리고 퇴장은 시작하지 않는다', async () => {
+      const user = userEvent.setup();
+      const onClick = vi.fn();
+      const onDelete = vi.fn();
+      const { container } = render(
+        <Chip label="테스트" onClick={onClick} onDelete={onDelete} />
+      );
+
+      await user.click(screen.getByRole('button', { name: '테스트' }));
+
+      expect(onClick).toHaveBeenCalledTimes(1);
+      expect(onDelete).not.toHaveBeenCalled();
+      expect((container.firstChild as Host).__chipExitTimeline).toBeUndefined();
+    });
+
+    it('삭제 버튼을 클릭하면 onClick은 불리지 않는다', async () => {
+      const user = userEvent.setup();
+      const onClick = vi.fn();
+      render(<Chip label="테스트" onClick={onClick} onDelete={() => {}} />);
+
+      await user.click(screen.getByRole('button', { name: '테스트 삭제' }));
+
+      expect(onClick).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('키보드', () => {
+    it('Tab 순서는 주 동작, 삭제다', async () => {
+      const user = userEvent.setup();
+      render(<Chip label="테스트" onClick={() => {}} onDelete={() => {}} />);
+
+      await user.tab();
+      expect(screen.getByRole('button', { name: '테스트' })).toHaveFocus();
+      await user.tab();
+      expect(screen.getByRole('button', { name: '테스트 삭제' })).toHaveFocus();
+    });
+
+    it.each([
+      ['Enter', '{Enter}'],
+      ['Space', ' '],
+    ])(
+      '%s가 주 동작은 onClick, 삭제는 퇴장을 각자 시작한다',
+      async (_, key) => {
+        const user = userEvent.setup();
+        const onClick = vi.fn();
+        const onDelete = vi.fn();
+        const { container } = render(
+          <Chip label="테스트" onClick={onClick} onDelete={onDelete} />
+        );
+
+        await user.tab();
+        await user.keyboard(key);
+        expect(onClick).toHaveBeenCalledTimes(1);
+        expect(
+          (container.firstChild as Host).__chipExitTimeline
+        ).toBeUndefined();
+
+        await user.tab();
+        await user.keyboard(key);
+        expect(onClick).toHaveBeenCalledTimes(1);
+        const timeline = (container.firstChild as Host).__chipExitTimeline;
+        expect(timeline).toBeDefined();
+        act(() => {
+          timeline?.progress(1);
+        });
+        expect(onDelete).toHaveBeenCalledTimes(1);
+      }
+    );
+
+    it.each([
+      ['Enter', '{Enter}'],
+      ['Space', ' '],
+    ])('삭제만 있는 칩도 %s로 지운다', async (_, key) => {
+      const user = userEvent.setup();
+      const onDelete = vi.fn();
+      const { container } = render(<Chip label="테스트" onDelete={onDelete} />);
+
+      await user.tab();
+      expect(screen.getByRole('button', { name: '테스트 삭제' })).toHaveFocus();
+      await user.keyboard(key);
+      act(() => {
+        (container.firstChild as Host).__chipExitTimeline?.progress(1);
+      });
+      expect(onDelete).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('비활성', () => {
+    it('누르기 + 삭제는 두 버튼이 모두 비활성이고 아무것도 하지 않는다', async () => {
+      const user = userEvent.setup();
+      const onClick = vi.fn();
+      const onDelete = vi.fn();
+      const { container } = render(
+        <Chip label="테스트" onClick={onClick} onDelete={onDelete} disabled />
+      );
+      const main = screen.getByRole('button', { name: '테스트' });
+      const del = screen.getByRole('button', { name: '테스트 삭제' });
+
+      expect(main).toBeDisabled();
+      expect(del).toBeDisabled();
+      expect(del).toHaveAttribute('aria-disabled', 'true');
+      await user.click(main);
+      await user.click(del);
+      fireEvent.click(del);
+      expect(onClick).not.toHaveBeenCalled();
+      expect(onDelete).not.toHaveBeenCalled();
+      expect((container.firstChild as Host).__chipExitTimeline).toBeUndefined();
+      expect(container.firstChild).toHaveClass(styles.disabled);
+    });
+
+    it('삭제만 있는 칩의 삭제 버튼도 disabled다', () => {
+      render(<Chip label="테스트" onDelete={() => {}} disabled />);
+
+      expect(
+        screen.getByRole('button', { name: '테스트 삭제' })
+      ).toBeDisabled();
+    });
+  });
+
+  describe('네 경우 겉모습이 같다', () => {
+    const rootClass = (ui: React.ReactElement) => {
+      const { container, unmount } = render(ui);
+      const cls = (container.firstChild as HTMLElement).className;
+      unmount();
+      return cls;
+    };
+
+    it.each([
+      ['sm', 'filled', 'default'],
+      ['md', 'outlined', 'primary'],
+      ['lg', 'filled', 'error'],
+    ] as const)(
+      '네 경우 모두 루트에 chip 레시피 클래스(%s %s %s)가 붙는다',
+      (size, variant, color) => {
+        const chipClass = styles.chip({ size, variant, color });
+        const props = { label: '테스트', size, variant, color };
+        for (const ui of [
+          <Chip {...props} />,
+          <Chip {...props} onDelete={() => {}} />,
+          <Chip {...props} onClick={() => {}} />,
+          <Chip {...props} onClick={() => {}} onDelete={() => {}} />,
+        ]) {
+          expect(rootClass(ui)).toContain(chipClass);
+        }
+      }
+    );
+
+    it('삭제만 있는 칩의 루트 클래스는 보통 칩과 같다', () => {
+      expect(rootClass(<Chip label="테스트" onDelete={() => {}} />)).toBe(
+        rootClass(<Chip label="테스트" />)
+      );
+    });
+
+    it('누르기 + 삭제의 루트 클래스는 누르기만 있는 칩과 같다(호버·누름 클래스 포함)', () => {
+      expect(
+        rootClass(
+          <Chip label="테스트" onClick={() => {}} onDelete={() => {}} />
+        )
+      ).toBe(rootClass(<Chip label="테스트" onClick={() => {}} />));
+      expect(
+        rootClass(
+          <Chip
+            label="테스트"
+            onClick={() => {}}
+            onDelete={() => {}}
+            selected
+          />
+        )
+      ).toBe(rootClass(<Chip label="테스트" onClick={() => {}} selected />));
+    });
+
+    it('누르기 + 삭제의 루트가 마커 색 변수와 호버·선택 클래스를 가진다', () => {
+      const { container } = render(
+        <Chip
+          label="테스트"
+          color="primary"
+          onClick={() => {}}
+          onDelete={() => {}}
+          selected
+          className="x"
+        />
+      );
+      const root = container.firstChild as HTMLElement;
+
+      expect(root.style.getPropertyValue('--chip-marker-color')).toBeTruthy();
+      expect(root).toHaveClass(
+        styles.clickable({ variant: 'filled', color: 'primary' }),
+        styles.selected,
+        'x'
+      );
+    });
+  });
+
+  describe('삭제 퇴장은 누르기 + 삭제에서도 루트에서 그대로', () => {
+    const stubReducedMotion = () =>
+      vi.stubGlobal(
+        'matchMedia',
+        (media: string): MediaQueryList =>
+          ({
+            matches: true,
+            media,
+            addEventListener: () => {},
+            removeEventListener: () => {},
+          }) as unknown as MediaQueryList
+      );
+    afterEach(() => vi.unstubAllGlobals());
+
+    it('삭제를 누르면 루트가 inert이고 exiting 클래스를 갖고 onDelete는 끝난 뒤 한 번이다', async () => {
+      const user = userEvent.setup();
+      const onDelete = vi.fn();
+      const { container } = render(
+        <Chip label="테스트" onClick={() => {}} onDelete={onDelete} />
+      );
+      const root = container.firstChild as Host;
+
+      await user.click(screen.getByRole('button', { name: '테스트 삭제' }));
+
+      expect(root).toHaveAttribute('inert');
+      expect(root).toHaveClass(styles.exiting);
+      expect(onDelete).not.toHaveBeenCalled();
+      act(() => {
+        root.__chipExitTimeline?.progress(1);
+      });
+      expect(onDelete).toHaveBeenCalledTimes(1);
+    });
+
+    it('축소 모드면 퇴장 없이 즉시 onDelete를 부른다', async () => {
+      stubReducedMotion();
+      const user = userEvent.setup();
+      const onDelete = vi.fn();
+      render(<Chip label="테스트" onClick={() => {}} onDelete={onDelete} />);
+
+      await user.click(screen.getByRole('button', { name: '테스트 삭제' }));
+
+      expect(onDelete).toHaveBeenCalledTimes(1);
+    });
+
+    it('퇴장 중 언마운트하면 루트의 트윈을 죽인다', () => {
+      const { container, unmount } = render(
+        <Chip label="테스트" onClick={() => {}} onDelete={() => {}} />
+      );
+      const root = container.firstChild as HTMLElement & {
+        __chipExitTimeline?: { parent: unknown };
+      };
+
+      fireEvent.click(screen.getByRole('button', { name: '테스트 삭제' }));
+      const timeline = root.__chipExitTimeline as { parent: unknown };
+      expect(timeline.parent).toBeTruthy();
+      unmount();
+
+      expect(timeline.parent).toBeFalsy();
+    });
+  });
+
+  describe('주 동작 버튼의 CSS 소스 잠금', () => {
+    const cssSource = readFileSync(
+      resolve(__dirname, './Chip.css.ts'),
+      'utf-8'
+    );
+    const action = cssSource.match(
+      /export const action = style\(\{([\s\S]*?)\n\}\);/
+    )?.[1] as string;
+
+    it('칩 겉모습(간격·글꼴·색)을 루트에서 이어받는다', () => {
+      expect(action, 'action 블록을 찾지 못했다').toBeDefined();
+      expect(action).toContain("gap: 'inherit'");
+      expect(action).toContain("font: 'inherit'");
+      expect(action).toContain("color: 'inherit'");
+      expect(action).toContain('padding: 0');
+    });
+
+    it('칩 전체를 누름 영역으로 넓히고 포커스 링을 그 위에 그린다', () => {
+      expect(action).toContain('inset: 0');
+      expect(action).toContain("'&:focus-visible::after': focusRing()");
+      // 위치 지정을 하면 ::after의 기준이 칩 루트가 아니라 이 버튼이 된다.
+      expect(action).not.toMatch(/\n {2}position:/);
+    });
   });
 });
