@@ -85,7 +85,10 @@ export const subscribeStack = (listener: () => void): (() => void) => {
   };
 };
 
-/** 열린 스낵바를 줄 끝(가장 새것)에 넣고, 내보낼 것의 `onClose`를 부른다. */
+/**
+ * 열린 스낵바를 줄 끝(가장 새것)에 넣고, 내보낼 것의 `onClose`를 부른다.
+ * 던진 `onClose`가 있으면 전부 부른 뒤 다시 던진다(하나면 그 오류, 여럿이면 `AggregateError`).
+ */
 export const registerSnackbar = (
   id: symbol,
   position: string,
@@ -105,7 +108,19 @@ export const registerSnackbar = (
     victims.includes(entry) ? { ...entry, evicted: true } : entry
   );
   emit();
-  for (const victim of victims) victim.getOnClose()?.();
+  // 하나가 던져도 나머지는 부른다. 던진 것은 모아 두었다가 전부 부른 뒤 다시 던진다.
+  const errors: unknown[] = [];
+  for (const victim of victims) {
+    try {
+      victim.getOnClose()?.();
+    } catch (error) {
+      errors.push(error);
+    }
+  }
+  if (errors.length === 1) throw errors[0];
+  if (errors.length > 1) {
+    throw new AggregateError(errors, '넘친 스낵바의 onClose가 여럿 던졌다');
+  }
 };
 
 export const unregisterSnackbar = (id: symbol): void => {

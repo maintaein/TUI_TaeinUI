@@ -11,6 +11,7 @@
  * (Task 2의 `timelineRef`와 같은 모양 — `useOverlayTransition.ts` 참고).
  * 등장·퇴장 타임라인은 이 통로가 없다 — 그쪽은 손대지 않는 범위다(Task 2 소관).
  */
+import { StrictMode } from 'react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -1333,6 +1334,68 @@ describe('Snackbar', () => {
 
         expect(a.onClose).toHaveBeenCalledTimes(1);
         expect(b.onClose).not.toHaveBeenCalled();
+      });
+
+      describe('StrictMode 개발 모드: 같은 커밋에서 마운트할 때', () => {
+        it('[S(stack=false), A]를 한 커밋에 마운트해도 S의 onClose는 한 번이다', () => {
+          const s = { ...A, id: 'S', stack: false, onClose: vi.fn() };
+          const a = { ...B, onClose: vi.fn() };
+
+          render(
+            <StrictMode>
+              <Stack items={[s, a]} />
+            </StrictMode>
+          );
+
+          expect(s.onClose).toHaveBeenCalledTimes(1);
+          expect(a.onClose).not.toHaveBeenCalled();
+        });
+
+        it('쌓는 넷을 한 커밋에 마운트해도 가장 오래된 것의 onClose는 한 번이다', () => {
+          const [a, b, c, d] = [A, B, C, D].map((item) => ({
+            ...item,
+            onClose: vi.fn(),
+          }));
+
+          render(
+            <StrictMode>
+              <Stack items={[a, b, c, d]} />
+            </StrictMode>
+          );
+
+          expect(a.onClose).toHaveBeenCalledTimes(1);
+          expect(b.onClose).not.toHaveBeenCalled();
+        });
+
+        it('닫혔다가 다시 열린 뒤에 또 밀려나면 그때는 다시 불린다 (닫히면 잊는다)', () => {
+          const s = { ...A, id: 'S', stack: false, onClose: vi.fn() };
+          const a = { ...B, onClose: vi.fn() };
+          const { rerender } = render(
+            <StrictMode>
+              <Stack items={[s, a]} />
+            </StrictMode>
+          );
+          expect(s.onClose).toHaveBeenCalledTimes(1);
+
+          // 부모가 S를 닫고, 다시 열고, 새것이 또 열린다
+          rerender(
+            <StrictMode>
+              <Stack items={[{ ...s, open: false }, a]} />
+            </StrictMode>
+          );
+          rerender(
+            <StrictMode>
+              <Stack items={[s, a]} />
+            </StrictMode>
+          );
+          rerender(
+            <StrictMode>
+              <Stack items={[s, a, { ...C, onClose: vi.fn() }]} />
+            </StrictMode>
+          );
+
+          expect(s.onClose).toHaveBeenCalledTimes(2);
+        });
       });
     });
 

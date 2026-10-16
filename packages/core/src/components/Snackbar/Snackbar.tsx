@@ -227,6 +227,13 @@ export const Snackbar = ({
     stackRef.current = stack;
     setSnackbarStack(stackId, stack);
   }, [stack, stackId]);
+  // 넘쳐서 내보내진 뒤에는 열려 있는 동안 다시 고르지 않는다. 저장소의 `evicted` 표시는
+  // StrictMode가 effect를 시뮬레이션 해제하면 항목과 함께 사라지므로, 같은 일이 한 번 더
+  // 불리지 않게 여기 따로 기억한다. 닫히면(open=false) 잊는다.
+  const evictedRef = useRef(false);
+  useLayoutEffect(() => {
+    if (!open) evictedRef.current = false;
+  }, [open]);
   useLayoutEffect(() => {
     const sheet = sheetRef.current;
     if (!open || !sheet) return;
@@ -235,7 +242,14 @@ export const Snackbar = ({
       stackId,
       position,
       sheet.offsetHeight,
-      () => onCloseRef.current,
+      () => {
+        const current = onCloseRef.current;
+        if (!current || evictedRef.current) return undefined;
+        return () => {
+          evictedRef.current = true;
+          current();
+        };
+      },
       stackRef.current
     );
     let observer: ResizeObserver | undefined;

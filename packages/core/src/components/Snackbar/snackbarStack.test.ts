@@ -283,4 +283,69 @@ describe('저장소', () => {
     open('bottom-center', 40, named('b'));
     expect(closed).toEqual(['a']);
   });
+
+  describe('넘침 onClose가 던질 때', () => {
+    /** a b c를 열고 쌓지 않는 s로 셋 모두를 내보내게 하는 줄. 이름대로 부르고 던질 이름을 받는다 */
+    const openThree = (throwing: string[], closed: string[]) => {
+      const handler = (n: string) => () => {
+        closed.push(n);
+        if (throwing.includes(n)) throw new Error(`던짐 ${n}`);
+      };
+      for (const n of ['a', 'b', 'c']) {
+        open('bottom-center', 40, handler(n));
+      }
+    };
+
+    it('가운데 것이 던져도 뒤의 것을 부르고, 그 오류를 다시 던진다', () => {
+      const closed: string[] = [];
+      openThree(['b'], closed);
+
+      expect(() => open('bottom-center', 40, () => {}, false)).toThrow(
+        '던짐 b'
+      );
+      expect(closed).toEqual(['a', 'b', 'c']);
+    });
+
+    it('오류가 하나면 감싸지 않고 그 오류를 그대로 던진다', () => {
+      const closed: string[] = [];
+      openThree(['a'], closed);
+
+      let caught: unknown;
+      try {
+        open('bottom-center', 40, () => {}, false);
+      } catch (error) {
+        caught = error;
+      }
+      expect(caught).toBeInstanceOf(Error);
+      expect(caught).not.toBeInstanceOf(AggregateError);
+      expect((caught as Error).message).toBe('던짐 a');
+    });
+
+    it('여럿이 던지면 전부 부른 뒤 AggregateError에 모아 던진다', () => {
+      const closed: string[] = [];
+      openThree(['a', 'c'], closed);
+
+      let caught: unknown;
+      try {
+        open('bottom-center', 40, () => {}, false);
+      } catch (error) {
+        caught = error;
+      }
+      expect(closed).toEqual(['a', 'b', 'c']);
+      expect(caught).toBeInstanceOf(AggregateError);
+      expect(
+        (caught as AggregateError).errors.map((e: Error) => e.message)
+      ).toEqual(['던짐 a', '던짐 c']);
+    });
+
+    it('던진 뒤에도 줄은 그대로 이어진다 (던진 것도 내보내기로 한 표시를 가진다)', () => {
+      const closed: string[] = [];
+      openThree(['b'], closed);
+      expect(() => open('bottom-center', 40, () => {}, false)).toThrow();
+
+      // 같은 줄에 새것이 오면 이미 내보낸 a b c는 다시 고르지 않는다
+      open('bottom-center', 40, () => {});
+      expect(closed).toEqual(['a', 'b', 'c']);
+    });
+  });
 });
