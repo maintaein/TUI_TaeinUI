@@ -349,7 +349,8 @@ import { SegmentedButtons } from '@taein-ui/core';
 | size | 'sm' \| 'md' \| 'lg' | 'md' | Size. `sm` is 36px tall but the press area stays 44px (an invisible band above and below) |
 | fullWidth | boolean | false | Full width |
 | disabled | boolean | false | Disable all buttons |
-| aria-label | string | — | Group label |
+| aria-label | string | - | Group name. Either `aria-label` or `aria-labelledby` is required (type error otherwise) |
+| aria-labelledby | string | - | Id of the element that names the group. Alternative to `aria-label` |
 | className | string | — | Additional CSS class |
 
 ---

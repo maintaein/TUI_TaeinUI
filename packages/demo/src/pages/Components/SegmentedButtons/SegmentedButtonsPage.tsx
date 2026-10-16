@@ -53,8 +53,14 @@ export function SegmentedButtonsPage() {
     {
       name: 'aria-label',
       type: 'string',
-      default: 'undefined',
-      description: '접근성: 그룹 레이블',
+      description:
+        '접근성: 그룹 레이블. aria-label과 aria-labelledby 중 하나는 반드시 있어야 합니다(없으면 타입 오류)',
+    },
+    {
+      name: 'aria-labelledby',
+      type: 'string',
+      description:
+        '접근성: 그룹 레이블을 담은 요소의 id. aria-label 대신 쓸 수 있습니다',
     },
   ];
 
@@ -379,10 +385,10 @@ export function SegmentedButtonsPage() {
               '내부 input[type="radio"]가 사용되어 단일 선택 패턴임을 명확히 전달합니다.',
           },
           {
-            attribute: 'aria-label',
+            attribute: 'aria-label / aria-labelledby',
             effect: '그룹의 용도를 스크린 리더가 읽어줍니다.',
             description:
-              'aria-label로 그룹 레이블을 제공하여 무엇을 선택하는 그룹인지 알 수 있습니다.',
+              'aria-label 또는 aria-labelledby 중 하나는 반드시 있어야 하며(없으면 타입 오류), 루트 radiogroup에 붙어 무엇을 선택하는 그룹인지 알 수 있습니다.',
           },
           {
             attribute: 'aria-checked',
@@ -392,9 +398,10 @@ export function SegmentedButtonsPage() {
           },
           {
             attribute: 'keyboard navigation',
-            effect: '화살표 키로 옵션 간 이동이 가능합니다.',
+            effect:
+              'Tab은 그룹에 한 번 들어가고, 방향키와 Home·End로 옵션을 옮깁니다.',
             description:
-              'ArrowLeft/Right로 이전/다음 옵션 이동, Space/Enter로 선택, Tab으로 그룹 진입/이탈이 가능합니다.',
+              'Tab으로 들어가면 선택된 옵션(선택이 없거나 비활성이면 첫 활성 옵션) 하나에만 닿고 한 번 더 누르면 그룹을 나갑니다. ArrowLeft·ArrowUp은 이전, ArrowRight·ArrowDown은 다음 활성 옵션으로 포커스와 선택을 함께 옮기고 끝에서 처음으로 돕니다. Home·End는 첫·끝 활성 옵션, Space·Enter는 선택입니다.',
           },
           {
             attribute: 'disabled',
@@ -405,9 +412,9 @@ export function SegmentedButtonsPage() {
         ]}
         additionalGuidance={[
           {
-            title: 'aria-label 필수 제공',
+            title: 'aria-label 또는 aria-labelledby 필수 제공',
             description:
-              '그룹의 목적을 명확히 전달하기 위해 aria-label을 반드시 제공해주세요.',
+              '그룹의 목적을 명확히 전달하기 위해 aria-label 또는 aria-labelledby를 반드시 제공해주세요. 둘 다 없으면 타입 오류입니다.',
             examples: [
               {
                 code: `// Good ✓
@@ -416,12 +423,12 @@ export function SegmentedButtonsPage() {
   aria-label="보기 방식 선택"
 />
 
-// Bad ✗
+// Bad ✗ (타입 오류)
 <SegmentedButtons
   options={options}
 />`,
                 explanation:
-                  'aria-label 없이는 스크린 리더 사용자가 무엇을 선택하는 그룹인지 알 수 없습니다.',
+                  '그룹 이름 없이는 스크린 리더 사용자가 무엇을 선택하는 그룹인지 알 수 없습니다.',
               },
             ],
           },
@@ -465,7 +472,9 @@ export function SegmentedButtonsPage() {
                 <ListItem>짧고 명확한 레이블 사용</ListItem>
                 <ListItem>상호 배타적인 옵션에 사용 (단일 선택)</ListItem>
                 <ListItem>보기 방식, 필터, 모드 전환 등에 활용</ListItem>
-                <ListItem>aria-label로 그룹의 목적을 명시</ListItem>
+                <ListItem>
+                  aria-label 또는 aria-labelledby로 그룹의 목적을 명시
+                </ListItem>
               </List>
             </Card.Body>
           </Card>

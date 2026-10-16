@@ -18,6 +18,7 @@ describe('SegmentedButtons', () => {
     it('기본적으로 렌더링된다', () => {
       render(
         <SegmentedButtons
+          aria-label="세그먼트"
           options={options}
           value="option1"
           onChange={() => {}}
@@ -33,6 +34,7 @@ describe('SegmentedButtons', () => {
     it('모든 옵션을 렌더링한다', () => {
       render(
         <SegmentedButtons
+          aria-label="세그먼트"
           options={options}
           value="option1"
           onChange={() => {}}
@@ -49,6 +51,7 @@ describe('SegmentedButtons', () => {
     it('선택된 옵션이 체크된 상태로 표시된다', () => {
       render(
         <SegmentedButtons
+          aria-label="세그먼트"
           options={options}
           value="option2"
           onChange={() => {}}
@@ -62,6 +65,7 @@ describe('SegmentedButtons', () => {
     it('선택되지 않은 옵션은 체크되지 않은 상태로 표시된다', () => {
       render(
         <SegmentedButtons
+          aria-label="세그먼트"
           options={options}
           value="option2"
           onChange={() => {}}
@@ -80,6 +84,7 @@ describe('SegmentedButtons', () => {
     it('size="sm"을 적용한다', () => {
       render(
         <SegmentedButtons
+          aria-label="세그먼트"
           options={options}
           value="option1"
           onChange={() => {}}
@@ -94,6 +99,7 @@ describe('SegmentedButtons', () => {
     it('size="md"를 기본값으로 적용한다', () => {
       render(
         <SegmentedButtons
+          aria-label="세그먼트"
           options={options}
           value="option1"
           onChange={() => {}}
@@ -107,6 +113,7 @@ describe('SegmentedButtons', () => {
     it('size="lg"를 적용한다', () => {
       render(
         <SegmentedButtons
+          aria-label="세그먼트"
           options={options}
           value="option1"
           onChange={() => {}}
@@ -123,6 +130,7 @@ describe('SegmentedButtons', () => {
     it('fullWidth가 true이면 전체 너비를 사용한다', () => {
       render(
         <SegmentedButtons
+          aria-label="세그먼트"
           options={options}
           value="option1"
           onChange={() => {}}
@@ -137,6 +145,7 @@ describe('SegmentedButtons', () => {
     it('fullWidth가 false이면 기본 너비를 사용한다', () => {
       render(
         <SegmentedButtons
+          aria-label="세그먼트"
           options={options}
           value="option1"
           onChange={() => {}}
@@ -152,6 +161,7 @@ describe('SegmentedButtons', () => {
     it('disabled 상태를 적용한다', () => {
       render(
         <SegmentedButtons
+          aria-label="세그먼트"
           options={options}
           value="option1"
           onChange={() => {}}
@@ -174,6 +184,7 @@ describe('SegmentedButtons', () => {
 
       render(
         <SegmentedButtons
+          aria-label="세그먼트"
           options={optionsWithDisabled}
           value="option1"
           onChange={() => {}}
@@ -197,6 +208,7 @@ describe('SegmentedButtons', () => {
 
       render(
         <SegmentedButtons
+          aria-label="세그먼트"
           options={options}
           value="option1"
           onChange={handleChange}
@@ -215,6 +227,7 @@ describe('SegmentedButtons', () => {
 
       render(
         <SegmentedButtons
+          aria-label="세그먼트"
           options={options}
           value="option1"
           onChange={handleChange}
@@ -235,6 +248,7 @@ describe('SegmentedButtons', () => {
 
       render(
         <SegmentedButtons
+          aria-label="세그먼트"
           options={options}
           value="option1"
           onChange={handleChange}
@@ -259,6 +273,7 @@ describe('SegmentedButtons', () => {
 
       render(
         <SegmentedButtons
+          aria-label="세그먼트"
           options={optionsWithDisabled}
           value="option1"
           onChange={handleChange}
@@ -276,6 +291,7 @@ describe('SegmentedButtons', () => {
     it('radiogroup role을 가진다', () => {
       render(
         <SegmentedButtons
+          aria-label="세그먼트"
           options={options}
           value="option1"
           onChange={() => {}}
@@ -288,6 +304,7 @@ describe('SegmentedButtons', () => {
     it('각 옵션은 radio role을 가진다', () => {
       render(
         <SegmentedButtons
+          aria-label="세그먼트"
           options={options}
           value="option1"
           onChange={() => {}}
@@ -315,6 +332,7 @@ describe('SegmentedButtons', () => {
     it('선택된 상태가 스크린 리더에 전달된다', () => {
       render(
         <SegmentedButtons
+          aria-label="세그먼트"
           options={options}
           value="option2"
           onChange={() => {}}
@@ -328,6 +346,7 @@ describe('SegmentedButtons', () => {
     it('비활성화 상태가 스크린 리더에 전달된다', () => {
       render(
         <SegmentedButtons
+          aria-label="세그먼트"
           options={options}
           value="option1"
           onChange={() => {}}
@@ -348,6 +367,7 @@ describe('SegmentedButtons', () => {
 
       render(
         <SegmentedButtons
+          aria-label="세그먼트"
           options={options}
           value="option1"
           onChange={() => {}}
@@ -367,6 +387,7 @@ describe('SegmentedButtons', () => {
 
       render(
         <SegmentedButtons
+          aria-label="세그먼트"
           options={options}
           value="option1"
           onChange={handleChange}
@@ -393,6 +414,7 @@ describe('SegmentedButtons', () => {
 
       render(
         <SegmentedButtons
+          aria-label="세그먼트"
           options={options}
           value="option2"
           onChange={handleChange}
@@ -419,6 +441,7 @@ describe('SegmentedButtons', () => {
 
       render(
         <SegmentedButtons
+          aria-label="세그먼트"
           options={options}
           value="option1"
           onChange={handleChange}
@@ -445,6 +468,7 @@ describe('SegmentedButtons', () => {
 
       render(
         <SegmentedButtons
+          aria-label="세그먼트"
           options={options}
           value="option3"
           onChange={handleChange}
@@ -471,6 +495,7 @@ describe('SegmentedButtons', () => {
 
       render(
         <SegmentedButtons
+          aria-label="세그먼트"
           options={options}
           value="option1"
           onChange={handleChange}
@@ -491,6 +516,7 @@ describe('SegmentedButtons', () => {
 
       render(
         <SegmentedButtons
+          aria-label="세그먼트"
           options={options}
           value="option1"
           onChange={handleChange}
@@ -525,6 +551,7 @@ describe('SegmentedButtons', () => {
 
       render(
         <SegmentedButtons
+          aria-label="세그먼트"
           options={optionsWithIcons}
           value="option1"
           onChange={() => {}}
@@ -560,6 +587,7 @@ describe('SegmentedButtons', () => {
 
       render(
         <SegmentedButtons
+          aria-label="세그먼트"
           options={iconOnlyOptions}
           value="option1"
           onChange={() => {}}
@@ -585,6 +613,7 @@ describe('SegmentedButtons', () => {
 
       render(
         <SegmentedButtons
+          aria-label="세그먼트"
           options={singleOption}
           value="only"
           onChange={() => {}}
@@ -604,6 +633,7 @@ describe('SegmentedButtons', () => {
 
       render(
         <SegmentedButtons
+          aria-label="세그먼트"
           options={manyOptions}
           value="option0"
           onChange={() => {}}
@@ -617,6 +647,7 @@ describe('SegmentedButtons', () => {
     it('value가 options에 없으면 선택된 옵션이 없다', () => {
       render(
         <SegmentedButtons
+          aria-label="세그먼트"
           options={options}
           value="nonexistent"
           onChange={() => {}}
@@ -632,6 +663,7 @@ describe('SegmentedButtons', () => {
     it('className을 추가할 수 있다', () => {
       render(
         <SegmentedButtons
+          aria-label="세그먼트"
           options={options}
           value="option1"
           onChange={() => {}}
@@ -646,21 +678,33 @@ describe('SegmentedButtons', () => {
 
   describe('비제어 모드 (Uncontrolled Mode) 테스트', () => {
     it('defaultValue로 초기 선택을 설정한다', () => {
-      render(<SegmentedButtons options={options} defaultValue="option2" />);
+      render(
+        <SegmentedButtons
+          aria-label="세그먼트"
+          options={options}
+          defaultValue="option2"
+        />
+      );
 
       const option2 = screen.getByRole('radio', { name: '옵션 2' });
       expect(option2).toBeChecked();
     });
 
     it('defaultValue 없으면 첫 번째 옵션이 선택된다', () => {
-      render(<SegmentedButtons options={options} />);
+      render(<SegmentedButtons aria-label="세그먼트" options={options} />);
 
       const option1 = screen.getByRole('radio', { name: '옵션 1' });
       expect(option1).toBeChecked();
     });
 
     it('클릭 시 내부 상태가 업데이트된다', () => {
-      render(<SegmentedButtons options={options} defaultValue="option1" />);
+      render(
+        <SegmentedButtons
+          aria-label="세그먼트"
+          options={options}
+          defaultValue="option1"
+        />
+      );
 
       const option1 = screen.getByRole('radio', { name: '옵션 1' });
       const option3 = screen.getByRole('radio', { name: '옵션 3' });
@@ -679,6 +723,7 @@ describe('SegmentedButtons', () => {
       const handleChange = vi.fn();
       render(
         <SegmentedButtons
+          aria-label="세그먼트"
           options={options}
           defaultValue="option1"
           onChange={handleChange}
@@ -697,6 +742,7 @@ describe('SegmentedButtons', () => {
     it('value prop으로 선택을 제어한다', () => {
       const { rerender } = render(
         <SegmentedButtons
+          aria-label="세그먼트"
           options={options}
           value="option1"
           onChange={vi.fn()}
@@ -708,6 +754,7 @@ describe('SegmentedButtons', () => {
 
       rerender(
         <SegmentedButtons
+          aria-label="세그먼트"
           options={options}
           value="option3"
           onChange={vi.fn()}
@@ -723,6 +770,7 @@ describe('SegmentedButtons', () => {
       const handleChange = vi.fn();
       render(
         <SegmentedButtons
+          aria-label="세그먼트"
           options={options}
           value="option1"
           onChange={handleChange}
@@ -752,6 +800,7 @@ describe('SegmentedButtons', () => {
 
       render(
         <SegmentedButtons
+          aria-label="세그먼트"
           options={options}
           value="option1"
           defaultValue="option2"
@@ -882,7 +931,12 @@ describe('SegmentedButtons', () => {
 
     const renderAt = (value: string) => {
       const view = render(
-        <SegmentedButtons options={options} value={value} onChange={() => {}} />
+        <SegmentedButtons
+          aria-label="세그먼트"
+          options={options}
+          value={value}
+          onChange={() => {}}
+        />
       );
       return {
         ...view,
@@ -890,6 +944,7 @@ describe('SegmentedButtons', () => {
         moveTo: (next: string) =>
           view.rerender(
             <SegmentedButtons
+              aria-label="세그먼트"
               options={options}
               value={next}
               onChange={() => {}}
@@ -1067,6 +1122,7 @@ describe('SegmentedButtons', () => {
 
       rerender(
         <SegmentedButtons
+          aria-label="세그먼트"
           options={[...options]}
           value="option2"
           onChange={() => {}}
@@ -1107,6 +1163,7 @@ describe('SegmentedButtons', () => {
       installLabelRects(shiftedRects);
       rerender(
         <SegmentedButtons
+          aria-label="세그먼트"
           options={[...options]}
           value="option2"
           onChange={() => {}}
@@ -1130,6 +1187,7 @@ describe('SegmentedButtons', () => {
       installLabelRects(shiftedRects);
       rerender(
         <SegmentedButtons
+          aria-label="세그먼트"
           options={[...options]}
           value="option2"
           onChange={() => {}}
@@ -1184,7 +1242,12 @@ describe('SegmentedButtons', () => {
 
     it('표시 안에 옵션마다 라벨이 한 벌 더 있고 보조 기술에는 숨겨진다', () => {
       const { container } = render(
-        <SegmentedButtons options={iconOptions} value="a" onChange={() => {}} />
+        <SegmentedButtons
+          aria-label="세그먼트"
+          options={iconOptions}
+          value="a"
+          onChange={() => {}}
+        />
       );
       const inner = within(indicatorOf(container));
 
@@ -1203,7 +1266,12 @@ describe('SegmentedButtons', () => {
 
     it('안쪽 라벨은 진짜 라벨과 같은 클래스 목록이고 선택이 바뀌면 같이 따라간다', () => {
       const { container, rerender } = render(
-        <SegmentedButtons options={iconOptions} value="a" onChange={() => {}} />
+        <SegmentedButtons
+          aria-label="세그먼트"
+          options={iconOptions}
+          value="a"
+          onChange={() => {}}
+        />
       );
       const classesOf = (els: HTMLElement[]) => els.map((el) => el.className);
 
@@ -1215,7 +1283,12 @@ describe('SegmentedButtons', () => {
       expect(realLabels(container)[2].className).toContain('disabled');
 
       rerender(
-        <SegmentedButtons options={iconOptions} value="b" onChange={() => {}} />
+        <SegmentedButtons
+          aria-label="세그먼트"
+          options={iconOptions}
+          value="b"
+          onChange={() => {}}
+        />
       );
       expect(classesOf(copies(container))).toEqual(
         classesOf(realLabels(container))
@@ -1227,6 +1300,7 @@ describe('SegmentedButtons', () => {
     it('안쪽 라벨은 label이 아니고 포커스를 받지 않는다', () => {
       const { container } = render(
         <SegmentedButtons
+          aria-label="세그먼트"
           options={options}
           value="option1"
           onChange={() => {}}
@@ -1415,5 +1489,290 @@ describe('SegmentedButtons sm: 보이는 높이 36px, 누르는 영역 44px (M5 
 
   it('::before는 쓰지 않는다', () => {
     expect(find(/::before/)).toHaveLength(0);
+  });
+});
+
+/**
+ * 로빙 탭 순서, 그룹 이름 필수, 개발 로그 정리(M5 기술 정리).
+ *
+ * 회귀 분류표
+ * - 의도한 변화: 모든 라벨이 tabIndex 0이던 것이 선택 하나만 0으로(아래 "탭 순서"),
+ *   ↑·↓·Home·End 추가("방향키"), 이름 없으면 타입 오류("그룹 이름"), 렌더마다 찍히던
+ *   console.info 삭제와 console.warn 한 번("개발 로그").
+ * - 보존: ←·→ 이동과 끝에서 도는 것, Space·Enter 선택, 비활성 건너뜀, 전체 disabled는
+ *   키 입력 무시(위 "키보드 인터랙션 테스트"), 고무 모션·표시 라벨·축소 선호(위 GSAP 절)
+ */
+describe('SegmentedButtons 로빙 탭 순서·그룹 이름·개발 로그 (M5 기술 정리)', () => {
+  const four = [
+    { value: 'a', label: '가' },
+    { value: 'b', label: '나' },
+    { value: 'c', label: '다' },
+    { value: 'd', label: '라' },
+  ];
+  const labelOf = (name: string) =>
+    screen.getByRole('radio', { name }).closest('label') as HTMLLabelElement;
+  const tabIndexes = () =>
+    four.map((o) => labelOf(o.label).getAttribute('tabindex'));
+
+  describe('탭 순서', () => {
+    it('선택된 옵션 하나만 tabIndex 0이다', () => {
+      render(<SegmentedButtons aria-label="g" options={four} value="b" />);
+      expect(tabIndexes()).toEqual(['-1', '0', '-1', '-1']);
+    });
+
+    it('선택이 바뀌면 0이 따라간다', () => {
+      const { rerender } = render(
+        <SegmentedButtons aria-label="g" options={four} value="b" />
+      );
+      rerender(<SegmentedButtons aria-label="g" options={four} value="d" />);
+      expect(tabIndexes()).toEqual(['-1', '-1', '-1', '0']);
+    });
+
+    it('선택이 없으면 첫 활성 옵션이 0이다', () => {
+      const withDisabledFirst = [
+        { ...four[0], disabled: true },
+        ...four.slice(1),
+      ];
+      render(
+        <SegmentedButtons
+          aria-label="g"
+          options={withDisabledFirst}
+          value="없음"
+        />
+      );
+      expect(tabIndexes()).toEqual(['-1', '0', '-1', '-1']);
+    });
+
+    it('선택된 옵션이 비활성이면 첫 활성 옵션이 0이다', () => {
+      const withDisabledC = four.map((o) =>
+        o.value === 'c' ? { ...o, disabled: true } : o
+      );
+      render(
+        <SegmentedButtons aria-label="g" options={withDisabledC} value="c" />
+      );
+      expect(tabIndexes()).toEqual(['0', '-1', '-1', '-1']);
+    });
+
+    it('전체 disabled면 모두 -1이다', () => {
+      render(
+        <SegmentedButtons aria-label="g" options={four} value="b" disabled />
+      );
+      expect(tabIndexes()).toEqual(['-1', '-1', '-1', '-1']);
+    });
+
+    it('Tab으로 들어가면 선택된 옵션에 닿고 한 번 더 누르면 그룹을 나간다', async () => {
+      const user = userEvent.setup();
+      render(
+        <>
+          <button type="button">앞</button>
+          <SegmentedButtons aria-label="g" options={four} value="c" />
+          <button type="button">뒤</button>
+        </>
+      );
+      await user.tab();
+      await user.tab();
+      expect(labelOf('다')).toHaveFocus();
+      await user.tab();
+      expect(screen.getByRole('button', { name: '뒤' })).toHaveFocus();
+    });
+
+    it('비제어에서 방향키로 옮기면 0도 따라간다', async () => {
+      const user = userEvent.setup();
+      render(
+        <SegmentedButtons aria-label="g" options={four} defaultValue="a" />
+      );
+      labelOf('가').focus();
+      await user.keyboard('{ArrowRight}');
+      expect(tabIndexes()).toEqual(['-1', '0', '-1', '-1']);
+    });
+  });
+
+  describe('방향키', () => {
+    const press = async (key: string, from: string, value: string) => {
+      const user = userEvent.setup();
+      const onChange = vi.fn();
+      render(
+        <SegmentedButtons
+          aria-label="g"
+          options={four}
+          value={value}
+          onChange={onChange}
+        />
+      );
+      labelOf(from).focus();
+      await user.keyboard(key);
+      return onChange;
+    };
+
+    it.each([
+      ['{ArrowRight}', '가', 'a', '나', 'b'],
+      ['{ArrowDown}', '가', 'a', '나', 'b'],
+      ['{ArrowLeft}', '나', 'b', '가', 'a'],
+      ['{ArrowUp}', '나', 'b', '가', 'a'],
+      ['{ArrowLeft}', '가', 'a', '라', 'd'],
+      ['{ArrowUp}', '가', 'a', '라', 'd'],
+      ['{ArrowRight}', '라', 'd', '가', 'a'],
+      ['{ArrowDown}', '라', 'd', '가', 'a'],
+      ['{Home}', '다', 'c', '가', 'a'],
+      ['{End}', '나', 'b', '라', 'd'],
+    ])(
+      '%s: %s(%s)에서 %s로 포커스와 선택이 함께 옮겨 간다',
+      async (key, from, value, to, toValue) => {
+        const onChange = await press(key, from, value);
+        expect(labelOf(to)).toHaveFocus();
+        expect(onChange).toHaveBeenCalledTimes(1);
+        expect(onChange).toHaveBeenCalledWith(toValue);
+      }
+    );
+
+    it('비활성 옵션은 모든 방향에서 건너뛴다', async () => {
+      const user = userEvent.setup();
+      const onChange = vi.fn();
+      const opts = four.map((o) =>
+        o.value === 'a' || o.value === 'c' ? { ...o, disabled: true } : o
+      );
+      render(
+        <SegmentedButtons
+          aria-label="g"
+          options={opts}
+          value="b"
+          onChange={onChange}
+        />
+      );
+      labelOf('나').focus();
+      await user.keyboard('{ArrowDown}');
+      expect(labelOf('라')).toHaveFocus();
+      await user.keyboard('{ArrowDown}');
+      expect(labelOf('나')).toHaveFocus();
+      await user.keyboard('{Home}');
+      expect(labelOf('나')).toHaveFocus();
+      await user.keyboard('{End}');
+      expect(labelOf('라')).toHaveFocus();
+      expect(onChange).not.toHaveBeenCalledWith('a');
+      expect(onChange).not.toHaveBeenCalledWith('c');
+    });
+
+    it('Enter와 Space는 지금처럼 선택한다', async () => {
+      const user = userEvent.setup();
+      const onChange = vi.fn();
+      render(
+        <SegmentedButtons
+          aria-label="g"
+          options={four}
+          value="a"
+          onChange={onChange}
+        />
+      );
+      labelOf('다').focus();
+      await user.keyboard('{Enter}');
+      expect(onChange).toHaveBeenLastCalledWith('c');
+      await user.keyboard(' ');
+      expect(onChange).toHaveBeenCalledTimes(2);
+    });
+
+    it('옵션이 전부 비활성이어도 방향키가 던지지 않는다', async () => {
+      const user = userEvent.setup();
+      const onChange = vi.fn();
+      const opts = four.map((o) => ({ ...o, disabled: true }));
+      render(
+        <SegmentedButtons
+          aria-label="g"
+          options={opts}
+          value="a"
+          onChange={onChange}
+        />
+      );
+      labelOf('가').focus();
+      await user.keyboard('{ArrowRight}{Home}{End}');
+      expect(onChange).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('그룹 이름', () => {
+    it('aria-label도 aria-labelledby도 없으면 타입 오류다', () => {
+      render(
+        // @ts-expect-error 그룹 이름(aria-label 또는 aria-labelledby)이 필수다
+        <SegmentedButtons options={four} value="a" />
+      );
+    });
+
+    it('aria-labelledby만으로 쓸 수 있고 루트에 붙는다', () => {
+      render(
+        <>
+          <h2 id="seg-title">보기 방식</h2>
+          <SegmentedButtons
+            aria-labelledby="seg-title"
+            options={four}
+            value="a"
+          />
+        </>
+      );
+      const group = screen.getByRole('radiogroup', { name: '보기 방식' });
+      expect(group).toHaveAttribute('aria-labelledby', 'seg-title');
+      expect(group).not.toHaveAttribute('aria-label');
+    });
+
+    it('aria-label만으로도 쓸 수 있다', () => {
+      render(<SegmentedButtons aria-label="기간" options={four} value="a" />);
+      expect(
+        screen.getByRole('radiogroup', { name: '기간' })
+      ).toBeInTheDocument();
+    });
+  });
+
+  describe('개발 로그', () => {
+    const inDevelopment = (run: () => void) => {
+      const original = process.env.NODE_ENV;
+      process.env.NODE_ENV = 'development';
+      const info = vi.spyOn(console, 'info').mockImplementation(() => {});
+      const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      try {
+        run();
+        return {
+          info: info.mock.calls.length,
+          warn: warn.mock.calls.length,
+        };
+      } finally {
+        info.mockRestore();
+        warn.mockRestore();
+        process.env.NODE_ENV = original;
+      }
+    };
+
+    it('value도 defaultValue도 없어도 console.info를 찍지 않는다', () => {
+      const { info } = inDevelopment(() => {
+        const { rerender } = render(
+          <SegmentedButtons aria-label="g" options={four} />
+        );
+        rerender(<SegmentedButtons aria-label="g" options={four} />);
+      });
+      expect(info).toBe(0);
+    });
+
+    it('value와 defaultValue를 함께 줘도 리렌더마다 찍지 않고 한 번만 경고한다', () => {
+      const { warn } = inDevelopment(() => {
+        const props = {
+          'aria-label': 'g',
+          options: four,
+          value: 'a',
+          defaultValue: 'b',
+          onChange: () => {},
+        };
+        const { rerender } = render(<SegmentedButtons {...props} />);
+        rerender(<SegmentedButtons {...props} />);
+        rerender(<SegmentedButtons {...props} value="c" />);
+      });
+      expect(warn).toBe(1);
+    });
+
+    it('둘 중 하나만 주면 경고하지 않는다', () => {
+      const { warn } = inDevelopment(() => {
+        render(<SegmentedButtons aria-label="g" options={four} value="a" />);
+        render(
+          <SegmentedButtons aria-label="g" options={four} defaultValue="a" />
+        );
+      });
+      expect(warn).toBe(0);
+    });
   });
 });

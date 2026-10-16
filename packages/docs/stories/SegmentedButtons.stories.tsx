@@ -18,6 +18,7 @@ const meta = {
     ],
     value: '1',
     onChange: (val) => console.log(val),
+    'aria-label': '세그먼트 버튼',
   },
   argTypes: {
     options: {
@@ -40,6 +41,11 @@ const meta = {
     disabled: {
       control: 'boolean',
       description: '비활성화 상태',
+    },
+    'aria-label': {
+      control: 'text',
+      description:
+        '그룹 이름. aria-label 또는 aria-labelledby 중 하나는 필수입니다',
     },
   },
 } satisfies Meta<typeof SegmentedButtons>;

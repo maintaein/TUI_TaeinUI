@@ -61,7 +61,7 @@ export interface SegmentedButtonOption {
 }
 
 /** 여러 옵션 중 하나를 선택하는 세그먼트 버튼 그룹. 제어/비제어 모드 지원 */
-export interface SegmentedButtonsProps {
+interface SegmentedButtonsBaseProps {
   /** 옵션 목록 */
   options: SegmentedButtonOption[];
 
@@ -82,11 +82,25 @@ export interface SegmentedButtonsProps {
   fullWidth?: boolean;
   /** 전체 비활성화 */
   disabled?: boolean;
-  /** 접근성: 그룹 레이블 */
-  'aria-label'?: string;
   /** 추가 클래스명 */
   className?: string;
 }
+
+/** 그룹 이름은 필수다. `aria-label` 또는 `aria-labelledby` 중 하나는 있어야 한다 */
+type SegmentedButtonsName =
+  | {
+      /** 접근성: 그룹 레이블 */
+      'aria-label': string;
+      /** 접근성: 그룹 레이블을 담은 요소의 id */
+      'aria-labelledby'?: string;
+    }
+  | {
+      'aria-label'?: string;
+      'aria-labelledby': string;
+    };
+
+export type SegmentedButtonsProps = SegmentedButtonsBaseProps &
+  SegmentedButtonsName;
 
 export const SegmentedButtons = ({
   options,
@@ -97,6 +111,7 @@ export const SegmentedButtons = ({
   fullWidth = false,
   disabled = false,
   'aria-label': ariaLabel,
+  'aria-labelledby': ariaLabelledby,
   className,
 }: SegmentedButtonsProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -110,21 +125,16 @@ export const SegmentedButtons = ({
   const isControlled = controlledValue !== undefined;
   const currentValue = isControlled ? controlledValue : uncontrolledValue;
 
-  // 개발 환경 경고
-  if (process.env.NODE_ENV === 'development') {
-    if (controlledValue !== undefined && defaultValue !== undefined) {
+  // 개발 환경 경고. 렌더마다가 아니라 둘이 함께 주어진 때 한 번만 낸다.
+  const bothValues = isControlled && defaultValue !== undefined;
+  useEffect(() => {
+    if (process.env.NODE_ENV === 'development' && bothValues) {
       console.warn(
         'SegmentedButtons: value와 defaultValue를 동시에 사용할 수 없습니다. ' +
           '제어 컴포넌트는 value를, 비제어 컴포넌트는 defaultValue를 사용하세요.'
       );
     }
-    if (!isControlled && !defaultValue && options.length > 0) {
-      console.info(
-        'SegmentedButtons: value와 defaultValue가 모두 없습니다. ' +
-          `첫 번째 옵션 "${options[0]?.value}"이 기본값으로 사용됩니다.`
-      );
-    }
-  }
+  }, [bothValues]);
 
   const reduced = useReducedMotion();
   const indicatorRef = useRef<HTMLSpanElement>(null);
@@ -283,47 +293,54 @@ export const SegmentedButtons = ({
     (event: KeyboardEvent<HTMLLabelElement>, index: number) => {
       if (disabled) return;
 
-      const enabledOptions = options.filter((opt) => !opt.disabled);
-      const currentEnabledIndex = enabledOptions.findIndex(
-        (opt) => opt.value === options[index].value
-      );
-
-      let nextIndex = -1;
-
-      if (event.key === 'ArrowRight') {
-        event.preventDefault();
-        nextIndex = (currentEnabledIndex + 1) % enabledOptions.length;
-      } else if (event.key === 'ArrowLeft') {
-        event.preventDefault();
-        nextIndex =
-          (currentEnabledIndex - 1 + enabledOptions.length) %
-          enabledOptions.length;
-      } else if (event.key === ' ' || event.key === 'Enter') {
+      if (event.key === ' ' || event.key === 'Enter') {
         event.preventDefault();
         if (!options[index].disabled) {
           handleSelect(options[index].value);
         }
         return;
+      }
+
+      const enabledOptions = options.filter((opt) => !opt.disabled);
+      const last = enabledOptions.length - 1;
+      const current = enabledOptions.findIndex(
+        (opt) => opt.value === options[index].value
+      );
+
+      let nextIndex: number;
+      if (event.key === 'ArrowRight' || event.key === 'ArrowDown') {
+        nextIndex = current >= last ? 0 : current + 1;
+      } else if (event.key === 'ArrowLeft' || event.key === 'ArrowUp') {
+        nextIndex = current <= 0 ? last : current - 1;
+      } else if (event.key === 'Home') {
+        nextIndex = 0;
+      } else if (event.key === 'End') {
+        nextIndex = last;
       } else {
         return;
       }
+      event.preventDefault();
 
       const nextOption = enabledOptions[nextIndex];
-      const nextOptionIndex = options.findIndex(
-        (opt) => opt.value === nextOption.value
-      );
-
-      if (nextOptionIndex !== -1) {
-        const nextLabel =
-          containerRef.current?.querySelectorAll('label')[nextOptionIndex];
-        if (nextLabel) {
-          nextLabel.focus();
-          handleSelect(nextOption.value);
-        }
+      if (!nextOption) return;
+      const nextLabel =
+        containerRef.current?.querySelectorAll('label')[
+          options.indexOf(nextOption)
+        ];
+      if (nextLabel) {
+        nextLabel.focus();
+        handleSelect(nextOption.value);
       }
     },
     [disabled, options, handleSelect]
   );
+
+  // 로빙 탭 순서: 그룹에서 Tab 순서에 있는 옵션은 하나다. 선택된 옵션, 선택이 없거나
+  // 비활성이면 첫 활성 옵션.
+  const tabStopValue = (
+    options.find((o) => o.value === currentValue && !o.disabled) ??
+    options.find((o) => !o.disabled)
+  )?.value;
 
   // 진짜 라벨과 표시 안의 라벨 한 벌이 같은 클래스 목록·같은 내용을 쓴다. 두 줄의
   // 배치가 픽셀 단위로 같아야 글자색이 표시 가장자리에서 정확히 갈린다.
@@ -351,6 +368,7 @@ export const SegmentedButtons = ({
       ref={containerRef}
       role="radiogroup"
       aria-label={ariaLabel}
+      aria-labelledby={ariaLabelledby}
       className={clsx(
         container,
         sizeVariants[size],
@@ -379,7 +397,7 @@ export const SegmentedButtons = ({
           <label
             key={option.value}
             className={labelClass(option)}
-            tabIndex={isDisabled ? -1 : 0}
+            tabIndex={!isDisabled && option.value === tabStopValue ? 0 : -1}
             onClick={(e) => handleLabelClick(e, option.value, option.disabled)}
             onKeyDown={(e) => handleKeyDown(e, index)}
           >
