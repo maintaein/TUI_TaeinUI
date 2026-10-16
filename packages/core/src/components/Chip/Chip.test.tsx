@@ -1433,5 +1433,17 @@ describe('Chip 공개 API 묶음 (clickable 삭제, aria-pressed, 나란한 삭�
       // 위치 지정을 하면 ::after의 기준이 칩 루트가 아니라 이 버튼이 된다.
       expect(action).not.toMatch(/\n {2}position:/);
     });
+
+    // 주 동작의 ::after(absolute, inset 0)는 칩 전체를 덮는다. 위치 지정된 요소끼리는
+    // DOM 순서로 쌓이므로, 삭제 버튼이 position을 잃으면 정적 요소라 그 덮개 아래에 깔려
+    // 클릭이 주 동작으로 간다. jsdom은 겹침을 못 봐서 소스로 잠근다.
+    it('삭제 버튼은 위치 지정되어 주 동작의 덮개 위에서 클릭을 받는다', () => {
+      const deleteBlock = cssSource.match(
+        /export const deleteButton = style\(\{([\s\S]*?)\n\}\);/
+      )?.[1] as string;
+
+      expect(deleteBlock, 'deleteButton 블록을 찾지 못했다').toBeDefined();
+      expect(deleteBlock).toMatch(/\n {2}position: 'relative',/);
+    });
   });
 });
