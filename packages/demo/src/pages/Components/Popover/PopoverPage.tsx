@@ -364,6 +364,12 @@ const menu = (
               '팝오버가 열릴 때 aria-controls로 트리거와 팝오버 콘텐츠를 연결합니다.',
           },
           {
+            attribute: 'aria-disabled="true"',
+            effect: '비활성 트리거를 누를 수 없다고 알립니다.',
+            description:
+              'disabled일 때 트리거에 aria-disabled="true"가 달립니다. aria-haspopup과 aria-expanded는 그대로 둡니다. 트리거에 aria-disabled나 disabled를 직접 줬다면 그 값을 따릅니다.',
+          },
+          {
             attribute: 'Escape 키',
             effect: 'ESC 키로 팝오버를 닫습니다.',
             description:

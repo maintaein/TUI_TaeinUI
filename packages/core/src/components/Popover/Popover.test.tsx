@@ -10,6 +10,7 @@ import {
 } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { Avatar } from '../Avatar';
+import { Button } from '../Button';
 import { Popover } from './Popover';
 import { bubbleSpec } from './Popover.css';
 import { bubbleStyles } from '../../_internal/bubble';
@@ -362,6 +363,118 @@ describe('Popover', () => {
 
       fireEvent.click(screen.getByText('트리거'));
       expect(screen.queryByText('팝오버 내용')).not.toBeInTheDocument();
+    });
+
+    describe('보조 기술에 알리기 (aria-disabled)', () => {
+      it('disabled면 트리거 버튼에 aria-disabled="true"가 달린다', () => {
+        render(
+          <Popover content={<div>팝오버 내용</div>} disabled>
+            <button>트리거</button>
+          </Popover>
+        );
+
+        expect(screen.getByRole('button', { name: '트리거' })).toHaveAttribute(
+          'aria-disabled',
+          'true'
+        );
+      });
+
+      it('disabled가 아니면 aria-disabled가 없다', () => {
+        render(
+          <Popover content={<div>팝오버 내용</div>}>
+            <button>트리거</button>
+          </Popover>
+        );
+
+        expect(
+          screen.getByRole('button', { name: '트리거' })
+        ).not.toHaveAttribute('aria-disabled');
+      });
+
+      it('disabled를 껐다 켜면 aria-disabled가 따라간다', () => {
+        const { rerender } = render(
+          <Popover content={<div>팝오버 내용</div>} disabled>
+            <button>트리거</button>
+          </Popover>
+        );
+        rerender(
+          <Popover content={<div>팝오버 내용</div>}>
+            <button>트리거</button>
+          </Popover>
+        );
+
+        expect(
+          screen.getByRole('button', { name: '트리거' })
+        ).not.toHaveAttribute('aria-disabled');
+      });
+
+      it('aria-haspopup과 aria-expanded는 비활성이어도 그대로 있다', () => {
+        render(
+          <Popover content={<div>팝오버 내용</div>} disabled>
+            <button>트리거</button>
+          </Popover>
+        );
+
+        const trigger = screen.getByRole('button', { name: '트리거' });
+        expect(trigger).toHaveAttribute('aria-haspopup', 'dialog');
+        expect(trigger).toHaveAttribute('aria-expanded', 'false');
+      });
+
+      it('비활성이어도 클릭하면 열리지 않고 onOpenChange도 부르지 않는다 (보존)', () => {
+        const onOpenChange = vi.fn();
+        render(
+          <Popover
+            content={<div>팝오버 내용</div>}
+            disabled
+            onOpenChange={onOpenChange}
+          >
+            <button>트리거</button>
+          </Popover>
+        );
+
+        fireEvent.click(screen.getByRole('button', { name: '트리거' }));
+
+        expect(screen.queryByText('팝오버 내용')).not.toBeInTheDocument();
+        expect(onOpenChange).not.toHaveBeenCalled();
+      });
+
+      it('Button 컴포넌트가 트리거여도 aria-disabled="true"가 달린다', () => {
+        render(
+          <Popover content={<div>팝오버 내용</div>} disabled>
+            <Button>트리거</Button>
+          </Popover>
+        );
+
+        expect(screen.getByRole('button', { name: '트리거' })).toHaveAttribute(
+          'aria-disabled',
+          'true'
+        );
+      });
+
+      it('소비자가 트리거에 aria-disabled를 직접 주면 그 값을 존중한다', () => {
+        render(
+          <Popover content={<div>팝오버 내용</div>} disabled>
+            <button aria-disabled="false">트리거</button>
+          </Popover>
+        );
+
+        expect(screen.getByRole('button', { name: '트리거' })).toHaveAttribute(
+          'aria-disabled',
+          'false'
+        );
+      });
+
+      it('소비자가 트리거에 disabled를 직접 줬으면 aria-disabled를 따로 달지 않는다', () => {
+        render(
+          <Popover content={<div>팝오버 내용</div>} disabled>
+            <button disabled>트리거</button>
+          </Popover>
+        );
+
+        const trigger = screen.getByRole('button', { name: '트리거' });
+        expect(trigger).toBeDisabled();
+        expect(trigger).not.toHaveAttribute('aria-disabled');
+      });
     });
   });
 

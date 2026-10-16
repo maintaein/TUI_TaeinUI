@@ -174,6 +174,13 @@ export const Popover = ({
           'aria-haspopup': 'dialog',
           'aria-expanded': isOpen,
           'aria-controls': isOpen ? popoverId : undefined,
+          // 비활성이어도 팝업 버튼이라는 정보(haspopup·expanded)는 맞으니 빼지 않는다.
+          // 소비자가 트리거에 aria-disabled나 disabled를 직접 줬으면 그것을 존중한다.
+          ...(disabled &&
+          children.props['aria-disabled'] === undefined &&
+          !(children.props as { disabled?: boolean }).disabled
+            ? { 'aria-disabled': true }
+            : {}),
         })}
       </div>
       {shouldRender && (
