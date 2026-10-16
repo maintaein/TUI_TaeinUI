@@ -56,7 +56,7 @@ export function ChipPage() {
       type: 'boolean',
       default: 'undefined',
       description:
-        '선택 상태 (색상별 inset border 표시). 주면 토글 칩(aria-pressed)이 된다. 안 주면 토글이 아니라 aria-pressed가 없다',
+        '선택 상태 (색상별 inset border 표시). onClick이 있는 칩에 주면 토글 칩(aria-pressed)이 된다. onClick 없이 주면 선택 모양만 나오고 aria-pressed는 없다',
     },
     {
       name: 'disabled',
@@ -256,7 +256,7 @@ const handleDelete = (chipToDelete) => {
           <h3 className={styles.exampleTitle}>Selected</h3>
           <LivePreview
             title="선택 상태"
-            description="selected prop을 주면 토글 칩이 되어 선택 상태를 표시하고 aria-pressed로 알립니다. 필터, 토글 그룹 등에 활용합니다."
+            description="onClick이 있는 칩에 selected prop을 주면 토글 칩이 되어 선택 상태를 표시하고 aria-pressed로 알립니다. 필터, 토글 그룹 등에 활용합니다."
             editable
             code={`const [selected, setSelected] = useState(['React']);
 const tags = ['React', 'Vue', 'Angular', 'Svelte'];

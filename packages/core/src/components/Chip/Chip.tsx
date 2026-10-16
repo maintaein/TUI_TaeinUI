@@ -46,7 +46,7 @@ export interface ChipProps {
   avatar?: ReactNode;
   /** 삭제(X) 버튼 핸들러. 설정 시 삭제 버튼 표시. 퇴장 애니메이션이 끝난 뒤 불린다. 퇴장 중 칩이 언마운트되면 불리지 않는다. 칩을 목록에서 지우지 않으면 보이지 않는 채로 남는다 */
   onDelete?: () => void;
-  /** 선택 상태. 주면 토글 칩이라 aria-pressed로 알린다. 안 주면 토글이 아니다 */
+  /** 선택 상태. onClick이 있는 칩에 주면 토글 칩이라 aria-pressed로 알린다(안 주면 속성 없음). onClick 없이 주면 선택 모양만 나오고 aria-pressed는 없다 */
   selected?: boolean;
   /** 비활성화 상태 @default false */
   disabled?: boolean;

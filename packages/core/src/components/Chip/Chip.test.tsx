@@ -230,7 +230,9 @@ describe('Chip', () => {
     });
 
     it('disabled일 때 클릭 이벤트가 발생하지 않는다', async () => {
-      const user = userEvent.setup();
+      // 실제 생성 CSS가 주입되면 disabled 클래스의 pointer-events: none을 user-event가 먼저 막는다.
+      // 여기서는 disabled 속성이 클릭을 막는지를 보므로 그 검사를 끈다.
+      const user = userEvent.setup({ pointerEventsCheck: 0 });
       const handleClick = vi.fn();
       render(<Chip label="테스트" onClick={handleClick} disabled />);
 
@@ -337,13 +339,10 @@ describe('Chip', () => {
       const user = userEvent.setup();
       const handleClick = vi.fn();
       const handleDelete = vi.fn();
+      // selected는 뺐다. 실제 생성 CSS가 주입되면 선택 칩의 transform이 scale(var(--chip-scale))이라
+      // jsdom의 computed transform을 gsap이 행렬로 읽지 못한다(jsdom은 var()를 풀지 못한다).
       const { container } = render(
-        <Chip
-          label="테스트"
-          selected
-          onClick={handleClick}
-          onDelete={handleDelete}
-        />
+        <Chip label="테스트" onClick={handleClick} onDelete={handleDelete} />
       );
 
       const chip = screen.getByRole('button', { name: '테스트' });
@@ -1245,7 +1244,7 @@ describe('Chip 공개 API 묶음 (clickable 삭제, aria-pressed, 나란한 삭�
 
   describe('비활성', () => {
     it('누르기 + 삭제는 두 버튼이 모두 비활성이고 아무것도 하지 않는다', async () => {
-      const user = userEvent.setup();
+      const user = userEvent.setup({ pointerEventsCheck: 0 });
       const onClick = vi.fn();
       const onDelete = vi.fn();
       const { container } = render(
@@ -1428,7 +1427,6 @@ describe('Chip 공개 API 묶음 (clickable 삭제, aria-pressed, 나란한 삭�
     });
 
     it('칩 전체를 누름 영역으로 넓히고 포커스 링을 그 위에 그린다', () => {
-      expect(action).toContain('inset: 0');
       expect(action).toContain("'&:focus-visible::after': focusRing()");
       // 위치 지정을 하면 ::after의 기준이 칩 루트가 아니라 이 버튼이 된다.
       expect(action).not.toMatch(/\n {2}position:/);
@@ -1444,6 +1442,119 @@ describe('Chip 공개 API 묶음 (clickable 삭제, aria-pressed, 나란한 삭�
 
       expect(deleteBlock, 'deleteButton 블록을 찾지 못했다').toBeDefined();
       expect(deleteBlock).toMatch(/\n {2}position: 'relative',/);
+    });
+  });
+
+  describe('삭제 클릭은 바깥으로 번지지 않는다', () => {
+    it.each([
+      ['삭제만 있는 칩', <Chip key="a" label="태그" onDelete={() => {}} />],
+      [
+        '누르기 + 삭제 칩',
+        <Chip key="b" label="태그" onClick={() => {}} onDelete={() => {}} />,
+      ],
+    ])('%s: 삭제를 눌러도 감싼 요소의 onClick이 불리지 않는다', (_, chip) => {
+      const outer = vi.fn();
+      render(
+        <div role="presentation" onClick={outer}>
+          {chip}
+        </div>
+      );
+
+      fireEvent.click(screen.getByRole('button', { name: '태그 삭제' }));
+
+      expect(outer).not.toHaveBeenCalled();
+    });
+
+    it('주 동작을 누르면 감싼 요소까지 올라간다(막는 것은 삭제뿐이다)', () => {
+      const outer = vi.fn();
+      render(
+        <div role="presentation" onClick={outer}>
+          <Chip label="태그" onClick={() => {}} onDelete={() => {}} />
+        </div>
+      );
+
+      fireEvent.click(screen.getByRole('button', { name: '태그' }));
+
+      expect(outer).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('주 동작 덮개는 테두리까지 덮는다 (CSSOM)', () => {
+    const rules = (): CSSStyleRule[] => {
+      const sheet = Array.from(document.styleSheets).find((candidate) =>
+        Array.from(candidate.cssRules).some((rule) =>
+          rule.cssText.includes('Chip_action')
+        )
+      );
+      if (!sheet) throw new Error('Chip 스타일시트를 찾지 못했다');
+      return Array.from(sheet.cssRules).filter(
+        (rule): rule is CSSStyleRule => rule instanceof CSSStyleRule
+      );
+    };
+    const rulesOf = (variant: 'filled' | 'outlined') => {
+      const classes = styles
+        .chip({ size: 'md', variant, color: 'primary' })
+        .split(' ');
+      return rules().filter((rule) =>
+        classes.some((name) => rule.selectorText === `.${name}`)
+      );
+    };
+    // 루트의 실제 테두리 두께(변형과 compound 클래스의 border 선언)와
+    // 루트가 ::after에 알려 주는 변수 값.
+    const borderWidth = (variant: 'filled' | 'outlined') => {
+      const border = rulesOf(variant)
+        .map((rule) => rule.style.getPropertyValue('border'))
+        .find((value) => value && value !== 'none');
+      return border ? parseFloat(border) : 0;
+    };
+    const declaredWidth = (variant: 'filled' | 'outlined') => {
+      const declared = rulesOf(variant)
+        .map((rule) => rule.style.getPropertyValue('--chip-border-width'))
+        .find(Boolean);
+      return declared === undefined ? undefined : parseFloat(declared);
+    };
+
+    it('outlined 루트는 1px 테두리를 갖고 filled는 없다(전제)', () => {
+      render(<Chip label="a" />);
+      expect(borderWidth('outlined')).toBe(1);
+      expect(borderWidth('filled')).toBe(0);
+    });
+
+    it.each(['filled', 'outlined'] as const)(
+      '%s: 루트가 선언한 테두리 두께 변수가 실제 테두리 두께와 같다',
+      (variant) => {
+        render(<Chip label="a" />);
+        expect(declaredWidth(variant)).toBe(borderWidth(variant));
+      }
+    );
+
+    it('::after는 그 변수만큼 루트 바깥으로 나가 테두리 상자를 덮는다', () => {
+      render(<Chip label="a" />);
+      const after = rules().find((rule) =>
+        /^\.Chip_action__\w+::after$/.test(rule.selectorText)
+      );
+      expect(after).toBeDefined();
+      const inset = after?.style.getPropertyValue('inset') ?? '';
+      expect(inset).toContain('var(--chip-border-width');
+      expect(inset).toContain('-1');
+    });
+
+    it('포커스 링은 눌리는 칩 루트와 같은 굵기와 간격으로 ::after에 그린다', () => {
+      render(<Chip label="a" />);
+      const ring = rules().find((rule) =>
+        /^\.Chip_action__\w+:focus-visible::after$/.test(rule.selectorText)
+      );
+      const root = rules().find((rule) =>
+        /^\.Chip_clickable\w*__\w+:focus-visible$/.test(rule.selectorText)
+      );
+      expect(ring).toBeDefined();
+      expect(root).toBeDefined();
+      expect(ring?.style.getPropertyValue('outline')).toBe(
+        root?.style.getPropertyValue('outline')
+      );
+      expect(ring?.style.getPropertyValue('outline-offset')).toBe(
+        root?.style.getPropertyValue('outline-offset')
+      );
     });
   });
 });

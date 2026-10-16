@@ -31,7 +31,8 @@ const meta = {
     },
     selected: {
       control: 'boolean',
-      description: '선택 상태. 주면 토글 칩(aria-pressed)',
+      description:
+        '선택 상태. onClick이 있는 칩에 주면 토글 칩(aria-pressed). onClick 없이 주면 선택 모양만',
     },
     disabled: {
       control: 'boolean',

@@ -37,6 +37,8 @@ export default defineConfig({
     // Skeleton도 같은 이유다. 면 색 토큰과 두 애니메이션의 주기 식을 CSSOM으로 잠근다.
     // NumericSpinner도 같은 이유다. 입력칸 포커스가 테두리 색 한 겹뿐이고 바깥 상자에
     // 테두리가 없음을 CSSOM으로 잠근다.
+    // Chip도 같은 이유다. 주 동작의 덮개가 루트의 테두리 두께만큼 바깥으로 나가는지,
+    // 그 포커스 링이 눌리는 칩 루트의 것과 같은지를 CSSOM으로 잠근다.
     css: {
       include: [
         /Slider\.css/,
@@ -54,6 +56,7 @@ export default defineConfig({
         /\/List\.css/,
         /\/Skeleton\.css/,
         /\/NumericSpinner\.css/,
+        /\/Chip\.css/,
       ],
     },
     coverage: {

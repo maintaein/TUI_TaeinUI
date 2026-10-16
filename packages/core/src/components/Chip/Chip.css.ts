@@ -73,9 +73,11 @@ export const chip = recipe({
       },
     },
 
+    // 루트의 테두리 두께(compound의 border와 같은 값). 누르기 + 삭제의 주 동작 ::after가
+    // 이만큼 바깥으로 나가 테두리 상자까지 덮는다(action 참고).
     variant: {
-      filled: {},
-      outlined: {},
+      filled: { vars: { '--chip-border-width': '0px' } },
+      outlined: { vars: { '--chip-border-width': '1px' } },
     },
 
     color: {
@@ -382,7 +384,9 @@ export const label = style({
 // 라벨을 감싸는 투명한 껍데기다(간격·글꼴·색을 루트에서 이어받는다). 삭제 버튼과 나란히
 // 놓이므로 버튼 안에 버튼이 없다. position을 주지 않아 ::after가 루트 기준으로 칩 전체를
 // 덮고, 그 덕에 패딩 영역을 눌러도 주 동작이다(삭제 버튼은 DOM 뒤라 그 위에 얹힌다).
-// 포커스 링도 이 ::after에 그려 칩 전체를 두른다.
+// inset 0은 루트의 안쪽 여백 상자라 outlined의 테두리 띠를 빼먹으므로, 루트가 알려 주는
+// 테두리 두께(--chip-border-width)만큼 바깥으로 낸다. 테두리 없는 filled는 0이라 그대로다.
+// 포커스 링도 이 ::after에 그려 칩 전체를 두른다(테두리 상자 기준이라 루트 button과 같은 자리).
 export const action = style({
   display: 'inline-flex',
   alignItems: 'center',
@@ -403,7 +407,7 @@ export const action = style({
     '&::after': {
       content: '""',
       position: 'absolute',
-      inset: 0,
+      inset: 'calc(var(--chip-border-width, 0px) * -1)',
       borderRadius: themeContract.borderRadius.full,
     },
     '&:focus-visible::after': focusRing(),

@@ -54,7 +54,7 @@ All components follow consistent patterns:
 
 ### Display & Data
 - **Badge**: Status/count indicator. Props: variant('primary'|'secondary'|'success'|'error'|'warning'), size, max, dot. No default role; text is the accessible name, `dot` needs aria-label (role="img") or is hidden
-- **Chip** - Tag/filter chip. Props: label, variant('filled'|'outlined'), color, icon, avatar, onDelete, onClick (makes it a pressable button), selected (toggle chip, aria-pressed)
+- **Chip** - Tag/filter chip. Props: label, variant('filled'|'outlined'), color, icon, avatar, onDelete, onClick (makes it a pressable button), selected (with onClick: toggle chip, aria-pressed; without onClick: selected look only)
 - **Avatar** - User avatar with image, fallback, status. Props: src, alt, size, variant('circular'|'rounded'|'square'), status, bouncy(opt-in hover/focus float + press grow, needs onClick or href)
 
 ### Feedback & Status
