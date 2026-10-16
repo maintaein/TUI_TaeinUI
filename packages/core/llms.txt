@@ -34,11 +34,11 @@ All components follow consistent patterns:
 - `ref` — All components support forwardRef
 - Form components require `label` prop for accessibility
 
-## Components (25 families, 43 exports)
+## Components (25 families, 33 exports)
 
-세는 규칙: 아래 목록은 컴포넌트 **계열** 25개다. 최상위 export는 43개인데,
-차이는 개별로도 import할 수 있는 합성 하위 컴포넌트(`ModalHeader`,
-`CardBody`, `AvatarGroup`, `ListItem` 등)다. 두 숫자 모두 소스에서 검증된다.
+세는 규칙: 아래 목록은 컴포넌트 **계열** 25개다. 최상위 export는 33개인데,
+차이는 개별로도 import할 수 있는 합성 하위 컴포넌트(`AvatarGroup`,
+`ListItem`, `SideSheetHeader` 등)다. 두 숫자 모두 소스에서 검증된다.
 
 ### Form & Input
 - **TextField** - Text input with label, validation, helper text. Add `multiline` for a multiline textarea. Props: label, type, size, error, errorMessage, helperText, fullWidth, multiline, rows, autoResize (rows and autoResize only with multiline; type only without)
@@ -64,13 +64,13 @@ All components follow consistent patterns:
 - **Tooltip** — Hover tooltip. Props: children, content, position, delay, arrow
 
 ### Overlay
-- **Modal** — Dialog modal. Props: open, onClose, size('sm'-'xl'|'full'), closeOnBackdropClick, closeOnEscape. Compound: Modal.Header, Modal.Title, Modal.Content, Modal.Footer
+- **Modal**: Dialog modal. Props: open, onClose, size('sm'-'xl'|'full'), closeOnBackdropClick, closeOnEscape. Compound: Modal.Header, Modal.Title, Modal.Content, Modal.Footer. 간단하면 prop(`title`·`footer`), 직접 꾸미려면 조합(`Modal.Header` 등)
 - **BottomSheet** — Mobile bottom drawer. Props: open, onClose, height('auto'|'sm'-'lg'|'full'), enableDrag, showHandle. Compound: BottomSheet.Header, BottomSheet.Title, BottomSheet.Content
 - **SideSheet** — Side panel drawer. Props: open, onClose, width('sm'-'lg'|'full'), position('left'|'right'). Compound: SideSheet.Header, SideSheet.Title, SideSheet.Content
 - **Popover** — Popover panel. Props: children(trigger), content, position, closeOnOutsideClick, arrow
 
 ### Layout
-- **Card**: Content container. Props: variant('outlined'|'elevated'|'filled'), onClick, hoverLift(opt-in lift on hover). Compound: Card.Image, Card.Header, Card.Title, Card.Body, Card.Footer
+- **Card**: Content container. Props: variant('outlined'|'elevated'|'filled'), onClick, hoverLift(opt-in lift on hover). Compound: Card.Image, Card.Header, Card.Title, Card.Body, Card.Footer. 간단하면 prop(`title`·`footer`·`image`), 직접 꾸미려면 조합(`Card.Body` 등)
 - **List** — Ordered list with spacing. Props: spacing, divider. Child: ListItem(label, value, layout)
 - **BoardRow** — Expandable row/accordion. Props: title, variant, expanded, onChange, disabled
 - **Divider** — Content separator. Props: orientation, variant('solid'|'dashed'|'dotted'), spacing, children(text)

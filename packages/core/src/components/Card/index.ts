@@ -1,12 +1,4 @@
-export {
-  Card,
-  CardImage,
-  CardImageOverlay,
-  CardHeader,
-  CardTitle,
-  CardBody,
-  CardFooter,
-} from './Card';
+export { Card } from './Card';
 
 export type {
   CardProps,

@@ -408,7 +408,8 @@ const triggerRef = useRef(null);
           <h2 className={styles.sectionTitle}>Flat vs Compound 패턴</h2>
           <p className={styles.sectionDescription}>
             Modal은 하나의 컴포넌트로 두 가지 API 스타일을 모두 지원합니다.
-            상황에 맞게 선택하세요.
+            간단하면 prop(title, footer), 직접 꾸미려면 조합(Modal.Header 등)을
+            쓰세요.
           </p>
         </div>
 

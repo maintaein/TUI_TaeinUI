@@ -350,8 +350,9 @@ export function CardPage() {
         <div className={styles.sectionHeader}>
           <h2 className={styles.sectionTitle}>Flat vs Compound 패턴</h2>
           <p className={styles.sectionDescription}>
-            Card는 하나의 import로 두 가지 API 스타일을 제공합니다. 상황에 맞게
-            선택하세요.
+            Card는 하나의 import로 두 가지 API 스타일을 제공합니다. 간단하면
+            prop(title, footer, image), 직접 꾸미려면 조합(Card.Body 등)을
+            쓰세요.
           </p>
         </div>
 

@@ -641,12 +641,12 @@ import { Modal, Button } from '@taein-ui/core';
 
 ### Compound Components
 
-점 표기와 개별 import 둘 다 가능하다 (`Modal.Header` === `ModalHeader`).
+간단하면 prop(`title`·`footer`), 직접 꾸미려면 조합(`Modal.Header` 등)을 쓴다. 하위 컴포넌트는 `Modal.Header`처럼 점 표기로만 접근한다(`ModalHeader` 같은 최상위 export는 없다).
 
-- `Modal.Header` / `ModalHeader` — Header container. Props: showClose
-- `Modal.Title` / `ModalTitle` — Heading. Props: as ('h1'-'h6', default 'h2')
-- `Modal.Content` / `ModalContent` — Scrollable content area
-- `Modal.Footer` / `ModalFooter` — Footer. Props: align ('left' | 'center' | 'right')
+- `Modal.Header`: Header container. Props: showClose
+- `Modal.Title`: Heading. Props: as ('h1'-'h6', default 'h2')
+- `Modal.Content`: Scrollable content area
+- `Modal.Footer`: Footer. Props: align ('left' | 'center' | 'right')
 
 ### Accessibility
 - `role="dialog"`, `aria-modal="true"`
@@ -813,12 +813,15 @@ import { Card } from '@taein-ui/core';
 | className | string | — | Additional CSS class |
 
 ### Compound Components
-- `Card.Image` / `CardImage` — Image container. Props: src, alt, children (overlay)
-- `Card.ImageOverlay` / `CardImageOverlay` — `Card.Image` 안에 얹는 오버레이
-- `Card.Header` / `CardHeader` — Header area
-- `Card.Title` / `CardTitle` — Heading. Props: as ('h1'-'h6', default 'h3')
-- `Card.Body` / `CardBody` — Body area. Props: padding
-- `Card.Footer` / `CardFooter` — Footer area
+
+간단하면 prop(`title`·`footer`·`image`), 직접 꾸미려면 조합(`Card.Body` 등)을 쓴다. 하위 컴포넌트는 `Card.Body`처럼 점 표기로만 접근한다(`CardBody` 같은 최상위 export는 없다).
+
+- `Card.Image`: Image container. Props: src, alt, children (overlay)
+- `Card.ImageOverlay`: `Card.Image` 안에 얹는 오버레이
+- `Card.Header`: Header area
+- `Card.Title`: Heading. Props: as ('h1'-'h6', default 'h3')
+- `Card.Body`: Body area. Props: padding
+- `Card.Footer`: Footer area
 
 ---
 

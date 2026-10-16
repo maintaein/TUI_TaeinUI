@@ -1426,4 +1426,14 @@ describe('Modal (Flat API)', () => {
       expect(onClose).toHaveBeenCalledTimes(1);
     });
   });
+
+  describe('조합 부품 이름', () => {
+    it('displayName이 점 표기 이름이다', () => {
+      expect(Modal.displayName).toBe('Modal');
+      expect(Modal.Header.displayName).toBe('Modal.Header');
+      expect(Modal.Title.displayName).toBe('Modal.Title');
+      expect(Modal.Content.displayName).toBe('Modal.Content');
+      expect(Modal.Footer.displayName).toBe('Modal.Footer');
+    });
+  });
 });

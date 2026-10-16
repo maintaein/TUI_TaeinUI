@@ -185,7 +185,7 @@ export interface CardImageProps extends HTMLAttributes<HTMLDivElement> {
   children?: ReactNode;
 }
 
-export const CardImage = forwardRef<HTMLDivElement, CardImageProps>(
+const CardImage = forwardRef<HTMLDivElement, CardImageProps>(
   ({ src, alt = '', children, className, ...props }, ref) => {
     return (
       <div ref={ref} className={clsx(cardImageWrapper, className)} {...props}>
@@ -204,16 +204,15 @@ export interface CardImageOverlayProps extends HTMLAttributes<HTMLDivElement> {
   children: ReactNode;
 }
 
-export const CardImageOverlay = forwardRef<
-  HTMLDivElement,
-  CardImageOverlayProps
->(({ children, className, ...props }, ref) => {
-  return (
-    <div ref={ref} className={clsx(cardImageOverlay, className)} {...props}>
-      {children}
-    </div>
-  );
-});
+const CardImageOverlay = forwardRef<HTMLDivElement, CardImageOverlayProps>(
+  ({ children, className, ...props }, ref) => {
+    return (
+      <div ref={ref} className={clsx(cardImageOverlay, className)} {...props}>
+        {children}
+      </div>
+    );
+  }
+);
 
 CardImageOverlay.displayName = 'Card.ImageOverlay';
 
@@ -223,7 +222,7 @@ export interface CardHeaderProps extends HTMLAttributes<HTMLDivElement> {
   children: ReactNode;
 }
 
-export const CardHeader = forwardRef<HTMLDivElement, CardHeaderProps>(
+const CardHeader = forwardRef<HTMLDivElement, CardHeaderProps>(
   ({ children, className, ...props }, ref) => {
     return (
       <header ref={ref} className={clsx(cardHeader, className)} {...props}>
@@ -243,7 +242,7 @@ export interface CardTitleProps extends HTMLAttributes<HTMLHeadingElement> {
   as?: 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6';
 }
 
-export const CardTitle = forwardRef<HTMLHeadingElement, CardTitleProps>(
+const CardTitle = forwardRef<HTMLHeadingElement, CardTitleProps>(
   ({ children, as: Component = 'h3', className, ...props }, ref) => {
     return (
       <Component ref={ref} className={clsx(cardTitle, className)} {...props}>
@@ -263,7 +262,7 @@ export interface CardBodyProps extends HTMLAttributes<HTMLDivElement> {
   padding?: 'sm' | 'md' | 'lg';
 }
 
-export const CardBody = forwardRef<HTMLDivElement, CardBodyProps>(
+const CardBody = forwardRef<HTMLDivElement, CardBodyProps>(
   ({ children, padding: bodyPadding = 'md', className, ...props }, ref) => {
     return (
       <div
@@ -285,7 +284,7 @@ export interface CardFooterProps extends HTMLAttributes<HTMLDivElement> {
   children: ReactNode;
 }
 
-export const CardFooter = forwardRef<HTMLDivElement, CardFooterProps>(
+const CardFooter = forwardRef<HTMLDivElement, CardFooterProps>(
   ({ children, className, ...props }, ref) => {
     return (
       <footer ref={ref} className={clsx(cardFooter, className)} {...props}>

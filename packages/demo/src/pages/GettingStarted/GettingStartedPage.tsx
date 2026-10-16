@@ -179,7 +179,7 @@ function Example() {
               </div>
               <h3 className={styles.nextStepTitle}>컴포넌트</h3>
               <p className={styles.nextStepDescription}>
-                컴포넌트 패밀리 25개(top-level export 43개)와 사용 예시를
+                컴포넌트 패밀리 25개(top-level export 33개)와 사용 예시를
                 확인하세요.
               </p>
               <div className={styles.nextStepArrow}>&rarr;</div>

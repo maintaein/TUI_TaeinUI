@@ -421,7 +421,7 @@ export interface ModalHeaderProps extends HTMLAttributes<HTMLDivElement> {
   showClose?: boolean;
 }
 
-export const ModalHeader = forwardRef<HTMLDivElement, ModalHeaderProps>(
+const ModalHeader = forwardRef<HTMLDivElement, ModalHeaderProps>(
   ({ children, showClose = false, className, ...props }, ref) => {
     const context = useModalContext();
 
@@ -447,7 +447,7 @@ export const ModalHeader = forwardRef<HTMLDivElement, ModalHeaderProps>(
   }
 );
 
-ModalHeader.displayName = 'ModalHeader';
+ModalHeader.displayName = 'Modal.Header';
 
 // ModalTitle
 /**
@@ -464,7 +464,7 @@ export interface ModalTitleProps extends HTMLAttributes<HTMLHeadingElement> {
   as?: 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6';
 }
 
-export const ModalTitle = forwardRef<HTMLHeadingElement, ModalTitleProps>(
+const ModalTitle = forwardRef<HTMLHeadingElement, ModalTitleProps>(
   ({ children, as: Component = 'h2', className, ...props }, ref) => {
     const context = useModalContext();
 
@@ -481,7 +481,7 @@ export const ModalTitle = forwardRef<HTMLHeadingElement, ModalTitleProps>(
   }
 );
 
-ModalTitle.displayName = 'ModalTitle';
+ModalTitle.displayName = 'Modal.Title';
 
 // ModalContent
 /** Modal.Content — 모달 본문 영역 */
@@ -490,7 +490,7 @@ export interface ModalContentProps extends HTMLAttributes<HTMLDivElement> {
   children: ReactNode;
 }
 
-export const ModalContent = forwardRef<HTMLDivElement, ModalContentProps>(
+const ModalContent = forwardRef<HTMLDivElement, ModalContentProps>(
   ({ children, className, ...props }, ref) => {
     return (
       <div ref={ref} className={clsx(modalContentStyle, className)} {...props}>
@@ -500,7 +500,7 @@ export const ModalContent = forwardRef<HTMLDivElement, ModalContentProps>(
   }
 );
 
-ModalContent.displayName = 'ModalContent';
+ModalContent.displayName = 'Modal.Content';
 
 // ModalFooter
 /** Modal.Footer — 모달 푸터 영역 (보통 액션 버튼 배치) */
@@ -511,7 +511,7 @@ export interface ModalFooterProps extends HTMLAttributes<HTMLDivElement> {
   align?: 'left' | 'center' | 'right';
 }
 
-export const ModalFooter = forwardRef<HTMLDivElement, ModalFooterProps>(
+const ModalFooter = forwardRef<HTMLDivElement, ModalFooterProps>(
   ({ children, align = 'left', className, ...props }, ref) => {
     return (
       <footer
@@ -525,7 +525,7 @@ export const ModalFooter = forwardRef<HTMLDivElement, ModalFooterProps>(
   }
 );
 
-ModalFooter.displayName = 'ModalFooter';
+ModalFooter.displayName = 'Modal.Footer';
 
 // ─── Modal = ModalRoot + Compound 서브 컴포넌트 ────────────────────────
 

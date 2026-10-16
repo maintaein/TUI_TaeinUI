@@ -105,6 +105,44 @@ describe('발행 문서와 소스 일치 검사', () => {
     expect(missing).toEqual([]);
   });
 
+  it('최상위 export에 Modal·Card의 합성 조각 별칭 10개가 없고 점 표기 조각은 남아 있다', () => {
+    // 별칭(ModalHeader, CardBody 등)은 점 표기와 같은 컴포넌트라 이름만 둘이었다.
+    // 지금은 Modal.Header처럼 한 이름만 쓰고, 최상위 export는 33개다.
+    const aliases = [
+      'ModalHeader',
+      'ModalTitle',
+      'ModalContent',
+      'ModalFooter',
+      'CardImage',
+      'CardImageOverlay',
+      'CardHeader',
+      'CardTitle',
+      'CardBody',
+      'CardFooter',
+    ];
+    const names = exportedComponentNames();
+    for (const alias of aliases) {
+      expect(names, `${alias}가 아직 최상위로 export된다`).not.toContain(alias);
+    }
+    expect(names).toHaveLength(33);
+
+    const modal: Record<string, unknown> = core.Modal;
+    const card: Record<string, unknown> = core.Card;
+    for (const part of ['Header', 'Title', 'Content', 'Footer']) {
+      expect(modal[part], `Modal.${part}`).toBeDefined();
+    }
+    for (const part of [
+      'Image',
+      'ImageOverlay',
+      'Header',
+      'Title',
+      'Body',
+      'Footer',
+    ]) {
+      expect(card[part], `Card.${part}`).toBeDefined();
+    }
+  });
+
   it('llms.txt에 적힌 컴포넌트 개수가 실제와 맞고 세는 규칙이 명시돼 있다', () => {
     // v0.1.0 문서는 근거 없이 "30"만 적어서 소비자가 검증할 수 없었다.
     // 두 숫자가 다른 이유(합성 하위 컴포넌트)를 제목에 못박는다.

@@ -45,6 +45,7 @@
 
 ### Removed
 
+- **BREAKING CHANGE:** `Modal`과 `Card`의 최상위 별칭 export 10개를 없앴습니다(`ModalHeader`·`ModalTitle`·`ModalContent`·`ModalFooter`, `CardImage`·`CardImageOverlay`·`CardHeader`·`CardTitle`·`CardBody`·`CardFooter`). 같은 컴포넌트이니 `Modal.Header`·`Card.Body`처럼 점 표기 이름으로 바꾸세요. `ModalHeaderProps`·`CardBodyProps` 같은 타입 export는 그대로입니다. 최상위 export는 43개에서 33개가 됩니다. 간단하면 prop(`title`·`footer`), 직접 꾸미려면 조합(`Modal.Header` 등)으로 역할을 나눠 둘 다 둡니다.
 - **BREAKING CHANGE:** `NumericSpinner`의 `inputWidth`를 없앴습니다. `style={{ width }}`와 같은 일이었고 둘을 같이 주면 `style`이 이겼습니다. `<NumericSpinner inputWidth="60px" />`는 `<NumericSpinner style={{ width: '60px' }} />`로 바꾸세요.
 - **BREAKING CHANGE:** `Card`와 `Card.Body`의 `padding="none"`을 없앴습니다(`padding`은 `'sm' | 'md' | 'lg'`). Compound API에서 `<Card.Body padding="none">`을 쓰던 곳은 `<Card.Body style={{ padding: 0 }}>`로 바꾸세요. Flat API(`<Card title="x" padding="none">`)는 본문 `div`에 손이 닿지 않으니 Compound API로 옮긴 뒤 같은 방식으로 주세요.
 - **BREAKING CHANGE:** `Card`의 `variant="interactive"`를 없앴습니다. 2px 테두리와 떠오르는 호버뿐인 변형이었습니다. `<Card variant="interactive">`는 `<Card variant="outlined" hoverLift>`로 바꾸세요. 테두리는 1px로 얇아집니다. `interactive`가 주던 `cursor: pointer`와 `touch-action: manipulation`은 이제 `onClick`이 있는 카드에만 붙습니다.
