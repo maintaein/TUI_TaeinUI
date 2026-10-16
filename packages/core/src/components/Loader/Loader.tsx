@@ -114,9 +114,12 @@ type ColorPreset = keyof typeof colorStyles;
 const isPreset = (value: string): value is ColorPreset =>
   value === 'primary' || value === 'secondary' || value === 'white';
 
-// 접근성 계약(role, aria-live, aria-busy)은 안쪽 status 요소가 쥔다. 소비자가
+// 접근성 계약(role, aria-live)은 안쪽 status 요소가 쥔다. 소비자가
 // ...props로 바깥 래퍼에 같은 속성을 얹어 status를 이중으로 만들지 못하게,
 // props 펼침 뒤에 undefined로 덮는다(React는 undefined 속성을 렌더하지 않는다).
+// aria-busy도 덮는다: Loader는 status 요소에 aria-busy를 달지 않는다(busy인 살아
+// 있는 영역은 갱신 낭독이 미뤄질 수 있다). "이 영역이 로딩 중"은 소비자가 감싸는
+// 영역에 직접 준다. 바깥 래퍼에 새어 들어가 그 약속을 깨지 못하게 막아 둔다.
 const a11yLocked = {
   role: undefined,
   'aria-live': undefined,
@@ -466,7 +469,6 @@ export const Loader = ({
         <div
           role="status"
           aria-live="polite"
-          aria-busy="true"
           aria-label={accessibleLabel}
           data-type={type}
           data-size={size}
@@ -503,13 +505,6 @@ export const Loader = ({
       <div
         role="status"
         aria-live="polite"
-        aria-busy={
-          type === 'orbit'
-            ? status === 'loading'
-            : type === 'wave'
-              ? true
-              : undefined
-        }
         aria-label={accessibleLabel}
         data-type={type}
         data-size={size}
@@ -587,7 +582,13 @@ export const Loader = ({
     >
       {loaderElement}
       {label && (
-        <p ref={labelRef} className={labelClass}>
+        <p
+          ref={labelRef}
+          className={labelClass}
+          // 접근 이름(aria-label ?? label)이 라벨과 같으면 살아 있는 영역의 숨은 메시지가
+          // 그 글자를 이미 읽는다. 다르면 보이는 글자가 따로 읽혀야 하므로 숨기지 않는다.
+          aria-hidden={!ariaLabel || ariaLabel === label ? true : undefined}
+        >
           {slots.texts.map((t, i) => (
             <span
               key={i}

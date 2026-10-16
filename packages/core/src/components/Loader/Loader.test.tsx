@@ -252,11 +252,10 @@ describe('Loader', () => {
       expect(loader).toHaveAttribute('aria-label');
     });
 
-    it('aria-busy="true"를 가진다', () => {
-      // bar 타입은 직접 aria-busy를 가짐
+    it('aria-busy를 달지 않는다 (busy 영역은 낭독 갱신이 미뤄질 수 있어 로딩 영역 표시는 소비자 몫)', () => {
       render(<Loader type="bar" />);
       const loader = screen.getByRole('status');
-      expect(loader).toHaveAttribute('aria-busy', 'true');
+      expect(loader).not.toHaveAttribute('aria-busy');
     });
   });
 
@@ -744,9 +743,9 @@ describe('Loader', () => {
   });
 
   describe('물결 막대 wave (M5 task-20 2부)', () => {
-    it('접근성: 불확정 로딩이라 aria-busy="true"다 (bar·inchworm과 같다)', () => {
+    it('접근성: aria-busy를 달지 않는다 (bar·inchworm과 같다)', () => {
       render(<Loader type="wave" />);
-      expect(screen.getByRole('status')).toHaveAttribute('aria-busy', 'true');
+      expect(screen.getByRole('status')).not.toHaveAttribute('aria-busy');
     });
 
     const SIZES = [
@@ -960,7 +959,7 @@ describe('Loader', () => {
       const status = screen.getByRole('status');
       expect(status).toHaveAttribute('data-type', 'inchworm');
       expect(status).toHaveAttribute('aria-live', 'polite');
-      expect(status).toHaveAttribute('aria-busy', 'true');
+      expect(status).not.toHaveAttribute('aria-busy');
       expect(status).toHaveAttribute('aria-label', '로딩 중');
       const track = status.firstElementChild as HTMLElement;
       expect(track.className).toContain('barSizeStyles_lg');
@@ -1321,16 +1320,16 @@ describe('Loader', () => {
       expect(orbitOf(container)).not.toHaveAttribute('data-paused');
     });
 
-    it('접근성: aria-busy는 loading일 때만 true이고 이름 기본값이 상태를 따른다', () => {
+    it('접근성: aria-busy는 어느 상태에도 없고 이름 기본값이 상태를 따른다', () => {
       const { rerender } = render(<Loader />);
       const status = screen.getByRole('status');
-      expect(status).toHaveAttribute('aria-busy', 'true');
+      expect(status).not.toHaveAttribute('aria-busy');
       expect(status).toHaveAttribute('aria-label', '로딩 중');
       rerender(<Loader status="done" />);
-      expect(status).toHaveAttribute('aria-busy', 'false');
+      expect(status).not.toHaveAttribute('aria-busy');
       expect(status).toHaveAttribute('aria-label', '완료');
       rerender(<Loader status="error" />);
-      expect(status).toHaveAttribute('aria-busy', 'false');
+      expect(status).not.toHaveAttribute('aria-busy');
       expect(status).toHaveAttribute('aria-label', '실패');
     });
 
@@ -2076,5 +2075,120 @@ describe('머리의 은은한 광휘 (M5 task-20 수정 6)', () => {
         /boxShadow|filter/
       );
     });
+  });
+});
+
+describe('낭독: 살아 있는 영역에 aria-busy 없음, 라벨은 한 번만 (M5 기술 정리 R2·R3)', () => {
+  // 회귀 분류표 (고치기 전 -> 고친 뒤)
+  // | 지점                                    | 전             | 후                 | 종류 |
+  // | bar·inchworm·wave status aria-busy      | "true"         | 없음               | 의도 |
+  // | orbit status aria-busy                  | loading만 true | 없음(done·error도) | 의도 |
+  // | spinner·dots status, fuse progressbar   | 없음           | 없음               | 유지 |
+  // | 라벨 = 접근 이름일 때 p                 | aria-hidden 없음 | "true"           | 의도 |
+  // | 라벨 != 접근 이름일 때 p                | aria-hidden 없음 | 없음             | 유지 |
+  // | 라벨 없음                               | p 없음         | p 없음             | 유지 |
+  // | 숨은 메시지 글자, role, aria-live, 이름 | 그대로         | 그대로             | 유지 |
+  // | 소비자가 넘긴 aria-busy                 | 닿지 않음      | 닿지 않음          | 유지 |
+  const TYPES = [
+    'orbit',
+    'spinner',
+    'dots',
+    'bar',
+    'wave',
+    'inchworm',
+  ] as const;
+
+  it.each(TYPES)('%s: status 요소에 aria-busy가 없다', (type) => {
+    render(<Loader type={type} />);
+    expect(screen.getByRole('status')).not.toHaveAttribute('aria-busy');
+  });
+
+  it.each(['loading', 'done', 'error'] as const)(
+    'orbit status=%s: aria-busy가 없다',
+    (status) => {
+      render(<Loader status={status} />);
+      expect(screen.getByRole('status')).not.toHaveAttribute('aria-busy');
+    }
+  );
+
+  it('도화선 progressbar에도 aria-busy가 없다', () => {
+    render(<Loader type="fuse" value={40} />);
+    expect(screen.getByRole('progressbar')).not.toHaveAttribute('aria-busy');
+  });
+
+  it('bar의 role·aria-live·이름은 그대로다', () => {
+    render(<Loader type="bar" />);
+    const status = screen.getByRole('status');
+    expect(status).toHaveAttribute('aria-live', 'polite');
+    expect(status).toHaveAttribute('aria-label', '로딩 중');
+  });
+
+  it('소비자가 넘긴 aria-busy는 바깥 래퍼와 status 어디에도 닿지 않는다', () => {
+    const { container } = render(<Loader aria-busy="true" label="저장 중" />);
+    expect(container.querySelector('[aria-busy]')).toBeNull();
+  });
+
+  it.each(TYPES)(
+    '%s: 라벨이 접근 이름과 같으면 p는 aria-hidden이고 숨은 메시지가 그 글자를 읽는다',
+    (type) => {
+      const { container } = render(<Loader type={type} label="업로드 중" />);
+      expect(container.querySelector('p')).toHaveAttribute(
+        'aria-hidden',
+        'true'
+      );
+      expect(
+        screen.getByRole('status').querySelector('[data-loader-message]')
+      ).toHaveTextContent('업로드 중');
+    }
+  );
+
+  it('도화선도 라벨이 접근 이름과 같으면 p는 aria-hidden이다', () => {
+    const { container } = render(
+      <Loader type="fuse" value={40} label="진행 중" />
+    );
+    expect(container.querySelector('p')).toHaveAttribute('aria-hidden', 'true');
+    expect(screen.getByRole('progressbar')).toHaveAttribute(
+      'aria-label',
+      '진행 중'
+    );
+  });
+
+  it('aria-label이 라벨과 다르면 p는 aria-hidden이 아니다', () => {
+    const { container } = render(
+      <Loader label="저장 중" aria-label="파일 저장" />
+    );
+    expect(container.querySelector('p')).not.toHaveAttribute('aria-hidden');
+  });
+
+  it('aria-label이 라벨과 같으면 p는 aria-hidden이다', () => {
+    const { container } = render(
+      <Loader label="저장 중" aria-label="저장 중" />
+    );
+    expect(container.querySelector('p')).toHaveAttribute('aria-hidden', 'true');
+  });
+
+  it('라벨이 없으면 p도 없다', () => {
+    const { container } = render(<Loader fullScreen />);
+    expect(container.querySelector('p')).toBeNull();
+  });
+
+  it('라벨 글자가 바뀌면 숨은 메시지도 바뀌고 p는 계속 aria-hidden이다', () => {
+    const { container, rerender } = render(
+      <Loader type="bar" label="업로드 중" />
+    );
+    const message = screen
+      .getByRole('status')
+      .querySelector('[data-loader-message]');
+    expect(message).toHaveTextContent('업로드 중');
+    rerender(<Loader type="bar" label="처리 중" />);
+    expect(message).toHaveTextContent('처리 중');
+    expect(container.querySelector('p')).toHaveAttribute('aria-hidden', 'true');
+  });
+
+  it('aria-label을 나중에 라벨과 다르게 바꾸면 p의 aria-hidden이 풀린다', () => {
+    const { container, rerender } = render(<Loader label="저장 중" />);
+    expect(container.querySelector('p')).toHaveAttribute('aria-hidden', 'true');
+    rerender(<Loader label="저장 중" aria-label="파일 저장" />);
+    expect(container.querySelector('p')).not.toHaveAttribute('aria-hidden');
   });
 });

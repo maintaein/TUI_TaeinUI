@@ -563,10 +563,10 @@ const handleLoad = () => {
               'role="status"로 설정되어 스크린 리더가 로딩 상태임을 인식합니다.',
           },
           {
-            attribute: 'aria-busy="true"',
-            effect: '작업이 진행 중임을 알립니다.',
+            attribute: '감싸는 영역의 aria-busy',
+            effect: '이 영역이 로딩 중임을 알립니다.',
             description:
-              'bar 타입에서 aria-busy="true"가 설정되어 콘텐츠가 아직 로딩 중임을 전달합니다. orbit은 status가 loading일 때만 true이고 done이나 error가 되면 false입니다.',
+              'Loader의 status 요소에는 aria-busy를 달지 않습니다. busy인 살아 있는 영역은 갱신 낭독이 미뤄질 수 있어 메시지가 안 읽힐 수 있기 때문입니다. 영역이 로딩 중임은 Loader를 감싸는 요소에 aria-busy와 이름을 주세요(Skeleton과 같은 안내). Loader에 직접 넘긴 aria-busy는 어디에도 닿지 않습니다.',
           },
           {
             attribute: 'role="progressbar"',
@@ -584,7 +584,7 @@ const handleLoad = () => {
             attribute: 'aria-label',
             effect: '로더의 용도를 설명합니다.',
             description:
-              'label prop 또는 aria-label로 "로딩 중" 등 기본 레이블이 제공됩니다.',
+              'label prop 또는 aria-label로 "로딩 중" 등 기본 레이블이 제공됩니다. label이 접근 이름과 같으면 보이는 라벨은 aria-hidden이 되어, 상태 영역 안의 숨은 메시지로 한 번만 읽힙니다. aria-label이 label과 다르면 둘 다 읽힙니다.',
           },
         ]}
         additionalGuidance={[

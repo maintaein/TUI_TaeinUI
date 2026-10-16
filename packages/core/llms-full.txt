@@ -482,6 +482,8 @@ import { Loader } from '@taein-ui/core';
 <Loader fullScreen overlay />
 ```
 
+The status region carries no `aria-busy` (a busy live region may defer its updates, so the hidden message could be read late or never). To say "this area is loading", put `aria-busy` on the element that wraps the Loader, as with Skeleton. An `aria-busy` passed to Loader itself is dropped.
+
 ### Props (extends HTMLAttributes<HTMLDivElement>)
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
@@ -490,7 +492,7 @@ import { Loader } from '@taein-ui/core';
 | value | number | required for fuse | Fuse only. Progress 0-100 (clamped), shown as a bar with a flickering spark at the fill end (role="progressbar"). Type error on other types |
 | size | 'sm' \| 'md' \| 'lg' \| 'xl' | 'md' | Loader size |
 | color | 'primary' \| 'secondary' \| 'white' \| string | 'primary' | Color preset or any CSS color value (e.g. '#f00', 'currentColor') |
-| label | string | - | Text label. Changing the text cross-fades with a blur |
+| label | string | - | Text label. Changing the text cross-fades with a blur. When the accessible name equals the label (no `aria-label`, or the same text) the visible label is `aria-hidden` so it is read once, through the hidden message in the status region |
 | fullScreen | boolean | false | Full screen overlay |
 | overlay | boolean | false | Semi-transparent overlay |
 | aria-label | string | — | Accessibility label |
