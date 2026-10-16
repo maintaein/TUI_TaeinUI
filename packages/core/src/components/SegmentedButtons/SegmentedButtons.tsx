@@ -285,12 +285,14 @@ export const SegmentedButtons = ({
       event.preventDefault();
       if (disabled || optionDisabled) return;
       handleSelect(optionValue);
+      // 라벨의 기본 동작을 막았으니 포커스는 숨은 라디오로 직접 옮긴다(방향키가 이어지도록).
+      event.currentTarget.querySelector('input')?.focus();
     },
     [disabled, handleSelect]
   );
 
   const handleKeyDown = useCallback(
-    (event: KeyboardEvent<HTMLLabelElement>, index: number) => {
+    (event: KeyboardEvent<HTMLInputElement>, index: number) => {
       if (disabled) return;
 
       if (event.key === ' ' || event.key === 'Enter') {
@@ -301,38 +303,40 @@ export const SegmentedButtons = ({
         return;
       }
 
-      const enabledOptions = options.filter((opt) => !opt.disabled);
-      const last = enabledOptions.length - 1;
-      const current = enabledOptions.findIndex(
-        (opt) => opt.value === options[index].value
-      );
+      // 브라우저 단축키(Alt+←로 뒤로 가기 등)는 막지 않고 놓아 준다
+      if (event.altKey || event.ctrlKey || event.metaKey) return;
 
-      let nextIndex: number;
+      // index에서 방향으로 가장 가까운 활성 옵션. 포커스가 비활성 옵션에 있어도 그 자리에서
+      // 시작하고, 끝을 넘으면 돌아온다.
+      const step = (direction: 1 | -1) => {
+        for (let i = 1; i <= options.length; i++) {
+          const candidate =
+            options[(index + direction * i + options.length) % options.length];
+          if (!candidate.disabled) return candidate;
+        }
+        return undefined;
+      };
+
+      let nextOption: SegmentedButtonOption | undefined;
       if (event.key === 'ArrowRight' || event.key === 'ArrowDown') {
-        nextIndex = current >= last ? 0 : current + 1;
+        nextOption = step(1);
       } else if (event.key === 'ArrowLeft' || event.key === 'ArrowUp') {
-        nextIndex = current <= 0 ? last : current - 1;
+        nextOption = step(-1);
       } else if (event.key === 'Home') {
-        nextIndex = 0;
+        nextOption = options.find((opt) => !opt.disabled);
       } else if (event.key === 'End') {
-        nextIndex = last;
+        nextOption = [...options].reverse().find((opt) => !opt.disabled);
       } else {
         return;
       }
       event.preventDefault();
 
-      const nextOption = enabledOptions[nextIndex];
       if (!nextOption) return;
-      const nextLabel =
-        containerRef.current?.querySelectorAll('label')[
-          options.indexOf(nextOption)
-        ];
-      if (nextLabel) {
-        nextLabel.focus();
-        handleSelect(nextOption.value);
-      }
+      const inputs = containerRef.current?.querySelectorAll('input');
+      inputs?.[options.indexOf(nextOption)]?.focus();
+      if (nextOption.value !== currentValue) handleSelect(nextOption.value);
     },
-    [disabled, options, handleSelect]
+    [disabled, options, currentValue, handleSelect]
   );
 
   // 로빙 탭 순서: 그룹에서 Tab 순서에 있는 옵션은 하나다. 선택된 옵션, 선택이 없거나
@@ -393,13 +397,11 @@ export const SegmentedButtons = ({
         const isDisabled = disabled || option.disabled;
 
         return (
-          // eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions
+          // eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions, jsx-a11y/click-events-have-key-events -- 키보드는 안의 라디오 input이 받는다
           <label
             key={option.value}
             className={labelClass(option)}
-            tabIndex={!isDisabled && option.value === tabStopValue ? 0 : -1}
             onClick={(e) => handleLabelClick(e, option.value, option.disabled)}
-            onKeyDown={(e) => handleKeyDown(e, index)}
           >
             <input
               type="radio"
@@ -411,7 +413,8 @@ export const SegmentedButtons = ({
               aria-checked={isSelected}
               aria-disabled={isDisabled}
               aria-label={option.label}
-              tabIndex={-1}
+              tabIndex={!isDisabled && option.value === tabStopValue ? 0 : -1}
+              onKeyDown={(e) => handleKeyDown(e, index)}
             />
             {renderContent(option)}
           </label>

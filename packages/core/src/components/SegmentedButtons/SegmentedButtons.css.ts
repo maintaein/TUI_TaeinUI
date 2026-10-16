@@ -116,7 +116,8 @@ export const button = style({
       color: themeContract.color.text.primary,
     },
 
-    '&:focus-visible': {
+    // 포커스는 안의 숨은 라디오가 받고, 링은 라벨(옵션) 모양에 그린다.
+    '&:has(input:focus-visible)': {
       ...focusRing(),
     },
 

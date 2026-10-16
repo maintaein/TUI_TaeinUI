@@ -375,10 +375,8 @@ describe('SegmentedButtons', () => {
       );
 
       await user.tab();
-      const firstButton = screen
-        .getByRole('radio', { name: '옵션 1' })
-        .closest('label');
-      expect(firstButton).toHaveFocus();
+      // 의도한 변경(N6): 포커스를 받는 요소가 라벨에서 숨은 라디오 input으로 옮겨졌다.
+      expect(screen.getByRole('radio', { name: '옵션 1' })).toHaveFocus();
     });
 
     it('Arrow Right 키로 다음 옵션으로 이동하고 선택된다', async () => {
@@ -394,16 +392,12 @@ describe('SegmentedButtons', () => {
         />
       );
 
-      const firstButton = screen
-        .getByRole('radio', { name: '옵션 1' })
-        .closest('label');
+      const firstButton = screen.getByRole('radio', { name: '옵션 1' });
       firstButton?.focus();
 
       await user.keyboard('{ArrowRight}');
 
-      const secondButton = screen
-        .getByRole('radio', { name: '옵션 2' })
-        .closest('label');
+      const secondButton = screen.getByRole('radio', { name: '옵션 2' });
       expect(secondButton).toHaveFocus();
       expect(handleChange).toHaveBeenCalledWith('option2');
     });
@@ -421,16 +415,12 @@ describe('SegmentedButtons', () => {
         />
       );
 
-      const secondButton = screen
-        .getByRole('radio', { name: '옵션 2' })
-        .closest('label');
+      const secondButton = screen.getByRole('radio', { name: '옵션 2' });
       secondButton?.focus();
 
       await user.keyboard('{ArrowLeft}');
 
-      const firstButton = screen
-        .getByRole('radio', { name: '옵션 1' })
-        .closest('label');
+      const firstButton = screen.getByRole('radio', { name: '옵션 1' });
       expect(firstButton).toHaveFocus();
       expect(handleChange).toHaveBeenCalledWith('option1');
     });
@@ -448,16 +438,12 @@ describe('SegmentedButtons', () => {
         />
       );
 
-      const firstButton = screen
-        .getByRole('radio', { name: '옵션 1' })
-        .closest('label');
+      const firstButton = screen.getByRole('radio', { name: '옵션 1' });
       firstButton?.focus();
 
       await user.keyboard('{ArrowLeft}');
 
-      const lastButton = screen
-        .getByRole('radio', { name: '옵션 3' })
-        .closest('label');
+      const lastButton = screen.getByRole('radio', { name: '옵션 3' });
       expect(lastButton).toHaveFocus();
       expect(handleChange).toHaveBeenCalledWith('option3');
     });
@@ -475,16 +461,12 @@ describe('SegmentedButtons', () => {
         />
       );
 
-      const lastButton = screen
-        .getByRole('radio', { name: '옵션 3' })
-        .closest('label');
+      const lastButton = screen.getByRole('radio', { name: '옵션 3' });
       lastButton?.focus();
 
       await user.keyboard('{ArrowRight}');
 
-      const firstButton = screen
-        .getByRole('radio', { name: '옵션 1' })
-        .closest('label');
+      const firstButton = screen.getByRole('radio', { name: '옵션 1' });
       expect(firstButton).toHaveFocus();
       expect(handleChange).toHaveBeenCalledWith('option1');
     });
@@ -1501,6 +1483,16 @@ describe('SegmentedButtons sm: 보이는 높이 36px, 누르는 영역 44px (M5 
  *   console.info 삭제와 console.warn 한 번("개발 로그").
  * - 보존: ←·→ 이동과 끝에서 도는 것, Space·Enter 선택, 비활성 건너뜀, 전체 disabled는
  *   키 입력 무시(위 "키보드 인터랙션 테스트"), 고무 모션·표시 라벨·축소 선호(위 GSAP 절)
+ *
+ * fix 1 회귀 분류표(리뷰 N1·N3·N4·N5·N6·N7)
+ * - 의도한 변화: 포커스·로빙 tabIndex·키 처리가 라벨에서 숨은 라디오 input으로(N6, "포커스는
+ *   숨은 라디오가 받는다"와 기존 키보드 시험의 대상이 label에서 radio로), 포커스 링은
+ *   `label:has(input:focus-visible)`로 라벨 모양에 그려짐, 이동한 곳이 지금 선택과 같으면
+ *   onChange 없음(N3), 수정키와 함께면 이동 키를 놓아 줌(N5), 비활성 자리에서는 방향으로
+ *   가장 가까운 활성 옵션으로(N7).
+ * - 보존: 방향키 ←→↑↓·Home·End 이동과 순환, Space·Enter, 비활성 건너뜀, 한 번 누르면 한 번
+ *   이동, 이동 키의 preventDefault(N4는 시험이 새로 잠금), 마우스로 누르면 그 옵션에 포커스
+ *   (라벨 대신 라디오로), 고무 모션·표시 라벨·축소 선호.
  */
 describe('SegmentedButtons 로빙 탭 순서·그룹 이름·개발 로그 (M5 기술 정리)', () => {
   const four = [
@@ -1509,10 +1501,11 @@ describe('SegmentedButtons 로빙 탭 순서·그룹 이름·개발 로그 (M5 �
     { value: 'c', label: '다' },
     { value: 'd', label: '라' },
   ];
-  const labelOf = (name: string) =>
-    screen.getByRole('radio', { name }).closest('label') as HTMLLabelElement;
+  const radioOf = (name: string) =>
+    screen.getByRole('radio', { name }) as HTMLInputElement;
   const tabIndexes = () =>
-    four.map((o) => labelOf(o.label).getAttribute('tabindex'));
+    four.map((o) => radioOf(o.label).getAttribute('tabindex'));
+  const labelOf = (name: string) => radioOf(name).closest('label')!;
 
   describe('탭 순서', () => {
     it('선택된 옵션 하나만 tabIndex 0이다', () => {
@@ -1571,7 +1564,7 @@ describe('SegmentedButtons 로빙 탭 순서·그룹 이름·개발 로그 (M5 �
       );
       await user.tab();
       await user.tab();
-      expect(labelOf('다')).toHaveFocus();
+      expect(radioOf('다')).toHaveFocus();
       await user.tab();
       expect(screen.getByRole('button', { name: '뒤' })).toHaveFocus();
     });
@@ -1581,7 +1574,7 @@ describe('SegmentedButtons 로빙 탭 순서·그룹 이름·개발 로그 (M5 �
       render(
         <SegmentedButtons aria-label="g" options={four} defaultValue="a" />
       );
-      labelOf('가').focus();
+      radioOf('가').focus();
       await user.keyboard('{ArrowRight}');
       expect(tabIndexes()).toEqual(['-1', '0', '-1', '-1']);
     });
@@ -1599,7 +1592,7 @@ describe('SegmentedButtons 로빙 탭 순서·그룹 이름·개발 로그 (M5 �
           onChange={onChange}
         />
       );
-      labelOf(from).focus();
+      radioOf(from).focus();
       await user.keyboard(key);
       return onChange;
     };
@@ -1619,7 +1612,7 @@ describe('SegmentedButtons 로빙 탭 순서·그룹 이름·개발 로그 (M5 �
       '%s: %s(%s)에서 %s로 포커스와 선택이 함께 옮겨 간다',
       async (key, from, value, to, toValue) => {
         const onChange = await press(key, from, value);
-        expect(labelOf(to)).toHaveFocus();
+        expect(radioOf(to)).toHaveFocus();
         expect(onChange).toHaveBeenCalledTimes(1);
         expect(onChange).toHaveBeenCalledWith(toValue);
       }
@@ -1639,15 +1632,15 @@ describe('SegmentedButtons 로빙 탭 순서·그룹 이름·개발 로그 (M5 �
           onChange={onChange}
         />
       );
-      labelOf('나').focus();
+      radioOf('나').focus();
       await user.keyboard('{ArrowDown}');
-      expect(labelOf('라')).toHaveFocus();
+      expect(radioOf('라')).toHaveFocus();
       await user.keyboard('{ArrowDown}');
-      expect(labelOf('나')).toHaveFocus();
+      expect(radioOf('나')).toHaveFocus();
       await user.keyboard('{Home}');
-      expect(labelOf('나')).toHaveFocus();
+      expect(radioOf('나')).toHaveFocus();
       await user.keyboard('{End}');
-      expect(labelOf('라')).toHaveFocus();
+      expect(radioOf('라')).toHaveFocus();
       expect(onChange).not.toHaveBeenCalledWith('a');
       expect(onChange).not.toHaveBeenCalledWith('c');
     });
@@ -1663,7 +1656,7 @@ describe('SegmentedButtons 로빙 탭 순서·그룹 이름·개발 로그 (M5 �
           onChange={onChange}
         />
       );
-      labelOf('다').focus();
+      radioOf('다').focus();
       await user.keyboard('{Enter}');
       expect(onChange).toHaveBeenLastCalledWith('c');
       await user.keyboard(' ');
@@ -1682,9 +1675,209 @@ describe('SegmentedButtons 로빙 탭 순서·그룹 이름·개발 로그 (M5 �
           onChange={onChange}
         />
       );
-      labelOf('가').focus();
+      radioOf('가').focus();
       await user.keyboard('{ArrowRight}{Home}{End}');
       expect(onChange).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('포커스는 숨은 라디오가 받는다 (N6)', () => {
+    it('라벨은 tabindex를 갖지 않고 라디오 input이 로빙 tabIndex를 갖는다', () => {
+      render(<SegmentedButtons aria-label="g" options={four} value="b" />);
+      four.forEach((o) => {
+        expect(labelOf(o.label)).not.toHaveAttribute('tabindex');
+      });
+      expect(tabIndexes()).toEqual(['-1', '0', '-1', '-1']);
+    });
+
+    it('Tab으로 닿는 요소가 role=radio이고 선택 상태를 갖는다', async () => {
+      const user = userEvent.setup();
+      render(<SegmentedButtons aria-label="g" options={four} value="c" />);
+      await user.tab();
+      const active = document.activeElement as HTMLInputElement;
+      expect(active).toBe(radioOf('다'));
+      expect(active).toHaveAttribute('type', 'radio');
+      expect(active).toBeChecked();
+    });
+
+    it('방향키로 옮기면 포커스는 다음 라디오 input에 가고 한 번만 이동한다', async () => {
+      const user = userEvent.setup();
+      const onChange = vi.fn();
+      render(
+        <SegmentedButtons
+          aria-label="g"
+          options={four}
+          defaultValue="a"
+          onChange={onChange}
+        />
+      );
+      radioOf('가').focus();
+      await user.keyboard('{ArrowRight}');
+      expect(document.activeElement).toBe(radioOf('나'));
+      expect(onChange).toHaveBeenCalledTimes(1);
+    });
+
+    it('마우스로 옵션을 누르면 그 라디오가 포커스를 받아 방향키가 이어진다', async () => {
+      const user = userEvent.setup();
+      render(
+        <SegmentedButtons aria-label="g" options={four} defaultValue="a" />
+      );
+      await user.click(labelOf('다'));
+      expect(radioOf('다')).toHaveFocus();
+      await user.keyboard('{ArrowRight}');
+      expect(radioOf('라')).toHaveFocus();
+    });
+
+    it('포커스 링은 라디오가 아니라 라벨 모양에 그려진다', () => {
+      const rules = segmentedRules();
+      const ring = rules.filter(
+        (rule) =>
+          /^\.SegmentedButtons_button__\w+:has\(input:focus-visible\)$/.test(
+            rule.selectorText
+          ) && rule.style.getPropertyValue('outline') !== ''
+      );
+      expect(ring).toHaveLength(1);
+      expect(
+        rules.filter((rule) =>
+          /SegmentedButtons_button__\w+:focus-visible/.test(rule.selectorText)
+        )
+      ).toHaveLength(0);
+    });
+  });
+
+  describe('이동 키 처리 (N3·N4·N5·N7)', () => {
+    const moveKeys = [
+      'ArrowRight',
+      'ArrowLeft',
+      'ArrowDown',
+      'ArrowUp',
+      'Home',
+      'End',
+    ];
+
+    it.each(moveKeys)('%s의 기본 동작(스크롤·뒤로 가기)을 막는다', (key) => {
+      render(<SegmentedButtons aria-label="g" options={four} value="b" />);
+      expect(fireEvent.keyDown(radioOf('나'), { key })).toBe(false);
+    });
+
+    it('이동 키가 아닌 키는 막지 않는다', () => {
+      render(<SegmentedButtons aria-label="g" options={four} value="b" />);
+      expect(fireEvent.keyDown(radioOf('나'), { key: 'PageDown' })).toBe(true);
+      expect(fireEvent.keyDown(radioOf('나'), { key: 'a' })).toBe(true);
+    });
+
+    it.each(['altKey', 'ctrlKey', 'metaKey'])(
+      '%s가 같이 눌리면 이동 키를 처리하지도 막지도 않는다',
+      (modifier) => {
+        const onChange = vi.fn();
+        render(
+          <SegmentedButtons
+            aria-label="g"
+            options={four}
+            value="b"
+            onChange={onChange}
+          />
+        );
+        radioOf('나').focus();
+        for (const key of moveKeys) {
+          const notPrevented = fireEvent.keyDown(radioOf('나'), {
+            key,
+            [modifier]: true,
+          });
+          expect(notPrevented).toBe(true);
+        }
+        expect(onChange).not.toHaveBeenCalled();
+        expect(radioOf('나')).toHaveFocus();
+      }
+    );
+
+    it('옵션이 하나면 방향키·Home·End에 onChange를 부르지 않는다', async () => {
+      const user = userEvent.setup();
+      const onChange = vi.fn();
+      render(
+        <SegmentedButtons
+          aria-label="g"
+          options={[four[0]]}
+          value="a"
+          onChange={onChange}
+        />
+      );
+      radioOf('가').focus();
+      await user.keyboard('{ArrowRight}{ArrowLeft}{Home}{End}');
+      expect(onChange).not.toHaveBeenCalled();
+      expect(radioOf('가')).toHaveFocus();
+    });
+
+    it('활성 옵션이 하나뿐이면 돌아와도 onChange를 부르지 않는다', async () => {
+      const user = userEvent.setup();
+      const onChange = vi.fn();
+      const opts = four.map((o) =>
+        o.value === 'a' ? o : { ...o, disabled: true }
+      );
+      render(
+        <SegmentedButtons
+          aria-label="g"
+          options={opts}
+          value="a"
+          onChange={onChange}
+        />
+      );
+      radioOf('가').focus();
+      await user.keyboard('{ArrowRight}{ArrowUp}');
+      expect(onChange).not.toHaveBeenCalled();
+    });
+
+    it('이동한 곳이 지금 선택과 같으면 포커스만 옮기고 onChange는 부르지 않는다', async () => {
+      const user = userEvent.setup();
+      const onChange = vi.fn();
+      render(
+        <SegmentedButtons
+          aria-label="g"
+          options={four}
+          value="a"
+          onChange={onChange}
+        />
+      );
+      radioOf('다').focus();
+      await user.keyboard('{Home}');
+      expect(radioOf('가')).toHaveFocus();
+      expect(onChange).not.toHaveBeenCalled();
+    });
+
+    describe('비활성 옵션 자리에서 시작하면 방향으로 가장 가까운 활성 옵션으로 간다', () => {
+      const withGap = four.map((o) =>
+        o.value === 'b' || o.value === 'c' ? { ...o, disabled: true } : o
+      );
+      const from = (name: string, key: string) => {
+        const onChange = vi.fn();
+        render(
+          <SegmentedButtons
+            aria-label="g"
+            options={withGap}
+            value="c"
+            onChange={onChange}
+          />
+        );
+        fireEvent.keyDown(radioOf(name), { key });
+        return onChange;
+      };
+
+      it.each([
+        ['나', 'ArrowRight', '라', 'd'],
+        ['다', 'ArrowDown', '라', 'd'],
+        ['나', 'ArrowLeft', '가', 'a'],
+        ['다', 'ArrowUp', '가', 'a'],
+      ])('%s에서 %s는 %s로', (name, key, to, toValue) => {
+        const onChange = from(name, key);
+        expect(radioOf(to)).toHaveFocus();
+        expect(onChange).toHaveBeenCalledWith(toValue);
+      });
+
+      it('끝을 넘으면 처음의 활성 옵션으로 돌아온다', () => {
+        const onChange = from('라', 'ArrowRight');
+        expect(radioOf('가')).toHaveFocus();
+        expect(onChange).toHaveBeenCalledWith('a');
+      });
     });
   });
 
