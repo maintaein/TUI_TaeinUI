@@ -21,12 +21,6 @@ import {
   CARDS_START_RATIO,
 } from './HeaderBar.css';
 
-// 카드를 그릴 때 GSAP이 클래스가 붙은 요소의 getComputedStyle을 읽는데, jsdom은 이를 전체
-// 스타일시트를 훑어 계산한다. 혼자 돌려 가장 느린 시험이 1초(리뷰에서 잰 Forms 파일의
-// 최대는 3.6초)이고 전체 시험이 병렬로 돌 때 5초 기본값을 넘기는 일이 있어 이 파일만
-// 늘린다(HeaderBarForms.test.tsx와 같은 방식과 이유).
-vi.setConfig({ testTimeout: 20000 });
-
 type CardsHost = HTMLElement & { __cardsTimeline?: gsap.core.Timeline };
 
 interface MediaState {

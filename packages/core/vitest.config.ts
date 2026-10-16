@@ -8,6 +8,13 @@ export default defineConfig({
     globals: true,
     environment: 'jsdom',
     setupFiles: './src/test/setup.ts',
+    // 시험 시간 제한은 저장소 전체에 이 한 곳이다(파일별 vi.setConfig를 두지 않는다).
+    // 기본 5000ms는 전체 시험을 병렬로 돌릴 때 부하로 흔들렸다. GSAP이 클래스가 붙은
+    // 요소를 그릴 때 jsdom이 전체 스타일시트를 훑어 계산하는 HeaderBar 시험이 가장
+    // 느리다. 이 기계(전체 56파일 약 95초)에서 전체 실행 중 가장 느린 시험이 6.6~7.2초
+    // (HeaderBar.test.tsx), HeaderBar 밖은 2.3초(NumericSpinner)였다. 최댓값의 약 3배를
+    // 두어 20000ms로 한다.
+    testTimeout: 20000,
     // 기본값은 CSS를 빈 문자열로 목킹한다. Slider의 썸 :hover·:active
     // transform 크기 순서를 jsdom에 주입된 실제 생성 CSS로 검증해야 해서
     // Slider.css.ts만 범위를 좁혀 처리한다(다른 컴포넌트는 그대로 목킹됨).

@@ -26,12 +26,6 @@ import {
   TINT_HOVER,
 } from './HeaderBar.css';
 
-// navStyle의 기본값이 pill이라 이 파일의 많은 시험이 알약을 그린다. 알약 하나를 그릴 때
-// GSAP이 클래스가 붙은 요소의 getComputedStyle을 읽는데 jsdom은 이를 전체 스타일시트를
-// 훑어 계산한다(HeaderBarForms.test.tsx와 같은 이유). 다른 파일과 병렬로 돌면 5초 기본값을
-// 넘기는 일이 있어 이 파일에도 늘린다.
-vi.setConfig({ testTimeout: 20000 });
-
 type PanelTweenHost = HTMLElement & { __panelTween?: gsap.core.Tween };
 
 /** jsdom은 matchMedia를 구현하지 않는다. 축소 선호 경로를 열려면 깔아야 한다. */
