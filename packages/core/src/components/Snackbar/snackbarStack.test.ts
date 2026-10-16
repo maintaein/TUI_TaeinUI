@@ -6,6 +6,7 @@
  * 해제해서 새지 않게 한다(내보내는 초기화 함수는 없다).
  */
 import { afterEach, describe, expect, it } from 'vitest';
+import { collectAsyncErrors } from '../../test/asyncErrors';
 import { themeTokens } from '../../tokens/contract';
 import {
   MAX_PER_POSITION,
@@ -296,56 +297,78 @@ describe('저장소', () => {
       }
     };
 
-    it('가운데 것이 던져도 뒤의 것을 부르고, 그 오류를 다시 던진다', () => {
+    it('가운데 것이 던져도 뒤의 것을 부르고, 등록 자체는 던지지 않는다', async () => {
       const closed: string[] = [];
       openThree(['b'], closed);
 
-      expect(() => open('bottom-center', 40, () => {}, false)).toThrow(
-        '던짐 b'
-      );
+      let registered = false;
+      const errors = await collectAsyncErrors(() => {
+        open('bottom-center', 40, () => {}, false);
+        registered = true;
+      });
+
+      expect(registered).toBe(true);
       expect(closed).toEqual(['a', 'b', 'c']);
+      expect(errors.map((e) => (e as Error).message)).toEqual(['던짐 b']);
     });
 
-    it('오류가 하나면 감싸지 않고 그 오류를 그대로 던진다', () => {
+    it('오류는 마이크로태스크에서 던져지므로 등록이 끝난 시점에는 아직 없다', async () => {
       const closed: string[] = [];
       openThree(['a'], closed);
 
-      let caught: unknown;
-      try {
+      let beforeFlush = -1;
+      const errors = await collectAsyncErrors(() => {
         open('bottom-center', 40, () => {}, false);
-      } catch (error) {
-        caught = error;
-      }
-      expect(caught).toBeInstanceOf(Error);
-      expect(caught).not.toBeInstanceOf(AggregateError);
-      expect((caught as Error).message).toBe('던짐 a');
+        beforeFlush = 0;
+      });
+
+      expect(beforeFlush).toBe(0);
+      expect(errors).toHaveLength(1);
+      expect(errors[0]).toBeInstanceOf(Error);
+      expect((errors[0] as Error).message).toBe('던짐 a');
     });
 
-    it('여럿이 던지면 전부 부른 뒤 AggregateError에 모아 던진다', () => {
+    it('여럿이 던지면 전부 부른 뒤 하나씩 따로 던진다 (모으지 않는다)', async () => {
       const closed: string[] = [];
       openThree(['a', 'c'], closed);
 
-      let caught: unknown;
-      try {
+      const errors = await collectAsyncErrors(() => {
         open('bottom-center', 40, () => {}, false);
-      } catch (error) {
-        caught = error;
-      }
+      });
+
       expect(closed).toEqual(['a', 'b', 'c']);
-      expect(caught).toBeInstanceOf(AggregateError);
-      expect(
-        (caught as AggregateError).errors.map((e: Error) => e.message)
-      ).toEqual(['던짐 a', '던짐 c']);
+      expect(errors.map((e) => (e as Error).message)).toEqual([
+        '던짐 a',
+        '던짐 c',
+      ]);
     });
 
-    it('던진 뒤에도 줄은 그대로 이어진다 (던진 것도 내보내기로 한 표시를 가진다)', () => {
+    it('던진 뒤에도 줄은 그대로 이어진다 (던진 것도 내보내기로 한 표시를 가진다)', async () => {
       const closed: string[] = [];
       openThree(['b'], closed);
-      expect(() => open('bottom-center', 40, () => {}, false)).toThrow();
+      await collectAsyncErrors(() => {
+        open('bottom-center', 40, () => {}, false);
+      });
 
       // 같은 줄에 새것이 오면 이미 내보낸 a b c는 다시 고르지 않는다
       open('bottom-center', 40, () => {});
       expect(closed).toEqual(['a', 'b', 'c']);
+    });
+
+    it('새로 등록한 것은 던진 뒤에도 저장소에 있고, 해제하면 쌓임 오프셋에서 빠진다', async () => {
+      const closed: string[] = [];
+      openThree(['a', 'b', 'c'], closed);
+
+      let fresh: symbol | undefined;
+      await collectAsyncErrors(() => {
+        fresh = open('bottom-center', 40, () => {}, false);
+      });
+      const older = open('bottom-center', 40);
+      // 새것(fresh) 위에 older가 열렸으니 fresh는 밀려 있다
+      expect(stackOffsetOf(fresh as symbol)).toBeGreaterThan(0);
+
+      unregisterSnackbar(older);
+      expect(stackOffsetOf(fresh as symbol)).toBe(0);
     });
   });
 });

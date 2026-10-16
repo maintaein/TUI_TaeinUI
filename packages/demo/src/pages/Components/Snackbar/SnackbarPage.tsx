@@ -471,7 +471,7 @@ const close = (id) => setItems((prev) => prev.map((item) => (item.id === id ? { 
               attribute: 'onClose (넘침)',
               effect: '밀려날 때 한 번만 호출',
               description:
-                '같은 위치에 넘쳐 밀려나는 스낵바의 onClose는 열려 있는 동안 한 번만 불리고, 하나가 던져도 나머지는 불린 뒤 오류가 다시 던져집니다.',
+                '같은 위치에 넘쳐 밀려나는 스낵바의 onClose는 열려 있는 동안 한 번만 불리고, 하나가 던져도 나머지는 불리고, 던진 오류는 삼켜지지 않고 하나씩 전역 오류로 다시 던져집니다.',
             },
           ]}
         />

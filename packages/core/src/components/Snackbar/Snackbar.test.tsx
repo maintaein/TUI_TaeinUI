@@ -16,6 +16,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { Snackbar, type SnackbarProps } from './Snackbar';
+import { collectAsyncErrors } from '../../test/asyncErrors';
 import { gsapDuration, gsapEasing } from '../../tokens/gsapEasing';
 
 type CountdownTweenHost = HTMLDivElement & {
@@ -1334,6 +1335,49 @@ describe('Snackbar', () => {
 
         expect(a.onClose).toHaveBeenCalledTimes(1);
         expect(b.onClose).not.toHaveBeenCalled();
+      });
+
+      describe('넘침 onClose가 던질 때', () => {
+        const boom = new Error('b가 던짐');
+        const mount = () => {
+          const a = { ...A, onClose: vi.fn() };
+          const b = {
+            ...B,
+            onClose: vi.fn(() => {
+              throw boom;
+            }),
+          };
+          const c = { ...C, onClose: vi.fn() };
+          const view = render(<Stack items={[a, b, c]} />);
+          return { a, b, c, ...view };
+        };
+        const s = { ...D, id: 'S', stack: false };
+
+        it('던진 것이 있어도 나머지를 부르고, 오류는 전역 오류로 보고된다', async () => {
+          const { a, b, c, rerender } = mount();
+
+          const errors = await collectAsyncErrors(() => {
+            rerender(<Stack items={[a, b, c, s]} />);
+          });
+
+          expect(a.onClose).toHaveBeenCalledTimes(1);
+          expect(b.onClose).toHaveBeenCalledTimes(1);
+          expect(c.onClose).toHaveBeenCalledTimes(1);
+          expect(errors).toEqual([boom]);
+        });
+
+        it('새 스낵바의 등록은 끊기지 않아 닫으면 저장소에서 빠지고 쌓임 오프셋이 돌아온다', async () => {
+          const { a, b, c, container, rerender } = mount();
+          await collectAsyncErrors(() => {
+            rerender(<Stack items={[a, b, c, s]} />);
+          });
+          // S(40) 때문에 a는 c(72) + b(56) + S(40) + 간격 셋만큼 밀려 있다
+          expect(targetY(container, 'A')).toBe(-(72 + 56 + 40 + 24));
+
+          rerender(<Stack items={[a, b, c, { ...s, open: false }]} />);
+
+          expect(targetY(container, 'A')).toBe(-(72 + 56 + 16));
+        });
       });
 
       describe('StrictMode 개발 모드: 같은 커밋에서 마운트할 때', () => {
