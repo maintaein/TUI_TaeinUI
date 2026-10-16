@@ -320,7 +320,7 @@ describe('Switch', () => {
     });
 
     // gsap 네임스페이스는 ambient 전역 타입이라 import 없이 참조된다
-    // (Checkbox.test.tsx·Snackbar.test.tsx와 같은 방식) — 이 파일에서
+    // (Checkbox.test.tsx·Snackbar.test.tsx와 같은 방식). 이 파일에서
     // `from 'gsap'`가 없어야 gsapGateEnforcement 스캔에 안 걸린다.
     type SwitchTimelineHost = HTMLDivElement & {
       __switchTimeline?: gsap.core.Timeline;

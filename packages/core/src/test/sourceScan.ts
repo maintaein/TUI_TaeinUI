@@ -35,7 +35,7 @@ export function findFiles(
 
 /**
  * 런타임 참조만 본다. gsap을 어떤 경로로든(코어·개별 플러그인·`gsap/all`) import하는지
- * 넓게 잡는다 — `animationBoundary.test.ts`의 `GSAP_ALL_IMPORT`(`gsap/all` 배럴만
+ * 넓게 잡는다. `animationBoundary.test.ts`의 `GSAP_ALL_IMPORT`(`gsap/all` 배럴만
  * 좁게 잡는 별개 검사)와는 목적이 다르다.
  *
  * 소비자가 `stripComments`로 걸러낸 텍스트에 돌리는 것을 전제한다. 주석 안

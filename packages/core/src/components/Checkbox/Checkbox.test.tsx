@@ -12,7 +12,7 @@ import { themeContract } from '../../tokens/theme.css';
 const SPRING_OVERSHOOT = 0.2044;
 
 // gsap 네임스페이스는 ambient 전역 타입이라 import 없이 참조된다
-// (Snackbar.test.tsx의 CountdownTweenHost와 같은 방식) — 이 파일에서
+// (Snackbar.test.tsx의 CountdownTweenHost와 같은 방식). 이 파일에서
 // `from 'gsap'`가 없어야 gsapGateEnforcement 스캔에 안 걸린다.
 type MarkTweenHost = SVGPathElement & { __markTween?: gsap.core.Animation };
 
