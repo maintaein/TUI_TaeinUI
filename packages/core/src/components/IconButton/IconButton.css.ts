@@ -186,7 +186,7 @@ export const iconButton = recipe({
     {
       variants: { buttonStyle: 'strong', variant: 'light' },
       style: {
-        // Button.css.ts의 fill light와 같다(글자 primary[900], 테두리 primary.main).
+        // Button.css.ts의 strong light와 같다(글자 primary[900], 테두리 primary.main).
         // 대비는 그쪽 주석.
         backgroundColor: themeContract.color.background.default,
         color: themeContract.palette.primary[900],
