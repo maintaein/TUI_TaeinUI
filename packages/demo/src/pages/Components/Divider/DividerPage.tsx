@@ -247,6 +247,12 @@ export function DividerPage() {
               'horizontal 또는 vertical 값으로 구분선의 방향을 스크린 리더에 전달합니다.',
           },
           {
+            attribute: 'aria-label',
+            effect: '구분선 글자를 이름으로 전달합니다.',
+            description:
+              'separator의 이름은 안쪽 글자에서 계산되지 않아 일부 보조 기술이 글자를 읽지 않습니다. 글자(children)가 문자열이면 aria-label로 함께 줍니다. 직접 aria-label을 주면 그 값을 따르고, 요소를 넣었을 때는 이름을 만들지 않습니다.',
+          },
+          {
             attribute: '시각적 구분',
             effect: '콘텐츠 영역을 명확히 나눕니다.',
             description:

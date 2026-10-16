@@ -42,6 +42,11 @@ export const Divider = ({
     <div
       role="separator"
       aria-orientation={orientation}
+      // separator의 이름은 자식 글자에서 계산되지 않아 일부 보조 기술이 글자를 읽지 않는다.
+      // 글자가 문자열이면 이름으로 준다. 소비자가 aria-label을 주면 아래 props가 덮는다.
+      aria-label={
+        typeof children === 'string' && children ? children : undefined
+      }
       className={clsx(
         divider,
         orientationStyles[orientation],

@@ -138,6 +138,7 @@
 
 ### Fixed
 
+- 글자가 있는 `Divider`의 글자가 일부 보조 기술에서 읽히지 않던 것을 고쳤습니다. `role="separator"`의 이름은 안쪽 글자에서 계산되지 않기 때문입니다. 이제 `children`이 문자열이면 루트에 같은 글자의 `aria-label`이 달립니다. `aria-label`을 직접 주면 그 값을 따르고, `children`이 요소면 이름을 만들지 않으니 필요하면 `aria-label`을 직접 주세요. 겉모습은 그대로입니다.
 - `Popover`가 `disabled`일 때 트리거가 열리지는 않지만 보조 기술에는 누를 수 있는 팝업 버튼으로 읽히던 것을 고쳤습니다. 이제 `disabled`면 트리거에 `aria-disabled="true"`가 달립니다. `aria-haspopup`과 `aria-expanded`는 비활성이어도 그대로 둡니다. 트리거에 `aria-disabled`나 `disabled`를 직접 줬다면 그 값을 따릅니다.
 - `Snackbar`에서 같은 위치에 넘쳐 밀려나는 스낵바의 `onClose`가 하나 던지면 뒤의 것이 불리지 않고 건너뛰어지던 것을 고쳤습니다. 이제 던진 것이 있어도 나머지를 모두 부른 뒤 오류를 다시 던집니다(하나면 그 오류, 여럿이면 `AggregateError`). 또 개발 모드의 `StrictMode`에서 같은 커밋에 첫 마운트할 때 밀려나는 스낵바의 `onClose`가 두 번 불리던 것을 고쳤습니다. 같은 스낵바의 넘침 `onClose`는 그것이 열려 있는 동안 한 번만 불립니다.
 - `Slider`를 잡은 채(끄는 중이거나 키보드로 조작하는 중) `disabled`가 켜지면 잡힘이 풀리지 않고 남아, `showThumbValue`의 값 따라붙기가 그대로 떠 있던 것을 고쳤습니다. 이제 `disabled`가 켜지는 순간 잡힘이 풀리고, 비활성인 동안에는 키보드로도 잡히지 않습니다. 할 일은 없습니다.

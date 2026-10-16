@@ -190,6 +190,64 @@ describe('Divider', () => {
         'vertical'
       );
     });
+
+    describe('글자의 접근 이름 (separator는 자식에서 이름을 계산하지 않는다)', () => {
+      it('글자가 문자열이면 separator의 접근 이름이 그 글자다', () => {
+        render(<Divider>또는</Divider>);
+
+        expect(screen.getByRole('separator', { name: '또는' })).toHaveAttribute(
+          'aria-label',
+          '또는'
+        );
+      });
+
+      it.each(['left', 'center', 'right'] as const)(
+        'textAlign=%s, 세로여도 접근 이름이 그 글자다',
+        (textAlign) => {
+          render(
+            <Divider orientation="vertical" textAlign={textAlign}>
+              또는
+            </Divider>
+          );
+
+          expect(
+            screen.getByRole('separator', { name: '또는' })
+          ).toBeInTheDocument();
+        }
+      );
+
+      it('글자가 없으면 aria-label이 없다 (지금 그대로)', () => {
+        render(<Divider />);
+
+        const separator = screen.getByRole('separator');
+        expect(separator).not.toHaveAttribute('aria-label');
+        expect(separator).not.toHaveAccessibleName();
+      });
+
+      it('글자가 문자열이 아니면(요소) aria-label을 만들지 않는다', () => {
+        render(
+          <Divider>
+            <span>또는</span>
+          </Divider>
+        );
+
+        expect(screen.getByRole('separator')).not.toHaveAttribute('aria-label');
+      });
+
+      it('소비자가 aria-label을 직접 주면 그것을 따른다', () => {
+        render(<Divider aria-label="구간 나눔">또는</Divider>);
+
+        expect(
+          screen.getByRole('separator', { name: '구간 나눔' })
+        ).toBeInTheDocument();
+      });
+
+      it('빈 문자열은 글자가 없는 것과 같다', () => {
+        render(<Divider>{''}</Divider>);
+
+        expect(screen.getByRole('separator')).not.toHaveAttribute('aria-label');
+      });
+    });
   });
 
   describe('레이아웃 구조 테스트', () => {
