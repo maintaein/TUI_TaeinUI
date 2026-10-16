@@ -2,8 +2,6 @@ import { style, globalStyle, type StyleRule } from '@vanilla-extract/css';
 import { recipe } from '@vanilla-extract/recipes';
 import { themeContract } from '../../tokens/theme.css';
 import { focusRing } from '../../tokens/focusRing.css';
-// themeContract.palette에는 success·warning 스케일이 없다(Loader도 원본을 직접 읽는다).
-import { success, warning } from '../../tokens/colors.css';
 
 export const chip = recipe({
   base: {
@@ -218,7 +216,7 @@ const tint = (hover: StyleRule, pressed: StyleRule): StyleRule => ({
 // 클릭 가능한 칩(Button의 누름·호버와 같은 규칙). selected 뒤에 선언해야 같은 특정도의
 // transition 선언이 selected의 것을 이긴다(여기에 색 전이가 들어 있다).
 // 호버는 모션 없이 색만 바꾼다(Button 승인 #6). 떠오름·그림자는 걷었다.
-// 색 고르기는 Button의 각 변형처럼 팔레트 한 단계를 오르내리되, 토큰에 팔레트가 없는
+// 색 고르기는 Button의 각 변형처럼 팔레트 한 단계를 오르내리되, 글자가 어두운
 // success·warning(filled)은 filter brightness로, 연한 배경에서 AA가 깨지는 outlined의
 // primary·error 글자는 hover·pressed에서 더 진한 색으로 바꾼다(success·warning은
 // 평소부터 .dark). 글자색 전이가 필요해 color가 목록에 있다.
@@ -282,7 +280,7 @@ export const clickable = recipe({
       ),
     },
     {
-      // success·warning은 팔레트가 계약에 없고 글자가 어두워서(gray[900]) 배경만
+      // success·warning은 글자가 어두워서(gray[900]) 배경만
       // 어둡게 하면 대비가 깎인다. brightness는 둘을 같이 어둡게 한다(Button weak danger와
       // 같은 방식). success 5.79 -> 5.24 -> 4.78, warning 7.47 -> 6.78 -> 6.08.
       variants: { variant: 'filled', color: 'success' },
@@ -349,8 +347,8 @@ export const clickable = recipe({
       // 누름도 [50]이다. [100] 위에서는 success.dark가 3.81이라 AA를 깬다(누름 표시는 배율이 한다).
       variants: { variant: 'outlined', color: 'success' },
       style: tint(
-        { backgroundColor: success[50] },
-        { backgroundColor: success[50] }
+        { backgroundColor: themeContract.palette.success[50] },
+        { backgroundColor: themeContract.palette.success[50] }
       ),
     },
     {
@@ -358,8 +356,8 @@ export const clickable = recipe({
       // warning.dark(800)는 흰 배경 5.49, warning[50] 위 5.00이다([100] 위 4.32라 누름도 [50]).
       variants: { variant: 'outlined', color: 'warning' },
       style: tint(
-        { backgroundColor: warning[50] },
-        { backgroundColor: warning[50] }
+        { backgroundColor: themeContract.palette.warning[50] },
+        { backgroundColor: themeContract.palette.warning[50] }
       ),
     },
   ],

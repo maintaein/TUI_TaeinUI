@@ -267,7 +267,7 @@ export function renderTokenReference(): string {
     '있어야 한다.',
     '',
     '### Color — Raw Palette',
-    '`themeContract.palette.{primary,gray,error,warning}[단계]`(정의된 단계만, 예: `warning`은 50·100·500·700·750·800): hover/active처럼 4슬롯으로',
+    '`themeContract.palette.{primary,gray,error,success,warning}[단계]`(정의된 단계만, 예: `warning`은 50·100·500·700·750·800): hover/active처럼 4슬롯으로',
     '표현되지 않는 미세 단계가 필요할 때만 쓴다. 역할이 있는 자리에는 위의 역할',
     '토큰을 쓴다.',
     '',

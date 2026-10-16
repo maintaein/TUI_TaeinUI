@@ -124,12 +124,13 @@ export const themeTokens = {
   // 상태별 세밀한 shade(hover/active 등)가 필요한 컴포넌트를 위한 원본 스케일
   // 노출. raw colors.css를 직접 import하는 대신 이 경로를 거치면 CSS 변수로
   // 감싸여 향후 다중 테마 도입 시에도 자동으로 반응한다.
-  // warning은 Snackbar의 겨자색 면(`warning[750]`) 때문에 먼저 노출한다. 계획서 가22의
-  // 팔레트 확장(success·warning, 8차) 중 warning 절반을 당긴 것이고 success는 그때 한다.
+  // warning은 Snackbar의 겨자색 면(`warning[750]`) 때문에 먼저 노출했고, success는
+  // Chip의 호버·누름 면이 원본을 직접 읽던 것을 계약으로 돌리며 더했다(M5 가22).
   palette: {
     primary,
     gray,
     error,
+    success,
     warning,
   },
   spacing,

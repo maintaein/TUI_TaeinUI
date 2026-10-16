@@ -7,6 +7,12 @@ import { useState } from 'react';
 import { Chip } from './Chip';
 import * as styles from './Chip.css';
 import { gsapDuration, gsapEasing } from '../../tokens/gsapEasing';
+import { themeContract } from '../../tokens/theme.css';
+import { themeTokens } from '../../tokens/contract';
+import {
+  success as successScale,
+  warning as warningScale,
+} from '../../tokens/colors.css';
 
 describe('Chip', () => {
   describe('렌더링 테스트', () => {
@@ -751,7 +757,9 @@ describe('Chip 소스 잠금', () => {
         `border: \`1px solid \${themeContract.color.${name}.main}\``
       );
       const tinted = parts[2].slice(0, parts[2].indexOf('\n    },'));
-      expect(tinted).toContain(`backgroundColor: ${name}[50]`);
+      expect(tinted).toContain(
+        `backgroundColor: themeContract.palette.${name}[50]`
+      );
       expect(tinted).not.toContain('color: themeContract');
     }
   });
@@ -1556,5 +1564,57 @@ describe('Chip 공개 API 묶음 (clickable 삭제, aria-pressed, 나란한 삭�
         root?.style.getPropertyValue('outline-offset')
       );
     });
+  });
+});
+
+describe('Chip 테두리형 success·warning의 호버·누름 면은 팔레트 변수를 거친다 (CSSOM)', () => {
+  // 면은 palette 변수로 나가고, 그 변수가 풀리는 값은 contract의 themeTokens다.
+  // 두 단계를 이어 보면 바꾸기 전의 원본 hex(success[50]·warning[50])와 같다.
+  const backgrounds = (): string[] => {
+    render(<Chip label="a" />);
+    const sheet = Array.from(document.styleSheets).find((candidate) =>
+      Array.from(candidate.cssRules).some((rule) =>
+        rule.cssText.includes('Chip_action')
+      )
+    );
+    if (!sheet) throw new Error('Chip 스타일시트를 찾지 못했다');
+    const found: string[] = [];
+    const walk = (list: CSSRuleList) => {
+      for (const rule of Array.from(list)) {
+        if (rule instanceof CSSStyleRule) {
+          const value = rule.style.getPropertyValue('background-color');
+          if (value) found.push(value);
+        } else if ('cssRules' in rule) {
+          walk((rule as CSSGroupingRule).cssRules);
+        }
+      }
+    };
+    walk(sheet.cssRules);
+    return found;
+  };
+
+  it.each([
+    ['success', successScale],
+    ['warning', warningScale],
+  ] as const)(
+    '%s: 호버와 누름이 palette 변수를 쓰고 그 값이 원본 [50]이다',
+    (name, scale) => {
+      const variable = themeContract.palette[name][50];
+      expect(variable).toMatch(/^var\(--/);
+      // 호버 규칙 하나, 누름 규칙 하나
+      expect(backgrounds().filter((value) => value === variable)).toHaveLength(
+        2
+      );
+      expect(themeTokens.palette[name][50]).toBe(scale[50]);
+    }
+  );
+
+  it('원본 hex가 면 값으로 직접 새지 않는다', () => {
+    const hex = [successScale[50], warningScale[50]].map((v) =>
+      v.toLowerCase()
+    );
+    expect(
+      backgrounds().filter((value) => hex.includes(value.toLowerCase()))
+    ).toEqual([]);
   });
 });
