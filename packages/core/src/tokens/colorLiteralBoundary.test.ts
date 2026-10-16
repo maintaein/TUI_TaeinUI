@@ -19,8 +19,8 @@ import { SRC, rel, findFiles, stripComments } from '../test/sourceScan';
 
 const COMPONENTS = resolve(SRC, 'components');
 
-/** tierAKeyframesReducedMotion 가드 7의 RAW_COLOR와 같은 모양. */
-const RAW_COLOR = /#[0-9a-fA-F]{3,8}\b|\b(?:rgba?|hsla?)\(/g;
+/** 가드 7의 RAW_COLOR와 같은 모양이되 대문자 함수(`RGB(`)도 잡는다. */
+const RAW_COLOR = /#[0-9a-f]{3,8}\b|\b(?:rgba?|hsla?)\(/gi;
 
 // 소스만 본다. `.test.`는 기대값에 리터럴을 쓴다.
 const FILES = findFiles(
@@ -56,7 +56,7 @@ const ALLOWED: Record<string, { count: number; reason: string }> = {
   'components/Loader/Loader.tsx': {
     count: 1,
     reason:
-      "color preset 'white'을 테마와 무관한 흰색으로 푼다(text.inverse는 테마를 따라가 쓰지 않는다)",
+      "spinner·dots 경로가 color preset 'white'을 원본 값 #FFFFFF로 푼다. bar·fuse 경로는 background.paper(#FAFAFA)라 다르고, 맞추면 색이 바뀌어 사용자 결정 전까지 둔다",
   },
   'components/SegmentedButtons/SegmentedButtons.css.ts': {
     count: 2,
