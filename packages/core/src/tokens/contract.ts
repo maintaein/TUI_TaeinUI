@@ -32,8 +32,8 @@ export const themeTokens = {
       primary: gray[900],
       secondary: gray[600],
       disabled: gray[400],
-      // 어두운 면 위에 얹는 글자. semantic 4슬롯의 contrast로는 못 덮는 자리가 있다
-      // — gray[700~900] 배경(Button·IconButton의 dark 변형)과 스크림 위 텍스트다.
+      // 어두운 면 위에 얹는 글자. semantic 4슬롯의 contrast로는 못 덮는 자리가 있다:
+      // gray[700~900] 배경(Button·IconButton의 dark 변형)과 스크림 위 텍스트다.
       inverse: '#FFFFFF',
     },
     background: {
@@ -48,11 +48,11 @@ export const themeTokens = {
       // 얹으면 대비가 아예 없다(예: disabled Switch 실측 1.00:1). gray[550]은 흰
       // 배경 대비 3.59:1로 1.4.11의 3:1을 넘긴다.
       // 트랙의 임무는 그 위에 올라타는 것과 대비되는 것이다. 밝은 rider(Switch
-      // 썸·Loader color="white" fill)에만 이 어두운 면을 쓴다 — 어두운 rider
+      // 썸·Loader color="white" fill)에만 이 어두운 면을 쓴다. 어두운 rider
       // (Slider fill·Loader primary/secondary fill)에는 쓰지 마라. 거기서는 면을
       // background.paper로 두고 border.strong 경계선이 식별을 맡는다.
       // border.strong과 값은 같지만 트랙은 경계선이 아니라 면이라 별도 토큰으로
-      // 둔다 — border.strong을 조정해도 트랙이 딸려 움직이면 안 된다.
+      // 둔다. border.strong을 조정해도 트랙이 딸려 움직이면 안 된다.
       track: gray[550],
     },
     border: {
@@ -71,12 +71,12 @@ export const themeTokens = {
       // 값이 하나로 모이는 게 이 토큰을 만든 이유고 어두워지는 방향은 위
       // 텍스트 대비에 유리해서 되돌리지 않는다.
       scrim: 'rgba(0, 0, 0, 0.5)',
-      // 포커스·에러 halo. 대비 1.1~1.2:1이라 이것만으로는 포커스 표시가 못 된다 —
+      // 포커스·에러 halo. 대비 1.1~1.2:1이라 이것만으로는 포커스 표시가 못 된다.
       // 실제 표시는 focusRing 유틸의 outline이 맡는다(S6). 이건 장식이다.
       focusHalo: 'rgba(25, 118, 210, 0.16)', // primary[700] @16%
       errorHalo: 'rgba(211, 47, 47, 0.16)', // error[700] @16%
       // Skeleton shimmer 하이라이트. 팔레트 밖 흰색 반투명이라 컴포넌트가
-      // 리터럴로 들고 있었다(M2 T3c 사전 스캔 R3) — 토큰으로 옮긴다.
+      // 리터럴로 들고 있었다(M2 T3c 사전 스캔 R3). 토큰으로 옮긴다.
       shimmer: 'rgba(255, 255, 255, 0.3)',
     },
     // semantic 4슬롯의 역할 구분:
@@ -112,7 +112,7 @@ export const themeTokens = {
     },
     // Snackbar의 기본 severity가 info인데 계약에 뒷받침하는 토큰이 없어서
     // 컴포넌트가 primary를 빌려 쓰고 있었다. 어휘를 계약에 맞춘다.
-    // 값은 의도적으로 primary와 같다 — info는 브랜드 블루로 표현한다.
+    // 값은 의도적으로 primary와 같다. info는 브랜드 블루로 표현한다.
     info: {
       main: primary[700],
       light: primary[100],

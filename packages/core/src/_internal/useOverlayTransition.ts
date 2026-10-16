@@ -10,7 +10,7 @@ import { gateMotion } from '../hooks/gateMotion';
 import { useReducedMotion } from '../hooks/useReducedMotion';
 
 /**
- * 퇴장은 등장의 65% — 모션 명제 조항 3의 60~70% 창 안이다.
+ * 퇴장은 등장의 65%. 모션 명제 조항 3의 60~70% 창 안이다.
  *
  * 세 오버레이가 각자 들고 있던 `EXIT_DURATION_MS = 200`이 여기 하나로 모였다.
  * 고정 ms가 아니라 비율인 이유: 퇴장은 **등장 타임라인의 역재생**이라 남은
@@ -23,7 +23,7 @@ export interface UseOverlayTransitionOptions {
   open: boolean;
   /**
    * 훅이 만들어 넘기는 **일시정지 타임라인을 채운다.** progress 0이 닫힘, 1이
-   * 열림이다. 타임라인을 직접 만들지 않는다 — `paused: true`를 빠뜨릴 길도,
+   * 열림이다. 타임라인을 직접 만들지 않는다. `paused: true`를 빠뜨릴 길도,
    * 훅이 모르는 타임라인이 떠돌 길도 구조적으로 없다.
    *
    * 백드롭과 시트는 **같은** 타임라인에 넣어라. 따로 두면 중단 시 둘의 progress가
@@ -31,7 +31,7 @@ export interface UseOverlayTransitionOptions {
    *
    * 호출 시점: DOM이 붙은 직후(`shouldRender`가 켜진 다음 layout 단계) 한 번,
    * 그리고 **축소 선호(`prefers-reduced-motion`)가 뒤집히면 다시** 한 번. 개폐를
-   * 반복해도 다시 불리지 않는다 — 상태마다 새로 만들면 현재 위치를 잃어 중단
+   * 반복해도 다시 불리지 않는다. 상태마다 새로 만들면 현재 위치를 잃어 중단
    * 지점에서 점프한다. 다시 불릴 때는 시작값을 **그 시점의 DOM에서 다시 읽는다**:
    * 열려 있는 동안 트리거가 움직였다면 새 좌표가 잡힌다. 그래서 열릴 때마다
    * 달라지는 값(요소 좌표 등)은 바깥에서 계산해 두지 말고 이 콜백 **안에서**
@@ -79,7 +79,7 @@ export const useOverlayTransition = ({
   const timelineRef = useRef<gsap.core.Timeline | null>(null);
   const exitTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // 콜백은 ref로 들고 있는다 — 매 렌더 새 함수가 와도 타임라인을 다시 만들지
+  // 콜백은 ref로 들고 있는다. 매 렌더 새 함수가 와도 타임라인을 다시 만들지
   // 않는다(호출자가 useCallback으로 감싸야 할 이유를 없앤다). 갱신은 아래
   // 타임라인 생성 effect보다 **먼저 선언된** layout effect에서 한다: 같은
   // 커밋의 layout effect는 선언 순서로 돌아가므로, 이 순서가 생성 시점의
@@ -98,11 +98,11 @@ export const useOverlayTransition = ({
 
   // 타임라인은 요소가 붙은 뒤에 만든다. `fromTo`의 시작값이 생성 시점에 바로
   // 적용되므로(immediateRender) layout 단계에서 만들어야 첫 페인트가 닫힌
-  // 상태로 나온다 — 열린 상태가 한 프레임 번쩍이지 않는다.
+  // 상태로 나온다. 열린 상태가 한 프레임 번쩍이지 않는다.
   useLayoutEffect(() => {
     if (!shouldRender) return;
 
-    // 축소 선호면 gateMotion이 타임라인을 끝 상태로 확정하고 죽인다 — 열린
+    // 축소 선호면 gateMotion이 타임라인을 끝 상태로 확정하고 죽인다. 열린
     // 정지 화면이 된다. 진행 중 트윈이 없으니 중간 상태에 멈출 수가 없다.
     //
     // `paused: true`는 훅의 전제다. 빠뜨리면 타임라인이 생성 즉시 재생되면서
@@ -150,7 +150,7 @@ export const useOverlayTransition = ({
       onExitedRef.current?.();
     };
 
-    // 축소 선호면 기다릴 퇴장이 없다 — 타임라인을 접고 즉시 내린다.
+    // 축소 선호면 기다릴 퇴장이 없다. 타임라인을 접고 즉시 내린다.
     if (reduced || !timeline) {
       timeline?.kill();
       settleExit();
@@ -162,7 +162,7 @@ export const useOverlayTransition = ({
     const remainingMs = timeline.time() * EXIT_RATIO * 1000;
 
     timeline.eventCallback('onReverseComplete', settleExit);
-    // 역재생은 `settle`(power3.out)을 시간축에서 뒤집어 자연히 가속 커브가 된다 —
+    // 역재생은 `settle`(power3.out)을 시간축에서 뒤집어 자연히 가속 커브가 된다:
     // 조항 3의 "같은 타임라인을 반대로 돌리고 커브만 바꾼다"가 이걸로 만족된다.
     timeline.timeScale(1 / EXIT_RATIO).reverse();
     exitTimerRef.current = setTimeout(settleExit, remainingMs);

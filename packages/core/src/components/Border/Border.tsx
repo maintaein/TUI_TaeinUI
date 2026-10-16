@@ -69,7 +69,7 @@ export const Border = ({
     >
       {/* glow는 선택 기능이다(기본 off). 빛 루프는 닫힌 테두리(sides='all')에서만 "한 바퀴"가 성립한다.
           회전하는 그라디언트를 가둘 그릇이라 실제 DOM 노드여야 한다
-          (pseudo-element는 자기 자식 pseudo-element를 못 갖는다 — 리뷰 C2). */}
+          (pseudo-element는 자기 자식 pseudo-element를 못 갖는다, 리뷰 C2). */}
       {glow && sides === 'all' && (
         <span className={glowRing} aria-hidden="true" />
       )}

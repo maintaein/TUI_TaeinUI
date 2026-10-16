@@ -93,13 +93,13 @@ export const size = styleVariants(baseSizeContainer, (baseStyle) => [
     touchAction: 'manipulation',
 
     selectors: {
-      // &:has(input:checked) 제거 — 트랙 색 전환은 이제 스윕 span(GSAP scaleX)이 담당한다(Ruling 42).
+      // &:has(input:checked) 제거: 트랙 색 전환은 이제 스윕 span(GSAP scaleX)이 담당한다(Ruling 42).
       [`&:has(input:focus-visible)`]: {
         ...focusRing(),
       },
 
       // disabled 트랙의 기준은 1.4.11의 3:1이 아니다(disabled는 면제 대상이다).
-      // 기준은 "컨트롤이 아예 안 보이면 고친다" 하나다 — unchecked+disabled는
+      // 기준은 "컨트롤이 아예 안 보이면 고친다" 하나다. unchecked+disabled는
       // 흰 배경 위 흰 면(1.00:1)이라 존재 자체가 사라져서 surface.track
       // (3.59:1)으로 올렸고, checked+disabled의 primary.light는 2.64:1로 3:1에는
       // 못 미쳐도 지각되므로 그대로 둔다. 여기를 더 진하게 올리면 enabled와

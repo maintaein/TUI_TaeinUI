@@ -12,7 +12,7 @@ interface HeaderBarNavProps {
 
 /**
  * 테스트가 세터 배열을 읽는 통로. 공개 prop/state로 안 나가고 nav DOM 노드에
- * 얹는다 — 타입 전용 확장이라 값으로 export되지 않는다(Snackbar.tsx의
+ * 얹는다. 타입 전용 확장이라 값으로 export되지 않는다(Snackbar.tsx의
  * CountdownTweenHost와 같은 모양).
  */
 interface NavScaleSetterHost extends HTMLElement {
@@ -31,7 +31,7 @@ export const HeaderBarNav = ({ items }: HeaderBarNavProps) => {
   const settersRef = useRef<ReturnType<typeof gsap.quickTo>[]>([]);
 
   // 아래 effect의 deps. `items` 자체는 매 렌더 새 배열이라 쓸모가 없고,
-  // `items.length`는 길이가 같은 채 label만 바뀌는 경우를 놓친다 — key={label}이라
+  // `items.length`는 길이가 같은 채 label만 바뀌는 경우를 놓친다. key={label}이라
   // DOM 노드가 교체되는데 세터는 떨어져 나간 노드를 계속 가리킨다. key와 같은
   // 재료에서 만든 파생 문자열이라 값 비교로 걸리고, 그래서 useMemo 없이 매 렌더
   // 계산해도 안전하다.
@@ -81,7 +81,7 @@ export const HeaderBarNav = ({ items }: HeaderBarNavProps) => {
       aria-label="주요 메뉴"
       className={nav}
       onBlur={(event: FocusEvent<HTMLElement>) => {
-        // nav 밖으로 나가는 blur일 때만 쉼으로 되돌린다 — 항목 사이 이동은
+        // nav 밖으로 나가는 blur일 때만 쉼으로 되돌린다. 항목 사이 이동은
         // 다음 항목의 onFocus가 곧바로 새 항목을 고르므로 여기서 끊지 않는다.
         if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
           select(null);

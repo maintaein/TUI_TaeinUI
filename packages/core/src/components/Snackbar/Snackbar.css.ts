@@ -3,7 +3,7 @@ import { themeContract } from '../../tokens/theme.css';
 import { focusRing } from '../../tokens/focusRing.css';
 
 // 등장 `@keyframes` 4개와 퇴장 `snackbarExit`은 M3 T3에서 GSAP 타임라인으로
-// 옮겼다(`Snackbar.tsx`의 `useOverlayTransition` 호출) — progress를 읽고
+// 옮겼다(`Snackbar.tsx`의 `useOverlayTransition` 호출). progress를 읽고
 // 중단할 수 있어야 하는데 `@keyframes`는 그게 안 된다.
 
 // 기본 스타일
@@ -56,12 +56,12 @@ export const severityStyles = styleVariants({
   },
 });
 
-// Position 스타일 (화면 고정 위치만 잡는다 — 등장·퇴장은 GSAP 타임라인이 맡는다)
+// Position 스타일 (화면 고정 위치만 잡는다, 등장·퇴장은 GSAP 타임라인이 맡는다)
 //
 // center 2종은 예전엔 여기서 `transform: translateX(-50%)`로 가로 중앙을
 // 잡았다. 이제 같은 요소의 `transform`을 GSAP 타임라인이 통째로 쓰므로(함정
 // 1), 정적 transform을 여기 남겨 두면 GSAP이 매 프레임 덮어써 중앙 정렬이
-// 깨진다 — `Snackbar.tsx`의 `buildTimeline`이 `xPercent: -50`을 대신 맡는다.
+// 깨진다. `Snackbar.tsx`의 `buildTimeline`이 `xPercent: -50`을 대신 맡는다.
 export const positionStyles = styleVariants({
   'top-left': {
     top: themeContract.spacing[6],
@@ -163,7 +163,7 @@ export const closeButton = style({
 });
 
 // 카운트다운 막대. `Snackbar.tsx`가 매 프레임 `transform: scaleX()`만 바꾼다
-// (완료 조건 9 — `width`를 바꾸면 레이아웃 재계산이다). 배경은 severity가
+// (완료 조건 9: `width`를 바꾸면 레이아웃 재계산이다). 배경은 severity가
 // 이미 쓰는 글자색(`currentColor`)을 그대로 물려받는다. 새 토큰 없이 4종
 // severity 면 전부에서 글자 대비와 같은 쌍으로 검증된다(완료 조건 8, llms.test.ts).
 // 시작 `scaleX(1)`은 첫 GSAP 틱 전 번쩍임을 막는 정적 기본값이다.
@@ -179,7 +179,7 @@ export const bar = style({
 });
 
 // 시각적으로만 숨기는 라이브 리전. SegmentedButtons.css.ts의 radioInput과 같은
-// 모양이다 — display: none·visibility: hidden은 접근성 트리에서도 지워져 쓸 수 없다.
+// 모양이다. display: none·visibility: hidden은 접근성 트리에서도 지워져 쓸 수 없다.
 export const visuallyHidden = style({
   position: 'absolute',
   top: 0,

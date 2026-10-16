@@ -69,7 +69,7 @@ export const Chip = ({
   onClick,
   className,
 }: ChipProps) => {
-  // 선택 표식(::before)의 색 — 모양·전이는 Chip.css.ts가 갖고, 여기서는
+  // 선택 표식(::before)의 색. 모양·전이는 Chip.css.ts가 갖고, 여기서는
   // 색만 커스텀 프로퍼티로 넘긴다(색상 axis가 recipe 밖에 있어 JS 계산이 필요).
   const markerColor = useMemo(() => {
     const colorMap = {

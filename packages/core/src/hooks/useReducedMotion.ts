@@ -27,6 +27,6 @@ const getSnapshot = (): boolean => matchReduceQuery()?.matches ?? false;
 const getServerSnapshot = (): boolean => false;
 
 // 사용자의 모션 축소 선호를 구독한다. 선호가 바뀌면 리렌더로 반영된다.
-// 이 훅은 신호만 준다 — 진행 중인 애니메이션 처리는 gateMotion이 한다.
+// 이 훅은 신호만 준다. 진행 중인 애니메이션 처리는 gateMotion이 한다.
 export const useReducedMotion = (): boolean =>
   useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);

@@ -91,7 +91,7 @@ export const Tooltip = ({
   const [uncontrolledOpen, setUncontrolledOpen] = useState(false);
   const showTimerRef = useRef<NodeJS.Timeout | null>(null);
   // 트리거→툴팁 이동 유예(닫기 지연)용 타이머. showTimerRef(오픈 지연)와
-  // 별도 ref로 둔다 — 같은 ref를 공유하면 열기 타이머와 닫기 타이머가 서로를 지운다.
+  // 별도 ref로 둔다. 같은 ref를 공유하면 열기 타이머와 닫기 타이머가 서로를 지운다.
   const hideTimerRef = useRef<NodeJS.Timeout | null>(null);
   // Escape로 닫힌 뒤, 포인터/포커스가 실제로 벗어나기 전까지는 재개방을 막는다.
   const escapeClosedRef = useRef(false);
@@ -190,7 +190,7 @@ export const Tooltip = ({
   }, [isOpen, disabled]);
 
   // Escape로 닫힌 동안 열려 있었으면, 열려 있는 동안만 document에 Escape
-  // 리스너를 건다 — 호버만 된 상태(포커스 없음)에서는 Escape가 document로 간다.
+  // 리스너를 건다. 호버만 된 상태(포커스 없음)에서는 Escape가 document로 간다.
   useEffect(() => {
     if (!isOpen) return;
 

@@ -8,7 +8,7 @@ export const popoverContainer = style({
   display: 'inline-block',
 });
 
-// 팝오버 본체 — 위치·상태에 무관한 겉모습만 갖는다. opacity·transform·전이는
+// 팝오버 본체: 위치·상태에 무관한 겉모습만 갖는다. opacity·transform·전이는
 // positionStyles/positionOpenStyles가 방향별로 쥔다(방향 오프셋과 상태 scale이
 // 같은 transform 하나에 있어야 해서 방향×상태로 묶는다).
 export const popover = style({

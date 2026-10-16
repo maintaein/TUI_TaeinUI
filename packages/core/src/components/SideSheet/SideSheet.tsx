@@ -96,7 +96,7 @@ const SideSheetRoot = ({
   const staggerRef = useRef<gsap.core.Timeline | null>(null);
   const reduced = useReducedMotion();
 
-  // 백드롭과 시트를 한 타임라인에 넣는다 — 중단 지점에서 둘의 progress가
+  // 백드롭과 시트를 한 타임라인에 넣는다. 중단 지점에서 둘의 progress가
   // 갈라지지 않는다. `xPercent`는 시트 폭 기준이라 width variant가 바뀌어도
   // 화면 밖 위치가 따라온다(기존 `translateX(±100%)` 키프레임과 같은 양).
   // 넘침 16px도 같은 폭으로 환산된다. float 루프는 CSS `translate`라 따로 합성된다.
@@ -241,7 +241,7 @@ const SideSheetRoot = ({
 SideSheetRoot.displayName = 'SideSheet';
 
 // Compound API 서브 컴포넌트들
-/** SideSheet.Header — 시트 헤더 영역 */
+/** SideSheet.Header: 시트 헤더 영역 */
 export interface SideSheetHeaderProps extends HTMLAttributes<HTMLElement> {
   /** 헤더 콘텐츠 */
   children: ReactNode;
@@ -278,9 +278,9 @@ export const SideSheetHeader = forwardRef<HTMLElement, SideSheetHeaderProps>(
 SideSheetHeader.displayName = 'SideSheetHeader';
 
 /**
- * SideSheet.Title — 시트 제목
+ * SideSheet.Title: 시트 제목
  *
- * `id`는 컴포넌트가 소유한다 — 루트의 `aria-labelledby`가 이 id를 가리키므로
+ * `id`는 컴포넌트가 소유한다. 루트의 `aria-labelledby`가 이 id를 가리키므로
  * 소비자 `id`가 이기면 다이얼로그의 접근 가능 이름이 조용히 사라진다. 제목
  * 요소를 직접 참조해야 하면 루트에 `aria-labelledby`를 줘라.
  */
@@ -311,7 +311,7 @@ export const SideSheetTitle = forwardRef<
 
 SideSheetTitle.displayName = 'SideSheetTitle';
 
-/** SideSheet.Content — 시트 본문 영역 */
+/** SideSheet.Content: 시트 본문 영역 */
 export interface SideSheetContentProps extends HTMLAttributes<HTMLDivElement> {
   /** 본문 콘텐츠 */
   children: ReactNode;

@@ -110,7 +110,7 @@ const BottomSheetRoot = ({
   const staggerRef = useRef<gsap.core.Timeline | null>(null);
   const reduced = useReducedMotion();
 
-  // 접근성(포커스 트랩 + ESC) 및 스크롤 제어 — 퇴장이 끝난 뒤 포커스를 복원해야
+  // 접근성(포커스 트랩 + ESC) 및 스크롤 제어: 퇴장이 끝난 뒤 포커스를 복원해야
   // 하므로 restoreFocusOnClose는 false로 두고, 훅의 onExited에서
   // previousActiveElementRef를 직접 사용해 복원한다(기존 타이밍 그대로 유지).
   const { previousActiveElementRef } = useFocusTrap({
@@ -122,7 +122,7 @@ const BottomSheetRoot = ({
   });
 
   // 백드롭과 시트를 한 타임라인에 넣는다. 시트는 `yPercent`(시트 높이 기준)를
-  // 쓰고 드래그는 `y`(px)를 쓴다 — GSAP이 두 채널을 하나의 transform으로
+  // 쓰고 드래그는 `y`(px)를 쓴다. GSAP이 두 채널을 하나의 transform으로
   // 합성하므로 손가락과 타임라인이 같은 속성을 놓고 다투지 않는다.
   // float 루프는 CSS `translate`라 이 둘과도 따로 합성된다.
   const { shouldRender } = useOverlayTransition({
@@ -199,7 +199,7 @@ const BottomSheetRoot = ({
 
     // 손가락을 1:1로 따라가는 쓰기. 트윈이 아니라 즉시 쓰기라 추종이 늦지 않고,
     // `style.transform`에 직접 쓰는 것과 달리 타임라인의 `yPercent`를 지우지
-    // 않는다 — GSAP이 같은 transform 캐시를 갱신해 두 채널을 합성한다.
+    // 않는다. GSAP이 같은 transform 캐시를 갱신해 두 채널을 합성한다.
     const dragTo = gsap.quickSetter(sheet, 'y', 'px') as (
       value: number
     ) => void;
@@ -219,7 +219,7 @@ const BottomSheetRoot = ({
     };
 
     // 드래그로 닫히던 시트가 퇴장 도중 다시 열리면 손가락이 남긴 오프셋이 그대로
-    // 남는다 — 열릴 때마다 쉬는 자리로 데려온다(갓 마운트된 시트는 이미 0이라
+    // 남는다. 열릴 때마다 쉬는 자리로 데려온다(갓 마운트된 시트는 이미 0이라
     // 눈에 보이는 변화가 없다). 단, 손가락이 내려가 있는 동안은 건드리지 않는다:
     // deps의 `onClose`가 인라인 화살표면 부모 리렌더마다 이 effect가 다시 돌고,
     // 그때 복귀 트윈을 걸면 `quickSetter`와 같은 `y`를 놓고 서로 되돌린다.
@@ -231,7 +231,7 @@ const BottomSheetRoot = ({
       setFloatPaused(sheet, false);
 
       if (diff > DRAG_CLOSE_THRESHOLD_PX) {
-        // 닫기는 타임라인에 넘긴다 — 시트는 손가락이 멈춘 자리에서 그대로
+        // 닫기는 타임라인에 넘긴다. 시트는 손가락이 멈춘 자리에서 그대로
         // 이어 내려간다(드래그가 만든 y 오프셋은 그대로 둔다. 화면 밖으로
         // 나가는 방향이라 되돌리면 오히려 위로 튀어오른다). 자체 전이를 걸면
         // 타임라인과 transform을 놓고 다툰다.
@@ -283,7 +283,7 @@ const BottomSheetRoot = ({
       restTweenRef.current = null;
     };
 
-    // mousemove/mouseup은 document에 등록 — 마우스가 시트 밖으로 나가도 감지
+    // mousemove/mouseup은 document에 등록, 마우스가 시트 밖으로 나가도 감지
     const handleMouseMove = (e: MouseEvent) => {
       if (!isDraggingRef.current) return;
       const diff = e.clientY - startYRef.current;
@@ -441,9 +441,9 @@ export const BottomSheetHeader = forwardRef<
 BottomSheetHeader.displayName = 'BottomSheetHeader';
 
 /**
- * BottomSheet.Title — 시트 제목. Compound 패턴에서 사용
+ * BottomSheet.Title: 시트 제목. Compound 패턴에서 사용
  *
- * `id`는 컴포넌트가 소유한다 — 루트의 `aria-labelledby`가 이 id를 가리키므로
+ * `id`는 컴포넌트가 소유한다. 루트의 `aria-labelledby`가 이 id를 가리키므로
  * 소비자 `id`가 이기면 다이얼로그의 접근 가능 이름이 조용히 사라진다. 제목
  * 요소를 직접 참조해야 하면 루트에 `aria-labelledby`를 줘라.
  */

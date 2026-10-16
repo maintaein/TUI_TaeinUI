@@ -129,8 +129,8 @@ export const Badge = ({
     >
       {!dot && exitingValue !== null && (
         // 퇴장 중인 헌 값. aria-hidden은 접근성 목적(라이브 리전이 헌 값을
-        // 다시 읽지 않게)이지, getByText 다중 매치를 막으려는 게 아니다
-        // — getByText는 aria-hidden을 무시하지 않는다. 값이 바뀌면
+        // 다시 읽지 않게)이지, getByText 다중 매치를 막으려는 게 아니다.
+        // getByText는 aria-hidden을 무시하지 않는다. 값이 바뀌면
         // key가 바뀌어 재마운트되면서 valueExit이 처음부터 다시 재생된다.
         <span
           key={String(exitingValue)}

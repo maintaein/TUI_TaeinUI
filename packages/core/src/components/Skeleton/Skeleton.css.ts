@@ -19,7 +19,7 @@ const GLOW_START = '35%';
 const GLOW_END = '65%';
 
 // 애니메이션 정의
-// wave의 방향(좌→우)이 상태계 계열 기준이다(S1) — Loader 스윕·점 페이드가
+// wave의 방향(좌→우)이 상태계 계열 기준이다(S1). Loader 스윕·점 페이드가
 // 이 방향·리듬을 따른다. 커브는 T5 공유 자산(loopRhythm)에서, 주기는
 // loop.base 토큰을 직접 받는다(이유는 loopRhythm.css.ts 주석 참고).
 const wave = keyframes({
@@ -105,7 +105,7 @@ export const animationStyles = styleVariants({
     },
   },
   pulse: {
-    // wave와 같은 공유 자산을 거친다(리뷰 F3) — 같은 파일 안에서 한쪽만
+    // wave와 같은 공유 자산을 거친다(리뷰 F3). 같은 파일 안에서 한쪽만
     // 토큰을 직접 부르면 같은 값이 두 이름을 갖고, 커브를 바꾸는 날 한쪽만
     // 바뀐다.
     animation: `${pulse} calc(${themeContract.animation.loop.base} * 1.2) ${loopRhythmEasing} 0.5s infinite`,

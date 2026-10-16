@@ -97,7 +97,7 @@ const GRAB_KEYS = new Set([
 ]);
 
 /**
- * 키보드로 "놓았다"를 알 방법이 없다(pointerup 대응 없음) — 마지막 키 입력 후
+ * 키보드로 "놓았다"를 알 방법이 없다(pointerup 대응 없음). 마지막 키 입력 후
  * 이 시간 동안 입력이 없으면 놓은 것으로 본다. `duration.slower`(500ms) 근방을
  * 쓰라는 브리프 지시를 그대로 gsapDuration에서 가져온다(초→ms 환산 한 곳).
  */

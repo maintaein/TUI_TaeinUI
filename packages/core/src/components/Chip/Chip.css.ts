@@ -20,7 +20,7 @@ export const chip = recipe({
     cursor: 'default',
     whiteSpace: 'nowrap',
 
-    // 선택 배율 합성용 변수(리뷰 F1) — 기본 1, .selected가 1.03으로 올린다.
+    // 선택 배율 합성용 변수(리뷰 F1): 기본 1, .selected가 1.03으로 올린다.
     // 누름([data-pressed])은 이 값을 곱해 자기 축소와 합성한다. transform은
     // 단일 속성이라 예전엔 .selected의 scale(1.03)이 :hover/:active의
     // scale(1)/scale(0.97)에 통째로 덮여 선택된 칩에 마우스를 올리면
@@ -177,7 +177,7 @@ export const chip = recipe({
 // --chip-scale을 1.03으로 올려 위 :hover/:active가 곱해 합성한다(리뷰 F1).
 // transitionDuration/TimingFunction만 얹으면(구 코드) transition-property는
 // chip 베이스의 transform·box-shadow·opacity 세 개를 그대로 물려받아 spring이
-// box-shadow·opacity에도 샌다 — transition을 통째로 다시 적어 막는다(리뷰 F6).
+// box-shadow·opacity에도 샌다. transition을 통째로 다시 적어 막는다(리뷰 F6).
 export const selected = style({
   vars: {
     '--chip-scale': '1.03',

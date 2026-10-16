@@ -18,13 +18,13 @@ export default defineConfig([
       '**/*.css.ts',
       // .claude/고도화/ex/*는 읽으려고 받아 둔 외부 참조 소스다(PillNav·Dock·
       // FlowingMenu·SplitFlapText). 발행하지도 빌드하지도 않고 .gitignore 대상이라
-      // 우리 규칙으로 고칠 수 없다 — 린트 대상이 아니다.
+      // 우리 규칙으로 고칠 수 없다. 린트 대상이 아니다.
       '.claude/**',
     ],
   },
 
   {
-    // `.d.mts`도 대상에 넣는다 — 안 넣으면 flat config가 이 확장자를 아예 안 보고
+    // `.d.mts`도 대상에 넣는다. 안 넣으면 flat config가 이 확장자를 아예 안 보고
     // 지나쳐 사실상 린트를 안 받는다(예: packages/core/scripts/build-easing.d.mts, M1 T8).
     files: ['**/*.{ts,tsx}', '**/*.d.mts'],
     extends: [

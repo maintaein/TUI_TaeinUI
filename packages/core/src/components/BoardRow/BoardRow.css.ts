@@ -38,12 +38,12 @@ export const header = style({
   textAlign: 'left',
   cursor: 'pointer',
   touchAction: 'manipulation',
-  // transform을 목록에 더한다(리뷰 F3) — :active가 배경색 단독 채널이라
+  // transform을 목록에 더한다(리뷰 F3). :active가 배경색 단독 채널이라
   // article 4 위반이었다. 다른 컴포넌트(Button·Card·Chip·IconButton)와 같은
   // 배치 관례로 snap을 얹어 release 오버슛도 같이 받는다.
   transition: `background-color ${themeContract.animation.duration.base} ${themeContract.animation.easing.settle}, transform ${themeContract.animation.duration.base} ${themeContract.animation.easing.snap}`,
 
-  // :not(:disabled)로 막는다(리뷰 F1) — 배치 공통 제약 「disabled에는 전이를
+  // :not(:disabled)로 막는다(리뷰 F1). 배치 공통 제약 「disabled에는 전이를
   // 주지 않는다」다. 아래 :disabled 블록이 backgroundColor는 되돌리지만,
   // 가드가 없으면 :hover의 전이 자체는 비활성 헤더에도 그대로 걸린다.
   // Button·IconButton은 같은 가드를, Card는 pointerEvents: none을 쓴다.
@@ -56,7 +56,7 @@ export const header = style({
       transitionDuration: themeContract.animation.duration.fast,
     },
 
-    // 배경색과 함께 스케일도 같이 바뀐다(article 4 — 색 단독 채널 금지).
+    // 배경색과 함께 스케일도 같이 바뀐다(article 4: 색 단독 채널 금지).
     // 1px 이동은 행 전체 폭에서 부담이 커 Button/Card 수준 이동 대신 미세한
     // scale(0.995)만 쓴다.
     '&:active:not(:disabled)': {

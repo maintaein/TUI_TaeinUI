@@ -35,7 +35,7 @@ export interface CardProps extends Omit<
   disabled?: boolean;
   /** 마우스를 올리면 카드가 살짝 떠오르고 그림자가 짙어지며, 누르면 살짝 눌린다. 클릭 가능한 카드도 켜지 않으면 떠오르지 않는다 @default false */
   hoverLift?: boolean;
-  /** Flat: 카드 제목 — 자동으로 header + title 구조 생성 */
+  /** Flat: 카드 제목, 자동으로 header + title 구조 생성 */
   title?: string;
   /** Flat: 카드 헤더 영역 (title보다 우선) */
   header?: ReactNode;
@@ -175,7 +175,7 @@ CardRoot.displayName = 'Card';
 
 // ─── Compound 서브 컴포넌트 ──────────────────────────────────────────
 
-/** Card.Image — 카드 이미지 영역. 기본 비율은 16:9이며, `style={{ aspectRatio: '1' }}`로 덮어쓸 수 있다 */
+/** Card.Image: 카드 이미지 영역. 기본 비율은 16:9이며, `style={{ aspectRatio: '1' }}`로 덮어쓸 수 있다 */
 export interface CardImageProps extends HTMLAttributes<HTMLDivElement> {
   /** 이미지 URL */
   src: string;
@@ -198,7 +198,7 @@ const CardImage = forwardRef<HTMLDivElement, CardImageProps>(
 
 CardImage.displayName = 'Card.Image';
 
-/** Card.ImageOverlay — 이미지 위에 표시되는 오버레이 */
+/** Card.ImageOverlay: 이미지 위에 표시되는 오버레이 */
 export interface CardImageOverlayProps extends HTMLAttributes<HTMLDivElement> {
   /** 오버레이 콘텐츠 */
   children: ReactNode;
@@ -216,7 +216,7 @@ const CardImageOverlay = forwardRef<HTMLDivElement, CardImageOverlayProps>(
 
 CardImageOverlay.displayName = 'Card.ImageOverlay';
 
-/** Card.Header — 카드 헤더 영역 */
+/** Card.Header: 카드 헤더 영역 */
 export interface CardHeaderProps extends HTMLAttributes<HTMLDivElement> {
   /** 헤더 콘텐츠 */
   children: ReactNode;
@@ -234,7 +234,7 @@ const CardHeader = forwardRef<HTMLDivElement, CardHeaderProps>(
 
 CardHeader.displayName = 'Card.Header';
 
-/** Card.Title — 카드 제목 */
+/** Card.Title: 카드 제목 */
 export interface CardTitleProps extends HTMLAttributes<HTMLHeadingElement> {
   /** 제목 텍스트 */
   children: ReactNode;
@@ -254,7 +254,7 @@ const CardTitle = forwardRef<HTMLHeadingElement, CardTitleProps>(
 
 CardTitle.displayName = 'Card.Title';
 
-/** Card.Body — 카드 본문 영역 */
+/** Card.Body: 카드 본문 영역 */
 export interface CardBodyProps extends HTMLAttributes<HTMLDivElement> {
   /** 본문 콘텐츠 */
   children: ReactNode;
@@ -278,7 +278,7 @@ const CardBody = forwardRef<HTMLDivElement, CardBodyProps>(
 
 CardBody.displayName = 'Card.Body';
 
-/** Card.Footer — 카드 푸터 영역 */
+/** Card.Footer: 카드 푸터 영역 */
 export interface CardFooterProps extends HTMLAttributes<HTMLDivElement> {
   /** 푸터 콘텐츠 */
   children: ReactNode;

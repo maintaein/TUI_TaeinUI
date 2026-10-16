@@ -30,7 +30,7 @@ import { useOverlayTransition } from '../../_internal/useOverlayTransition';
 import { gsapDuration, gsapEasing } from '../../tokens/gsapEasing';
 
 /**
- * 트리거를 못 읽을 때의 시작 상태 — 화면 가운데에서 살짝 위·작게 자란다.
+ * 트리거를 못 읽을 때의 시작 상태: 화면 가운데에서 살짝 위·작게 자란다.
  * 이전 `slideIn` 키프레임의 0% 프레임과 같은 값이다(y -20px · scale 0.95).
  */
 const CENTER_START = { opacity: 0, x: 0, y: -20, scale: 0.95 } as const;
@@ -181,7 +181,7 @@ export interface ModalProps extends Omit<
   'aria-label'?: string;
   /** 추가 CSS 클래스 */
   className?: string;
-  /** Flat: 모달 제목 — 자동으로 Header + Title 구조 생성 */
+  /** Flat: 모달 제목, 자동으로 Header + Title 구조 생성 */
   title?: string;
   /** Flat: 닫기(X) 버튼 표시 (title과 함께 사용) @default false */
   showClose?: boolean;
@@ -413,7 +413,7 @@ ModalRoot.displayName = 'Modal';
 // ─── Compound 서브 컴포넌트 ──────────────────────────────────────────
 
 // ModalHeader
-/** Modal.Header — 모달 헤더 영역 */
+/** Modal.Header: 모달 헤더 영역 */
 export interface ModalHeaderProps extends HTMLAttributes<HTMLDivElement> {
   /** 헤더 콘텐츠 */
   children: ReactNode;
@@ -451,9 +451,9 @@ ModalHeader.displayName = 'Modal.Header';
 
 // ModalTitle
 /**
- * Modal.Title — 모달 제목
+ * Modal.Title: 모달 제목
  *
- * `id`는 컴포넌트가 소유한다 — 루트의 `aria-labelledby`가 이 id를 가리키므로
+ * `id`는 컴포넌트가 소유한다. 루트의 `aria-labelledby`가 이 id를 가리키므로
  * 소비자 `id`가 이기면 다이얼로그의 접근 가능 이름이 조용히 사라진다. 제목
  * 요소를 직접 참조해야 하면 루트에 `aria-labelledby`를 줘라.
  */
@@ -484,7 +484,7 @@ const ModalTitle = forwardRef<HTMLHeadingElement, ModalTitleProps>(
 ModalTitle.displayName = 'Modal.Title';
 
 // ModalContent
-/** Modal.Content — 모달 본문 영역 */
+/** Modal.Content: 모달 본문 영역 */
 export interface ModalContentProps extends HTMLAttributes<HTMLDivElement> {
   /** 본문 콘텐츠 */
   children: ReactNode;
@@ -503,7 +503,7 @@ const ModalContent = forwardRef<HTMLDivElement, ModalContentProps>(
 ModalContent.displayName = 'Modal.Content';
 
 // ModalFooter
-/** Modal.Footer — 모달 푸터 영역 (보통 액션 버튼 배치) */
+/** Modal.Footer: 모달 푸터 영역 (보통 액션 버튼 배치) */
 export interface ModalFooterProps extends HTMLAttributes<HTMLDivElement> {
   /** 푸터 콘텐츠 */
   children: ReactNode;

@@ -128,7 +128,7 @@ const syncSwitchState = (
   nextState: SwitchState,
   reduced: boolean
 ): void => {
-  // aria-checked의 진실 원천은 DOM이다 — JSX 프롭은 첫 페인트만 책임진다(Ruling 40).
+  // aria-checked의 진실 원천은 DOM이다. JSX 프롭은 첫 페인트만 책임진다(Ruling 40).
   inputEl.setAttribute('aria-checked', String(nextState === 'on'));
 
   const prev = stateRef.current;
@@ -199,7 +199,7 @@ export const Switch = forwardRef<HTMLInputElement, SwitchProps>(
     const thumbRef = useRef<HTMLSpanElement>(null);
     const switchStateRef = useRef<SwitchState | null>(null);
 
-    // 첫 페인트에서만 쓰는 값 — 이후 렌더에서 다시 계산하면 React가 GSAP이 쓴
+    // 첫 페인트에서만 쓰는 값: 이후 렌더에서 다시 계산하면 React가 GSAP이 쓴
     // aria-checked를 다시 덮어써버린다(Checkbox의 d 버그와 같은 종류).
     const [initialAriaChecked] = useState(() =>
       Boolean(rest.checked ?? rest.defaultChecked)

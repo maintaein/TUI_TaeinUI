@@ -29,7 +29,7 @@ const progress = keyframes({
 });
 
 // 회전 애니메이션 (spinner용).
-// 한 방향 회전이되 속도가 일정하지 않다 — 끌려가는 느낌. 루프에 ease-out을
+// 한 방향 회전이되 속도가 일정하지 않다. 끌려가는 느낌. 루프에 ease-out을
 // 걸면 매 바퀴 멈춘 것처럼 보이므로, 대신 중간 프레임(50% 200deg)을 넣어
 // timing은 linear로 두고 키프레임 자체로 비등속을 만든다.
 // T5(loopRhythm) 공유 자산을 쓰지 않는 회전은 이것이다. 주기가
@@ -148,7 +148,7 @@ export const bar = style({
   borderRadius: '3px',
 
   selectors: {
-    // white 변형은 어두운 면 위에서 쓰는 것이라 밝은 fill이 올라탄다 —
+    // white 변형은 어두운 면 위에서 쓰는 것이라 밝은 fill이 올라탄다.
     // 이 경우에만 트랙이 어두워야 한다. data-color는 Loader.tsx가 바깥
     // 래퍼에 이미 달아 둔 속성이라 새로 붙일 것이 없다.
     '[data-color="white"] &': {
@@ -166,7 +166,7 @@ export const barFill = style({
   borderRadius: '3px',
   backgroundColor: 'var(--loader-color)',
   // 빛은 채움이 아니라 자르기 층(barClip)의 필터 하나가 건다.
-  // 불확정 스윕이다(진행률을 받는 자리가 아니다) — S1: Skeleton wave와
+  // 불확정 스윕이다(진행률을 받는 자리가 아니다). S1: Skeleton wave와
   // 방향(좌→우) · 커브(T5 공유 자산) · 주기(loop.base)를 공유한다.
   animation: `${progress} ${themeContract.animation.loop.base} ${loopRhythmEasing} infinite`,
 });

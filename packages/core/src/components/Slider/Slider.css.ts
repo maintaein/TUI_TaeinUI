@@ -306,7 +306,7 @@ export const markLabel = style({
 // Value Follower (M0.5 I2). 잡은 동안 썸을 따라가는 값 표시.
 // showValue(라벨 행의 고정 출력, :36-43)와 별개이고 그것을 대체하지 않는다.
 // left는 ticker 스프링이 매 프레임 쓰는 --slider-value-follower-percent 커스텀
-// 속성에서 나온다 — Ruling 23: getBoundingClientRect() 대신 값에서 나온 %다.
+// 속성에서 나온다. Ruling 23: getBoundingClientRect() 대신 값에서 나온 %다.
 /** ticker 스프링이 매 프레임 쓰는 값 표시 위치 채널. 이름을 복제하지 말고 이것을 import하라. */
 export const VALUE_FOLLOWER_PERCENT_VAR = '--slider-value-follower-percent';
 

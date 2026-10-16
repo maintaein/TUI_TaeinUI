@@ -82,15 +82,15 @@ export const input = style({
   fontWeight: 500,
   padding: '0.5rem 0',
   margin: 0,
-  // scale(눌림)과 y(자리수 nudge)는 GSAP이 소유한다(M3 T3d) — transform을 여기서
+  // scale(눌림)과 y(자리수 nudge)는 GSAP이 소유한다(M3 T3d). transform을 여기서
   // 전이하면 GSAP이 매 프레임 쓰는 인라인 transform과 CSS 전이가 같은 속성을 놓고
   // 싸운다.
   transition: `color ${themeContract.animation.duration.base} ease`,
 
   selectors: {
-    // 눌림 중 색만 CSS가 맡는다(단독 채널 금지, Article 4) — 굴곡(채널 B의
+    // 눌림 중 색만 CSS가 맡는다(단독 채널 금지, Article 4). 굴곡(채널 B의
     // nudge)이 같이 있어 색은 보조 채널로 유효하다. 예전 clickPulse
-    // 키프레임은 500ms에 한 번 끝나 가속이 계속되는데도 모션이 사라졌다 —
+    // 키프레임은 500ms에 한 번 끝나 가속이 계속되는데도 모션이 사라졌다.
     // 지금은 채널 A·B가 눌려 있는 동안 계속 산다(M3 T3d).
     [`${inputContainer}:has(button:active:not(:disabled)) &`]: {
       color: themeContract.color.primary.main,
@@ -139,7 +139,7 @@ export const button = style({
   color: themeContract.color.text.primary,
   cursor: 'pointer',
   touchAction: 'manipulation',
-  // scale(눌림 깊이)은 이제 GSAP이 소유한다(M3 T3d, 채널 A) — 길게 누르는
+  // scale(눌림 깊이)은 이제 GSAP이 소유한다(M3 T3d, 채널 A). 길게 누르는
   // 동안 더 깊어지고 뗄 때 부푸는 걸 CSS 전이는 표현할 수 없고, 같이 두면 서로 싸운다.
   transition: `background-color ${themeContract.animation.duration.fast} ease-in-out, color ${themeContract.animation.duration.fast} ease-in-out`,
   flexShrink: 0,

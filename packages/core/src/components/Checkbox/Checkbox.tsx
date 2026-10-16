@@ -28,7 +28,7 @@ const CHECK_LENGTH = 19.8;
 /** DASH_PATH의 총 길이. 19 - 5 = 14. */
 const DASH_LENGTH = 14;
 
-/** 퇴장은 등장의 65% — 조항 3의 60~70% 창. useOverlayTransition.ts:19와 같은 값이다. */
+/** 퇴장은 등장의 65%. 조항 3의 60~70% 창. useOverlayTransition.ts:19와 같은 값이다. */
 const EXIT_RATIO = 0.65;
 
 type MarkState = 'unchecked' | 'checked' | 'indeterminate';
@@ -46,7 +46,7 @@ const resolveMarkState = (
 
 /**
  * 표식 트윈을 테스트가 읽을 수 있는 통로. `Snackbar.tsx`의 `CountdownTweenHost`와
- * 같은 패턴 — 공개 prop/state가 아니라 path DOM 노드에 얹는다. 테스트는 실제
+ * 같은 패턴: 공개 prop/state가 아니라 path DOM 노드에 얹는다. 테스트는 실제
  * GSAP 인스턴스를 그대로 받아 `progress()`로 seek한다(무모킹). 살아 있는 트윈은
  * 하나뿐이다(타임라인): 체크·해제는 진행값 트윈과 획 트윈, checked ↔ indeterminate는 모양 바뀜.
  */
@@ -81,11 +81,11 @@ const writeFrame = ({ fill, box }: MarkNodes, progress: MarkProgress): void => {
 };
 
 /**
- * 트윈에 자가 종료를 붙인다(Ruling 41 — 유휴 상태에서 살아 있는 gsap 객체는
+ * 트윈에 자가 종료를 붙인다(Ruling 41: 유휴 상태에서 살아 있는 gsap 객체는
  * 0개). `reduced`면 `gateMotion`이 생성 시점에 이미 동기로 progress(1)+kill을
  * 끝냈으므로 핸들만 비운다. 아니면 자연 완료(onComplete) 때 kill하고 비운다.
  * `tween` 자기 자신을 생성 옵션 안에서 참조하면 TDZ에 걸린다(축소 선호일 때
- * `gateMotion`이 동기로 progress(1)을 걸어 onComplete가 대입 완료 전에 돈다) —
+ * `gateMotion`이 동기로 progress(1)을 걸어 onComplete가 대입 완료 전에 돈다).
  * 그래서 `eventCallback`을 생성 이후에 따로 붙인다.
  */
 const attachSelfKill = (
@@ -138,7 +138,7 @@ const syncMarkState = (
   }
 
   if (prev === nextState) {
-    // 실제 상태 변화가 아니라 축소 선호만 바뀐 경우 — 진행 중인 트윈을 확정한다.
+    // 실제 상태 변화가 아니라 축소 선호만 바뀐 경우: 진행 중인 트윈을 확정한다.
     if (reduced && path.__markTween) {
       settleMotion(path.__markTween);
       path.__markTween = undefined;
@@ -349,7 +349,7 @@ export const Checkbox = forwardRef<HTMLInputElement, CheckboxProps>(
       }
     }, [indeterminate, ref]);
 
-    // 표식(체크/대시) 상태 반영 — 위 effect보다 반드시 뒤에 선언한다. DOM의
+    // 표식(체크/대시) 상태 반영: 위 effect보다 반드시 뒤에 선언한다. DOM의
     // indeterminate는 React가 모르는 프로퍼티라 위 effect가 써 넣은 뒤에
     // 읽어야 최신값이다(위험 #5). 진실 원천은 DOM input이다.
     useEffect(() => {
@@ -373,7 +373,7 @@ export const Checkbox = forwardRef<HTMLInputElement, CheckboxProps>(
     }, [indeterminate, rest.checked, reduced, ref]);
 
     // 언마운트 시 살아 있는 트윈을 정리한다(Ruling 41). 정리 함수 안에서
-    // `pathRef.current`를 다시 읽지 않는다 — React가 언마운트 커밋에서 ref를
+    // `pathRef.current`를 다시 읽지 않는다. React가 언마운트 커밋에서 ref를
     // 먼저 null로 비우고, 이 정리 함수는 그 뒤에 돈다(Snackbar.tsx의 `barEl`
     // 캡처와 같은 이유). 마운트 시점에 노드를 지역 변수로 캡처해 클로저로 쥔다.
     useEffect(() => {
@@ -405,9 +405,9 @@ export const Checkbox = forwardRef<HTMLInputElement, CheckboxProps>(
     const showHelper = !error && helperText;
     const showError = error && errorMessage;
 
-    // 첫 페인트 기준선 — 마운트 effect는 이 값을 그대로 인정하고 상태만
+    // 첫 페인트 기준선: 마운트 effect는 이 값을 그대로 인정하고 상태만
     // 기록하므로(위험 #4), 시작 모양은 여기 JSX가 직접 그린다. 최초 1회만
-    // 계산하고 이후 렌더에서는 그대로 얼린다 — 매 렌더 다시 계산해 `d`에
+    // 계산하고 이후 렌더에서는 그대로 얼린다. 매 렌더 다시 계산해 `d`에
     // 넘기면 React가 리렌더마다 GSAP이 써 둔 값을 지워 버린다(morphSVG가
     // 시작점으로 삼을 실제 DOM 값을 리렌더가 목표값으로 먼저 덮어써서,
     // 중간·종료 프레임이 모두 어긋나는 버그로 직접 확인했다).

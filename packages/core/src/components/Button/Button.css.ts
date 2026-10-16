@@ -334,7 +334,7 @@ export const button = recipe({
   },
 });
 
-// customColor prop 전용 — variant 조합 시스템 밖의 예외 경로이므로 recipe에 넣지 않는다.
+// customColor prop 전용: variant 조합 시스템 밖의 예외 경로이므로 recipe에 넣지 않는다.
 export const customVariant = style({
   backgroundColor: 'var(--btn-bg)',
   color: 'var(--btn-color)',
