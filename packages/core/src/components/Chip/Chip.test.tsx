@@ -1618,3 +1618,68 @@ describe('Chip 테두리형 success·warning의 호버·누름 면은 팔레트 
     ).toEqual([]);
   });
 });
+
+describe('Chip 삭제 버튼은 칩의 줄 높이를 늘리지 않는다 (CSSOM, 8차 기술 정리)', () => {
+  // jsdom에는 레이아웃이 없어 높이를 못 잰다. 삭제 버튼의 세로 레이아웃 크기
+  // (글리프 16 + 세로 여백)가 글자 줄 높이 이하인지 규칙에서 읽는다. 가장 낮은 줄은
+  // sm의 xs 글자(12px, lineHeight 1)다. 이전에는 여백이 0이라 16px가 줄을 늘려
+  // 테두리가 있는 outlined 칩만 26px(2 + 8 + 16)이었다.
+  const GLYPH_PX = 16;
+  const SHORTEST_LINE_PX = 12;
+
+  const deleteRule = (): CSSStyleRule => {
+    render(<Chip label="a" onDelete={() => {}} />);
+    const sheet = Array.from(document.styleSheets).find((candidate) =>
+      Array.from(candidate.cssRules).some((rule) =>
+        rule.cssText.includes('Chip_deleteButton')
+      )
+    );
+    if (!sheet) throw new Error('Chip 스타일시트를 찾지 못했다');
+    const found = Array.from(sheet.cssRules).find(
+      (rule): rule is CSSStyleRule =>
+        rule instanceof CSSStyleRule &&
+        /^\.Chip_deleteButton__\w+$/.test(rule.selectorText)
+    );
+    if (!found) throw new Error('삭제 버튼 규칙을 찾지 못했다');
+    return found;
+  };
+
+  // jsdom은 margin 단축 속성을 풀지 않는다. 1~4값 표기를 위·오른·아래·왼으로 읽는다.
+  const marginOf = (rule: CSSStyleRule) => {
+    const [top, right = top, bottom = top, left = right] = rule.style
+      .getPropertyValue('margin')
+      .split(/\s+/)
+      .map(parseFloat);
+    return { top, right, bottom, left };
+  };
+
+  it('세로 여백이 음수라 레이아웃 높이가 가장 낮은 글자 줄 이하다', () => {
+    const { top, bottom } = marginOf(deleteRule());
+    expect(top).toBeLessThan(0);
+    expect(bottom).toBeLessThan(0);
+    expect(GLYPH_PX + top + bottom).toBeLessThanOrEqual(SHORTEST_LINE_PX);
+  });
+
+  it('가로 여백은 0이고 히트 영역 ::after는 24px 그대로다', () => {
+    const { left, right } = marginOf(deleteRule());
+    expect(left).toBe(0);
+    expect(right).toBe(0);
+    const after = Array.from(document.styleSheets)
+      .flatMap((sheet) => Array.from(sheet.cssRules))
+      .find(
+        (candidate): candidate is CSSStyleRule =>
+          candidate instanceof CSSStyleRule &&
+          /^\.Chip_deleteButton__\w+::after$/.test(candidate.selectorText)
+      );
+    expect(after?.style.getPropertyValue('width')).toBe('24px');
+    expect(after?.style.getPropertyValue('height')).toBe('24px');
+  });
+
+  it('글리프는 16px 그대로다(보이는 크기를 줄이지 않았다)', () => {
+    render(<Chip label="a" onDelete={() => {}} />);
+    const svg = screen.getByRole('button', {
+      name: 'a 삭제',
+    }).firstElementChild;
+    expect(svg?.getAttribute('width')).toBe(String(GLYPH_PX));
+  });
+});

@@ -425,7 +425,10 @@ export const deleteButton = style({
   justifyContent: 'center',
   position: 'relative',
   padding: 0,
-  margin: 0,
+  // 16px 글리프의 세로 레이아웃 크기를 가장 낮은 글자 줄(sm의 12px) 이하로 줄여 칩의
+  // 줄 높이를 늘리지 않는다. 보이는 크기와 히트 영역(::after 24px)은 그대로다. 이전에는
+  // 테두리가 있는 outlined 칩만 2 + 8 + 16 = 26px로 다른 칩(24px)보다 높았다.
+  margin: '-4px 0',
   border: 'none',
   background: 'none',
   cursor: 'pointer',
