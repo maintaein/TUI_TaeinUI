@@ -15,12 +15,6 @@ export function SliderPage() {
       description: '슬라이더 레이블 텍스트',
     },
     {
-      name: 'size',
-      type: "'sm' | 'md' | 'lg'",
-      default: "'md'",
-      description: '슬라이더 크기',
-    },
-    {
       name: 'variant',
       type: "'default' | 'bar' | 'wake'",
       default: "'default'",
@@ -210,25 +204,6 @@ export function SliderPage() {
   defaultValue={30}
   showValue
 />`}
-          />
-        </div>
-
-        {/* Sizes */}
-        <div className={styles.example}>
-          <h3 className={styles.exampleTitle}>Sizes</h3>
-          <LivePreview
-            title="크기 옵션"
-            description="sm, md, lg 세 가지 크기를 제공합니다."
-            editable
-            code={`const [sm, setSm] = useState(30);
-const [md, setMd] = useState(50);
-const [lg, setLg] = useState(70);
-
-<div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-  <Slider label="Small" size="sm" value={sm} onChange={(e) => setSm(Number(e.target.value))} showValue />
-  <Slider label="Medium" size="md" value={md} onChange={(e) => setMd(Number(e.target.value))} showValue />
-  <Slider label="Large" size="lg" value={lg} onChange={(e) => setLg(Number(e.target.value))} showValue />
-</div>`}
           />
         </div>
 

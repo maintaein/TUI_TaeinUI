@@ -1627,3 +1627,83 @@ describe('IconButton의 색은 Button의 같은 조합과 같다', () => {
     return look(sheetRules('IconButton_iconButton'), 'IconButton_ghostBase');
   }
 });
+
+describe('IconButton sm: 보이는 크기 36px, 누르는 영역 44px (M5 크기 변형)', () => {
+  const rules = () => sheetRules('IconButton_iconButton');
+  const byClass = (re: RegExp) =>
+    rules().filter(({ rule }) => re.test(rule.selectorText));
+  const px = (rule: CSSStyleRule, name: string) =>
+    rule.style.getPropertyValue(name);
+
+  it('채움 모드(weak·strong) sm은 36px이고 md·lg·xl은 그대로 44·52·60px이다', () => {
+    const size = (name: string) =>
+      byClass(new RegExp(`^\\.IconButton_iconButton_size_${name}__\\w+$`))[0]
+        .rule;
+    expect([px(size('sm'), 'width'), px(size('sm'), 'height')]).toEqual([
+      '36px',
+      '36px',
+    ]);
+    expect(px(size('md'), 'width')).toBe('44px');
+    expect(px(size('lg'), 'width')).toBe('52px');
+    expect(px(size('xl'), 'width')).toBe('60px');
+  });
+
+  it('ghost sm은 최소 36px이고 md 이상은 최소 44px 그대로이다', () => {
+    const ghostRules = byClass(/^\.IconButton_ghostSizeVariants_sm__\w+$/);
+    expect(ghostRules).toHaveLength(1);
+    expect(px(ghostRules[0].rule, 'min-width')).toBe('36px');
+    expect(px(ghostRules[0].rule, 'min-height')).toBe('36px');
+    const [{ rule: base, order: baseOrder }] = byClass(
+      /^\.IconButton_ghostBase__\w+$/
+    );
+    expect(px(base, 'min-width')).toBe('44px');
+    expect(px(base, 'min-height')).toBe('44px');
+    // 같은 특정도라 문서에서 뒤에 와야 sm의 36px이 base의 44px를 이긴다.
+    expect(ghostRules[0].order).toBeGreaterThan(baseOrder);
+  });
+
+  it('채움·ghost 둘 다 sm에만 ::after 히트 영역이 있다(가운데 기준 44px, 칠하지 않는다)', () => {
+    const after = byClass(/::after$/);
+    expect(after.map(({ rule }) => rule.selectorText)).toHaveLength(2);
+    for (const { rule } of after) {
+      expect(rule.selectorText, '모두 sm 클래스에만 걸린다').toMatch(
+        /_(size_sm|sm)__\w+::after$/
+      );
+      expect(px(rule, 'content')).toBe('""');
+      expect(px(rule, 'position')).toBe('absolute');
+      expect(px(rule, 'width')).toBe('44px');
+      expect(px(rule, 'height')).toBe('44px');
+      expect(px(rule, 'top')).toBe('calc(50% - 22px)');
+      expect(px(rule, 'left')).toBe('calc(50% - 22px)');
+      // 그리지 않는다: 배경·테두리·그림자·필터가 없다.
+      for (const paint of [
+        'background',
+        'background-color',
+        'border',
+        'box-shadow',
+        'filter',
+        'opacity',
+      ]) {
+        expect(px(rule, paint), paint).toBe('');
+      }
+    }
+  });
+
+  it('::before는 어디에도 쓰지 않는다', () => {
+    expect(byClass(/::before/)).toHaveLength(0);
+  });
+
+  it('채움 sm은 히트 영역이 잘리지 않게 overflow: visible이고 ghost sm은 위치 기준(relative)이다', () => {
+    const fill = byClass(/^\.IconButton_iconButton_size_sm__\w+$/)[0].rule;
+    expect(px(fill, 'overflow')).toBe('visible');
+    const ghost = byClass(/^\.IconButton_ghostSizeVariants_sm__\w+$/)[0].rule;
+    expect(px(ghost, 'position')).toBe('relative');
+  });
+
+  it('아이콘 글자 크기(1.125rem)와 반경은 그대로이다', () => {
+    const sm = byClass(/^\.IconButton_iconSizeVariants_sm__\w+$/)[0].rule;
+    expect(px(sm, 'font-size')).toBe('1.125rem');
+    const fill = byClass(/^\.IconButton_iconButton_size_sm__\w+$/)[0].rule;
+    expect(px(fill, 'border-radius')).toContain('var(');
+  });
+});

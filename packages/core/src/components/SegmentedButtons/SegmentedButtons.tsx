@@ -76,7 +76,7 @@ export interface SegmentedButtonsProps {
   defaultValue?: string;
 
   // 공통 props
-  /** 크기 */
+  /** 크기. sm은 보이는 높이 36px, 누르는 영역은 보이지 않는 띠로 44px */
   size?: 'sm' | 'md' | 'lg';
   /** 전체 너비 사용 */
   fullWidth?: boolean;

@@ -73,7 +73,7 @@ export const indicatorLabels = style({
 // Size Variants
 export const sizeVariants = styleVariants({
   sm: {
-    height: '44px',
+    height: '36px',
   },
   md: {
     height: '44px',
@@ -118,6 +118,21 @@ export const button = style({
 
     '&:focus-visible': {
       ...focusRing(),
+    },
+
+    // sm은 보이는 높이가 36px이고 누르는 영역은 44px(터치 타깃)이다. 보이지 않는 ::after가
+    // 옵션 세로 가운데 기준으로 44px 띠를 만든다(Chip.css.ts의 삭제 버튼 히트 영역과 같은
+    // 방식). 옵션이 container 높이의 85%라 위아래 4px이 아니라 가운데 기준 44px로 잡는다.
+    // 가로는 옵션 폭 그대로라 이웃 옵션과 겹치지 않는다. 그리지 않으므로 겉모습·모션은
+    // 그대로다. 표시 안의 라벨 한 벌도 같은 클래스라 ::after를 갖지만 칠하지 않고
+    // 표시 층이 pointer-events: none이라 아무 일도 하지 않는다.
+    [`${sizeVariants.sm} &::after`]: {
+      content: '""',
+      position: 'absolute',
+      top: 'calc(50% - 22px)',
+      left: 0,
+      right: 0,
+      height: '44px',
     },
 
     // ✅ 중첩 대신 조합형 selector로 표현

@@ -69,6 +69,7 @@
 - **BREAKING CHANGE:** `ListItem`의 `align`을 없앴습니다. label-value 항목의 정렬은 고정입니다. 세로 항목(`layout="vertical"`)은 왼쪽(`align-items: flex-start`), 가로 항목은 세로 가운데(`align-items: center`)입니다. 다른 정렬이 필요하면 `className`이나 `style={{ alignItems: 'flex-start' }}`를 쓰세요. `children`으로 자유 배치한 항목은 이전에도 `align`을 쓰지 않았습니다.
 - **BREAKING CHANGE:** `Skeleton`이 기본으로 달던 `role="status"`, `aria-live="polite"`, `aria-busy="true"`, 자동 이름 "콘텐츠 로딩 중"을 없앴습니다. 스켈레톤은 장식이라 `aria-hidden="true"`만 붙습니다(스켈레톤이 여럿이면 라이브 리전도 여럿이라 매번 알리던 문제). 로딩 알림은 감싸는 영역이 맡으세요: `<section aria-busy="true" aria-label="프로필 로딩 중">…</section>`처럼 스켈레톤들을 감싸고 로딩이 끝나면 `aria-busy`를 거두세요. 스켈레톤 하나가 직접 알려야 하면 `aria-label`이나 `role`을 주세요. 주면 `aria-hidden`을 달지 않고 그대로 붙고, `aria-label`만 주면 `role="img"`가 같이 붙습니다. `role="status"`를 주면 라이브 리전이 되지만 `aria-busy`와 자동 이름은 붙지 않으니, 알림은 감싸는 영역 패턴을 권합니다. 모양, 크기, 모션은 그대로입니다.
 - **BREAKING CHANGE:** `Chip`의 `clickable`을 없앴습니다. `onClick`을 주면 눌리는 칩(호버·포커스·누름·`aria-label`)이 됩니다. `clickable`은 늘 `onClick`과 같이 쓰였고 `onClick`만 주면 조용히 아무 일도 안 했습니다. `<Chip clickable onClick={f} />`는 `<Chip onClick={f} />`로 바꾸세요.
+- **BREAKING CHANGE:** `Slider`의 `size`를 없앴습니다(`'sm' | 'md' | 'lg'`). 세 값 모두 아무 스타일도 갖지 않아 처음부터 아무 효과가 없었습니다. `size`를 넘기던 곳은 그 prop만 지우면 모습이 같습니다.
 
 ### Changed
 
@@ -128,6 +129,7 @@
 - `Chip`의 `selected` 기본값이 `false`에서 없음(`undefined`)이 되었습니다. `aria-pressed`는 `selected`를 준 눌리는 칩에만 붙습니다. 이전에는 `onClick`이 있는 모든 칩에 `aria-pressed="false"`가 붙었으니, 토글이 아닌 칩은 이제 속성이 없습니다. 토글 칩은 `selected={bool}`을 주세요. 선택 표시 스타일은 `selected`가 `true`일 때만 켜지는 것 그대로입니다.
 - `Chip`의 삭제 버튼이 `span role="button"`에서 진짜 `<button type="button">`이 되었습니다(이름 `"{label} 삭제"` 그대로, 비활성이면 `disabled`와 `aria-disabled`). 키보드(Enter·Space)는 기본 동작으로 됩니다.
 - `Chip`에 `onClick`과 `onDelete`를 함께 주면 구조가 바뀝니다. 이전에는 `<button>` 안에 삭제 `span`이 들어 있었고, 이제 칩 겉모습을 가진 `<div>` 안에 주 동작 `<button>`(아바타·아이콘·라벨)과 삭제 `<button>`이 나란히 놓입니다. 겉모습은 같고, 주 동작을 누르면 칩 전체가 눌려 보이며 삭제를 누를 때는 눌리지 않습니다. Tab 순서는 주 동작, 삭제입니다. 루트가 `<button>`이라고 가정한 선택자(`button.chip` 등)를 쓰던 곳은 확인하세요. `onClick`만 있는 칩은 여전히 루트가 `<button>`입니다.
+- `IconButton`과 `SegmentedButtons`의 `size="sm"`이 보이는 크기 36px로 돌아갑니다(`IconButton`은 가로세로 36px, `SegmentedButtons`는 높이 36px). 2026-09-12에 터치 타깃을 위해 44px로 올리면서 `md`와 같아졌던 것을 되돌리는 것입니다. 누르는 영역은 44px을 유지합니다. 버튼 둘레에 보이지 않는 띠를 두어 사방(`SegmentedButtons`는 위아래) 4px씩 넓히므로 눈에 보이는 모습만 작아지고 터치 타깃은 그대로입니다. `md` 이상은 그대로입니다. 이웃 요소와의 간격이 8px보다 좁으면 두 누르는 영역이 겹칩니다(나중에 그려진 쪽이 받습니다). `BottomSheet`·`SideSheet`의 닫기 버튼은 `IconButton` `sm`이라 보이는 크기가 36px로 줄어듭니다.
 
 ### Fixed
 

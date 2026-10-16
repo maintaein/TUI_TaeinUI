@@ -26,7 +26,7 @@ const meta = {
     size: {
       control: 'select',
       options: ['sm', 'md', 'lg', 'xl'],
-      description: '버튼 크기',
+      description: '버튼 크기. sm은 보이는 크기 36px, 누르는 영역은 44px입니다',
     },
     hoverEffect: {
       control: 'select',

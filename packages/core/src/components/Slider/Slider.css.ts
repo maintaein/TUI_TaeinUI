@@ -268,13 +268,6 @@ export const sliderHead = style({
   },
 });
 
-// Size Variants
-export const sizeVariants = styleVariants({
-  sm: {},
-  md: {},
-  lg: {},
-});
-
 // Helper Text
 export const helperText = style({
   fontSize: themeContract.font.size.xs,

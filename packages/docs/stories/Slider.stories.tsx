@@ -33,11 +33,6 @@ const meta = {
       control: 'number',
       description: '증감 단위',
     },
-    size: {
-      control: 'select',
-      options: ['sm', 'md', 'lg'],
-      description: '슬라이더 크기',
-    },
     variant: {
       control: 'select',
       options: ['default', 'bar', 'wake'],
@@ -144,72 +139,6 @@ const WithValueComponent = () => {
 
 export const WithValue: Story = {
   render: () => <WithValueComponent />,
-};
-
-// Sizes
-const SizesComponent = () => {
-  const [valueSm, setValueSm] = useState(30);
-  const [valueMd, setValueMd] = useState(50);
-  const [valueLg, setValueLg] = useState(70);
-
-  return (
-    <div
-      style={{
-        width: '500px',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '2rem',
-      }}
-    >
-      <div>
-        <p
-          style={{ margin: '0 0 1rem 0', fontSize: '0.875rem', color: '#666' }}
-        >
-          Small
-        </p>
-        <Slider
-          label="Small Slider"
-          size="sm"
-          value={valueSm}
-          onChange={(e) => setValueSm(Number(e.target.value))}
-          showValue
-        />
-      </div>
-      <div>
-        <p
-          style={{ margin: '0 0 1rem 0', fontSize: '0.875rem', color: '#666' }}
-        >
-          Medium (기본)
-        </p>
-        <Slider
-          label="Medium Slider"
-          size="md"
-          value={valueMd}
-          onChange={(e) => setValueMd(Number(e.target.value))}
-          showValue
-        />
-      </div>
-      <div>
-        <p
-          style={{ margin: '0 0 1rem 0', fontSize: '0.875rem', color: '#666' }}
-        >
-          Large
-        </p>
-        <Slider
-          label="Large Slider"
-          size="lg"
-          value={valueLg}
-          onChange={(e) => setValueLg(Number(e.target.value))}
-          showValue
-        />
-      </div>
-    </div>
-  );
-};
-
-export const Sizes: Story = {
-  parameters: { controls: { disable: true } },
-  render: () => <SizesComponent />,
 };
 
 // Custom Range

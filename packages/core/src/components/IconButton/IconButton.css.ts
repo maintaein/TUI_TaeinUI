@@ -61,6 +61,25 @@ export const pressable = style({
   },
 });
 
+// sm은 보이는 크기가 36px이고 누르는 영역은 44px(터치 타깃)이다. 보이지 않는 ::after가
+// 버튼 가운데 기준으로 44px 상자를 만들어 사방 4px씩 누르는 영역을 넓힌다(Chip.css.ts의
+// 삭제 버튼 히트 영역과 같은 방식). 그리지 않으므로 겉모습·모션은 그대로다. 테두리가 있는
+// 변형(light)에도 같은 44px이 되도록 inset 대신 가운데 기준 좌표를 쓴다(absolute의 inset은
+// 테두리 안쪽 상자 기준이다). IconButton은 ::before를 쓰지 않고 ::after도 이것뿐이다.
+// 이웃과 4px 안쪽으로 붙어 있으면 이 영역이 겹친다.
+const smHitArea = {
+  selectors: {
+    '&::after': {
+      content: '""',
+      position: 'absolute',
+      top: 'calc(50% - 22px)',
+      left: 'calc(50% - 22px)',
+      width: '44px',
+      height: '44px',
+    },
+  },
+} as const;
+
 export const iconButton = recipe({
   base: {
     display: 'inline-flex',
@@ -89,9 +108,12 @@ export const iconButton = recipe({
   variants: {
     size: {
       sm: {
-        width: '44px',
-        height: '44px',
+        width: '36px',
+        height: '36px',
         borderRadius: themeContract.borderRadius.base,
+        // base의 overflow: hidden은 바깥으로 나간 ::after 히트 영역을 잘라 클릭도 못 받게 한다.
+        overflow: 'visible',
+        ...smHitArea,
       },
       md: {
         width: '44px',
@@ -281,7 +303,15 @@ export const ghostBase = style({
 });
 
 export const ghostSizeVariants = styleVariants({
-  sm: { padding: '0.25rem' },
+  // sm은 ghostBase의 최소 44px를 36px로 낮추고 누르는 영역을 ::after로 44px 유지한다
+  // (위 smHitArea). ::after의 기준이 되도록 position을 준다.
+  sm: {
+    padding: '0.25rem',
+    minWidth: '36px',
+    minHeight: '36px',
+    position: 'relative',
+    ...smHitArea,
+  },
   md: { padding: '0.375rem' },
   lg: { padding: '0.5rem' },
   xl: { padding: '0.625rem' },

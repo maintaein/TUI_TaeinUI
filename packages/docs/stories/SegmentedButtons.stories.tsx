@@ -31,7 +31,7 @@ const meta = {
     size: {
       control: 'select',
       options: ['sm', 'md', 'lg'],
-      description: '크기',
+      description: '크기. sm은 보이는 높이 36px, 누르는 영역은 44px입니다',
     },
     fullWidth: {
       control: 'boolean',

@@ -31,7 +31,7 @@ export function IconButtonPage() {
       name: 'size',
       type: "'sm' | 'md' | 'lg' | 'xl'",
       default: "'md'",
-      description: '버튼 크기',
+      description: '버튼 크기. sm은 보이는 크기 36px, 누르는 영역은 44px입니다',
     },
     {
       name: 'hoverEffect',
@@ -335,7 +335,7 @@ const handleClick = () => {
           <h3 className={styles.exampleTitle}>Sizes</h3>
           <LivePreview
             title="크기 옵션"
-            description="sm, md, lg, xl 네 가지 크기를 제공합니다. 채움 모드(weak, strong)는 sm과 md가 모두 44px입니다."
+            description="sm, md, lg, xl 네 가지 크기를 제공합니다. sm은 보이는 크기가 36px이고, 누르는 영역은 보이지 않는 띠로 44px을 유지합니다. md 이상은 보이는 크기가 곧 누르는 영역입니다."
             editable
             code={`<div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
   <IconButton buttonStyle="strong" size="sm" aria-label="Small"><Pencil /></IconButton>

@@ -31,7 +31,6 @@ import {
   wakeBars,
   wakeBar,
   slider as sliderClass,
-  sizeVariants,
   variantStyles,
   helperText as helperTextClass,
   marksContainer,
@@ -116,8 +115,6 @@ export interface SliderProps extends Omit<
 > {
   /** 레이블 텍스트 */
   label: string;
-  /** 슬라이더 크기 */
-  size?: 'sm' | 'md' | 'lg';
   /**
    * 모양.
    * - `default`: 라인과 머리. 끌면 머리 둘레의 라인이 속도에 비례해 부풀어
@@ -160,7 +157,6 @@ export const Slider = forwardRef<HTMLInputElement, SliderProps>(
   (
     {
       label,
-      size = 'md',
       variant = 'default',
       min = 0,
       max = 100,
@@ -593,11 +589,7 @@ export const Slider = forwardRef<HTMLInputElement, SliderProps>(
         </div>
 
         <div
-          className={clsx(
-            sliderWrapper,
-            sizeVariants[size],
-            variantStyles[variant]
-          )}
+          className={clsx(sliderWrapper, variantStyles[variant])}
           onPointerEnter={handlePointerEnter}
           onPointerLeave={handlePointerLeave}
         >

@@ -1374,3 +1374,46 @@ describe('SegmentedButtons 트랙 대비 (M5 task-19 수정 4)', () => {
     ).toBeGreaterThanOrEqual(AA_TEXT);
   });
 });
+
+describe('SegmentedButtons sm: 보이는 높이 36px, 누르는 영역 44px (M5 크기 변형)', () => {
+  const find = (re: RegExp) =>
+    segmentedRules().filter((rule) => re.test(rule.selectorText));
+
+  it('sm 높이는 36px이고 md 44px, lg 52px은 그대로이다', () => {
+    const h = (name: string) =>
+      find(
+        new RegExp(`^\\.SegmentedButtons_sizeVariants_${name}__\\w+$`)
+      )[0].style.getPropertyValue('height');
+    expect(h('sm')).toBe('36px');
+    expect(h('md')).toBe('44px');
+    expect(h('lg')).toBe('52px');
+  });
+
+  it('sm 컨테이너 안 옵션에만 ::after 히트 영역이 있다(세로 가운데 44px, 칠하지 않는다)', () => {
+    const after = find(/::after$/);
+    expect(after).toHaveLength(1);
+    const rule = after[0];
+    expect(rule.selectorText).toMatch(
+      /^\.SegmentedButtons_sizeVariants_sm__\w+ \.SegmentedButtons_button__\w+::after$/
+    );
+    const v = (name: string) => rule.style.getPropertyValue(name);
+    expect(v('content')).toBe('""');
+    expect(v('position')).toBe('absolute');
+    expect(v('height')).toBe('44px');
+    expect(v('top')).toBe('calc(50% - 22px)');
+    expect(v('left')).toBe('0');
+    expect(v('right')).toBe('0');
+    for (const paint of [
+      'background',
+      'background-color',
+      'border',
+      'filter',
+    ]) {
+      expect(v(paint), paint).toBe('');
+    }
+  });
+
+  it('::before는 쓰지 않는다', () => {
+    expect(find(/::before/)).toHaveLength(0);
+  });
+});

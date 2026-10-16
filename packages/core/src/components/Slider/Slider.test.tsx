@@ -298,26 +298,14 @@ describe('Slider', () => {
     });
   });
 
-  describe('size prop 테스트', () => {
-    it('size="sm"을 적용한다', () => {
+  describe('size prop 없음 (M5 크기 변형)', () => {
+    it('size를 받지 않는다(타입 오류)', () => {
+      // 크기 변형은 처음부터 빈 스타일이라 아무 일도 하지 않았다.
+      // @ts-expect-error size는 없어졌다
       render(<Slider label="슬라이더" size="sm" />);
 
       const container = screen.getByRole('slider').closest('div');
-      expect(container?.className).toContain('sm');
-    });
-
-    it('size="md"를 기본값으로 적용한다', () => {
-      render(<Slider label="슬라이더" />);
-
-      const container = screen.getByRole('slider').closest('div');
-      expect(container?.className).toContain('md');
-    });
-
-    it('size="lg"를 적용한다', () => {
-      render(<Slider label="슬라이더" size="lg" />);
-
-      const container = screen.getByRole('slider').closest('div');
-      expect(container?.className).toContain('lg');
+      expect(container?.className).not.toMatch(/sizeVariants|_(sm|md|lg)__/);
     });
   });
 

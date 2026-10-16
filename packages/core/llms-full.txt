@@ -176,7 +176,6 @@ import { Slider } from '@taein-ui/core';
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
 | label | string | (required) | Label text |
-| size | 'sm' \| 'md' \| 'lg' | 'md' | Slider size |
 | variant | 'default' \| 'bar' \| 'wake' | 'default' | Look. `default` and `bar` draw the line as one SVG shape that swells around the thumb in proportion to drag speed (6px up to 20px, longer behind the thumb) and goes smooth again when still. `bar` has no visible thumb (the fill bar is the value, focus ring goes around the track). `wake` splits the line into tick bars (one per 8px of track width, 8 to 160) that ripple behind the thumb in proportion to its speed (no ripple under reduced motion) |
 | min | number | 0 | Minimum value |
 | max | number | 100 | Maximum value |
@@ -310,7 +309,7 @@ import { Plus, X } from 'lucide-react';
 |------|------|---------|-------------|
 | variant | 'primary' \| 'dark' \| 'danger' \| 'light' | 'primary' | Button variant. Applies to weak and strong only (ghost is gray) |
 | buttonStyle | 'ghost' \| 'weak' \| 'strong' | 'ghost' | ghost: no background, weak: light background, strong: solid background |
-| size | 'sm' \| 'md' \| 'lg' \| 'xl' | 'md' | Button size |
+| size | 'sm' \| 'md' \| 'lg' \| 'xl' | 'md' | Button size. `sm` looks 36px but the press area stays 44px (an invisible band around it) |
 | hoverEffect | 'none' \| 'jelly' | 'jelly' | On by default; set "none" to turn it off. jelly: when the mouse enters, the icon spreads sideways (scaleX 1.15, scaleY 1/1.15, volume kept) and wobbles back with a spring. Only the icon moves, not the button. Re-entry while it is running is ignored. Mouse only (no effect for touch or keyboard focus, disabled or loading); with reduced motion nothing moves. Works in all three buttonStyles |
 | loading | boolean | false | Loading state |
 | disabled | boolean | false | Disabled state |
@@ -347,7 +346,7 @@ import { SegmentedButtons } from '@taein-ui/core';
 | value | string | — | Selected value (controlled) |
 | onChange | (value: string) => void | — | Change handler |
 | defaultValue | string | — | Initial value (uncontrolled) |
-| size | 'sm' \| 'md' \| 'lg' | 'md' | Button size |
+| size | 'sm' \| 'md' \| 'lg' | 'md' | Size. `sm` is 36px tall but the press area stays 44px (an invisible band above and below) |
 | fullWidth | boolean | false | Full width |
 | disabled | boolean | false | Disable all buttons |
 | aria-label | string | — | Group label |

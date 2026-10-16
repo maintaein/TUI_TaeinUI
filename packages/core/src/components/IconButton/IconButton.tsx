@@ -48,7 +48,7 @@ export interface IconButtonProps extends ButtonHTMLAttributes<HTMLButtonElement>
   variant?: IconButtonVariant;
   /** 버튼 스타일. ghost: 배경 없음(호버에 옅은 배경), weak: 옅은 배경, strong: 진한 배경 @default 'ghost' */
   buttonStyle?: IconButtonStyle;
-  /** 버튼 크기 @default 'md' */
+  /** 버튼 크기. sm은 보이는 크기 36px, 누르는 영역은 보이지 않는 띠로 44px @default 'md' */
   size?: 'sm' | 'md' | 'lg' | 'xl';
   /**
    * 호버 효과. jelly: 마우스가 들어오면 아이콘이 부피를 지키며 옆으로 퍼졌다가 출렁이며
