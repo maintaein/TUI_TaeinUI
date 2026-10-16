@@ -198,7 +198,8 @@ describe('Card (Compound API)', () => {
     });
 
     it('disabled일 때 클릭 이벤트가 발생하지 않는다', async () => {
-      const user = userEvent.setup();
+      // 실제 생성 CSS가 주입돼 disabled 카드는 pointer-events: none이다. 그래도 막혀야 하니 검사는 끈다.
+      const user = userEvent.setup({ pointerEventsCheck: 0 });
       const handleClick = vi.fn();
       render(
         <Card onClick={handleClick} disabled>
@@ -515,7 +516,8 @@ describe('Card (Flat API)', () => {
     });
 
     it('disabled일 때 클릭 이벤트가 발생하지 않는다', async () => {
-      const user = userEvent.setup();
+      // 실제 생성 CSS가 주입돼 disabled 카드는 pointer-events: none이다. 그래도 막혀야 하니 검사는 끈다.
+      const user = userEvent.setup({ pointerEventsCheck: 0 });
       const handleClick = vi.fn();
       render(
         <Card title="제목" onClick={handleClick} disabled>
@@ -889,6 +891,97 @@ describe('Card hoverLift', () => {
 
     expect(container.firstChild).toHaveClass(/disabled/);
     expect(container.firstChild).not.toHaveClass(/hoverLift/);
+  });
+});
+
+describe('Card hoverLift의 합성 레이어는 호버·누름 중에만 선다 (CSSOM, 8차 기술 정리)', () => {
+  const HOVER_QUERY = '(hover: hover) and (pointer: fine)';
+  const REDUCED_QUERY = '(prefers-reduced-motion: reduce)';
+
+  interface Found {
+    selector: string;
+    media: string | null;
+    willChange: string;
+  }
+
+  /** hoverLift 클래스에 걸린 규칙을 미디어 쿼리와 함께 평탄하게 읽는다. */
+  const hoverLiftRules = (): Found[] => {
+    const { container, unmount } = render(
+      <Card hoverLift>
+        <Card.Body>내용</Card.Body>
+      </Card>
+    );
+    const klass = Array.from((container.firstChild as HTMLElement).classList)
+      .find((name) => /^Card_hoverLift__/.test(name))
+      ?.trim();
+    unmount();
+    if (!klass) throw new Error('hoverLift 클래스를 찾지 못했다');
+    const found: Found[] = [];
+    const walk = (rules: CSSRuleList, media: string | null) => {
+      for (const rule of Array.from(rules)) {
+        if (rule instanceof CSSMediaRule) {
+          walk(rule.cssRules, rule.media.mediaText);
+        } else if (
+          rule instanceof CSSStyleRule &&
+          rule.selectorText.startsWith(`.${klass}`)
+        ) {
+          found.push({
+            selector: rule.selectorText.slice(klass.length + 1),
+            media,
+            willChange: rule.style.getPropertyValue('will-change'),
+          });
+        }
+      }
+    };
+    for (const sheet of Array.from(document.styleSheets)) {
+      walk(sheet.cssRules, null);
+    }
+    return found;
+  };
+
+  const willChangeOf = (selector: string, media: string | null) =>
+    hoverLiftRules().find(
+      (rule) => rule.selector === selector && rule.media === media
+    )?.willChange;
+
+  it('쉴 때 hoverLift 카드에는 will-change가 없다', () => {
+    // 쉬는 규칙은 비면 생성 CSS에서 사라진다. 있다면 will-change가 없어야 하고, 호버·누름
+    // 규칙만 미디어 안팎의 will-change를 가진다.
+    const rules = hoverLiftRules();
+    expect(rules.length).toBeGreaterThan(0);
+    const resting = rules.filter(
+      (rule) =>
+        rule.media === null &&
+        !rule.selector.includes(':hover') &&
+        !rule.selector.includes('[data-pressed]')
+    );
+    for (const rule of resting) expect(rule.willChange).toBe('');
+    expect(
+      rules
+        .filter((rule) => rule.willChange === 'transform')
+        .map((rule) => `${rule.media ?? ''} ${rule.selector}`.trim())
+        .sort()
+    ).toEqual(
+      [`${HOVER_QUERY} :hover:not([data-pressed])`, '[data-pressed]'].sort()
+    );
+  });
+
+  it('정밀 포인터 호버 중에 will-change: transform이다', () => {
+    expect(willChangeOf(':hover:not([data-pressed])', HOVER_QUERY)).toBe(
+      'transform'
+    );
+  });
+
+  it('누름 중에 will-change: transform이다', () => {
+    expect(willChangeOf('[data-pressed]', null)).toBe('transform');
+  });
+
+  it('축소 선호에서는 쉴 때·호버·누름 모두 will-change: auto다', () => {
+    expect(willChangeOf('', REDUCED_QUERY)).toBe('auto');
+    expect(willChangeOf(':hover:not([data-pressed])', REDUCED_QUERY)).toBe(
+      'auto'
+    );
+    expect(willChangeOf('[data-pressed]', REDUCED_QUERY)).toBe('auto');
   });
 });
 

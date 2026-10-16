@@ -44,10 +44,9 @@ export const clickable = style({
 // 선택 기능(hoverLift). 클릭 가능한 카드도 기본으로는 떠오르지 않는다.
 // 그림자 두 값(0 4px 12px / 0 2px 8px)도 토큰에 같은 값이 없어 둔다.
 export const hoverLift = style({
-  // 눌림이 translateY(-3px)에서 0 scale(0.98)로 움직이므로 첫 페인트부터 합성
-  // 레이어를 둔다. hoverLift인 카드에만 건다(카드는 크다).
-  willChange: 'transform',
-
+  // 합성 레이어(will-change: transform)는 쉴 때 두지 않는다. 카드는 크고 hoverLift
+  // 카드가 한 페이지에 수십 장이면 카드마다 레이어가 상주한다. 움직이는 순간, 곧 정밀
+  // 포인터 호버 중과 누름 중에만 선다. 누름은 거의 늘 호버 뒤라 이미 레이어가 있다.
   '@media': {
     // 터치는 탭하면 호버가 발생해 떠오른 채 들러붙는다. 마우스에서만 켠다.
     '(hover: hover) and (pointer: fine)': {
@@ -61,6 +60,7 @@ export const hoverLift = style({
           transform: 'translateY(-3px)',
           boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
           transitionDuration: themeContract.animation.duration.base,
+          willChange: 'transform',
         },
       },
     },
@@ -73,9 +73,11 @@ export const hoverLift = style({
       selectors: {
         '&:hover:not([data-pressed])': {
           transform: 'none',
+          willChange: 'auto',
         },
         '&[data-pressed]': {
           transform: 'none',
+          willChange: 'auto',
         },
       },
     },
@@ -92,6 +94,7 @@ export const hoverLift = style({
     '&[data-pressed]': {
       transform: 'translateY(0) scale(0.98)',
       boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
+      willChange: 'transform',
       transitionDuration: themeContract.animation.duration.fast,
       transitionTimingFunction: themeContract.animation.easing.settle,
     },
