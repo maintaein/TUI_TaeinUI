@@ -553,6 +553,12 @@ export const NumericSpinner = forwardRef<HTMLInputElement, NumericSpinnerProps>(
           ctx === incrementCtx ? decrementCtx : incrementCtx
         ).hold.isHolding;
         hold.drivesInput = !otherHolding;
+        // 반대 버튼의 뗌 타임라인이 아직 돌면 그 2단계가 나중에 시작하며 이번 눌림을
+        // 덮어 숫자를 1로 돌려놓는다. 타임라인에 차례로 넣은 트윈은 overwrite: 'auto'가
+        // 못 죽이므로 숫자 칸의 scale만 직접 걷어낸다(그쪽 버튼의 뗌은 그대로 간다).
+        if (!otherHolding && inputRef.current) {
+          gsap.killTweensOf(inputRef.current, 'scale');
+        }
 
         const button = buttonRef.current;
         if (button) {

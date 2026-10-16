@@ -560,9 +560,13 @@ describe('navStyle="pill" 선택된(active) 항목', () => {
       'scale(1.2'
     );
     expect(partsOf(getPill('홈')).cover.style.opacity).toBe('1');
-    expect(partsOf(getPill('소개')).circle.style.transform).toContain(
-      'scale(0'
-    );
+    // 비활성 알약은 다시 만들어져 처음으로 돌아온다: 진행 0, 원은 접히고 글자는 제자리.
+    const idle = getPill('소개');
+    const idleParts = partsOf(idle);
+    expect(idle.__pillTimeline?.progress()).toBe(0);
+    expect(idleParts.circle.style.transform).toContain('scale(0');
+    expect(idleParts.cover.style.opacity).toBe('0');
+    expect(idleParts.label.style.transform).toContain('translate(0, 0)');
   });
 
   it('타임라인 안의 세 트윈은 linear다(감속은 tweenTo 하나만 건다)', () => {

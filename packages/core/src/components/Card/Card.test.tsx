@@ -945,17 +945,12 @@ describe('Card hoverLift의 합성 레이어는 호버·누름 중에만 선다 
     )?.willChange;
 
   it('쉴 때 hoverLift 카드에는 will-change가 없다', () => {
-    // 쉬는 규칙은 비면 생성 CSS에서 사라진다. 있다면 will-change가 없어야 하고, 호버·누름
-    // 규칙만 미디어 안팎의 will-change를 가진다.
+    // 쉬는 규칙은 비면 생성 CSS에서 사라지므로(지금이 그렇다) 쉬는 규칙을 골라 돌리는
+    // 반복문은 빈 목록에 공허하게 통과한다. will-change가 transform인 규칙의 목록을
+    // 통째로 비교해, 쉴 때 규칙이 생기면 목록이 달라져 빨개지게 한다. 호버·누름 규칙이
+    // 실제로 있음도 함께 잠근다.
     const rules = hoverLiftRules();
     expect(rules.length).toBeGreaterThan(0);
-    const resting = rules.filter(
-      (rule) =>
-        rule.media === null &&
-        !rule.selector.includes(':hover') &&
-        !rule.selector.includes('[data-pressed]')
-    );
-    for (const rule of resting) expect(rule.willChange).toBe('');
     expect(
       rules
         .filter((rule) => rule.willChange === 'transform')

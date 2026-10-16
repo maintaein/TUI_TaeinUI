@@ -1821,6 +1821,73 @@ describe('NumericSpinner', () => {
         expect(readScale(input)).toBeCloseTo(1.12, 2);
       });
 
+      it('한쪽 뗌이 도는 중에 반대 버튼을 누르면 숫자는 지금 자리에서 눌림 깊이로 가고 1로 돌아가지 않는다', () => {
+        render(<NumericSpinner label="수량" defaultValue={5} />);
+        const increment = press('값 증가');
+        const decrement = press('값 감소');
+        const input = screen.getByLabelText('수량');
+
+        down(increment);
+        fireEvent.pointerUp(increment);
+        const release = timelineOf(increment);
+        act(() => {
+          release.progress(0.2);
+        });
+
+        down(decrement);
+        expect(readScale(input)).toBeCloseTo(0.76, 2);
+
+        // 먼저 뗀 쪽의 뗌 타임라인이 남아 있었다면 여기서 나중에 시작하는 2단계가
+        // 새 눌림을 덮어 숫자를 1로 돌려놓는다.
+        act(() => {
+          release.progress(1);
+        });
+        expect(readScale(input)).toBeCloseTo(0.76, 2);
+
+        fireEvent.pointerUp(decrement);
+        act(() => {
+          timelineOf(decrement).progress(releaseLegEnd);
+        });
+        expect(readScale(input)).toBeCloseTo(1.12, 2);
+      });
+
+      it('뗌의 2단계가 돌고 있을 때 반대 버튼을 눌러도 숫자는 눌림에 남는다', () => {
+        render(<NumericSpinner label="수량" defaultValue={5} />);
+        const increment = press('값 증가');
+        const decrement = press('값 감소');
+        const input = screen.getByLabelText('수량');
+
+        down(increment);
+        fireEvent.pointerUp(increment);
+        const release = timelineOf(increment);
+        act(() => {
+          release.progress((releaseLegEnd + 1) / 2);
+        });
+
+        down(decrement);
+        act(() => {
+          release.progress(1);
+        });
+        expect(readScale(input)).toBeCloseTo(0.76, 2);
+      });
+
+      it('눌러 둔 버튼의 눌림이 아직 깊어지는 중에 반대 버튼을 눌러도 숫자는 계속 눌림 깊이까지 간다', () => {
+        render(<NumericSpinner label="수량" defaultValue={5} />);
+        const increment = press('값 증가');
+        const decrement = press('값 감소');
+        const input = screen.getByLabelText('수량');
+
+        fireEvent.pointerDown(increment);
+        act(() => {
+          timelineOf(increment).progress(0.01);
+        });
+        fireEvent.pointerDown(decrement);
+        act(() => {
+          timelineOf(increment).progress(1);
+        });
+        expect(readScale(input)).toBeCloseTo(0.76, 2);
+      });
+
       it('마지막 버튼을 떼면 이어 가던 숫자 트윈은 죽는다', () => {
         render(<NumericSpinner label="수량" defaultValue={5} />);
         const increment = press('값 증가');
