@@ -1188,13 +1188,15 @@ zero-runtime이라 빌드 결과는 정적 CSS 파일 하나다.
 훅이나 컨텍스트를 쓰는 모듈에는 빌드 시 `'use client'`가 자동으로 주입된다.
 소비자가 래퍼 파일을 만들 필요 없이 서버 컴포넌트에서 바로 import할 수 있다.
 
-지시문이 **없는**(= 서버 컴포넌트로 렌더되는) 컴포넌트:
-`Divider`, `Border`, `Badge`, `List`, `Skeleton`,
-`Loader`.
+`Divider`, `Border`, `List`, `Skeleton`은 지시문이 없다. 서버 컴포넌트로 렌더된다.
 
 `Button`과 `IconButton`은 `'use client'`가 붙는다. 누름 상태를 `useClickRebound` 훅이
 갖기 때문이다. 서버 컴포넌트에서 import하는 것은 그대로 되고, `onClick` 같은 함수
 prop은 클라이언트 파일에서 넘긴다.
+
+`Badge`도 `'use client'`가 붙는다. 값이 바뀔 때 헌 값을 남겨 두고 교체 모션을 돌리는 상태(`useState`)를 갖는다.
+
+`Loader`도 `'use client'`가 붙는다. GSAP 트윈으로 그려서 브라우저에서만 돈다.
 
 `HeaderBar`도 `'use client'`가 붙는다. 좁은 화면 메뉴의 열림 상태와 GSAP 트윈,
 그리고 `navStyle="icon"`의 항목 확대가 브라우저에서만 돈다.

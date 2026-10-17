@@ -5,7 +5,7 @@
  * 문서와 코드가 어긋나면 `pnpm test`가 깨지므로 별도 CI 설정이 필요 없다.
  * 문서를 갱신할 때는 `node scripts/update-llms.mjs`를 실행한다.
  */
-import { readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, it, expect } from 'vitest';
 import {
@@ -613,6 +613,90 @@ describe('컴포넌트가 실제로 합성하는 색 쌍', () => {
         );
         expect(ratio, label).toBeGreaterThanOrEqual(AA_UI);
       }
+    }
+  });
+});
+
+describe('Server Components 절이 빌드물의 지시문과 맞는다', () => {
+  // dist는 .gitignore 대상이라 빌드 전에는 없다. 없으면 건너뛰고, 있으면 반드시 검사한다.
+  const DIST = resolve(ROOT, 'dist');
+
+  /** 빌드물 첫 줄이 `"use client";` 지시문인가. 판정은 이 함수 하나만 한다. */
+  function hasClientDirective(firstLine: string): boolean {
+    return /^\s*['"]use client['"];?\s*$/.test(firstLine);
+  }
+
+  function builtHasDirective(name: string): boolean {
+    const file = resolve(DIST, 'components', name, `${name}.mjs`);
+    const firstLine = readFileSync(file, 'utf-8').split(/\r?\n/, 1)[0];
+    return hasClientDirective(firstLine);
+  }
+
+  /** `## Next.js & Server Components` 절의 문장들(줄바꿈은 공백 하나로 합친다). */
+  function sectionSentences(text: string): string[] {
+    const marker = '## Next.js & Server Components\n';
+    const start = text.indexOf(marker);
+    expect(start, `'${marker.trim()}' 절이 없다`).toBeGreaterThan(-1);
+    const next = text.indexOf('\n## ', start + marker.length);
+    const section = text.slice(
+      start + marker.length,
+      next === -1 ? undefined : next
+    );
+    return section.replace(/\s+/g, ' ').split(/(?<=\.)\s/);
+  }
+
+  /** 문장 안에서 백틱으로 감싼 컴포넌트 계열 이름. */
+  function namesIn(sentence: string): string[] {
+    const families = componentFamilies();
+    return [...sentence.matchAll(/`([A-Z][A-Za-z]*)`/g)]
+      .map((m) => m[1])
+      .filter((name) => families.includes(name));
+  }
+
+  /** 절이 "지시문이 없다"고 적은 이름과 "'use client'가 붙는다"고 적은 이름. */
+  function claims(text: string): { none: string[]; client: string[] } {
+    const sentences = sectionSentences(text);
+    const none = sentences
+      .filter((s) => /지시문이 없다/.test(s))
+      .flatMap(namesIn);
+    const client = sentences
+      .filter((s) => /'use client'`가 붙는다/.test(s))
+      .flatMap(namesIn);
+    // 문장 형식이 바뀌어 아무것도 못 읽으면 통과가 아니라 실패여야 한다.
+    expect(none, '"지시문이 없다" 문장을 못 읽었다').not.toHaveLength(0);
+    expect(client, `"'use client'가 붙는다" 문장을 못 읽었다`).not.toHaveLength(
+      0
+    );
+    return { none, client };
+  }
+
+  it('절이 "지시문이 없다"고 적은 이름은 빌드물에 지시문이 없다', () => {
+    if (!existsSync(DIST)) return;
+    for (const [file, path] of Object.entries(FILES)) {
+      const wrong = claims(read(path)).none.filter(builtHasDirective);
+      expect(wrong, `${file}: 지시문이 있는데 없다고 적힌 이름`).toEqual([]);
+    }
+  });
+
+  it('절이 "\'use client\'가 붙는다"고 적은 이름은 빌드물에 지시문이 있다', () => {
+    if (!existsSync(DIST)) return;
+    for (const [file, path] of Object.entries(FILES)) {
+      const wrong = claims(read(path)).client.filter(
+        (name) => !builtHasDirective(name)
+      );
+      expect(wrong, `${file}: 지시문이 없는데 붙는다고 적힌 이름`).toEqual([]);
+    }
+  });
+
+  it('빌드물에 지시문이 없는 컴포넌트는 전부 "지시문이 없다" 목록에 있다', () => {
+    if (!existsSync(DIST)) return;
+    const serverSide = componentFamilies().filter(
+      (name) => !builtHasDirective(name)
+    );
+    for (const [file, path] of Object.entries(FILES)) {
+      const listed = claims(read(path)).none;
+      const missing = serverSide.filter((name) => !listed.includes(name));
+      expect(missing, `${file}: 목록에서 빠진 서버 컴포넌트`).toEqual([]);
     }
   });
 });

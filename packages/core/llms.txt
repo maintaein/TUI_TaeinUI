@@ -125,10 +125,11 @@ M3에서 GSAP 런타임이 실제로 붙은 컴포넌트와 그 능력. 계획�
 
 - App Router에서 훅·컨텍스트를 쓰는 모듈에는 빌드 시 `'use client'`가 주입된다.
   소비자가 래퍼를 만들 필요 없이 서버 컴포넌트에서 바로 import할 수 있다.
-- `Divider`, `Border`, `Badge`, `List`, `Skeleton`,
-  `Loader`는 지시문이 없다. 서버 컴포넌트로 렌더된다.
+- `Divider`, `Border`, `List`, `Skeleton`은 지시문이 없다. 서버 컴포넌트로 렌더된다.
   `Button`, `IconButton`은 누름 상태를 `useClickRebound` 훅이 갖기 때문에
   `'use client'`가 붙는다. 서버 컴포넌트에서 import하는 것은 그대로 된다.
+- `Badge`도 `'use client'`가 붙는다. 값이 바뀔 때 헌 값을 남겨 두고 교체 모션을 돌리는 상태(`useState`)를 갖는다.
+- `Loader`도 `'use client'`가 붙는다. GSAP 트윈으로 그려서 브라우저에서만 돈다.
 - `HeaderBar`도 `'use client'`가 붙는다. 좁은 화면 메뉴의 열림 상태와 GSAP 트윈, 그리고
   `navStyle="icon"`의 항목 확대가 브라우저에서만 돈다.
 - `TextField`는 `'use client'`가 붙는다. `multiline`의 `autoResize`가 높이를 읽고 쓰는 훅을 갖는다.
