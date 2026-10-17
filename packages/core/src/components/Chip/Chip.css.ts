@@ -65,7 +65,9 @@ export const chip = recipe({
         minHeight: '24px',
       },
       lg: {
-        padding: `${themeContract.spacing[2]} ${themeContract.spacing[4]}`,
+        // 세로 여백이 루트의 테두리 두께를 빼서 outlined(테두리 1px x 2)도 filled와 같은
+        // 32px다. minHeight로 받치는 sm·md와 달리 lg는 여백 자체가 8px 단위 높이를 만든다.
+        padding: `calc(${themeContract.spacing[2]} - var(--chip-border-width)) ${themeContract.spacing[4]}`,
         fontSize: themeContract.font.size.base,
         gap: themeContract.spacing[2],
       },

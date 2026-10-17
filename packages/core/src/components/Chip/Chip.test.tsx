@@ -734,7 +734,7 @@ describe('Chip 소스 잠금', () => {
   const cssSource = readFileSync(resolve(__dirname, './Chip.css.ts'), 'utf-8');
 
   it('탭 가능한 size 변형이 24px 최소 높이를 갖는다 (WCAG 2.5.8)', () => {
-    // lg는 padding 8×2 + 16px 글자로 이미 32px라 명시가 필요 없다.
+    // lg는 padding 8×2 + 16px 글자로 이미 32px라 minHeight가 필요 없다(outlined의 테두리는 padding이 뺀다).
     const sizeGroup = cssSource.match(/\n {4}size: \{([\s\S]*?)\n {4}\},/)?.[1];
     expect(sizeGroup, 'size 변형 그룹을 찾지 못했다').toBeDefined();
     const withMinHeight = [
@@ -1616,6 +1616,52 @@ describe('Chip 테두리형 success·warning의 호버·누름 면은 팔레트 
     expect(
       backgrounds().filter((value) => hex.includes(value.toLowerCase()))
     ).toEqual([]);
+  });
+});
+
+describe('lg Chip은 테두리만큼 세로 여백을 줄여 outlined도 filled와 같은 높이다 (CSSOM)', () => {
+  // jsdom에는 레이아웃이 없어 높이를 못 잰다. lg는 minHeight가 없어서 세로 여백 8px x 2 +
+  // 글자 16px = 32px(filled)에 outlined의 테두리 1px x 2가 더해져 34px였다. 세로 여백이
+  // 루트가 알리는 테두리 두께(--chip-border-width)를 빼는 규칙인지 읽는다.
+  const sizeRule = (size: 'sm' | 'md' | 'lg'): CSSStyleRule => {
+    render(<Chip label="a" />);
+    const classes = styles
+      .chip({ size, variant: 'filled', color: 'default' })
+      .split(' ')
+      .filter((name) => name.includes(`_size_${size}__`));
+    const found = Array.from(document.styleSheets)
+      .flatMap((sheet) => Array.from(sheet.cssRules))
+      .find(
+        (rule): rule is CSSStyleRule =>
+          rule instanceof CSSStyleRule &&
+          classes.some((name) => rule.selectorText === `.${name}`) &&
+          rule.style.getPropertyValue('padding') !== ''
+      );
+    if (!found) throw new Error(`${size} 크기 규칙을 찾지 못했다`);
+    return found;
+  };
+
+  it('lg 세로 여백은 spacing[2]에서 테두리 두께를 뺀 값이다', () => {
+    const padding = sizeRule('lg').style.getPropertyValue('padding');
+    // calc(spacing[2] - var(--chip-border-width)) spacing[4]
+    const match = padding.match(/^(calc\(.*\))\s+(\S+)$/);
+    expect(match, `세로 여백이 calc가 아니다: ${padding}`).not.toBeNull();
+    const [, vertical, horizontal] = match as RegExpMatchArray;
+    expect(vertical).toContain('var(--chip-border-width');
+    expect(vertical).toContain(themeContract.spacing[2]);
+    expect(vertical).toContain(' - ');
+    // 가로는 그대로다.
+    expect(horizontal).toBe(themeContract.spacing[4]);
+  });
+
+  it('sm·md는 테두리를 빼지 않고 minHeight 24px가 받친다', () => {
+    for (const size of ['sm', 'md'] as const) {
+      const rule = sizeRule(size);
+      expect(rule.style.getPropertyValue('padding')).not.toContain(
+        '--chip-border-width'
+      );
+      expect(rule.style.getPropertyValue('min-height')).toBe('24px');
+    }
   });
 });
 

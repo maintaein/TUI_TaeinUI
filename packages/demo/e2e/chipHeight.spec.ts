@@ -10,11 +10,10 @@ import { mountLive } from './livePreview';
  * 고친 곳은 Chip.css.ts의 deleteButton `margin: '-4px 0'`이다.
  *
  * 크기마다 variant(outlined/filled) x 상호작용(기본/삭제/클릭/클릭+삭제)을 모두
- * 놓고 높이를 본다. 절대값은 단언하지 않는다(토큰이 바뀌어도 이 결함의 회귀가
- * 아니다). 같은 variant 안의 넷은 크기를 막론하고 같아야 한다. sm·md는 minHeight
- * 24px가 받쳐 outlined와 filled까지 여덟이 모두 같다. lg는 minHeight가 없어
- * outlined(테두리 1px x 2)가 filled보다 2px 큰 것이 지금 거동이다(34 대 32).
- * 이 차이는 f08877a의 결함이 아니므로 고정하지도 않고 가리지도 않는다.
+ * 놓고 높이를 본다. 크기마다 여덟이 모두 같아야 한다. sm·md는 minHeight 24px가
+ * 받치고, lg는 세로 여백이 테두리 두께를 빼서(8px - 1px + 테두리 1px) 32px다. lg는
+ * 한때 minHeight가 없어 outlined가 filled보다 2px 큰 34px였다. 절대값은 sm·md의
+ * 24px와 lg의 32px만 단언한다(8px 단위 높이가 이 결함의 기준이다).
  */
 
 const del = '() => {}';
@@ -48,12 +47,7 @@ for (const size of ['sm', 'md', 'lg'] as const) {
 
     // 선택자가 아무것도 못 잡으면 같음 단언이 비어 통과한다.
     expect(heights).toHaveLength(8);
-    const [outlined, filled] = [heights.slice(0, 4), heights.slice(4)];
-    for (const group of [outlined, filled]) {
-      for (const h of group) expect(h).toBeCloseTo(group[0], 1);
-    }
-    if (size !== 'lg') {
-      for (const h of heights) expect(h).toBeCloseTo(heights[0], 1);
-    }
+    const expected = size === 'lg' ? 32 : 24;
+    for (const h of heights) expect(h).toBeCloseTo(expected, 1);
   });
 }
