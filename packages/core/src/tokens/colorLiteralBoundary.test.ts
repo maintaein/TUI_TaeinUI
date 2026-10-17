@@ -53,11 +53,6 @@ const ALLOWED: Record<string, { count: number; reason: string }> = {
     reason:
       '그림자 안의 rgba(0,0,0,a) 셋(elevated 휴지·호버 리프트·누름). shadows.css.ts에 같은 값이 없다',
   },
-  'components/Loader/Loader.tsx': {
-    count: 1,
-    reason:
-      "spinner·dots 경로가 color preset 'white'을 원본 값 #FFFFFF로 푼다. bar·fuse 경로는 background.paper(#FAFAFA)라 다르고, 맞추면 색이 바뀌어 사용자 결정 전까지 둔다",
-  },
   'components/SegmentedButtons/SegmentedButtons.css.ts': {
     count: 2,
     reason:

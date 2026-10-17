@@ -220,15 +220,26 @@ export const inchwormFill = style({
   },
 });
 
+// preset마다 두 변수를 같은 토큰으로 세운다. bar·fuse는 --loader-color를, spinner·
+// dots·wave·orbit은 --spinner-color를 읽어서 어느 형태든 같은 색으로 풀린다.
 export const colorStyles = styleVariants({
   primary: {
-    vars: { '--loader-color': themeContract.color.primary.main },
+    vars: {
+      '--loader-color': themeContract.color.primary.main,
+      '--spinner-color': themeContract.color.primary.main,
+    },
   },
   secondary: {
-    vars: { '--loader-color': themeContract.color.text.secondary },
+    vars: {
+      '--loader-color': themeContract.color.text.secondary,
+      '--spinner-color': themeContract.color.text.secondary,
+    },
   },
   white: {
-    vars: { '--loader-color': themeContract.color.background.paper },
+    vars: {
+      '--loader-color': themeContract.color.text.inverse,
+      '--spinner-color': themeContract.color.text.inverse,
+    },
   },
 });
 

@@ -30,21 +30,9 @@ describe('palette 경계', () => {
     expect(themeTokens.palette.warning).toEqual(warning);
   });
 
-  // 예외는 이유와 함께 올린다. 목록에 없는 새 직접 import는 실패하고,
-  // 목록에 있는데 더는 없는 항목도 실패한다.
-  const ALLOWED: Record<string, string> = {
-    // color prop이 임의의 CSS 색 문자열도 받아 spinner/dots 경로가 preset을
-    // raw 값으로 풀어야 한다(Loader.tsx 주석). 계약의 var()로는 이 분기가 안 된다.
-    'components/Loader/Loader.tsx': 'Loader color preset을 raw 값으로 푼다',
-  };
-
-  it('컴포넌트가 색 원본을 직접 import하지 않는다(예외 목록 밖)', () => {
-    const violators = consumers.map(rel).filter((file) => !(file in ALLOWED));
-    expect(violators).toEqual([]);
-  });
-
-  it('예외 목록의 항목이 여전히 원본을 직접 import한다', () => {
-    expect(consumers.map(rel)).toEqual(Object.keys(ALLOWED).sort());
+  // 예외는 없다. 컴포넌트가 원본을 직접 import하면 실패한다.
+  it('컴포넌트가 색 원본을 직접 import하지 않는다', () => {
+    expect(consumers.map(rel)).toEqual([]);
   });
 
   it('Chip.css.ts는 원본을 읽지 않는다', () => {

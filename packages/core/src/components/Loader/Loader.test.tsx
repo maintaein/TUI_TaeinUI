@@ -153,29 +153,41 @@ describe('Loader', () => {
   });
 
   describe('color prop 테스트', () => {
-    it('primary 색상을 렌더링한다', () => {
-      render(<Loader color="primary" />);
-      const loader = screen.getByRole('status');
-      // spinner/dots는 실제 색상 값을 사용하므로 style로 검증
-      expect(loader.style.getPropertyValue('--spinner-color')).toBeTruthy();
-    });
-
-    it('secondary 색상을 렌더링한다', () => {
-      render(<Loader color="secondary" />);
-      const loader = screen.getByRole('status');
-      expect(loader.style.getPropertyValue('--spinner-color')).toBeTruthy();
-    });
-
-    it('white 색상을 렌더링한다', () => {
-      render(<Loader color="white" />);
-      const loader = screen.getByRole('status');
-      expect(loader.style.getPropertyValue('--spinner-color')).toBeTruthy();
-    });
+    it.each(['spinner', 'dots', 'wave', 'orbit'] as const)(
+      '%s는 preset이면 bar와 같은 colorStyles 클래스를 붙이고 인라인 색은 없다',
+      (type) => {
+        const { rerender } = render(<Loader type={type} color="primary" />);
+        const root = () => screen.getByRole('status');
+        expect(root().className).toContain('colorStyles_primary');
+        expect(root().style.getPropertyValue('--spinner-color')).toBe('');
+        rerender(<Loader type={type} color="secondary" />);
+        expect(root().className).toContain('colorStyles_secondary');
+        rerender(<Loader type={type} color="white" />);
+        expect(root().className).toContain('colorStyles_white');
+        expect(root().style.getPropertyValue('--spinner-color')).toBe('');
+      }
+    );
 
     it('기본 색상은 primary이다', () => {
       render(<Loader />);
-      const loader = screen.getByRole('status');
-      expect(loader.style.getPropertyValue('--spinner-color')).toBeTruthy();
+      expect(screen.getByRole('status').className).toContain(
+        'colorStyles_primary'
+      );
+    });
+
+    it('colorStyles는 preset마다 --loader-color와 --spinner-color를 같은 테마 토큰으로 세운다', () => {
+      const presets = {
+        primary: 'themeContract.color.primary.main',
+        secondary: 'themeContract.color.text.secondary',
+        white: 'themeContract.color.text.inverse',
+      };
+      for (const [name, token] of Object.entries(presets)) {
+        const block = LOADER_CSS.slice(
+          LOADER_CSS.indexOf(`  ${name}: {`, LOADER_CSS.indexOf('colorStyles'))
+        ).split('},')[0];
+        expect(block).toContain(`'--loader-color': ${token}`);
+        expect(block).toContain(`'--spinner-color': ${token}`);
+      }
     });
   });
 
@@ -199,9 +211,11 @@ describe('Loader', () => {
 
     it('currentColor가 --spinner-color로 그대로 통과한다 (Button이 쓰는 경로)', () => {
       render(<Loader color="currentColor" />);
-      expect(
-        screen.getByRole('status').style.getPropertyValue('--spinner-color')
-      ).toBe('currentColor');
+      const root = screen.getByRole('status');
+      expect(root.style.getPropertyValue('--spinner-color')).toBe(
+        'currentColor'
+      );
+      expect(root.className).not.toContain('colorStyles');
     });
 
     it('dots도 임의 색을 --spinner-color로 받는다', () => {
@@ -411,7 +425,7 @@ describe('Loader', () => {
       it('기본 색상으로 primary를 사용해야 한다', () => {
         render(<Loader />);
         const spinner = screen.getByRole('status');
-        expect(spinner.style.getPropertyValue('--spinner-color')).toBeTruthy();
+        expect(spinner.className).toContain('colorStyles_primary');
       });
 
       it('사용자 정의 색상을 적용해야 한다', () => {

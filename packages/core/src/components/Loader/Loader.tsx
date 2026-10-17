@@ -48,11 +48,6 @@ import {
   waveBarCount,
   type Point,
 } from './loaderMotion';
-// 원본 팔레트를 직접 참조하는 이유: type="bar" 렌더 경로는 themeContract 기반
-// colorStyles를 쓰지만(아래), spinner/dots 경로는 color를 --spinner-color에
-// raw 값으로 넘긴다. color prop이 테마 role뿐 아니라 임의의 CSS 색상 문자열도
-// 받기 때문에, preset은 raw 값으로 풀고 그 밖의 값은 그대로 통과시킨다.
-import { primary, gray } from '../../tokens/colors.css';
 
 /** 모든 type이 받는 prop */
 interface LoaderBaseProps extends Omit<
@@ -405,22 +400,6 @@ export const Loader = ({
     []
   );
 
-  // color preset을 실제 색상 값으로 변환. preset이 아니면 CSS 색상값이므로 그대로 쓴다
-  const getColorValue = (value: string) => {
-    switch (value) {
-      case 'primary':
-        return primary[600];
-      case 'secondary':
-        return gray[600];
-      case 'white':
-        // bar·fuse 경로는 white를 background.paper(#FAFAFA)로 풀어 이 값(#FFFFFF)과
-        // 다르다. 맞추면 보이는 색이 바뀌므로 사용자 결정 전까지 둔다.
-        return '#FFFFFF';
-      default:
-        return value;
-    }
-  };
-
   const renderLoader = () => {
     const defaultName =
       type === 'fuse'
@@ -510,8 +489,12 @@ export const Loader = ({
         aria-label={accessibleLabel}
         data-type={type}
         data-size={size}
-        className={inlineContainer}
-        style={{ '--spinner-color': getColorValue(color) } as CSSProperties}
+        className={clsx(inlineContainer, presetClass)}
+        style={
+          presetClass
+            ? undefined
+            : ({ '--spinner-color': color } as CSSProperties)
+        }
       >
         {type === 'dots' ? (
           <div className={dotsContainer}>
