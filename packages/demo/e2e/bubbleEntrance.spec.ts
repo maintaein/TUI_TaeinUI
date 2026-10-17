@@ -13,8 +13,9 @@ import { test, expect, type Page } from '@playwright/test';
  * scale과 실행 중인 애니메이션 수를 읽는다. 열림 직전 계산 스타일을 읽는
  * 줄(useBubblePresence)이 없으면 Tooltip은 12회 중 대부분 scale 1로 나타난다.
  *
- * 고치기 전 실측: Vite dev(playwright.config.ts의 webServer)에서 Tooltip 1/12,
- * 빌드 후 `vite preview`에서 0/12. 어느 쪽이든 재현되므로 기본 설정(dev)으로 돈다.
+ * 고치기 전 실측: Vite dev에서 Tooltip 1/12, 빌드 후 `vite preview`에서 0/12.
+ * 어느 쪽이든 재현됐다. 지금 기본 설정(playwright.config.ts의 webServer)은 빌드한
+ * 데모를 `vite preview`로 띄워 재므로 이 스펙도 빌드물에 대고 돈다.
  * Popover는 둘 다 고치기 전에도 12/12였다. 클릭 경로는 이 환경에서 경쟁에서
  * 이긴다. 그래서 Popover 시나리오는 이 경쟁 조건의 회귀 가드가 아니다. 옛
  * 구현으로 되돌려도 통과한다. 등장이 돈다는 사실만 확인한다.

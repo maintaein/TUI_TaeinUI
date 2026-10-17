@@ -73,15 +73,13 @@ const SECTIONS: Array<{ heading: string; name: string }> = [
 const MAX_TAIL_JUMP = 0.3;
 const MAX_SETTLED_DRIFT = 0.3;
 
-const PREVIEW_BUTTON = '[class*="LivePreview_preview"] button';
-
+/** 예제 섹션의 프리뷰 버튼. 편집기의 "코드 복사" 버튼은 뺀다. */
 const sectionButtons = (page: Page, heading: string) =>
   page
-    .locator('[class*="ButtonPage_example"]')
-    .filter({
-      has: page.getByRole('heading', { name: heading, exact: true, level: 3 }),
-    })
-    .locator(PREVIEW_BUTTON);
+    .getByRole('heading', { name: heading, exact: true, level: 3 })
+    .locator('..')
+    .getByRole('button')
+    .filter({ hasNotText: '복사' });
 
 /** 프레임 배열을 페이지에서 디코드해 버튼 안쪽 잉크의 가중 중심을 구한다. */
 const inkOf = (
@@ -240,11 +238,14 @@ const measureAll = async (
   const results: Result[] = [];
   for (const { heading, name } of SECTIONS) {
     const n = await sectionButtons(page, heading).count();
+    // 선택자가 아무것도 못 잡으면 아래 단언들이 빈 배열로 조용히 통과한다.
+    expect(n, `${heading} 버튼 수`).toBeGreaterThan(0);
     for (let i = 0; i < n; i++) {
       if (only && !only.has(`${name}${i}`)) continue;
       results.push(await measureButton(page, name, i));
     }
   }
+  if (only) expect(results).toHaveLength(only.size);
   return results;
 };
 
@@ -266,6 +267,9 @@ const table = (rs: Result[]): string =>
  * E = backface-visibility hidden + will-change 둘 다
  * 최종 구성(F = will-change만)은 덮어쓰지 않는다.
  */
+/** 비교 CSS를 덮어쓸 대상. 빌드물은 클래스가 해시라 Button이 다는 aria-busy로 고른다. */
+const PREVIEW_BUTTON = 'main button[aria-busy]';
+
 const CONFIGS: Record<string, string> = {
   D: `${PREVIEW_BUTTON}{will-change:auto !important;backface-visibility:hidden !important}`,
   E: `${PREVIEW_BUTTON}{will-change:transform !important;backface-visibility:hidden !important}`,
