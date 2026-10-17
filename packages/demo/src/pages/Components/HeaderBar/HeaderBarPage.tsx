@@ -253,6 +253,32 @@ export function HeaderBarPage() {
           />
         </div>
 
+        {/* sticky */}
+        <div className={styles.example}>
+          <h3 className={styles.exampleTitle}>sticky</h3>
+          <LivePreview
+            title="스크롤해도 위에 붙는 바"
+            description="sticky를 켜면 가장 가까운 스크롤 상자의 위에 바가 붙어 내용이 지나가도 따라옵니다. sticky는 스크롤 상자가 있어야 보이므로 아래 미리보기는 높이를 고정한 상자 안에 바와 긴 내용을 넣었습니다. 상자 안을 스크롤해 보세요."
+            editable
+            code={`<div style={{ width: '100%', height: '280px', overflow: 'auto' }}>
+  <HeaderBar
+    sticky
+    title="Store"
+    items={[
+      { label: '상품', href: '#', active: true },
+      { label: '카테고리', href: '#' },
+      { label: '이벤트', href: '#' },
+    ]}
+  />
+  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', padding: '1rem' }}>
+    {Array.from({ length: 8 }, (_, i) => (
+      <Card key={i} title={'상품 ' + (i + 1)}>스크롤하는 동안에도 위의 바는 그 자리에 붙어 있습니다.</Card>
+    ))}
+  </div>
+</div>`}
+          />
+        </div>
+
         {/* Actions */}
         <div className={styles.example}>
           <h3 className={styles.exampleTitle}>Multiple Actions</h3>
