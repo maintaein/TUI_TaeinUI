@@ -180,7 +180,7 @@ export function IntroductionPage() {
       <section className={styles.section}>
         <h2 className={styles.sectionTitle}>빠른 미리보기</h2>
         <p className={styles.sectionDescription}>
-          직접 눌러 보세요. 같은 화면 안에서도 컴포넌트마다 움직임이 다릅니다 —
+          직접 눌러 보세요. 같은 화면 안에서도 컴포넌트마다 움직임이 다릅니다.
           GSAP이어야 하는 자리는 GSAP이, 그렇지 않은 자리는 CSS 트랜지션이
           맡습니다.
         </p>
