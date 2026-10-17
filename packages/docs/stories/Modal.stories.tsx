@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react';
 import { Modal, ModalProps } from '@taein-ui/core';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 
 const meta = {
   title: 'Components/Modal',
@@ -47,10 +47,12 @@ const ModalWrapper = ({
   children: React.ReactNode;
 }) => {
   const [open, setOpen] = useState(false);
+  const triggerRef = useRef<HTMLButtonElement>(null);
 
   return (
     <>
       <button
+        ref={triggerRef}
         onClick={() => setOpen(true)}
         style={{
           padding: '12px 24px',
@@ -67,6 +69,7 @@ const ModalWrapper = ({
       <Modal
         open={open}
         onClose={() => setOpen(false)}
+        triggerRef={triggerRef}
         size={size}
         closeOnBackdropClick={closeOnBackdropClick}
         closeOnEscape={closeOnEscape}
@@ -481,9 +484,11 @@ export const Accessibility: Story = {
 
 const InteractiveComponent = (args: ModalProps) => {
   const [open, setOpen] = useState(false);
+  const triggerRef = useRef<HTMLButtonElement>(null);
   return (
     <>
       <button
+        ref={triggerRef}
         onClick={() => setOpen(true)}
         style={{
           padding: '12px 24px',
@@ -497,7 +502,12 @@ const InteractiveComponent = (args: ModalProps) => {
       >
         모달 열기
       </button>
-      <Modal {...args} open={open} onClose={() => setOpen(false)} />
+      <Modal
+        {...args}
+        open={open}
+        onClose={() => setOpen(false)}
+        triggerRef={triggerRef}
+      />
     </>
   );
 };
@@ -525,9 +535,11 @@ export const CompoundAPIBasic: Story = {
   render: () => {
     const CompoundWrapper = () => {
       const [open, setOpen] = useState(false);
+      const triggerRef = useRef<HTMLButtonElement>(null);
       return (
         <>
           <button
+            ref={triggerRef}
             onClick={() => setOpen(true)}
             style={{
               padding: '12px 24px',
@@ -540,7 +552,11 @@ export const CompoundAPIBasic: Story = {
           >
             Compound API 모달 열기
           </button>
-          <Modal open={open} onClose={() => setOpen(false)}>
+          <Modal
+            open={open}
+            onClose={() => setOpen(false)}
+            triggerRef={triggerRef}
+          >
             <Modal.Header showClose>
               <Modal.Title>Compound API 모달</Modal.Title>
             </Modal.Header>
@@ -590,9 +606,11 @@ export const CompoundConfirmDialog: Story = {
   render: () => {
     const ConfirmWrapper = () => {
       const [open, setOpen] = useState(false);
+      const triggerRef = useRef<HTMLButtonElement>(null);
       return (
         <>
           <button
+            ref={triggerRef}
             onClick={() => setOpen(true)}
             style={{
               padding: '12px 24px',
@@ -605,7 +623,12 @@ export const CompoundConfirmDialog: Story = {
           >
             삭제하기
           </button>
-          <Modal open={open} onClose={() => setOpen(false)} size="sm">
+          <Modal
+            open={open}
+            onClose={() => setOpen(false)}
+            triggerRef={triggerRef}
+            size="sm"
+          >
             <Modal.Header>
               <Modal.Title>회원 탈퇴</Modal.Title>
             </Modal.Header>
@@ -658,9 +681,11 @@ export const CompoundFormModal: Story = {
   render: () => {
     const FormWrapper = () => {
       const [open, setOpen] = useState(false);
+      const triggerRef = useRef<HTMLButtonElement>(null);
       return (
         <>
           <button
+            ref={triggerRef}
             onClick={() => setOpen(true)}
             style={{
               padding: '12px 24px',
@@ -673,7 +698,11 @@ export const CompoundFormModal: Story = {
           >
             로그인
           </button>
-          <Modal open={open} onClose={() => setOpen(false)}>
+          <Modal
+            open={open}
+            onClose={() => setOpen(false)}
+            triggerRef={triggerRef}
+          >
             <Modal.Header showClose>
               <Modal.Title>로그인</Modal.Title>
             </Modal.Header>
@@ -775,10 +804,14 @@ export const CompoundFooterAlign: Story = {
       const [openLeft, setOpenLeft] = useState(false);
       const [openCenter, setOpenCenter] = useState(false);
       const [openRight, setOpenRight] = useState(false);
+      const leftRef = useRef<HTMLButtonElement>(null);
+      const centerRef = useRef<HTMLButtonElement>(null);
+      const rightRef = useRef<HTMLButtonElement>(null);
 
       return (
         <div style={{ display: 'flex', gap: '16px' }}>
           <button
+            ref={leftRef}
             onClick={() => setOpenLeft(true)}
             style={{
               padding: '12px 24px',
@@ -790,7 +823,12 @@ export const CompoundFooterAlign: Story = {
           >
             Left Align
           </button>
-          <Modal open={openLeft} onClose={() => setOpenLeft(false)} size="sm">
+          <Modal
+            open={openLeft}
+            onClose={() => setOpenLeft(false)}
+            triggerRef={leftRef}
+            size="sm"
+          >
             <Modal.Header showClose>
               <Modal.Title>Left Align</Modal.Title>
             </Modal.Header>
@@ -815,6 +853,7 @@ export const CompoundFooterAlign: Story = {
           </Modal>
 
           <button
+            ref={centerRef}
             onClick={() => setOpenCenter(true)}
             style={{
               padding: '12px 24px',
@@ -829,6 +868,7 @@ export const CompoundFooterAlign: Story = {
           <Modal
             open={openCenter}
             onClose={() => setOpenCenter(false)}
+            triggerRef={centerRef}
             size="sm"
           >
             <Modal.Header showClose>
@@ -855,6 +895,7 @@ export const CompoundFooterAlign: Story = {
           </Modal>
 
           <button
+            ref={rightRef}
             onClick={() => setOpenRight(true)}
             style={{
               padding: '12px 24px',
@@ -866,7 +907,12 @@ export const CompoundFooterAlign: Story = {
           >
             Right Align
           </button>
-          <Modal open={openRight} onClose={() => setOpenRight(false)} size="sm">
+          <Modal
+            open={openRight}
+            onClose={() => setOpenRight(false)}
+            triggerRef={rightRef}
+            size="sm"
+          >
             <Modal.Header showClose>
               <Modal.Title>Right Align</Modal.Title>
             </Modal.Header>
