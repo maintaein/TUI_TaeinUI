@@ -20,6 +20,7 @@ import { SRC, rel, findFiles, stripComments } from '../test/sourceScan';
 const COMPONENTS = resolve(SRC, 'components');
 
 /** 가드 7의 RAW_COLOR와 같은 모양이되 대문자 함수(`RGB(`)도 잡는다. */
+// ponytail: hex 3~8자리와 `rgb[a](`·`hsl[a](`(대소문자 무관)만 잡는다. `hwb(`·`oklch(`·`lab(`·`color(`·이름 색·`.ts` 파일은 일부러 안 잡는다. 그런 표기가 컴포넌트 소스에 처음 들어오면 넓힌다.
 const RAW_COLOR = /#[0-9a-f]{3,8}\b|\b(?:rgba?|hsla?)\(/gi;
 
 // 소스만 본다. `.test.`는 기대값에 리터럴을 쓴다.
