@@ -14,6 +14,7 @@
   "dependencies": {
     "@taein-ui/core": "workspace:*",
     "clsx": "^2.1.1",
+    "gsap": "^3.15.0",
     "lucide-react": "^0.547.0",
     "prismjs": "^1.30.0",
     "react": "^19.2.0",
