@@ -26,6 +26,7 @@ import {
   type Actions,
   type ActApi,
   type Demo,
+  type Shape,
   type Target,
 } from './scenes';
 
@@ -54,6 +55,10 @@ interface Leaving {
   demo: Demo;
 }
 
+const pruneDone = (fx: Set<gsap.core.Animation>) => {
+  for (const a of fx) if (a.progress() >= 1) fx.delete(a);
+};
+
 const firePointer = (el: Element | null, type: 'pointerdown' | 'pointerup') =>
   el?.dispatchEvent(
     new PointerEvent(type, {
@@ -68,13 +73,11 @@ const firePointer = (el: Element | null, type: 'pointerdown' | 'pointerup') =>
   );
 
 /** 층의 크기(패딩 포함)와 모양에 맞는 틀의 값 */
-const shellFor = (
-  stage: HTMLElement,
-  layer: HTMLElement,
-  shape: 'pill' | 'card'
-) => {
-  const width = layer.offsetWidth;
-  const height = layer.offsetHeight;
+const shellFor = (stage: HTMLElement, layer: HTMLElement, shape: Shape) => {
+  let width = layer.offsetWidth;
+  let height = layer.offsetHeight;
+  // 원은 긴 쪽에 맞춘 정사각형. 반경은 아래 min/2가 그대로 full이 된다.
+  if (shape === 'circle') width = height = Math.max(width, height);
   let borderRadius = Math.min(width, height) / 2;
   if (shape === 'card') {
     // 토큰(borderRadius.xl)의 실제 px. gsap은 var()를 트윈하지 못한다.
@@ -129,7 +132,7 @@ export function ComponentShowcase() {
 
   const track = useCallback(<T extends gsap.core.Animation>(anim: T): T => {
     const fx = fxRef.current;
-    for (const a of fx) if (a.progress() >= 1) fx.delete(a);
+    pruneDone(fx);
     fx.add(anim);
     return anim;
   }, []);
@@ -384,12 +387,12 @@ export function ComponentShowcase() {
     const fx = fxRef.current;
     if (!playing) {
       tl.pause();
-      // 만지려고 멈춘 것이면 진행 중인 전환을 끝까지 보낸다(반쯤 흐린 채 얼어붙은 내용을 만지게 하지 않는다).
+      // 만지려고 멈춘 것이면 진행 중인 전환은 건드리지 않는다(원래 속도로 길어야 slow 안에 끝난다).
       // 화면 밖·탭 숨김이면 그 자리에서 멈췄다 이어 간다.
-      fx.forEach((a) => (takeover ? a.progress(1) : a.pause()));
-      if (takeover) fx.clear();
+      if (!takeover) fx.forEach((a) => a.pause());
       return;
     }
+    pruneDone(fx);
     fx.forEach((a) => a.resume());
     if (tookOverRef.current) {
       tookOverRef.current = false;

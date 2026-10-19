@@ -86,12 +86,14 @@ export interface ActApi {
   at: (target: Target, fx?: number) => { x: number; y: number } | null;
 }
 
+export type Shape = 'pill' | 'card' | 'circle';
+
 export interface Scene {
   /** 무대 캡션 */
   name: string;
   group: GroupId;
-  /** 틀 모양: 한 줄이면 알약, 카드면 큰 반경 */
-  shape: 'pill' | 'card';
+  /** 틀 모양: 한 줄이면 알약, 카드면 큰 반경, 원이면 긴 쪽의 정사각형 */
+  shape: Shape;
   /** 장면이 시작될 때 덮어쓰는 상태 */
   enter: Partial<Demo>;
   act: (a: ActApi) => void;
@@ -119,7 +121,7 @@ export const SCENES: Scene[] = [
   {
     name: 'Loader',
     group: 'loader',
-    shape: 'pill',
+    shape: 'circle',
     enter: { loader: 'loading' },
     act: (a) => {
       a.wait(1.2);
@@ -163,6 +165,11 @@ export const SCENES: Scene[] = [
     enter: { volume: 30 },
     act: (a) => {
       const range = a.find('input[type="range"]');
+      // 그려진 손잡이(core Slider의 aria-hidden span)는 스프링으로 값을 늦게 따라간다. 커서는 값이 아니라 손잡이를 따른다.
+      const head: Target = () =>
+        range()?.parentElement?.querySelector<HTMLElement>(
+          ':scope > span[aria-hidden]'
+        ) ?? null;
       const drag = (to: number, seconds: number) => {
         a.tl.to(volumeProxy, {
           v: to,
@@ -171,13 +178,13 @@ export const SCENES: Scene[] = [
           onUpdate: () => {
             const v = Math.round(volumeProxy.v);
             a.now({ volume: v });
-            const p = a.at(range, v / 100);
+            const p = a.at(head);
             if (p) gsap.set(a.cursor, p);
           },
         });
       };
       a.tl.set(volumeProxy, { v: 30 });
-      a.move(range, 0.4, 0.3);
+      a.move(head, 0.4);
       a.down(range);
       drag(100, 0.4);
       drag(60, 0.25);
