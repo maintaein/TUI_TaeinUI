@@ -25,9 +25,12 @@ export const ease = {
   snap: 'back.out(1.7)',
   spring: 'elastic.out(1, 0.5)',
   exit: 'power2.in',
+  drift: 'sine.inOut',
   linear: 'none',
 } as const;
 export const dur = { fast: 0.15, base: 0.2, slow: 0.3, slower: 0.5 } as const;
+// 연출 커서가 한 곳에서 다른 곳으로 옮겨 가는 시간(slow의 1.5배)
+export const CURSOR_MOVE = dur.slow * 1.5;
 
 export type Period = 'day' | 'week' | 'month';
 export type Page = 'intro' | 'components';
@@ -116,7 +119,7 @@ export interface Scene {
   take?: Part[];
   /** 부품이 여럿으로 흩어지거나 모이는 수. 점마다 시차를 둔다 */
   spread?: number;
-  /** 모양 이어받기의 이징. 없으면 커지면 snap, 줄면 settle */
+  /** 펼침 전환이 끝 값에 앉는 마무리 이징. 없으면 settle */
   moveEase?: 'settle' | 'spring';
   /** 대리 상자를 앞 내용 뒤에 깐다. 앞 부품의 글자가 대리 상자 위에서 흐려지며 나가는 것이 보인다 */
   behind?: boolean;
@@ -145,7 +148,7 @@ export const SCENES: Scene[] = [
     take: [PARTS.pill],
     act: (a) => {
       const item = a.find('nav[aria-label="주요 메뉴"] button', '컴포넌트');
-      a.move(item, dur.slower);
+      a.move(item, CURSOR_MOVE);
       // 알약은 마우스 진입(JS)으로 차오른다. 합성 진입을 건 뒤 차오르길 기다렸다 누른다.
       a.hover(item);
       a.wait(dur.slow);
@@ -162,7 +165,7 @@ export const SCENES: Scene[] = [
     take: [PARTS.button],
     act: (a) => {
       const button = a.find('button', '모션 만들기');
-      a.move(button, dur.slower);
+      a.move(button, CURSOR_MOVE);
       a.press(button);
     },
   },
@@ -174,7 +177,7 @@ export const SCENES: Scene[] = [
     take: [PARTS.button],
     act: (a) => {
       const button = a.find('button[aria-label="모션 만들기"]');
-      a.move(button, dur.slower);
+      a.move(button, CURSOR_MOVE);
       // 젤리는 마우스 진입(JS)으로 돈다. 끝까지 출렁이는 것(fast + slower)을 보여 주고 누른다.
       a.hover(button);
       a.wait(dur.fast + dur.slower);
@@ -204,7 +207,7 @@ export const SCENES: Scene[] = [
     spread: ORBIT_DOTS,
     act: (a) => {
       const trigger = a.find('button[aria-haspopup]');
-      a.move(trigger, dur.slower);
+      a.move(trigger, CURSOR_MOVE);
       a.press(trigger);
       // 말풍선이 열리는 시간
       a.wait(dur.slow);
@@ -221,7 +224,7 @@ export const SCENES: Scene[] = [
     behind: true,
     act: (a) => {
       const month = a.find('label', '월간');
-      a.move(month, dur.slower);
+      a.move(month, CURSOR_MOVE);
       a.press(month);
       // 고무 표식이 미끄러지는 시간
       a.wait(dur.slower);
@@ -251,7 +254,7 @@ export const SCENES: Scene[] = [
         });
       };
       a.tl.set(volumeProxy, { v: 30 });
-      a.move(head, dur.slower);
+      a.move(head, CURSOR_MOVE);
       a.down(range);
       drag(90, dur.slower);
       drag(60, dur.slow);
@@ -270,7 +273,7 @@ export const SCENES: Scene[] = [
       const input = a.find('input[role="switch"]');
       // 입력은 보이지 않는 겹침이라 보이는 트랙(부모)을 누른다
       const toggle = () => input()?.parentElement ?? null;
-      a.move(toggle, dur.slower);
+      a.move(toggle, CURSOR_MOVE);
       a.press(toggle);
       // 손잡이가 늘어나며 건너가는 시간
       a.wait(dur.slow + dur.fast);
@@ -282,13 +285,12 @@ export const SCENES: Scene[] = [
     enter: { agree: false },
     give: [PARTS.checkBox],
     take: [PARTS.checkBox],
-    moveEase: 'settle',
     staged: 'all',
     act: (a) => {
       const input = a.find('input[type="checkbox"]');
       // 입력은 보이지 않는 겹침이라 보이는 상자(다음 형제)를 누른다
       const box = () => (input()?.nextElementSibling as HTMLElement) ?? null;
-      a.move(box, dur.slower);
+      a.move(box, CURSOR_MOVE);
       a.press(box);
       // 체크가 그어지는 시간
       a.wait(dur.slow + dur.fast);

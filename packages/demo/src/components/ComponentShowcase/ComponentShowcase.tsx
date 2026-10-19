@@ -37,8 +37,8 @@ import {
   type Target,
 } from './scenes';
 
-// 동작이 끝난 뒤 결과를 보여 주는 시간(slower). 그다음에야 전환이 시작된다.
-const HOLD = dur.slower;
+// 동작이 끝난 뒤 결과를 보여 주는 시간(slower의 0.8배). 그다음에야 전환이 시작된다.
+const HOLD = dur.slower * 0.8;
 // 흐림 양과 커서 아이콘 크기(lucide MousePointer2 화살촉은 24px 상자의 (4,4)).
 const BLUR = 'blur(6px)';
 const RISE = 6;
@@ -46,23 +46,30 @@ const CURSOR_SIZE = 24;
 const CURSOR_TIP = 4;
 // 흩어지거나 모이는 대리 상자 사이의 시차(20~40ms).
 const STAGGER = 0.03;
+// 펼침의 B는 끝 값의 104%(폭·높이, 가운데 고정)까지 갔다가 짧은 마무리 트윈으로 100%에 앉는다.
+// 눈에 띄되(통통함) 장면 안의 다른 부품 자리를 침범하지 않는 선(2%씩 양쪽)으로 잡았다.
+const OVERSHOOT = 1.04;
 
 // 전환 한 번의 안무. 눈이 모양이 바뀌는 과정을 따라가도록 단계를 나누고, 시간은 duration 토큰의 배수로 정했다
 // (Skeleton이 loop.base * 1.4를 쓴 선례). 이징은 토큰 그대로이고 새 커브는 없다.
-//   A 옛 내용 나감: 0부터 OUT. 이어받지 않는 앞 부품이 흐려지며 사라진다(exit)
-//   B 모양 이어받기: A 시작 + fast부터 MOVE. 대리 상자가 앞 부품에서 뒤 부품으로 잇는다
-//   C 새 내용 들어옴: B의 IN_AT 지점부터 IN. A가 끝난 뒤에야 보이기 시작해 옛 내용과 겹치지 않는다
-//   D 숨 고르기: C 끝 뒤 REST 동안 아무것도 움직이지 않는다
+//   A 옛 내용 나감: 0부터 out. 이어받지 않는 앞 부품이 흐려지며 사라진다(exit)
+//   B 모양 이어받기: A 시작 + fast부터 move. 대리 상자가 앞 부품에서 뒤 부품으로 drift로 잇고,
+//     펼침이면 OVERSHOOT까지 간 뒤 settle(기본)·spring 마무리 트윈으로 앉는다
+//   C 새 내용 들어옴: B의 inAt 지점부터 in. A가 끝난 뒤에야 보이기 시작해 옛 내용과 겹치지 않는다
+//   D 숨 고르기: C 끝 뒤 rest 동안 아무것도 움직이지 않는다
 // staged 장면은 B가 A 뒤에('all'이면 C도 B 뒤에) 이어진다.
+// 첫 구현(한 바퀴 약 30s)에서 약 20% 줄였다: 각 값은 그때의 토큰 배수에서 한 단계씩 내린 것이다.
 const STEP = {
-  out: dur.slow * 1.5,
+  out: dur.slow * 1.2,
   moveAt: dur.fast,
-  move: dur.slower * 1.6,
+  move: dur.slower * 1.3,
+  // 펼침이 끝 값에 앉는 마무리(fast~base 사이)
+  settle: dur.base,
   // staged 'all' 장면은 눈이 상자 하나만 따라가므로 더 길게 보여 준다.
-  stagedMove: dur.slower * 2,
+  stagedMove: dur.slower * 1.6,
   inAt: 0.55,
-  in: dur.slower,
-  rest: dur.slow,
+  in: dur.base * 2,
+  rest: dur.base,
   // 슬라이더 손잡이가 B의 이 지점에서 튀어나오기 시작한다.
   popAt: 0.8,
 } as const;
@@ -71,7 +78,7 @@ const STEP = {
 const timeline = (scene: Scene, swap = false) => {
   const moveAt = scene.staged ? STEP.out : STEP.moveAt;
   const move = scene.staged === 'all' ? STEP.stagedMove : STEP.move;
-  const moveEnd = moveAt + move;
+  const moveEnd = moveAt + move + STEP.settle;
   const inAt = swap
     ? STEP.out
     : scene.staged === 'all'
@@ -322,7 +329,7 @@ export function ComponentShowcase() {
         0
       );
       if (looks) {
-        // B. 펼침(더 넓어짐, 흩어짐)은 넘치고 접힘(모임)은 넘치지 않는다. 장면이 정하면 그것을 따른다.
+        // B. 펼침(더 넓어짐, 흩어짐)은 끝 값을 살짝 넘겼다 앉고, 접힘(모임)은 넘치지 않는다.
         const area = (ls: Look[]) =>
           ls.reduce((sum, l) => sum + l.width * l.height, 0);
         const grows =
@@ -331,21 +338,38 @@ export function ComponentShowcase() {
             : area(looks.to) > area(looks.from);
         const els = pairs.map(({ el }) => el);
         const stagger = scene.spread ? STAGGER : 0;
+        // 넘침은 폭·높이를 키우되 가운데를 고정한다(left·top을 절반씩 당긴다).
+        const pad = grows ? (OVERSHOOT - 1) / 2 : 0;
         master.to(
           els,
           {
-            left: (i: number) => pairs[i].to.left,
-            top: (i: number) => pairs[i].to.top,
-            width: (i: number) => pairs[i].to.width,
-            height: (i: number) => pairs[i].to.height,
+            left: (i: number) => pairs[i].to.left - pairs[i].to.width * pad,
+            top: (i: number) => pairs[i].to.top - pairs[i].to.height * pad,
+            width: (i: number) => pairs[i].to.width * (1 + 2 * pad),
+            height: (i: number) => pairs[i].to.height * (1 + 2 * pad),
             borderRadius: (i: number) => pairs[i].to.borderRadius,
             borderWidth: (i: number) => pairs[i].to.borderWidth,
             duration: t.move,
-            ease: ease[scene.moveEase ?? (grows ? 'snap' : 'settle')],
+            ease: ease.drift,
             stagger,
           },
           t.moveAt
         );
+        if (grows) {
+          master.to(
+            els,
+            {
+              left: (i: number) => pairs[i].to.left,
+              top: (i: number) => pairs[i].to.top,
+              width: (i: number) => pairs[i].to.width,
+              height: (i: number) => pairs[i].to.height,
+              duration: STEP.settle,
+              ease: ease[scene.moveEase ?? 'settle'],
+              stagger,
+            },
+            t.moveAt + t.move
+          );
+        }
         // 색과 그림자는 일정하게 바뀐다. 투명으로 가는 몸통이 중간에 일찍 사라져 무대가 비지 않게, 되튀는 이징이 색 값을 벗어나지 않게.
         master.to(
           els,
