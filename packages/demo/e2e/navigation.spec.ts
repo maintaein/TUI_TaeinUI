@@ -20,7 +20,9 @@ test.describe('페이지 네비게이션', () => {
 
   test('사이드바 네비게이션이 동작한다', async ({ page }) => {
     await page.goto('/');
-    const sidebar = page.locator('nav');
+    const sidebar = page.getByRole('navigation', {
+      name: '사이드바 네비게이션',
+    });
     await expect(sidebar).toBeVisible();
   });
 
@@ -42,6 +44,8 @@ test.describe('반응형 레이아웃', () => {
   test('데스크톱 뷰에서 사이드바가 표시된다', async ({ page }) => {
     await page.setViewportSize({ width: 1280, height: 800 });
     await page.goto('/');
-    await expect(page.locator('nav')).toBeVisible();
+    await expect(
+      page.getByRole('navigation', { name: '사이드바 네비게이션' })
+    ).toBeVisible();
   });
 });
