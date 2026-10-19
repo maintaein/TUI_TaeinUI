@@ -73,7 +73,7 @@ export const headOf = (range: Element | null) =>
     ':scope > span[aria-hidden]'
   ) ?? null;
 
-export const sliderHead = (layer: HTMLElement) =>
+const sliderHead = (layer: HTMLElement) =>
   headOf(layer.querySelector('input[type="range"]'));
 
 /**
@@ -121,7 +121,7 @@ export const PARTS = {
     const item = layer.querySelector('[aria-current="page"]');
     return lookOf(item, { color: item?.firstElementChild });
   },
-  /** Button, IconButton: 그 층의 버튼 몸통 */
+  /** Button: 그 층의 버튼 몸통 */
   button: (layer) => lookOf(layer.querySelector('button')),
   /**
    * Loader orbit: 점마다 하나.

@@ -1,19 +1,16 @@
 import gsap from 'gsap';
-import { Sparkles } from 'lucide-react';
 import {
   Button,
   Checkbox,
   HeaderBar,
-  IconButton,
   Loader,
   Popover,
   SegmentedButtons,
   Slider,
   Switch,
-  themeContract,
 } from '@taein-ui/core';
 import * as styles from './ComponentShowcase.css';
-import { PARTS, headOf, sliderHead, type Part } from './parts';
+import { PARTS, headOf, type Part } from './parts';
 
 // 이징 값(출처: packages/core/src/tokens/gsapEasing.ts)과 시간(출처: animation.css.ts의
 // duration)을 초 단위로 옮겨 적었다. 새 커브는 만들지 않는다.
@@ -29,8 +26,8 @@ export const ease = {
   linear: 'none',
 } as const;
 export const dur = { fast: 0.15, base: 0.2, slow: 0.3, slower: 0.5 } as const;
-// 연출 커서가 한 곳에서 다른 곳으로 옮겨 가는 시간(slow의 1.5배)
-export const CURSOR_MOVE = dur.slow * 1.5;
+// 연출 커서가 한 곳에서 다른 곳으로 옮겨 가는 시간(slow의 1.25배, 이전 1.5배에서 약 15% 줄임)
+export const CURSOR_MOVE = dur.slow * 1.25;
 
 export type Period = 'day' | 'week' | 'month';
 export type Page = 'intro' | 'components';
@@ -95,7 +92,6 @@ export interface ActApi {
 type SceneId =
   | 'header'
   | 'button'
-  | 'icon'
   | 'loader'
   | 'segment'
   | 'slider'
@@ -137,8 +133,8 @@ export interface Scene {
    * 'all': 거기에 더해 모양이 다 움직인 뒤 새 내용이 들어온다(눈이 대리 상자 하나만 따라간다)
    */
   staged?: 'out' | 'all';
-  /** 대리 상자 없이 전환 끝에 snap으로 튀어나오는 요소 */
-  pop?: (layer: HTMLElement) => Element | null;
+  /** 트랙·채움이 이어진 뒤 작은 원에서 방울처럼 부풀어 앉는 부품(자기 대리 상자를 따로 둔다) */
+  pop?: Part;
   act: (a: ActApi) => void;
 }
 
@@ -177,21 +173,6 @@ export const SCENES: Scene[] = [
     act: (a) => {
       const button = a.find('button', '모션 만들기');
       a.move(button, CURSOR_MOVE);
-      a.press(button);
-    },
-  },
-  {
-    name: 'IconButton',
-    id: 'icon',
-    enter: {},
-    give: [PARTS.button],
-    take: [PARTS.button],
-    act: (a) => {
-      const button = a.find('button[aria-label="모션 만들기"]');
-      a.move(button, CURSOR_MOVE);
-      // 젤리는 마우스 진입(JS)으로 돈다. 끝까지 출렁이는 것(fast + slower)을 보여 주고 누른다.
-      a.hover(button);
-      a.wait(dur.fast + dur.slower);
       a.press(button);
     },
   },
@@ -242,7 +223,7 @@ export const SCENES: Scene[] = [
     enter: { volume: 30 },
     give: [PARTS.sliderTrack, PARTS.sliderFill, PARTS.sliderHead],
     take: [PARTS.sliderTrack, PARTS.sliderFill],
-    pop: sliderHead,
+    pop: PARTS.sliderHead,
     act: (a) => {
       const range = a.find('input[type="range"]');
       // 그려진 손잡이는 스프링으로 값을 늦게 따라간다. 커서는 값이 아니라 손잡이를 따른다.
@@ -304,10 +285,10 @@ export const SCENES: Scene[] = [
   },
 ];
 
-// 장면 3(IconButton) 이후의 give/take 짝은 아래 표와 같다.
-// 1 pill -> 2 Button | 2 Button -> 3 IconButton | 3 IconButton -> 4 점 여럿(흩어짐)
-// 4 말풍선 -> 5 트랙 | 5 트랙·표식 -> 6 트랙·채움(+손잡이 pop)
-// 6 트랙·채움·손잡이 -> 7 트랙·트랙·손잡이 | 7 손잡이 -> 8 상자 | 8 상자 -> 1 pill
+// give/take 짝은 아래 표와 같다.
+// 1 pill -> 2 Button | 2 Button -> 3 점 여럿(흩어짐) | 3 말풍선 -> 4 트랙
+// 4 트랙·표식 -> 5 트랙·채움(+손잡이 방울) | 5 트랙·채움·손잡이 -> 6 트랙·트랙·손잡이
+// 6 손잡이 -> 7 상자 | 7 상자 -> 1 pill
 
 const PERIOD_OPTIONS = [
   { value: 'day', label: '일간' },
@@ -353,13 +334,6 @@ export function SceneContent({
         <Button variant="primary" size="lg">
           모션 만들기
         </Button>
-      );
-    case 'icon':
-      return (
-        <IconButton size="lg" aria-label="모션 만들기">
-          {/* ghost는 core가 회색으로 고정해, 아이콘만 Button의 primary 파랑으로 칠한다 */}
-          <Sparkles style={{ color: themeContract.color.primary.main }} />
-        </IconButton>
       );
     case 'loader':
       // 완료된 Loader 자체가 트리거다(받은 onClick·aria가 이 버튼에 붙는다)

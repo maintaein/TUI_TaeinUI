@@ -37,8 +37,8 @@ import {
   type Target,
 } from './scenes';
 
-// 동작이 끝난 뒤 결과를 보여 주는 시간(slower의 0.6배). 그다음에야 전환이 시작된다.
-const HOLD = dur.slower * 0.6;
+// 동작이 끝난 뒤 결과를 보여 주는 시간(slower의 0.5배). 그다음에야 전환이 시작된다.
+const HOLD = dur.slower * 0.5;
 // 흐림 양과 커서 아이콘 크기(lucide MousePointer2 화살촉은 24px 상자의 (4,4)).
 const BLUR = 'blur(6px)';
 const RISE = 6;
@@ -57,22 +57,31 @@ const OVERSHOOT = 1.04;
 //     펼침이면 OVERSHOOT까지 간 뒤 settle(기본)·spring 마무리 트윈으로 앉는다
 //   C 새 내용 들어옴: B의 inAt 지점부터 in. A가 끝난 뒤에야 보이기 시작해 옛 내용과 겹치지 않는다
 //   D 숨 고르기: C 끝 뒤 rest 동안 아무것도 움직이지 않는다
+//   손잡이 방울(pop이 있는 장면): B의 popAt 지점부터 작은 원이 맺혀 spring으로 부풀어 앉는다
 // staged 장면은 B가 A 뒤에('all'이면 C도 B 뒤에) 이어진다.
-// 첫 구현(한 바퀴 약 30s)에서 약 20% 줄였다: 각 값은 그때의 토큰 배수에서 한 단계씩 내린 것이다.
+// 첫 구현(한 바퀴 약 30s)에서 거듭 줄였다: 각 값은 그때의 토큰 배수에서 한 단계씩 내린 것이다.
 const STEP = {
-  out: dur.slow * 1.2,
+  out: dur.slow,
   moveAt: dur.fast,
-  move: dur.slower * 1.3,
+  move: dur.slower * 1.1,
   // 펼침이 끝 값에 앉는 마무리(fast~base 사이)
   settle: dur.base,
-  // staged 'all' 장면은 눈이 상자 하나만 따라가므로 더 길게 보여 준다.
-  stagedMove: dur.slower * 1.6,
+  // staged 'all' 장면은 눈이 상자 하나만 따라가므로 더 길게 보여 준다(move와 같은 비율로 내렸다).
+  stagedMove: dur.slower * 1.35,
   inAt: 0.55,
-  in: dur.base * 2,
+  in: dur.base * 1.75,
   rest: dur.base,
-  // 슬라이더 손잡이가 B의 이 지점에서 튀어나오기 시작한다.
-  popAt: 0.8,
+  // 슬라이더 손잡이 방울이 B의 이 지점(채움 끝이 거의 자리 잡은 뒤)부터 맺히기 시작한다.
+  popAt: 0.7,
 } as const;
+
+// 손잡이 방울이 진짜 손잡이 지름의 40% 원에서 시작한다. 크기는 지름까지 spring으로 부푼다.
+const BLOB_START = 0.4;
+// 높이는 폭보다 fast의 1/3 늦게 같은 spring을 시작해 둘이 엇갈려 출렁인다.
+const BLOB_LAG = dur.fast / 3;
+// 맺히는 시간(opacity)과 부푸는 시간
+const BLOB_IN = dur.fast;
+const BLOB_GROW = dur.slower;
 
 /** 한 전환의 단계 시작·끝(초). 대리 상자가 없어 흐림 교체로 내려앉는 전환은 A 직후 C가 이어진다 */
 const timeline = (scene: Scene, swap = false) => {
@@ -96,7 +105,7 @@ const enterSeconds = (scene: Scene) => {
     Math.max(
       t.moveEnd + (scene.spread ? (scene.spread - 1) * STAGGER : 0),
       t.inEnd,
-      scene.pop ? t.popAt + dur.slow : 0
+      scene.pop ? t.popAt + BLOB_LAG + BLOB_GROW : 0
     ) + STEP.rest
   );
 };
@@ -264,6 +273,9 @@ export function ComponentShowcase() {
       const originX = origin.left + stage.clientLeft;
       const originY = origin.top + stage.clientTop;
       const restore = looks ? [hideParts(looks.from), hideParts(looks.to)] : [];
+      // 손잡이는 대리 상자(방울)가 맺히는 동안 진짜를 감춘다. 대리 상자가 없는 전환에서는 레이어와 함께 그냥 나타난다.
+      const head = looks ? scene.pop?.(layer)?.[0] : undefined;
+      if (head) restore.push(hideParts([head]));
 
       const pairs = looks
         ? Array.from(
@@ -306,7 +318,29 @@ export function ComponentShowcase() {
           )
         : [];
 
-      const popEl = scene.pop?.(layer);
+      // 손잡이 방울: 진짜 손잡이 가운데에서 지름의 40% 원으로 맺힌다(scale 0이 아니라 눈에 보이는 작은 원).
+      let blob: HTMLDivElement | null = null;
+      if (head) {
+        blob = document.createElement('div');
+        blob.className = styles.surrogate;
+        blob.setAttribute('aria-hidden', 'true');
+        stage.append(blob);
+        const w = head.width * BLOB_START;
+        const h = head.height * BLOB_START;
+        gsap.set(blob, {
+          left: head.left - originX + (head.width - w) / 2,
+          top: head.top - originY + (head.height - h) / 2,
+          width: w,
+          height: h,
+          borderRadius: '50%',
+          backgroundColor: head.color,
+          borderWidth: head.borderWidth,
+          borderColor: head.borderColor,
+          boxShadow: head.shadow,
+          zIndex: 1,
+          opacity: 0,
+        });
+      }
       const master = gsap.timeline({ onComplete: () => finish() });
       const finish = () => {
         if (finishRef.current !== finish) return;
@@ -314,7 +348,8 @@ export function ComponentShowcase() {
         master.kill();
         restore.forEach((fn) => fn());
         pairs.forEach(({ el }) => el.remove());
-        gsap.set(popEl ? [layer, popEl] : layer, {
+        blob?.remove();
+        gsap.set(layer, {
           clearProps: 'opacity,visibility,filter,transform',
         });
         setFront(null);
@@ -393,12 +428,33 @@ export function ComponentShowcase() {
         },
         t.inAt
       );
-      if (popEl) {
-        master.fromTo(
-          popEl,
-          { scale: 0 },
-          { scale: 1, duration: dur.slow, ease: ease.snap },
+      if (blob && head) {
+        // 손잡이 방울. 폭과 높이를 따로 지름까지 부풀린다. 같은 spring을 높이가 조금 늦게 시작해 가로로 늘었다 세로로 늘었다 하며 앉는다.
+        // left·top도 같은 이징으로 보내 가운데를 고정한다(spring의 넘침이 양쪽으로 고르게 퍼진다).
+        master.to(
+          blob,
+          { opacity: 1, duration: BLOB_IN, ease: ease.linear },
           t.popAt
+        );
+        master.to(
+          blob,
+          {
+            left: head.left - originX,
+            width: head.width,
+            duration: BLOB_GROW,
+            ease: ease.spring,
+          },
+          t.popAt
+        );
+        master.to(
+          blob,
+          {
+            top: head.top - originY,
+            height: head.height,
+            duration: BLOB_GROW,
+            ease: ease.spring,
+          },
+          t.popAt + BLOB_LAG
         );
       }
     });
