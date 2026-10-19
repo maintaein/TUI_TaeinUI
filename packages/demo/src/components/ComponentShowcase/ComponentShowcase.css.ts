@@ -11,6 +11,8 @@ export const root = style({
 // 무대 높이는 가장 큰 장면(HeaderBar 바, 열린 Popover)에 맞춰 고정한다. 장면이 바뀌어도 페이지가 출렁이지 않는다.
 export const stage = style({
   position: 'relative',
+  // 대리 상자가 음수 z-index로 내용 뒤에 깔려도 무대 배경 아래로 빠지지 않게 한다.
+  isolation: 'isolate',
   height: '20rem',
   overflow: 'hidden',
   background: color.background.paper,
@@ -38,7 +40,6 @@ export const layer = style({
 // 앞 컴포넌트 부품에서 뒤 컴포넌트 부품으로 모양을 잇는 자식 없는 상자. 위치·크기·반경·색은 gsap이 정한다.
 export const surrogate = style({
   position: 'absolute',
-  zIndex: 1,
   boxSizing: 'border-box',
   borderStyle: 'solid',
   pointerEvents: 'none',

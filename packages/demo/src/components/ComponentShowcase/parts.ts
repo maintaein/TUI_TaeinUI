@@ -14,9 +14,15 @@ export interface Look {
   color: string;
   borderWidth: number;
   borderColor: string;
+  /** computed box-shadow. 없으면 'none' */
+  shadow: string;
   /** 대리 상자가 대신 그리는 동안 감출 요소(바깥쪽부터) */
-  hide: HTMLElement[];
+  hide: (HTMLElement | SVGElement)[];
 }
+
+type Hideable = HTMLElement | SVGElement;
+const isHideable = (el: unknown): el is Hideable =>
+  el instanceof HTMLElement || el instanceof SVGElement;
 
 /** 내용 층에서 부품(들)을 찾는다. 못 찾으면 null */
 export type Part = (layer: HTMLElement) => Look[] | null;
@@ -50,9 +56,9 @@ const lookOf = (
       color: getComputedStyle(paint).backgroundColor,
       borderWidth: parseFloat(style.borderTopWidth),
       borderColor: style.borderTopColor,
+      shadow: style.boxShadow,
       hide: (options.hide ?? [box, paint]).filter(
-        (el, i, all): el is HTMLElement =>
-          el instanceof HTMLElement && all.indexOf(el) === i
+        (el, i, all): el is Hideable => isHideable(el) && all.indexOf(el) === i
       ),
     },
   ];
@@ -71,32 +77,34 @@ export const sliderHead = (layer: HTMLElement) =>
   headOf(layer.querySelector('input[type="range"]'));
 
 /**
- * wake 막대 칸. 막대마다 2px 직사각형이라 보이는 줄은 첫 막대 왼쪽 ~ 끝 막대 오른쪽이다.
- * shortcut: 대리 상자는 막대 사이 틈 없는 한 줄이라 넘겨받는 순간 틈이 생긴다. 거슬리면 대리 상자를 막대 수만큼 쪼갠다.
+ * 기본 Slider의 라인. 트랙 칸(div)이 라인 높이로 서고 그 안의 SVG 경로가 그린다.
+ * 채움은 같은 경로를 값 위치에서 자른 것(clipPath)이라 자른 폭을 viewBox 비율로 환산한다.
+ * shortcut: 쉬는 모양(곧은 라인)만 읽는다. 물결치는 중에 읽으면 두께가 어긋난다. 끄는 중 전환이 필요하면 경로의 BBox를 읽는다.
  */
-const wakeStrip = (layer: HTMLElement, onlyOn: boolean): Look[] | null => {
-  const host = layer
+const sliderLine = (layer: HTMLElement, filled: boolean): Look[] | null => {
+  const track = layer
     .querySelector('input[type="range"]')
-    ?.parentElement?.querySelector(':scope > div[aria-hidden]');
-  const bars = Array.from(host?.children ?? []).filter(
-    (el): el is HTMLElement => el instanceof HTMLElement
-  );
-  const lit = onlyOn ? bars.filter((bar) => bar.dataset.on === 'true') : bars;
-  const last = lit[lit.length - 1];
-  if (!host || !bars.length || !last) return null;
-  const first = bars[0].getBoundingClientRect();
-  const end = last.getBoundingClientRect();
-  const look = lookOf(onlyOn ? bars[0] : last, { hide: [host] })?.[0];
-  if (!look) return null;
+    ?.parentElement?.querySelector(':scope > div');
+  const svg = track?.querySelector('svg');
+  const path = track?.querySelector(filled ? 'path:last-of-type' : 'path');
+  const clip = track?.querySelector('clipPath rect');
+  const look = lookOf(track, { hide: path ? [path] : [] })?.[0];
+  if (!track || !svg || !path || !clip || !look) return null;
+  const paint = getComputedStyle(path);
+  const strokeWidth = filled ? 0 : parseFloat(paint.strokeWidth);
+  const scale = look.width / svg.viewBox.baseVal.width;
+  const width = filled
+    ? Number(clip.getAttribute('width')) * scale
+    : look.width;
+  if (!(width > 0)) return null;
   return [
     {
       ...look,
-      left: first.left,
-      top: first.top,
-      width: end.right - first.left,
-      height: first.height,
-      radius: first.height / 2,
-      borderWidth: 0,
+      width,
+      color: paint.fill,
+      borderWidth: strokeWidth,
+      borderColor: paint.stroke,
+      shadow: 'none',
     },
   ];
 };
@@ -144,8 +152,8 @@ export const PARTS = {
       hide: [indicator],
     });
   },
-  sliderTrack: (layer) => wakeStrip(layer, false),
-  sliderFill: (layer) => wakeStrip(layer, true),
+  sliderTrack: (layer) => sliderLine(layer, false),
+  sliderFill: (layer) => sliderLine(layer, true),
   sliderHead: (layer) => lookOf(sliderHead(layer)),
   /** Switch 트랙(알약) */
   switchTrack: (layer) =>
@@ -169,13 +177,13 @@ export const PARTS = {
 
 /** 대리 상자가 대신하는 동안 부품을 감춘다. 자식은 다시 보여(흐림으로 따로 나가고 들어온다) 되돌리는 함수를 준다 */
 export const hideParts = (looks: Look[]) => {
-  const touched: (HTMLElement | SVGElement)[] = [];
+  const touched: Hideable[] = [];
   for (const look of looks) {
     for (const el of look.hide) {
       el.style.visibility = 'hidden';
       touched.push(el);
       for (const child of el.children) {
-        if (child instanceof HTMLElement || child instanceof SVGElement) {
+        if (isHideable(child)) {
           child.style.visibility = 'visible';
           touched.push(child);
         }
@@ -185,8 +193,21 @@ export const hideParts = (looks: Look[]) => {
   return () => touched.forEach((el) => el.style.removeProperty('visibility'));
 };
 
+/** 색 하나를 같은 색의 투명판으로. computed 색은 rgb(), rgba(), color(srgb ...) 중 하나다 */
+const clear = (color: string) => {
+  if (color.startsWith('color(')) {
+    return color.replace(/(\s*\/\s*[\d.]+)?\)$/, ' / 0)');
+  }
+  const [r, g, b] = color.match(/[\d.]+/g) ?? [];
+  return `rgba(${r}, ${g}, ${b}, 0)`;
+};
+
+/** 그림자의 색만 투명으로 바꿔 크기는 두고 걷는다 */
+export const fadeShadow = (shadow: string) =>
+  shadow.replace(/(?:rgba?|color)\([^)]*\)/g, clear);
+
 /** 도착 색이 투명이면 출발 색의 투명판으로 바꿔 중간에 검게 비치지 않게 한다 */
 export const reachable = (from: string, to: string) =>
-  /^rgba\(.*,\s*0\)$/.test(to) || to === 'transparent'
-    ? from.replace(/^rgba?\(([^)]*?)(?:,\s*[\d.]+)?\)$/, 'rgba($1, 0)')
+  /^rgba\(.*,\s*0\)$|\/\s*0\)$/.test(to) || to === 'transparent'
+    ? clear(from)
     : to;

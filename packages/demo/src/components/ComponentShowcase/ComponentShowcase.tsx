@@ -17,7 +17,13 @@ import {
 } from '@taein-ui/core';
 import { useMediaQuery } from '../../hooks/useMediaQuery';
 import * as styles from './ComponentShowcase.css';
-import { hideParts, reachable, type Look, type Part } from './parts';
+import {
+  fadeShadow,
+  hideParts,
+  reachable,
+  type Look,
+  type Part,
+} from './parts';
 import {
   INITIAL_DEMO,
   SCENES,
@@ -31,25 +37,61 @@ import {
   type Target,
 } from './scenes';
 
-// 전환 사이 멈춤(fast).
-const HOLD = dur.fast;
+// 동작이 끝난 뒤 결과를 보여 주는 시간(slower). 그다음에야 전환이 시작된다.
+const HOLD = dur.slower;
 // 흐림 양과 커서 아이콘 크기(lucide MousePointer2 화살촉은 24px 상자의 (4,4)).
 const BLUR = 'blur(6px)';
+const RISE = 6;
 const CURSOR_SIZE = 24;
 const CURSOR_TIP = 4;
 // 흩어지거나 모이는 대리 상자 사이의 시차(20~40ms).
 const STAGGER = 0.03;
-// 슬라이더 손잡이가 채움 끝에서 튀어나오기 시작하는 때(대리 상자가 거의 닿았을 때).
-const POP_DELAY = dur.slow * 0.8;
 
-/** 장면에 들어오는 전환이 끝나기까지(초). 연출은 그 뒤에 시작한다 */
-const enterSeconds = (scene: Scene) =>
-  Math.max(
-    dur.slow,
-    // 뒤 컴포넌트의 나머지 부품이 절반 지점에서 base 동안 들어온다.
-    dur.slow / 2 + dur.base,
-    scene.pop ? POP_DELAY + dur.slow : 0
-  ) + (scene.spread ? (scene.spread - 1) * STAGGER : 0);
+// 전환 한 번의 안무. 눈이 모양이 바뀌는 과정을 따라가도록 단계를 나누고, 시간은 duration 토큰의 배수로 정했다
+// (Skeleton이 loop.base * 1.4를 쓴 선례). 이징은 토큰 그대로이고 새 커브는 없다.
+//   A 옛 내용 나감: 0부터 OUT. 이어받지 않는 앞 부품이 흐려지며 사라진다(exit)
+//   B 모양 이어받기: A 시작 + fast부터 MOVE. 대리 상자가 앞 부품에서 뒤 부품으로 잇는다
+//   C 새 내용 들어옴: B의 IN_AT 지점부터 IN. A가 끝난 뒤에야 보이기 시작해 옛 내용과 겹치지 않는다
+//   D 숨 고르기: C 끝 뒤 REST 동안 아무것도 움직이지 않는다
+// staged 장면은 B가 A 뒤에('all'이면 C도 B 뒤에) 이어진다.
+const STEP = {
+  out: dur.slow * 1.5,
+  moveAt: dur.fast,
+  move: dur.slower * 1.6,
+  // staged 'all' 장면은 눈이 상자 하나만 따라가므로 더 길게 보여 준다.
+  stagedMove: dur.slower * 2,
+  inAt: 0.55,
+  in: dur.slower,
+  rest: dur.slow,
+  // 슬라이더 손잡이가 B의 이 지점에서 튀어나오기 시작한다.
+  popAt: 0.8,
+} as const;
+
+/** 한 전환의 단계 시작·끝(초). 대리 상자가 없어 흐림 교체로 내려앉는 전환은 A 직후 C가 이어진다 */
+const timeline = (scene: Scene, swap = false) => {
+  const moveAt = scene.staged ? STEP.out : STEP.moveAt;
+  const move = scene.staged === 'all' ? STEP.stagedMove : STEP.move;
+  const moveEnd = moveAt + move;
+  const inAt = swap
+    ? STEP.out
+    : scene.staged === 'all'
+      ? moveEnd
+      : moveAt + move * STEP.inAt;
+  const popAt = moveAt + move * STEP.popAt;
+  return { moveAt, move, moveEnd, inAt, inEnd: inAt + STEP.in, popAt };
+};
+
+/** 장면에 들어오는 전환이 끝나고 숨 고르기까지(초). 연출은 그 뒤에 시작한다 */
+const enterSeconds = (scene: Scene) => {
+  const t = timeline(scene);
+  return (
+    Math.max(
+      t.moveEnd + (scene.spread ? (scene.spread - 1) * STAGGER : 0),
+      t.inEnd,
+      scene.pop ? t.popAt + dur.slow : 0
+    ) + STEP.rest
+  );
+};
 
 interface Flags {
   /** 멈춤 단추, 또는 터치로 무대를 누름 */
@@ -79,6 +121,10 @@ const firePointer = (
       buttons: type === 'pointerdown' ? 1 : 0,
     })
   );
+
+/** 자기 그림자가 있으면 그것, 없으면 반대쪽 그림자의 투명판. 한쪽에만 있는 그림자가 서서히 나타나고 걷힌다 */
+const shadowFrom = (own: string, other: string) =>
+  own !== 'none' ? own : other !== 'none' ? fadeShadow(other) : 'none';
 
 /** 층에서 부품들을 찾는다. 하나라도 못 찾으면 null */
 const lookAll = (layer: HTMLElement, parts: Part[] | undefined) => {
@@ -231,6 +277,8 @@ export function ComponentShowcase() {
                 backgroundColor: reachable(b.color, a.color),
                 borderWidth: a.borderWidth,
                 borderColor: a.borderWidth ? a.borderColor : b.borderColor,
+                zIndex: scene.behind ? -1 : 1,
+                boxShadow: shadowFrom(a.shadow, b.shadow),
               });
               return {
                 el,
@@ -243,6 +291,7 @@ export function ComponentShowcase() {
                   backgroundColor: reachable(a.color, b.color),
                   borderWidth: b.borderWidth,
                   borderColor: b.borderWidth ? b.borderColor : a.borderColor,
+                  boxShadow: shadowFrom(b.shadow, a.shadow),
                 },
               };
             }
@@ -265,56 +314,71 @@ export function ComponentShowcase() {
       finishRef.current = finish;
       track(master);
 
-      // 앞 컴포넌트의 나머지 부품은 흐려지며 나간다.
+      const t = timeline(scene, !looks);
+      // A. 앞 컴포넌트의 나머지 부품은 흐려지며 나간다.
       master.to(
         frontEl,
-        { opacity: 0, filter: BLUR, duration: dur.fast, ease: ease.exit },
+        { opacity: 0, filter: BLUR, duration: STEP.out, ease: ease.exit },
         0
       );
       if (looks) {
-        // 펼침(더 넓어짐, 흩어짐)은 넘치고 접힘(모임)은 넘치지 않는다.
+        // B. 펼침(더 넓어짐, 흩어짐)은 넘치고 접힘(모임)은 넘치지 않는다. 장면이 정하면 그것을 따른다.
         const area = (ls: Look[]) =>
           ls.reduce((sum, l) => sum + l.width * l.height, 0);
         const grows =
           looks.from.length !== looks.to.length
             ? looks.to.length > looks.from.length
             : area(looks.to) > area(looks.from);
+        const els = pairs.map(({ el }) => el);
+        const stagger = scene.spread ? STAGGER : 0;
         master.to(
-          pairs.map(({ el }) => el),
+          els,
           {
             left: (i: number) => pairs[i].to.left,
             top: (i: number) => pairs[i].to.top,
             width: (i: number) => pairs[i].to.width,
             height: (i: number) => pairs[i].to.height,
             borderRadius: (i: number) => pairs[i].to.borderRadius,
-            backgroundColor: (i: number) => pairs[i].to.backgroundColor,
             borderWidth: (i: number) => pairs[i].to.borderWidth,
-            borderColor: (i: number) => pairs[i].to.borderColor,
-            duration: dur.slow,
-            ease: grows ? ease.snap : ease.settle,
-            stagger: scene.spread ? STAGGER : 0,
+            duration: t.move,
+            ease: ease[scene.moveEase ?? (grows ? 'snap' : 'settle')],
+            stagger,
           },
-          0
+          t.moveAt
+        );
+        // 색과 그림자는 일정하게 바뀐다. 투명으로 가는 몸통이 중간에 일찍 사라져 무대가 비지 않게, 되튀는 이징이 색 값을 벗어나지 않게.
+        master.to(
+          els,
+          {
+            backgroundColor: (i: number) => pairs[i].to.backgroundColor,
+            borderColor: (i: number) => pairs[i].to.borderColor,
+            boxShadow: (i: number) => pairs[i].to.boxShadow,
+            duration: t.move,
+            ease: ease.linear,
+            stagger,
+          },
+          t.moveAt
         );
       }
-      // 뒤 컴포넌트의 나머지 부품은 대리 상자가 절반쯤 왔을 때 들어온다.
+      // C. 뒤 컴포넌트의 나머지 부품이 흐림에서 올라오며 들어온다.
       master.fromTo(
         layer,
-        { autoAlpha: 0, filter: BLUR },
+        { autoAlpha: 0, filter: BLUR, y: RISE },
         {
           autoAlpha: 1,
           filter: 'blur(0px)',
-          duration: dur.base,
+          y: 0,
+          duration: STEP.in,
           ease: ease.settle,
         },
-        dur.slow / 2
+        t.inAt
       );
       if (popEl) {
         master.fromTo(
           popEl,
           { scale: 0 },
           { scale: 1, duration: dur.slow, ease: ease.snap },
-          POP_DELAY
+          t.popAt
         );
       }
     });
@@ -438,7 +502,7 @@ export function ComponentShowcase() {
     const fx = fxRef.current;
     if (!playing) {
       tl.pause();
-      // 만지려고 멈춘 것이면 진행 중인 전환은 건드리지 않는다(원래 속도로 길어야 slow 안에 끝난다).
+      // 만지려고 멈춘 것이면 진행 중인 전환은 건드리지 않는다(자기 속도로 끝나게 둔다).
       // 화면 밖·탭 숨김이면 그 자리에서 멈췄다 이어 간다.
       if (!takeover) fx.forEach((a) => a.pause());
       return;

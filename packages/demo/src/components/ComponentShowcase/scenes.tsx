@@ -1,5 +1,5 @@
 import gsap from 'gsap';
-import { Sparkles } from 'lucide-react';
+import { Check, Sparkles } from 'lucide-react';
 import {
   Button,
   Checkbox,
@@ -10,6 +10,7 @@ import {
   SegmentedButtons,
   Slider,
   Switch,
+  themeContract,
 } from '@taein-ui/core';
 import * as styles from './ComponentShowcase.css';
 import { PARTS, headOf, sliderHead, type Part } from './parts';
@@ -22,9 +23,11 @@ import { PARTS, headOf, sliderHead, type Part } from './parts';
 export const ease = {
   settle: 'power3.out',
   snap: 'back.out(1.7)',
+  spring: 'elastic.out(1, 0.5)',
   exit: 'power2.in',
+  linear: 'none',
 } as const;
-export const dur = { fast: 0.15, base: 0.2, slow: 0.3 } as const;
+export const dur = { fast: 0.15, base: 0.2, slow: 0.3, slower: 0.5 } as const;
 
 export type Period = 'day' | 'week' | 'month';
 export type Page = 'intro' | 'components';
@@ -113,6 +116,15 @@ export interface Scene {
   take?: Part[];
   /** 부품이 여럿으로 흩어지거나 모이는 수. 점마다 시차를 둔다 */
   spread?: number;
+  /** 모양 이어받기의 이징. 없으면 커지면 snap, 줄면 settle */
+  moveEase?: 'settle' | 'spring';
+  /** 대리 상자를 앞 내용 뒤에 깐다. 앞 부품의 글자가 대리 상자 위에서 흐려지며 나가는 것이 보인다 */
+  behind?: boolean;
+  /**
+   * 단계를 겹치지 않는다. 'out': 옛 내용이 다 나간 뒤 모양이 움직인다.
+   * 'all': 거기에 더해 모양이 다 움직인 뒤 새 내용이 들어온다(눈이 대리 상자 하나만 따라간다)
+   */
+  staged?: 'out' | 'all';
   /** 대리 상자 없이 전환 끝에 snap으로 튀어나오는 요소 */
   pop?: (layer: HTMLElement) => Element | null;
   act: (a: ActApi) => void;
@@ -133,12 +145,13 @@ export const SCENES: Scene[] = [
     take: [PARTS.pill],
     act: (a) => {
       const item = a.find('nav[aria-label="주요 메뉴"] button', '컴포넌트');
-      a.move(item, 0.4);
+      a.move(item, dur.slower);
       // 알약은 마우스 진입(JS)으로 차오른다. 합성 진입을 건 뒤 차오르길 기다렸다 누른다.
       a.hover(item);
       a.wait(dur.slow);
       a.press(item);
-      a.wait(0.35);
+      // 알약이 옮겨 가는 시간
+      a.wait(dur.slow);
     },
   },
   {
@@ -149,9 +162,8 @@ export const SCENES: Scene[] = [
     take: [PARTS.button],
     act: (a) => {
       const button = a.find('button', '모션 만들기');
-      a.move(button, 0.4);
+      a.move(button, dur.slower);
       a.press(button);
-      a.wait(0.15);
     },
   },
   {
@@ -162,9 +174,11 @@ export const SCENES: Scene[] = [
     take: [PARTS.button],
     act: (a) => {
       const button = a.find('button[aria-label="모션 만들기"]');
-      a.move(button, 0.35);
+      a.move(button, dur.slower);
+      // 젤리는 마우스 진입(JS)으로 돈다. 끝까지 출렁이는 것(fast + slower)을 보여 주고 누른다.
+      a.hover(button);
+      a.wait(dur.fast + dur.slower);
       a.press(button);
-      a.wait(0.15);
     },
   },
   {
@@ -175,10 +189,10 @@ export const SCENES: Scene[] = [
     take: [PARTS.dots],
     spread: ORBIT_DOTS,
     act: (a) => {
-      a.wait(1.2);
+      a.wait(dur.slower * 2);
       a.set({ loader: 'done' });
-      // 점이 완료 표식으로 모이는 시간(slow + 점마다 시차)
-      a.wait(0.8);
+      // 점이 완료 표식으로 모이는 시간(slow + 점마다 fast / 8 시차)
+      a.wait(dur.slow + dur.fast);
     },
   },
   {
@@ -190,9 +204,10 @@ export const SCENES: Scene[] = [
     spread: ORBIT_DOTS,
     act: (a) => {
       const trigger = a.find('button[aria-haspopup]');
-      a.move(trigger, 0.4);
+      a.move(trigger, dur.slower);
       a.press(trigger);
-      a.wait(0.9);
+      // 말풍선이 열리는 시간
+      a.wait(dur.slow);
     },
   },
   {
@@ -201,12 +216,15 @@ export const SCENES: Scene[] = [
     enter: { period: 'day' },
     give: [PARTS.segTrack, PARTS.segMarker],
     take: [PARTS.segTrack],
+    moveEase: 'spring',
+    staged: 'out',
+    behind: true,
     act: (a) => {
       const month = a.find('label', '월간');
-      a.move(month, 0.4);
+      a.move(month, dur.slower);
       a.press(month);
       // 고무 표식이 미끄러지는 시간
-      a.wait(0.55);
+      a.wait(dur.slower);
     },
   },
   {
@@ -233,12 +251,13 @@ export const SCENES: Scene[] = [
         });
       };
       a.tl.set(volumeProxy, { v: 30 });
-      a.move(head, 0.4);
+      a.move(head, dur.slower);
       a.down(range);
-      drag(90, 0.4);
-      drag(60, 0.25);
+      drag(90, dur.slower);
+      drag(60, dur.slow);
       a.up(range, false);
-      a.wait(0.2);
+      // 손잡이 스프링이 값에 앉는 시간
+      a.wait(dur.slow);
     },
   },
   {
@@ -251,9 +270,10 @@ export const SCENES: Scene[] = [
       const input = a.find('input[role="switch"]');
       // 입력은 보이지 않는 겹침이라 보이는 트랙(부모)을 누른다
       const toggle = () => input()?.parentElement ?? null;
-      a.move(toggle, 0.35);
+      a.move(toggle, dur.slower);
       a.press(toggle);
-      a.wait(0.45);
+      // 손잡이가 늘어나며 건너가는 시간
+      a.wait(dur.slow + dur.fast);
     },
   },
   {
@@ -262,20 +282,23 @@ export const SCENES: Scene[] = [
     enter: { agree: false },
     give: [PARTS.checkBox],
     take: [PARTS.checkBox],
+    moveEase: 'settle',
+    staged: 'all',
     act: (a) => {
       const input = a.find('input[type="checkbox"]');
       // 입력은 보이지 않는 겹침이라 보이는 상자(다음 형제)를 누른다
       const box = () => (input()?.nextElementSibling as HTMLElement) ?? null;
-      a.move(box, 0.35);
+      a.move(box, dur.slower);
       a.press(box);
-      a.wait(0.6);
+      // 체크가 그어지는 시간
+      a.wait(dur.slow + dur.fast);
     },
   },
 ];
 
 // 장면 3(IconButton) 이후의 give/take 짝은 아래 표와 같다.
 // 1 pill -> 2 Button | 2 Button -> 3 IconButton | 3 IconButton -> 4 점 여럿(흩어짐)
-// 4 점 여럿 -> 5 트리거(모임) | 5 말풍선 -> 6 트랙 | 6 트랙·표식 -> 7 트랙·채움(+손잡이 pop)
+// 4 점 여럿 -> 5 ✓ 버튼(모임) | 5 말풍선 -> 6 트랙 | 6 트랙·표식 -> 7 트랙·채움(+손잡이 pop)
 // 7 트랙·채움·손잡이 -> 8 트랙·트랙·손잡이 | 8 손잡이 -> 9 상자 | 9 상자 -> 1 pill
 
 const PERIOD_OPTIONS = [
@@ -324,8 +347,9 @@ export function SceneContent({
       );
     case 'icon':
       return (
-        <IconButton buttonStyle="strong" size="lg" aria-label="모션 만들기">
-          <Sparkles />
+        <IconButton size="lg" aria-label="모션 만들기">
+          {/* ghost는 core가 회색으로 고정해, 아이콘만 Button의 primary 파랑으로 칠한다 */}
+          <Sparkles style={{ color: themeContract.color.primary.main }} />
         </IconButton>
       );
     case 'loader':
@@ -335,11 +359,17 @@ export function SceneContent({
         <Popover
           open={demo.popover}
           onOpenChange={on.popover}
+          arrow
           content={<span className={styles.bubbleBody}>모션이 준비됐어요</span>}
         >
-          <Button variant="primary" size="lg">
-            결과 보기
-          </Button>
+          <IconButton
+            variant="primary"
+            buttonStyle="strong"
+            size="lg"
+            aria-label="결과 보기"
+          >
+            <Check />
+          </IconButton>
         </Popover>
       );
     case 'segment':
@@ -355,7 +385,6 @@ export function SceneContent({
       return (
         <div className={styles.field}>
           <Slider
-            variant="wake"
             label="볼륨"
             showValue
             value={demo.volume}
