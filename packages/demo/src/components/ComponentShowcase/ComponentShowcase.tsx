@@ -37,8 +37,8 @@ import {
   type Target,
 } from './scenes';
 
-// 동작이 끝난 뒤 결과를 보여 주는 시간(slower의 0.8배). 그다음에야 전환이 시작된다.
-const HOLD = dur.slower * 0.8;
+// 동작이 끝난 뒤 결과를 보여 주는 시간(slower의 0.6배). 그다음에야 전환이 시작된다.
+const HOLD = dur.slower * 0.6;
 // 흐림 양과 커서 아이콘 크기(lucide MousePointer2 화살촉은 24px 상자의 (4,4)).
 const BLUR = 'blur(6px)';
 const RISE = 6;
@@ -78,7 +78,8 @@ const STEP = {
 const timeline = (scene: Scene, swap = false) => {
   const moveAt = scene.staged ? STEP.out : STEP.moveAt;
   const move = scene.staged === 'all' ? STEP.stagedMove : STEP.move;
-  const moveEnd = moveAt + move + STEP.settle;
+  // 마무리 settle은 펼침에만 있다(접힘은 앉을 것이 없다)
+  const moveEnd = moveAt + move + (scene.grows ? STEP.settle : 0);
   const inAt = swap
     ? STEP.out
     : scene.staged === 'all'
@@ -330,12 +331,7 @@ export function ComponentShowcase() {
       );
       if (looks) {
         // B. 펼침(더 넓어짐, 흩어짐)은 끝 값을 살짝 넘겼다 앉고, 접힘(모임)은 넘치지 않는다.
-        const area = (ls: Look[]) =>
-          ls.reduce((sum, l) => sum + l.width * l.height, 0);
-        const grows =
-          looks.from.length !== looks.to.length
-            ? looks.to.length > looks.from.length
-            : area(looks.to) > area(looks.from);
+        const grows = !!scene.grows;
         const els = pairs.map(({ el }) => el);
         const stagger = scene.spread ? STAGGER : 0;
         // 넘침은 폭·높이를 키우되 가운데를 고정한다(left·top을 절반씩 당긴다).

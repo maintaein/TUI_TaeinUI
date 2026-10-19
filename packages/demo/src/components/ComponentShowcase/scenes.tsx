@@ -1,5 +1,5 @@
 import gsap from 'gsap';
-import { Check, Sparkles } from 'lucide-react';
+import { Sparkles } from 'lucide-react';
 import {
   Button,
   Checkbox,
@@ -97,7 +97,6 @@ type SceneId =
   | 'button'
   | 'icon'
   | 'loader'
-  | 'popover'
   | 'segment'
   | 'slider'
   | 'switch'
@@ -119,6 +118,11 @@ export interface Scene {
   take?: Part[];
   /** 부품이 여럿으로 흩어지거나 모이는 수. 점마다 시차를 둔다 */
   spread?: number;
+  /**
+   * 들어오는 전환이 펼침이다(앞 부품보다 부품이 많거나 넓다). 펼침은 끝 값을 살짝 넘겼다가
+   * moveEase로 앉고, 접힘은 넘치지 않고 마무리도 없다
+   */
+  grows?: boolean;
   /** 펼침 전환이 끝 값에 앉는 마무리 이징. 없으면 settle */
   moveEase?: 'settle' | 'spring';
   /** 대리 상자를 앞 내용 뒤에 깐다. 앞 부품의 글자가 대리 상자 위에서 흐려지며 나가는 것이 보인다 */
@@ -146,6 +150,7 @@ export const SCENES: Scene[] = [
     enter: { page: 'intro' },
     give: [PARTS.pill],
     take: [PARTS.pill],
+    grows: true,
     act: (a) => {
       const item = a.find('nav[aria-label="주요 메뉴"] button', '컴포넌트');
       a.move(item, CURSOR_MOVE);
@@ -163,6 +168,7 @@ export const SCENES: Scene[] = [
     enter: {},
     give: [PARTS.button],
     take: [PARTS.button],
+    grows: true,
     act: (a) => {
       const button = a.find('button', '모션 만들기');
       a.move(button, CURSOR_MOVE);
@@ -185,27 +191,20 @@ export const SCENES: Scene[] = [
     },
   },
   {
-    name: 'Loader',
+    name: 'Loader · Popover',
     id: 'loader',
-    enter: { loader: 'loading' },
-    give: [PARTS.dots],
+    enter: { loader: 'loading', popover: false },
+    give: [PARTS.bubble],
     take: [PARTS.dots],
+    grows: true,
     spread: ORBIT_DOTS,
     act: (a) => {
-      a.wait(dur.slower * 2);
+      a.wait(dur.slower * 1.6);
       a.set({ loader: 'done' });
       // 점이 완료 표식으로 모이는 시간(slow + 점마다 fast / 8 시차)
       a.wait(dur.slow + dur.fast);
-    },
-  },
-  {
-    name: 'Popover',
-    id: 'popover',
-    enter: { popover: false },
-    give: [PARTS.bubble],
-    take: [PARTS.button],
-    spread: ORBIT_DOTS,
-    act: (a) => {
+      // 초록 ✓를 보여 준 뒤 커서가 그것을 눌러 말풍선이 ✓에서 나온다
+      a.wait(dur.slower);
       const trigger = a.find('button[aria-haspopup]');
       a.move(trigger, CURSOR_MOVE);
       a.press(trigger);
@@ -219,6 +218,7 @@ export const SCENES: Scene[] = [
     enter: { period: 'day' },
     give: [PARTS.segTrack, PARTS.segMarker],
     take: [PARTS.segTrack],
+    grows: true,
     moveEase: 'spring',
     staged: 'out',
     behind: true,
@@ -300,8 +300,8 @@ export const SCENES: Scene[] = [
 
 // 장면 3(IconButton) 이후의 give/take 짝은 아래 표와 같다.
 // 1 pill -> 2 Button | 2 Button -> 3 IconButton | 3 IconButton -> 4 점 여럿(흩어짐)
-// 4 점 여럿 -> 5 ✓ 버튼(모임) | 5 말풍선 -> 6 트랙 | 6 트랙·표식 -> 7 트랙·채움(+손잡이 pop)
-// 7 트랙·채움·손잡이 -> 8 트랙·트랙·손잡이 | 8 손잡이 -> 9 상자 | 9 상자 -> 1 pill
+// 4 말풍선 -> 5 트랙 | 5 트랙·표식 -> 6 트랙·채움(+손잡이 pop)
+// 6 트랙·채움·손잡이 -> 7 트랙·트랙·손잡이 | 7 손잡이 -> 8 상자 | 8 상자 -> 1 pill
 
 const PERIOD_OPTIONS = [
   { value: 'day', label: '일간' },
@@ -355,8 +355,7 @@ export function SceneContent({
         </IconButton>
       );
     case 'loader':
-      return <Loader size="lg" status={demo.loader} />;
-    case 'popover':
+      // 완료된 Loader 자체가 트리거다(받은 onClick·aria가 이 버튼에 붙는다)
       return (
         <Popover
           open={demo.popover}
@@ -364,14 +363,13 @@ export function SceneContent({
           arrow
           content={<span className={styles.bubbleBody}>모션이 준비됐어요</span>}
         >
-          <IconButton
-            variant="primary"
-            buttonStyle="strong"
-            size="lg"
+          <button
+            type="button"
+            className={styles.loaderTrigger}
             aria-label="결과 보기"
           >
-            <Check />
-          </IconButton>
+            <Loader size="lg" status={demo.loader} />
+          </button>
         </Popover>
       );
     case 'segment':

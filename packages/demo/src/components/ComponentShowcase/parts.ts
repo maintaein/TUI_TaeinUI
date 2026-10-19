@@ -121,7 +121,7 @@ export const PARTS = {
     const item = layer.querySelector('[aria-current="page"]');
     return lookOf(item, { color: item?.firstElementChild });
   },
-  /** Button, IconButton, Popover 트리거: 그 층의 버튼 몸통 */
+  /** Button, IconButton: 그 층의 버튼 몸통 */
   button: (layer) => lookOf(layer.querySelector('button')),
   /**
    * Loader orbit: 점마다 하나.

@@ -33,7 +33,7 @@ export const layer = style({
     // 바 형태는 무대 폭을 채운다.
     '&[data-wide]': { width: '100%', maxWidth: '100%' },
     // Popover 말풍선은 트리거 아래로 늘어진다. 트리거가 위로 올라 둘이 함께 가운데에 선다.
-    '&[data-id="popover"]': { paddingBottom: spacing[16] },
+    '&[data-id="loader"]': { paddingBottom: spacing[16] },
   },
 });
 
@@ -50,6 +50,18 @@ export const bubbleBody = style({
   display: 'block',
   padding: `${spacing[2]} ${spacing[3]}`,
   fontSize: font.size.sm,
+});
+
+// Popover 트리거인 완료 Loader. 버튼의 겉모습은 없애고 크기는 Loader 그대로이며, 포커스 외곽선은 기본을 쓴다.
+export const loaderTrigger = style({
+  display: 'block',
+  padding: 0,
+  border: 0,
+  background: 'none',
+  color: 'inherit',
+  lineHeight: 0,
+  cursor: 'pointer',
+  borderRadius: borderRadius.full,
 });
 
 export const field = style({
