@@ -19,6 +19,14 @@
 
 ## [Unreleased]
 
+### Added
+
+- `HeaderBar`에 `titleAs`(`'h1'` | `'h2'` ~ `'h6'` | `'span'`, 기본 `'h1'`)를 더했습니다. 제목 요소만 바뀌고 스타일은 같습니다. 페이지에 이미 h1이 있으면 낮은 단계나 `span`을 쓰세요.
+
+### Changed
+
+- `HeaderBar`의 루트 `<header>`에서 `role="banner"` 명시를 지웠습니다. HTML 기본 의미를 따라, 문서 최상위에 두면 그대로 banner이고 `section`·`article`·`aside`·`nav`·`main` 안에 두면 banner가 아닙니다. 할 일은 대개 없습니다. 최상위에 둔 HeaderBar는 그대로입니다.
+
 ### Fixed
 
 - `SegmentedButtons`를 마우스로 누르면 선택 표식 둘레에 키보드용 포커스 링이 켜지던 것을 고쳤습니다. 누른 옵션에 포커스를 옮기되 링은 켜지 않습니다(`focus({ focusVisible: false })`). 방향키·Tab으로 옮길 때는 링이 그대로 보입니다. `focusVisible` 옵션을 모르는 브라우저(Safari 18.4 이전 등)에서는 마우스 클릭에도 링이 켜집니다. 할 일은 없습니다.

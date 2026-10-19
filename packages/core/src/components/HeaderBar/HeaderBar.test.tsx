@@ -171,6 +171,38 @@ describe('HeaderBar 렌더링', () => {
     ).toBeInTheDocument();
   });
 
+  it('titleAs="span"이면 heading이 없고 제목 글자는 그대로 보인다', () => {
+    render(<HeaderBar title="My Application" titleAs="span" />);
+    expect(screen.queryByRole('heading')).not.toBeInTheDocument();
+    expect(screen.getByText('My Application').tagName).toBe('SPAN');
+  });
+
+  it('titleAs="h2"이면 level 2 heading이고 스타일 클래스는 h1일 때와 같다', () => {
+    const { unmount } = render(<HeaderBar title="앱" />);
+    const h1Class = screen.getByRole('heading', { level: 1 }).className;
+    unmount();
+    render(<HeaderBar title="앱" titleAs="h2" />);
+    const h2 = screen.getByRole('heading', { level: 2, name: '앱' });
+    expect(h2.className).toBe(h1Class);
+    expect(screen.queryByRole('heading', { level: 1 })).not.toBeInTheDocument();
+  });
+
+  // testing-library의 role 계산은 header를 어디에 두든 banner로 본다(HTML-AAM의
+  // 문맥 규칙 없음). 그래서 section 안에서 banner가 사라지는 것은 브라우저에서 확인하고,
+  // 여기서는 그 규칙을 막는 명시적 role이 없다는 것을 지킨다.
+  it('banner는 header의 기본 의미에 맡기고 role을 명시하지 않는다', () => {
+    render(<HeaderBar title="앱" />);
+    const banner = screen.getByRole('banner');
+    expect(banner.tagName).toBe('HEADER');
+    expect(banner).not.toHaveAttribute('role');
+  });
+
+  it('소비자가 role을 넘기면 그 role이 이긴다', () => {
+    render(<HeaderBar title="앱" role="contentinfo" />);
+    expect(screen.getByRole('contentinfo')).toBeInTheDocument();
+    expect(screen.queryByRole('banner')).not.toBeInTheDocument();
+  });
+
   it('actions 영역을 렌더링한다', () => {
     render(<HeaderBar actions={<button type="button">Login</button>} />);
     expect(screen.getByRole('button', { name: 'Login' })).toBeInTheDocument();

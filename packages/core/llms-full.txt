@@ -995,6 +995,7 @@ The items hide and a hamburger button (two lines that gather into an X, `aria-ex
 |------|------|---------|-------------|
 | logo | ReactNode | - | Logo element |
 | title | ReactNode | - | Title/heading |
+| titleAs | 'h1' to 'h6' or 'span' | 'h1' | Element of the title, same style for every value. Use a lower level or `span` when the page already has an h1 |
 | items | HeaderBarItem[] | - | Center items: `{ label, href?, onClick?, icon?, active?, links? }`. `<a>` with `href`, otherwise `<button>`; `active` sets `aria-current="page"`. With `navStyle="icon"` every item needs `icon`. `links` (`{ label, href?, onClick? }[]`) is used by `navStyle="dropdown"` and `"cards"` |
 | navStyle | 'pill' \| 'text' \| 'dropdown' \| 'cards' \| 'icon' | 'pill' | How the items look |
 | actions | ReactNode | - | Right side actions |

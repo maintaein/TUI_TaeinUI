@@ -23,6 +23,10 @@ const meta = {
   argTypes: {
     logo: { control: false },
     title: { control: 'text' },
+    titleAs: {
+      control: 'select',
+      options: ['h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'span'],
+    },
     items: { control: false },
     // icon은 항목마다 아이콘이 필요해 여기서 고르면 빈 알약이 된다. 자기 스토리가 따로 있다.
     // 기본값은 pill이라 맨 앞에 둔다.

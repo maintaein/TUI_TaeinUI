@@ -42,7 +42,7 @@ test('알약을 호버로 채운 뒤 뷰포트 폭이나 높이를 바꿔도 채
   const header = page
     .getByRole('heading', { name: 'navStyle: pill', level: 3 })
     .locator('..')
-    .getByRole('banner');
+    .locator('header');
   await header.scrollIntoViewIfNeeded();
   // 선택(aria-current)된 항목은 처음부터 채워져 있어 호버의 증거가 못 된다.
   const item = header.getByRole('link', { name: '카테고리' });

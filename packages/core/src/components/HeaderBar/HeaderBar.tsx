@@ -81,6 +81,8 @@ interface HeaderBarBaseProps extends Omit<
   logo?: ReactNode;
   /** 로고 옆 제목 */
   title?: ReactNode;
+  /** 제목 요소. 페이지에 이미 h1이 있으면 바꾼다. 스타일은 같다 @default 'h1' */
+  titleAs?: 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6' | 'span';
   /** 오른쪽 액션 영역 (버튼, 아이콘 등) */
   actions?: ReactNode;
   /** 스크롤 시 화면 위에 붙어 따라온다(위 여백 유지) @default false */
@@ -119,6 +121,7 @@ export type HeaderBarProps = HeaderBarBaseProps &
 export const HeaderBar = ({
   logo,
   title,
+  titleAs: Title = 'h1',
   actions,
   sticky = false,
   items,
@@ -254,7 +257,6 @@ export const HeaderBar = ({
 
   return (
     <header
-      role="banner"
       aria-label={ariaLabel}
       className={clsx(
         headerBar,
@@ -267,7 +269,7 @@ export const HeaderBar = ({
         {(logo || title) && (
           <div className={leftSection}>
             {logo && <div className={logoStyle}>{logo}</div>}
-            {title && <h1 className={titleStyle}>{title}</h1>}
+            {title && <Title className={titleStyle}>{title}</Title>}
           </div>
         )}
 

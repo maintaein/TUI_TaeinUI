@@ -325,6 +325,7 @@ export function SceneContent({
         <HeaderBar
           aria-label="쇼케이스 헤더"
           title="TUI"
+          titleAs="span"
           navStyle="pill"
           items={[
             {

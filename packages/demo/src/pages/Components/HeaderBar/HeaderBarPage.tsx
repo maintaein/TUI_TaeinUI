@@ -19,6 +19,13 @@ export function HeaderBarPage() {
       description: '로고 옆에 표시할 제목 텍스트',
     },
     {
+      name: 'titleAs',
+      type: "'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6' | 'span'",
+      default: "'h1'",
+      description:
+        '제목 요소. 스타일은 같습니다. 페이지에 이미 h1이 있으면 낮은 단계나 span으로 바꾸세요',
+    },
+    {
       name: 'items',
       type: 'HeaderBarItem[]',
       description:
@@ -378,15 +385,9 @@ export function HeaderBarPage() {
         features={[
           {
             attribute: '<header> 요소',
-            effect: '스크린 리더에서 "배너"로 인식합니다.',
+            effect: '문서 최상위에 두면 스크린 리더에서 "배너"로 인식합니다.',
             description:
-              '네이티브 header 요소를 사용하여 role="banner"를 자동으로 전달합니다.',
-          },
-          {
-            attribute: 'role="banner"',
-            effect: '페이지의 주요 헤더 영역을 명시합니다.',
-            description:
-              'landmark role로 스크린 리더 사용자가 헤더 영역으로 빠르게 이동할 수 있습니다.',
+              'role을 따로 적지 않고 header 요소의 기본 의미에 맡깁니다. section·article·aside·nav·main 안에 두면 banner가 아닙니다. landmark로 스크린 리더 사용자가 헤더 영역으로 빠르게 이동할 수 있습니다.',
           },
           {
             attribute: 'aria-label',
@@ -398,7 +399,7 @@ export function HeaderBarPage() {
             attribute: '<h1> 제목',
             effect: '페이지 제목 구조를 전달합니다.',
             description:
-              'title prop은 h1 요소로 렌더링되어 문서 구조를 올바르게 전달합니다.',
+              'title prop은 기본으로 h1 요소로 렌더링됩니다. 페이지에 이미 h1이 있으면 titleAs로 낮은 단계나 span을 고르세요.',
           },
           {
             attribute: '3단 레이아웃',
@@ -444,7 +445,7 @@ export function HeaderBarPage() {
 <HeaderBar title="Top" />
 <HeaderBar title="Sub" />`,
                 explanation:
-                  '한 페이지에 role="banner"가 여러 개이면 스크린 리더 사용자가 혼란을 겪을 수 있습니다.',
+                  '한 페이지에 최상위 header(banner)가 여러 개이면 스크린 리더 사용자가 혼란을 겪을 수 있습니다.',
               },
             ],
           },
