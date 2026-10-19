@@ -516,6 +516,7 @@ export function ComponentShowcase() {
   }, [order, goTo]);
 
   // 멈춤·재개. 마우스가 나갔다면 그 장면의 :out부터 이어 간다(처음으로 돌아가지 않는다).
+  // 건너뛴 act가 만들었어야 할 상태(ensure)는 먼저 맞추고, React가 그린 다음 프레임에 재생한다.
   useEffect(() => {
     const tl = tlRef.current;
     if (!tl) return;
@@ -531,11 +532,27 @@ export function ComponentShowcase() {
     fx.forEach((a) => a.resume());
     if (tookOverRef.current) {
       tookOverRef.current = false;
-      tl.play(`s${indexRef.current}:out`);
-    } else {
-      tl.resume();
+      const label = `s${indexRef.current}:out`;
+      const ensure = SCENES[indexRef.current].ensure;
+      if (!ensure) {
+        tl.play(label);
+        return;
+      }
+      update(ensure);
+      let pending = true;
+      const frame = requestAnimationFrame(() => {
+        pending = false;
+        tl.play(label);
+      });
+      return () => {
+        if (!pending) return;
+        cancelAnimationFrame(frame);
+        // 그 전에 다시 멈췄으면 다음 재개도 :out부터 이어 간다
+        tookOverRef.current = true;
+      };
     }
-  }, [playing, takeover]);
+    tl.resume();
+  }, [playing, takeover, update]);
 
   // 보이는지(화면 밖, 탭 숨김)와 마우스·터치로 넘겨받기.
   useEffect(() => {

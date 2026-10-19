@@ -112,6 +112,11 @@ export interface Scene {
   wide?: boolean;
   /** 장면이 시작될 때 덮어쓰는 상태 */
   enter: Partial<Demo>;
+  /**
+   * 넘겨받았다 놓으면 타임라인이 :out으로 뛰어 act의 상태 변경을 건너뛴다. 나가는 부품(give)이
+   * 그 상태가 있어야 생기는 장면만, 그 상태를 놓을 때 맞춘다. 다른 값은 덮지 않는다
+   */
+  ensure?: Partial<Demo>;
   /** 다음 장면으로 넘겨주는 부품(앞 → 뒤 순서대로 짝지어진다) */
   give?: Part[];
   /** 앞 장면에서 넘겨받는 부품 */
@@ -194,6 +199,7 @@ export const SCENES: Scene[] = [
     name: 'Loader · Popover',
     id: 'loader',
     enter: { loader: 'loading', popover: false },
+    ensure: { loader: 'done', popover: true },
     give: [PARTS.bubble],
     take: [PARTS.dots],
     grows: true,
