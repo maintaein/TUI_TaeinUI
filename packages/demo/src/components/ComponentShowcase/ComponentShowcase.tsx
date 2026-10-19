@@ -7,39 +7,49 @@ import {
   useState,
 } from 'react';
 import gsap from 'gsap';
-import { Flip } from 'gsap/Flip';
 import { MousePointer2, Pause, Play } from 'lucide-react';
 import {
   Button,
   IconButton,
+  mediaQuery,
   themeContract,
   useReducedMotion,
 } from '@taein-ui/core';
+import { useMediaQuery } from '../../hooks/useMediaQuery';
 import * as styles from './ComponentShowcase.css';
+import { hideParts, reachable, type Look, type Part } from './parts';
 import {
   INITIAL_DEMO,
   SCENES,
-  STATS_SCENE,
   SceneContent,
   dur,
   ease,
   type Actions,
   type ActApi,
   type Demo,
-  type Shape,
+  type Scene,
   type Target,
 } from './scenes';
 
-gsap.registerPlugin(Flip);
-
-// 장면 시작에서 연출이 시작되기까지(틀 slow, 새 내용은 절반 지점부터 base).
-const ENTER = dur.slow;
 // 전환 사이 멈춤(fast).
 const HOLD = dur.fast;
 // 흐림 양과 커서 아이콘 크기(lucide MousePointer2 화살촉은 24px 상자의 (4,4)).
 const BLUR = 'blur(6px)';
 const CURSOR_SIZE = 24;
 const CURSOR_TIP = 4;
+// 흩어지거나 모이는 대리 상자 사이의 시차(20~40ms).
+const STAGGER = 0.03;
+// 슬라이더 손잡이가 채움 끝에서 튀어나오기 시작하는 때(대리 상자가 거의 닿았을 때).
+const POP_DELAY = dur.slow * 0.8;
+
+/** 장면에 들어오는 전환이 끝나기까지(초). 연출은 그 뒤에 시작한다 */
+const enterSeconds = (scene: Scene) =>
+  Math.max(
+    dur.slow,
+    // 뒤 컴포넌트의 나머지 부품이 절반 지점에서 base 동안 들어온다.
+    dur.slow / 2 + dur.base,
+    scene.pop ? POP_DELAY + dur.slow : 0
+  ) + (scene.spread ? (scene.spread - 1) * STAGGER : 0);
 
 interface Flags {
   /** 멈춤 단추, 또는 터치로 무대를 누름 */
@@ -50,16 +60,14 @@ interface Flags {
   hidden: boolean;
 }
 
-interface Leaving {
-  scene: number;
-  demo: Demo;
-}
-
 const pruneDone = (fx: Set<gsap.core.Animation>) => {
   for (const a of fx) if (a.progress() >= 1) fx.delete(a);
 };
 
-const firePointer = (el: Element | null, type: 'pointerdown' | 'pointerup') =>
+const firePointer = (
+  el: Element | null,
+  type: 'pointerdown' | 'pointerup' | 'pointerover'
+) =>
   el?.dispatchEvent(
     new PointerEvent(type, {
       bubbles: true,
@@ -72,29 +80,29 @@ const firePointer = (el: Element | null, type: 'pointerdown' | 'pointerup') =>
     })
   );
 
-/** 층의 크기(패딩 포함)와 모양에 맞는 틀의 값 */
-const shellFor = (stage: HTMLElement, layer: HTMLElement, shape: Shape) => {
-  let width = layer.offsetWidth;
-  let height = layer.offsetHeight;
-  // 원은 긴 쪽에 맞춘 정사각형. 반경은 아래 min/2가 그대로 full이 된다.
-  if (shape === 'circle') width = height = Math.max(width, height);
-  let borderRadius = Math.min(width, height) / 2;
-  if (shape === 'card') {
-    // 토큰(borderRadius.xl)의 실제 px. gsap은 var()를 트윈하지 못한다.
-    const probe = document.createElement('div');
-    probe.style.borderRadius = themeContract.borderRadius.xl;
-    stage.append(probe);
-    borderRadius = parseFloat(getComputedStyle(probe).borderTopLeftRadius);
-    probe.remove();
+/** 층에서 부품들을 찾는다. 하나라도 못 찾으면 null */
+const lookAll = (layer: HTMLElement, parts: Part[] | undefined) => {
+  const looks: Look[] = [];
+  for (const part of parts ?? []) {
+    const found = part(layer);
+    if (!found) return null;
+    looks.push(...found);
   }
-  return { width, height, borderRadius };
+  return looks.length ? looks : null;
 };
 
 export function ComponentShowcase() {
   const reduced = useReducedMotion();
-  const [index, setIndex] = useState(0);
+  // 좁은 화면(core HeaderBar가 햄버거로 접히는 폭)에서는 pill 장면을 건너뛴다.
+  const narrow = useMediaQuery(mediaQuery.down.md);
+  const order = useMemo(
+    () => SCENES.flatMap((scene, i) => (narrow && scene.wideOnly ? [] : [i])),
+    [narrow]
+  );
+  const [index, setIndex] = useState(order[0]);
+  // 전환 동안 남아 있는 앞 장면(같은 DOM이 그대로 있어 부품의 실제 모양을 읽는다)
+  const [front, setFront] = useState<number | null>(null);
   const [demo, setDemo] = useState<Demo>(INITIAL_DEMO);
-  const [leaving, setLeaving] = useState<Leaving | null>(null);
   const [flags, setFlags] = useState<Flags>({
     user: false,
     hover: false,
@@ -110,14 +118,15 @@ export function ComponentShowcase() {
   const takeover = flags.hover || flags.user;
 
   const stageRef = useRef<HTMLDivElement>(null);
-  const shellRef = useRef<HTMLDivElement>(null);
   const cursorRef = useRef<HTMLSpanElement>(null);
-  const indexRef = useRef(0);
+  const indexRef = useRef(order[0]);
+  const frontRef = useRef<number | null>(null);
   const demoRef = useRef(INITIAL_DEMO);
   const tlRef = useRef<gsap.core.Timeline | null>(null);
   // React 커밋 뒤에 레이아웃 효과에서 만든 트윈들. 멈춤·재개를 마스터와 같이 건다.
   const fxRef = useRef(new Set<gsap.core.Animation>());
-  const flipRef = useRef<ReturnType<typeof Flip.getState> | null>(null);
+  // 진행 중인 전환을 끝 상태로 확정하는 함수(대리 상자 제거, 부품 복원)
+  const finishRef = useRef<(() => void) | null>(null);
   const shownRef = useRef<number | null>(null);
   const tookOverRef = useRef(false);
 
@@ -139,38 +148,24 @@ export function ComponentShowcase() {
 
   const on = useMemo<Actions>(
     () => ({
-      period: (value) => {
-        update({ period: value as Demo['period'] });
-        if (indexRef.current === STATS_SCENE) {
-          update({ stats: 'loading' });
-          setTimeout(() => update({ stats: 'ready' }), 500);
-        }
-      },
+      page: (page) => update({ page }),
+      popover: (popover) => update({ popover }),
+      period: (value) => update({ period: value as Demo['period'] }),
       volume: (volume) => update({ volume }),
       notify: (notify) => update({ notify }),
-      query: (query) => update({ query }),
-      remove: (label) =>
-        update({ chips: demoRef.current.chips.filter((c) => c !== label) }),
-      pick: (label) => update({ picked: label }),
+      agree: (agree) => update({ agree }),
     }),
     [update]
   );
 
-  // 장면 i로 넘어간다. 옛 내용은 떠나는 층으로 남기고(다른 묶음),
-  // 같은 묶음이면 공유 요소의 옛 자리를 잰다(Flip).
+  // 장면 i로 넘어간다. 앞 장면은 그대로 남겨 두고(animate) 전환 효과가 부품을 읽는다.
   const goTo = useCallback(
-    (i: number) => {
+    (i: number, animate = true) => {
       const from = indexRef.current;
+      finishRef.current?.();
       if (from !== i) {
-        if (SCENES[from].group === SCENES[i].group) {
-          flipRef.current = Flip.getState(
-            stageRef.current?.querySelectorAll(
-              '[data-layer="current"] [data-flip-id]'
-            ) ?? []
-          );
-        } else {
-          setLeaving({ scene: from, demo: demoRef.current });
-        }
+        frontRef.current = animate ? from : null;
+        setFront(frontRef.current);
         indexRef.current = i;
         setIndex(i);
       }
@@ -179,99 +174,160 @@ export function ComponentShowcase() {
     [update]
   );
 
-  // 틀과 내용의 전환. 장면이 바뀐 React 커밋 뒤, 그려지기 전에 만든다.
+  // 앞 부품의 모양에서 뒤 부품의 모양으로 대리 상자가 잇는다. 장면이 바뀐 React 커밋 뒤, 그려지기 전에 시작한다.
   useLayoutEffect(() => {
     const stage = stageRef.current;
-    const shell = shellRef.current;
     const layer = stage?.querySelector<HTMLElement>('[data-layer="current"]');
-    if (!stage || !shell || !layer) return;
-    const scene = SCENES[index];
-    const next = shellFor(stage, layer, scene.shape);
+    if (!stage || !layer) return;
     const previous = shownRef.current;
     shownRef.current = index;
+    if (previous === null || previous === index) return;
 
-    if (previous === null || previous === index || reduced) {
-      gsap.killTweensOf(shell, 'width,height,borderRadius');
-      gsap.set(shell, next);
-      flipRef.current = null;
-      // 모션 축소: 떠나는 층 없이 즉시 바뀐다.
-      if (previous !== index) queueMicrotask(() => setLeaving(null));
+    const frontEl = stage.querySelector<HTMLElement>('[data-layer="leaving"]');
+    const fromIndex = frontRef.current;
+    if (reduced || !frontEl || fromIndex === null) {
+      queueMicrotask(() => setFront(null));
       return;
     }
+    // 새 층은 부품의 모양을 읽을 때까지 보이지 않게 둔다(레이아웃은 잡힌다).
+    gsap.set(layer, { autoAlpha: 0 });
 
-    // 펼침은 넘치고(snap) 접힘은 넘치지 않는다(settle).
-    const grows =
-      next.width * next.height > shell.offsetWidth * shell.offsetHeight;
-    track(
-      gsap.to(shell, {
-        ...next,
-        duration: dur.slow,
-        ease: grows ? ease.snap : ease.settle,
-        overwrite: 'auto',
-      })
-    );
+    let cancelled = false;
+    // Slider처럼 자기 폭을 재서 한 번 더 그리는 컴포넌트가 있어, 그 두 번째 그림이 끝난 뒤에 읽는다.
+    queueMicrotask(() => {
+      if (cancelled) return;
+      const scene = SCENES[index];
+      const from = lookAll(frontEl, SCENES[fromIndex].give);
+      const to = lookAll(layer, scene.take);
+      if ((!from || !to) && process.env.NODE_ENV === 'development') {
+        console.warn(
+          `ComponentShowcase: ${SCENES[fromIndex].name} -> ${scene.name} 부품을 못 찾아 흐림 교체로 내려앉는다. parts.ts의 선택자를 확인하라.`
+        );
+      }
+      const looks = from && to ? { from, to } : null;
 
-    const flipState = flipRef.current;
-    flipRef.current = null;
-    if (flipState) {
-      // 같은 묶음: 공유 요소는 같은 요소가 새 자리로 미끄러지고, 새로 생긴 부분만 흐림으로 들어온다.
-      track(Flip.from(flipState, { duration: dur.slow, ease: ease.settle }));
-      const entering = layer.querySelectorAll(
-        '[data-enter], [data-enter-children] > *'
+      const origin = stage.getBoundingClientRect();
+      const originX = origin.left + stage.clientLeft;
+      const originY = origin.top + stage.clientTop;
+      const restore = looks ? [hideParts(looks.from), hideParts(looks.to)] : [];
+
+      const pairs = looks
+        ? Array.from(
+            { length: Math.max(looks.from.length, looks.to.length) },
+            (_, i) => {
+              const a = looks.from[Math.min(i, looks.from.length - 1)];
+              const b = looks.to[Math.min(i, looks.to.length - 1)];
+              const el = document.createElement('div');
+              el.className = styles.surrogate;
+              el.setAttribute('aria-hidden', 'true');
+              stage.append(el);
+              // 테두리가 한쪽에만 있으면 없는 쪽도 그 색을 이어받아 색이 중간에 튀지 않는다.
+              gsap.set(el, {
+                left: a.left - originX,
+                top: a.top - originY,
+                width: a.width,
+                height: a.height,
+                borderRadius: a.radius,
+                backgroundColor: reachable(b.color, a.color),
+                borderWidth: a.borderWidth,
+                borderColor: a.borderWidth ? a.borderColor : b.borderColor,
+              });
+              return {
+                el,
+                to: {
+                  left: b.left - originX,
+                  top: b.top - originY,
+                  width: b.width,
+                  height: b.height,
+                  borderRadius: b.radius,
+                  backgroundColor: reachable(a.color, b.color),
+                  borderWidth: b.borderWidth,
+                  borderColor: b.borderWidth ? b.borderColor : a.borderColor,
+                },
+              };
+            }
+          )
+        : [];
+
+      const popEl = scene.pop?.(layer);
+      const master = gsap.timeline({ onComplete: () => finish() });
+      const finish = () => {
+        if (finishRef.current !== finish) return;
+        finishRef.current = null;
+        master.kill();
+        restore.forEach((fn) => fn());
+        pairs.forEach(({ el }) => el.remove());
+        gsap.set(popEl ? [layer, popEl] : layer, {
+          clearProps: 'opacity,visibility,filter,transform',
+        });
+        setFront(null);
+      };
+      finishRef.current = finish;
+      track(master);
+
+      // 앞 컴포넌트의 나머지 부품은 흐려지며 나간다.
+      master.to(
+        frontEl,
+        { opacity: 0, filter: BLUR, duration: dur.fast, ease: ease.exit },
+        0
       );
-      track(
-        gsap.fromTo(
-          entering,
-          { opacity: 0, filter: BLUR },
+      if (looks) {
+        // 펼침(더 넓어짐, 흩어짐)은 넘치고 접힘(모임)은 넘치지 않는다.
+        const area = (ls: Look[]) =>
+          ls.reduce((sum, l) => sum + l.width * l.height, 0);
+        const grows =
+          looks.from.length !== looks.to.length
+            ? looks.to.length > looks.from.length
+            : area(looks.to) > area(looks.from);
+        master.to(
+          pairs.map(({ el }) => el),
           {
-            opacity: 1,
-            filter: 'blur(0px)',
-            duration: dur.base,
-            ease: ease.settle,
-            delay: dur.slow / 2,
-            stagger: 0.06,
-            clearProps: 'opacity,filter',
-          }
-        )
-      );
-      return;
-    }
-
-    // 다른 묶음: 옛 내용은 흐려지며 나가고, 새 내용은 틀 전환의 절반 지점부터 들어온다.
-    const old = stage.querySelector('[data-layer="leaving"]');
-    if (old) {
-      track(
-        gsap.to(old, {
-          opacity: 0,
-          filter: BLUR,
-          duration: dur.fast,
-          ease: ease.exit,
-          onComplete: () => setLeaving(null),
-        })
-      );
-    }
-    track(
-      gsap.fromTo(
+            left: (i: number) => pairs[i].to.left,
+            top: (i: number) => pairs[i].to.top,
+            width: (i: number) => pairs[i].to.width,
+            height: (i: number) => pairs[i].to.height,
+            borderRadius: (i: number) => pairs[i].to.borderRadius,
+            backgroundColor: (i: number) => pairs[i].to.backgroundColor,
+            borderWidth: (i: number) => pairs[i].to.borderWidth,
+            borderColor: (i: number) => pairs[i].to.borderColor,
+            duration: dur.slow,
+            ease: grows ? ease.snap : ease.settle,
+            stagger: scene.spread ? STAGGER : 0,
+          },
+          0
+        );
+      }
+      // 뒤 컴포넌트의 나머지 부품은 대리 상자가 절반쯤 왔을 때 들어온다.
+      master.fromTo(
         layer,
-        { opacity: 0, filter: BLUR },
+        { autoAlpha: 0, filter: BLUR },
         {
-          opacity: 1,
+          autoAlpha: 1,
           filter: 'blur(0px)',
           duration: dur.base,
           ease: ease.settle,
-          delay: dur.slow / 2,
-          clearProps: 'opacity,filter',
-        }
-      )
-    );
+        },
+        dur.slow / 2
+      );
+      if (popEl) {
+        master.fromTo(
+          popEl,
+          { scale: 0 },
+          { scale: 1, duration: dur.slow, ease: ease.snap },
+          POP_DELAY
+        );
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
   }, [index, reduced, track]);
 
   // 하나의 타임라인. 장면마다 s<i>, s<i>:act, s<i>:out.
   useLayoutEffect(() => {
     const stage = stageRef.current;
-    const shell = shellRef.current;
     const cursor = cursorRef.current;
-    if (reduced || !stage || !shell || !cursor) return;
+    if (reduced || !stage || !cursor) return;
 
     const ctx = gsap.context(() => {
       gsap.set(cursor, {
@@ -310,13 +366,15 @@ export function ComponentShowcase() {
         find,
         at,
         move: (target, seconds, fx = 0.5) => {
-          // ponytail: 목표 중심으로 곧장 간다. 장면 안에서 목표가 움직이면(Flip 중) 시작 시점 좌표로 간다.
           tl.to(cursor, {
             x: () => at(target, fx)?.x ?? Number(gsap.getProperty(cursor, 'x')),
             y: () => at(target, fx)?.y ?? Number(gsap.getProperty(cursor, 'y')),
             duration: seconds,
             ease: ease.settle,
           });
+        },
+        hover: (target) => {
+          tl.call(() => firePointer(target(), 'pointerover'));
         },
         down: (target) => {
           tl.call(() => {
@@ -343,26 +401,13 @@ export function ComponentShowcase() {
           tl.call(() => update(patch));
         },
         now: update,
-        pop: () => {
-          tl.call(() => {
-            track(
-              gsap
-                .timeline()
-                .to(shell, {
-                  scale: 1.08,
-                  duration: dur.fast,
-                  ease: ease.settle,
-                })
-                .to(shell, { scale: 1, duration: dur.fast, ease: ease.snap })
-            );
-          });
-        },
       };
 
-      SCENES.forEach((scene, i) => {
+      order.forEach((i) => {
+        const scene = SCENES[i];
         tl.addLabel(`s${i}`);
         tl.call(() => goTo(i));
-        tl.to(pace, { duration: ENTER });
+        tl.to(pace, { duration: enterSeconds(scene) });
         tl.addLabel(`s${i}:act`);
         scene.act(api);
         tl.addLabel(`s${i}:out`);
@@ -377,8 +422,14 @@ export function ComponentShowcase() {
       tlRef.current = null;
       fx.forEach((a) => a.kill());
       fx.clear();
+      finishRef.current?.();
     };
-  }, [reduced, goTo, update, track]);
+  }, [reduced, goTo, update, order]);
+
+  // 폭이 좁아져 지금 장면이 건너뛰는 장면이면 첫 장면으로 곧장 옮긴다.
+  useEffect(() => {
+    if (!order.includes(indexRef.current)) goTo(order[0], false);
+  }, [order, goTo]);
 
   // 멈춤·재개. 마우스가 나갔다면 그 장면의 :out부터 이어 간다(처음으로 돌아가지 않는다).
   useEffect(() => {
@@ -430,18 +481,8 @@ export function ComponentShowcase() {
     stage.addEventListener('pointerenter', onEnter);
     stage.addEventListener('pointerleave', onLeave);
     stage.addEventListener('pointerdown', onDown);
-    // 창 크기가 바뀌면 틀을 지금 내용 크기로 곧장 맞춘다.
-    const ro = new ResizeObserver(() => {
-      const shell = shellRef.current;
-      const layer = stage.querySelector<HTMLElement>('[data-layer="current"]');
-      if (!shell || !layer) return;
-      gsap.killTweensOf(shell, 'width,height,borderRadius');
-      gsap.set(shell, shellFor(stage, layer, SCENES[indexRef.current].shape));
-    });
-    ro.observe(stage);
     return () => {
       io.disconnect();
-      ro.disconnect();
       document.removeEventListener('visibilitychange', onVisibility);
       stage.removeEventListener('pointerenter', onEnter);
       stage.removeEventListener('pointerleave', onLeave);
@@ -454,26 +495,21 @@ export function ComponentShowcase() {
   return (
     <section className={styles.root} aria-label="컴포넌트 쇼케이스">
       <div ref={stageRef} className={styles.stage} data-playing={playing}>
-        <div ref={shellRef} className={styles.shell} />
-        {leaving && (
-          <div
-            className={styles.layer}
-            data-layer="leaving"
-            data-shape={SCENES[leaving.scene].shape}
-            inert
-          >
-            <SceneContent scene={leaving.scene} demo={leaving.demo} on={on} />
-          </div>
+        {[front, index].map(
+          (n) =>
+            n !== null && (
+              <div
+                key={n}
+                className={styles.layer}
+                data-layer={n === index ? 'current' : 'leaving'}
+                data-id={SCENES[n].id}
+                data-wide={SCENES[n].wide ? '' : undefined}
+                inert={n === index ? playing : true}
+              >
+                <SceneContent scene={n} demo={demo} on={on} />
+              </div>
+            )
         )}
-        <div
-          key={scene.group}
-          className={styles.layer}
-          data-layer="current"
-          data-shape={scene.shape}
-          inert={playing}
-        >
-          <SceneContent scene={index} demo={demo} on={on} />
-        </div>
         <span ref={cursorRef} className={styles.cursor} aria-hidden="true">
           <MousePointer2
             size={CURSOR_SIZE}
@@ -504,7 +540,9 @@ export function ComponentShowcase() {
           <Button
             size="sm"
             variant="light"
-            onClick={() => goTo((index + 1) % SCENES.length)}
+            onClick={() =>
+              goTo(order[(order.indexOf(index) + 1) % order.length], false)
+            }
           >
             다음 장면
           </Button>
