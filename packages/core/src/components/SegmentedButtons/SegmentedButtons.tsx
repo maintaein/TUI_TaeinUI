@@ -27,6 +27,10 @@ import { useReducedMotion } from '../../hooks/useReducedMotion';
 import { gsapEasing, gsapDuration } from '../../tokens/gsapEasing';
 import { rubberStages, type Slot } from './segmentedMotion';
 
+// TS의 FocusOptions에 focusVisible이 아직 없다. 변수로 넘기면 초과 속성 검사를 피하고,
+// 공통 속성(preventScroll)이 있어야 약한 타입 검사도 통과한다.
+const FOCUS_WITHOUT_RING = { preventScroll: false, focusVisible: false };
+
 /**
  * 표시의 두 가장자리로 `clip-path`를 만든다. 표시 층은 트랙 전체 폭이라 왼쪽 inset은
  * L, 오른쪽 inset은 `100% - R`이다(둘 다 트랙 왼쪽 기준 px). 둥근 끝은 트랙과 같은 중심의
@@ -286,7 +290,9 @@ export const SegmentedButtons = ({
       if (disabled || optionDisabled) return;
       handleSelect(optionValue);
       // 라벨의 기본 동작을 막았으니 포커스는 숨은 라디오로 직접 옮긴다(방향키가 이어지도록).
-      event.currentTarget.querySelector('input')?.focus();
+      // 마우스 클릭이라 포커스 링은 켜지 않는다.
+      // shortcut: focusVisible 옵션을 모르는 브라우저(Safari 18.4 이전 등)는 링이 켜진다, 지원이 퍼지면 이 줄만 남는다.
+      event.currentTarget.querySelector('input')?.focus(FOCUS_WITHOUT_RING);
     },
     [disabled, handleSelect]
   );
