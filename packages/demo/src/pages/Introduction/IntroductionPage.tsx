@@ -10,6 +10,7 @@ import {
   LayoutGrid,
 } from 'lucide-react';
 import { LivePreview } from '../../components/LivePreview';
+import { ComponentShowcase } from '../../components/ComponentShowcase';
 import * as styles from './IntroductionPage.css';
 
 export function IntroductionPage() {
@@ -49,6 +50,8 @@ export function IntroductionPage() {
           </div>
         </div>
       </section>
+
+      <ComponentShowcase />
 
       {/* Hero Image
       <div className={styles.heroImageWrapper}>
