@@ -11,16 +11,19 @@ export function IntroductionPage() {
       <h1 className={styles.logo}>
         <img
           src="/images/TUIlogo.webp"
-          alt="TUI TaeinUI"
+          alt="TUI"
           width={1362}
           height={1155}
           className={styles.logoImage}
           fetchPriority="high"
           decoding="async"
         />
+        <span className={styles.logoText}>Taein UI</span>
       </h1>
 
-      <ComponentShowcase />
+      <div className={styles.showcaseSlot}>
+        <ComponentShowcase />
+      </div>
 
       <section className={styles.intro}>
         <p className={styles.heroDescription}>

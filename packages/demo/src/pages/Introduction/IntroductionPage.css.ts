@@ -1,25 +1,47 @@
-import { style } from '@vanilla-extract/css';
+import { themeContract } from '@taein-ui/core';
+import { globalStyle, style } from '@vanilla-extract/css';
+
+const { color, spacing, font } = themeContract;
 
 export const container = style({
   maxWidth: '1200px',
   margin: '0 auto',
-  padding: '2rem',
+  padding: '0 2rem 2rem',
   '@media': {
     '(max-width: 768px)': {
-      padding: '1rem',
+      padding: '0 1rem 1rem',
     },
   },
 });
 
+// 로고 이미지와 "Taein UI" 글자를 한 h1에 세로로 쌓는다.
 export const logo = style({
   display: 'flex',
-  justifyContent: 'center',
-  margin: '1.5rem 0 0.5rem',
+  flexDirection: 'column',
+  alignItems: 'center',
+  margin: 0,
+});
+
+export const logoText = style({
+  marginTop: spacing[1],
+  fontSize: font.size.xl,
+  fontWeight: font.weight.semibold,
+  color: color.text.secondary,
   '@media': {
     '(max-width: 768px)': {
-      margin: '1rem 0 0.5rem',
+      fontSize: font.size.base,
     },
   },
+});
+
+// "Taein UI"와 쇼케이스 사이 여백.
+export const showcaseSlot = style({
+  marginTop: spacing[8],
+});
+
+// 쇼케이스 root가 아래 여백 4rem을 스스로 갖는다. 이 페이지에서는 캡션과 소개글을 가깝게 붙이려고 0으로 덮는다.
+globalStyle(`${showcaseSlot} > section`, {
+  marginBottom: 0,
 });
 
 export const logoImage = style({
@@ -35,14 +57,15 @@ export const logoImage = style({
 export const intro = style({
   textAlign: 'center',
   maxWidth: '800px',
-  margin: '0 auto',
+  margin: `${spacing[2]} auto 0`,
 });
 
 export const heroDescription = style({
   fontSize: '1.25rem',
   lineHeight: 1.8,
   color: '#4b5563',
-  marginBottom: '2rem',
+  marginBottom: spacing[4],
+  wordBreak: 'keep-all',
   '@media': {
     '(max-width: 768px)': {
       fontSize: '1rem',
