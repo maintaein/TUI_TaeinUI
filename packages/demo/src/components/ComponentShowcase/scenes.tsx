@@ -222,7 +222,12 @@ export const SCENES: Scene[] = [
       const month = a.find('label', '월간');
       a.move(month, CURSOR_MOVE);
       a.press(month);
-      // 고무 표식이 미끄러지는 시간
+      // 고무 표식이 미끄러지는 시간, 그 결과를 보여 주는 시간
+      a.wait(dur.slower + dur.slow);
+      // 가운데 옵션을 한 번 더 눌러 표식이 되돌아오게 한다
+      const week = a.find('label', '주간');
+      a.move(week, CURSOR_MOVE);
+      a.press(week);
       a.wait(dur.slower);
     },
   },
