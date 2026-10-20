@@ -128,6 +128,13 @@ export interface Scene {
   grows?: boolean;
   /** 펼침 전환이 끝 값에 앉는 마무리 이징. 없으면 settle */
   moveEase?: 'settle' | 'spring';
+  /** 대리 상자를 앞 내용 뒤에 깐다. 앞 부품의 글자가 대리 상자 위에서 흐려지며 나가는 것이 보인다 */
+  behind?: boolean;
+  /**
+   * 들어오는 전환이 부드럽게 이어받는다: 대리 상자를 층 아래에 깔고, 앞 내용이 나가고 새 내용이 들어올 때 drift를
+   * 쓰며, 대리 상자가 도착한 뒤에야 진짜 부품과 교차해 넘긴다. 없으면 끝에서 대리 상자를 지우고 진짜 부품을 켠다
+   */
+  soft?: boolean;
   /**
    * 단계를 겹치지 않는다. 'out': 옛 내용이 다 나간 뒤 모양이 움직인다.
    * 'all': 거기에 더해 모양이 다 움직인 뒤 새 내용이 들어온다(눈이 대리 상자 하나만 따라간다)
@@ -170,6 +177,7 @@ export const SCENES: Scene[] = [
     give: [PARTS.button],
     take: [PARTS.button],
     grows: true,
+    soft: true,
     act: (a) => {
       const button = a.find('button', '모션 만들기');
       a.move(button, CURSOR_MOVE);
@@ -185,6 +193,7 @@ export const SCENES: Scene[] = [
     take: [PARTS.dots],
     spread: ORBIT_DOTS,
     shatter: { cols: 4, rows: 2 },
+    soft: true,
     act: (a) => {
       a.wait(dur.slower * 1.6);
       a.set({ loader: 'done' });
@@ -208,6 +217,7 @@ export const SCENES: Scene[] = [
     grows: true,
     moveEase: 'spring',
     staged: 'out',
+    behind: true,
     act: (a) => {
       const month = a.find('label', '월간');
       a.move(month, CURSOR_MOVE);
