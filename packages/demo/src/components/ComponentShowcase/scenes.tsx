@@ -119,7 +119,7 @@ export interface Scene {
   take?: Part[];
   /** 부품이 여럿으로 흩어지거나 모이는 수. 점마다 시차를 둔다 */
   spread?: number;
-  /** 앞 부품 하나가 cols x rows 조각으로 깨져 뒤 부품들(spread개)이 된다. 끝 넘침(grows)은 점이 작아 떨림처럼 보여 쓰지 않는다 */
+  /** 앞 부품 하나가 cols x rows 조각으로 깨져 먼저 칸마다 구슬이 되고, 그 구슬이 날아가 뒤 부품들(spread개)이 된다. 끝 넘침(grows)은 점이 작아 떨림처럼 보여 쓰지 않는다 */
   shatter?: { cols: number; rows: number };
   /**
    * 들어오는 전환이 펼침이다(앞 부품보다 부품이 많거나 넓다). 펼침은 끝 값을 살짝 넘겼다가

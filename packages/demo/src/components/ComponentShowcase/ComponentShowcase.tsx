@@ -82,10 +82,14 @@ const BLOB_START = 0.4;
 // 맺히는 시간(opacity)과 부푸는 시간
 const BLOB_IN = dur.fast;
 const BLOB_GROW = dur.slow;
+// 깨짐: 칸 하나가 그 칸 가운데의 구슬로 오므라드는 시간과 구슬 지름(칸의 짧은 변 대비). 날아감은 그 뒤에 시작한다.
+const BREAK = dur.fast;
+const BEAD = 0.9;
 
 /** 한 전환의 단계 시작·끝(초). 대리 상자가 없어 흐림 교체로 내려앉는 전환은 A 직후 C가 이어진다 */
 const timeline = (scene: Scene, swap = false) => {
-  const moveAt = scene.staged ? STEP.out : STEP.moveAt;
+  const moveAt =
+    (scene.staged ? STEP.out : STEP.moveAt) + (scene.shatter ? BREAK : 0);
   const move = scene.staged === 'all' ? STEP.stagedMove : STEP.move;
   // 마무리 settle은 펼침에만 있다(접힘은 앉을 것이 없다)
   const moveEnd = moveAt + move + (scene.grows ? STEP.settle : 0);
@@ -323,15 +327,13 @@ export function ComponentShowcase() {
               });
               return {
                 el,
+                a,
                 to: {
                   left: b.left - originX,
                   top: b.top - originY,
                   width: b.width,
                   height: b.height,
-                  // 조각(모서리별 4값)은 같은 4값 모양으로 보내야 값이 짝이 맞는다.
-                  borderRadius: Array(a.corners ? 4 : 1)
-                    .fill(`${b.radius}px`)
-                    .join(' '),
+                  borderRadius: `${b.radius}px`,
                   backgroundColor: reachable(a.color, b.color),
                   borderWidth: b.borderWidth,
                   borderColor: b.borderWidth ? b.borderColor : a.borderColor,
@@ -395,6 +397,33 @@ export function ComponentShowcase() {
         const stagger = scene.spread ? STAGGER : 0;
         // 넘침은 폭·높이를 키우되 가운데를 고정한다(left·top을 절반씩 당긴다).
         const pad = grows ? (OVERSHOOT - 1) / 2 : 0;
+        if (shards) {
+          // 깨짐: 8칸이 동시에 칸 가운데의 구슬로 오므라든다(반경은 지름의 절반 = 50%).
+          const bead = (i: number) =>
+            BEAD * Math.min(pairs[i].a.width, pairs[i].a.height);
+          master.to(
+            els,
+            {
+              left: (i: number) =>
+                pairs[i].a.left - originX + (pairs[i].a.width - bead(i)) / 2,
+              top: (i: number) =>
+                pairs[i].a.top - originY + (pairs[i].a.height - bead(i)) / 2,
+              width: bead,
+              height: bead,
+              // 시작이 모서리별 4값이라 같은 4값으로 보낸다.
+              borderRadius: (i: number) =>
+                Array(4)
+                  .fill(`${bead(i) / 2}px`)
+                  .join(' '),
+              duration: BREAK,
+              ease: ease.settle,
+              autoRound: false,
+            },
+            t.moveAt - BREAK
+          );
+          // 날아가는 동안 구슬은 원을 지킨다(폭 = 높이이니 50%).
+          master.set(els, { borderRadius: '50%' }, t.moveAt);
+        }
         master.to(
           els,
           {
@@ -402,7 +431,9 @@ export function ComponentShowcase() {
             top: (i: number) => pairs[i].to.top - pairs[i].to.height * pad,
             width: (i: number) => pairs[i].to.width * (1 + 2 * pad),
             height: (i: number) => pairs[i].to.height * (1 + 2 * pad),
-            borderRadius: (i: number) => pairs[i].to.borderRadius,
+            ...(shards
+              ? {}
+              : { borderRadius: (i: number) => pairs[i].to.borderRadius }),
             borderWidth: (i: number) => pairs[i].to.borderWidth,
             duration: t.move,
             ease: ease.drift,
