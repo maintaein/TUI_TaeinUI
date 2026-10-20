@@ -5,7 +5,7 @@ const { color, spacing, borderRadius, font } = themeContract;
 
 export const root = style({
   maxWidth: '44rem',
-  margin: `0 auto ${spacing[16]}`,
+  margin: '0 auto',
 });
 
 // 무대 높이는 가장 큰 장면(HeaderBar 바, 열린 Popover)에 맞춰 고정한다. 장면이 바뀌어도 페이지가 출렁이지 않는다.

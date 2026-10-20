@@ -1,5 +1,5 @@
 import { themeContract } from '@taein-ui/core';
-import { globalStyle, style } from '@vanilla-extract/css';
+import { style } from '@vanilla-extract/css';
 
 const { color, spacing, font } = themeContract;
 
@@ -37,11 +37,6 @@ export const logoText = style({
 // "Taein UI"와 쇼케이스 사이 여백.
 export const showcaseSlot = style({
   marginTop: spacing[8],
-});
-
-// 쇼케이스 root가 아래 여백 4rem을 스스로 갖는다. 이 페이지에서는 캡션과 소개글을 가깝게 붙이려고 0으로 덮는다.
-globalStyle(`${showcaseSlot} > section`, {
-  marginBottom: 0,
 });
 
 export const logoImage = style({
