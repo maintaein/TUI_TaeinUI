@@ -128,8 +128,6 @@ export interface Scene {
   grows?: boolean;
   /** 펼침 전환이 끝 값에 앉는 마무리 이징. 없으면 settle */
   moveEase?: 'settle' | 'spring';
-  /** 대리 상자를 앞 내용 뒤에 깐다. 앞 부품의 글자가 대리 상자 위에서 흐려지며 나가는 것이 보인다 */
-  behind?: boolean;
   /**
    * 단계를 겹치지 않는다. 'out': 옛 내용이 다 나간 뒤 모양이 움직인다.
    * 'all': 거기에 더해 모양이 다 움직인 뒤 새 내용이 들어온다(눈이 대리 상자 하나만 따라간다)
@@ -210,7 +208,6 @@ export const SCENES: Scene[] = [
     grows: true,
     moveEase: 'spring',
     staged: 'out',
-    behind: true,
     act: (a) => {
       const month = a.find('label', '월간');
       a.move(month, CURSOR_MOVE);

@@ -54,9 +54,10 @@ const OVERSHOOT = 1.04;
 
 // 전환 한 번의 안무. 눈이 모양이 바뀌는 과정을 따라가도록 단계를 나누고, 시간은 duration 토큰의 배수로 정했다
 // (Skeleton이 loop.base * 1.4를 쓴 선례). 이징은 토큰 그대로이고 새 커브는 없다.
-//   A 옛 내용 나감: 0부터 out. 이어받지 않는 앞 부품이 흐려지며 사라진다(exit)
+//   A 옛 내용 나감: 0부터 out. 이어받지 않는 앞 부품이 흐려지며 사라진다(drift)
 //   B 모양 이어받기: A 시작 + fast부터 move. 대리 상자가 앞 부품에서 뒤 부품으로 drift로 잇고,
-//     펼침이면 OVERSHOOT까지 간 뒤 settle(기본)·spring 마무리 트윈으로 앉는다
+//     펼침이면 OVERSHOOT까지 간 뒤 settle(기본)·spring 마무리 트윈으로 앉는다.
+//     B의 끝(펼침이면 마무리 시작)에서 진짜 뒤 부품이 감춤에서 풀리고 대리 상자는 opacity 1 -> 0으로 교차한다
 //   C 새 내용 들어옴: B의 inAt 지점부터 in. A가 끝난 뒤에야 보이기 시작해 옛 내용과 겹치지 않는다
 //   D 숨 고르기: C 끝 뒤 rest 동안 아무것도 움직이지 않는다
 //   손잡이 방울(pop이 있는 장면): B의 popAt 지점부터 작은 원이 맺혀 snap으로 한 번 넘쳤다 앉는다
@@ -82,14 +83,22 @@ const BLOB_START = 0.4;
 // 맺히는 시간(opacity)과 부푸는 시간
 const BLOB_IN = dur.fast;
 const BLOB_GROW = dur.slow;
-// 깨짐: 칸 하나가 그 칸 가운데의 구슬로 오므라드는 시간과 구슬 지름(칸의 짧은 변 대비). 날아감은 그 뒤에 시작한다.
-const BREAK = dur.fast;
+// 깨짐: 칸 하나가 그 칸 가운데의 구슬로 오므라드는 시간(전환 시작부터, A의 글자 흐림과 겹친다)과 구슬 지름(칸의
+// 짧은 변 대비). 날아감은 구슬 단계의 이 비율 지점에서 겹쳐 시작해 구슬이 다 되기 전에 이미 움직인다.
+const BREAK = dur.slow;
 const BEAD = 0.9;
+const BREAK_HANDOFF = 0.7;
+// 끝 넘김(교차)의 길이: B 마지막 이 비율. 펼침이면 마무리 트윈 전체가 교차 구간이다.
+// drift의 가장 가파른 곳이 한 프레임(16ms)에 0.12를 넘지 않으려면 길이가 0.21s 이상이어야 한다(Loader 점이 가장 어둡다).
+const HANDOFF = 0.4;
 
 /** 한 전환의 단계 시작·끝(초). 대리 상자가 없어 흐림 교체로 내려앉는 전환은 A 직후 C가 이어진다 */
 const timeline = (scene: Scene, swap = false) => {
-  const moveAt =
-    (scene.staged ? STEP.out : STEP.moveAt) + (scene.shatter ? BREAK : 0);
+  const moveAt = scene.shatter
+    ? BREAK * BREAK_HANDOFF
+    : scene.staged
+      ? STEP.out
+      : STEP.moveAt;
   const move = scene.staged === 'all' ? STEP.stagedMove : STEP.move;
   // 마무리 settle은 펼침에만 있다(접힘은 앉을 것이 없다)
   const moveEnd = moveAt + move + (scene.grows ? STEP.settle : 0);
@@ -99,7 +108,15 @@ const timeline = (scene: Scene, swap = false) => {
       ? moveEnd
       : moveAt + move * STEP.inAt;
   const popAt = moveAt + move * STEP.popAt;
-  return { moveAt, move, moveEnd, inAt, inEnd: inAt + STEP.in, popAt };
+  // 끝 넘김: 진짜 뒤 부품이 보이기 시작하고 대리 상자가 지워지기 시작하는 지점과 길이.
+  // staged 'all'은 새 내용이 B 뒤에 들어오므로 그 들어옴과 함께 넘긴다.
+  const handoff =
+    scene.staged === 'all'
+      ? { at: inAt, seconds: STEP.in }
+      : scene.grows
+        ? { at: moveAt + move, seconds: STEP.settle }
+        : { at: moveAt + move * (1 - HANDOFF), seconds: move * HANDOFF };
+  return { moveAt, move, moveEnd, inAt, inEnd: inAt + STEP.in, popAt, handoff };
 };
 
 /** 장면에 들어오는 전환이 끝나고 숨 고르기까지(초). 연출은 그 뒤에 시작한다 */
@@ -276,10 +293,15 @@ export function ComponentShowcase() {
       const origin = stage.getBoundingClientRect();
       const originX = origin.left + stage.clientLeft;
       const originY = origin.top + stage.clientTop;
-      const restore = looks ? [hideParts(looks.from), hideParts(looks.to)] : [];
+      // 뒤 부품은 하나씩 감춘다. 대리 상자마다 자기 차례에 자기 부품만 풀어 보이게 하기 위해서다.
+      const showTo = new Map(
+        looks?.to.map((l) => [l, hideParts([l])] as const)
+      );
+      const restore = looks ? [hideParts(looks.from), ...showTo.values()] : [];
       // 손잡이는 대리 상자(방울)가 맺히는 동안 진짜를 감춘다. 대리 상자가 없는 전환에서는 레이어와 함께 그냥 나타난다.
       const head = looks ? scene.pop?.(layer)?.[0] : undefined;
-      if (head) restore.push(hideParts([head]));
+      const showHead = head ? hideParts([head]) : undefined;
+      if (showHead) restore.push(showHead);
 
       // 깨짐: 몸통 하나를 조각으로 나눠, 무대 중심 기준 각도 순서로 조각과 점을 짝짓고 경로가 엇갈리면 도착을 바꾼다.
       const cx = originX + stage.clientWidth / 2;
@@ -322,12 +344,12 @@ export function ComponentShowcase() {
                 backgroundColor: reachable(b.color, a.color),
                 borderWidth: a.borderWidth,
                 borderColor: a.borderWidth ? a.borderColor : b.borderColor,
-                zIndex: scene.behind ? -1 : 1,
                 boxShadow: shadowFrom(a.shadow, b.shadow),
               });
               return {
                 el,
                 a,
+                b,
                 to: {
                   left: b.left - originX,
                   top: b.top - originY,
@@ -387,7 +409,7 @@ export function ComponentShowcase() {
       // A. 앞 컴포넌트의 나머지 부품은 흐려지며 나간다.
       master.to(
         frontEl,
-        { opacity: 0, filter: BLUR, duration: STEP.out, ease: ease.exit },
+        { opacity: 0, filter: BLUR, duration: STEP.out, ease: ease.drift },
         0
       );
       if (looks) {
@@ -398,7 +420,8 @@ export function ComponentShowcase() {
         // 넘침은 폭·높이를 키우되 가운데를 고정한다(left·top을 절반씩 당긴다).
         const pad = grows ? (OVERSHOOT - 1) / 2 : 0;
         if (shards) {
-          // 깨짐: 8칸이 동시에 칸 가운데의 구슬로 오므라든다(반경은 지름의 절반 = 50%).
+          // 깨짐: 8칸이 전환 시작부터 동시에 칸 가운데의 구슬로 오므라든다(반경은 지름의 절반).
+          // 날아감이 구슬 단계 안에서 겹쳐 시작해도 반경은 이 트윈이 끝까지 끌고 간다.
           const bead = (i: number) =>
             BEAD * Math.min(pairs[i].a.width, pairs[i].a.height);
           master.to(
@@ -416,13 +439,11 @@ export function ComponentShowcase() {
                   .fill(`${bead(i) / 2}px`)
                   .join(' '),
               duration: BREAK,
-              ease: ease.settle,
+              ease: ease.drift,
               autoRound: false,
             },
-            t.moveAt - BREAK
+            0
           );
-          // 날아가는 동안 구슬은 원을 지킨다(폭 = 높이이니 50%).
-          master.set(els, { borderRadius: '50%' }, t.moveAt);
         }
         master.to(
           els,
@@ -458,6 +479,17 @@ export function ComponentShowcase() {
             t.moveAt + t.move
           );
         }
+        // 끝 넘김: 같은 자리의 진짜 부품이 자기 상태(점 밝기, 그림자, 테두리)로 보이기 시작하고 대리 상자는 걷힌다.
+        // 시차가 있는 전환은 대리 상자마다 자기 도착에 맞춰 넘긴다.
+        pairs.forEach(({ el, b }, i) => {
+          const at = t.handoff.at + i * stagger;
+          master.call(() => showTo.get(b)?.(), [], at);
+          master.to(
+            el,
+            { opacity: 0, duration: t.handoff.seconds, ease: ease.drift },
+            at
+          );
+        });
         // 색과 그림자는 일정하게 바뀐다. 투명으로 가는 몸통이 중간에 일찍 사라져 무대가 비지 않게, 되튀는 이징이 색 값을 벗어나지 않게.
         master.to(
           els,
@@ -481,7 +513,7 @@ export function ComponentShowcase() {
           filter: 'blur(0px)',
           y: 0,
           duration: STEP.in,
-          ease: ease.settle,
+          ease: ease.drift,
         },
         t.inAt
       );
@@ -505,6 +537,14 @@ export function ComponentShowcase() {
             autoRound: false,
           },
           t.popAt
+        );
+        // 부풀기의 마지막 구간에서 진짜 손잡이로 교차해 넘긴다(전환 끝을 늦추지 않는다).
+        const handoffAt = t.popAt + BLOB_GROW * (1 - HANDOFF);
+        master.call(() => showHead?.(), [], handoffAt);
+        master.to(
+          blob,
+          { opacity: 0, duration: BLOB_GROW * HANDOFF, ease: ease.drift },
+          handoffAt
         );
       }
     });

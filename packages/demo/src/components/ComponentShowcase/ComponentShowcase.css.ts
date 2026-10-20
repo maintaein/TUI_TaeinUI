@@ -11,7 +11,7 @@ export const root = style({
 // 무대 높이는 가장 큰 장면(HeaderBar 바, 열린 Popover)에 맞춰 고정한다. 장면이 바뀌어도 페이지가 출렁이지 않는다.
 export const stage = style({
   position: 'relative',
-  // 대리 상자가 음수 z-index로 내용 뒤에 깔려도 무대 배경 아래로 빠지지 않게 한다.
+  // 층(1) 아래 대리 상자(0)가 무대 배경 아래로 빠지지 않게 쌓임 맥락을 이 무대에 가둔다.
   isolation: 'isolate',
   height: '20rem',
   overflow: 'hidden',
@@ -21,8 +21,10 @@ export const stage = style({
 });
 
 // 내용 층. 크기는 내용이 정한다. 틀 없이 진짜 컴포넌트가 무대 가운데에 선다.
+// z-index는 대리 상자(0)보다 위다. 감춘 부품의 자리는 대리 상자가 그리고, 그 안의 글자·아이콘은 그 위에서 흐려지고 또렷해진다.
 export const layer = style({
   position: 'absolute',
+  zIndex: 1,
   inset: 0,
   margin: 'auto',
   boxSizing: 'border-box',
@@ -40,6 +42,7 @@ export const layer = style({
 // 앞 컴포넌트 부품에서 뒤 컴포넌트 부품으로 모양을 잇는 자식 없는 상자. 위치·크기·반경·색은 gsap이 정한다.
 export const surrogate = style({
   position: 'absolute',
+  zIndex: 0,
   boxSizing: 'border-box',
   borderStyle: 'solid',
   pointerEvents: 'none',

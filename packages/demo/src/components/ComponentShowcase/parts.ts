@@ -177,8 +177,13 @@ export const PARTS = {
   },
 } satisfies Record<string, Part>;
 
+/** 조각 안쪽 변이 이웃 쪽으로 넓어지는 양(px). 양쪽에서 0.5씩이라 겹침은 1px */
+const OVERLAP = 0.5;
+
 /**
- * 상자 하나를 cols x rows 조각으로 빈틈없이 나눈다(행 우선). 바깥 모서리 조각만 그 모서리에 몸통 반경을 갖는다.
+ * 상자 하나를 cols x rows 조각으로 나눈다(행 우선). 바깥 모서리 조각만 그 모서리에 몸통 반경을 갖는다.
+ * 이웃과 닿는 안쪽 변은 0.5px씩 넓혀 1px 겹친다. 소수 px 경계에서 조각이 딱 맞닿으면 경계 픽셀이 두 조각에 반씩
+ * 덮여 옅은 실선이 비친다(안티에일리어싱). 색이 같아 겹침은 보이지 않고, 바깥 변과 반경은 그대로다.
  * shortcut: 테두리·그림자는 조각마다 그대로 복사한다. 이음매에 보이므로 테두리나 그림자가 있는 부품을 쪼개려면 조각 안쪽 변을 따로 지운다.
  */
 export const shatter = (look: Look, cols: number, rows: number): Look[] =>
@@ -188,12 +193,14 @@ export const shatter = (look: Look, cols: number, rows: number): Look[] =>
     const width = look.width / cols;
     const height = look.height / rows;
     const corner = (edge: boolean) => (edge ? look.radius : 0);
+    const [lead, trail] = [c > 0 ? OVERLAP : 0, c < cols - 1 ? OVERLAP : 0];
+    const [above, below] = [r > 0 ? OVERLAP : 0, r < rows - 1 ? OVERLAP : 0];
     return {
       ...look,
-      left: look.left + c * width,
-      top: look.top + r * height,
-      width,
-      height,
+      left: look.left + c * width - lead,
+      top: look.top + r * height - above,
+      width: width + lead + trail,
+      height: height + above + below,
       corners: [
         corner(c === 0 && r === 0),
         corner(c === cols - 1 && r === 0),
