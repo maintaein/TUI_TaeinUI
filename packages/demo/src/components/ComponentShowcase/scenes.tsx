@@ -119,6 +119,8 @@ export interface Scene {
   take?: Part[];
   /** 부품이 여럿으로 흩어지거나 모이는 수. 점마다 시차를 둔다 */
   spread?: number;
+  /** 앞 부품 하나가 cols x rows 조각으로 깨져 뒤 부품들(spread개)이 된다. 끝 넘침(grows)은 점이 작아 떨림처럼 보여 쓰지 않는다 */
+  shatter?: { cols: number; rows: number };
   /**
    * 들어오는 전환이 펼침이다(앞 부품보다 부품이 많거나 넓다). 펼침은 끝 값을 살짝 넘겼다가
    * moveEase로 앉고, 접힘은 넘치지 않고 마무리도 없다
@@ -183,8 +185,8 @@ export const SCENES: Scene[] = [
     ensure: { loader: 'done', popover: true },
     give: [PARTS.bubble],
     take: [PARTS.dots],
-    grows: true,
     spread: ORBIT_DOTS,
+    shatter: { cols: 4, rows: 2 },
     act: (a) => {
       a.wait(dur.slower * 1.6);
       a.set({ loader: 'done' });
@@ -286,7 +288,7 @@ export const SCENES: Scene[] = [
 ];
 
 // give/take 짝은 아래 표와 같다.
-// 1 pill -> 2 Button | 2 Button -> 3 점 여럿(흩어짐) | 3 말풍선 -> 4 트랙
+// 1 pill -> 2 Button | 2 Button -> 3 점 여럿(8조각으로 깨짐) | 3 말풍선 -> 4 트랙
 // 4 트랙·표식 -> 5 트랙·채움(+손잡이 방울) | 5 트랙·채움·손잡이 -> 6 트랙·트랙·손잡이
 // 6 손잡이 -> 7 상자 | 7 상자 -> 1 pill
 

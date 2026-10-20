@@ -21,6 +21,8 @@ import {
   fadeShadow,
   hideParts,
   reachable,
+  shatter,
+  uncross,
   type Look,
   type Part,
 } from './parts';
@@ -57,7 +59,7 @@ const OVERSHOOT = 1.04;
 //     펼침이면 OVERSHOOT까지 간 뒤 settle(기본)·spring 마무리 트윈으로 앉는다
 //   C 새 내용 들어옴: B의 inAt 지점부터 in. A가 끝난 뒤에야 보이기 시작해 옛 내용과 겹치지 않는다
 //   D 숨 고르기: C 끝 뒤 rest 동안 아무것도 움직이지 않는다
-//   손잡이 방울(pop이 있는 장면): B의 popAt 지점부터 작은 원이 맺혀 spring으로 부풀어 앉는다
+//   손잡이 방울(pop이 있는 장면): B의 popAt 지점부터 작은 원이 맺혀 snap으로 한 번 넘쳤다 앉는다
 // staged 장면은 B가 A 뒤에('all'이면 C도 B 뒤에) 이어진다.
 // 첫 구현(한 바퀴 약 30s)에서 거듭 줄였다: 각 값은 그때의 토큰 배수에서 한 단계씩 내린 것이다.
 const STEP = {
@@ -75,13 +77,11 @@ const STEP = {
   popAt: 0.7,
 } as const;
 
-// 손잡이 방울이 진짜 손잡이 지름의 40% 원에서 시작한다. 크기는 지름까지 spring으로 부푼다.
+// 손잡이 방울이 진짜 손잡이 지름의 40% 원에서 시작해 지름을 한 번 살짝 넘겼다 앉는다(snap의 back.out).
 const BLOB_START = 0.4;
-// 높이는 폭보다 fast의 1/3 늦게 같은 spring을 시작해 둘이 엇갈려 출렁인다.
-const BLOB_LAG = dur.fast / 3;
 // 맺히는 시간(opacity)과 부푸는 시간
 const BLOB_IN = dur.fast;
-const BLOB_GROW = dur.slower;
+const BLOB_GROW = dur.slow;
 
 /** 한 전환의 단계 시작·끝(초). 대리 상자가 없어 흐림 교체로 내려앉는 전환은 A 직후 C가 이어진다 */
 const timeline = (scene: Scene, swap = false) => {
@@ -105,7 +105,7 @@ const enterSeconds = (scene: Scene) => {
     Math.max(
       t.moveEnd + (scene.spread ? (scene.spread - 1) * STAGGER : 0),
       t.inEnd,
-      scene.pop ? t.popAt + BLOB_LAG + BLOB_GROW : 0
+      scene.pop ? t.popAt + BLOB_GROW : 0
     ) + STEP.rest
   );
 };
@@ -277,23 +277,44 @@ export function ComponentShowcase() {
       const head = looks ? scene.pop?.(layer)?.[0] : undefined;
       if (head) restore.push(hideParts([head]));
 
-      const pairs = looks
+      // 깨짐: 몸통 하나를 조각으로 나눠, 무대 중심 기준 각도 순서로 조각과 점을 짝짓고 경로가 엇갈리면 도착을 바꾼다.
+      const cx = originX + stage.clientWidth / 2;
+      const cy = originY + stage.clientHeight / 2;
+      const angle = (l: Look) =>
+        Math.atan2(l.top + l.height / 2 - cy, l.left + l.width / 2 - cx);
+      const byAngle = (ls: Look[]) =>
+        [...ls].sort((p, q) => angle(p) - angle(q));
+      const cut = scene.shatter;
+      const shards =
+        cut &&
+        looks?.from.length === 1 &&
+        looks.to.length === cut.cols * cut.rows
+          ? byAngle(shatter(looks.from[0], cut.cols, cut.rows))
+          : null;
+      const flow =
+        looks &&
+        (shards
+          ? { from: shards, to: uncross(shards, byAngle(looks.to)) }
+          : looks);
+      const pairs = flow
         ? Array.from(
-            { length: Math.max(looks.from.length, looks.to.length) },
+            { length: Math.max(flow.from.length, flow.to.length) },
             (_, i) => {
-              const a = looks.from[Math.min(i, looks.from.length - 1)];
-              const b = looks.to[Math.min(i, looks.to.length - 1)];
+              const a = flow.from[Math.min(i, flow.from.length - 1)];
+              const b = flow.to[Math.min(i, flow.to.length - 1)];
               const el = document.createElement('div');
               el.className = styles.surrogate;
               el.setAttribute('aria-hidden', 'true');
               stage.append(el);
               // 테두리가 한쪽에만 있으면 없는 쪽도 그 색을 이어받아 색이 중간에 튀지 않는다.
+              // autoRound를 끈다: 조각 폭이 정수로 반올림되면 이음매가 1px 겹치거나 벌어진다.
               gsap.set(el, {
+                autoRound: false,
                 left: a.left - originX,
                 top: a.top - originY,
                 width: a.width,
                 height: a.height,
-                borderRadius: a.radius,
+                borderRadius: a.corners ?? a.radius,
                 backgroundColor: reachable(b.color, a.color),
                 borderWidth: a.borderWidth,
                 borderColor: a.borderWidth ? a.borderColor : b.borderColor,
@@ -307,7 +328,10 @@ export function ComponentShowcase() {
                   top: b.top - originY,
                   width: b.width,
                   height: b.height,
-                  borderRadius: b.radius,
+                  // 조각(모서리별 4값)은 같은 4값 모양으로 보내야 값이 짝이 맞는다.
+                  borderRadius: Array(a.corners ? 4 : 1)
+                    .fill(`${b.radius}px`)
+                    .join(' '),
                   backgroundColor: reachable(a.color, b.color),
                   borderWidth: b.borderWidth,
                   borderColor: b.borderWidth ? b.borderColor : a.borderColor,
@@ -382,6 +406,7 @@ export function ComponentShowcase() {
             borderWidth: (i: number) => pairs[i].to.borderWidth,
             duration: t.move,
             ease: ease.drift,
+            autoRound: false,
             stagger,
           },
           t.moveAt
@@ -395,6 +420,7 @@ export function ComponentShowcase() {
               width: (i: number) => pairs[i].to.width,
               height: (i: number) => pairs[i].to.height,
               duration: STEP.settle,
+              autoRound: false,
               ease: ease[scene.moveEase ?? 'settle'],
               stagger,
             },
@@ -429,8 +455,8 @@ export function ComponentShowcase() {
         t.inAt
       );
       if (blob && head) {
-        // 손잡이 방울. 폭과 높이를 따로 지름까지 부풀린다. 같은 spring을 높이가 조금 늦게 시작해 가로로 늘었다 세로로 늘었다 하며 앉는다.
-        // left·top도 같은 이징으로 보내 가운데를 고정한다(spring의 넘침이 양쪽으로 고르게 퍼진다).
+        // 손잡이 방울. 폭과 높이를 같이 지름까지 부풀리고(snap이 한 번 넘쳤다 앉는다), left·top도 같은 이징으로 보내 가운데를 고정한다.
+        // autoRound를 끈다: 작은 원에서 폭이 정수로 끊겨 1px 계단으로 보인다.
         master.to(
           blob,
           { opacity: 1, duration: BLOB_IN, ease: ease.linear },
@@ -440,21 +466,14 @@ export function ComponentShowcase() {
           blob,
           {
             left: head.left - originX,
-            width: head.width,
-            duration: BLOB_GROW,
-            ease: ease.spring,
-          },
-          t.popAt
-        );
-        master.to(
-          blob,
-          {
             top: head.top - originY,
+            width: head.width,
             height: head.height,
             duration: BLOB_GROW,
-            ease: ease.spring,
+            ease: ease.snap,
+            autoRound: false,
           },
-          t.popAt + BLOB_LAG
+          t.popAt
         );
       }
     });

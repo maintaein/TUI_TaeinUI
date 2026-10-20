@@ -11,6 +11,8 @@ export interface Look {
   width: number;
   height: number;
   radius: number;
+  /** 모서리마다 다른 반경(border-radius 4값, px). 있으면 radius보다 우선한다 */
+  corners?: string;
   color: string;
   borderWidth: number;
   borderColor: string;
@@ -174,6 +176,62 @@ export const PARTS = {
     });
   },
 } satisfies Record<string, Part>;
+
+/**
+ * 상자 하나를 cols x rows 조각으로 빈틈없이 나눈다(행 우선). 바깥 모서리 조각만 그 모서리에 몸통 반경을 갖는다.
+ * shortcut: 테두리·그림자는 조각마다 그대로 복사한다. 이음매에 보이므로 테두리나 그림자가 있는 부품을 쪼개려면 조각 안쪽 변을 따로 지운다.
+ */
+export const shatter = (look: Look, cols: number, rows: number): Look[] =>
+  Array.from({ length: cols * rows }, (_, i) => {
+    const c = i % cols;
+    const r = Math.floor(i / cols);
+    const width = look.width / cols;
+    const height = look.height / rows;
+    const corner = (edge: boolean) => (edge ? look.radius : 0);
+    return {
+      ...look,
+      left: look.left + c * width,
+      top: look.top + r * height,
+      width,
+      height,
+      corners: [
+        corner(c === 0 && r === 0),
+        corner(c === cols - 1 && r === 0),
+        corner(c === cols - 1 && r === rows - 1),
+        corner(c === 0 && r === rows - 1),
+      ]
+        .map((px) => `${px}px`)
+        .join(' '),
+    };
+  });
+
+const centerOf = (l: Look) => [l.left + l.width / 2, l.top + l.height / 2];
+const side = (a: number[], b: number[], c: number[]) =>
+  (c[1] - a[1]) * (b[0] - a[0]) - (b[1] - a[1]) * (c[0] - a[0]);
+
+/**
+ * from[i]에서 to[i]로 가는 중심 선분끼리 만나지 않게 to의 순서를 고친다. 만나는 두 선분의 도착을 맞바꾸면
+ * 총 길이가 줄어드니 언젠가 멈춘다(2-opt). 각도 순서로 먼저 정렬해 두면 바꿀 일이 거의 없다.
+ */
+export const uncross = (from: Look[], to: Look[]) => {
+  const out = [...to];
+  for (let again = true; again; ) {
+    again = false;
+    for (let i = 0; i < from.length; i++) {
+      for (let j = i + 1; j < from.length; j++) {
+        const [a, b, c, d] = [from[i], out[i], from[j], out[j]].map(centerOf);
+        if (
+          side(a, b, c) * side(a, b, d) < 0 &&
+          side(c, d, a) * side(c, d, b) < 0
+        ) {
+          [out[i], out[j]] = [out[j], out[i]];
+          again = true;
+        }
+      }
+    }
+  }
+  return out;
+};
 
 /** 대리 상자가 대신하는 동안 부품을 감춘다. 자식은 다시 보여(흐림으로 따로 나가고 들어온다) 되돌리는 함수를 준다 */
 export const hideParts = (looks: Look[]) => {
