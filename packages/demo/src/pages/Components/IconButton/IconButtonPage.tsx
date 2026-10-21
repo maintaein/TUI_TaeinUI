@@ -1,529 +1,311 @@
-import { Card, List, ListItem } from '@taein-ui/core';
-import { LivePreview } from '../../../components/LivePreview';
+import { useState, type ComponentProps } from 'react';
+import { Menu, Plus, Star, Trash } from 'lucide-react';
+import { IconButton } from '@taein-ui/core';
 import { CodeBlock } from '../../../components/CodeBlock';
-import { PropsTable } from '../../../components/PropsTable';
-import type { PropDefinition } from '../../../components/PropsTable/PropsTable';
-import { AccessibilitySection } from '../../../components/AccessibilitySection';
-import * as styles from './IconButtonPage.css';
+import {
+  Customize,
+  codeOf,
+  type Control,
+  type Values,
+} from '../../../components/Customize';
+import { DetailLayout, Topic, Topics } from '../../../components/DetailLayout';
+import * as t from '../../../components/DocText';
+import type { PropDefinition } from '../../../components/PropsTable';
+import { Stage, type Act } from '../../../components/Stage';
+
+const LEAD =
+  '닫기, 메뉴 열기, 설정처럼 아이콘만으로 뜻이 분명한 동작을 버튼으로 만듭니다.';
+
+const CONTROLS: Control[] = [
+  {
+    prop: 'buttonStyle',
+    kind: 'choice',
+    options: ['ghost', 'weak', 'strong'],
+  },
+  { prop: 'size', kind: 'choice', options: ['sm', 'md', 'lg', 'xl'] },
+  { prop: 'hoverEffect', kind: 'choice', options: ['jelly', 'none'] },
+  { prop: 'loading', kind: 'toggle' },
+  { prop: 'disabled', kind: 'toggle' },
+];
+
+const INITIAL: Values = {
+  buttonStyle: 'strong',
+  size: 'lg',
+  hoverEffect: 'jelly',
+  loading: false,
+  disabled: false,
+};
+
+const DEFAULTS: Values = {
+  buttonStyle: 'ghost',
+  size: 'md',
+  hoverEffect: 'jelly',
+};
+
+// 무대는 색 네 가지를 나란히 보인다(variant는 조작판에 없다). 코드는 첫 단추의 것이다
+const VARIANTS = [
+  { variant: 'primary', icon: <Plus />, label: '추가', target: 'a' },
+  { variant: 'dark', icon: <Menu />, label: '메뉴', target: 'b' },
+  { variant: 'danger', icon: <Trash />, label: '삭제', target: 'c' },
+  { variant: 'light', icon: <Star />, label: '즐겨찾기', target: 'd' },
+] as const;
+
+// 커서가 단추 위에 머물면 젤리가 한 번 출렁이고(0.65초) 끝난 뒤에 누르고, 떠나 다음 단추로 간다
+// 젤리는 도는 동안 다시 들어와도 무시하므로 머무름이 출렁임보다 길어야 끝까지 보인다
+const SCRIPT = (act: Act) => {
+  act.move('a');
+  act.hover('a');
+  act.wait(0.9);
+  act.press('a');
+  act.wait(0.3);
+  act.leave('a');
+  act.move('b');
+  act.hover('b');
+  act.wait(0.9);
+  act.press('b');
+  act.wait(0.3);
+  act.leave('b');
+  act.move('c');
+  act.hover('c');
+  act.wait(0.9);
+  act.leave('c');
+  act.home();
+  act.wait(0.6);
+};
+
+const PROPS: PropDefinition[] = [
+  {
+    name: 'children',
+    type: 'ReactNode',
+    required: true,
+    description:
+      '아이콘 요소. lucide-react, react-icons 어느 라이브러리의 아이콘이든 넣는다',
+  },
+  {
+    name: 'aria-label',
+    type: 'string',
+    description: '스크린 리더가 읽는 버튼 이름. 글자가 없어 꼭 필요하다',
+  },
+  {
+    name: 'aria-labelledby',
+    type: 'string',
+    description: '이름이 될 요소의 id. aria-label 대신 쓴다',
+  },
+  {
+    name: 'buttonStyle',
+    type: "'ghost' | 'weak' | 'strong'",
+    default: "'ghost'",
+    description:
+      'ghost는 배경 없이 아이콘만(호버에 옅은 배경), weak는 옅은 배경, strong은 진한 배경',
+  },
+  {
+    name: 'variant',
+    type: "'primary' | 'dark' | 'danger' | 'light'",
+    default: "'primary'",
+    description: '색. weak와 strong에만 적용되고 ghost는 회색 고정이다',
+  },
+  {
+    name: 'size',
+    type: "'sm' | 'md' | 'lg' | 'xl'",
+    default: "'md'",
+    description:
+      '버튼과 아이콘의 크기. 아이콘 크기는 이 값이 정한다. sm은 보이는 크기 36px, 누르는 영역은 44px',
+  },
+  {
+    name: 'hoverEffect',
+    type: "'jelly' | 'none'",
+    default: "'jelly'",
+    description:
+      '마우스가 들어오면 아이콘이 옆으로 퍼졌다 출렁이며 돌아온다. none으로 끈다',
+  },
+  {
+    name: 'loading',
+    type: 'boolean',
+    default: 'false',
+    description: '아이콘 자리에 Loader를 돌리고 누름을 막는다',
+  },
+  {
+    name: 'disabled',
+    type: 'boolean',
+    default: 'false',
+    description: '누를 수 없게 한다',
+  },
+];
+
+const NAMED = `// 이름이 있다
+<IconButton aria-label="닫기">
+  <X />
+</IconButton>
+
+// 이름이 없다: 스크린 리더 사용자가 용도를 알 수 없다
+<IconButton>
+  <X />
+</IconButton>`;
+
+const CONTEXT = `// 아이콘만으로 충분하다: IconButton
+<IconButton aria-label="닫기">
+  <X />
+</IconButton>
+
+// 글자가 필요하다: Button
+<Button leftIcon={<Trash />}>삭제하기</Button>`;
+
+const ICON_SIZE = `// size가 아이콘 크기를 정한다. 아이콘에 size를 따로 주지 않는다
+<IconButton size="lg" aria-label="추가">
+  <Plus />
+</IconButton>
+
+// 꼭 바꿔야 하면 size prop이 아니라 style이나 className으로 준다
+<IconButton aria-label="추가">
+  <Plus style={{ width: 28, height: 28 }} />
+</IconButton>`;
+
+const LOADING = `<IconButton
+  buttonStyle="strong"
+  loading={saving}
+  onClick={save}
+  aria-label="저장"
+>
+  <Save />
+</IconButton>`;
+
+function Usage() {
+  return (
+    <Topics>
+      <Topic title="언제 쓰나">
+        <p className={t.body} style={{ marginBottom: 12 }}>
+          닫기, 메뉴 열기, 새로고침처럼 아이콘만 봐도 뜻이 통하는 동작에 씁니다.
+          삭제처럼 구체적인 행동은 아이콘만으로 오해하기 쉬우니 글자가 있는{' '}
+          <code>Button</code>을 씁니다.
+        </p>
+        <CodeBlock code={CONTEXT} />
+      </Topic>
+      <Topic title="이름과 아이콘 크기">
+        <p className={t.body} style={{ marginBottom: 12 }}>
+          글자가 없으므로 <code>aria-label</code>로 버튼의 이름을 꼭 붙입니다.
+          개발 환경에서는 이름이 없으면 콘솔에 오류가 납니다.
+        </p>
+        <CodeBlock code={NAMED} />
+        <p className={t.body} style={{ margin: '16px 0 12px' }}>
+          아이콘 크기는 <code>size</code>가 정합니다(sm 18px, md 22px, lg 26px,
+          xl 30px). 아이콘에 <code>size</code> prop을 주면 버튼의 규칙에 져서
+          적용되지 않으므로, 바꾸려면 <code>style</code>이나{' '}
+          <code>className</code>으로 줍니다.
+        </p>
+        <CodeBlock code={ICON_SIZE} />
+      </Topic>
+      <Topic title="스타일과 색">
+        <p className={t.body}>
+          <code>buttonStyle</code>로 눈에 띄는 정도를 고릅니다. 기본{' '}
+          <code>ghost</code>는 배경 없이 아이콘만 있어 카드 모서리의 닫기처럼
+          콘텐츠 옆에 둘 때 맞고, <code>weak</code>는 툴바의 보조 동작,{' '}
+          <code>strong</code>은 가장 눈에 띄어야 하는 동작에 씁니다.{' '}
+          <code>variant</code>로 고르는 색은 <code>weak</code>와{' '}
+          <code>strong</code>에만 적용되고 <code>ghost</code>는 회색 하나입니다.
+          무대의 네 단추가 <code>primary</code>, <code>dark</code>,{' '}
+          <code>danger</code>, <code>light</code>입니다.
+        </p>
+      </Topic>
+      <Topic title="기다리는 동안">
+        <p className={t.body} style={{ marginBottom: 12 }}>
+          저장처럼 응답을 기다리는 동안은 <code>loading</code>을 켭니다. 아이콘
+          자리에서 Loader가 돌고 누름을 받지 않으므로 요청이 두 번 가지
+          않습니다.
+        </p>
+        <CodeBlock code={LOADING} />
+      </Topic>
+      <Topic title="움직임">
+        <p className={t.body}>
+          마우스를 올리면 아이콘이 부피를 지키며 옆으로 1.15배 퍼졌다가 출렁이며
+          돌아옵니다(젤리). 한 번 도는 동안 다시 들어와도 무시하고, 터치와
+          키보드 포커스, 비활성과 로딩에서는 일어나지 않습니다. 누르는 동안
+          버튼이 0.95배로 눌렸다 되밀리고, 아주 짧게 눌러도 끝까지 나옵니다.{' '}
+          <code>hoverEffect=&quot;none&quot;</code>으로 젤리를 끌 수 있습니다.
+          움직임 줄이기 설정을 켠 환경에서는 크기 변화 없이 색만 바뀝니다.
+        </p>
+      </Topic>
+    </Topics>
+  );
+}
+
+function A11y() {
+  return (
+    <ul className={`${t.list} ${t.body}`}>
+      <li>
+        네이티브 <code>&lt;button&gt;</code>이라 Tab으로 들어가고 Enter와
+        Space로 누릅니다. 따로 붙일 것이 없습니다.
+      </li>
+      <li>
+        개발자가 직접 해야 합니다. 글자가 없으므로 <code>aria-label</code>(또는{' '}
+        <code>aria-labelledby</code>)로 이름을 꼭 줍니다. 없으면 개발 환경에서
+        콘솔 오류가 납니다.
+      </li>
+      <li>
+        아이콘은 <code>aria-hidden=&quot;true&quot;</code>인 칸에 들어가 스크린
+        리더가 읽지 않습니다. 이름 중복 읽기를 막습니다.
+      </li>
+      <li>
+        <code>disabled</code>나 <code>loading</code>이면{' '}
+        <code>aria-disabled</code>가 <code>true</code>가 되고 누를 수 없습니다.{' '}
+        <code>loading</code>이면 <code>aria-busy</code>도 <code>true</code>이고
+        안의 Loader는 &quot;로딩 중&quot;으로 읽힙니다.
+      </li>
+      <li>키보드로 포커스하면 2px 포커스 링이 생깁니다.</li>
+      <li>
+        <code>size=&quot;sm&quot;</code>는 보이는 크기가 36px이고, 눈에 보이지
+        않는 띠로 누르는 영역을 44px로 유지합니다. 이웃과 4px 안쪽으로 붙이면
+        누르는 영역이 겹칩니다.
+      </li>
+    </ul>
+  );
+}
+
+type Look = ComponentProps<typeof IconButton>['buttonStyle'];
+type Size = ComponentProps<typeof IconButton>['size'];
+type Hover = ComponentProps<typeof IconButton>['hoverEffect'];
 
 export function IconButtonPage() {
-  const propsData: PropDefinition[] = [
-    {
-      name: 'children',
-      type: 'ReactNode',
-      required: true,
-      description: '아이콘 콘텐츠 (텍스트, 이모지, SVG 등)',
-    },
-    {
-      name: 'variant',
-      type: "'primary' | 'dark' | 'danger' | 'light'",
-      default: "'primary'",
-      description:
-        '버튼 색상 변형. weak와 strong에만 적용된다(ghost는 회색 고정)',
-    },
-    {
-      name: 'buttonStyle',
-      type: "'ghost' | 'weak' | 'strong'",
-      default: "'ghost'",
-      description: '버튼 스타일 (배경 없음 / 옅은 배경 / 진한 배경)',
-    },
-    {
-      name: 'size',
-      type: "'sm' | 'md' | 'lg' | 'xl'",
-      default: "'md'",
-      description: '버튼 크기. sm은 보이는 크기 36px, 누르는 영역은 44px입니다',
-    },
-    {
-      name: 'hoverEffect',
-      type: "'none' | 'jelly'",
-      default: "'jelly'",
-      description:
-        '마우스가 들어올 때 아이콘이 옆으로 퍼졌다가 출렁이며 돌아온다. 기본으로 켜져 있고 "none"으로 끈다. 마우스만, 세 모드 모두',
-    },
-    {
-      name: 'loading',
-      type: 'boolean',
-      default: 'false',
-      description: '로딩 상태 (Loader 표시)',
-    },
-    {
-      name: 'disabled',
-      type: 'boolean',
-      default: 'false',
-      description: '비활성화 상태',
-    },
-    {
-      name: 'aria-label',
-      type: 'string',
-      description: '접근성 레이블 (필수 권장)',
-    },
-    {
-      name: 'aria-labelledby',
-      type: 'string',
-      description: '접근성 레이블 ID 참조',
-    },
-  ];
+  const [values, setValues] = useState<Values>(INITIAL);
 
   return (
-    <article className={styles.container}>
-      {/* Header */}
-      <header className={styles.header}>
-        <h1 className={styles.title}>IconButton</h1>
-        <p className={styles.description}>
-          IconButton은 lucide-react, react-icons 등 어느 아이콘 라이브러리의
-          아이콘이든 children으로 넣으면 버튼으로 만들어 줍니다. 아이콘 크기는
-          버튼 size가 정하므로 아이콘에 크기를 따로 주지 않습니다. 닫기, 메뉴
-          열기, 설정 등 텍스트 없이 아이콘만으로 액션을 표현할 때 사용합니다.
-        </p>
-      </header>
-
-      {/* Quick Reference */}
-      <section className={styles.quickReference}>
-        <Card className={styles.quickRefCard}>
-          <Card.Body padding="md">
-            <h3 className={styles.quickRefTitle}>Import</h3>
-            <CodeBlock
-              language="typescript"
-              code={`import { IconButton } from '@taein-ui/core';`}
-            />
-          </Card.Body>
-        </Card>
-        <Card className={styles.quickRefCard}>
-          <Card.Body padding="md">
-            <h3 className={styles.quickRefTitle}>Ghost (기본)</h3>
-            <CodeBlock
-              language="tsx"
-              code={`<IconButton aria-label="닫기">
-  <X />
-</IconButton>`}
-            />
-          </Card.Body>
-        </Card>
-        <Card className={styles.quickRefCard}>
-          <Card.Body padding="md">
-            <h3 className={styles.quickRefTitle}>Weak</h3>
-            <CodeBlock
-              language="tsx"
-              code={`<IconButton buttonStyle="weak" aria-label="설정">
-  <Settings />
-</IconButton>`}
-            />
-          </Card.Body>
-        </Card>
-        <Card className={styles.quickRefCard}>
-          <Card.Body padding="md">
-            <h3 className={styles.quickRefTitle}>Strong</h3>
-            <CodeBlock
-              language="tsx"
-              code={`<IconButton buttonStyle="strong" aria-label="추가">
-  <Plus />
-</IconButton>`}
-            />
-          </Card.Body>
-        </Card>
-      </section>
-
-      {/* Ghost Section (default) */}
-      <section className={styles.section}>
-        <div className={styles.sectionHeader}>
-          <h2 className={styles.sectionTitle}>Ghost (기본)</h2>
-          <p className={styles.sectionDescription}>
-            buttonStyle을 주지 않으면 배경과 테두리 없이 아이콘만 버튼이 됩니다.
-            호버하면 옅은 회색 배경이 나타납니다. 색은 회색 고정이라 variant는
-            적용되지 않습니다.
-          </p>
-        </div>
-
-        {/* Ghost Basic */}
-        <div className={styles.example}>
-          <h3 className={styles.exampleTitle}>Basic Ghost</h3>
-          <LivePreview
-            title="Ghost 기본 사용법"
-            description="아이콘과 aria-label만 주면 배경 없는 아이콘 버튼이 됩니다. 호버 시 미세한 배경이 나타나 인터랙션 영역을 알려줍니다."
-            editable
-            code={`<div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-  <IconButton aria-label="닫기"><X /></IconButton>
-  <IconButton aria-label="설정"><Settings /></IconButton>
-  <IconButton aria-label="더보기"><Ellipsis /></IconButton>
-  <IconButton aria-label="새로고침"><RotateCw /></IconButton>
-</div>`}
-          />
-        </div>
-
-        {/* Ghost in context */}
-        <div className={styles.example}>
-          <h3 className={styles.exampleTitle}>Ghost in Context</h3>
-          <LivePreview
-            title="실제 사용 맥락"
-            description="카드 헤더의 닫기/옵션 버튼, 리스트 아이템의 액션 버튼 등 콘텐츠 옆에 자연스럽게 배치되는 패턴입니다."
-            editable
-            code={`<div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem', backgroundColor: '#f9fafb', borderRadius: '0.75rem' }}>
-    <span style={{ fontWeight: 600 }}>알림 설정</span>
-    <div style={{ display: 'flex', gap: '0.25rem' }}>
-      <IconButton aria-label="편집"><Pencil /></IconButton>
-      <IconButton aria-label="닫기"><X /></IconButton>
-    </div>
-  </div>
-  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem', backgroundColor: '#f9fafb', borderRadius: '0.75rem' }}>
-    <span style={{ fontWeight: 600 }}>프로필 사진</span>
-    <div style={{ display: 'flex', gap: '0.25rem' }}>
-      <IconButton aria-label="더보기"><Ellipsis /></IconButton>
-    </div>
-  </div>
-</div>`}
-          />
-        </div>
-
-        {/* Ghost Loading & Disabled */}
-        <div className={styles.example}>
-          <h3 className={styles.exampleTitle}>Ghost States</h3>
-          <LivePreview
-            title="Ghost 상태 변화"
-            description="loading과 disabled 상태는 세 모드가 같습니다."
-            editable
-            code={`const [loading, setLoading] = useState(false);
-const handleClick = () => {
-  setLoading(true);
-  setTimeout(() => setLoading(false), 2000);
-};
-
-<div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-  <IconButton loading={loading} onClick={handleClick} aria-label="새로고침"><RotateCw /></IconButton>
-  <IconButton loading aria-label="로딩 중"><Hourglass /></IconButton>
-  <IconButton disabled aria-label="비활성화"><X /></IconButton>
-</div>`}
-          />
-        </div>
-      </section>
-
-      {/* Weak Section */}
-      <section className={styles.section}>
-        <div className={styles.sectionHeader}>
-          <h2 className={styles.sectionTitle}>Weak</h2>
-          <p className={styles.sectionDescription}>
-            buttonStyle=&quot;weak&quot;는 채도가 낮은 배경색으로 시각적 위계를
-            낮춥니다. 툴바나 보조 액션에 적합합니다. variant로 색을 고르며,
-            Button의 weak와 같은 색을 씁니다.
-          </p>
-        </div>
-
-        <div className={styles.example}>
-          <h3 className={styles.exampleTitle}>Variants (Weak)</h3>
-          <LivePreview
-            title="Weak 스타일 변형"
-            description="weak에서 쓸 수 있는 4가지 variant입니다."
-            editable
-            code={`<div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
-  <IconButton variant="primary" buttonStyle="weak" aria-label="추가"><Plus /></IconButton>
-  <IconButton variant="dark" buttonStyle="weak" aria-label="메뉴"><Menu /></IconButton>
-  <IconButton variant="danger" buttonStyle="weak" aria-label="삭제"><Trash /></IconButton>
-  <IconButton variant="light" buttonStyle="weak" aria-label="즐겨찾기"><Star /></IconButton>
-</div>`}
-          />
-        </div>
-
-        <div className={styles.example}>
-          <h3 className={styles.exampleTitle}>Toolbar Example</h3>
-          <LivePreview
-            title="툴바 조합 예제"
-            description="실제 툴바에서 IconButton을 조합하여 사용하는 패턴입니다."
-            editable
-            code={`<div style={{ display: 'flex', gap: '0.5rem', padding: '0.5rem', backgroundColor: '#f3f4f6', borderRadius: '0.75rem', alignItems: 'center' }}>
-  <IconButton size="sm" buttonStyle="weak" variant="dark" aria-label="Bold"><Bold /></IconButton>
-  <IconButton size="sm" buttonStyle="weak" variant="dark" aria-label="Italic"><Italic /></IconButton>
-  <IconButton size="sm" buttonStyle="weak" variant="dark" aria-label="Underline"><Underline /></IconButton>
-  <div style={{ width: '1px', height: '24px', backgroundColor: '#d1d5db', margin: '0 0.25rem' }} />
-  <IconButton size="sm" buttonStyle="weak" variant="dark" aria-label="왼쪽 정렬"><AlignLeft /></IconButton>
-  <IconButton size="sm" buttonStyle="weak" variant="dark" aria-label="가운데 정렬"><AlignCenter /></IconButton>
-  <IconButton size="sm" buttonStyle="weak" variant="dark" aria-label="오른쪽 정렬"><AlignRight /></IconButton>
-  <div style={{ width: '1px', height: '24px', backgroundColor: '#d1d5db', margin: '0 0.25rem' }} />
-  <IconButton size="sm" buttonStyle="weak" variant="danger" aria-label="삭제"><Trash /></IconButton>
-</div>`}
-          />
-        </div>
-      </section>
-
-      {/* Strong Section */}
-      <section className={styles.section}>
-        <div className={styles.sectionHeader}>
-          <h2 className={styles.sectionTitle}>Strong</h2>
-          <p className={styles.sectionDescription}>
-            buttonStyle=&quot;strong&quot;은 진한 배경으로 가장 눈에 띄는 액션을
-            만듭니다. Button의 fill과 같은 색을 쓰고(호버와 누름 포함) 이름만
-            strong입니다.
-          </p>
-        </div>
-
-        <div className={styles.example}>
-          <h3 className={styles.exampleTitle}>Variants (Strong)</h3>
-          <LivePreview
-            title="Strong 스타일 변형"
-            description="strong에서 쓸 수 있는 4가지 variant입니다."
-            editable
-            code={`<div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
-  <IconButton variant="primary" buttonStyle="strong" aria-label="추가"><Plus /></IconButton>
-  <IconButton variant="dark" buttonStyle="strong" aria-label="메뉴"><Menu /></IconButton>
-  <IconButton variant="danger" buttonStyle="strong" aria-label="삭제"><Trash /></IconButton>
-  <IconButton variant="light" buttonStyle="strong" aria-label="즐겨찾기"><Star /></IconButton>
-</div>`}
-          />
-        </div>
-
-        <div className={styles.example}>
-          <h3 className={styles.exampleTitle}>Button vs IconButton</h3>
-          <LivePreview
-            title="Button과 비교"
-            description="Button은 텍스트+아이콘, IconButton은 아이콘만 사용합니다. 같은 variant/size 체계를 공유합니다."
-            editable
-            code={`<div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-  <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
-    <Button variant="primary" leftIcon={<Plus />} size="md">추가</Button>
-    <IconButton variant="primary" buttonStyle="strong" size="md" aria-label="추가"><Plus /></IconButton>
-  </div>
-  <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
-    <Button variant="danger" leftIcon={<Trash />} size="md">삭제</Button>
-    <IconButton variant="danger" buttonStyle="strong" size="md" aria-label="삭제"><Trash /></IconButton>
-  </div>
-  <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
-    <Button variant="dark" buttonStyle="weak" size="sm">메뉴</Button>
-    <IconButton variant="dark" buttonStyle="weak" size="sm" aria-label="메뉴"><Menu /></IconButton>
-  </div>
-</div>`}
-          />
-        </div>
-      </section>
-
-      {/* 젤리 */}
-      <section className={styles.section}>
-        <div className={styles.sectionHeader}>
-          <h2 className={styles.sectionTitle}>젤리</h2>
-          <p className={styles.sectionDescription}>
-            젤리는 기본으로 켜져 있습니다. prop 없이 쓴 IconButton도 마우스가
-            들어오면 아이콘이 부피를 지키며 옆으로 퍼졌다가 출렁이며 돌아옵니다.
-            hoverEffect=&quot;none&quot;으로 끄고, 기본값과 같은
-            hoverEffect=&quot;jelly&quot;로 다시 명시할 수 있습니다. 마우스에만
-            반응하고 터치, 키보드 포커스, 동작 줄이기 설정에서는 움직이지
-            않습니다.
-          </p>
-        </div>
-
-        <div className={styles.example}>
-          <h3 className={styles.exampleTitle}>기본 · none</h3>
-          <LivePreview
-            title="젤리 켜기와 끄기"
-            description='왼쪽은 prop이 없는 기본(젤리), 오른쪽은 hoverEffect="none"입니다. 각각 호버해 보세요.'
-            editable
-            code={`<div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
-  <IconButton buttonStyle="strong" aria-label="기본"><Plus /></IconButton>
-  <IconButton buttonStyle="strong" hoverEffect="none" aria-label="젤리 끔"><Plus /></IconButton>
-</div>`}
-          />
-        </div>
-      </section>
-
-      {/* Sizes & States (세 모드 공통) */}
-      <section className={styles.section}>
-        <div className={styles.sectionHeader}>
-          <h2 className={styles.sectionTitle}>Sizes &amp; States</h2>
-          <p className={styles.sectionDescription}>
-            크기와 상태는 세 모드가 같습니다.
-          </p>
-        </div>
-
-        <div className={styles.example}>
-          <h3 className={styles.exampleTitle}>Sizes</h3>
-          <LivePreview
-            title="크기 옵션"
-            description="sm, md, lg, xl 네 가지 크기를 제공합니다. sm은 보이는 크기가 36px이고, 누르는 영역은 보이지 않는 띠로 44px을 유지합니다. md 이상은 보이는 크기가 곧 누르는 영역입니다."
-            editable
-            code={`<div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
-  <IconButton buttonStyle="strong" size="sm" aria-label="Small"><Pencil /></IconButton>
-  <IconButton buttonStyle="strong" size="md" aria-label="Medium"><Pencil /></IconButton>
-  <IconButton buttonStyle="strong" size="lg" aria-label="Large"><Pencil /></IconButton>
-  <IconButton buttonStyle="strong" size="xl" aria-label="X-Large"><Pencil /></IconButton>
-</div>`}
-          />
-        </div>
-
-        <div className={styles.example}>
-          <h3 className={styles.exampleTitle}>Loading</h3>
-          <LivePreview
-            title="로딩 상태"
-            description="loading prop으로 Loader를 표시합니다. 로딩 중에는 버튼이 자동으로 비활성화됩니다."
-            editable
-            code={`const [loading, setLoading] = useState(false);
-const handleClick = () => {
-  setLoading(true);
-  setTimeout(() => setLoading(false), 2000);
-};
-
-<div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
-  <IconButton buttonStyle="strong" loading={loading} onClick={handleClick} aria-label="새로고침"><RotateCw /></IconButton>
-  <IconButton buttonStyle="strong" loading variant="dark" aria-label="로딩 중"><Hourglass /></IconButton>
-  <IconButton buttonStyle="strong" loading variant="danger" aria-label="로딩 중"><Hourglass /></IconButton>
-</div>`}
-          />
-        </div>
-
-        <div className={styles.example}>
-          <h3 className={styles.exampleTitle}>Disabled</h3>
-          <LivePreview
-            title="비활성화 상태"
-            description="disabled prop으로 버튼을 비활성화합니다. 클릭 이벤트가 발생하지 않습니다."
-            editable
-            code={`<div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
-  <IconButton buttonStyle="strong" disabled aria-label="추가"><Plus /></IconButton>
-  <IconButton buttonStyle="strong" variant="dark" disabled aria-label="메뉴"><Menu /></IconButton>
-  <IconButton buttonStyle="strong" variant="danger" disabled aria-label="삭제"><Trash /></IconButton>
-  <IconButton buttonStyle="strong" variant="light" disabled aria-label="즐겨찾기"><Star /></IconButton>
-</div>`}
-          />
-        </div>
-      </section>
-
-      {/* Props API */}
-      <section className={styles.section}>
-        <div className={styles.sectionHeader}>
-          <h2 className={styles.sectionTitle}>Props API</h2>
-          <p className={styles.sectionDescription}>
-            IconButton 컴포넌트의 모든 Props와 타입 정보입니다. HTML button
-            속성도 모두 사용 가능합니다.
-          </p>
-        </div>
-        <div className={styles.propsTableWrapper}>
-          <PropsTable props={propsData} />
-        </div>
-      </section>
-
-      {/* Accessibility */}
-      <AccessibilitySection
-        componentName="IconButton"
-        intro="IconButton은 텍스트 없이 아이콘만 사용하므로, 접근성을 위한 레이블이 특히 중요합니다."
-        features={[
-          {
-            attribute: '<button> 요소',
-            effect: '스크린 리더에서 "버튼"으로 인식합니다.',
-            description:
-              '네이티브 button 요소를 사용하여 추가 role 없이도 올바른 역할을 전달합니다.',
-          },
-          {
-            attribute: 'aria-label (필수)',
-            effect: '스크린 리더가 버튼의 용도를 알립니다.',
-            description:
-              '아이콘만으로는 용도를 알 수 없으므로 aria-label 또는 aria-labelledby를 반드시 제공해야 합니다.',
-          },
-          {
-            attribute: 'aria-hidden (아이콘)',
-            effect: '아이콘이 스크린 리더에서 무시됩니다.',
-            description:
-              'children이 aria-hidden="true"로 감싸져 있어 중복 읽기를 방지합니다.',
-          },
-          {
-            attribute: 'aria-disabled',
-            effect: '비활성화 상태를 알립니다.',
-            description:
-              'disabled 또는 loading일 때 aria-disabled="true"가 설정됩니다.',
-          },
-          {
-            attribute: 'aria-busy',
-            effect: '로딩 상태를 알립니다.',
-            description:
-              'loading일 때 aria-busy="true"가 설정되어 작업 진행 중임을 전달합니다.',
-          },
-          {
-            attribute: 'focus-visible',
-            effect: '키보드 포커스 시 아웃라인이 표시됩니다.',
-            description:
-              '2px solid outline과 2px offset으로 명확한 포커스 인디케이터를 제공합니다.',
-          },
-        ]}
-        additionalGuidance={[
-          {
-            title: 'aria-label은 필수',
-            description:
-              'IconButton은 텍스트가 없으므로 스크린 리더 사용자를 위해 반드시 aria-label을 제공해야 합니다.',
-            examples: [
-              {
-                code: `// Good
-<IconButton aria-label="닫기"><X /></IconButton>
-<IconButton aria-label="새로고침"><RotateCw /></IconButton>
-
-// Bad - aria-label 없음
-<IconButton><X /></IconButton>`,
-                explanation:
-                  'aria-label이 없으면 스크린 리더 사용자가 버튼의 용도를 알 수 없습니다. 개발 환경에서 콘솔 경고가 표시됩니다.',
-              },
-            ],
-          },
-          {
-            title: '텍스트가 필요한 경우 Button 사용',
-            description:
-              '버튼의 용도가 아이콘만으로 명확하지 않다면 Button 컴포넌트에 텍스트를 함께 사용하세요.',
-            examples: [
-              {
-                code: `// 아이콘만으로 충분한 경우 → IconButton
-<IconButton aria-label="닫기"><X /></IconButton>
-
-// 텍스트가 필요한 경우 → Button
-<Button leftIcon={<Trash />}>삭제하기</Button>`,
-                explanation:
-                  '닫기(X) 같은 범용 아이콘은 IconButton으로 충분하지만, 삭제(Trash) 같은 구체적인 행동은 텍스트가 필요합니다.',
-              },
-            ],
-          },
-        ]}
-      />
-
-      {/* Best Practices */}
-      <section className={styles.section}>
-        <div className={styles.sectionHeader}>
-          <h2 className={styles.sectionTitle}>Best Practices</h2>
-          <p className={styles.sectionDescription}>
-            IconButton을 효과적으로 사용하기 위한 권장사항입니다.
-          </p>
-        </div>
-
-        <div className={styles.practicesGrid}>
-          <Card>
-            <Card.Body padding="lg">
-              <div className={styles.practiceHeader}>
-                <span className={styles.practiceIcon}>✓</span>
-                <h3 className={styles.practiceTitle}>Do</h3>
-              </div>
-              <List spacing="sm" className={styles.practiceList}>
-                <ListItem>항상 aria-label로 버튼 용도 설명하기</ListItem>
-                <ListItem>범용적으로 인식 가능한 아이콘 사용하기</ListItem>
-                <ListItem>툴바에서 일관된 size와 buttonStyle 사용하기</ListItem>
-                <ListItem>비동기 작업 시 loading 상태 표시하기</ListItem>
-                <ListItem>
-                  Button과 함께 사용 시 동일한 variant 체계 활용하기
-                </ListItem>
-              </List>
-            </Card.Body>
-          </Card>
-
-          <Card>
-            <Card.Body padding="lg">
-              <div className={styles.practiceHeader}>
-                <span className={styles.practiceIconError}>✗</span>
-                <h3 className={styles.practiceTitle}>Don't</h3>
-              </div>
-              <List spacing="sm" className={styles.practiceList}>
-                <ListItem>aria-label 없이 사용하지 않기</ListItem>
-                <ListItem>의미가 불분명한 커스텀 아이콘 사용하지 않기</ListItem>
-                <ListItem>
-                  텍스트 설명이 필요한 행동에 IconButton 사용하지 않기
-                </ListItem>
-                <ListItem>같은 아이콘으로 다른 행동을 수행하지 않기</ListItem>
-                <ListItem>
-                  너무 작은 터치 타깃 사용하지 않기 (최소 sm 권장)
-                </ListItem>
-              </List>
-            </Card.Body>
-          </Card>
-        </div>
-      </section>
-    </article>
+    <DetailLayout
+      name="IconButton"
+      lead={LEAD}
+      stage={
+        <Stage label="IconButton 시연" script={SCRIPT}>
+          <div style={{ display: 'flex', gap: 12 }}>
+            {VARIANTS.map(({ variant, icon, label, target }) => (
+              <IconButton
+                key={variant}
+                data-stage-target={target}
+                variant={variant}
+                buttonStyle={values.buttonStyle as Look}
+                size={values.size as Size}
+                hoverEffect={values.hoverEffect as Hover}
+                loading={values.loading === true}
+                disabled={values.disabled === true}
+                aria-label={label}
+              >
+                {icon}
+              </IconButton>
+            ))}
+          </div>
+        </Stage>
+      }
+      customize={
+        <Customize controls={CONTROLS} values={values} onChange={setValues} />
+      }
+      code={codeOf({
+        component: 'IconButton',
+        values: { ...values, 'aria-label': '추가', children: '<Plus />' },
+        defaults: DEFAULTS,
+      }).replace(
+        "from '@taein-ui/core';",
+        "from '@taein-ui/core';\nimport { Plus } from 'lucide-react';"
+      )}
+      props={PROPS}
+      usage={<Usage />}
+      a11y={<A11y />}
+    />
   );
 }
