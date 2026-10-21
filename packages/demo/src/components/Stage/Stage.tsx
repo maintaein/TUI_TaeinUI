@@ -26,6 +26,8 @@ export interface Act {
   type: (target: string, text: string) => void;
   /** 입력칸을 비운다 */
   clear: (target: string) => void;
+  /** 범위 입력(슬라이더)의 손잡이를 잡고 to까지 끌었다 놓는다. 합성 pointerdown, 값을 코드로 옮기며 input 이벤트, 합성 pointerup. 커서가 손잡이를 따라간다 */
+  drag: (target: string, to: number, seconds?: number) => void;
 }
 
 export interface StageProps {
@@ -139,6 +141,8 @@ export function Stage({ label, script, children, className }: StageProps) {
   const timeline = useRef<gsap.core.Timeline | null>(null);
   // 대본이 준 포커스는 넘겨받기로 보지 않는다
   const scripted = useRef(false);
+  // 대본이 잡고 있는 것(drag)을 놓는 함수들. 멈추거나 정리될 때 잡은 채 남지 않게 부른다
+  const holds = useRef(new Set<() => void>());
   const [flags, setFlags] = useState<Flags>({
     user: false,
     hover: false,
@@ -158,18 +162,28 @@ export function Stage({ label, script, children, className }: StageProps) {
     const cur = cursor.current;
     if (!root || !cur || !script || reduced) return;
     const timers = new Set<number>();
+    const grips = holds.current;
     const find = (name: string) =>
       root.querySelector<HTMLElement>(`[data-stage-target="${name}"]`);
-    // 화살촉이 대상의 오른쪽 아래쪽에 앉는다
+    // 화살촉이 대상의 오른쪽 아래쪽에 앉는다. 범위 입력은 지금 값의 손잡이(지름 24px) 위에 앉는다
     const at = (name: string) => {
-      const t = find(name)?.getBoundingClientRect();
+      const el = find(name);
+      const t = el?.getBoundingClientRect();
       const r = root.getBoundingClientRect();
-      return t
-        ? {
-            x: t.left - r.left + t.width * 0.62,
-            y: t.top - r.top + t.height * 0.6,
-          }
-        : { x: 0, y: 0 };
+      if (!el || !t) return { x: 0, y: 0 };
+      if (el instanceof HTMLInputElement && el.type === 'range') {
+        const min = Number(el.min || 0);
+        const span = Number(el.max || 100) - min;
+        const f = span ? (Number(el.value) - min) / span : 0;
+        return {
+          x: t.left - r.left + 12 + (t.width - 24) * f,
+          y: t.top - r.top + t.height / 2,
+        };
+      }
+      return {
+        x: t.left - r.left + t.width * 0.62,
+        y: t.top - r.top + t.height * 0.6,
+      };
     };
     const rest = () => ({
       x: root.clientWidth * 0.74,
@@ -283,6 +297,36 @@ export function Stage({ label, script, children, className }: StageProps) {
             setValue(el, '');
         });
       },
+      drag: (target, to, seconds = dur.slower * 3) => {
+        const proxy = { v: 0 };
+        let held = false;
+        const drop = () => {
+          if (!held) return;
+          held = false;
+          grips.delete(drop);
+          firePointer(find(target), 'pointerup');
+        };
+        tl.call(() => {
+          proxy.v = Number((find(target) as HTMLInputElement | null)?.value);
+        }).to(proxy, {
+          v: to,
+          duration: seconds,
+          ease: ease.drift,
+          onUpdate: () => {
+            const el = find(target);
+            if (!(el instanceof HTMLInputElement) || el.disabled) return;
+            if (!held) {
+              held = true;
+              grips.add(drop);
+              firePointer(el, 'pointerdown');
+            }
+            const next = String(Math.round(proxy.v));
+            if (el.value !== next) setValue(el, next);
+            gsap.set(cur, at(target));
+          },
+          onComplete: drop,
+        });
+      },
       home: (seconds = dur.slow * 2) => {
         tl.to(cur, {
           x: () => rest().x,
@@ -298,6 +342,7 @@ export function Stage({ label, script, children, className }: StageProps) {
       tl.kill();
       timeline.current = null;
       timers.forEach((id) => window.clearTimeout(id));
+      grips.forEach((drop) => drop());
       clearHover(root);
     };
   }, [root, script, reduced]);
@@ -310,8 +355,9 @@ export function Stage({ label, script, children, className }: StageProps) {
     if (playing) tl.play();
     else {
       tl.pause();
-      // 진짜 입력이 넘겨받으면 진짜 :hover가 맡는다
+      // 진짜 입력이 넘겨받으면 진짜 :hover가 맡고, 잡고 있던 것은 놓는다
       if (root) clearHover(root);
+      holds.current.forEach((drop) => drop());
     }
     gsap.to(cur, {
       autoAlpha: playing ? 1 : 0,
