@@ -61,12 +61,13 @@ const NOTATION = {
   },
 };
 
-// 커서가 Button으로 가서 올라타고 누르면, 누른 Button이 잠깐 loading이 됐다가 돌아온다
+// 커서가 Button으로 가서 올라타 호버 색이 보이게 머문 뒤 누르면, 누른 Button이 잠깐 loading이 됐다가 돌아온다
 const SCRIPT = (act: Act) => {
   act.move('button');
   act.hover('button');
-  act.wait(0.35);
+  act.wait(0.7);
   act.press('button');
+  act.leave('button');
   act.wait(1.5);
   act.home();
   act.wait(1);

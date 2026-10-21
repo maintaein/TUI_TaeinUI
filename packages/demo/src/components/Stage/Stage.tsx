@@ -9,13 +9,23 @@ import * as styles from './Stage.css';
 export interface Act {
   /** 연출 커서를 대상으로 옮긴다 */
   move: (target: string, seconds?: number) => void;
-  /** 합성 pointerover(마우스가 올라옴) */
+  /** 합성 pointerover(마우스가 올라옴). 대상과 무대 안 조상에 data-stage-hover를 붙여 CSS :hover 쌍둥이 규칙을 켠다 */
   hover: (target: string) => void;
+  /** 합성 pointerout. data-stage-hover를 뗀다 */
+  leave: (target: string) => void;
   /** 합성 pointerdown, 잠깐 뒤 pointerup과 click. 커서는 눌렸다 돌아온다 */
   press: (target: string) => void;
   wait: (seconds: number) => void;
   /** 커서를 무대 안 쉬는 자리로 되돌린다 */
   home: (seconds?: number) => void;
+  /** 대상에 포커스를 준다(다른 곳에 포커스가 있으면 뺏지 않는다) */
+  focus: (target: string) => void;
+  /** 대상의 포커스를 뺀다 */
+  blur: (target: string) => void;
+  /** 입력칸에 글자를 한 자씩 넣는다. 값을 코드로 바꾸고 input 이벤트를 보낸다 */
+  type: (target: string, text: string) => void;
+  /** 입력칸을 비운다 */
+  clear: (target: string) => void;
 }
 
 export interface StageProps {
@@ -41,13 +51,70 @@ interface Flags {
 
 // 누른 채 있는 시간: 커서가 눌리는 시간(fast)에 잠깐의 멈춤(HOLD)을 더한다
 const HOLD = 0.12;
+// 글자 하나가 들어가는 시간(초)
+const KEY = 0.09;
 const PRESS_MS = (dur.fast + HOLD) * 1000;
 const CURSOR_SCALE = 0.8;
 const CONTROL = '[data-stage-control]';
+const HOVER_ATTR = 'data-stage-hover';
+
+const mirrored = new WeakSet<CSSStyleSheet>();
+
+// 합성 이벤트는 CSS :hover를 켜지 못한다. 그래서 :hover 규칙마다 :hover를 [data-stage-hover]로 바꾼
+// 쌍둥이를 바로 뒤에 넣어 둔다(같은 미디어 조건 안, 같은 특이도). 그 속성은 무대 안 요소에만 붙는다.
+// 안쪽 규칙부터 거꾸로 돌아야 넣어도 앞 규칙의 번호가 밀리지 않는다.
+// shortcut: 시트당 한 번만 훑고 CSS 중첩 규칙의 안쪽은 보지 않는다, 런타임에 규칙이 더해지는 시트나 중첩 CSS를 쓰게 되면 고친다
+const mirrorRules = (box: CSSStyleSheet | CSSGroupingRule) => {
+  const list = box.cssRules;
+  for (let i = list.length - 1; i >= 0; i--) {
+    const rule = list[i];
+    if (rule instanceof CSSStyleRule) {
+      if (!rule.selectorText.includes(':hover')) continue;
+      const twin = `${rule.selectorText.replace(/:hover/g, `[${HOVER_ATTR}]`)} { ${rule.style.cssText} }`;
+      try {
+        box.insertRule(twin, i + 1);
+      } catch {
+        continue;
+      }
+    } else if (rule instanceof CSSGroupingRule) {
+      mirrorRules(rule);
+    }
+  }
+};
+
+const mirrorHover = () => {
+  for (const sheet of document.styleSheets) {
+    if (mirrored.has(sheet)) continue;
+    mirrored.add(sheet);
+    try {
+      mirrorRules(sheet);
+    } catch {
+      // 다른 출처 시트는 규칙을 읽을 수 없다
+    }
+  }
+};
+
+// React의 입력 추적을 거치도록 프로토타입의 value 설정자로 쓴다
+const setValue = (
+  el: HTMLInputElement | HTMLTextAreaElement,
+  value: string
+) => {
+  const proto =
+    el instanceof HTMLTextAreaElement
+      ? HTMLTextAreaElement.prototype
+      : HTMLInputElement.prototype;
+  Object.getOwnPropertyDescriptor(proto, 'value')?.set?.call(el, value);
+  el.dispatchEvent(new Event('input', { bubbles: true }));
+};
+
+const clearHover = (root: Element) =>
+  root
+    .querySelectorAll(`[${HOVER_ATTR}]`)
+    .forEach((n) => n.removeAttribute(HOVER_ATTR));
 
 const firePointer = (
   el: Element | null,
-  type: 'pointerdown' | 'pointerup' | 'pointerover'
+  type: 'pointerdown' | 'pointerup' | 'pointerover' | 'pointerout'
 ) =>
   el?.dispatchEvent(
     new PointerEvent(type, {
@@ -71,6 +138,8 @@ export function Stage({ label, script, children, className }: StageProps) {
   const [root, setRoot] = useState<HTMLDivElement | null>(null);
   const cursor = useRef<SVGSVGElement>(null);
   const timeline = useRef<gsap.core.Timeline | null>(null);
+  // 대본이 준 포커스는 넘겨받기로 보지 않는다
+  const scripted = useRef(false);
   const [flags, setFlags] = useState<Flags>({
     user: false,
     hover: false,
@@ -82,6 +151,8 @@ export function Stage({ label, script, children, className }: StageProps) {
     setFlags((f) => (f[key] === value ? f : { ...f, [key]: value }));
   const playing = !reduced && !Object.values(flags).some(Boolean);
   const demo = script && !reduced;
+
+  useEffect(mirrorHover, []);
 
   // 대본을 타임라인으로 만든다
   useEffect(() => {
@@ -119,7 +190,21 @@ export function Stage({ label, script, children, className }: StageProps) {
         });
       },
       hover: (target) => {
-        tl.call(() => firePointer(find(target), 'pointerover'));
+        tl.call(() => {
+          const el = find(target);
+          firePointer(el, 'pointerover');
+          // 합성 이벤트는 :hover를 못 켜므로 쌍둥이 규칙의 속성을 대상과 무대 안 조상에 붙인다
+          for (let n = el; n && n !== root; n = n.parentElement)
+            n.setAttribute(HOVER_ATTR, '');
+        });
+      },
+      leave: (target) => {
+        tl.call(() => {
+          const el = find(target);
+          firePointer(el, 'pointerout');
+          for (let n = el; n && n !== root; n = n.parentElement)
+            n.removeAttribute(HOVER_ATTR);
+        });
       },
       press: (target) => {
         // 누름과 뗌을 한 호출에서 끝낸다. 중간에 멈춰도 눌린 채 남지 않는다
@@ -147,6 +232,55 @@ export function Stage({ label, script, children, className }: StageProps) {
       wait: (seconds) => {
         tl.to(cur, { duration: seconds });
       },
+      focus: (target) => {
+        tl.call(() => {
+          const el = find(target);
+          const active = document.activeElement;
+          if (active && active !== document.body && !root.contains(active))
+            return;
+          scripted.current = true;
+          el?.focus({ preventScroll: true });
+          scripted.current = false;
+        });
+      },
+      blur: (target) => {
+        tl.call(() => {
+          const el = find(target);
+          if (el && el === document.activeElement) el.blur();
+        });
+      },
+      type: (target, text) => {
+        const proxy = { n: 0 };
+        tl.fromTo(
+          proxy,
+          { n: 0 },
+          {
+            n: text.length,
+            duration: text.length * KEY,
+            ease: ease.linear,
+            onUpdate: () => {
+              const el = find(target);
+              const next = text.slice(0, Math.round(proxy.n));
+              if (
+                (el instanceof HTMLInputElement ||
+                  el instanceof HTMLTextAreaElement) &&
+                el.value !== next
+              )
+                setValue(el, next);
+            },
+          }
+        );
+      },
+      clear: (target) => {
+        tl.call(() => {
+          const el = find(target);
+          if (
+            el instanceof HTMLInputElement ||
+            el instanceof HTMLTextAreaElement
+          )
+            setValue(el, '');
+        });
+      },
       home: (seconds = dur.slow * 2) => {
         tl.to(cur, {
           x: () => rest().x,
@@ -162,6 +296,7 @@ export function Stage({ label, script, children, className }: StageProps) {
       tl.kill();
       timeline.current = null;
       timers.forEach((id) => window.clearTimeout(id));
+      clearHover(root);
     };
   }, [root, script, reduced]);
 
@@ -171,7 +306,11 @@ export function Stage({ label, script, children, className }: StageProps) {
     const cur = cursor.current;
     if (!tl || !cur) return;
     if (playing) tl.play();
-    else tl.pause();
+    else {
+      tl.pause();
+      // 진짜 입력이 넘겨받으면 진짜 :hover가 맡는다
+      if (root) clearHover(root);
+    }
     gsap.to(cur, {
       autoAlpha: playing ? 1 : 0,
       duration: dur.fast,
@@ -225,7 +364,11 @@ export function Stage({ label, script, children, className }: StageProps) {
       onFocus={(e) => {
         const t = e.target as Element;
         // 마우스로 누른 포커스는 hover가 맡는다. 키보드로 들어온 포커스만 넘겨받기로 본다
-        if (t.matches(':focus-visible') && !t.closest(CONTROL))
+        if (
+          !scripted.current &&
+          t.matches(':focus-visible') &&
+          !t.closest(CONTROL)
+        )
           setFlag('focus', true);
       }}
       onBlur={(e) => {
