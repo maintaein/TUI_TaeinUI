@@ -255,3 +255,16 @@ export const categoryColors: Record<ComponentInfo['category'], string> = {
   layout: '#06b6d4', // Cyan
   data: '#ec4899', // Pink
 };
+
+const ordered = Object.keys(categoryLabels).flatMap((key) =>
+  componentsData.filter((c) => c.category === key)
+);
+
+/** 상세 페이지 머리의 번호(계열 순서대로 01부터)와 계열 이름. 사이드바의 번호와 같다 */
+export const detailMeta = (name: string) => {
+  const i = ordered.findIndex((c) => c.name === name);
+  return {
+    no: String(i + 1).padStart(2, '0'),
+    group: categoryLabels[ordered[i].category],
+  };
+};

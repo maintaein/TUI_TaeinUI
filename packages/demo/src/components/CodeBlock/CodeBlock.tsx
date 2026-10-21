@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Check, Copy } from 'lucide-react';
+import { IconButton } from '@taein-ui/core';
 import { PrismLight as SyntaxHighlighter } from 'react-syntax-highlighter';
 import tsx from 'react-syntax-highlighter/dist/esm/languages/prism/tsx';
 import typescript from 'react-syntax-highlighter/dist/esm/languages/prism/typescript';
@@ -7,6 +8,7 @@ import bash from 'react-syntax-highlighter/dist/esm/languages/prism/bash';
 import json from 'react-syntax-highlighter/dist/esm/languages/prism/json';
 import css from 'react-syntax-highlighter/dist/esm/languages/prism/css';
 import { vs } from 'react-syntax-highlighter/dist/esm/styles/prism';
+import { MONO } from '../DocText';
 import * as styles from './CodeBlock.css';
 
 SyntaxHighlighter.registerLanguage('tsx', tsx);
@@ -26,7 +28,7 @@ export interface CodeBlockProps {
 export function CodeBlock({
   code,
   language = 'tsx',
-  showLineNumbers = true,
+  showLineNumbers = false,
   fileName,
   className,
 }: CodeBlockProps) {
@@ -41,17 +43,6 @@ export function CodeBlock({
   return (
     <div className={`${styles.codeBlock} ${className || ''}`}>
       {fileName && <div className={styles.fileName}>{fileName}</div>}
-      <div className={styles.header}>
-        <span className={styles.language}>{language}</span>
-        <button
-          className={styles.copyButton}
-          onClick={handleCopy}
-          aria-label="코드 복사"
-        >
-          {copied ? <Check size={16} /> : <Copy size={16} />}
-          <span className={styles.copyText}>{copied ? '복사됨!' : '복사'}</span>
-        </button>
-      </div>
       <div className={styles.codeContainer}>
         <SyntaxHighlighter
           language={language}
@@ -59,21 +50,27 @@ export function CodeBlock({
           showLineNumbers={showLineNumbers}
           customStyle={{
             margin: 0,
-            padding: '1rem',
+            padding: '1rem 0.5rem 1rem 1.25rem',
+            background: 'transparent',
+            border: 'none',
             fontSize: '0.875rem',
-            lineHeight: '1.5',
-            borderRadius: '0 0 0.5rem 0.5rem',
+            lineHeight: '1.7',
+            fontFamily: MONO,
           }}
-          codeTagProps={{
-            style: {
-              fontFamily:
-                'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
-            },
-          }}
+          codeTagProps={{ style: { fontFamily: MONO } }}
         >
           {code}
         </SyntaxHighlighter>
       </div>
+      <span className={styles.copyCell}>
+        <IconButton
+          size="sm"
+          aria-label={copied ? '복사됨' : '코드 복사'}
+          onClick={handleCopy}
+        >
+          {copied ? <Check /> : <Copy />}
+        </IconButton>
+      </span>
     </div>
   );
 }
