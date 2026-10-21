@@ -1,407 +1,265 @@
-import { Card, List, ListItem } from '@taein-ui/core';
-import { LivePreview } from '../../../components/LivePreview';
+import { useState, type ComponentProps } from 'react';
+import { Checkbox } from '@taein-ui/core';
 import { CodeBlock } from '../../../components/CodeBlock';
-import { PropsTable } from '../../../components/PropsTable';
-import type { PropDefinition } from '../../../components/PropsTable/PropsTable';
-import { AccessibilitySection } from '../../../components/AccessibilitySection';
-import * as styles from './CheckboxPage.css';
+import {
+  Customize,
+  codeOf,
+  type Control,
+  type Values,
+} from '../../../components/Customize';
+import { DetailLayout, Topic, Topics } from '../../../components/DetailLayout';
+import * as t from '../../../components/DocText';
+import type { PropDefinition } from '../../../components/PropsTable';
+import { Stage, type Act } from '../../../components/Stage';
 
-export function CheckboxPage() {
-  const propsData: PropDefinition[] = [
-    {
-      name: 'label',
-      type: 'string',
-      required: true,
-      description: '레이블 텍스트',
-    },
-    {
-      name: 'size',
-      type: "'sm' | 'md' | 'lg'",
-      default: "'md'",
-      description: 'Checkbox 크기',
-    },
-    {
-      name: 'error',
-      type: 'boolean',
-      default: 'false',
-      description: '에러 상태',
-    },
-    {
-      name: 'errorMessage',
-      type: 'string',
-      default: 'undefined',
-      description: '에러 메시지',
-    },
-    {
-      name: 'helperText',
-      type: 'string',
-      default: 'undefined',
-      description: '도움말 텍스트',
-    },
-    {
-      name: 'indeterminate',
-      type: 'boolean',
-      default: 'false',
-      description: '불확정 상태 (부분 선택)',
-    },
-    {
-      name: 'disabled',
-      type: 'boolean',
-      default: 'false',
-      description: '비활성화 상태',
-    },
-    {
-      name: 'required',
-      type: 'boolean',
-      default: 'false',
-      description: '필수 입력 여부',
-    },
-    {
-      name: 'checked',
-      type: 'boolean',
-      default: 'undefined',
-      description: '체크 상태 (controlled)',
-    },
-    {
-      name: 'defaultChecked',
-      type: 'boolean',
-      default: 'undefined',
-      description: '초기 체크 상태 (uncontrolled)',
-    },
-  ];
+const LEAD =
+  '약관 동의, 여러 항목 고르기처럼 항목을 하나씩 체크하고 해제하는 자리에 둡니다.';
 
-  return (
-    <article className={styles.container}>
-      {/* Header */}
-      <header className={styles.header}>
-        <h1 className={styles.title}>Checkbox</h1>
-        <p className={styles.description}>
-          Checkbox 컴포넌트는 약관 동의, 다중 항목 선택, 설정 토글 등 사용자가
-          하나 이상의 항목을 선택하거나 해제할 때 사용합니다.
-        </p>
-      </header>
+const CONTROLS: Control[] = [
+  { prop: 'label', kind: 'text' },
+  { prop: 'size', kind: 'choice', options: ['sm', 'md', 'lg'] },
+  { prop: 'helperText', kind: 'text' },
+  { prop: 'errorMessage', kind: 'text' },
+  { prop: 'indeterminate', kind: 'toggle' },
+  { prop: 'error', kind: 'toggle' },
+  { prop: 'required', kind: 'toggle' },
+  { prop: 'disabled', kind: 'toggle' },
+];
 
-      {/* Quick Reference */}
-      <section className={styles.quickReference}>
-        <Card className={styles.quickRefCard}>
-          <Card.Body padding="md">
-            <h3 className={styles.quickRefTitle}>Import</h3>
-            <CodeBlock
-              language="typescript"
-              code={`import { Checkbox } from '@taein-ui/core';`}
-            />
-          </Card.Body>
-        </Card>
-        <Card className={styles.quickRefCard}>
-          <Card.Body padding="md">
-            <h3 className={styles.quickRefTitle}>Basic Usage</h3>
-            <CodeBlock
-              language="tsx"
-              code={`<Checkbox
-  label="동의합니다"
-  checked={checked}
-  onChange={(e) => setChecked(e.target.checked)}
-/>`}
-            />
-          </Card.Body>
-        </Card>
-      </section>
-
-      {/* Examples Section */}
-      <section className={styles.section}>
-        <div className={styles.sectionHeader}>
-          <h2 className={styles.sectionTitle}>Examples</h2>
-          <p className={styles.sectionDescription}>
-            다양한 사용 사례에 맞는 Checkbox 예제입니다.
-          </p>
-        </div>
-
-        {/* Basic Example */}
-        <div className={styles.example}>
-          <h3 className={styles.exampleTitle}>Basic Checkbox</h3>
-          <LivePreview
-            title="기본 사용법"
-            description="가장 기본적인 체크박스 사용 예제입니다."
-            editable
-            code={`const [checked, setChecked] = useState(false);
-
-<Checkbox
-  label="기본 체크박스"
-  checked={checked}
-  onChange={(e) => setChecked(e.target.checked)}
-/>`}
-          />
-        </div>
-
-        {/* Controlled State Example */}
-        <div className={styles.example}>
-          <h3 className={styles.exampleTitle}>Controlled (외부 상태 제어)</h3>
-          <LivePreview
-            title="외부 상태 제어"
-            description="checked와 onChange를 함께 전달하여 부모 컴포넌트에서 상태를 직접 관리합니다. 체크 상태에 따라 다른 UI를 표시하거나, 폼 제출 시 값을 검증하거나, 여러 체크박스의 상태를 연동해야 할 때 사용하세요."
-            editable
-            code={`const [checked, setChecked] = useState(false);
-
-<Checkbox
-  label="알림 수신 동의"
-  checked={checked}
-  onChange={(e) => setChecked(e.target.checked)}
-  helperText={\`현재 상태: \${checked ? '동의' : '미동의'}\`}
-/>`}
-          />
-        </div>
-
-        {/* Uncontrolled State Example */}
-        <div className={styles.example}>
-          <h3 className={styles.exampleTitle}>Uncontrolled (내부 상태 제어)</h3>
-          <LivePreview
-            title="내부 상태 제어"
-            description="defaultChecked로 초기값만 설정하면 컴포넌트가 자체적으로 상태를 관리합니다. 단순한 설정 토글이나, 체크 상태를 외부에서 추적할 필요가 없거나, 폼 제출 시 FormData로 한번에 수집하는 경우에 적합합니다."
-            editable
-            code={`<div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-  <Checkbox
-    label="마케팅 수신 동의"
-    defaultChecked={true}
-    helperText="초기값 true, 이후 자체 관리"
-  />
-  <Checkbox
-    label="선택 약관 동의"
-    defaultChecked={false}
-    helperText="초기값 false, 이후 자체 관리"
-  />
-</div>`}
-          />
-        </div>
-
-        {/* Sizes Example */}
-        <div className={styles.example}>
-          <h3 className={styles.exampleTitle}>Sizes</h3>
-          <LivePreview
-            title="크기 옵션"
-            description="sm, md, lg 세 가지 크기를 제공합니다."
-            editable
-            code={`<div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-  <Checkbox label="Small Checkbox" size="sm" />
-  <Checkbox label="Medium Checkbox" size="md" />
-  <Checkbox label="Large Checkbox" size="lg" />
-</div>`}
-          />
-        </div>
-
-        {/* Required Example */}
-        <div className={styles.example}>
-          <h3 className={styles.exampleTitle}>Required</h3>
-          <LivePreview
-            title="필수 입력 표시"
-            description="required prop으로 필수 항목임을 나타냅니다."
-            editable
-            code={`const [checked, setChecked] = useState(false);
-
-<Checkbox
-  label="필수 동의 항목"
-  required
-  helperText="서비스 이용을 위해 필수로 동의해야 합니다"
-  checked={checked}
-  onChange={(e) => setChecked(e.target.checked)}
-/>`}
-          />
-        </div>
-
-        {/* Helper Text Example */}
-        <div className={styles.example}>
-          <h3 className={styles.exampleTitle}>With Helper Text</h3>
-          <LivePreview
-            title="도움말 텍스트"
-            description="helperText로 추가 설명을 제공할 수 있습니다."
-            editable
-            code={`const [checked, setChecked] = useState(true);
-
-<Checkbox
-  label="뉴스레터 구독"
-  helperText="최신 소식과 업데이트를 받아보세요"
-  checked={checked}
-  onChange={(e) => setChecked(e.target.checked)}
-/>`}
-          />
-        </div>
-
-        {/* Disabled Example */}
-        <div className={styles.example}>
-          <h3 className={styles.exampleTitle}>Disabled</h3>
-          <LivePreview
-            title="비활성화 상태"
-            description="disabled prop으로 상호작용을 막을 수 있습니다."
-            editable
-            code={`<div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-  <Checkbox label="비활성화 (체크 안됨)" disabled />
-  <Checkbox label="비활성화 (체크됨)" disabled defaultChecked />
-</div>`}
-          />
-        </div>
-
-        {/* Error State Example */}
-        <div className={styles.example}>
-          <h3 className={styles.exampleTitle}>Error State</h3>
-          <LivePreview
-            title="에러 상태"
-            description="error와 errorMessage로 유효성 검사 오류를 표시합니다."
-            editable
-            code={`const [checked, setChecked] = useState(false);
-
-<Checkbox
-  label="필수 약관 동의"
-  required
-  error
-  errorMessage="서비스 이용을 위해 필수 항목에 동의해야 합니다"
-  checked={checked}
-  onChange={(e) => setChecked(e.target.checked)}
-/>`}
-          />
-        </div>
-
-        {/* Dense Grid Example (M3 T3e: GSAP 런타임 인스턴스 비용 확인용) */}
-        <div className={styles.example}>
-          <h3 className={styles.exampleTitle}>Dense Grid (24 instances)</h3>
-          <LivePreview
-            title="대량 인스턴스"
-            description="24개의 체크박스를 동시에 렌더링하고 일괄 토글합니다. GSAP 모션이 인스턴스마다 독립적으로 도는지, 언마운트 시 정리되는지 확인하는 예제입니다."
-            editable
-            code={`const [checkedList, setCheckedList] = useState(
-  Array.from({ length: 24 }, () => false)
-);
-const allChecked = checkedList.every(Boolean);
-const toggleAll = () => {
-  setCheckedList(Array.from({ length: 24 }, () => !allChecked));
+const INITIAL: Values = {
+  label: '약관에 동의합니다',
+  size: 'lg',
+  helperText: '',
+  errorMessage: '',
+  indeterminate: false,
+  error: false,
+  required: false,
+  disabled: false,
 };
 
-<div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-  <Button onClick={toggleAll}>
-    {allChecked ? '전체 해제' : '전체 선택'}
-  </Button>
-  <div
-    style={{
-      display: 'grid',
-      gridTemplateColumns: 'repeat(6, 1fr)',
-      gap: '0.75rem',
-    }}
-  >
-    {checkedList.map((checked, i) => (
-      <Checkbox
-        key={i}
-        label={\`항목 \${i + 1}\`}
-        checked={checked}
-        onChange={(e) => {
-          const next = [...checkedList];
-          next[i] = e.target.checked;
-          setCheckedList(next);
-        }}
-      />
-    ))}
-  </div>
-</div>`}
+const DEFAULTS: Values = {
+  size: 'md',
+  helperText: '',
+  errorMessage: '',
+};
+
+// 커서가 상자로 가서 올라타고(테두리가 진해지고), 눌러 체크하고, 한 번 더 눌러 해제한다
+const SCRIPT = (act: Act) => {
+  act.move('box');
+  act.hover('box');
+  act.wait(0.5);
+  act.press('box');
+  act.wait(1.3);
+  act.press('box');
+  act.wait(1);
+  act.leave('box');
+  act.home();
+  act.wait(0.8);
+};
+
+const PROPS: PropDefinition[] = [
+  {
+    name: 'label',
+    type: 'string',
+    required: true,
+    description: '상자 옆 레이블. 레이블까지 눌리는 영역이다',
+  },
+  {
+    name: 'size',
+    type: "'sm' | 'md' | 'lg'",
+    default: "'md'",
+    description: '상자 크기. 16px, 20px, 24px',
+  },
+  {
+    name: 'indeterminate',
+    type: 'boolean',
+    default: 'false',
+    description:
+      '일부만 선택된 상태. 체크 표시 대신 가로선이 그려진다. 전체 선택 상자에 쓴다',
+  },
+  {
+    name: 'helperText',
+    type: 'string',
+    description: '아래 도움말. error일 때는 숨고 errorMessage가 대신 보인다',
+  },
+  {
+    name: 'error',
+    type: 'boolean',
+    default: 'false',
+    description:
+      '에러 상태. 테두리가 에러 색이 되고 aria-invalid가 true가 된다',
+  },
+  {
+    name: 'errorMessage',
+    type: 'string',
+    description: 'error일 때 아래에 보이는 메시지',
+  },
+  {
+    name: 'checked',
+    type: 'boolean',
+    description: '체크 상태. onChange와 함께 넘겨 부모가 쥔다(제어)',
+  },
+  {
+    name: 'defaultChecked',
+    type: 'boolean',
+    description: '처음 체크 상태. 이후는 컴포넌트가 쥔다(비제어)',
+  },
+  {
+    name: 'required',
+    type: 'boolean',
+    default: 'false',
+    description: '필수 선택. 레이블 뒤에 *가 붙는다',
+  },
+  {
+    name: 'disabled',
+    type: 'boolean',
+    default: 'false',
+    description: '누를 수 없게 한다',
+  },
+];
+
+const CONTROLLED = `const [agree, setAgree] = useState(false);
+
+<Checkbox
+  label="약관에 동의합니다"
+  checked={agree}
+  onChange={(e) => setAgree(e.target.checked)}
+/>`;
+
+const UNCONTROLLED = `<form onSubmit={(e) => {
+  e.preventDefault();
+  const data = new FormData(e.currentTarget);
+}}>
+  <Checkbox label="뉴스레터 받기" name="newsletter" defaultChecked />
+</form>`;
+
+const SELECT_ALL = `const [items, setItems] = useState([false, true, false]);
+const all = items.every(Boolean);
+const some = items.some(Boolean);
+
+<Checkbox
+  label="전체 선택"
+  checked={all}
+  indeterminate={!all && some}
+  onChange={(e) => setItems(items.map(() => e.target.checked))}
+/>`;
+
+function Usage() {
+  return (
+    <Topics>
+      <Topic title="언제 쓰나">
+        <p className={t.body}>
+          서로 영향을 주지 않는 항목을 각각 켜고 끌 때 씁니다. 동의 여부,
+          목록에서 여러 개 고르기가 그런 자리입니다. 여러 옵션 중 하나만 골라야
+          하면 SegmentedButtons를 씁니다. 눌러서 바로 효과가 나는 설정은
+          Switch가 어울립니다.
+        </p>
+      </Topic>
+      <Topic title="값을 다루는 두 가지 방법">
+        <p className={t.body} style={{ marginBottom: 12 }}>
+          체크 상태에 따라 다른 화면을 보이거나 여러 상자를 연동해야 하면{' '}
+          <code>checked</code>와 <code>onChange</code>를 함께 넘겨 부모가 값을
+          쥡니다(제어).
+        </p>
+        <CodeBlock code={CONTROLLED} />
+        <p className={t.body} style={{ margin: '16px 0 12px' }}>
+          제출할 때만 값이 필요하면 <code>defaultChecked</code>로 처음 상태만
+          주고 컴포넌트에 맡깁니다(비제어). <code>name</code>을 주면 폼 제출 때{' '}
+          <code>FormData</code>로 읽을 수 있습니다.
+        </p>
+        <CodeBlock code={UNCONTROLLED} />
+      </Topic>
+      <Topic title="전체 선택">
+        <p className={t.body} style={{ marginBottom: 12 }}>
+          일부만 골라졌을 때 전체 선택 상자를 <code>indeterminate</code>로
+          둡니다. 상자에 체크 표시 대신 가로선이 그려져 &quot;일부&quot;임이
+          보입니다. 이 상태는 보이는 모양일 뿐이므로, 어떤 항목이 골라졌는지는
+          부모가 세어 넘깁니다.
+        </p>
+        <CodeBlock code={SELECT_ALL} />
+      </Topic>
+      <Topic title="움직임">
+        <p className={t.body}>
+          체크하면 상자가 살짝 움츠렸다 되튀면서 안쪽이 차오르고, 체크 표시가
+          그어집니다. 해제하면 표시가 거꾸로 지워집니다. 움직임 줄이기 설정을 켠
+          환경에서는 애니메이션 없이 바로 바뀝니다.
+        </p>
+      </Topic>
+    </Topics>
+  );
+}
+
+function A11y() {
+  return (
+    <ul className={`${t.list} ${t.body}`}>
+      <li>
+        네이티브 <code>input type=&quot;checkbox&quot;</code>를 그대로 쓰므로
+        Tab으로 들어가고 Space로 바꿉니다. 키보드로 포커스가 오면 상자에 포커스
+        링이 생깁니다.
+      </li>
+      <li>
+        <code>label</code>이 <code>label</code> 요소로 입력과 연결됩니다. 레이블
+        글자를 눌러도 바뀌고, 눌리는 영역은 최소 44px입니다.
+      </li>
+      <li>
+        <code>indeterminate</code>는 입력의 <code>indeterminate</code> 속성으로
+        전달됩니다. 체크 표시와 가로선은 장식이라 스크린 리더가 읽지 않습니다.
+      </li>
+      <li>
+        <code>required</code>이면 입력에 <code>required</code> 속성이 붙고
+        레이블 뒤에 <code>*</code>가 붙습니다.
+      </li>
+      <li>
+        <code>error</code>이면 <code>aria-invalid</code>가 <code>true</code>가
+        되고, 도움말이나 에러 메시지가 보일 때는 <code>aria-describedby</code>로
+        이어집니다.
+      </li>
+      <li>
+        <code>disabled</code>이면 <code>aria-disabled</code>가 <code>true</code>
+        가 되고 레이블까지 흐려집니다.
+      </li>
+      <li>
+        레이블은 꼭 줍니다. 개발 중에 <code>label</code>이 비어 있으면 콘솔에
+        오류가 나옵니다.
+      </li>
+    </ul>
+  );
+}
+
+type Size = ComponentProps<typeof Checkbox>['size'];
+
+export function CheckboxPage() {
+  const [values, setValues] = useState<Values>(INITIAL);
+
+  return (
+    <DetailLayout
+      name="Checkbox"
+      lead={LEAD}
+      stage={
+        <Stage label="Checkbox 시연" script={SCRIPT}>
+          <Checkbox
+            // 입력은 보이지 않는 겹침이라 보이는 상자(다음 형제)를 대상으로 삼는다
+            ref={(el) =>
+              el?.nextElementSibling?.setAttribute('data-stage-target', 'box')
+            }
+            label={String(values.label)}
+            size={values.size as Size}
+            helperText={String(values.helperText) || undefined}
+            errorMessage={String(values.errorMessage) || undefined}
+            indeterminate={values.indeterminate === true}
+            error={values.error === true}
+            required={values.required === true}
+            disabled={values.disabled === true}
           />
-        </div>
-      </section>
-
-      {/* Props API */}
-      <section className={styles.section}>
-        <div className={styles.sectionHeader}>
-          <h2 className={styles.sectionTitle}>Props API</h2>
-          <p className={styles.sectionDescription}>
-            Checkbox 컴포넌트의 모든 Props와 타입 정보입니다.
-          </p>
-        </div>
-        <div className={styles.propsTableWrapper}>
-          <PropsTable props={propsData} />
-        </div>
-      </section>
-
-      {/* Accessibility */}
-      <AccessibilitySection
-        componentName="Checkbox"
-        intro="Checkbox 컴포넌트는 다음과 같이 기본적인 접근성을 제공합니다. 덕분에 별도의 설정 없이도 기본적으로 사용자의 접근성을 고려한 형태의 Checkbox 컴포넌트를 제공할 수 있습니다."
-        features={[
-          {
-            attribute: 'label',
-            effect: '스크린 리더에서 체크박스의 용도를 읽어줍니다.',
-            description:
-              '레이블이 input[type="checkbox"]와 자동으로 연결되어 사용자가 무엇을 선택하는지 명확히 알 수 있습니다.',
-          },
-          {
-            attribute: 'required',
-            effect: '필수 선택 항목임을 스크린 리더에 알립니다.',
-            description:
-              'aria-required="true"가 설정되어 필수 항목이라는 정보를 제공합니다.',
-          },
-          {
-            attribute: 'error + errorMessage',
-            effect: '에러 메시지를 스크린 리더가 읽어줍니다.',
-            description:
-              'aria-describedby로 에러 메시지가 연결되어 사용자가 무엇이 잘못되었는지 알 수 있습니다.',
-          },
-          {
-            attribute: 'disabled',
-            effect: '비활성화 상태를 스크린 리더에서 알립니다.',
-            description:
-              'aria-disabled="true"가 설정되어 선택할 수 없는 상태임을 전달합니다.',
-          },
-          {
-            attribute: 'checked',
-            effect: '현재 선택 상태를 스크린 리더가 읽어줍니다.',
-            description: 'aria-checked 속성으로 체크 여부를 명확히 전달합니다.',
-          },
-        ]}
-      />
-
-      {/* Best Practices */}
-      <section className={styles.section}>
-        <div className={styles.sectionHeader}>
-          <h2 className={styles.sectionTitle}>Best Practices</h2>
-          <p className={styles.sectionDescription}>
-            Checkbox를 효과적으로 사용하기 위한 권장사항입니다.
-          </p>
-        </div>
-
-        <div className={styles.practicesGrid}>
-          <Card>
-            <Card.Body padding="lg">
-              <div className={styles.practiceHeader}>
-                <span className={styles.practiceIcon}>✓</span>
-                <h3 className={styles.practiceTitle}>Do</h3>
-              </div>
-              <List spacing="sm" className={styles.practiceList}>
-                <ListItem>명확하고 간결한 레이블 사용</ListItem>
-                <ListItem>선택 사항이 2-5개일 때 사용</ListItem>
-                <ListItem>독립적인 선택 항목에 사용 (다중 선택 가능)</ListItem>
-                <ListItem>필수 항목은 required로 명시</ListItem>
-                <ListItem>그룹화된 체크박스는 fieldset 사용</ListItem>
-              </List>
-            </Card.Body>
-          </Card>
-
-          <Card>
-            <Card.Body padding="lg">
-              <div className={styles.practiceHeader}>
-                <span className={styles.practiceIconError}>✗</span>
-                <h3 className={styles.practiceTitle}>Don't</h3>
-              </div>
-              <List spacing="sm" className={styles.practiceList}>
-                <ListItem>
-                  단일 선택이 필요한 경우 사용하지 않기 (Radio 권장)
-                </ListItem>
-                <ListItem>레이블 없이 아이콘만 사용하지 않기</ListItem>
-                <ListItem>
-                  너무 많은 체크박스 나열 (5개 초과 시 다른 패턴 고려)
-                </ListItem>
-                <ListItem>체크박스를 버튼처럼 사용하지 않기</ListItem>
-                <ListItem>
-                  indeterminate를 일반 체크 상태 대신 사용하지 않기
-                </ListItem>
-              </List>
-            </Card.Body>
-          </Card>
-        </div>
-      </section>
-    </article>
+        </Stage>
+      }
+      customize={
+        <Customize controls={CONTROLS} values={values} onChange={setValues} />
+      }
+      code={codeOf({ component: 'Checkbox', values, defaults: DEFAULTS })}
+      props={PROPS}
+      usage={<Usage />}
+      a11y={<A11y />}
+    />
   );
 }
