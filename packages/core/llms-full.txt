@@ -632,6 +632,7 @@ import { Modal, Button } from '@taein-ui/core';
 | size | 'sm' \| 'md' \| 'lg' \| 'xl' \| 'full' | 'md' | Modal size |
 | closeOnBackdropClick | boolean | true | Close on backdrop click |
 | closeOnEscape | boolean | true | Close on ESC key |
+| container | HTMLElement \| null | document.body | 그릴 DOM 위치. 주면 body 스크롤을 잠그지 않는다. 그 안에 갇히려면 container에 `contain: layout` 또는 `transform` |
 | triggerRef | RefObject<HTMLElement \| null> | - | 안 주면 열 때 포커스된 요소에서 자란다. Safari·Firefox(macOS)는 버튼 클릭에 포커스를 주지 않아 가운데에서 열린다. 주면 모든 브라우저에서 그 요소 자리에서 자란다. |
 | title | string | - | Title (Flat mode) |
 | showClose | boolean | false | Show close button (Flat mode) |
@@ -684,6 +685,7 @@ import { BottomSheet } from '@taein-ui/core';
 | height | 'auto' \| 'sm' \| 'md' \| 'lg' \| 'full' | 'auto' | Sheet height |
 | closeOnBackdropClick | boolean | true | Close on backdrop click |
 | closeOnEscape | boolean | true | Close on ESC key |
+| container | HTMLElement \| null | document.body | 그릴 DOM 위치. 주면 body 스크롤을 잠그지 않는다. 그 안에 갇히려면 container에 `contain: layout` 또는 `transform` |
 | showHandle | boolean | true | Show drag handle |
 | showClose | boolean | false | Show close button |
 | enableDrag | boolean | true | Enable drag to close |
@@ -724,6 +726,7 @@ import { SideSheet } from '@taein-ui/core';
 | position | 'left' \| 'right' | 'right' | Position |
 | closeOnBackdropClick | boolean | true | Close on backdrop |
 | closeOnEscape | boolean | true | Close on ESC |
+| container | HTMLElement \| null | document.body | 그릴 DOM 위치. 주면 body 스크롤을 잠그지 않는다. 그 안에 갇히려면 container에 `contain: layout` 또는 `transform` |
 | showClose | boolean | false | Show close button |
 | className | string | - | Additional CSS class |
 
