@@ -1,4 +1,21 @@
+import { themeContract } from '@taein-ui/core';
 import { style } from '@vanilla-extract/css';
+
+const { color, spacing, borderRadius, animation, zIndex } = themeContract;
+
+// 서랍과 한 줄 배치로 바뀌는 폭. hooks/useMediaQuery의 breakpoints.compact와 같다
+const COMPACT = '(max-width: 1024px)';
+const MOBILE = '(max-width: 640px)';
+
+const INK = color.text.primary;
+const MUTED = color.text.secondary;
+const FRAME = color.surface.hover;
+const LINE = color.border.default;
+const BLUE = color.primary.main;
+const MONO =
+  'ui-monospace, SFMono-Regular, Menlo, Consolas, "Pretendard Variable", monospace';
+
+const SLIDE = `transform ${animation.duration.base} ${animation.easing.settle}`;
 
 export const skipToContent = style({
   position: 'absolute',
@@ -6,8 +23,8 @@ export const skipToContent = style({
   left: '1rem',
   zIndex: 9999,
   padding: '0.75rem 1.5rem',
-  backgroundColor: '#6366f1',
-  color: '#ffffff',
+  backgroundColor: BLUE,
+  color: color.primary.contrast,
   fontWeight: 600,
   fontSize: '0.875rem',
   borderRadius: '0 0 0.5rem 0.5rem',
@@ -15,54 +32,209 @@ export const skipToContent = style({
   selectors: {
     '&:focus': {
       top: 0,
-      outline: '3px solid #818cf8',
+      outline: `3px solid ${color.border.focus}`,
       outlineOffset: '2px',
     },
   },
 });
 
-export const root = style({
-  display: 'flex',
-  flexDirection: 'column',
-  width: '100%',
-  height: '100%',
-  backgroundColor: '#ffffff',
+// 한국어 줄바꿈: 어절 단위로 끊고, 끊을 곳이 없는 긴 영문 토큰만 넘칠 때 자른다
+export const page = style({
+  minHeight: '100vh',
+  paddingTop: '88px',
+  backgroundColor: color.background.default,
+  color: INK,
+  wordBreak: 'keep-all',
+  overflowWrap: 'break-word',
+  '@media': { [MOBILE]: { paddingTop: '80px' } },
 });
 
-export const body = style({
-  display: 'flex',
-  flex: 1,
-  overflow: 'hidden',
+// 본문. 붙박이 판이 펴져 있으면 그만큼 비켜 선다
+export const main = style({
+  padding: '0 2rem 2rem',
+  // 넘치는 표(AccessibilitySection 등)는 예전처럼 본문 안에서 가로로 스크롤한다. 쪽 전체가 가로로 밀리지 않게
+  overflowX: 'auto',
+  transition: `margin-left ${animation.duration.base} ${animation.easing.settle}`,
+  '@media': { [COMPACT]: { padding: '0 1rem 1rem' } },
 });
 
-export const mainContent = style({
-  flex: 1,
+export const besideDock = style({ marginLeft: '280px' });
+
+// ── 떠 있는 알약 헤더 ────────────────────────────────────────
+export const pill = style({
+  position: 'fixed',
+  top: spacing[3],
+  left: '50%',
+  transform: 'translateX(-50%)',
+  zIndex: zIndex.sticky,
   display: 'flex',
-  flexDirection: 'column',
-  overflow: 'hidden',
+  alignItems: 'center',
+  gap: spacing[4],
+  width: 'min(760px, calc(100% - 24px))',
+  height: '52px',
+  padding: `0 ${spacing[2]}`,
+  background: FRAME,
+  border: `1px solid ${LINE}`,
+  borderRadius: borderRadius.lg,
 });
 
-export const content = style({
-  flex: 1,
-  padding: '2rem',
-  overflowY: 'auto',
-  color: '#1f2937',
-  WebkitOverflowScrolling: 'touch',
-  willChange: 'scroll-position',
-  '@media': {
-    '(max-width: 1024px)': {
-      padding: '1rem',
-    },
+export const brand = style({
+  display: 'flex',
+  alignItems: 'center',
+  gap: spacing[2],
+  fontWeight: 800,
+  color: INK,
+});
+
+export const brandLogo = style({ height: '24px', width: 'auto' });
+
+export const pillLinks = style({
+  display: 'flex',
+  gap: spacing[4],
+  marginLeft: 'auto',
+  // 좁은 화면에서는 같은 링크가 서랍 안에 있다
+  '@media': { [MOBILE]: { display: 'none' } },
+});
+
+export const link = style({
+  fontSize: '0.875rem',
+  color: MUTED,
+  selectors: {
+    '&:hover': { color: INK },
+    '&[aria-current="page"]': { color: INK, fontWeight: 600 },
   },
 });
 
-// 모바일 사이드바 오버레이용 배경
+export const keyHint = style({ '@media': { [MOBILE]: { display: 'none' } } });
+
+export const keyBtn = style({
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  gap: spacing[1],
+  minWidth: '36px',
+  height: '36px',
+  padding: `0 ${spacing[2]}`,
+  border: 0,
+  borderRadius: borderRadius.base,
+  background: color.background.default,
+  fontFamily: MONO,
+  fontSize: '0.75rem',
+  color: INK,
+  cursor: 'pointer',
+  // 좁은 화면에서는 링크가 빠지므로 오른쪽 끝으로 민다
+  '@media': { [MOBILE]: { marginLeft: 'auto' } },
+});
+
+// ── 탐색: 넓은 화면의 문서 쪽은 붙박이 판(햄버거로 접고 편다), 그 밖에는 덮는 서랍 ──
+export const side = style({
+  position: 'fixed',
+  top: '88px',
+  bottom: spacing[4],
+  left: spacing[4],
+  width: '248px',
+  padding: `${spacing[6]} ${spacing[4]} ${spacing[6]} ${spacing[3]}`,
+  background: FRAME,
+  borderRadius: borderRadius.xl,
+  overflowY: 'auto',
+  zIndex: zIndex.dropdown,
+  transition: SLIDE,
+});
+
+// 접힌 판·닫힌 서랍은 왼쪽 밖으로 밀어 둔다(inert라 포커스도 못 들어간다)
+export const offscreen = style({
+  transform: 'translateX(calc(-100% - 32px))',
+});
+
+export const drawer = style({
+  top: spacing[3],
+  bottom: spacing[3],
+  left: spacing[3],
+  width: 'min(300px, calc(100vw - 48px))',
+  paddingTop: spacing[3],
+  zIndex: zIndex.modal,
+  border: `1px solid ${LINE}`,
+});
+
+export const drawerHead = style({
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'space-between',
+  padding: `0 0 ${spacing[4]} ${spacing[3]}`,
+  fontSize: '0.8125rem',
+  fontWeight: 600,
+  color: MUTED,
+});
+
+export const drawerFoot = style({
+  display: 'flex',
+  gap: spacing[4],
+  padding: `${spacing[6]} 0 0 ${spacing[3]}`,
+});
+
 export const backdrop = style({
   position: 'fixed',
-  top: 0,
-  left: 0,
-  width: '100%',
-  height: '100%',
-  backgroundColor: 'rgba(0, 0, 0, 0.5)',
-  zIndex: 40,
+  inset: 0,
+  zIndex: zIndex.overlay,
+  background: color.overlay.scrim,
+  opacity: 0,
+  pointerEvents: 'none',
+  transition: `opacity ${animation.duration.base} ${animation.easing.settle}`,
 });
+
+export const backdropOn = style({ opacity: 1, pointerEvents: 'auto' });
+
+// ── 눈금자 사이드바 ──────────────────────────────────────────
+export const ruler = style({
+  display: 'grid',
+  gap: spacing[5],
+  listStyle: 'none',
+});
+
+export const rulerGroup = style({ display: 'grid', gap: '2px' });
+
+export const rulerHead = style({
+  paddingLeft: '44px',
+  marginBottom: spacing[1],
+  fontSize: '0.75rem',
+  fontWeight: 600,
+  lineHeight: 1.4,
+  color: MUTED,
+});
+
+export const rulerItem = style({
+  position: 'relative',
+  display: 'flex',
+  alignItems: 'center',
+  gap: spacing[2],
+  height: '28px',
+  paddingLeft: '44px',
+  fontSize: '0.875rem',
+  color: MUTED,
+  transition: `color ${animation.duration.fast} ${animation.easing.settle}, padding ${animation.duration.base} ${animation.easing.settle}`,
+  selectors: {
+    // 눈금: 짧은 가로선. 지금 페이지는 길고 파랗다
+    '&::before': {
+      content: '""',
+      position: 'absolute',
+      left: 0,
+      top: '50%',
+      width: '28px',
+      height: '1px',
+      background: LINE,
+      transition: `width ${animation.duration.base} ${animation.easing.settle}, background-color ${animation.duration.fast} ${animation.easing.settle}`,
+    },
+    '&:hover': { color: INK },
+    '&[aria-current="page"]': { color: BLUE, paddingLeft: '64px' },
+    '&[aria-current="page"]::before': { width: '52px', background: BLUE },
+  },
+});
+
+export const rulerNo = style({
+  fontFamily: MONO,
+  fontSize: '0.75rem',
+  minWidth: '18px',
+});
+
+// ── 검색 모달 ───────────────────────────────────────────────
+export const searchBody = style({ padding: spacing[4] });

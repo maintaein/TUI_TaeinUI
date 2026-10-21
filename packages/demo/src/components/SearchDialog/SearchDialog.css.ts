@@ -1,30 +1,12 @@
-import { style, keyframes, globalStyle } from '@vanilla-extract/css';
+import { style, globalStyle } from '@vanilla-extract/css';
 
-const slideDown = keyframes({
-  from: { opacity: 0, transform: 'translateY(-4px)' },
-  to: { opacity: 1, transform: 'translateY(0)' },
-});
-
+// 검색 모달 안에서 입력 아래에 이어 붙는다(떠 있는 드롭다운이 아니다)
 export const dropdown = style({
-  position: 'absolute',
-  top: '100%',
-  right: 0,
-  marginTop: '0.5rem',
-  width: '420px',
+  marginTop: '0.75rem',
   backgroundColor: '#ffffff',
   borderRadius: '10px',
   border: '1px solid #e5e7eb',
-  boxShadow:
-    '0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)',
   overflow: 'hidden',
-  animation: `${slideDown} 0.15s ease-out`,
-  zIndex: 200,
-  '@media': {
-    '(max-width: 640px)': {
-      width: '320px',
-      right: '-0.5rem',
-    },
-  },
 });
 
 export const resultsList = style({
