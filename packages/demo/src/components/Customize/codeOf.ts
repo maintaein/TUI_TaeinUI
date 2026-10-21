@@ -8,7 +8,7 @@ export interface Notation {
 
 export interface CodeSpec {
   component: string;
-  /** `children` 값은 속성이 아니라 안쪽 글자가 된다 */
+  /** `children` 값은 속성이 아니라 안쪽 글자가 된다. `children`이 없으면 안쪽 없이 `/>`로 닫는다 */
   values: Values;
   /** 이 값과 같은 prop은 코드에서 뺀다(거짓은 늘 뺀다) */
   defaults: Values;
@@ -48,10 +48,13 @@ export const codeOf = ({
   for (const [from, names] of byModule)
     imports.push(`import { ${names.join(', ')} } from '${from}';`);
 
+  const selfClosing = !('children' in values);
   const open =
     attrs.length > 2
-      ? `<${component}\n  ${attrs.join('\n  ')}\n>`
-      : `<${component}${attrs.map((a) => ` ${a}`).join('')}>`;
+      ? `<${component}\n  ${attrs.join('\n  ')}\n${selfClosing ? '/>' : '>'}`
+      : `<${component}${attrs.map((a) => ` ${a}`).join('')}${selfClosing ? ' />' : '>'}`;
+  const head = `${imports.join('\n')}\n\n${open}`;
+  if (selfClosing) return head;
   const text = String(values.children ?? '') || ' ';
-  return `${imports.join('\n')}\n\n${open}\n  ${text}\n</${component}>`;
+  return `${head}\n  ${text}\n</${component}>`;
 };
