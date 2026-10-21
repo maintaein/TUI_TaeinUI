@@ -28,13 +28,14 @@ export function Customize({ controls, values, onChange }: CustomizeProps) {
       {controls.map((c) => {
         if (c.kind === 'text')
           return (
-            <TextField
-              key={c.prop}
-              label={c.label ?? c.prop}
-              size="sm"
-              value={String(values[c.prop])}
-              onChange={(e) => set(c.prop, e.target.value)}
-            />
+            <div key={c.prop} className={styles.field}>
+              <TextField
+                label={c.label ?? c.prop}
+                size="sm"
+                value={String(values[c.prop])}
+                onChange={(e) => set(c.prop, e.target.value)}
+              />
+            </div>
           );
         if (c.kind === 'choice') {
           const labelId = `${id}-${c.prop}`;
