@@ -9,6 +9,7 @@ const MOBILE = '(max-width: 640px)';
 // 회색 캔버스: 이름과 리드 아래에 무대가 앉는다
 export const canvas = style({
   display: 'grid',
+  gridTemplateColumns: 'minmax(0, 1fr)',
   padding: spacing[2],
   background: FRAME,
   borderRadius: '28px',
@@ -30,7 +31,8 @@ export const canvasHead = style({
 });
 
 export const nameRow = style({ display: 'grid', gap: spacing[2] });
-export const name = style({ fontSize: 'clamp(3rem, 11vw, 4.5rem)' });
+// 좁은 화면에서 가장 긴 이름(SegmentedButtons)도 한 줄에 들어가는 크기
+export const name = style({ fontSize: 'clamp(1.75rem, 9vw, 4.5rem)' });
 export const leadMax = style({
   maxWidth: '34em',
   '@media': { [MOBILE]: { fontSize: '1.0625rem' } },

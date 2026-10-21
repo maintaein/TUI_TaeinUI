@@ -13,8 +13,8 @@ export interface Act {
   hover: (target: string) => void;
   /** 합성 pointerout. data-stage-hover를 뗀다 */
   leave: (target: string) => void;
-  /** 합성 pointerdown, 잠깐 뒤 pointerup과 click. 커서는 눌렸다 돌아온다 */
-  press: (target: string) => void;
+  /** 합성 pointerdown, 잠깐 뒤 pointerup과 click. 커서는 눌렸다 돌아온다. holdSeconds를 주면 그만큼 누른 채 있는다(길게 누르기) */
+  press: (target: string, holdSeconds?: number) => void;
   wait: (seconds: number) => void;
   /** 커서를 무대 안 쉬는 자리로 되돌린다 */
   home: (seconds?: number) => void;
@@ -53,7 +53,6 @@ interface Flags {
 const HOLD = 0.12;
 // 글자 하나가 들어가는 시간(초)
 const KEY = 0.09;
-const PRESS_MS = (dur.fast + HOLD) * 1000;
 const CURSOR_SCALE = 0.8;
 const CONTROL = '[data-stage-control]';
 const HOVER_ATTR = 'data-stage-hover';
@@ -206,16 +205,19 @@ export function Stage({ label, script, children, className }: StageProps) {
             n.removeAttribute(HOVER_ATTR);
         });
       },
-      press: (target) => {
+      press: (target, holdSeconds = HOLD) => {
         // 누름과 뗌을 한 호출에서 끝낸다. 중간에 멈춰도 눌린 채 남지 않는다
         tl.call(() => {
           const el = find(target);
           firePointer(el, 'pointerdown');
-          const id = window.setTimeout(() => {
-            timers.delete(id);
-            firePointer(el, 'pointerup');
-            el?.click();
-          }, PRESS_MS);
+          const id = window.setTimeout(
+            () => {
+              timers.delete(id);
+              firePointer(el, 'pointerup');
+              el?.click();
+            },
+            (dur.fast + holdSeconds) * 1000
+          );
           timers.add(id);
         })
           .to(cur, {
@@ -226,7 +228,7 @@ export function Stage({ label, script, children, className }: StageProps) {
           .to(
             cur,
             { scale: 1, duration: dur.fast, ease: ease.settle },
-            `+=${HOLD}`
+            `+=${holdSeconds}`
           );
       },
       wait: (seconds) => {

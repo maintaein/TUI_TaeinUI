@@ -1,561 +1,329 @@
-import { Card, List, ListItem } from '@taein-ui/core';
-import { LivePreview } from '../../../components/LivePreview';
+import { useState, type ComponentProps } from 'react';
+import { NumericSpinner } from '@taein-ui/core';
 import { CodeBlock } from '../../../components/CodeBlock';
-import { PropsTable } from '../../../components/PropsTable';
-import type { PropDefinition } from '../../../components/PropsTable/PropsTable';
-import { AccessibilitySection } from '../../../components/AccessibilitySection';
-import * as styles from './NumericSpinnerPage.css';
+import {
+  Customize,
+  codeOf,
+  type Control,
+  type Values,
+} from '../../../components/Customize';
+import { DetailLayout, Topic, Topics } from '../../../components/DetailLayout';
+import * as t from '../../../components/DocText';
+import type { PropDefinition } from '../../../components/PropsTable';
+import { Stage, type Act } from '../../../components/Stage';
+
+const LEAD =
+  '수량, 인원수, 페이지 번호처럼 작은 범위의 숫자를 버튼으로 올리고 내리는 자리에 둡니다.';
+
+const CONTROLS: Control[] = [
+  { prop: 'label', kind: 'text' },
+  { prop: 'size', kind: 'choice', options: ['sm', 'md', 'lg'] },
+  { prop: 'helperText', kind: 'text' },
+  { prop: 'errorMessage', kind: 'text' },
+  { prop: 'error', kind: 'toggle' },
+  { prop: 'required', kind: 'toggle' },
+  { prop: 'disabled', kind: 'toggle' },
+  { prop: 'fullWidth', kind: 'toggle' },
+];
+
+const INITIAL: Values = {
+  label: '수량',
+  size: 'lg',
+  helperText: '',
+  errorMessage: '',
+  error: false,
+  required: false,
+  disabled: false,
+  fullWidth: false,
+};
+
+const DEFAULTS: Values = {
+  size: 'md',
+  helperText: '',
+  errorMessage: '',
+};
+
+// 시연의 범위. 반복마다 0에서 시작해 0으로 돌아오도록 양 끝에 닿게 한다(길게 누르기의 반복 횟수는 시간에 따라 달라 그 밖에는 값이 밀린다)
+const MIN = 0;
+const MAX = 30;
+const RANGE = {
+  min: { expr: String(MIN) },
+  max: { expr: String(MAX) },
+};
+
+// 커서가 +로 가서 올라타고 몇 번 눌러 값을 올린 뒤, 길게 눌러 반복이 빨라지는 모습을 보이고, -를 길게 눌러 0으로 되돌린다
+// 길게 누르기: core가 0.4초 뒤부터 0.16초에서 0.04초로 좁아지는 간격(약 1.2초)으로 반복한다. 양 끝에 닿으면 스스로 멈추므로 끝까지 가기에 넉넉한 시간을 준다
+const SCRIPT = (act: Act) => {
+  act.move('plus');
+  act.hover('plus');
+  act.wait(0.4);
+  act.press('plus');
+  act.wait(0.2);
+  act.press('plus');
+  act.wait(0.2);
+  act.press('plus');
+  act.wait(0.6);
+  act.press('plus', 2.8);
+  act.wait(0.6);
+  act.leave('plus');
+  act.move('minus');
+  act.hover('minus');
+  act.wait(0.3);
+  act.press('minus', 3);
+  act.wait(0.6);
+  act.leave('minus');
+  act.home();
+  act.wait(0.6);
+};
+
+const PROPS: PropDefinition[] = [
+  {
+    name: 'label',
+    type: 'string',
+    required: true,
+    description: '숫자 칸의 이름. 입력칸과 연결된다',
+  },
+  {
+    name: 'size',
+    type: "'sm' | 'md' | 'lg'",
+    default: "'md'",
+    description: '버튼과 숫자 칸 크기',
+  },
+  {
+    name: 'min',
+    type: 'number',
+    description: '최소값. 닿으면 - 버튼이 꺼진다',
+  },
+  {
+    name: 'max',
+    type: 'number',
+    description: '최대값. 닿으면 + 버튼이 꺼진다',
+  },
+  {
+    name: 'step',
+    type: 'number',
+    default: '1',
+    description:
+      '한 번에 바뀌는 크기. 소수여도 step과 지금 값 중 더 긴 소수 자릿수로 맞춰 오차가 보이지 않는다',
+  },
+  {
+    name: 'value',
+    type: 'number',
+    description: '현재 값. onChange와 함께 넘겨 부모가 쥔다(제어)',
+  },
+  {
+    name: 'onChange',
+    type: '(value: number) => void',
+    description: '값이 바뀔 때 부른다. 이벤트가 아니라 바뀐 숫자를 바로 받는다',
+  },
+  {
+    name: 'defaultValue',
+    type: 'number',
+    description: '처음 값. 이후는 컴포넌트가 쥔다(비제어)',
+  },
+  {
+    name: 'helperText',
+    type: 'string',
+    description: '아래 도움말. error일 때는 숨고 errorMessage가 대신 보인다',
+  },
+  {
+    name: 'error',
+    type: 'boolean',
+    default: 'false',
+    description: '에러 상태. 숫자 칸 테두리가 에러 색이 된다',
+  },
+  {
+    name: 'errorMessage',
+    type: 'string',
+    description: 'error일 때 아래에 보이는 메시지',
+  },
+  {
+    name: 'fullWidth',
+    type: 'boolean',
+    default: 'false',
+    description: '부모 폭을 채운다',
+  },
+  {
+    name: 'required',
+    type: 'boolean',
+    default: 'false',
+    description: '필수 항목. 레이블 뒤에 *가 붙는다',
+  },
+  {
+    name: 'disabled',
+    type: 'boolean',
+    default: 'false',
+    description: '누르거나 칠 수 없게 한다',
+  },
+];
+
+const CONTROLLED = `const [count, setCount] = useState(1);
+
+<NumericSpinner
+  label="수량"
+  value={count}
+  onChange={setCount}
+  min={1}
+  max={10}
+  helperText={\`\${count}개를 담습니다\`}
+/>`;
+
+const UNCONTROLLED = `<NumericSpinner label="인원" name="people" defaultValue={2} min={1} />`;
+
+const STEP = `<NumericSpinner label="금액(원)" step={1000} min={0} defaultValue={5000} />
+
+<NumericSpinner label="할인율(%)" step={0.5} min={0} max={100} defaultValue={2.5} />`;
+
+function Usage() {
+  return (
+    <Topics>
+      <Topic title="언제 쓰나">
+        <p className={t.body}>
+          수량, 인원수, 페이지 번호처럼 범위가 작고 한 칸씩 늘리고 줄이는 숫자에
+          씁니다. 범위가 크거나 자유롭게 입력받아야 하는 숫자에는{' '}
+          <code>TextField</code>의 <code>type=&quot;number&quot;</code>가
+          낫습니다.
+        </p>
+      </Topic>
+      <Topic title="범위와 단위">
+        <p className={t.body} style={{ marginBottom: 12 }}>
+          <code>min</code>과 <code>max</code>로 범위를 정하고, <code>step</code>
+          으로 한 번에 바뀌는 크기를 정합니다. 값이 범위 끝에 닿으면 그 방향의
+          버튼이 꺼집니다. 범위는 <code>helperText</code>로도 알려 줍니다.
+        </p>
+        <CodeBlock code={STEP} />
+      </Topic>
+      <Topic title="값을 다루는 두 가지 방법">
+        <p className={t.body} style={{ marginBottom: 12 }}>
+          값에 따라 가격을 계산하거나 다른 곳에 보여 줘야 하면{' '}
+          <code>value</code>와 <code>onChange</code>를 함께 넘겨 부모가 값을
+          쥡니다(제어). <code>onChange</code>는 이벤트가 아니라 바뀐 숫자를
+          받습니다.
+        </p>
+        <CodeBlock code={CONTROLLED} />
+        <p className={t.body} style={{ margin: '16px 0 12px' }}>
+          값을 따로 추적하지 않아도 되면 <code>defaultValue</code>로 처음 값만
+          주고 컴포넌트에 맡깁니다(비제어). <code>name</code>을 주면 폼 제출 때
+          값이 함께 갑니다.
+        </p>
+        <CodeBlock code={UNCONTROLLED} />
+      </Topic>
+      <Topic title="길게 누르기와 직접 입력">
+        <p className={t.body}>
+          버튼을 0.4초 넘게 누르고 있으면 값이 반복해서 바뀝니다. 간격이
+          0.16초에서 시작해 약 1.2초에 걸쳐 0.04초까지 좁아지므로 오래 누를수록
+          빨리 바뀝니다. 숫자를 직접 칠 수도 있습니다. 치는 동안에는 칸을
+          비우거나 범위 밖 숫자를 잠시 둘 수 있고, 칸을 벗어나거나 Enter를
+          누르면 <code>min</code>·<code>max</code> 안으로 맞춰 확정합니다.
+          비었거나 숫자가 아니면 직전 값으로 돌아갑니다. 칸에서 위·아래 화살표
+          키를 누르면 <code>step</code>만큼 오르내립니다.
+        </p>
+      </Topic>
+      <Topic title="움직임">
+        <p className={t.body}>
+          버튼을 누르면 누른 버튼과 숫자가 함께 깊이 눌리고, 떼면 살짝 부풀었다
+          내려앉습니다. 숫자는 바뀔 때마다 바뀐 방향으로 조금 밀렸다 제자리를
+          잡고, 길게 누르면 간격이 좁아지는 만큼 더 빠르게 떨립니다. 숫자 칸의
+          테두리는 움직이지 않습니다. 움직임 줄이기 설정을 켠 환경에서는
+          애니메이션 없이 값만 바뀝니다.
+        </p>
+      </Topic>
+    </Topics>
+  );
+}
+
+function A11y() {
+  return (
+    <ul className={`${t.list} ${t.body}`}>
+      <li>
+        <code>label</code>이 <code>label</code> 요소로 숫자 칸과 연결됩니다.
+        스크린 리더가 칸의 용도를 읽고, 레이블을 눌러도 포커스가 갑니다.
+      </li>
+      <li>
+        숫자 칸은 <code>type=&quot;number&quot;</code> 입력이라 스핀 버튼으로
+        읽히고, <code>min</code>·<code>max</code>가 그대로 전달되어 범위도
+        읽습니다. 읽기 전용이 아니라 직접 칠 수 있습니다.
+      </li>
+      <li>
+        증감 버튼에는 <code>aria-label</code>로 &quot;값 증가&quot;, &quot;값
+        감소&quot;가 붙어 있고, 누르는 영역은 최소 44px입니다. 범위 끝에 닿으면
+        그 버튼은 <code>disabled</code>가 됩니다.
+      </li>
+      <li>
+        키보드에서는 버튼에 Tab으로 들어가 Space나 Enter로 누릅니다. 누르고
+        있으면 마우스와 같이 반복합니다. 숫자 칸에서는 위·아래 화살표 키가{' '}
+        <code>step</code>만큼 값을 바꿉니다.
+      </li>
+      <li>
+        <code>required</code>이면 입력에 <code>required</code> 속성이 붙고
+        레이블 뒤에 <code>*</code>가 붙습니다.
+      </li>
+      <li>
+        <code>error</code>이면 <code>aria-invalid</code>가 <code>true</code>가
+        되고, 도움말이나 에러 메시지가 보일 때는 <code>aria-describedby</code>로
+        이어집니다.
+      </li>
+      <li>
+        <code>disabled</code>이면 <code>aria-disabled</code>가 <code>true</code>
+        가 되고 누르거나 칠 수 없습니다.
+      </li>
+      <li>
+        레이블은 꼭 줍니다. 단위를 함께 적으면 숫자의 뜻이 분명해집니다. 개발
+        중에 <code>label</code>이 비어 있으면 콘솔에 오류가 나옵니다.
+      </li>
+    </ul>
+  );
+}
+
+type Size = ComponentProps<typeof NumericSpinner>['size'];
 
 export function NumericSpinnerPage() {
-  const propsData: PropDefinition[] = [
-    {
-      name: 'label',
-      type: 'string',
-      required: true,
-      description: '레이블 텍스트',
-    },
-    {
-      name: 'size',
-      type: "'sm' | 'md' | 'lg'",
-      default: "'md'",
-      description: 'NumericSpinner 크기',
-    },
-    {
-      name: 'min',
-      type: 'number',
-      default: 'undefined',
-      description: '최소값',
-    },
-    {
-      name: 'max',
-      type: 'number',
-      default: 'undefined',
-      description: '최대값',
-    },
-    {
-      name: 'step',
-      type: 'number',
-      default: '1',
-      description:
-        '증감 단위. 소수(0.1)여도 step과 지금 값 중 더 긴 소수 자릿수로 맞춰 0.1 + 0.2 같은 오차가 화면에 나오지 않습니다(0.25에서 + 하면 0.35).',
-    },
-    {
-      name: 'error',
-      type: 'boolean',
-      default: 'false',
-      description: '에러 상태',
-    },
-    {
-      name: 'errorMessage',
-      type: 'string',
-      default: 'undefined',
-      description: '에러 메시지',
-    },
-    {
-      name: 'helperText',
-      type: 'string',
-      default: 'undefined',
-      description: '도움말 텍스트',
-    },
-    {
-      name: 'fullWidth',
-      type: 'boolean',
-      default: 'false',
-      description: '전체 너비 사용',
-    },
-    {
-      name: 'disabled',
-      type: 'boolean',
-      default: 'false',
-      description: '비활성화 상태',
-    },
-    {
-      name: 'required',
-      type: 'boolean',
-      default: 'false',
-      description: '필수 입력 여부',
-    },
-    {
-      name: 'value',
-      type: 'number',
-      default: 'undefined',
-      description: '현재 값 (controlled)',
-    },
-    {
-      name: 'onChange',
-      type: '(value: number) => void',
-      default: 'undefined',
-      description:
-        '값 변경 핸들러. 이벤트 객체가 아닌 변경된 숫자 값을 직접 전달합니다.',
-    },
-    {
-      name: 'defaultValue',
-      type: 'number',
-      default: 'undefined',
-      description: '초기값 (uncontrolled)',
-    },
-  ];
+  const [values, setValues] = useState<Values>(INITIAL);
 
   return (
-    <article className={styles.container}>
-      {/* Header */}
-      <header className={styles.header}>
-        <h1 className={styles.title}>NumericSpinner</h1>
-        <p className={styles.description}>
-          NumericSpinner 컴포넌트는 수량, 인원수, 페이지 번호 등 숫자를 버튼으로
-          증감할 때 사용합니다.
-        </p>
-      </header>
-
-      {/* Quick Reference */}
-      <section className={styles.quickReference}>
-        <Card className={styles.quickRefCard}>
-          <Card.Body padding="md">
-            <h3 className={styles.quickRefTitle}>Import</h3>
-            <CodeBlock
-              language="typescript"
-              code={`import { NumericSpinner } from '@taein-ui/core';`}
-            />
-          </Card.Body>
-        </Card>
-        <Card className={styles.quickRefCard}>
-          <Card.Body padding="md">
-            <h3 className={styles.quickRefTitle}>Basic Usage</h3>
-            <CodeBlock
-              language="tsx"
-              code={`<NumericSpinner
-  label="수량"
-  value={value}
-  onChange={setValue}
-  min={0}
-  max={10}
-/>`}
-            />
-          </Card.Body>
-        </Card>
-      </section>
-
-      {/* Examples Section */}
-      <section className={styles.section}>
-        <div className={styles.sectionHeader}>
-          <h2 className={styles.sectionTitle}>Examples</h2>
-          <p className={styles.sectionDescription}>
-            다양한 사용 사례에 맞는 NumericSpinner 예제입니다.
-          </p>
-        </div>
-
-        {/* Basic Example */}
-        <div className={styles.example}>
-          <h3 className={styles.exampleTitle}>Basic NumericSpinner</h3>
-          <LivePreview
-            title="기본 사용법"
-            description="가장 기본적인 NumericSpinner 사용 예제입니다. 버튼뿐 아니라 숫자를 직접 칠 수도 있습니다. 치는 동안에는 칸을 비우거나 범위 밖 숫자를 잠시 둘 수 있고, 칸을 벗어나거나 Enter를 누르면 min·max 안으로 맞춰 확정합니다(비었거나 숫자가 아니면 직전 값으로 돌아갑니다). 칸에서 위/아래 화살표 키를 누르면 step만큼 오르내립니다."
-            editable
-            code={`const [value, setValue] = useState(1);
-
-<NumericSpinner
-  label="수량"
-  value={value}
-  onChange={setValue}
-/>`}
+    <DetailLayout
+      name="NumericSpinner"
+      lead={LEAD}
+      stage={
+        <Stage label="NumericSpinner 시연" script={SCRIPT}>
+          <NumericSpinner
+            // 증감 버튼은 숫자 칸 상자의 앞뒤 형제라 입력에서 찾아 대상 이름을 붙인다
+            ref={(el) => {
+              const box = el?.parentElement;
+              box?.previousElementSibling?.setAttribute(
+                'data-stage-target',
+                'minus'
+              );
+              box?.nextElementSibling?.setAttribute(
+                'data-stage-target',
+                'plus'
+              );
+            }}
+            label={String(values.label)}
+            size={values.size as Size}
+            min={MIN}
+            max={MAX}
+            helperText={String(values.helperText) || undefined}
+            errorMessage={String(values.errorMessage) || undefined}
+            error={values.error === true}
+            required={values.required === true}
+            disabled={values.disabled === true}
+            fullWidth={values.fullWidth === true}
           />
-        </div>
-
-        {/* Controlled State Example */}
-        <div className={styles.example}>
-          <h3 className={styles.exampleTitle}>Controlled (외부 상태 제어)</h3>
-          <LivePreview
-            title="외부 상태 제어"
-            description="value와 onChange를 함께 전달하여 부모 컴포넌트에서 값을 직접 관리합니다. 현재 값에 따라 가격을 계산하거나, 다른 컴포넌트와 값을 동기화하거나, 값 변경 시 유효성 검사를 수행해야 할 때 사용하세요."
-            editable
-            code={`const [value, setValue] = useState(1);
-
-<NumericSpinner
-  label="수량"
-  value={value}
-  onChange={setValue}
-  min={0}
-  max={10}
-  helperText={\`현재 값: \${value}\`}
-/>`}
-          />
-        </div>
-
-        {/* Uncontrolled State Example */}
-        <div className={styles.example}>
-          <h3 className={styles.exampleTitle}>Uncontrolled (내부 상태 제어)</h3>
-          <LivePreview
-            title="내부 상태 제어"
-            description="defaultValue로 초기값만 설정하면 컴포넌트가 자체적으로 값을 관리합니다. 단순한 수량 입력이나, 값 변경을 외부에서 추적할 필요가 없거나, 폼 제출 시 FormData로 한번에 수집하는 경우에 적합합니다."
-            editable
-            code={`<NumericSpinner
-  label="수량"
-  defaultValue={5}
-  min={0}
-  max={10}
-  helperText="초기값 5, 이후 자체 관리"
-/>`}
-          />
-        </div>
-
-        {/* Sizes Example */}
-        <div className={styles.example}>
-          <h3 className={styles.exampleTitle}>Sizes</h3>
-          <LivePreview
-            title="크기 옵션"
-            description="sm, md, lg 세 가지 크기를 제공합니다."
-            editable
-            code={`const [smValue, setSmValue] = useState(1);
-const [mdValue, setMdValue] = useState(1);
-const [lgValue, setLgValue] = useState(1);
-
-<div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-  <NumericSpinner
-    label="Small"
-    size="sm"
-    value={smValue}
-    onChange={setSmValue}
-  />
-  <NumericSpinner
-    label="Medium (기본)"
-    size="md"
-    value={mdValue}
-    onChange={setMdValue}
-  />
-  <NumericSpinner
-    label="Large"
-    size="lg"
-    value={lgValue}
-    onChange={setLgValue}
-  />
-</div>`}
-          />
-        </div>
-
-        {/* Min/Max Example */}
-        <div className={styles.example}>
-          <h3 className={styles.exampleTitle}>Min/Max Values</h3>
-          <LivePreview
-            title="최소/최대값 설정"
-            description="min과 max prop으로 값의 범위를 제한할 수 있습니다."
-            editable
-            code={`const [value, setValue] = useState(1);
-
-<NumericSpinner
-  label="수량 선택"
-  value={value}
-  onChange={setValue}
-  min={1}
-  max={10}
-  helperText="1개에서 10개까지 선택 가능합니다"
-/>`}
-          />
-        </div>
-
-        {/* Step Example */}
-        <div className={styles.example}>
-          <h3 className={styles.exampleTitle}>Custom Step</h3>
-          <LivePreview
-            title="증감 단위 설정"
-            description="step prop으로 버튼 클릭 시 변경되는 값의 단위를 설정할 수 있습니다."
-            editable
-            code={`const [value, setValue] = useState(10);
-
-<NumericSpinner
-  label="가격 (원)"
-  value={value}
-  onChange={setValue}
-  min={0}
-  max={100}
-  step={10}
-  helperText="10원 단위로 조정됩니다"
-/>`}
-          />
-        </div>
-
-        {/* Required Example */}
-        <div className={styles.example}>
-          <h3 className={styles.exampleTitle}>Required</h3>
-          <LivePreview
-            title="필수 입력 표시"
-            description="required prop으로 필수 항목임을 나타냅니다."
-            editable
-            code={`const [value, setValue] = useState(1);
-
-<NumericSpinner
-  label="참석 인원"
-  required
-  helperText="최소 1명 이상 입력해야 합니다"
-  value={value}
-  onChange={setValue}
-  min={1}
-  max={100}
-/>`}
-          />
-        </div>
-
-        {/* Disabled Example */}
-        <div className={styles.example}>
-          <h3 className={styles.exampleTitle}>Disabled</h3>
-          <LivePreview
-            title="비활성화 상태"
-            description="disabled prop으로 상호작용을 막을 수 있습니다. 최대/최소값에 도달하면 해당 버튼이 자동으로 비활성화됩니다."
-            editable
-            code={`const [value1, setValue1] = useState(5);
-const [value2, setValue2] = useState(10);
-const [value3, setValue3] = useState(0);
-
-<div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-  <NumericSpinner
-    label="비활성화된 입력"
-    disabled
-    value={value1}
-    onChange={setValue1}
-  />
-  <NumericSpinner
-    label="최대값 도달"
-    value={value2}
-    onChange={setValue2}
-    max={10}
-  />
-  <NumericSpinner
-    label="최소값 도달"
-    value={value3}
-    onChange={setValue3}
-    min={0}
-  />
-</div>`}
-          />
-        </div>
-
-        {/* Error State Example */}
-        <div className={styles.example}>
-          <h3 className={styles.exampleTitle}>Error State</h3>
-          <LivePreview
-            title="에러 상태"
-            description="error와 errorMessage로 유효성 검사 오류를 표시합니다."
-            editable
-            code={`const [value, setValue] = useState(0);
-
-<NumericSpinner
-  label="최소 주문 수량"
-  required
-  error
-  errorMessage="최소 1개 이상 주문해야 합니다"
-  value={value}
-  onChange={setValue}
-  min={1}
-  max={100}
-/>`}
-          />
-        </div>
-
-        {/* Full Width Example */}
-        <div className={styles.example}>
-          <h3 className={styles.exampleTitle}>Full Width</h3>
-          <LivePreview
-            title="전체 너비"
-            description="fullWidth prop으로 부모 요소의 전체 너비를 사용합니다."
-            editable
-            code={`const [value, setValue] = useState(5);
-
-<NumericSpinner
-  label="수량"
-  value={value}
-  onChange={setValue}
-  min={1}
-  max={100}
-  fullWidth
-/>`}
-          />
-        </div>
-
-        {/* Custom Width Example */}
-        <div className={styles.example}>
-          <h3 className={styles.exampleTitle}>Custom Input Width</h3>
-          <LivePreview
-            title="커스텀 입력 너비"
-            description="style={{ width }}로 input 필드의 너비를 직접 지정할 수 있습니다."
-            editable
-            code={`const [value, setValue] = useState(100);
-
-<div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-  <NumericSpinner
-    label="좁은 너비 (60px)"
-    value={value}
-    onChange={setValue}
-    style={{ width: '60px' }}
-  />
-  <NumericSpinner
-    label="넓은 너비 (150px)"
-    value={value}
-    onChange={setValue}
-    style={{ width: '150px' }}
-  />
-</div>`}
-          />
-        </div>
-      </section>
-
-      {/* Props API */}
-      <section className={styles.section}>
-        <div className={styles.sectionHeader}>
-          <h2 className={styles.sectionTitle}>Props API</h2>
-          <p className={styles.sectionDescription}>
-            NumericSpinner 컴포넌트의 모든 Props와 타입 정보입니다.
-          </p>
-        </div>
-        <div className={styles.propsTableWrapper}>
-          <PropsTable props={propsData} />
-        </div>
-      </section>
-
-      {/* Accessibility */}
-      <AccessibilitySection
-        componentName="NumericSpinner"
-        intro="NumericSpinner 컴포넌트는 다음과 같이 기본적인 접근성을 제공합니다. 덕분에 별도의 설정 없이도 기본적으로 사용자의 접근성을 고려한 형태의 NumericSpinner 컴포넌트를 제공할 수 있습니다."
-        features={[
-          {
-            attribute: 'label',
-            effect: '스크린 리더에서 입력 필드의 용도를 읽어줍니다.',
-            description:
-              '레이블이 input과 자동으로 연결되어 사용자가 무엇을 입력해야 하는지 명확히 알 수 있습니다.',
-          },
-          {
-            attribute: 'aria-label (버튼)',
-            effect: '증가/감소 버튼의 역할을 스크린 리더에 알립니다.',
-            description:
-              '"값 증가", "값 감소" 레이블이 각 버튼에 설정되어 버튼의 기능을 명확히 전달합니다.',
-          },
-          {
-            attribute: '직접 입력',
-            effect: '읽기 전용이 아닌 스핀 버튼으로 읽힙니다.',
-            description:
-              '입력칸은 읽기 전용이 아니라서 숫자를 직접 칠 수 있고, 위/아래 화살표 키로 step만큼 오르내릴 수 있습니다. 확정은 칸을 벗어날 때와 Enter입니다.',
-          },
-          {
-            attribute: 'min + max',
-            effect: '입력 가능한 범위를 스크린 리더에서 알립니다.',
-            description:
-              'min, max 속성으로 값의 범위가 명확히 전달되어 사용자가 유효한 값을 입력할 수 있습니다.',
-          },
-          {
-            attribute: 'required',
-            effect: '필수 입력 항목임을 스크린 리더에 알립니다.',
-            description:
-              'aria-required="true"가 설정되어 필수 입력 필드라는 정보를 제공합니다.',
-          },
-          {
-            attribute: 'error + errorMessage',
-            effect: '에러 메시지를 스크린 리더가 읽어줍니다.',
-            description:
-              'aria-describedby로 에러 메시지가 연결되어 사용자가 무엇이 잘못되었는지 알 수 있습니다.',
-          },
-          {
-            attribute: 'disabled',
-            effect: '비활성화 상태를 스크린 리더에서 알립니다.',
-            description:
-              'aria-disabled="true"가 설정되어 입력할 수 없는 상태임을 전달합니다.',
-          },
-        ]}
-        additionalGuidance={[
-          {
-            title: '명확한 레이블 제공하기',
-            description:
-              '숫자가 무엇을 의미하는지 명확한 레이블을 제공해주세요.',
-            examples: [
-              {
-                code: `// Good ✓
-<NumericSpinner
-  label="수량 (개)"
-  value={5}
-  min={1}
-  max={100}
-/>
-
-// Bad ✗
-<NumericSpinner
-  label="값"
-  value={5}
-/>`,
-                explanation:
-                  '단위와 의미가 명확한 레이블이 사용자 경험을 개선합니다.',
-              },
-            ],
-          },
-          {
-            title: '적절한 범위 설정하기',
-            description:
-              'min, max를 사용해 유효한 값의 범위를 명확히 제한해주세요.',
-            examples: [
-              {
-                code: `// Good ✓
-<NumericSpinner
-  label="나이"
-  value={25}
-  min={0}
-  max={150}
-  helperText="0세부터 150세까지 입력 가능합니다"
-/>
-
-// Bad ✗
-<NumericSpinner
-  label="나이"
-  value={25}
-/>`,
-                explanation:
-                  '범위 제한이 있으면 잘못된 입력을 미리 방지할 수 있습니다.',
-              },
-            ],
-          },
-        ]}
-      />
-
-      {/* Best Practices */}
-      <section className={styles.section}>
-        <div className={styles.sectionHeader}>
-          <h2 className={styles.sectionTitle}>Best Practices</h2>
-          <p className={styles.sectionDescription}>
-            NumericSpinner를 효과적으로 사용하기 위한 권장사항입니다.
-          </p>
-        </div>
-
-        <div className={styles.practicesGrid}>
-          <Card>
-            <Card.Body padding="lg">
-              <div className={styles.practiceHeader}>
-                <span className={styles.practiceIcon}>✓</span>
-                <h3 className={styles.practiceTitle}>Do</h3>
-              </div>
-              <List spacing="sm" className={styles.practiceList}>
-                <ListItem>명확한 레이블과 단위 표시 (예: "수량 (개)")</ListItem>
-                <ListItem>적절한 min, max, step 설정</ListItem>
-                <ListItem>helperText로 입력 범위 가이드 제공</ListItem>
-                <ListItem>작은 범위의 숫자 입력에 사용 (0-100 등)</ListItem>
-                <ListItem>증감 버튼이 명확히 보이도록 디자인</ListItem>
-              </List>
-            </Card.Body>
-          </Card>
-
-          <Card>
-            <Card.Body padding="lg">
-              <div className={styles.practiceHeader}>
-                <span className={styles.practiceIconError}>✗</span>
-                <h3 className={styles.practiceTitle}>Don't</h3>
-              </div>
-              <List spacing="sm" className={styles.practiceList}>
-                <ListItem>
-                  큰 범위의 숫자 입력에 사용하지 않기 (TextField 권장)
-                </ListItem>
-                <ListItem>소수점이 필요한 경우 신중하게 사용</ListItem>
-                <ListItem>step 값을 너무 크게 설정하지 않기</ListItem>
-                <ListItem>레이블 없이 아이콘만 사용하지 않기</ListItem>
-                <ListItem>음수 입력이 필요한 경우 min을 적절히 설정</ListItem>
-              </List>
-            </Card.Body>
-          </Card>
-        </div>
-      </section>
-    </article>
+        </Stage>
+      }
+      customize={
+        <Customize controls={CONTROLS} values={values} onChange={setValues} />
+      }
+      code={codeOf({
+        component: 'NumericSpinner',
+        values: { ...values, min: true, max: true },
+        defaults: DEFAULTS,
+        notation: RANGE,
+      })}
+      props={PROPS}
+      usage={<Usage />}
+      a11y={<A11y />}
+    />
   );
 }
