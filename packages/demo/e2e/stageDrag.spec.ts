@@ -16,11 +16,15 @@ test('시연이 손잡이를 잡고 끌며 멈추면 놓는다', async ({ page }
   const children = () =>
     range.evaluate((el) => el.parentElement!.children.length);
 
-  // 끌어 올리는 중에 값이 시작값(30)을 넘고 잡힌 상태다
+  // 끌어 올리는 중에 값이 시작값(30)을 넘고 잡힌 상태다. 값과 잡힘은 한 poll 안에서 함께 본다
+  // (따로 읽으면 그 사이 끌기가 끝나 놓인 상태를 읽는다)
   await expect
-    .poll(async () => Number(await range.inputValue()), { timeout: 15_000 })
-    .toBeGreaterThan(60);
-  expect(await children()).toBe(4);
+    .poll(
+      async () =>
+        Number(await range.inputValue()) > 60 ? await children() : 0,
+      { timeout: 15_000 }
+    )
+    .toBe(4);
 
   // 멈추면 놓는다(값 띄우기가 사라지고 값은 더 바뀌지 않는다)
   await page.getByRole('button', { name: '시연 멈춤' }).click();

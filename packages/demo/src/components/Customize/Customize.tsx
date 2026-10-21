@@ -1,5 +1,5 @@
-import { useId } from 'react';
-import { SegmentedButtons, Switch, TextField } from '@taein-ui/core';
+import { useId, useLayoutEffect, useRef, useState } from 'react';
+import { Chip, SegmentedButtons, Switch, TextField } from '@taein-ui/core';
 import * as styles from './Customize.css';
 
 export type Values = Record<string, string | boolean>;
@@ -16,7 +16,69 @@ export interface CustomizeProps {
   onChange: (values: Values) => void;
 }
 
-/** 글자는 TextField, 고르기는 SegmentedButtons, 켜기는 Switch로 그린다. 켜기는 순서와 상관없이 한 격자에 모아 맨 아래에 둔다 */
+interface ChoiceProps {
+  labelId: string;
+  options: string[];
+  value: string;
+  onChange: (value: string) => void;
+}
+
+/**
+ * 옵션이 칸에 다 들어가면 SegmentedButtons, 넘치면 줄바꿈되는 토글 칩 줄로 그린다.
+ * 칩 줄은 이름 붙은 group이고 칩은 aria-pressed 단추라 Tab과 Enter/Space로 고른다.
+ * 고른 칩을 다시 눌러도 그대로다(고르기라 해제가 없다).
+ * 칸이 넓어져 다시 들어갈 수 있는지는 넘쳤을 때 잰 폭(need)으로 가린다.
+ * shortcut: 옵션 글자가 바뀌는 일은 없다고 보고 폭을 한 번만 잰다, 옵션이 동적이 되면 옵션이 바뀔 때 need를 지운다
+ */
+function Choice({ labelId, options, value, onChange }: ChoiceProps) {
+  const wrap = useRef<HTMLDivElement>(null);
+  const [need, setNeed] = useState(0);
+
+  useLayoutEffect(() => {
+    const el = wrap.current;
+    if (!el) return;
+    const check = () => {
+      const group = el.querySelector('[role="radiogroup"]');
+      if (group) {
+        if (group.scrollWidth > group.clientWidth) setNeed(group.scrollWidth);
+      } else if (el.clientWidth >= need) setNeed(0);
+    };
+    check();
+    const ro = new ResizeObserver(check);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [need]);
+
+  return (
+    <div ref={wrap}>
+      {need === 0 ? (
+        <SegmentedButtons
+          aria-labelledby={labelId}
+          size="sm"
+          fullWidth
+          options={options.map((o) => ({ value: o, label: o }))}
+          value={value}
+          onChange={onChange}
+        />
+      ) : (
+        <div role="group" aria-labelledby={labelId} className={styles.chips}>
+          {options.map((o) => (
+            <Chip
+              key={o}
+              label={o}
+              color="primary"
+              variant="outlined"
+              selected={o === value}
+              onClick={() => onChange(o)}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** 글자는 TextField, 고르기는 SegmentedButtons(넘치면 칩 줄), 켜기는 Switch로 그린다. 켜기는 순서와 상관없이 한 격자에 모아 맨 아래에 둔다 */
 export function Customize({ controls, values, onChange }: CustomizeProps) {
   const id = useId();
   const set = (prop: string, value: string | boolean) =>
@@ -44,11 +106,9 @@ export function Customize({ controls, values, onChange }: CustomizeProps) {
               <span id={labelId} className={styles.controlLabel}>
                 {c.prop}
               </span>
-              <SegmentedButtons
-                aria-labelledby={labelId}
-                size="sm"
-                fullWidth
-                options={c.options.map((o) => ({ value: o, label: o }))}
+              <Choice
+                labelId={labelId}
+                options={c.options}
                 value={String(values[c.prop])}
                 onChange={(v) => set(c.prop, v)}
               />

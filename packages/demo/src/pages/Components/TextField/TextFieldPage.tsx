@@ -18,11 +18,10 @@ const LEAD =
 const CONTROLS: Control[] = [
   { prop: 'label', kind: 'text' },
   { prop: 'placeholder', kind: 'text' },
-  // 조작판 칸(320px)에 여섯은 안 들어가 넷만 둔다. tel과 url은 이렇게 씁니다 절에 적는다
   {
     prop: 'type',
     kind: 'choice',
-    options: ['text', 'email', 'password', 'number'],
+    options: ['text', 'email', 'password', 'number', 'tel', 'url'],
   },
   { prop: 'size', kind: 'choice', options: ['sm', 'md', 'lg'] },
   { prop: 'helperText', kind: 'text' },
@@ -203,8 +202,8 @@ function Usage() {
         <p className={t.body}>
           <code>type</code>을 이메일, 전화번호, 주소에 맞게 지정하면 모바일에서
           알맞은 키보드가 뜨고, 비밀번호는 글자가 가려집니다. 기본은{' '}
-          <code>text</code>입니다. 조작판에는 네 가지만 있지만 <code>tel</code>
-          (전화번호)과 <code>url</code>(주소)도 같은 방식으로 씁니다.
+          <code>text</code>입니다. 전화번호는 <code>tel</code>, 주소는{' '}
+          <code>url</code>입니다.
         </p>
       </Topic>
       <Topic title="값을 다루는 두 가지 방법">

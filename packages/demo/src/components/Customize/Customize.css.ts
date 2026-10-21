@@ -16,6 +16,12 @@ export const control = style({
   gap: spacing[2],
 });
 
+export const chips = style({
+  display: 'flex',
+  flexWrap: 'wrap',
+  gap: spacing[2],
+});
+
 // prop 이름은 코드에 쓰는 그대로 둔다(대문자로 바꾸면 buttonStyle이 BUTTONSTYLE이 된다)
 const nameTag = {
   fontFamily: MONO,

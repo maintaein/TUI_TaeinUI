@@ -16,12 +16,11 @@ import { Stage, type Act } from '../../../components/Stage';
 const LEAD =
   '태그, 필터, 카테고리를 작은 라벨로 보입니다. 누르면 선택되고, 삭제 버튼으로 지울 수도 있습니다.';
 
-// color의 다섯째 warning은 조작판 칸(320px)에 안 들어가 뺀다. Props 목록에 있다
 const CONTROLS: Control[] = [
   {
     prop: 'color',
     kind: 'choice',
-    options: ['default', 'primary', 'success', 'error'],
+    options: ['default', 'primary', 'success', 'error', 'warning'],
   },
   { prop: 'variant', kind: 'choice', options: ['filled', 'outlined'] },
   { prop: 'size', kind: 'choice', options: ['sm', 'md', 'lg'] },

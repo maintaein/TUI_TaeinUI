@@ -24,11 +24,10 @@ const CONTROLS: Control[] = [
     kind: 'choice',
     options: ['circular', 'rounded', 'square'],
   },
-  // 조작판 칸(320px)에 다섯은 안 들어가 offline은 뺀다. 이렇게 씁니다 절에 적는다
   {
     prop: 'status',
     kind: 'choice',
-    options: ['none', 'online', 'busy', 'away'],
+    options: ['none', 'online', 'offline', 'busy', 'away'],
   },
   { prop: 'bouncy', kind: 'toggle' },
 ];
@@ -214,8 +213,7 @@ function Usage() {
         <p className={t.body} style={{ marginBottom: 12 }}>
           <code>status</code>는 오른쪽 아래에 점을 붙입니다. <code>online</code>
           은 초록, <code>offline</code>은 회색, <code>busy</code>는 빨강,{' '}
-          <code>away</code>는 주황입니다. 조작판에는 <code>offline</code>이
-          없지만 같은 방식으로 씁니다. 점은 스크린 리더에 전달되지 않으므로
+          <code>away</code>는 주황입니다. 점은 스크린 리더에 전달되지 않으므로
           상태가 중요하면 글로도 알립니다.
         </p>
         <CodeBlock code={STATUS} />
