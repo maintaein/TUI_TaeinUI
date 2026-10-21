@@ -35,7 +35,7 @@ const state = (page: import('@playwright/test').Page) =>
 test.describe('SegmentedButtons 포커스 링', () => {
   test.beforeEach(async ({ page }) => {
     await page.setViewportSize({ width: 1280, height: 900 });
-    await mountLive(page, '/components/segmented-buttons', CODE, '#sb');
+    await mountLive(page, CODE, '#sb');
   });
 
   test('마우스로 옵션을 누르면 그 라디오가 포커스이고 :focus-visible이 아니다', async ({

@@ -32,7 +32,7 @@ for (const { id, height } of rows) {
   test(`줄 높이 ${height}px 안에서 세로 구분선이 줄 높이를 채우고 넘지 않는다`, async ({
     page,
   }) => {
-    await mountLive(page, '/components/divider', CODE, `#${id}`);
+    await mountLive(page, CODE, `#${id}`);
     const row = page.locator(`#${id}`);
     const separator = row.getByRole('separator');
     await expect(separator).toHaveCount(1);

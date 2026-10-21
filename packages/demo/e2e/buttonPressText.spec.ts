@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
+import { mountLive } from './livePreview';
 
 /**
  * M5 task-3 round 6: 누름 효과 때 버튼 안 글자가 튀는지 버튼별로 잰다.
@@ -59,6 +60,79 @@ interface Result extends ButtonInfo {
   /** 해제 구간 프레임별 잉크 중심 x (진단용) */
   seq: string;
 }
+
+/**
+ * 옛 /components/button 문서 페이지의 예제 섹션 여섯 개를 같은 코드로 한 화면에 모은 구성.
+ * 섹션마다 h3 제목과 버튼을 한 부모에 둔다(옛 페이지 구조와 같다).
+ * 바깥 paddingTop 0.5px는 옛 페이지에서 버튼의 세로 위치가 소수였던 조건을 만든다.
+ * 글자 튐은 글자 상자의 세로 소수 위치에 달려 있어(위 설명), 정수 위치에 놓으면 구성 D가
+ * 튀지 않아 가드가 진공이 된다.
+ */
+const row = `display: 'flex', flexWrap: 'wrap', gap: '0.75rem', alignItems: 'center'`;
+const section = (title: string, body: string) =>
+  `<div><h3>${title}</h3>${body}</div>`;
+const CODE = `<div style={{ paddingTop: '0.5px' }}>${[
+  section(
+    'Variants (Fill)',
+    `<div style={{ ${row} }}>
+  <Button variant="primary">Primary</Button>
+  <Button variant="dark">Dark</Button>
+  <Button variant="danger">Danger</Button>
+  <Button variant="light">Light</Button>
+</div>`
+  ),
+  section(
+    'Variants (Weak)',
+    `<div style={{ ${row} }}>
+  <Button variant="primary" buttonStyle="weak">Primary</Button>
+  <Button variant="dark" buttonStyle="weak">Dark</Button>
+  <Button variant="danger" buttonStyle="weak">Danger</Button>
+  <Button variant="light" buttonStyle="weak">Light</Button>
+</div>`
+  ),
+  section(
+    'Sizes',
+    `<div style={{ ${row} }}>
+  <Button size="sm">Small</Button>
+  <Button size="md">Medium</Button>
+  <Button size="lg">Large</Button>
+  <Button size="xl">X-Large</Button>
+</div>`
+  ),
+  section(
+    'With Icons',
+    `<div style={{ ${row} }}>
+  <Button leftIcon={<Plus size={16} />} variant="primary">추가</Button>
+  <Button rightIcon={<ArrowRight size={16} />} variant="dark">다음</Button>
+  <Button rightIcon={<Download size={16} />} variant="light">다운로드</Button>
+  <Button leftIcon={<Trash size={16} />} variant="danger">삭제</Button>
+</div>`
+  ),
+  section(
+    'Full Width',
+    `<div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+  <Button fullWidth>전체 너비 버튼</Button>
+  <Button fullWidth variant="light">전체 너비 Light</Button>
+</div>`
+  ),
+  section(
+    'Custom Color',
+    `<div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+  <div style={{ ${row} }}>
+    <Button customColor={{ bg: '#8b5cf6', text: '#fff' }}>보라색</Button>
+    <Button customColor={{ bg: '#059669', text: '#fff', hoverBg: '#047857', activeBg: '#065f46' }}>초록색</Button>
+    <Button customColor={{ bg: '#ea580c', text: '#fff' }}>오렌지</Button>
+    <Button customColor={{ bg: '#0ea5e9', text: '#fff' }}>하늘색</Button>
+  </div>
+  <div style={{ ${row} }}>
+    <Button variant="light" customColor={{ bg: '#8b5cf6', text: '' }}>보라색</Button>
+    <Button variant="light" customColor={{ bg: '#059669', text: '' }}>초록색</Button>
+    <Button variant="light" customColor={{ bg: '#ea580c', text: '' }}>오렌지</Button>
+    <Button variant="light" customColor={{ bg: '#e11d48', text: '', hoverBg: '#fce7f3', activeBg: '#fbcfe8' }}>핑크</Button>
+  </div>
+</div>`
+  ),
+].join('\n')}</div>`;
 
 const SECTIONS: Array<{ heading: string; name: string }> = [
   { heading: 'Variants (Fill)', name: 'Variants(Fill)' },
@@ -232,8 +306,7 @@ const measureAll = async (
   css = '',
   only?: Set<string>
 ): Promise<Result[]> => {
-  await page.goto('/components/button');
-  await page.waitForLoadState('networkidle');
+  await mountLive(page, CODE, 'h3:has-text("Custom Color")');
   if (css) await page.addStyleTag({ content: css });
   const results: Result[] = [];
   for (const { heading, name } of SECTIONS) {

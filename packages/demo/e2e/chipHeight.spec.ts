@@ -38,7 +38,7 @@ ${(['sm', 'md', 'lg'] as const)
 
 for (const size of ['sm', 'md', 'lg'] as const) {
   test(`${size} 칩의 높이가 같다`, async ({ page }) => {
-    await mountLive(page, '/components/chip', CODE, `#chips-${size}`);
+    await mountLive(page, CODE, `#chips-${size}`);
     const heights = await page
       .locator(`#chips-${size}`)
       .evaluate((row) =>

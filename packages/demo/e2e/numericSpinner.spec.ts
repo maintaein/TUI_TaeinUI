@@ -28,7 +28,7 @@ const CODE = `const [v, setV] = useState(5);
 test.describe('NumericSpinner 눌림 (실제 트윈 프레임)', () => {
   test.beforeEach(async ({ page }) => {
     await page.setViewportSize({ width: 1280, height: 900 });
-    await mountLive(page, '/components/numeric-spinner', CODE, '#ns');
+    await mountLive(page, CODE, '#ns');
   });
 
   /** 한 시나리오를 페이지 안에서 돌려 왕복 지연이 타이밍에 끼지 않게 한다. */

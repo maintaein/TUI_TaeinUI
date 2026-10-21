@@ -1,4 +1,5 @@
 import { test, expect, type Locator, type Page } from '@playwright/test';
+import { mountLive } from './livePreview';
 
 /**
  * HeaderBar 알약(navStyle="pill")의 호버 채움이 창 크기 변화에 풀리던 결함(afcb3ea)을
@@ -17,6 +18,20 @@ import { test, expect, type Locator, type Page } from '@playwright/test';
  * `timeline.progress(pointer || focus || active ? 1 : 0)`와 같은 크기면 다시 만들지
  * 않는 `measured` 가드다.
  */
+
+// 옛 /components/header-bar 문서 페이지의 `navStyle: pill` 예제와 같은 구성이다.
+const CODE = `<div id="pill">
+  <HeaderBar
+    title="Store"
+    navStyle="pill"
+    items={[
+      { label: '상품', href: '#', active: true },
+      { label: '카테고리', href: '#' },
+      { label: '이벤트', href: '#' },
+      { label: '문의', href: '#' },
+    ]}
+  />
+</div>`;
 
 const FILLED = 1.19;
 
@@ -37,12 +52,9 @@ test('알약을 호버로 채운 뒤 뷰포트 폭이나 높이를 바꿔도 채
   page,
 }) => {
   await page.setViewportSize({ width: 1280, height: 900 });
-  await page.goto('/components/header-bar');
+  await mountLive(page, CODE, '#pill');
 
-  const header = page
-    .getByRole('heading', { name: 'navStyle: pill', level: 3 })
-    .locator('..')
-    .locator('header');
+  const header = page.locator('#pill header');
   await header.scrollIntoViewIfNeeded();
   // 선택(aria-current)된 항목은 처음부터 채워져 있어 호버의 증거가 못 된다.
   const item = header.getByRole('link', { name: '카테고리' });

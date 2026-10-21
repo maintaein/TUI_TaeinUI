@@ -127,6 +127,11 @@ const CardPage = lazy(() =>
   import('../pages/Components/Card').then((m) => ({ default: m.CardPage }))
 );
 
+// 회귀 e2e 전용 시험 페이지(내비·검색에 없다)
+const E2ELivePage = lazy(() =>
+  import('../pages/E2E/LivePage').then((m) => ({ default: m.LivePage }))
+);
+
 // ─── Suspense wrapper ──────────────────────────────────────────────
 
 function PageLoader() {
@@ -162,6 +167,14 @@ function LazyPage({ children }: { children: ReactNode }) {
 // ─── Router ────────────────────────────────────────────────────────
 
 const router = createBrowserRouter([
+  {
+    path: '/e2e/live',
+    element: (
+      <LazyPage>
+        <E2ELivePage />
+      </LazyPage>
+    ),
+  },
   {
     path: '/',
     element: <RootLayout />,

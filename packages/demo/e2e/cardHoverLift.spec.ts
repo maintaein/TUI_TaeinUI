@@ -27,7 +27,7 @@ test('hoverLift 카드는 쉴 때 auto, 호버와 누름 중에만 transform, �
 }) => {
   await page.setViewportSize({ width: 1280, height: 900 });
   await page.mouse.move(2, 2);
-  await mountLive(page, '/components/card', CODE, '#k');
+  await mountLive(page, CODE, '#k');
   // 클릭 가능한 카드는 button 역할이 아닐 수 있어 DOM 위치로 잡는다(#k 의 첫 자식).
   const card = page.locator('#k > *').first();
   await card.evaluate((el) => el.scrollIntoView({ block: 'center' }));

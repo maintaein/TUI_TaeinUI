@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
+import { mountLive } from './livePreview';
 
 /**
  * M5 Task 7 fix-1: Tooltip과 Popover의 등장 트랜지션이 매번 실행되는지 잰다.
@@ -27,6 +28,19 @@ import { test, expect, type Page } from '@playwright/test';
  * 상태에서 등장을 정당하게 건너뛰므로, 대기를 600ms 이하로 줄이면 이 spec이
  * 거짓으로 실패한다(실측: 600ms 대기에서 10/12, 1000ms에서 12/12).
  */
+
+// 옛 /components/tooltip, /components/popover 문서 페이지의 기본 예제와 같은 구성이다.
+const TOOLTIP_CODE = `<div id="t" style={{ padding: '4rem' }}>
+  <Tooltip content="추가 정보를 제공합니다">
+    <Button size="sm">hover me</Button>
+  </Tooltip>
+</div>`;
+
+const POPOVER_CODE = `<div id="p" style={{ padding: '4rem' }}>
+  <Popover maxWidth="240px" content={<div style={{ padding: '1rem' }}><p style={{ margin: 0, fontSize: '0.875rem' }}>안녕하세요! 팝오버 콘텐츠입니다.</p></div>}>
+    <Button>팝오버 열기</Button>
+  </Popover>
+</div>`;
 
 const RUNS = 12;
 const SETTLE_MS = 600;
@@ -69,7 +83,7 @@ test.describe('bubble 등장 트랜지션', () => {
   test.describe.configure({ timeout: 60_000 });
 
   test(`Tooltip 등장이 ${RUNS}회 모두 실행된다`, async ({ page }) => {
-    await page.goto('/components/tooltip');
+    await mountLive(page, TOOLTIP_CODE, '#t');
     const trigger = page.getByRole('button', { name: 'hover me' });
     await trigger.waitFor();
 
@@ -91,7 +105,7 @@ test.describe('bubble 등장 트랜지션', () => {
   });
 
   test(`Popover 등장이 ${RUNS}회 모두 실행된다`, async ({ page }) => {
-    await page.goto('/components/popover');
+    await mountLive(page, POPOVER_CODE, '#p');
     const trigger = page.locator('[aria-haspopup="dialog"]').first();
     await trigger.waitFor();
 

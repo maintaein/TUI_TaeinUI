@@ -1,9 +1,10 @@
 import { test, expect } from '@playwright/test';
+import { mountLive } from './livePreview';
 
 /**
  * M3 Task 9: 조밀한 그리드(24개 인스턴스)를 일괄 토글하는 동안 프레임이
- * 끊기지 않는지 측정한다 (Ruling 65). 기존 데모 예제(Dense Grid)를 그대로
- * 쓴다. 새 예제를 추가하지 않는다(Ruling 76).
+ * 끊기지 않는지 측정한다 (Ruling 65). 옛 문서 페이지의 Dense Grid 예제와 같은
+ * 구성을 시험용 페이지(/e2e/live)에 직접 띄운다(Ruling 76).
  *
  * 측정: rAF 콜백 60회의 프레임 간격(ms)을 기록하면서, 그 사이 "전체 선택/해제"
  * 버튼을 주기적으로 눌러 24개 인스턴스의 GSAP 트윈을 동시에 재트리거한다.
@@ -15,6 +16,75 @@ interface FrameBudgetResult {
   median: number;
   overBudgetCount: number;
 }
+
+// 옛 /components/checkbox, /components/switch 문서 페이지의 Dense Grid 예제와 같은 구성이다.
+const CHECKBOX_CODE = `const [checkedList, setCheckedList] = useState(
+  Array.from({ length: 24 }, () => false)
+);
+const allChecked = checkedList.every(Boolean);
+const toggleAll = () => {
+  setCheckedList(Array.from({ length: 24 }, () => !allChecked));
+};
+
+<div id="grid" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+  <Button onClick={toggleAll}>
+    {allChecked ? '전체 해제' : '전체 선택'}
+  </Button>
+  <div
+    style={{
+      display: 'grid',
+      gridTemplateColumns: 'repeat(6, 1fr)',
+      gap: '0.75rem',
+    }}
+  >
+    {checkedList.map((checked, i) => (
+      <Checkbox
+        key={i}
+        label={\`항목 \${i + 1}\`}
+        checked={checked}
+        onChange={(e) => {
+          const next = [...checkedList];
+          next[i] = e.target.checked;
+          setCheckedList(next);
+        }}
+      />
+    ))}
+  </div>
+</div>`;
+
+const SWITCH_CODE = `const [states, setStates] = useState(
+  Array.from({ length: 24 }, () => false)
+);
+const allOn = states.every(Boolean);
+const toggleAll = () => {
+  setStates(Array.from({ length: 24 }, () => !allOn));
+};
+
+<div id="grid" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+  <Button onClick={toggleAll}>
+    {allOn ? '전체 끄기' : '전체 켜기'}
+  </Button>
+  <div
+    style={{
+      display: 'grid',
+      gridTemplateColumns: 'repeat(4, 1fr)',
+      gap: '0.75rem',
+    }}
+  >
+    {states.map((on, i) => (
+      <Switch
+        key={i}
+        label={\`설정 \${i + 1}\`}
+        checked={on}
+        onChange={(e) => {
+          const next = [...states];
+          next[i] = e.target.checked;
+          setStates(next);
+        }}
+      />
+    ))}
+  </div>
+</div>`;
 
 const FRAME_COUNT = 60;
 const TOGGLE_EVERY_N_FRAMES = 10;
@@ -80,9 +150,8 @@ test.describe('조밀한 그리드 프레임 예산 (Ruling 65)', () => {
   test('Checkbox 24개 그리드를 일괄 토글해도 프레임 중앙값이 20ms 이하다', async ({
     page,
   }) => {
-    await page.goto('/components/checkbox');
-    // 페이지에는 Dense Grid 외에도 다른 예제의 Checkbox가 더 있으므로, "전체
-    // 선택/해제" 버튼의 부모(그리드를 감싼 flex 컨테이너)로 범위를 좁힌다.
+    await mountLive(page, CHECKBOX_CODE, '#grid');
+    // "전체 선택/해제" 버튼의 부모(그리드를 감싼 flex 컨테이너)로 범위를 좁힌다.
     const toggleButton = page.getByRole('button', { name: /전체 (선택|해제)/ });
     const section = toggleButton.locator('xpath=..');
     const checkboxes = section.getByRole('checkbox');
@@ -101,7 +170,7 @@ test.describe('조밀한 그리드 프레임 예산 (Ruling 65)', () => {
   test('Switch 24개 그리드를 일괄 토글해도 프레임 중앙값이 20ms 이하다', async ({
     page,
   }) => {
-    await page.goto('/components/switch');
+    await mountLive(page, SWITCH_CODE, '#grid');
     const toggleButton = page.getByRole('button', { name: /전체 (켜기|끄기)/ });
     const section = toggleButton.locator('xpath=..');
     const switches = section.getByRole('switch');
