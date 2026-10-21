@@ -15,7 +15,7 @@
     "@storybook/addon-a11y": "^8.4.7",
     "@storybook/addon-essentials": "^8.4.7",
     "@storybook/addon-interactions": "^8.4.7",
-    "@storybook/addon-links": "^8.4.7",
+    "@storybook/addon-links": "^10.3.3",
     "@storybook/react": "^8.4.7",
     "@storybook/react-vite": "^8.4.7",
     "@vanilla-extract/vite-plugin": "^4.0.5",
