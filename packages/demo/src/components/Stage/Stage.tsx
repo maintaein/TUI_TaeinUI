@@ -13,7 +13,7 @@ export interface Act {
   hover: (target: string) => void;
   /** 합성 pointerout. data-stage-hover를 뗀다 */
   leave: (target: string) => void;
-  /** 합성 pointerdown, 잠깐 뒤 pointerup과 click. 커서는 눌렸다 돌아온다. holdSeconds를 주면 그만큼 누른 채 있는다(길게 누르기) */
+  /** 합성 pointerdown, 잠깐 뒤 pointerup과 click. 누르는 동안 대상과 무대 안 조상에 data-stage-active를 붙여 CSS :active 쌍둥이 규칙을 켠다. 커서는 눌렸다 돌아온다. holdSeconds를 주면 그만큼 누른 채 있는다(길게 누르기) */
   press: (target: string, holdSeconds?: number) => void;
   wait: (seconds: number) => void;
   /** 커서를 무대 안 쉬는 자리로 되돌린다 */
@@ -58,11 +58,13 @@ const KEY = 0.09;
 const CURSOR_SCALE = 0.8;
 const CONTROL = '[data-stage-control]';
 const HOVER_ATTR = 'data-stage-hover';
+const ACTIVE_ATTR = 'data-stage-active';
 
 const mirrored = new WeakSet<CSSStyleSheet>();
 
-// 합성 이벤트는 CSS :hover를 켜지 못한다. 그래서 :hover 규칙마다 :hover를 [data-stage-hover]로 바꾼
-// 쌍둥이를 바로 뒤에 넣어 둔다(같은 미디어 조건 안, 같은 특이도). 그 속성은 무대 안 요소에만 붙는다.
+// 합성 이벤트는 CSS :hover와 :active를 켜지 못한다. 그래서 그 규칙마다 :hover를 [data-stage-hover]로,
+// :active를 [data-stage-active]로 바꾼 쌍둥이를 바로 뒤에 넣어 둔다(같은 미디어 조건 안, 같은 특이도).
+// 그 속성은 무대 안 요소에만 붙는다.
 // 안쪽 규칙부터 거꾸로 돌아야 넣어도 앞 규칙의 번호가 밀리지 않는다.
 // shortcut: 시트당 한 번만 훑고 CSS 중첩 규칙의 안쪽은 보지 않는다, 런타임에 규칙이 더해지는 시트나 중첩 CSS를 쓰게 되면 고친다
 const mirrorRules = (box: CSSStyleSheet | CSSGroupingRule) => {
@@ -70,8 +72,11 @@ const mirrorRules = (box: CSSStyleSheet | CSSGroupingRule) => {
   for (let i = list.length - 1; i >= 0; i--) {
     const rule = list[i];
     if (rule instanceof CSSStyleRule) {
-      if (!rule.selectorText.includes(':hover')) continue;
-      const twin = `${rule.selectorText.replace(/:hover/g, `[${HOVER_ATTR}]`)} { ${rule.style.cssText} }`;
+      if (!/:hover|:active/.test(rule.selectorText)) continue;
+      const selector = rule.selectorText
+        .replace(/:hover/g, `[${HOVER_ATTR}]`)
+        .replace(/:active/g, `[${ACTIVE_ATTR}]`);
+      const twin = `${selector} { ${rule.style.cssText} }`;
       try {
         box.insertRule(twin, i + 1);
       } catch {
@@ -108,10 +113,18 @@ const setValue = (
   el.dispatchEvent(new Event('input', { bubbles: true }));
 };
 
-const clearHover = (root: Element) =>
-  root
-    .querySelectorAll(`[${HOVER_ATTR}]`)
-    .forEach((n) => n.removeAttribute(HOVER_ATTR));
+// 대상과 무대 안 조상에 거울 속성을 붙이거나 뗀다
+const mark = (el: Element | null, root: Element, attr: string, on: boolean) => {
+  for (let n = el; n && n !== root; n = n.parentElement)
+    if (on) n.setAttribute(attr, '');
+    else n.removeAttribute(attr);
+};
+
+const clearMirror = (root: Element) =>
+  root.querySelectorAll(`[${HOVER_ATTR}], [${ACTIVE_ATTR}]`).forEach((n) => {
+    n.removeAttribute(HOVER_ATTR);
+    n.removeAttribute(ACTIVE_ATTR);
+  });
 
 const firePointer = (
   el: Element | null,
@@ -207,16 +220,14 @@ export function Stage({ label, script, children, className }: StageProps) {
           const el = find(target);
           firePointer(el, 'pointerover');
           // 합성 이벤트는 :hover를 못 켜므로 쌍둥이 규칙의 속성을 대상과 무대 안 조상에 붙인다
-          for (let n = el; n && n !== root; n = n.parentElement)
-            n.setAttribute(HOVER_ATTR, '');
+          mark(el, root, HOVER_ATTR, true);
         });
       },
       leave: (target) => {
         tl.call(() => {
           const el = find(target);
           firePointer(el, 'pointerout');
-          for (let n = el; n && n !== root; n = n.parentElement)
-            n.removeAttribute(HOVER_ATTR);
+          mark(el, root, HOVER_ATTR, false);
         });
       },
       press: (target, holdSeconds = HOLD) => {
@@ -224,10 +235,12 @@ export function Stage({ label, script, children, className }: StageProps) {
         tl.call(() => {
           const el = find(target);
           firePointer(el, 'pointerdown');
+          mark(el, root, ACTIVE_ATTR, true);
           const id = window.setTimeout(
             () => {
               timers.delete(id);
               firePointer(el, 'pointerup');
+              mark(el, root, ACTIVE_ATTR, false);
               el?.click();
             },
             (dur.fast + holdSeconds) * 1000
@@ -304,7 +317,9 @@ export function Stage({ label, script, children, className }: StageProps) {
           if (!held) return;
           held = false;
           grips.delete(drop);
-          firePointer(find(target), 'pointerup');
+          const el = find(target);
+          firePointer(el, 'pointerup');
+          mark(el, root, ACTIVE_ATTR, false);
         };
         tl.call(() => {
           proxy.v = Number((find(target) as HTMLInputElement | null)?.value);
@@ -319,6 +334,7 @@ export function Stage({ label, script, children, className }: StageProps) {
               held = true;
               grips.add(drop);
               firePointer(el, 'pointerdown');
+              mark(el, root, ACTIVE_ATTR, true);
             }
             const next = String(Math.round(proxy.v));
             if (el.value !== next) setValue(el, next);
@@ -343,7 +359,7 @@ export function Stage({ label, script, children, className }: StageProps) {
       timeline.current = null;
       timers.forEach((id) => window.clearTimeout(id));
       grips.forEach((drop) => drop());
-      clearHover(root);
+      clearMirror(root);
     };
   }, [root, script, reduced]);
 
@@ -355,8 +371,8 @@ export function Stage({ label, script, children, className }: StageProps) {
     if (playing) tl.play();
     else {
       tl.pause();
-      // 진짜 입력이 넘겨받으면 진짜 :hover가 맡고, 잡고 있던 것은 놓는다
-      if (root) clearHover(root);
+      // 진짜 입력이 넘겨받으면 진짜 :hover와 :active가 맡고, 잡고 있던 것은 놓는다
+      if (root) clearMirror(root);
       holds.current.forEach((drop) => drop());
     }
     gsap.to(cur, {

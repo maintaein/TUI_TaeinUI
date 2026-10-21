@@ -27,14 +27,14 @@ test('시연 호버 단계의 무대 Button은 진짜 :hover와 같은 배경이
     document.querySelector('main')!.append(outside);
   });
 
-  // 쌍둥이 규칙 수가 :hover 규칙 수와 같다(하나라도 못 넣으면 거울이 비어 간다)
+  // 쌍둥이 규칙 수가 :hover와 :active 규칙 수와 같다(하나라도 못 넣으면 거울이 비어 간다)
   const counts = await page.evaluate(() => {
     const out = { hover: 0, twin: 0 };
     const walk = (list: CSSRuleList) => {
       for (const rule of Array.from(list)) {
         if (rule instanceof CSSStyleRule) {
-          if (rule.selectorText.includes(':hover')) out.hover++;
-          if (rule.selectorText.includes('data-stage-hover')) out.twin++;
+          if (/:hover|:active/.test(rule.selectorText)) out.hover++;
+          if (/data-stage-(hover|active)/.test(rule.selectorText)) out.twin++;
         } else if (rule instanceof CSSGroupingRule) walk(rule.cssRules);
       }
     };
