@@ -1,15 +1,6 @@
 import { NavLink } from 'react-router-dom';
-import { categoryLabels, componentsData } from '../data/components';
+import { numberedGroups } from '../data/components';
 import * as styles from './RootLayout.css';
-
-// 번호는 계열 순서대로 이어서 01부터 매긴다
-let no = 0;
-const groups = Object.entries(categoryLabels).map(([key, label]) => ({
-  label,
-  items: componentsData
-    .filter((c) => c.category === key)
-    .map((c) => ({ ...c, no: String(++no).padStart(2, '0') })),
-}));
 
 export function RulerNav() {
   return (
@@ -27,7 +18,7 @@ export function RulerNav() {
             전체 컴포넌트
           </NavLink>
         </div>
-        {groups.map((g) => (
+        {numberedGroups.map((g) => (
           <div key={g.label} className={styles.rulerGroup}>
             <span className={styles.rulerHead}>{g.label}</span>
             {g.items.map((c) => (
