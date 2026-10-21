@@ -22,6 +22,12 @@ export interface UseFocusTrapOptions {
    * @default true
    */
   restoreFocusOnClose?: boolean;
+  /**
+   * 열려 있는 동안 body 스크롤을 잠글지 여부.
+   * 오버레이가 페이지 안의 상자(`container`)에 갇혀 그려질 때는 페이지를 잠글 이유가 없다.
+   * @default true
+   */
+  lockScroll?: boolean;
 }
 
 export interface UseFocusTrapReturn {
@@ -39,6 +45,7 @@ export const useFocusTrap = ({
   closeOnEscape,
   containerRef,
   restoreFocusOnClose = true,
+  lockScroll = true,
 }: UseFocusTrapOptions): UseFocusTrapReturn => {
   const previousActiveElementRef = useRef<HTMLElement | null>(null);
 
@@ -88,17 +95,24 @@ export const useFocusTrap = ({
     };
 
     const removeKeyDownListener = addDocumentListener('keydown', handleKeyDown);
-    const restoreBodyScroll = lockBodyScroll();
+    const restoreBodyScroll = lockScroll ? lockBodyScroll() : undefined;
 
     return () => {
       removeKeyDownListener();
-      restoreBodyScroll();
+      restoreBodyScroll?.();
 
       if (restoreFocusOnClose && previousActiveElementRef.current) {
         previousActiveElementRef.current.focus();
       }
     };
-  }, [open, closeOnEscape, onClose, restoreFocusOnClose, containerRef]);
+  }, [
+    open,
+    closeOnEscape,
+    onClose,
+    restoreFocusOnClose,
+    lockScroll,
+    containerRef,
+  ]);
 
   return { previousActiveElementRef };
 };

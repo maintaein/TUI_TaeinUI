@@ -286,6 +286,55 @@ describe('Modal', () => {
     });
   });
 
+  describe('container 테스트', () => {
+    let host: HTMLElement;
+
+    beforeEach(() => {
+      host = document.createElement('div');
+      document.body.appendChild(host);
+    });
+
+    afterEach(() => {
+      host.remove();
+    });
+
+    it('container를 주면 다이얼로그가 그 안에 그려진다', () => {
+      render(<Modal {...defaultProps} container={host} />);
+      expect(host).toContainElement(screen.getByRole('dialog'));
+    });
+
+    it('container를 주면 열려도 body 스크롤을 잠그지 않는다', () => {
+      render(<Modal {...defaultProps} container={host} />);
+      expect(document.body.style.overflow).toBe('');
+    });
+
+    it('container가 null이면 body로 간다', () => {
+      render(<Modal {...defaultProps} container={null} />);
+      expect(document.body).toContainElement(screen.getByRole('dialog'));
+      expect(host).not.toContainElement(screen.getByRole('dialog'));
+      expect(document.body.style.overflow).toBe('hidden');
+    });
+
+    it('container 안에서도 Tab이 다이얼로그 안을 돈다', () => {
+      render(
+        <Modal {...defaultProps} container={host}>
+          <button>Button 1</button>
+          <button>Button 2</button>
+        </Modal>
+      );
+      const first = screen.getByText('Button 1');
+      const last = screen.getByText('Button 2');
+      expect(first).toHaveFocus();
+
+      last.focus();
+      fireEvent.keyDown(document, { key: 'Tab' });
+      expect(first).toHaveFocus();
+
+      fireEvent.keyDown(document, { key: 'Tab', shiftKey: true });
+      expect(last).toHaveFocus();
+    });
+  });
+
   describe('애니메이션 테스트', () => {
     it('모달이 열릴 때 backdrop이 렌더링된다', () => {
       render(<Modal {...defaultProps} />);

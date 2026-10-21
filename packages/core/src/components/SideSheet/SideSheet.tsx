@@ -70,6 +70,13 @@ export interface SideSheetProps extends Omit<
   closeOnBackdropClick?: boolean;
   /** ESC 키로 닫기 허용 @default true */
   closeOnEscape?: boolean;
+  /**
+   * 오버레이를 그릴 DOM 위치. 안 주거나 `null`이면 `document.body`다.
+   * 주면 그 안에 그려지고 body 스크롤도 잠그지 않는다(포커스 가두기·Esc는 그대로).
+   * 화면이 그 안에 갇히려면 container가 `position: fixed`의 기준이어야 한다.
+   * `contain: layout` 또는 `transform`을 주면 된다. 아니면 여전히 뷰포트 전체를 덮는다.
+   */
+  container?: HTMLElement | null;
   /** 닫기(X) 버튼 표시 @default false */
   showClose?: boolean;
   className?: string;
@@ -84,6 +91,7 @@ const SideSheetRoot = ({
   position = 'right',
   closeOnBackdropClick = true,
   closeOnEscape = true,
+  container,
   showClose = false,
   className,
   'aria-labelledby': ariaLabelledby,
@@ -157,7 +165,13 @@ const SideSheetRoot = ({
     []
   );
 
-  useFocusTrap({ open, onClose, closeOnEscape, containerRef: sheetRef });
+  useFocusTrap({
+    open,
+    onClose,
+    closeOnEscape,
+    containerRef: sheetRef,
+    lockScroll: !container,
+  });
 
   const contextValue = useMemo(
     () => ({ onClose, titleId }),
@@ -235,7 +249,7 @@ const SideSheetRoot = ({
     </SideSheetContext.Provider>
   );
 
-  return createPortal(sheetContent, document.body);
+  return createPortal(sheetContent, container ?? document.body);
 };
 
 SideSheetRoot.displayName = 'SideSheet';

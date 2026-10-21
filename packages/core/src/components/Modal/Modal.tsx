@@ -173,6 +173,13 @@ export interface ModalProps extends Omit<
   triggerRef?: RefObject<HTMLElement | null>;
   /** ESC 키로 닫기 허용 @default true */
   closeOnEscape?: boolean;
+  /**
+   * 오버레이를 그릴 DOM 위치. 안 주거나 `null`이면 `document.body`다.
+   * 주면 그 안에 그려지고 body 스크롤도 잠그지 않는다(포커스 가두기·Esc는 그대로).
+   * 화면이 그 안에 갇히려면 container가 `position: fixed`의 기준이어야 한다.
+   * `contain: layout` 또는 `transform`을 주면 된다. 아니면 여전히 뷰포트 전체를 덮는다.
+   */
+  container?: HTMLElement | null;
   /** 제목 요소 ID 참조 (접근성) */
   'aria-labelledby'?: string;
   /** 설명 요소 ID 참조 (접근성) */
@@ -198,6 +205,7 @@ const ModalRoot = ({
   size = 'md',
   closeOnBackdropClick = true,
   closeOnEscape = true,
+  container,
   triggerRef,
   'aria-labelledby': ariaLabelledby,
   'aria-describedby': ariaDescribedby,
@@ -318,7 +326,13 @@ const ModalRoot = ({
     },
   });
 
-  useFocusTrap({ open, onClose, closeOnEscape, containerRef: dialogRef });
+  useFocusTrap({
+    open,
+    onClose,
+    closeOnEscape,
+    containerRef: dialogRef,
+    lockScroll: !container,
+  });
 
   const contextValue = useMemo(
     () => ({ onClose, titleId }),
@@ -405,7 +419,7 @@ const ModalRoot = ({
     </ModalContext.Provider>
   );
 
-  return createPortal(modalContentElement, document.body);
+  return createPortal(modalContentElement, container ?? document.body);
 };
 
 ModalRoot.displayName = 'Modal';

@@ -326,6 +326,36 @@ describe('SideSheet', () => {
     });
   });
 
+  describe('container 테스트', () => {
+    let host: HTMLElement;
+
+    beforeEach(() => {
+      host = document.createElement('div');
+      document.body.appendChild(host);
+    });
+
+    afterEach(() => {
+      host.remove();
+    });
+
+    it('container를 주면 다이얼로그가 그 안에 그려진다', () => {
+      render(<SideSheet {...defaultProps} container={host} />);
+      expect(host).toContainElement(screen.getByRole('dialog'));
+    });
+
+    it('container를 주면 열려도 body 스크롤을 잠그지 않는다', () => {
+      render(<SideSheet {...defaultProps} container={host} />);
+      expect(document.body.style.overflow).toBe('');
+    });
+
+    it('container가 null이면 body로 간다', () => {
+      render(<SideSheet {...defaultProps} container={null} />);
+      expect(document.body).toContainElement(screen.getByRole('dialog'));
+      expect(host).not.toContainElement(screen.getByRole('dialog'));
+      expect(document.body.style.overflow).toBe('hidden');
+    });
+  });
+
   describe('언마운트 지연 테스트', () => {
     beforeEach(() => {
       vi.useFakeTimers();

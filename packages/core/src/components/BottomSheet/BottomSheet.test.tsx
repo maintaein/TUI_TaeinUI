@@ -335,6 +335,36 @@ describe('BottomSheet', () => {
     });
   });
 
+  describe('container 테스트', () => {
+    let host: HTMLElement;
+
+    beforeEach(() => {
+      host = document.createElement('div');
+      document.body.appendChild(host);
+    });
+
+    afterEach(() => {
+      host.remove();
+    });
+
+    it('container를 주면 다이얼로그가 그 안에 그려진다', () => {
+      render(<BottomSheet {...defaultProps} container={host} />);
+      expect(host).toContainElement(screen.getByRole('dialog'));
+    });
+
+    it('container를 주면 열려도 body 스크롤을 잠그지 않는다', () => {
+      render(<BottomSheet {...defaultProps} container={host} />);
+      expect(document.body.style.overflow).toBe('');
+    });
+
+    it('container가 null이면 body로 간다', () => {
+      render(<BottomSheet {...defaultProps} container={null} />);
+      expect(document.body).toContainElement(screen.getByRole('dialog'));
+      expect(host).not.toContainElement(screen.getByRole('dialog'));
+      expect(document.body.style.overflow).toBe('hidden');
+    });
+  });
+
   describe('드래그 동작 테스트', () => {
     it('enableDrag가 true일 때 드래그로 닫을 수 있다', async () => {
       render(<BottomSheet {...defaultProps} enableDrag />);

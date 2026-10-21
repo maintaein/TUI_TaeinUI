@@ -196,6 +196,20 @@ describe('useFocusTrap', () => {
     expect(document.body.style.overflow).toBe('');
   });
 
+  it('lockScroll이 false면 body의 overflow를 건드리지 않는다', () => {
+    renderHook(() =>
+      useFocusTrap({
+        open: true,
+        onClose: vi.fn(),
+        closeOnEscape: true,
+        containerRef,
+        lockScroll: false,
+      })
+    );
+
+    expect(document.body.style.overflow).toBe('');
+  });
+
   it('restoreFocusOnClose 기본값(true)이면 닫힐 때 이전 포커스 요소로 복원된다', () => {
     const trigger = document.createElement('button');
     document.body.appendChild(trigger);

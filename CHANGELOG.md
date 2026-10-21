@@ -22,6 +22,7 @@
 ### Added
 
 - `HeaderBar`에 `titleAs`(`'h1'` | `'h2'` ~ `'h6'` | `'span'`, 기본 `'h1'`)를 더했습니다. 제목 요소만 바뀌고 스타일은 같습니다. 페이지에 이미 h1이 있으면 낮은 단계나 `span`을 쓰세요.
+- `Modal`·`BottomSheet`·`SideSheet`에 `container`(`HTMLElement | null`, 기본 `document.body`)를 더했습니다. 오버레이를 그릴 DOM 위치를 고르고, 주어지면 body 스크롤을 잠그지 않습니다. 화면이 그 안에 갇히려면 container에 `contain: layout` 또는 `transform`을 줘서 `position: fixed`의 기준으로 만드세요. 안 주면 이전과 같고, 할 일은 없습니다.
 
 ### Changed
 

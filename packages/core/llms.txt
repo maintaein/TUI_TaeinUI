@@ -64,9 +64,9 @@ All components follow consistent patterns:
 - **Tooltip**: Hover tooltip. Props: children, content, position, delay, arrow
 
 ### Overlay
-- **Modal**: Dialog modal. Props: open, onClose, size('sm'-'xl'|'full'), closeOnBackdropClick, closeOnEscape. Compound: Modal.Header, Modal.Title, Modal.Content, Modal.Footer. 간단하면 prop(`title`·`footer`), 직접 꾸미려면 조합(`Modal.Header` 등)
-- **BottomSheet**: Mobile bottom drawer. Props: open, onClose, height('auto'|'sm'-'lg'|'full'), enableDrag, showHandle. Compound: BottomSheet.Header, BottomSheet.Title, BottomSheet.Content
-- **SideSheet**: Side panel drawer. Props: open, onClose, width('sm'-'lg'|'full'), position('left'|'right'). Compound: SideSheet.Header, SideSheet.Title, SideSheet.Content
+- **Modal**: Dialog modal. Props: open, onClose, size('sm'-'xl'|'full'), closeOnBackdropClick, closeOnEscape, container. Compound: Modal.Header, Modal.Title, Modal.Content, Modal.Footer. 간단하면 prop(`title`·`footer`), 직접 꾸미려면 조합(`Modal.Header` 등)
+- **BottomSheet**: Mobile bottom drawer. Props: open, onClose, height('auto'|'sm'-'lg'|'full'), enableDrag, showHandle, container. Compound: BottomSheet.Header, BottomSheet.Title, BottomSheet.Content
+- **SideSheet**: Side panel drawer. Props: open, onClose, width('sm'-'lg'|'full'), position('left'|'right'), container. Compound: SideSheet.Header, SideSheet.Title, SideSheet.Content
 - **Popover**: Popover panel. Props: children(trigger), content, position, closeOnOutsideClick, arrow
 
 ### Layout
