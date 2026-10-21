@@ -1,545 +1,336 @@
-import { Card, List, ListItem } from '@taein-ui/core';
-import { LivePreview } from '../../../components/LivePreview';
+import { useState, type ComponentProps } from 'react';
+import { Avatar } from '@taein-ui/core';
 import { CodeBlock } from '../../../components/CodeBlock';
-import { PropsTable } from '../../../components/PropsTable';
-import type { PropDefinition } from '../../../components/PropsTable/PropsTable';
-import { AccessibilitySection } from '../../../components/AccessibilitySection';
-import * as styles from './AvatarPage.css';
+import {
+  Customize,
+  codeOf,
+  type Control,
+  type Values,
+} from '../../../components/Customize';
+import { DetailLayout, Topic, Topics } from '../../../components/DetailLayout';
+import * as t from '../../../components/DocText';
+import { PropsList } from '../../../components/PropsList';
+import type { PropDefinition } from '../../../components/PropsTable';
+import { Stage, type Act } from '../../../components/Stage';
+
+const LEAD =
+  '프로필 사진이나 이니셜로 사용자와 그룹을 나타냅니다. 댓글 작성자, 참여자 목록에 둡니다.';
+
+const CONTROLS: Control[] = [
+  { prop: 'alt', kind: 'text' },
+  { prop: 'size', kind: 'choice', options: ['xs', 'sm', 'md', 'lg', 'xl'] },
+  {
+    prop: 'variant',
+    kind: 'choice',
+    options: ['circular', 'rounded', 'square'],
+  },
+  // 조작판 칸(320px)에 다섯은 안 들어가 offline은 뺀다. 이렇게 씁니다 절에 적는다
+  {
+    prop: 'status',
+    kind: 'choice',
+    options: ['none', 'online', 'busy', 'away'],
+  },
+  { prop: 'bouncy', kind: 'toggle' },
+];
+
+const INITIAL: Values = {
+  alt: 'Taein Kim',
+  size: 'xl',
+  variant: 'circular',
+  status: 'online',
+  bouncy: true,
+};
+
+const DEFAULTS: Values = {
+  alt: '',
+  size: 'md',
+  variant: 'circular',
+  status: 'none',
+};
+
+// 무대의 Avatar는 늘 누를 수 있다(onClick). bouncy는 누를 수 있는 아바타에서만 움직이기 때문이다
+const NOTATION = { onClick: { expr: 'openProfile' } };
+
+// 커서가 아바타로 가서 올라타면 떠오르고(튀며 15%), 누르면 떠오른 채 커졌다 돌아오고, 떠나면 내려앉는다
+// bouncy를 끄면 밝기만 어두워지고 누르는 동안 0.95배로 눌린다
+const SCRIPT = (act: Act) => {
+  act.move('avatar');
+  act.hover('avatar');
+  act.wait(0.9);
+  act.press('avatar');
+  act.wait(0.5);
+  act.leave('avatar');
+  act.wait(0.6);
+  act.home();
+  act.wait(0.6);
+};
+
+const PROPS: PropDefinition[] = [
+  {
+    name: 'alt',
+    type: 'string',
+    required: true,
+    description:
+      '누구인지 알리는 이름. 이미지의 대체 텍스트가 되고, 이미지가 없으면 이니셜이 여기서 나온다',
+  },
+  {
+    name: 'src',
+    type: 'string',
+    description: '이미지 주소. 없거나 불러오지 못하면 이니셜을 보인다',
+  },
+  {
+    name: 'size',
+    type: "'xs' | 'sm' | 'md' | 'lg' | 'xl'",
+    default: "'md'",
+    description: '크기. 24, 32, 40, 48, 64px',
+  },
+  {
+    name: 'variant',
+    type: "'circular' | 'rounded' | 'square'",
+    default: "'circular'",
+    description: '모양. 원형, 둥근 모서리, 사각형',
+  },
+  {
+    name: 'status',
+    type: "'online' | 'offline' | 'busy' | 'away'",
+    description: '오른쪽 아래에 상태 점을 붙인다. 스크린 리더는 읽지 않는다',
+  },
+  {
+    name: 'children',
+    type: 'ReactNode',
+    description: '이미지가 없을 때 이니셜 대신 보일 내용',
+  },
+  {
+    name: 'onClick',
+    type: '() => void',
+    description: '주면 button으로 그려진다',
+  },
+  {
+    name: 'href',
+    type: 'string',
+    description: '주면 a로 그려진다',
+  },
+  {
+    name: 'target',
+    type: 'string',
+    description:
+      'href와 함께 쓰는 링크 대상. _blank이면 rel="noopener noreferrer"가 붙는다',
+  },
+  {
+    name: 'bouncy',
+    type: 'boolean',
+    default: 'false',
+    description:
+      '마우스를 올리면 튀며 떠오르고 누르면 커진다. onClick이나 href가 있을 때만 움직인다',
+  },
+  {
+    name: 'onError',
+    type: '() => void',
+    description: '이미지를 불러오지 못했을 때 부른다',
+  },
+];
+
+const GROUP_PROPS: PropDefinition[] = [
+  {
+    name: 'children',
+    type: 'ReactNode',
+    required: true,
+    description: '겹쳐 보일 Avatar들',
+  },
+  {
+    name: 'max',
+    type: 'number',
+    description: '보이는 최대 개수. 넘는 만큼은 +N 하나로 줄인다',
+  },
+  {
+    name: 'size',
+    type: "'xs' | 'sm' | 'md' | 'lg' | 'xl'",
+    default: "'md'",
+    description: '모든 자식 Avatar의 크기를 한 번에 정한다',
+  },
+  {
+    name: 'spacing',
+    type: "'sm' | 'md' | 'lg'",
+    default: "'md'",
+    description: '겹치는 정도. 8, 12, 16px씩 겹친다',
+  },
+];
+
+const FALLBACK = `// 이름이 두 단어면 앞 글자 둘: TK
+<Avatar alt="Taein Kim" />
+
+// 한 단어면 앞 글자 하나: 홍
+<Avatar alt="홍길동" />
+
+// 이니셜 대신 내용을 직접 준다
+<Avatar alt="관리자">
+  <ShieldCheck size={18} />
+</Avatar>`;
+
+const STATUS = `<Avatar alt="Taein Kim" status="online" />
+
+// 점은 스크린 리더가 읽지 않으니 글로도 알린다
+<Avatar alt="Taein Kim" status="busy" />
+<span>다른 용무 중</span>`;
+
+const GROUP = `<AvatarGroup max={3} size="sm" spacing="md">
+  <Avatar alt="Taein Kim" />
+  <Avatar alt="Mina Park" />
+  <Avatar alt="Joon Lee" />
+  <Avatar alt="Sora Choi" />
+  <Avatar alt="Hana Yoon" />
+</AvatarGroup>`;
+
+const CLICKABLE = `// button으로 그려진다
+<Avatar alt="프로필 열기" onClick={openProfile} bouncy />
+
+// a로 그려진다
+<Avatar alt="내 프로필" href="/me" />
+
+// 새 탭: rel="noopener noreferrer"가 자동으로 붙는다
+<Avatar alt="GitHub" href="https://github.com" target="_blank" />`;
+
+function Usage() {
+  return (
+    <Topics>
+      <Topic title="언제 쓰나">
+        <p className={t.body}>
+          댓글 작성자, 참여자 목록, 프로필 메뉴의 트리거처럼 사람이나 팀을 작게
+          나타내는 자리에 씁니다. 크기와 모양은 <code>size</code>와{' '}
+          <code>variant</code>로 맞춥니다.
+        </p>
+      </Topic>
+      <Topic title="사진이 없을 때">
+        <p className={t.body} style={{ marginBottom: 12 }}>
+          <code>src</code>가 없거나 불러오지 못하면 <code>alt</code>에서
+          이니셜을 만들어 보입니다. 이름이 두 단어 이상이면 앞의 두 단어의 첫
+          글자를 대문자로 잇고, 한 단어면 첫 글자 하나이며, 비어 있으면{' '}
+          <code>?</code>입니다. <code>children</code>을 주면 이니셜 대신 그
+          내용을 보입니다.
+        </p>
+        <CodeBlock code={FALLBACK} />
+      </Topic>
+      <Topic title="상태 점">
+        <p className={t.body} style={{ marginBottom: 12 }}>
+          <code>status</code>는 오른쪽 아래에 점을 붙입니다. <code>online</code>
+          은 초록, <code>offline</code>은 회색, <code>busy</code>는 빨강,{' '}
+          <code>away</code>는 주황입니다. 조작판에는 <code>offline</code>이
+          없지만 같은 방식으로 씁니다. 점은 스크린 리더에 전달되지 않으므로
+          상태가 중요하면 글로도 알립니다.
+        </p>
+        <CodeBlock code={STATUS} />
+      </Topic>
+      <Topic title="여러 명을 겹쳐 보이기">
+        <p className={t.body} style={{ marginBottom: 12 }}>
+          <code>AvatarGroup</code>이 자식 Avatar를 겹쳐 놓습니다.{' '}
+          <code>max</code>를 넘는 인원은 <code>+2</code>처럼 하나로 줄여
+          보입니다. 이 칸은 스크린 리더가 &quot;2명 더 보기&quot;로 읽습니다.
+        </p>
+        <CodeBlock code={GROUP} />
+        <div style={{ marginTop: 16 }}>
+          <PropsList props={GROUP_PROPS} />
+        </div>
+      </Topic>
+      <Topic title="누를 수 있는 아바타와 움직임">
+        <p className={t.body} style={{ marginBottom: 12 }}>
+          <code>onClick</code>을 주면 button, <code>href</code>를 주면 a로
+          그려지고 이름은 <code>alt</code>가 됩니다. 누를 수 있는 아바타는
+          마우스를 올리면 밝기가 어두워집니다.
+        </p>
+        <CodeBlock code={CLICKABLE} />
+        <p className={t.body} style={{ margin: '16px 0 0' }}>
+          누르는 동안은 0.95배로 눌립니다. <code>bouncy</code>를 켜면 눌림 대신
+          마우스를 올릴 때 튀며 15% 떠오르고, 누르면 떠오른 채 1.1배로 커졌다가
+          돌아옵니다. 키보드로 포커스가 오면 튀지 않고 떠오르기만 하며, 마우스로
+          눌러서 생긴 포커스와 터치에서는 떠오르지 않습니다. 누를 수 없는
+          아바타가 움직이면 누를 수 있다고 오해하게 되므로 <code>bouncy</code>는
+          누를 수 없는 아바타에서는 무시됩니다. 움직임 줄이기 설정을 켠
+          환경에서는 움직이지 않습니다.
+        </p>
+      </Topic>
+    </Topics>
+  );
+}
+
+function A11y() {
+  return (
+    <ul className={`${t.list} ${t.body}`}>
+      <li>
+        이미지가 있으면 <code>img</code>에 <code>alt</code>가 붙고, 없으면
+        이니셜 칸이 <code>role=&quot;img&quot;</code>와 <code>aria-label</code>
+        로 <code>alt</code>를 전달합니다.
+      </li>
+      <li>
+        개발자가 직접 해야 합니다. <code>alt</code>에는 &quot;사진&quot;,
+        &quot;avatar&quot; 같은 말 대신 실제 이름을 적습니다. 누구인지가
+        전달되어야 합니다.
+      </li>
+      <li>
+        상태 점은 <code>aria-hidden=&quot;true&quot;</code>라 스크린 리더가 읽지
+        않습니다. 온라인인지 같은 정보가 필요하면 이름 옆에 글로 적습니다.
+      </li>
+      <li>
+        <code>onClick</code>이면 <code>button</code>, <code>href</code>면{' '}
+        <code>a</code>로 그려져 Tab으로 들어가고 Enter로 누릅니다(button은
+        Space도). 이름은 <code>alt</code>입니다. 누를 수 있을 때{' '}
+        <code>aria-expanded</code> 같은 <code>aria-*</code> 속성은 이미지가
+        아니라 이 button이나 a에 붙습니다.
+      </li>
+      <li>누를 수 있는 아바타는 키보드로 포커스하면 포커스 링이 생깁니다.</li>
+      <li>
+        <code>AvatarGroup</code>의 <code>+N</code> 칸은{' '}
+        <code>role=&quot;img&quot;</code>에 &quot;N명 더 보기&quot;라는 이름이
+        붙습니다.
+      </li>
+    </ul>
+  );
+}
+
+type Size = ComponentProps<typeof Avatar>['size'];
+type Variant = ComponentProps<typeof Avatar>['variant'];
+type Status = ComponentProps<typeof Avatar>['status'];
 
 export function AvatarPage() {
-  const avatarPropsData: PropDefinition[] = [
-    {
-      name: 'src',
-      type: 'string',
-      default: 'undefined',
-      description: '이미지 URL',
-    },
-    {
-      name: 'alt',
-      type: 'string',
-      required: true,
-      description: '대체 텍스트 (이미지 없을 때 이니셜 생성에도 사용)',
-    },
-    {
-      name: 'size',
-      type: "'xs' | 'sm' | 'md' | 'lg' | 'xl'",
-      default: "'md'",
-      description: '아바타 크기',
-    },
-    {
-      name: 'variant',
-      type: "'circular' | 'rounded' | 'square'",
-      default: "'circular'",
-      description: '모양 변형',
-    },
-    {
-      name: 'status',
-      type: "'online' | 'offline' | 'busy' | 'away'",
-      default: 'undefined',
-      description: '상태 표시 뱃지',
-    },
-    {
-      name: 'children',
-      type: 'ReactNode',
-      default: 'undefined',
-      description: 'fallback 콘텐츠 (이미지 없을 때 이니셜 대신 표시)',
-    },
-    {
-      name: 'onError',
-      type: '() => void',
-      default: 'undefined',
-      description: '이미지 로드 실패 시 콜백',
-    },
-    {
-      name: 'onClick',
-      type: '() => void',
-      default: 'undefined',
-      description: '클릭 핸들러 (설정 시 button으로 렌더링)',
-    },
-    {
-      name: 'href',
-      type: 'string',
-      default: 'undefined',
-      description: '링크 URL (설정 시 a 태그로 렌더링)',
-    },
-    {
-      name: 'target',
-      type: 'string',
-      default: 'undefined',
-      description: '링크 target 속성 (href와 함께 사용)',
-    },
-    {
-      name: 'bouncy',
-      type: 'boolean',
-      default: 'false',
-      description:
-        '호버·키보드 포커스에 튀며 떠오르고 누르면 커지는 선택 효과. onClick 또는 href가 있을 때만 동작하고 모션 축소 선호에서는 움직이지 않음',
-    },
-    {
-      name: 'className',
-      type: 'string',
-      default: 'undefined',
-      description: '추가 CSS 클래스',
-    },
-  ];
-
-  const avatarGroupPropsData: PropDefinition[] = [
-    {
-      name: 'children',
-      type: 'ReactNode',
-      required: true,
-      description: 'Avatar 컴포넌트들',
-    },
-    {
-      name: 'max',
-      type: 'number',
-      default: 'undefined',
-      description: '최대 표시 개수 (초과분은 +N으로 표시)',
-    },
-    {
-      name: 'size',
-      type: "'xs' | 'sm' | 'md' | 'lg' | 'xl'",
-      default: 'undefined',
-      description: '모든 자식 Avatar에 일괄 적용할 크기',
-    },
-    {
-      name: 'spacing',
-      type: "'sm' | 'md' | 'lg'",
-      default: "'md'",
-      description: '아바타 간 겹침 간격',
-    },
-    {
-      name: 'className',
-      type: 'string',
-      default: 'undefined',
-      description: '추가 CSS 클래스',
-    },
-  ];
+  const [values, setValues] = useState<Values>(INITIAL);
 
   return (
-    <article className={styles.container}>
-      {/* Header */}
-      <header className={styles.header}>
-        <h1 className={styles.title}>Avatar</h1>
-        <p className={styles.description}>
-          Avatar 컴포넌트는 사용자나 그룹을 시각적으로 나타낼 때 사용합니다.
-          프로필 사진, 댓글 작성자 표시, 참여자 목록 등에 활용할 수 있습니다.
-        </p>
-      </header>
-
-      {/* Quick Reference */}
-      <section className={styles.quickReference}>
-        <Card className={styles.quickRefCard}>
-          <Card.Body padding="md">
-            <h3 className={styles.quickRefTitle}>Import</h3>
-            <CodeBlock
-              language="typescript"
-              code={`import { Avatar, AvatarGroup } from '@taein-ui/core';`}
+    <DetailLayout
+      name="Avatar"
+      lead={LEAD}
+      stage={
+        <Stage label="Avatar 시연" script={SCRIPT}>
+          {/* core가 data-* 를 루트에 안 달아 주므로 감싼 요소가 첫 자식(루트)에 대상 표시를 단다 */}
+          <span
+            style={{ display: 'contents' }}
+            ref={(el) =>
+              el?.firstElementChild?.setAttribute('data-stage-target', 'avatar')
+            }
+          >
+            <Avatar
+              alt={String(values.alt)}
+              size={values.size as Size}
+              variant={values.variant as Variant}
+              status={
+                values.status === 'none' ? undefined : (values.status as Status)
+              }
+              bouncy={values.bouncy === true}
+              onClick={() => undefined}
             />
-          </Card.Body>
-        </Card>
-        <Card className={styles.quickRefCard}>
-          <Card.Body padding="md">
-            <h3 className={styles.quickRefTitle}>Basic Usage</h3>
-            <CodeBlock
-              language="tsx"
-              code={`<Avatar src="/photo.jpg" alt="홍길동" />
-<Avatar alt="김철수" /> {/* 이니셜 fallback */}`}
-            />
-          </Card.Body>
-        </Card>
-      </section>
-
-      {/* Examples Section */}
-      <section className={styles.section}>
-        <div className={styles.sectionHeader}>
-          <h2 className={styles.sectionTitle}>Examples</h2>
-          <p className={styles.sectionDescription}>
-            다양한 사용 사례에 맞는 Avatar 예제입니다.
-          </p>
-        </div>
-
-        {/* Basic */}
-        <div className={styles.example}>
-          <h3 className={styles.exampleTitle}>Basic Avatar</h3>
-          <LivePreview
-            title="기본 사용법"
-            description="이미지가 있으면 이미지를, 없으면 alt 텍스트에서 이니셜을 자동 생성합니다."
-            editable
-            code={`<div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-  <Avatar src="https://i.pravatar.cc/150?img=1" alt="홍길동" />
-  <Avatar alt="김철수" />
-  <Avatar alt="이영희 박" />
-</div>`}
-          />
-        </div>
-
-        {/* Sizes */}
-        <div className={styles.example}>
-          <h3 className={styles.exampleTitle}>Sizes</h3>
-          <LivePreview
-            title="크기"
-            description="xs(24px), sm(32px), md(40px), lg(48px), xl(64px) 5가지 크기를 제공합니다."
-            editable
-            code={`<div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-  <Avatar alt="XS" size="xs" />
-  <Avatar alt="SM" size="sm" />
-  <Avatar alt="MD" size="md" />
-  <Avatar alt="LG" size="lg" />
-  <Avatar alt="XL" size="xl" />
-</div>`}
-          />
-        </div>
-
-        {/* Variants */}
-        <div className={styles.example}>
-          <h3 className={styles.exampleTitle}>Variants</h3>
-          <LivePreview
-            title="모양 변형"
-            description="circular(원형), rounded(둥근 모서리), square(사각형) 3가지 모양을 제공합니다."
-            editable
-            code={`<div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-  <Avatar src="https://i.pravatar.cc/150?img=2" alt="Circular" variant="circular" size="lg" />
-  <Avatar src="https://i.pravatar.cc/150?img=3" alt="Rounded" variant="rounded" size="lg" />
-  <Avatar src="https://i.pravatar.cc/150?img=4" alt="Square" variant="square" size="lg" />
-</div>`}
-          />
-        </div>
-
-        {/* Status */}
-        <div className={styles.example}>
-          <h3 className={styles.exampleTitle}>Status Badge</h3>
-          <LivePreview
-            title="상태 표시"
-            description="online, offline, busy, away 4가지 상태를 뱃지로 표시합니다."
-            editable
-            code={`<div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
-  <Avatar src="https://i.pravatar.cc/150?img=5" alt="온라인" size="lg" status="online" />
-  <Avatar src="https://i.pravatar.cc/150?img=6" alt="오프라인" size="lg" status="offline" />
-  <Avatar src="https://i.pravatar.cc/150?img=7" alt="바쁨" size="lg" status="busy" />
-  <Avatar src="https://i.pravatar.cc/150?img=8" alt="자리비움" size="lg" status="away" />
-</div>`}
-          />
-        </div>
-
-        {/* Fallback */}
-        <div className={styles.example}>
-          <h3 className={styles.exampleTitle}>Fallback</h3>
-          <LivePreview
-            title="Fallback 동작"
-            description="이미지가 없거나 로드 실패 시 alt에서 이니셜을 생성합니다. children을 전달하면 이니셜 대신 표시됩니다."
-            editable
-            code={`<div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-  <Avatar alt="홍길동" size="lg" />
-  <Avatar alt="김 영수" size="lg" />
-  <Avatar alt="단일" size="lg" />
-  <Avatar alt="커스텀" size="lg">
-    <Palette size={20} />
-  </Avatar>
-  <Avatar src="https://invalid-url.com/404.jpg" alt="로드 실패" size="lg" />
-</div>`}
-          />
-        </div>
-
-        {/* AvatarGroup */}
-        <div className={styles.example}>
-          <h3 className={styles.exampleTitle}>AvatarGroup</h3>
-          <LivePreview
-            title="그룹"
-            description="여러 아바타를 겹쳐 표시합니다. max를 설정하면 초과분은 +N으로 표시됩니다."
-            editable
-            code={`<div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-  <AvatarGroup>
-    <Avatar src="https://i.pravatar.cc/150?img=10" alt="사용자1" />
-    <Avatar src="https://i.pravatar.cc/150?img=11" alt="사용자2" />
-    <Avatar src="https://i.pravatar.cc/150?img=12" alt="사용자3" />
-    <Avatar src="https://i.pravatar.cc/150?img=13" alt="사용자4" />
-  </AvatarGroup>
-  <AvatarGroup max={3}>
-    <Avatar src="https://i.pravatar.cc/150?img=14" alt="사용자1" />
-    <Avatar src="https://i.pravatar.cc/150?img=15" alt="사용자2" />
-    <Avatar src="https://i.pravatar.cc/150?img=16" alt="사용자3" />
-    <Avatar src="https://i.pravatar.cc/150?img=17" alt="사용자4" />
-    <Avatar src="https://i.pravatar.cc/150?img=18" alt="사용자5" />
-  </AvatarGroup>
-</div>`}
-          />
-        </div>
-
-        {/* AvatarGroup Spacing */}
-        <div className={styles.example}>
-          <h3 className={styles.exampleTitle}>AvatarGroup Spacing</h3>
-          <LivePreview
-            title="그룹 간격"
-            description="sm, md, lg 3가지 겹침 간격을 제공합니다."
-            editable
-            code={`<div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-  <AvatarGroup spacing="sm">
-    <Avatar src="https://i.pravatar.cc/150?img=20" alt="A" />
-    <Avatar src="https://i.pravatar.cc/150?img=21" alt="B" />
-    <Avatar src="https://i.pravatar.cc/150?img=22" alt="C" />
-    <Avatar src="https://i.pravatar.cc/150?img=23" alt="D" />
-  </AvatarGroup>
-  <AvatarGroup spacing="md">
-    <Avatar src="https://i.pravatar.cc/150?img=20" alt="A" />
-    <Avatar src="https://i.pravatar.cc/150?img=21" alt="B" />
-    <Avatar src="https://i.pravatar.cc/150?img=22" alt="C" />
-    <Avatar src="https://i.pravatar.cc/150?img=23" alt="D" />
-  </AvatarGroup>
-  <AvatarGroup spacing="lg">
-    <Avatar src="https://i.pravatar.cc/150?img=20" alt="A" />
-    <Avatar src="https://i.pravatar.cc/150?img=21" alt="B" />
-    <Avatar src="https://i.pravatar.cc/150?img=22" alt="C" />
-    <Avatar src="https://i.pravatar.cc/150?img=23" alt="D" />
-  </AvatarGroup>
-</div>`}
-          />
-        </div>
-
-        {/* AvatarGroup Size */}
-        <div className={styles.example}>
-          <h3 className={styles.exampleTitle}>AvatarGroup Size</h3>
-          <LivePreview
-            title="그룹 크기 일괄 적용"
-            description="AvatarGroup의 size prop으로 모든 자식 Avatar의 크기를 일괄 지정할 수 있습니다."
-            editable
-            code={`<div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-  <AvatarGroup size="sm" max={3}>
-    <Avatar src="https://i.pravatar.cc/150?img=30" alt="A" />
-    <Avatar src="https://i.pravatar.cc/150?img=31" alt="B" />
-    <Avatar src="https://i.pravatar.cc/150?img=32" alt="C" />
-    <Avatar src="https://i.pravatar.cc/150?img=33" alt="D" />
-  </AvatarGroup>
-  <AvatarGroup size="lg" max={3}>
-    <Avatar src="https://i.pravatar.cc/150?img=30" alt="A" />
-    <Avatar src="https://i.pravatar.cc/150?img=31" alt="B" />
-    <Avatar src="https://i.pravatar.cc/150?img=32" alt="C" />
-    <Avatar src="https://i.pravatar.cc/150?img=33" alt="D" />
-  </AvatarGroup>
-</div>`}
-          />
-        </div>
-
-        {/* Clickable Avatar: onClick */}
-        <div className={styles.example}>
-          <h3 className={styles.exampleTitle}>Clickable Avatar: onClick</h3>
-          <LivePreview
-            title="클릭 이벤트"
-            description="onClick을 전달하면 button으로 렌더링됩니다. Popover와 조합하면 프로필 메뉴 팝업을 구현할 수 있습니다."
-            editable
-            code={`const [open, setOpen] = useState(false);
-const profileMenu = (
-  <div style={{ minWidth: '260px' }}>
-    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '1rem 1rem 0.75rem' }}>
-      <Avatar src="https://i.pravatar.cc/150?img=40" alt="홍길동" size="xl" />
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.125rem' }}>
-        <p style={{ margin: 0, fontWeight: 600 }}>홍길동</p>
-        <p style={{ margin: 0, fontSize: '0.75rem', color: themeContract.color.text.secondary }}>hong@example.com</p>
-      </div>
-    </div>
-    <Divider spacing="sm" />
-    <List spacing="sm" style={{ padding: '0.25rem 0.5rem' }}>
-      <ListItem style={{ padding: '0.5rem', borderRadius: '6px', cursor: 'pointer' }}>내 프로필</ListItem>
-      <ListItem style={{ padding: '0.5rem', borderRadius: '6px', cursor: 'pointer' }}>설정</ListItem>
-    </List>
-    <Divider spacing="sm" />
-    <List spacing="sm" style={{ padding: '0.25rem 0.5rem 0.5rem' }}>
-      <ListItem style={{ padding: '0.5rem', borderRadius: '6px', cursor: 'pointer' }}>
-        <p style={{ margin: 0, fontSize: '0.875rem', color: themeContract.color.error.dark }}>로그아웃</p>
-      </ListItem>
-    </List>
-  </div>
-);
-
-<Popover open={open} onOpenChange={setOpen} position="bottom" content={profileMenu}>
-  <Avatar src="https://i.pravatar.cc/150?img=40" alt="프로필 메뉴" size="lg" />
-</Popover>`}
-          />
-        </div>
-
-        {/* Bouncy */}
-        <div className={styles.example}>
-          <h3 className={styles.exampleTitle}>Bouncy</h3>
-          <LivePreview
-            title="튀는 호버·누름 효과"
-            description="기본은 정적이고 bouncy를 켜야 움직입니다. 클릭 가능한 아바타(onClick 또는 href)에서만 동작합니다. 호버·키보드 포커스에 튀며 떠오르고, 누르면 떠오른 채 커집니다."
-            editable
-            code={`const [open, setOpen] = useState(false);
-
-<div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
-  <Avatar src="https://i.pravatar.cc/150?img=11" alt="작게" size="sm" bouncy onClick={() => {}} />
-  <Avatar src="https://i.pravatar.cc/150?img=12" alt="보통" size="md" bouncy onClick={() => {}} />
-  <Avatar src="https://i.pravatar.cc/150?img=13" alt="크게" size="xl" status="online" bouncy onClick={() => {}} />
-  <Popover
-    open={open}
-    onOpenChange={setOpen}
-    position="bottom"
-    content={<div style={{ padding: '1rem' }}>프로필 메뉴</div>}
-  >
-    <Avatar src="https://i.pravatar.cc/150?img=14" alt="프로필 메뉴" size="lg" bouncy />
-  </Popover>
-</div>`}
-          />
-        </div>
-
-        {/* Clickable Avatar: href */}
-        <div className={styles.example}>
-          <h3 className={styles.exampleTitle}>Clickable Avatar: href</h3>
-          <LivePreview
-            title="링크 라우팅"
-            description="href를 전달하면 a 태그로 렌더링되어 페이지 라우팅이 가능합니다. target='_blank'로 새 탭에서 열 수도 있습니다."
-            editable
-            code={`<div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
-  <Avatar
-    src="https://i.pravatar.cc/150?img=41"
-    alt="내 프로필"
-    size="lg"
-    href="/components/avatar"
-  />
-  <Avatar
-    src="https://i.pravatar.cc/150?img=42"
-    alt="외부 링크"
-    size="lg"
-    href="https://github.com"
-    target="_blank"
-  />
-</div>`}
-          />
-        </div>
-      </section>
-
-      {/* Props API: Avatar */}
-      <section className={styles.section}>
-        <div className={styles.sectionHeader}>
-          <h2 className={styles.sectionTitle}>Props API: Avatar</h2>
-          <p className={styles.sectionDescription}>
-            Avatar 컴포넌트의 Props입니다.
-          </p>
-        </div>
-        <div className={styles.propsTableWrapper}>
-          <PropsTable props={avatarPropsData} />
-        </div>
-      </section>
-
-      {/* Props API: AvatarGroup */}
-      <section className={styles.section}>
-        <div className={styles.sectionHeader}>
-          <h2 className={styles.sectionTitle}>Props API: AvatarGroup</h2>
-          <p className={styles.sectionDescription}>
-            AvatarGroup 컴포넌트의 Props입니다.
-          </p>
-        </div>
-        <div className={styles.propsTableWrapper}>
-          <PropsTable props={avatarGroupPropsData} />
-        </div>
-      </section>
-
-      {/* Accessibility */}
-      <AccessibilitySection
-        componentName="Avatar"
-        intro="Avatar 컴포넌트는 다음과 같이 기본적인 접근성을 제공합니다."
-        features={[
-          {
-            attribute: 'alt',
-            effect: '이미지의 대체 텍스트를 스크린 리더에 전달합니다.',
-            description:
-              'img 태그에 alt 속성이 설정되어 이미지 내용을 설명합니다.',
-          },
-          {
-            attribute: 'role="img"',
-            effect: 'fallback 상태에서 이미지 역할을 알립니다.',
-            description:
-              '이미지가 없을 때 이니셜 영역에 role="img"을 설정하여 스크린 리더가 이미지로 인식합니다.',
-          },
-          {
-            attribute: 'aria-label',
-            effect: 'fallback 상태에서 접근 가능한 이름을 제공합니다.',
-            description:
-              '이니셜만 표시될 때 aria-label로 전체 이름을 전달합니다.',
-          },
-          {
-            attribute: 'aria-hidden',
-            effect: '상태 뱃지를 스크린 리더에서 숨깁니다.',
-            description:
-              '상태 뱃지는 장식적 요소이므로 aria-hidden="true"로 설정되어 있습니다.',
-          },
-          {
-            attribute: 'button / a 태그',
-            effect:
-              'onClick 또는 href가 있으면 적절한 인터랙티브 요소로 렌더링됩니다.',
-            description:
-              'onClick → button, href → a 태그로 자동 전환되며, aria-label이 alt 값으로 설정됩니다.',
-          },
-        ]}
-        additionalGuidance={[
-          {
-            title: '의미 있는 alt 텍스트 제공하기',
-            description:
-              'alt에 사용자의 실제 이름을 넣어 스크린 리더가 누구인지 전달할 수 있도록 합니다.',
-            examples: [
-              {
-                code: `// Good
-<Avatar src="/photo.jpg" alt="홍길동" />
-
-// Bad
-<Avatar src="/photo.jpg" alt="사진" />
-<Avatar src="/photo.jpg" alt="avatar" />`,
-                explanation: 'alt는 이미지의 내용(누구인지)을 설명해야 합니다.',
-              },
-            ],
-          },
-        ]}
-      />
-
-      {/* Best Practices */}
-      <section className={styles.section}>
-        <div className={styles.sectionHeader}>
-          <h2 className={styles.sectionTitle}>Best Practices</h2>
-          <p className={styles.sectionDescription}>
-            Avatar를 효과적으로 사용하기 위한 권장사항입니다.
-          </p>
-        </div>
-
-        <div className={styles.practicesGrid}>
-          <Card>
-            <Card.Body padding="lg">
-              <div className={styles.practiceHeader}>
-                <span className={styles.practiceIcon}>✓</span>
-                <h3 className={styles.practiceTitle}>Do</h3>
-              </div>
-              <List spacing="sm" className={styles.practiceList}>
-                <ListItem>alt에 사용자의 실제 이름 사용</ListItem>
-                <ListItem>적절한 size를 맥락에 맞게 선택</ListItem>
-                <ListItem>
-                  AvatarGroup으로 여러 사용자 표시 시 max 활용
-                </ListItem>
-                <ListItem>이미지 로드 실패 대비 fallback 확인</ListItem>
-                <ListItem>상태 뱃지는 실시간 상태 반영에만 사용</ListItem>
-              </List>
-            </Card.Body>
-          </Card>
-
-          <Card>
-            <Card.Body padding="lg">
-              <div className={styles.practiceHeader}>
-                <span className={styles.practiceIconError}>✗</span>
-                <h3 className={styles.practiceTitle}>Don't</h3>
-              </div>
-              <List spacing="sm" className={styles.practiceList}>
-                <ListItem>
-                  alt를 비워두거나 "사진", "이미지" 같은 일반적 텍스트 사용하지
-                  않기
-                </ListItem>
-                <ListItem>너무 많은 아바타를 max 없이 나열하지 않기</ListItem>
-                <ListItem>
-                  장식용 아바타에 불필요한 status 사용하지 않기
-                </ListItem>
-                <ListItem>매우 큰 이미지를 src에 직접 전달하지 않기</ListItem>
-              </List>
-            </Card.Body>
-          </Card>
-        </div>
-      </section>
-    </article>
+          </span>
+        </Stage>
+      }
+      customize={
+        <Customize controls={CONTROLS} values={values} onChange={setValues} />
+      }
+      code={codeOf({
+        component: 'Avatar',
+        values: { ...values, onClick: true },
+        defaults: DEFAULTS,
+        notation: NOTATION,
+      })}
+      props={PROPS}
+      usage={<Usage />}
+      a11y={<A11y />}
+    />
   );
 }
