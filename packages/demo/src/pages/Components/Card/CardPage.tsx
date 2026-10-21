@@ -1,737 +1,344 @@
-import { Card, List, ListItem } from '@taein-ui/core';
-import { LivePreview } from '../../../components/LivePreview';
-import { CodeBlock } from '../../../components/CodeBlock';
-import { PropsTable } from '../../../components/PropsTable';
-import type { PropDefinition } from '../../../components/PropsTable/PropsTable';
-import { AccessibilitySection } from '../../../components/AccessibilitySection';
-import * as styles from './CardPage.css';
-
-export function CardPage() {
-  const cardProps: PropDefinition[] = [
-    {
-      name: 'children',
-      type: 'ReactNode',
-      required: true,
-      description:
-        '카드 본문 콘텐츠 (Flat: 본문 영역, Compound: 서브 컴포넌트)',
-    },
-    {
-      name: 'variant',
-      type: "'outlined' | 'elevated' | 'filled'",
-      default: "'elevated'",
-      description: '카드 스타일 변형',
-    },
-    {
-      name: 'onClick',
-      type: '() => void',
-      description: '클릭 핸들러. 전달하면 button 요소로 렌더링',
-    },
-    {
-      name: 'disabled',
-      type: 'boolean',
-      default: 'false',
-      description: '비활성화 상태 (onClick과 함께 사용)',
-    },
-    {
-      name: 'hoverLift',
-      type: 'boolean',
-      default: 'false',
-      description:
-        '마우스를 올리면 카드가 살짝 떠오르고 그림자가 짙어지며, 누르면 살짝 눌립니다. onClick만 있는 카드는 떠오르지 않습니다',
-    },
-    {
-      name: 'title',
-      type: 'string',
-      description: 'Flat: 카드 제목. 자동으로 header + title 구조 생성',
-    },
-    {
-      name: 'header',
-      type: 'ReactNode',
-      description: 'Flat: 카드 헤더 영역 (title보다 우선)',
-    },
-    {
-      name: 'footer',
-      type: 'ReactNode',
-      description: 'Flat: 카드 푸터 영역',
-    },
-    {
-      name: 'image',
-      type: 'string',
-      description: 'Flat: 이미지 URL',
-    },
-    {
-      name: 'imageAlt',
-      type: 'string',
-      default: "''",
-      description: 'Flat: 이미지 대체 텍스트',
-    },
-    {
-      name: 'padding',
-      type: "'sm' | 'md' | 'lg'",
-      default: "'md'",
-      description: 'Flat: 본문 내부 여백',
-    },
-  ];
-
-  const compoundBodyProps: PropDefinition[] = [
-    {
-      name: 'children',
-      type: 'ReactNode',
-      required: true,
-      description: '본문 내용',
-    },
-    {
-      name: 'padding',
-      type: "'sm' | 'md' | 'lg'",
-      default: "'md'",
-      description: '내부 여백 크기',
-    },
-  ];
-
-  const compoundHeaderProps: PropDefinition[] = [
-    {
-      name: 'children',
-      type: 'ReactNode',
-      required: true,
-      description: '헤더 내용 (주로 Card.Title과 액션 버튼)',
-    },
-  ];
-
-  const compoundTitleProps: PropDefinition[] = [
-    {
-      name: 'children',
-      type: 'ReactNode',
-      required: true,
-      description: '제목 텍스트',
-    },
-    {
-      name: 'as',
-      type: "'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6'",
-      default: "'h3'",
-      description: '렌더링할 HTML 헤딩 요소',
-    },
-  ];
-
-  const compoundFooterProps: PropDefinition[] = [
-    {
-      name: 'children',
-      type: 'ReactNode',
-      required: true,
-      description: '푸터 내용 (주로 버튼)',
-    },
-  ];
-
-  const compoundImageProps: PropDefinition[] = [
-    {
-      name: 'src',
-      type: 'string',
-      required: true,
-      description: '이미지 URL',
-    },
-    {
-      name: 'alt',
-      type: 'string',
-      default: "''",
-      description: '이미지 대체 텍스트',
-    },
-    {
-      name: 'children',
-      type: 'ReactNode',
-      description: '이미지 위에 겹쳐 표시할 콘텐츠 (Card.ImageOverlay)',
-    },
-  ];
-
-  return (
-    <article className={styles.container}>
-      {/* Header */}
-      <header className={styles.header}>
-        <h1 className={styles.title}>Card</h1>
-        <p className={styles.description}>
-          Card 컴포넌트는 상품 정보, 블로그 글, 사용자 프로필 등 관련된 콘텐츠를
-          하나의 영역으로 묶어 표시할 때 사용합니다.
-        </p>
-      </header>
-
-      {/* Quick Reference */}
-      <section className={styles.quickReference}>
-        <Card className={styles.quickRefCard}>
-          <Card.Body padding="md">
-            <h3 className={styles.quickRefTitle}>Import</h3>
-            <CodeBlock
-              language="typescript"
-              code={`import { Card } from '@taein-ui/core';
-
-// Flat: props로 간단하게
-<Card title="제목">내용</Card>
-
-// Compound: 점 표기법으로 자유 조합
-<Card>
-  <Card.Header><Card.Title>제목</Card.Title></Card.Header>
-  <Card.Body>내용</Card.Body>
-</Card>`}
-            />
-          </Card.Body>
-        </Card>
-        <Card className={styles.quickRefCard}>
-          <Card.Body padding="md">
-            <h3 className={styles.quickRefTitle}>Basic Usage</h3>
-            <CodeBlock
-              language="tsx"
-              code={`{/* Flat */}
-<Card
-  title="월간 리포트"
-  footer={<Button size="sm">확인</Button>}
->
-  카드 내용
-</Card>
-
-{/* Compound */}
-<Card>
-  <Card.Header>
-    <Card.Title>월간 리포트</Card.Title>
-  </Card.Header>
-  <Card.Body>카드 내용</Card.Body>
-</Card>`}
-            />
-          </Card.Body>
-        </Card>
-      </section>
-
-      <section className={styles.section}>
-        <div className={styles.sectionHeader}>
-          <h2 className={styles.sectionTitle}>Examples</h2>
-          <p className={styles.sectionDescription}>
-            title, header, footer, image 등 props만으로 빠르게 카드를 구성하는
-            Flat 패턴 예제입니다.
-          </p>
-        </div>
-
-        <div className={styles.example}>
-          <LivePreview
-            title="기본 카드"
-            description="title과 footer를 props로 전달하여 기본적인 카드를 구성합니다."
-            editable
-            code={`<div style={{ maxWidth: '400px' }}>
-  <Card
-    title="공지사항"
-    footer={<Button size="sm">자세히 보기</Button>}
-  >
-    <p style={{ margin: 0, color: '#6b7280', lineHeight: 1.6 }}>
-      디자인 시스템 v2.0이 출시되었습니다. 새로운 컴포넌트와 개선된 접근성을 확인해보세요.
-    </p>
-  </Card>
-</div>`}
-          />
-        </div>
-
-        <div className={styles.example}>
-          <h3 className={styles.exampleTitle}>Variants</h3>
-          <LivePreview
-            title="스타일 변형"
-            description="outlined, elevated, filled 세 가지 변형을 제공합니다."
-            editable
-            code={`const variants = ['outlined', 'elevated', 'filled'];
-
-<div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
-  {variants.map((v) => (
-    <Card key={v} title={v} variant={v}>
-      <p style={{ margin: 0, fontSize: '0.875rem', color: '#6b7280' }}>
-        variant="{v}"
-      </p>
-    </Card>
-  ))}
-</div>`}
-          />
-        </div>
-
-        <div className={styles.example}>
-          <h3 className={styles.exampleTitle}>Padding</h3>
-          <LivePreview
-            title="본문 여백"
-            description="padding prop으로 내부 여백을 조절합니다."
-            editable
-            code={`const paddings = ['sm', 'md', 'lg'];
-
-<div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem' }}>
-  {paddings.map((p) => (
-    <Card key={p} title={'padding="' + p + '"'} variant="outlined" padding={p}>
-      <p style={{ margin: 0, fontSize: '0.875rem', color: '#6b7280' }}>
-        내부 여백 확인
-      </p>
-    </Card>
-  ))}
-</div>`}
-          />
-        </div>
-
-        <div className={styles.example}>
-          <h3 className={styles.exampleTitle}>With Image</h3>
-          <LivePreview
-            title="이미지 카드"
-            description="image prop으로 상단에 이미지를 배치합니다."
-            editable
-            code={`<div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.5rem' }}>
-  <Card
-    title="이미지 카드"
-    image="https://picsum.photos/seed/card1/400/200"
-    imageAlt="샘플 이미지"
-    footer={<Button size="sm">더 보기</Button>}
-  >
-    <p style={{ margin: 0, fontSize: '0.875rem', color: '#6b7280', lineHeight: 1.5 }}>
-      image와 imageAlt props로 이미지를 추가합니다.
-    </p>
-  </Card>
-  <Card
-    variant="outlined"
-    image="https://picsum.photos/seed/card2/400/200"
-    imageAlt="샘플 이미지"
-    title="이미지만 있는 카드"
-  >
-    <p style={{ margin: 0, fontSize: '0.875rem', color: '#6b7280', lineHeight: 1.5 }}>
-      이미지와 텍스트만으로 구성된 간단한 카드입니다.
-    </p>
-  </Card>
-</div>`}
-          />
-        </div>
-
-        <div className={styles.example}>
-          <h3 className={styles.exampleTitle}>Clickable Card</h3>
-          <LivePreview
-            title="클릭 가능한 카드"
-            description="onClick을 전달하면 button 요소로 렌더링됩니다. 기본으로는 떠오르지 않고, 원하면 hoverLift를 함께 주세요."
-            editable
-            code={`const [clicked, setClicked] = useState('');
-
-<>
-  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
-    <Card title="프로젝트 A" onClick={() => setClicked('프로젝트 A')}>
-      <p style={{ margin: 0, fontSize: '0.875rem', color: '#6b7280' }}>클릭하여 선택</p>
-    </Card>
-    <Card title="프로젝트 B" onClick={() => setClicked('프로젝트 B')}>
-      <p style={{ margin: 0, fontSize: '0.875rem', color: '#6b7280' }}>클릭하여 선택</p>
-    </Card>
-    <Card title="프로젝트 C" onClick={() => setClicked('프로젝트 C')} disabled>
-      <p style={{ margin: 0, fontSize: '0.875rem', color: '#6b7280' }}>비활성화됨</p>
-    </Card>
-  </div>
-  {clicked && <p style={{ marginTop: '1rem', fontSize: '0.875rem' }}>선택됨: <strong>{clicked}</strong></p>}
-</>`}
-          />
-        </div>
-
-        <div className={styles.example}>
-          <h3 className={styles.exampleTitle}>Header + Footer</h3>
-          <LivePreview
-            title="헤더와 푸터"
-            description="header와 footer props로 카드 상하단에 콘텐츠를 배치합니다."
-            editable
-            code={`<div style={{ maxWidth: '400px' }}>
-  <Card
-    variant="outlined"
-    header={<span style={{ fontWeight: 600, fontSize: '1.125rem' }}>사용자 설정</span>}
-    footer={
-      <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end', width: '100%' }}>
-        <Button size="sm" variant="light">취소</Button>
-        <Button size="sm">저장</Button>
-      </div>
-    }
-  >
-    <p style={{ margin: 0, color: '#6b7280', lineHeight: 1.6 }}>
-      알림, 테마, 언어 등 사용자 환경을 설정할 수 있습니다.
-    </p>
-  </Card>
-</div>`}
-          />
-        </div>
-      </section>
-
-      <section className={styles.section}>
-        <div className={styles.sectionHeader}>
-          <h2 className={styles.sectionTitle}>Flat vs Compound 패턴</h2>
-          <p className={styles.sectionDescription}>
-            Card는 하나의 import로 두 가지 API 스타일을 제공합니다. 간단하면
-            prop(title, footer, image), 직접 꾸미려면 조합(Card.Body 등)을
-            쓰세요.
-          </p>
-        </div>
-
-        <div className={styles.patternCompareGrid}>
-          <div className={styles.patternCard}>
-            <p className={styles.patternCardTitle}>Flat Pattern (기본 권장)</p>
-            <p className={styles.patternCardDesc}>
-              Card에 title, header, footer, image를 props로 전달합니다. 빠르게
-              만들 수 있지만 확장성에 한계가 있습니다.
-            </p>
-            <p className={styles.patternCardWhen}>사용할 때</p>
-            <ul className={styles.patternCardList}>
-              <li>헤더·본문·푸터가 단순한 텍스트/버튼일 때</li>
-              <li>빠르게 카드를 만들고 싶을 때</li>
-              <li>서브컴포넌트 조합이 필요 없을 때</li>
-            </ul>
-          </div>
-          <div className={styles.patternCard}>
-            <p className={styles.patternCardTitle}>
-              Compound Pattern (커스텀용)
-            </p>
-            <p className={styles.patternCardDesc}>
-              Card.Header, Card.Body, Card.Footer 등 점 표기법으로 자유롭게
-              조합합니다. 이미지 오버레이, 커스텀 헤더 등 복잡한 레이아웃에
-              적합합니다.
-            </p>
-            <p className={styles.patternCardWhen}>사용할 때</p>
-            <ul className={styles.patternCardList}>
-              <li>이미지 오버레이 등 복잡한 레이아웃이 필요할 때</li>
-              <li>각 영역에 커스텀 className을 적용할 때</li>
-              <li>도메인 전용 카드 컴포넌트를 만들 때</li>
-            </ul>
-          </div>
-        </div>
-
-        <div className={styles.patternCompareTableWrapper}>
-          <table className={styles.patternCompareTable}>
-            <thead className={styles.patternCompareHead}>
-              <tr>
-                <th className={styles.patternCompareTh}>항목</th>
-                <th className={styles.patternCompareTh}>Flat Pattern</th>
-                <th className={styles.patternCompareTh}>Compound Pattern</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr className={styles.patternCompareTr}>
-                <td className={styles.patternCompareTdLabel}>사용 방식</td>
-                <td
-                  className={styles.patternCompareTd}
-                >{`<Card title="...">`}</td>
-                <td
-                  className={styles.patternCompareTd}
-                >{`<Card><Card.Header>...</Card.Header></Card>`}</td>
-              </tr>
-              <tr className={styles.patternCompareTr}>
-                <td className={styles.patternCompareTdLabel}>유연성</td>
-                <td className={styles.patternCompareTd}>
-                  낮음: props 기반 고정 구조
-                </td>
-                <td className={styles.patternCompareTd}>
-                  높음: 서브 컴포넌트 자유 조합
-                </td>
-              </tr>
-              <tr className={styles.patternCompareTr}>
-                <td className={styles.patternCompareTdLabel}>
-                  이미지 오버레이
-                </td>
-                <td className={styles.patternCompareTd}>미지원</td>
-                <td className={styles.patternCompareTd}>
-                  Card.ImageOverlay 지원
-                </td>
-              </tr>
-              <tr className={styles.patternCompareTr}>
-                <td className={styles.patternCompareTdLabel}>주 용도</td>
-                <td className={styles.patternCompareTd}>
-                  일반 페이지 · 빠른 프로토타이핑
-                </td>
-                <td className={styles.patternCompareTd}>
-                  복잡한 레이아웃 · 도메인 컴포넌트 제작
-                </td>
-              </tr>
-              <tr className={styles.patternCompareTr}>
-                <td className={styles.patternCompareTdLabel}>권장 여부</td>
-                <td className={styles.patternCompareTd}>대부분의 경우 권장</td>
-                <td className={styles.patternCompareTd}>
-                  커스텀 레이아웃 시 선택
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-
-        <div className={styles.example} style={{ marginTop: '2rem' }}>
-          <h3 className={styles.exampleTitle}>
-            Compound 실전 예시: 이미지 오버레이
-          </h3>
-          <LivePreview
-            title="이미지 + 오버레이"
-            description="Card.ImageOverlay로 이미지 위에 콘텐츠를 겹칠 수 있습니다. Flat에서는 지원하지 않는 기능입니다."
-            editable
-            code={`<div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.5rem' }}>
-  <Card variant="elevated">
-    <Card.Image src="https://picsum.photos/seed/card1/400/200" alt="샘플 이미지">
-      <Card.ImageOverlay>
-        <span style={{ fontSize: '1.5rem', fontWeight: 700 }}>NEW</span>
-      </Card.ImageOverlay>
-    </Card.Image>
-    <Card.Body padding="md">
-      <p style={{ margin: '0 0 0.5rem', fontWeight: 600, fontSize: '1.125rem' }}>이미지 오버레이</p>
-      <p style={{ margin: 0, fontSize: '0.875rem', color: '#6b7280', lineHeight: 1.5 }}>
-        Compound 패턴만의 ImageOverlay 기능입니다.
-      </p>
-    </Card.Body>
-  </Card>
-  <Card variant="elevated">
-    <Card.Image src="https://picsum.photos/seed/card2/400/200" alt="샘플 이미지" />
-    <Card.Header>
-      <Card.Title>기본 이미지 카드</Card.Title>
-    </Card.Header>
-    <Card.Body padding="md">
-      <p style={{ margin: 0, fontSize: '0.875rem', color: '#6b7280', lineHeight: 1.5 }}>
-        Header, Title, Body를 자유롭게 조합합니다.
-      </p>
-    </Card.Body>
-    <Card.Footer>
-      <Button size="sm" variant="light">공유</Button>
-      <Button size="sm">더 보기</Button>
-    </Card.Footer>
-  </Card>
-</div>`}
-          />
-        </div>
-
-        <div className={styles.example}>
-          <h3 className={styles.exampleTitle}>
-            Compound 실전 예시: 떠오르는 호버 (hoverLift)
-          </h3>
-          <LivePreview
-            title="떠오르는 호버"
-            description="hoverLift를 주면 마우스를 올릴 때 카드가 떠오르고, 누르면 살짝 눌립니다. 터치 기기에서는 호버가 없어 떠오르지 않습니다."
-            editable
-            code={`<div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1.5rem' }}>
-  <Card variant="outlined" hoverLift>
-    <Card.Body padding="lg">
-      <div style={{ width: '100%', height: '4px', backgroundColor: '#3b82f6', borderRadius: '2px', marginBottom: '0.75rem' }} />
-      <p style={{ margin: '0 0 0.5rem', fontWeight: 700, fontSize: '1.125rem' }}>디자인</p>
-      <p style={{ margin: 0, fontSize: '0.875rem', color: '#6b7280', lineHeight: 1.5 }}>
-        일관된 디자인 언어로 사용자 경험을 향상시킵니다.
-      </p>
-    </Card.Body>
-  </Card>
-  <Card variant="outlined" hoverLift>
-    <Card.Body padding="lg">
-      <div style={{ width: '100%', height: '4px', backgroundColor: '#10b981', borderRadius: '2px', marginBottom: '0.75rem' }} />
-      <p style={{ margin: '0 0 0.5rem', fontWeight: 700, fontSize: '1.125rem' }}>개발</p>
-      <p style={{ margin: 0, fontSize: '0.875rem', color: '#6b7280', lineHeight: 1.5 }}>
-        재사용 가능한 컴포넌트로 개발 속도를 높입니다.
-      </p>
-    </Card.Body>
-  </Card>
-  <Card variant="outlined" hoverLift>
-    <Card.Body padding="lg">
-      <div style={{ width: '100%', height: '4px', backgroundColor: '#f59e0b', borderRadius: '2px', marginBottom: '0.75rem' }} />
-      <p style={{ margin: '0 0 0.5rem', fontWeight: 700, fontSize: '1.125rem' }}>접근성</p>
-      <p style={{ margin: 0, fontSize: '0.875rem', color: '#6b7280', lineHeight: 1.5 }}>
-        웹 접근성 기준을 준수하여 모든 사용자를 지원합니다.
-      </p>
-    </Card.Body>
-  </Card>
-</div>`}
-          />
-        </div>
-
-        <div className={styles.example}>
-          <h3 className={styles.exampleTitle}>
-            Compound 커스텀 확장: 도메인 전용 카드 컴포넌트
-          </h3>
-          <p
-            className={styles.sectionDescription}
-            style={{ marginBottom: '1rem' }}
-          >
-            Compound 패턴으로 ProductCard 같은 재사용 컴포넌트를 만들 때
-            활용합니다. 소비자는 내부 구조를 몰라도 되고, props만 전달하면
-            됩니다.
-          </p>
-          <CodeBlock
-            language="tsx"
-            code={`// components/ProductCard.tsx
+import { useState, type ComponentProps } from 'react';
 import { Card } from '@taein-ui/core';
+import { CodeBlock } from '../../../components/CodeBlock';
+import {
+  Customize,
+  codeOf,
+  type Control,
+  type Values,
+} from '../../../components/Customize';
+import { DetailLayout, Topic, Topics } from '../../../components/DetailLayout';
+import * as t from '../../../components/DocText';
+import { PropsList } from '../../../components/PropsList';
+import type { PropDefinition } from '../../../components/PropsTable';
+import { Stage, type Act } from '../../../components/Stage';
 
-interface ProductCardProps {
-  name: string;
-  price: number;
-  image: string;
-  onBuy: () => void;
-}
+const LEAD =
+  '상품, 글, 프로필처럼 관련된 정보를 하나의 영역으로 묶습니다. 이미지, 제목, 본문, 푸터를 쌓아 씁니다.';
 
-export function ProductCard({ name, price, image, onBuy }: ProductCardProps) {
+const CONTROLS: Control[] = [
+  {
+    prop: 'variant',
+    kind: 'choice',
+    options: ['outlined', 'elevated', 'filled'],
+  },
+  { prop: 'padding', kind: 'choice', options: ['sm', 'md', 'lg'] },
+  { prop: 'hoverLift', kind: 'toggle' },
+  { prop: 'image', kind: 'toggle' },
+  { prop: 'footer', kind: 'toggle' },
+  { prop: 'disabled', kind: 'toggle' },
+];
+
+const INITIAL: Values = {
+  variant: 'elevated',
+  padding: 'md',
+  hoverLift: true,
+  image: true,
+  footer: true,
+  disabled: false,
+};
+
+const DEFAULTS: Values = { variant: 'elevated' };
+
+const IMAGE = '/images/tds-hero.webp';
+const IMAGE_ALT = '디자인 시스템 화면 모음';
+// 기본 16:9는 375px 폭 무대에서 카드가 일시정지 단추에 닿아 2:1로 낮춘다
+
+// 커서가 카드로 가서 올라타면 3px 떠오르고 그림자가 짙어진다. 길게 누르면 눌리되 끝까지 들어가지 않고
+// 버티다가(0.98배, 떠오른 만큼은 반납) 떼면 되밀려 올라온다. 카드는 클릭할 수 있어 눌러도 아무 일도 안 일어난다
+const SCRIPT = (act: Act) => {
+  act.move('card');
+  act.hover('card');
+  act.wait(0.9);
+  act.press('card', 0.7);
+  act.wait(0.9);
+  act.leave('card');
+  act.wait(0.5);
+  act.home();
+  act.wait(0.6);
+};
+
+const PROPS: PropDefinition[] = [
+  {
+    name: 'children',
+    type: 'ReactNode',
+    required: true,
+    description:
+      '카드 내용. 하위 컴포넌트를 조합하거나, Flat이면 본문 영역에 들어간다',
+  },
+  {
+    name: 'variant',
+    type: "'outlined' | 'elevated' | 'filled'",
+    default: "'elevated'",
+    description: '모양. 테두리, 그림자, 회색 면',
+  },
+  {
+    name: 'hoverLift',
+    type: 'boolean',
+    default: 'false',
+    description:
+      '마우스를 올리면 떠오르고 누르면 눌린다. 켜야만 움직이고, 클릭할 수 있는 카드도 마찬가지다',
+  },
+  {
+    name: 'onClick',
+    type: '() => void',
+    description: '주면 카드 전체가 button이 된다',
+  },
+  {
+    name: 'disabled',
+    type: 'boolean',
+    default: 'false',
+    description: '흐려지고 누를 수 없다. hoverLift도 움직이지 않는다',
+  },
+  {
+    name: 'title',
+    type: 'string',
+    description: 'Flat: 제목. 헤더와 제목을 만든다',
+  },
+  {
+    name: 'header',
+    type: 'ReactNode',
+    description: 'Flat: 헤더 영역. title보다 우선한다',
+  },
+  {
+    name: 'footer',
+    type: 'ReactNode',
+    description: 'Flat: 푸터 영역',
+  },
+  {
+    name: 'image',
+    type: 'string',
+    description: 'Flat: 위에 놓을 이미지 주소',
+  },
+  {
+    name: 'imageAlt',
+    type: 'string',
+    default: "''",
+    description: 'Flat: 이미지의 대체 텍스트',
+  },
+  {
+    name: 'padding',
+    type: "'sm' | 'md' | 'lg'",
+    default: "'md'",
+    description: 'Flat: 본문 안쪽 여백. 8, 16, 24px',
+  },
+];
+
+const PARTS_PROPS: PropDefinition[] = [
+  {
+    name: 'Card.Image',
+    type: '{ src: string; alt?: string; children?: ReactNode }',
+    description:
+      '이미지 영역. 16:9 비율이고 alt를 안 주면 장식으로 본다. 안에 Card.ImageOverlay를 둔다',
+  },
+  {
+    name: 'Card.ImageOverlay',
+    type: '{ children: ReactNode }',
+    description: '이미지 위에 반투명 막과 함께 겹쳐 보일 내용. 가운데 놓인다',
+  },
+  {
+    name: 'Card.Header',
+    type: '{ children: ReactNode }',
+    description: '헤더 영역. 아래에 구분선이 있다',
+  },
+  {
+    name: 'Card.Title',
+    type: "{ children: ReactNode; as?: 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6' }",
+    default: "as: 'h3'",
+    description: '제목. 페이지의 제목 단계에 맞춰 as를 고른다',
+  },
+  {
+    name: 'Card.Body',
+    type: "{ children: ReactNode; padding?: 'sm' | 'md' | 'lg' }",
+    default: "padding: 'md'",
+    description: '본문 영역',
+  },
+  {
+    name: 'Card.Footer',
+    type: '{ children: ReactNode }',
+    description: '푸터 영역. 내용은 오른쪽에 모이고 위에 구분선이 있다',
+  },
+];
+
+const FLAT = `<Card
+  title="월간 리포트"
+  image="/images/report.webp"
+  imageAlt="방문자 추이 그래프"
+  footer={<Button size="sm">자세히</Button>}
+>
+  이번 달 방문자가 지난달보다 12% 늘었습니다.
+</Card>`;
+
+const COMPOUND = `<Card>
+  <Card.Image src="/images/trip.webp" alt="바닷가 풍경">
+    <Card.ImageOverlay>제주</Card.ImageOverlay>
+  </Card.Image>
+  <Card.Header>
+    <Card.Title>제주 3박 4일</Card.Title>
+    <Badge>인기</Badge>
+  </Card.Header>
+  <Card.Body>해안 도로를 따라 걷는 일정입니다.</Card.Body>
+</Card>`;
+
+const CLICKABLE = `<Card onClick={openDetail} hoverLift>
+  <Card.Body>카드 전체를 누릅니다</Card.Body>
+</Card>`;
+
+function Usage() {
   return (
-    <Card variant="outlined">
-      <Card.Image src={image} alt={name} />
-      <Card.Header>
-        <Card.Title>{name}</Card.Title>
-      </Card.Header>
-      <Card.Body>
-        <p>{price.toLocaleString()}원</p>
-      </Card.Body>
-      <Card.Footer>
-        <Button onClick={onBuy}>구매</Button>
-      </Card.Footer>
-    </Card>
+    <Topics>
+      <Topic title="언제 쓰나">
+        <p className={t.body}>
+          상품 정보, 글 미리보기, 프로필처럼 서로 관련된 내용을 한 덩어리로 묶어
+          보일 때 씁니다. 한 카드에는 한 주제만 담고, 카드 안에 카드를 겹치지
+          않습니다.
+        </p>
+      </Topic>
+      <Topic title="두 가지 구성">
+        <p className={t.body} style={{ marginBottom: 12 }}>
+          대부분은 Flat입니다. <code>title</code>, <code>image</code>,{' '}
+          <code>footer</code> props로 이미지, 헤더, 본문, 푸터가 위에서 아래로
+          쌓입니다. 본문은 <code>children</code>이고 <code>header</code>를 주면{' '}
+          <code>title</code> 대신 그 내용을 씁니다.
+        </p>
+        <CodeBlock code={FLAT} />
+        <p className={t.body} style={{ margin: '16px 0 12px' }}>
+          구조를 직접 짜야 하면 하위 컴포넌트를 조합해 만듭니다. 이미지 위에
+          글을 겹치는 <code>Card.ImageOverlay</code>는 이쪽에서만 쓸 수
+          있습니다. 위 무대와 직접 바꿔 보기의 코드가 이 방식입니다.
+        </p>
+        <CodeBlock code={COMPOUND} />
+      </Topic>
+      <Topic title="하위 컴포넌트">
+        <PropsList props={PARTS_PROPS} />
+      </Topic>
+      <Topic title="눌리는 카드와 떠오름">
+        <p className={t.body} style={{ marginBottom: 12 }}>
+          <code>onClick</code>을 주면 카드 전체가 button이 됩니다. 이때 카드
+          안에 링크나 버튼 같은 다른 누를 것을 두지 않습니다. 눌리는 카드도
+          기본으로는 떠오르지 않으므로, 누를 수 있다는 것을 보이려면{' '}
+          <code>hoverLift</code>를 함께 켭니다.
+        </p>
+        <CodeBlock code={CLICKABLE} />
+      </Topic>
+      <Topic title="움직임">
+        <p className={t.body}>
+          <code>hoverLift</code>를 켜면 마우스를 올릴 때 카드가 3px 떠오르고
+          그림자가 짙어집니다. 누르면 눌리되 끝까지 들어가지 않고 버팁니다.
+          떠오른 3px을 돌려주고 0.98배로만 줄며 그림자도 쉴 때 값으로
+          돌아갑니다. 손을 떼면 떠오른 자리로 되밀려 올라옵니다. 마우스에서만
+          일어나고 터치에서는 떠오르지 않으며, 움직임 줄이기 설정을 켠
+          환경에서는 이동 없이 그림자만 바뀝니다.
+        </p>
+      </Topic>
+    </Topics>
   );
 }
 
-// 사용하는 쪽에서는 단순하게:
-// <ProductCard name="운동화" price={89000} image="/shoe.jpg" onBuy={handleBuy} />`}
-          />
-        </div>
-      </section>
+function A11y() {
+  return (
+    <ul className={`${t.list} ${t.body}`}>
+      <li>
+        누를 수 없는 카드는 <code>article</code>로 그려져 독립된 내용 영역으로
+        읽힙니다. <code>onClick</code>이 있으면 <code>button</code>이 되어
+        Tab으로 들어가고 Enter와 Space로 누릅니다.
+      </li>
+      <li>
+        <code>Card.Header</code>와 <code>Card.Footer</code>는{' '}
+        <code>header</code>와 <code>footer</code> 요소라 카드 안의 구조가
+        전달됩니다. <code>Card.Title</code>는 기본 <code>h3</code>입니다.
+      </li>
+      <li>
+        개발자가 직접 해야 합니다. 페이지의 제목 단계에 맞게{' '}
+        <code>Card.Title</code>의 <code>as</code>를 고릅니다.
+      </li>
+      <li>
+        개발자가 직접 해야 합니다. 이미지는 <code>alt</code>를 안 주면 장식으로
+        취급되어 읽히지 않습니다. 내용이 있는 이미지에는 무엇이 담겼는지 적고,
+        장식이면 비워 둡니다.
+      </li>
+      <li>
+        <code>disabled</code>인 눌리는 카드는 <code>aria-disabled</code>가{' '}
+        <code>true</code>가 되고 누를 수 없습니다.
+      </li>
+      <li>눌리는 카드는 키보드로 포커스하면 2px 포커스 링이 생깁니다.</li>
+    </ul>
+  );
+}
 
-      {/* Props API */}
-      <section className={styles.section}>
-        <div className={styles.sectionHeader}>
-          <h2 className={styles.sectionTitle}>Props API</h2>
-          <p className={styles.sectionDescription}>
-            Card의 Props입니다. title, header, footer, image와 공통 props가 함께
-            포함되어 있습니다.
-          </p>
-        </div>
+type Variant = ComponentProps<typeof Card>['variant'];
+type Padding = ComponentProps<typeof Card>['padding'];
 
-        <div className={styles.example}>
-          <h3 className={styles.exampleTitle}>Card</h3>
-          <div className={styles.propsTableWrapper}>
-            <PropsTable props={cardProps} />
-          </div>
-        </div>
+export function CardPage() {
+  const [values, setValues] = useState<Values>(INITIAL);
+  const withImage = values.image === true;
+  const withFooter = values.footer === true;
+  const padding = String(values.padding);
 
-        <div className={styles.example}>
-          <h3 className={styles.exampleTitle}>Card.Header</h3>
-          <div className={styles.propsTableWrapper}>
-            <PropsTable props={compoundHeaderProps} />
-          </div>
-        </div>
+  // 코드는 무대와 같은 Compound 구조다. 조작판 값이 켜진 것만 줄로 나온다
+  const lines = [
+    withImage && '<Card.Image',
+    withImage && `  src="${IMAGE}"`,
+    withImage && `  alt="${IMAGE_ALT}"`,
+    withImage && `  style={{ aspectRatio: '2' }}`,
+    withImage && '/>',
+    '<Card.Header>',
+    '  <Card.Title>월간 리포트</Card.Title>',
+    '</Card.Header>',
+    `<Card.Body${padding === 'md' ? '' : ` padding="${padding}"`}>`,
+    '  이번 달 방문자가 지난달보다 12% 늘었습니다.',
+    '</Card.Body>',
+    withFooter && '<Card.Footer>2026년 10월</Card.Footer>',
+  ].filter(Boolean);
 
-        <div className={styles.example}>
-          <h3 className={styles.exampleTitle}>Card.Title</h3>
-          <div className={styles.propsTableWrapper}>
-            <PropsTable props={compoundTitleProps} />
-          </div>
-        </div>
-
-        <div className={styles.example}>
-          <h3 className={styles.exampleTitle}>Card.Body</h3>
-          <div className={styles.propsTableWrapper}>
-            <PropsTable props={compoundBodyProps} />
-          </div>
-        </div>
-
-        <div className={styles.example}>
-          <h3 className={styles.exampleTitle}>Card.Footer</h3>
-          <div className={styles.propsTableWrapper}>
-            <PropsTable props={compoundFooterProps} />
-          </div>
-        </div>
-
-        <div className={styles.example}>
-          <h3 className={styles.exampleTitle}>Card.Image</h3>
-          <div className={styles.propsTableWrapper}>
-            <PropsTable props={compoundImageProps} />
-          </div>
-        </div>
-      </section>
-
-      {/* Accessibility */}
-      <AccessibilitySection
-        componentName="Card"
-        intro="Card는 시맨틱 HTML(article, header, footer)을 사용하여 콘텐츠의 구조를 스크린 리더에게 전달합니다. onClick이 있는 경우 button 요소로 렌더링되어 키보드 접근성을 보장합니다."
-        features={[
-          {
-            attribute: '<article>',
-            effect: '독립 콘텐츠 구조',
-            description:
-              '클릭 불가능한 카드는 article 요소로 렌더링되어 스크린 리더가 독립적인 콘텐츠 영역으로 인식합니다.',
-          },
-          {
-            attribute: '<button>',
-            effect: '클릭 가능 카드',
-            description:
-              'onClick이 있는 카드는 button 요소로 렌더링되어 Tab 키 포커스와 Enter/Space 키 활성화를 지원합니다.',
-          },
-          {
-            attribute: '<header> / <footer>',
-            effect: '구조적 의미',
-            description:
-              'Card.Header와 Card.Footer는 시맨틱 HTML 요소를 사용하여 카드 내부 구조를 전달합니다.',
-          },
-          {
-            attribute: 'aria-disabled',
-            effect: '비활성화 상태',
-            description:
-              'disabled 카드에 aria-disabled="true"가 설정되어 스크린 리더가 비활성 상태를 알립니다.',
-          },
-          {
-            attribute: 'focus-visible',
-            effect: '포커스 인디케이터',
-            description:
-              '클릭 가능한 카드에 3px outline 포커스 표시기가 적용됩니다.',
-          },
-        ]}
-        additionalGuidance={[
-          {
-            title: '이미지 대체 텍스트',
-            description:
-              'Card의 image prop이나 Card.Image에 의미 있는 alt 텍스트를 제공하여 스크린 리더 사용자가 이미지 내용을 이해할 수 있도록 합니다.',
-            examples: [
-              {
-                code: `<Card
-  image="/product.jpg"
-  imageAlt="파란색 운동화 측면 사진"
->
-  운동화 상세 정보
-</Card>`,
-                explanation:
-                  '장식적 이미지가 아닌 경우 구체적인 alt 텍스트를 제공합니다.',
-              },
-            ],
-          },
-        ]}
-      />
-
-      {/* Best Practices */}
-      <section className={styles.section}>
-        <div className={styles.sectionHeader}>
-          <h2 className={styles.sectionTitle}>Best Practices</h2>
-          <p className={styles.sectionDescription}>
-            Card를 효과적으로 사용하기 위한 권장사항입니다.
-          </p>
-        </div>
-        <div className={styles.practicesGrid}>
-          <Card>
-            <Card.Body padding="lg">
-              <div className={styles.practiceHeader}>
-                <span className={styles.practiceIcon}>&#10003;</span>
-                <h3 className={styles.practiceTitle}>Do</h3>
-              </div>
-              <List spacing="sm" className={styles.practiceList}>
-                <ListItem>
-                  일반 케이스는 Flat 패턴 (title, header 등 props) 사용
-                </ListItem>
-                <ListItem>복잡한 레이아웃 필요 시 Compound 패턴 활용</ListItem>
-                <ListItem>관련 정보를 하나의 카드로 그룹화</ListItem>
-                <ListItem>
-                  클릭 가능한 카드에 명확한 시각적 피드백 제공
-                </ListItem>
-                <ListItem>이미지에 의미 있는 alt 텍스트 제공</ListItem>
-              </List>
+  return (
+    <DetailLayout
+      name="Card"
+      lead={LEAD}
+      stage={
+        <Stage label="Card 시연" script={SCRIPT}>
+          <Card
+            data-stage-target="card"
+            variant={values.variant as Variant}
+            hoverLift={values.hoverLift === true}
+            disabled={values.disabled === true}
+            onClick={() => undefined}
+          >
+            {withImage && (
+              <Card.Image
+                src={IMAGE}
+                alt={IMAGE_ALT}
+                style={{ aspectRatio: '2' }}
+              />
+            )}
+            <Card.Header>
+              <Card.Title>월간 리포트</Card.Title>
+            </Card.Header>
+            <Card.Body padding={padding as Padding}>
+              이번 달 방문자가 지난달보다 12% 늘었습니다.
             </Card.Body>
+            {withFooter && <Card.Footer>2026년 10월</Card.Footer>}
           </Card>
-          <Card>
-            <Card.Body padding="lg">
-              <div className={styles.practiceHeader}>
-                <span className={styles.practiceIconError}>&#10007;</span>
-                <h3 className={styles.practiceTitle}>Don&apos;t</h3>
-              </div>
-              <List spacing="sm" className={styles.practiceList}>
-                <ListItem>하나의 카드에 너무 많은 정보 담기</ListItem>
-                <ListItem>카드 안에 카드 중첩 사용</ListItem>
-                <ListItem>
-                  클릭 가능 카드 내부에 또 다른 클릭 요소 배치
-                </ListItem>
-                <ListItem>Flat으로 충분한데 불필요하게 Compound 사용</ListItem>
-                <ListItem>
-                  장식적 이미지에 긴 alt 텍스트 사용 (빈 문자열 사용)
-                </ListItem>
-              </List>
-            </Card.Body>
-          </Card>
-        </div>
-      </section>
-    </article>
+        </Stage>
+      }
+      customize={
+        <Customize controls={CONTROLS} values={values} onChange={setValues} />
+      }
+      code={codeOf({
+        component: 'Card',
+        values: {
+          variant: values.variant,
+          hoverLift: values.hoverLift,
+          onClick: true,
+          disabled: values.disabled,
+          children: lines.join('\n  '),
+        },
+        defaults: DEFAULTS,
+        notation: { onClick: { expr: 'openDetail' } },
+      })}
+      props={PROPS}
+      usage={<Usage />}
+      a11y={<A11y />}
+    />
   );
 }
