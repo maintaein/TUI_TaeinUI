@@ -1,93 +1,81 @@
-import { useNavigate } from 'react-router-dom';
-import { ArrowRight } from 'lucide-react';
-import { Card, Divider, Badge } from '@taein-ui/core';
-import {
-  componentsData,
-  categoryLabels,
-  categoryColors,
-} from '../../data/components';
-import type { ComponentInfo } from '../../data/components';
+import { useState } from 'react';
+import { Chip } from '@taein-ui/core';
+import * as t from '../../components/DocText';
+import { FrameCard } from '../../components/FrameCard';
+import * as wall from '../../components/FrameCard/FrameCard.css';
+import { numberedGroups } from '../../data/components';
 import * as styles from './ComponentsOverviewPage.css';
 
-export function ComponentsOverviewPage() {
-  const navigate = useNavigate();
+const total = numberedGroups.reduce((n, g) => n + g.items.length, 0);
 
-  const groupedComponents = componentsData.reduce<
-    Record<ComponentInfo['category'], ComponentInfo[]>
-  >(
-    (acc, component) => {
-      if (!acc[component.category]) {
-        acc[component.category] = [];
-      }
-      acc[component.category].push(component);
-      return acc;
-    },
-    {} as Record<ComponentInfo['category'], ComponentInfo[]>
-  );
+export function ComponentsOverviewPage() {
+  const [query, setQuery] = useState('');
+  const [group, setGroup] = useState<string | null>(null);
+
+  const needle = query.trim().toLowerCase();
+  const shown = numberedGroups
+    .filter((g) => !group || g.label === group)
+    .map((g) => ({
+      ...g,
+      items: g.items.filter((c) => c.name.toLowerCase().includes(needle)),
+    }))
+    .filter((g) => g.items.length > 0);
 
   return (
-    <div className={styles.container}>
-      <header className={styles.header}>
-        <h1 className={styles.title}>컴포넌트</h1>
-        <p className={styles.description}>
-          컴포넌트 패밀리 25개를 제공합니다. 패키지의 top-level export는
-          33개인데, 차이는 개별로도 import할 수 있는 하위
-          컴포넌트입니다(AvatarGroup, ListItem, SideSheetHeader 등). 모두
-          React와 TypeScript로 작성되었으며, 접근성과 반응형을 지원합니다.
-        </p>
-      </header>
+    <div className={styles.page}>
+      <div className={styles.head}>
+        <h1 className={`${t.display} ${styles.total}`}>
+          <span className={styles.tag}>전체 컴포넌트</span>
+          <span>
+            {total}
+            <span className={wall.count}>개</span>
+          </span>
+        </h1>
+      </div>
 
-      {Object.entries(groupedComponents).map(([category, components]) => (
-        <section key={category} className={styles.categorySection}>
-          <div className={styles.categoryHeader}>
-            <h2 className={styles.categoryTitle}>
-              {categoryLabels[category as ComponentInfo['category']]}
+      {shown.map((g) => (
+        <section key={g.label} aria-labelledby={`group-${g.label}`}>
+          <div className={wall.sectionHead}>
+            <h2 id={`group-${g.label}`} className={wall.sectionTitle}>
+              {g.label}
+              <span className={wall.count} aria-hidden="true">
+                [{g.items.length}]
+              </span>
             </h2>
-            <Badge
-              variant="primary"
-              size="md"
-              className={styles.categoryBadgeCustom}
-              style={{
-                backgroundColor:
-                  categoryColors[category as ComponentInfo['category']],
-              }}
-            >
-              {components.length}개
-            </Badge>
           </div>
-
-          <div className={styles.componentsGrid}>
-            {components.map((component) => (
-              <Card
-                key={component.name}
-                variant="outlined"
-                hoverLift
-                onClick={() => navigate(component.path)}
-                className={styles.componentCardCustom}
-              >
-                <Card.Body padding="lg">
-                  <div className={styles.componentIcon}>
-                    <component.icon size={48} />
-                  </div>
-                  <h3 className={styles.componentName}>{component.name}</h3>
-                  <p className={styles.componentDescription}>
-                    {component.description}
-                  </p>
-                  <div className={styles.componentArrow}>
-                    <ArrowRight size={24} />
-                  </div>
-                </Card.Body>
-              </Card>
+          <div className={wall.bento}>
+            {g.items.map((item) => (
+              <FrameCard key={item.name} item={item} />
             ))}
           </div>
         </section>
       ))}
 
-      <Divider
-        variant="solid"
-        spacing="lg"
-        className={styles.ctaSectionDivider}
-      />
+      {shown.length === 0 && (
+        <p className={styles.empty} role="status">
+          찾는 이름의 컴포넌트가 없습니다.
+        </p>
+      )}
+
+      <div className={styles.dock} role="search">
+        <input
+          type="search"
+          className={styles.search}
+          placeholder="이름으로 찾기"
+          aria-label="이름으로 찾기"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+        />
+        {numberedGroups.map((g) => (
+          <Chip
+            key={g.label}
+            size="sm"
+            label={g.label}
+            selected={group === g.label}
+            onClick={() => setGroup(group === g.label ? null : g.label)}
+          />
+        ))}
+      </div>
     </div>
   );
 }

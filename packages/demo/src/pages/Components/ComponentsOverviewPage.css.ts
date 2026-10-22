@@ -1,205 +1,82 @@
-import { style, globalStyle } from '@vanilla-extract/css';
+import { themeContract } from '@taein-ui/core';
+import { style } from '@vanilla-extract/css';
+import { FRAME, LINE, MUTED } from '../../components/DocText';
 
-export const container = style({
+const { color, spacing, borderRadius } = themeContract;
+
+const MOBILE = '(max-width: 640px)';
+
+export const page = style({
   maxWidth: '1200px',
   margin: '0 auto',
-  padding: '3rem 2rem',
-  '@media': {
-    '(max-width: 768px)': {
-      padding: '2rem 1rem',
-    },
-  },
+  // 떠 있는 찾기 막대가 마지막 카드를 가리지 않을 만큼 비워 둔다
+  paddingBottom: '120px',
 });
 
-export const header = style({
-  textAlign: 'left',
-  marginBottom: '3rem',
-});
-
-export const title = style({
-  // Text(h1)가 주던 위쪽 여백 0과 줄 높이. Text를 걷은 뒤에도 같은 모습(M5 7차)
-  marginTop: 0,
-  lineHeight: 1.2,
-  fontSize: '2.5rem',
-  fontWeight: 700,
-  marginBottom: '1rem',
-  color: '#2563eb',
-  letterSpacing: '-0.02em',
-});
-
-export const description = style({
-  fontSize: '1.125rem',
-  color: '#6b7280',
-  lineHeight: 1.6,
-});
-
-export const statsGrid = style({
+export const head = style({
   display: 'grid',
-  gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
-  gap: '1rem',
-  marginBottom: '4rem',
+  gap: spacing[2],
+  padding: `${spacing[12]} 0 0`,
 });
 
-export const statCard = style({
-  background: '#ffffff',
-  padding: '2rem 1.5rem',
-  borderRadius: '1rem',
+export const total = style({
+  display: 'grid',
+  gap: spacing[2],
+  fontSize: 'clamp(3.5rem, 12vw, 5rem)',
+});
+
+// h1 안의 꼬리표는 본문 크기로 되돌린다
+export const tag = style({
+  fontSize: '0.8125rem',
+  fontWeight: 600,
+  letterSpacing: 0,
+  lineHeight: 1.4,
+  color: MUTED,
+});
+
+export const empty = style({
+  margin: `${spacing[20]} 0`,
   textAlign: 'center',
-  border: '1px solid #e5e7eb',
+  color: MUTED,
 });
 
-export const statNumber = style({
-  fontSize: '2.5rem',
-  fontWeight: 800,
-  color: '#2563eb',
-  marginBottom: '0.5rem',
-  wordBreak: 'break-word',
-  overflowWrap: 'break-word',
-});
-
-export const statLabel = style({
-  fontSize: '0.875rem',
-  color: '#6b7280',
-  fontWeight: 500,
-  textTransform: 'uppercase',
-  letterSpacing: '0.05em',
-});
-
-export const categorySection = style({
-  marginBottom: '4rem',
-});
-
-export const categoryHeader = style({
+// 화면 아래 떠 있는 찾기 막대
+export const dock = style({
+  position: 'fixed',
+  bottom: spacing[6],
+  left: '50%',
+  transform: 'translateX(-50%)',
+  zIndex: 15,
   display: 'flex',
   alignItems: 'center',
-  gap: '1rem',
-  marginBottom: '1.5rem',
-});
-
-export const categoryTitle = style({
-  fontSize: '1.8rem',
-  fontWeight: 600,
-  color: '#111827',
-});
-
-export const categoryBadgeCustom = style({
-  boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)',
-});
-
-export const componentsGrid = style({
-  display: 'grid',
-  gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
-  gap: '1.25rem',
+  gap: spacing[2],
+  padding: spacing[2],
+  background: color.background.default,
+  border: `1px solid ${LINE}`,
+  borderRadius: borderRadius.xl,
+  maxWidth: 'calc(100% - 32px)',
+  overflowX: 'auto',
+  scrollbarWidth: 'none',
   '@media': {
-    '(max-width: 640px)': {
-      gridTemplateColumns: '1fr',
+    [MOBILE]: {
+      left: spacing[3],
+      right: spacing[3],
+      transform: 'none',
+      maxWidth: 'none',
+      bottom: spacing[4],
     },
   },
 });
 
-export const componentIcon = style({
-  marginBottom: '1rem',
-  transition: 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-  transformOrigin: 'top left',
-  transform: 'translateY(0) translateX(0) scale(1)',
-  willChange: 'transform',
-  backfaceVisibility: 'hidden',
-});
-
-export const componentName = style({
-  fontSize: '1.25rem',
-  fontWeight: 700,
-  color: '#111827',
-  marginBottom: '0.5rem',
-  transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-  willChange: 'transform, color',
-  // backfaceVisibility: 'hidden',
-  transform: 'translateX(0)',
-});
-
-export const componentDescription = style({
+export const search = style({
+  flexShrink: 0,
+  width: '220px',
+  height: '36px',
+  padding: `0 ${spacing[3]}`,
+  border: 0,
+  borderRadius: borderRadius.md,
+  background: FRAME,
+  font: 'inherit',
   fontSize: '0.875rem',
-  color: '#6b7280',
-  lineHeight: 1.6,
-  marginBottom: '1rem',
-  transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-  willChange: 'transform',
-  // backfaceVisibility: 'hidden',
-  WebkitFontSmoothing: 'antialiased',
-  transform: 'translateX(0)',
-});
-
-export const componentArrow = style({
-  color: '#6b7280',
-  opacity: 0,
-  transform: 'translateX(-10px)',
-  transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-});
-
-export const componentCardCustom = style({
-  height: '100%',
-});
-
-// Card 호버 시 자식 요소 애니메이션
-globalStyle(`${componentCardCustom}:hover ${componentIcon}`, {
-  transform: 'translateY(-4px) translateX(1px) scale(1.11)',
-});
-
-globalStyle(`${componentCardCustom}:hover ${componentName}`, {
-  color: '#2563eb',
-  transform: 'translateX(2px)',
-});
-
-globalStyle(`${componentCardCustom}:hover ${componentDescription}`, {
-  color: '#4b5563',
-  transform: 'translateX(2px)',
-});
-
-globalStyle(`${componentCardCustom}:hover ${componentArrow}`, {
-  opacity: 1,
-  transform: 'translateX(0)',
-});
-
-export const ctaCardCustom = style({
-  height: '100%',
-});
-
-export const ctaSectionDivider = style({
-  marginTop: '5rem',
-});
-
-export const ctaSection = style({
-  paddingTop: '3rem',
-});
-
-export const ctaTitle = style({
-  fontSize: '2rem',
-  fontWeight: 700,
-  textAlign: 'center',
-  marginBottom: '2rem',
-  color: '#111827',
-});
-
-export const ctaGrid = style({
-  display: 'grid',
-  gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-  gap: '1.5rem',
-});
-
-export const ctaIcon = style({
-  fontSize: '3rem',
-  marginBottom: '1rem',
-});
-
-export const ctaCardTitle = style({
-  fontSize: '1.25rem',
-  fontWeight: 700,
-  color: '#111827',
-  marginBottom: '0.5rem',
-});
-
-export const ctaCardDescription = style({
-  fontSize: '0.875rem',
-  color: '#6b7280',
-  lineHeight: 1.6,
+  '@media': { [MOBILE]: { width: '150px' } },
 });

@@ -68,7 +68,7 @@ function ModalMini({ box }: { box: HTMLElement | null }) {
             </Button>
           }
         >
-          변경사항을 안전하게 보관했습니다.
+          안전하게 보관했습니다.
         </Modal>
       )}
     </>
@@ -151,7 +151,7 @@ export const MINI: Record<string, Mini> = {
         onClose={keepOpen}
         container={box}
         title="공유"
-        height="sm"
+        height="auto"
       >
         링크를 복사해 보내 보세요.
       </BottomSheet>
