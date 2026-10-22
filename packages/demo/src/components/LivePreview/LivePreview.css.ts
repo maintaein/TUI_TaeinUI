@@ -1,28 +1,5 @@
 import { style, styleVariants } from '@vanilla-extract/css';
 
-export const livePreview = style({
-  width: '100%',
-  marginBottom: '2rem',
-});
-
-export const header = style({
-  marginBottom: '1rem',
-});
-
-export const title = style({
-  fontSize: '1.125rem',
-  fontWeight: 600,
-  color: '#111827',
-  marginBottom: '0.5rem',
-});
-
-export const description = style({
-  fontSize: '0.875rem',
-  color: '#6b7280',
-  lineHeight: '1.5',
-  whiteSpace: 'pre-wrap',
-});
-
 export const preview = style({
   width: '100%',
   marginBottom: '1.5rem',
@@ -79,11 +56,4 @@ export const errorIcon = style({
   flexShrink: 0,
   width: '16px',
   height: '16px',
-});
-
-export const codeFallback = style({
-  height: '120px',
-  backgroundColor: '#f9fafb',
-  borderRadius: '0 0 0.5rem 0.5rem',
-  border: '1px solid #e5e7eb',
 });
