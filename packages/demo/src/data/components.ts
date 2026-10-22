@@ -247,7 +247,7 @@ export const categoryLabels: Record<ComponentInfo['category'], string> = {
   data: '데이터 표시',
 };
 
-/** 번호(계열 순서대로 이어서 01부터)를 붙여 계열별로 묶은 목록. 사이드바와 상세 페이지 머리가 이것 하나를 쓴다 */
+/** 번호(계열 순서대로 이어서 01부터)를 붙여 계열별로 묶은 목록. 사이드바와 전체 컴포넌트 카드가 이것 하나를 쓴다 */
 let count = 0;
 export const numberedGroups = Object.entries(categoryLabels).map(
   ([key, label]) => ({
@@ -257,14 +257,3 @@ export const numberedGroups = Object.entries(categoryLabels).map(
       .map((c) => ({ ...c, no: String(++count).padStart(2, '0') })),
   })
 );
-
-/** 상세 페이지 머리의 번호와 계열 이름 */
-export const detailMeta = (name: string) => {
-  const group = numberedGroups.find((g) =>
-    g.items.some((c) => c.name === name)
-  )!;
-  return {
-    no: group.items.find((c) => c.name === name)!.no,
-    group: group.label,
-  };
-};

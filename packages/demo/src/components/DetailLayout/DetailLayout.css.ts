@@ -30,7 +30,6 @@ export const canvasHead = style({
   },
 });
 
-export const nameRow = style({ display: 'grid', gap: spacing[2] });
 // 좁은 화면에서 가장 긴 이름(SegmentedButtons)도 한 줄에 들어가는 크기
 export const name = style({ fontSize: 'clamp(1.75rem, 9vw, 4.5rem)' });
 export const leadMax = style({

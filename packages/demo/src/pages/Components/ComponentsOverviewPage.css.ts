@@ -23,15 +23,6 @@ export const total = style({
   fontSize: 'clamp(3.5rem, 12vw, 5rem)',
 });
 
-// h1 안의 꼬리표는 본문 크기로 되돌린다
-export const tag = style({
-  fontSize: '0.8125rem',
-  fontWeight: 600,
-  letterSpacing: 0,
-  lineHeight: 1.4,
-  color: MUTED,
-});
-
 export const empty = style({
   margin: `${spacing[20]} 0`,
   textAlign: 'center',

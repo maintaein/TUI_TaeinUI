@@ -25,7 +25,6 @@ export function ComponentsOverviewPage() {
     <div className={styles.page}>
       <div className={styles.head}>
         <h1 className={`${t.display} ${styles.total}`}>
-          <span className={styles.tag}>전체 컴포넌트</span>
           <span>
             {total}
             <span className={wall.count}>개</span>

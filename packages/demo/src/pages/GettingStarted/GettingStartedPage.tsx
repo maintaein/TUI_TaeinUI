@@ -65,7 +65,6 @@ export function GettingStartedPage() {
   return (
     <div className={styles.page}>
       <section className={styles.block}>
-        <span className={t.label}>시작하기</span>
         <h1 className={cx(t.display, styles.title)}>설치부터 첫 화면까지</h1>
         <p className={cx(t.lead, t.muted, styles.leadMax)}>
           TUI는 npm 패키지 하나입니다. 설치하고 스타일 파일을 한 번 불러오고

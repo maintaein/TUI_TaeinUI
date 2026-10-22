@@ -30,7 +30,6 @@ export function IntroductionPage() {
           fetchPriority="high"
           decoding="async"
         />
-        <span className={t.label}>React UI 컴포넌트 라이브러리</span>
         <h1 className={cx(t.display, styles.title)}>TAEIN UI</h1>
         <p className={cx(t.lead, t.muted, styles.desc)}>
           재미있는 모션과 인터랙티브한 효과를 추구한 React UI 컴포넌트

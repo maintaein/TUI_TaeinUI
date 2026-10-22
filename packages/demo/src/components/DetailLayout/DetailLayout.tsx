@@ -3,7 +3,6 @@ import { CodeBlock } from '../CodeBlock';
 import * as t from '../DocText';
 import type { PropDefinition } from '../PropsTable';
 import { PropsList } from '../PropsList';
-import { detailMeta } from '../../data/components';
 import * as styles from './DetailLayout.css';
 
 const cx = (...c: (string | false | undefined)[]) =>
@@ -50,7 +49,7 @@ export function Topic({
 }
 
 export interface DetailLayoutProps {
-  /** `data/components.ts`의 컴포넌트 이름. 번호와 계열을 거기서 읽는다 */
+  /** 컴포넌트 이름. 페이지의 h1이다 */
   name: string;
   lead: string;
   /** 무대(`Stage`). 캔버스 안에서 정해진 높이를 채운다 */
@@ -66,7 +65,7 @@ export interface DetailLayoutProps {
   a11y: ReactNode;
 }
 
-/** 회색 캔버스(번호·계열, 이름, 리드, 무대) 아래에 직접 바꿔 보기, Props, 이렇게 씁니다, 접근성이 차례로 온다 */
+/** 회색 캔버스(이름, 리드, 무대) 아래에 직접 바꿔 보기, Props, 이렇게 씁니다, 접근성이 차례로 온다 */
 export function DetailLayout({
   name,
   lead,
@@ -77,17 +76,11 @@ export function DetailLayout({
   usage,
   a11y,
 }: DetailLayoutProps) {
-  const { no, group } = detailMeta(name);
   return (
     <>
       <div className={styles.canvas}>
         <div className={styles.canvasHead}>
-          <div className={styles.nameRow}>
-            <span className={t.label}>
-              {no} · {group}
-            </span>
-            <h1 className={cx(t.display, styles.name)}>{name}</h1>
-          </div>
+          <h1 className={cx(t.display, styles.name)}>{name}</h1>
           <p className={cx(t.lead, t.muted, styles.leadMax)}>{lead}</p>
         </div>
         <div className={styles.canvasStage}>{stage}</div>
