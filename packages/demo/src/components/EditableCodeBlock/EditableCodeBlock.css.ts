@@ -4,7 +4,7 @@ import { style } from '@vanilla-extract/css';
 export const container = style({
   width: '100%',
   borderRadius: '0.5rem',
-  border: '1px solid #e5e7eb',
+  border: `1px solid ${themeContract.color.border.default}`,
   overflow: 'hidden',
 });
 
@@ -14,7 +14,7 @@ export const header = style({
   justifyContent: 'space-between',
   padding: '0.5rem 1rem',
   backgroundColor: '#f9fafb',
-  borderBottom: '1px solid #e5e7eb',
+  borderBottom: `1px solid ${themeContract.color.border.default}`,
 });
 
 export const label = style({
