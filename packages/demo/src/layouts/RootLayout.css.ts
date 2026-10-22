@@ -42,6 +42,11 @@ export const skipToContent = style({
 export const page = style({
   minHeight: '100vh',
   paddingTop: '88px',
+  // 붙박이 판이 펴지면 왼쪽 칸이 벌어져 본문을 민다(칸 폭 전이라 margin을 움직이지 않는다)
+  display: 'grid',
+  gridTemplateColumns: '0px minmax(0, 1fr)',
+  alignContent: 'start',
+  transition: `grid-template-columns ${animation.duration.base} ${animation.easing.settle}`,
   backgroundColor: color.background.default,
   color: INK,
   wordBreak: 'keep-all',
@@ -49,16 +54,16 @@ export const page = style({
   '@media': { [MOBILE]: { paddingTop: '80px' } },
 });
 
-// 본문. 붙박이 판이 펴져 있으면 그만큼 비켜 선다
+// 본문
 export const main = style({
+  gridColumn: 2,
   padding: '0 2rem 2rem',
-  // 넘치는 표(AccessibilitySection 등)는 예전처럼 본문 안에서 가로로 스크롤한다. 쪽 전체가 가로로 밀리지 않게
-  overflowX: 'auto',
-  transition: `margin-left ${animation.duration.base} ${animation.easing.settle}`,
   '@media': { [COMPACT]: { padding: '0 1rem 1rem' } },
 });
 
-export const besideDock = style({ marginLeft: '280px' });
+export const pageDocked = style({
+  gridTemplateColumns: '280px minmax(0, 1fr)',
+});
 
 // ── 떠 있는 알약 헤더 ────────────────────────────────────────
 export const pill = style({
@@ -219,14 +224,20 @@ export const rulerItem = style({
       position: 'absolute',
       left: 0,
       top: '50%',
-      width: '28px',
+      width: '52px',
       height: '1px',
       background: LINE,
-      transition: `width ${animation.duration.base} ${animation.easing.settle}, background-color ${animation.duration.fast} ${animation.easing.settle}`,
+      // 28px 눈금을 52px 눈금의 가로 배율로 그려 폭 대신 transform으로 늘인다
+      transform: 'scaleX(0.5385)',
+      transformOrigin: 'left',
+      transition: `transform ${animation.duration.base} ${animation.easing.settle}, background-color ${animation.duration.fast} ${animation.easing.settle}`,
     },
     '&:hover': { color: INK },
     '&[aria-current="page"]': { color: BLUE, paddingLeft: '64px' },
-    '&[aria-current="page"]::before': { width: '52px', background: BLUE },
+    '&[aria-current="page"]::before': {
+      transform: 'scaleX(1)',
+      background: BLUE,
+    },
   },
 });
 

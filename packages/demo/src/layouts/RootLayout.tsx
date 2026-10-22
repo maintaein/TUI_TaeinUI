@@ -74,7 +74,7 @@ export function RootLayout() {
   }, [drawerOpen]);
 
   return (
-    <div className={styles.page}>
+    <div className={clsx(styles.page, dockMode && docked && styles.pageDocked)}>
       <ScrollToTop />
       <a href="#main-content" className={styles.skipToContent}>
         본문으로 건너뛰기
@@ -126,11 +126,7 @@ export function RootLayout() {
         />
       )}
 
-      <main
-        id="main-content"
-        inert={drawerOpen}
-        className={clsx(styles.main, dockMode && docked && styles.besideDock)}
-      >
+      <main id="main-content" inert={drawerOpen} className={styles.main}>
         <Outlet />
       </main>
 
