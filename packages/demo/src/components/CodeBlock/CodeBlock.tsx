@@ -11,6 +11,26 @@ import { vs } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { MONO } from '../DocText';
 import * as styles from './CodeBlock.css';
 
+// vs 테마의 일부 구문 색은 회색 우물(#F5F5F5) 위에서 2.1~3.7:1이다. 같은 색 계열로 명도만 내려 4.5:1 이상으로 맞춘다
+const DARKER: Record<string, string> = {
+  '#36acaa': '#0f7370',
+  '#2B91AF': '#1a6b86',
+  '#ff0000': '#d10000',
+  '#e90': '#8a5200',
+};
+const theme = {
+  ...Object.fromEntries(
+    Object.entries(vs).map(([token, rule]) => [
+      token,
+      rule.color && DARKER[rule.color]
+        ? { ...rule, color: DARKER[rule.color] }
+        : rule,
+    ])
+  ),
+  // vs에는 builtin이 없어 EditableCodeBlock가 들이는 prism-tomorrow의 연보라(#cc99cd)가 새어 든다. keyword와 같은 색으로 덮는다
+  builtin: { color: vs.keyword.color },
+};
+
 SyntaxHighlighter.registerLanguage('tsx', tsx);
 SyntaxHighlighter.registerLanguage('typescript', typescript);
 SyntaxHighlighter.registerLanguage('bash', bash);
@@ -46,7 +66,7 @@ export function CodeBlock({
       <div className={styles.codeContainer}>
         <SyntaxHighlighter
           language={language}
-          style={vs}
+          style={theme}
           showLineNumbers={showLineNumbers}
           customStyle={{
             margin: 0,

@@ -77,6 +77,8 @@ export const wide = style({ maxWidth: '1200px', margin: '0 auto' });
 // 쇼케이스의 흰 무대가 회색 액자를 가장자리까지 채운다(쇼케이스는 제 폭을 44rem으로 두므로 풀어 준다)
 export const fill = style({ width: '100%' });
 globalStyle(`${fill} > section`, { maxWidth: 'none' });
+// 장면 이름은 무대 밖, 회색 액자 위에 놓인다. 기본 보조 글자색(4.48:1)은 AA에 못 미쳐 한 단계 어둡게 둔다
+globalStyle(`${fill} > section > div:last-child > p`, { color: MUTED });
 
 export const more = style({
   display: 'flex',
