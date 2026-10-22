@@ -35,8 +35,13 @@ export interface StageProps {
   label: string;
   /** 없으면 자동 시연 없이 무대만 된다. 렌더마다 바뀌지 않는 값(모듈 상수)이어야 한다 */
   script?: (act: Act) => void;
-  /** 함수면 무대 요소를 넘긴다(오버레이의 core `container`용) */
+  /**
+   * 함수면 오버레이용 상자를 넘긴다(core `container`). 오버레이는 무대 안, 일시정지 단추 아래 줄에 갇혀 뜨고,
+   * 자동 시연 중에는 그 상자가 `inert`라 열려도 페이지의 포커스를 가져가지 못한다
+   */
   children: ReactNode | ((container: HTMLElement) => ReactNode);
+  /** 무대가 시연을 멈출 때(진짜 입력이 넘겨받음, 일시정지, 화면 밖, 탭 숨김) 부른다. 대본이 열어 둔 오버레이를 닫는 데 쓴다 */
+  onPause?: () => void;
   className?: string;
 }
 
@@ -159,9 +164,18 @@ const firePointer = (
  * 진짜 입력(마우스, 키보드 포커스)이 들어오면 멈춰 넘겨주고 떠나면 이어 간다.
  * 화면 밖, 탭 숨김, 움직임 줄이기 설정에서는 돌지 않는다.
  */
-export function Stage({ label, script, children, className }: StageProps) {
+export function Stage({
+  label,
+  script,
+  children,
+  onPause,
+  className,
+}: StageProps) {
   const reduced = useReducedMotion();
   const [root, setRoot] = useState<HTMLDivElement | null>(null);
+  const [layer, setLayer] = useState<HTMLDivElement | null>(null);
+  const onPauseRef = useRef(onPause);
+  onPauseRef.current = onPause;
   const cursor = useRef<SVGSVGElement>(null);
   const timeline = useRef<gsap.core.Timeline | null>(null);
   // 대본이 준 포커스는 넘겨받기로 보지 않는다
@@ -388,6 +402,7 @@ export function Stage({ label, script, children, className }: StageProps) {
       // 진짜 입력이 넘겨받으면 진짜 :hover와 :active가 맡고, 잡고 있던 것은 놓는다
       if (root) clearMirror(root);
       holds.current.forEach((drop) => drop());
+      onPauseRef.current?.();
     }
     gsap.to(cur, {
       autoAlpha: playing ? 1 : 0,
@@ -466,8 +481,15 @@ export function Stage({ label, script, children, className }: StageProps) {
         </div>
       )}
       <div className={styles.inner}>
-        {typeof children === 'function' ? root && children(root) : children}
+        {typeof children === 'function' ? layer && children(layer) : children}
       </div>
+      {typeof children === 'function' && (
+        <div
+          ref={setLayer}
+          className={styles.layer}
+          inert={!!demo && playing}
+        />
+      )}
       {demo && (
         <MousePointer2
           ref={cursor}

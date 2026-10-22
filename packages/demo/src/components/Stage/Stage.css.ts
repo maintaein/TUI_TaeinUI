@@ -1,5 +1,5 @@
 import { themeContract } from '@taein-ui/core';
-import { style } from '@vanilla-extract/css';
+import { globalStyle, style } from '@vanilla-extract/css';
 import { FRAME, INK } from '../DocText';
 
 const { color, spacing, borderRadius } = themeContract;
@@ -9,7 +9,7 @@ export const stage = style({
   display: 'grid',
   placeItems: 'center',
   overflow: 'hidden',
-  // position: fixed 자손(오버레이)의 기준이 된다. core container에 이 요소를 넘기면 무대 안에 갇혀 뜬다
+  // position: fixed 자손(Snackbar 같은 인라인 오버레이)의 기준이 된다. 포털 오버레이는 아래 layer에 갇힌다
   contain: 'layout',
   background: color.background.default,
   borderRadius: borderRadius.lg,
@@ -25,6 +25,20 @@ export const tools = style({
   background: FRAME,
   borderRadius: borderRadius.md,
 });
+
+// 오버레이(core container)가 갇혀 뜨는 상자. 일시정지 단추 아래 줄부터 무대 끝까지다(단추가 오버레이에 가리지 않고, 오버레이도 단추에 가리지 않는다).
+// 비어 있을 때 아래 무대의 클릭을 막지 않도록 통과시키고, 오버레이 자신은 받는다
+export const layer = style({
+  position: 'absolute',
+  top: '3.5rem',
+  right: 0,
+  bottom: 0,
+  left: 0,
+  zIndex: 1,
+  contain: 'layout',
+  pointerEvents: 'none',
+});
+globalStyle(`${layer} > *`, { pointerEvents: 'auto' });
 
 // 부모 폭을 채우는 컴포넌트(fullWidth)가 보이도록 폭을 정해 두고, 그 안에서 가운데에 놓는다
 export const inner = style({
