@@ -40,8 +40,8 @@ const INITIAL: Values = {
 
 const DEFAULTS: Values = { variant: 'elevated' };
 
-const IMAGE = '/images/tds-hero.webp';
-const IMAGE_ALT = '디자인 시스템 화면 모음';
+const IMAGE = '/images/TUI.webp';
+const IMAGE_ALT = 'TUI';
 // 기본 16:9는 375px 폭 무대에서 카드가 일시정지 단추에 닿아 2:1로 낮춘다
 
 // 커서가 카드로 가서 올라타면 3px 떠오르고 그림자가 짙어진다. 길게 누르면 눌리되 끝까지 들어가지 않고
