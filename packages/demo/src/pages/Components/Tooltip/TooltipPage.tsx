@@ -1,550 +1,243 @@
-import { Card, List, ListItem } from '@taein-ui/core';
-import { LivePreview } from '../../../components/LivePreview';
+import { useState, type ComponentProps } from 'react';
+import { Save } from 'lucide-react';
+import { Button, Tooltip } from '@taein-ui/core';
 import { CodeBlock } from '../../../components/CodeBlock';
-import { PropsTable } from '../../../components/PropsTable';
-import type { PropDefinition } from '../../../components/PropsTable/PropsTable';
-import { AccessibilitySection } from '../../../components/AccessibilitySection';
-import * as styles from './TooltipPage.css';
+import {
+  Customize,
+  codeOf,
+  type Control,
+  type Values,
+} from '../../../components/Customize';
+import { DetailLayout, Topic, Topics } from '../../../components/DetailLayout';
+import * as t from '../../../components/DocText';
+import type { PropDefinition } from '../../../components/PropsTable';
+import { Stage, type Act } from '../../../components/Stage';
+
+const LEAD =
+  '단추나 아이콘 위에 마우스를 올리거나 포커스하면 짧은 설명을 띄웁니다. 가장 적게 움직이도록 만든 알림입니다.';
+
+const CONTROLS: Control[] = [
+  { prop: 'content', kind: 'text', label: 'content' },
+  {
+    prop: 'position',
+    kind: 'choice',
+    options: ['top', 'bottom', 'left', 'right'],
+  },
+  { prop: 'delay', kind: 'choice', options: ['0', '200', '500'] },
+  { prop: 'arrow', kind: 'choice', options: ['true', 'false'] },
+  { prop: 'disabled', kind: 'toggle' },
+];
+
+const INITIAL: Values = {
+  content: '변경 사항 저장',
+  position: 'top',
+  delay: '200',
+  arrow: 'true',
+  disabled: false,
+};
+
+const DEFAULTS: Values = {
+  position: 'top',
+  delay: '200',
+  arrow: 'true',
+};
+
+// 커서가 단추에 올라가면 지연(기본 200ms) 뒤에 툴팁이 뜬다. 떠나면 곧바로 닫히지 않고
+// 유예(300ms) 동안 그대로 있다가 닫힌다
+const SCRIPT = (act: Act) => {
+  act.move('trigger');
+  act.hover('trigger');
+  act.wait(1.6);
+  act.leave('trigger');
+  act.wait(1.1);
+  act.home();
+  act.wait(0.4);
+};
+
+const PROPS: PropDefinition[] = [
+  {
+    name: 'children',
+    type: 'ReactElement',
+    required: true,
+    description:
+      '툴팁을 띄울 요소 하나. aria-describedby가 이 요소에 붙는다. 받은 aria-*와 onClick도 이 요소로 넘어가므로 Popover 안에 넣을 수 있다',
+  },
+  {
+    name: 'content',
+    type: 'ReactNode',
+    required: true,
+    description: '툴팁에 보일 내용',
+  },
+  {
+    name: 'position',
+    type: "'top' | 'bottom' | 'left' | 'right'",
+    default: "'top'",
+    description: '트리거 기준 위치. 트리거에서 8px 떨어진다',
+  },
+  {
+    name: 'delay',
+    type: 'number',
+    default: '200',
+    description:
+      '뜨기까지의 지연(ms). 다른 툴팁이 열려 있거나 닫힌 지 300ms 안이면 지연 없이 바로 뜬다',
+  },
+  {
+    name: 'arrow',
+    type: 'boolean',
+    default: 'true',
+    description: '트리거를 가리키는 화살표',
+  },
+  {
+    name: 'disabled',
+    type: 'boolean',
+    default: 'false',
+    description: '툴팁을 띄우지 않는다',
+  },
+  {
+    name: 'open',
+    type: 'boolean',
+    description: '제어 모드. 주면 보임 여부를 부모가 쥔다',
+  },
+  {
+    name: 'onOpenChange',
+    type: '(open: boolean) => void',
+    description:
+      '보임 여부가 바뀌려 할 때 불린다. 제어 모드에서 open을 갱신한다',
+  },
+];
+
+const BASIC = `<Tooltip content="변경 사항 저장">
+  <Button leftIcon={<Save />}>저장</Button>
+</Tooltip>`;
+
+const ICON = `<Tooltip content="삭제" position="bottom">
+  <IconButton aria-label="삭제"><Trash /></IconButton>
+</Tooltip>`;
+
+const CONTROLLED = `const [open, setOpen] = useState(false);
+
+<Tooltip content="저장됨" open={open} onOpenChange={setOpen}>
+  <Button>저장</Button>
+</Tooltip>`;
+
+function Usage() {
+  return (
+    <Topics>
+      <Topic title="언제 쓰나">
+        <p className={t.body} style={{ marginBottom: 12 }}>
+          이름만으로 뜻이 모자란 아이콘 단추나 줄여 쓴 글자에 한두 줄의 짧은
+          설명을 붙일 때 씁니다. 툴팁은 마우스를 올리거나 포커스해야만 보이므로
+          없어도 쓸 수 있는 보충이어야 합니다. 꼭 읽어야 하는 내용이나 단추가
+          있는 내용은 <code>Popover</code>가 맞습니다.
+        </p>
+        <CodeBlock code={BASIC} />
+      </Topic>
+      <Topic title="아이콘 단추에 붙이기">
+        <p className={t.body} style={{ marginBottom: 12 }}>
+          글자 없는 단추는 <code>aria-label</code>로 이름을 주고, 툴팁은 같은
+          말을 눈에도 보이게 합니다.
+        </p>
+        <CodeBlock code={ICON} />
+      </Topic>
+      <Topic title="뜨는 때와 닫히는 때">
+        <p className={t.body}>
+          마우스가 올라가고 200ms 뒤에 뜹니다. 지나가다 걸린 마우스에 뜨지
+          않도록 한 틈입니다. 이미 다른 툴팁이 열려 있거나 방금 닫혔다면 툴바를
+          훑는 것으로 보고 지연 없이 바로 뜹니다. 마우스가 트리거를 떠나도
+          300ms는 그대로 있고, 그 사이 툴팁 위로 옮기면 닫히지 않습니다. 키보드
+          포커스로도 뜹니다.
+        </p>
+      </Topic>
+      <Topic title="직접 열고 닫기">
+        <p className={t.body} style={{ marginBottom: 12 }}>
+          <code>open</code>을 주면 보임 여부를 부모가 쥡니다.{' '}
+          <code>onOpenChange</code>로 바꾸려는 값을 받아 전달합니다.
+        </p>
+        <CodeBlock code={CONTROLLED} />
+      </Topic>
+      <Topic title="움직임">
+        <p className={t.body}>
+          오버레이 가운데 가장 적게 움직입니다. 트리거 쪽에서 6px 떨어진
+          자리에서 0.8배로 시작해 8px 떨어진 자리에 1배로 앉으며 불투명해집니다.
+          나갈 때는 130ms 안에 되돌아갑니다. 움직임 줄이기 설정을 켠 환경에서는
+          움직임 없이 바로 나타나고 사라집니다.
+        </p>
+      </Topic>
+    </Topics>
+  );
+}
+
+function A11y() {
+  return (
+    <ul className={`${t.list} ${t.body}`}>
+      <li>
+        툴팁 요소는 <code>role=&quot;tooltip&quot;</code>이고, 열려 있는
+        동안에만 트리거의 <code>aria-describedby</code>가 그 요소를 가리킵니다.
+        트리거가 이미 가진 값과는 공백으로 합쳐집니다.
+      </li>
+      <li>
+        키보드로 트리거에 포커스해도 뜨고, 포커스가 빠지면 지연이나 유예 없이
+        닫힙니다. Escape를 누르면 닫히고, 포인터나 포커스가 한 번 벗어나기
+        전까지는 다시 뜨지 않습니다.
+      </li>
+      <li>
+        WCAG 1.4.13(호버 가능, 지속)을 지킵니다. 포인터를 트리거에서 툴팁으로
+        옮겨도 닫히지 않아 툴팁 위에 마우스를 둔 채 읽을 수 있습니다.
+      </li>
+      <li>
+        개발자가 직접 해야 합니다. 트리거가 아이콘뿐이면 툴팁과 별개로{' '}
+        <code>aria-label</code>로 이름을 줍니다. 툴팁은 보충 설명이지 이름을
+        대신하지 않습니다.
+      </li>
+      <li>
+        개발자가 직접 해야 합니다. 호버나 포커스가 없는 환경에서는 툴팁이 뜨지
+        않으므로 툴팁에만 있는 정보를 두지 않습니다.
+      </li>
+    </ul>
+  );
+}
+
+type Position = ComponentProps<typeof Tooltip>['position'];
 
 export function TooltipPage() {
-  const propsData: PropDefinition[] = [
-    {
-      name: 'children',
-      type: 'ReactElement',
-      required: true,
-      description:
-        '툴팁을 트리거할 단일 요소. aria-describedby가 이 요소에 직접 붙습니다. 받은 aria-*와 onClick도 이 요소로 넘어가므로 Popover 안에 넣을 수 있습니다.',
-    },
-    {
-      name: 'content',
-      type: 'ReactNode',
-      required: true,
-      description: '툴팁에 표시할 내용',
-    },
-    {
-      name: 'position',
-      type: "'top' | 'bottom' | 'left' | 'right'",
-      default: "'top'",
-      description: '툴팁 표시 위치',
-    },
-    {
-      name: 'delay',
-      type: 'number',
-      default: '200',
-      description:
-        '툴팁 표시까지 지연 시간(ms). 다른 툴팁이 열려 있거나 닫힌 지 300ms 이내면 건너뛰고 바로 표시한다',
-    },
-    {
-      name: 'disabled',
-      type: 'boolean',
-      default: 'false',
-      description: '툴팁 비활성화',
-    },
-    {
-      name: 'arrow',
-      type: 'boolean',
-      default: 'true',
-      description: '화살표 표시 여부',
-    },
-    {
-      name: 'open',
-      type: 'boolean',
-      description: '제어 모드: 툴팁 표시 여부',
-    },
-    {
-      name: 'onOpenChange',
-      type: '(open: boolean) => void',
-      description: '제어 모드: 표시 상태 변경 핸들러',
-    },
-    {
-      name: 'className',
-      type: 'string',
-      description: '추가 CSS 클래스',
-    },
-  ];
+  const [values, setValues] = useState<Values>(INITIAL);
 
   return (
-    <article className={styles.container}>
-      {/* Header */}
-      <header className={styles.header}>
-        <h1 className={styles.title}>Tooltip</h1>
-        <p className={styles.description}>
-          Tooltip 컴포넌트는 아이콘이나 버튼 위에 마우스를 올렸을 때 부가 설명을
-          보여줄 때 사용합니다.
-        </p>
-      </header>
-
-      {/* Quick Reference */}
-      <div className={styles.quickReference}>
-        <Card className={styles.quickRefCard}>
-          <Card.Body>
-            <div className={styles.quickRefTitle}>Import</div>
-            <CodeBlock
-              code="import { Tooltip } from '@taein-ui/core';"
-              language="tsx"
-            />
-          </Card.Body>
-        </Card>
-        <Card className={styles.quickRefCard}>
-          <Card.Body>
-            <div className={styles.quickRefTitle}>Basic Usage</div>
-            <CodeBlock
-              code={`<Tooltip content="추가 정보">
-  <Button>hover me</Button>
-</Tooltip>`}
-              language="tsx"
-            />
-          </Card.Body>
-        </Card>
-        <Card className={styles.quickRefCard}>
-          <Card.Body>
-            <div className={styles.quickRefTitle}>Key Features</div>
-            <CodeBlock
-              code={`position: 'top' | 'bottom' | 'left' | 'right'
-delay: hover 후 지연 시간 (기본 200ms)
-arrow: 화살표 표시/숨김
-제어/비제어 모드 모두 지원`}
-              language="text"
-            />
-          </Card.Body>
-        </Card>
-      </div>
-
-      {/* Basic */}
-      <section className={styles.section}>
-        <div className={styles.sectionHeader}>
-          <h2 className={styles.sectionTitle}>Basic</h2>
-          <p className={styles.sectionDescription}>
-            기본 사용법입니다. children 요소에 hover 또는 focus하면 툴팁이
-            나타납니다.
-          </p>
-        </div>
-
-        <div className={styles.example}>
-          <h3 className={styles.exampleTitle}>Default</h3>
-          <LivePreview
-            title="기본 툴팁"
-            description="content prop에 텍스트를 전달하면 됩니다. 기본 위치는 top입니다."
-            editable
-            code={`<Tooltip content="추가 정보를 제공합니다">
-  <Button size="sm">hover me</Button>
-</Tooltip>`}
-          />
-        </div>
-
-        <div className={styles.example}>
-          <h3 className={styles.exampleTitle}>Text Content</h3>
-          <LivePreview
-            title="텍스트 트리거"
-            description="버튼 외에도 텍스트나 아이콘 등 모든 요소를 트리거로 사용할 수 있습니다."
-            editable
-            code={`<div style={{ display: 'flex', gap: '1.5rem', alignItems: 'center' }}>
-  <Tooltip content="이름을 수정할 수 있습니다">
-    <span style={{ textDecoration: 'underline dotted', cursor: 'help' }}>사용자 이름</span>
-  </Tooltip>
-  <Tooltip content="삭제는 취소할 수 없습니다">
-    <Button size="sm" variant="danger">삭제</Button>
-  </Tooltip>
-  <Tooltip content="설정 페이지로 이동합니다">
-    <Button size="sm" variant="light"><Settings size={16} /></Button>
-  </Tooltip>
-</div>`}
-          />
-        </div>
-      </section>
-
-      {/* Position */}
-      <section className={styles.section}>
-        <div className={styles.sectionHeader}>
-          <h2 className={styles.sectionTitle}>Position</h2>
-          <p className={styles.sectionDescription}>
-            4가지 위치에 툴팁을 표시할 수 있습니다.
-          </p>
-        </div>
-
-        <div className={styles.example}>
-          <h3 className={styles.exampleTitle}>Top / Bottom / Left / Right</h3>
-          <LivePreview
-            title="위치 옵션"
-            description="position prop으로 툴팁 위치를 지정합니다."
-            editable
-            code={`<div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', justifyContent: 'center', padding: '2rem' }}>
-  <Tooltip content="위쪽 툴팁" position="top">
-    <Button size="sm">Top</Button>
-  </Tooltip>
-  <Tooltip content="아래쪽 툴팁" position="bottom">
-    <Button size="sm">Bottom</Button>
-  </Tooltip>
-  <Tooltip content="왼쪽 툴팁" position="left">
-    <Button size="sm">Left</Button>
-  </Tooltip>
-  <Tooltip content="오른쪽 툴팁" position="right">
-    <Button size="sm">Right</Button>
-  </Tooltip>
-</div>`}
-          />
-        </div>
-      </section>
-
-      {/* Arrow */}
-      <section className={styles.section}>
-        <div className={styles.sectionHeader}>
-          <h2 className={styles.sectionTitle}>Arrow</h2>
-          <p className={styles.sectionDescription}>
-            화살표 표시 여부를 제어할 수 있습니다.
-          </p>
-        </div>
-
-        <div className={styles.example}>
-          <h3 className={styles.exampleTitle}>With / Without Arrow</h3>
-          <LivePreview
-            title="화살표 옵션"
-            description="arrow prop으로 화살표를 표시하거나 숨길 수 있습니다. 기본값은 true입니다."
-            editable
-            code={`<div style={{ display: 'flex', gap: '1.5rem', flexWrap: 'wrap', padding: '1.5rem' }}>
-  <Tooltip content="화살표 있음" arrow={true}>
-    <Button size="sm">arrow=true</Button>
-  </Tooltip>
-  <Tooltip content="화살표 없음" arrow={false}>
-    <Button size="sm">arrow=false</Button>
-  </Tooltip>
-</div>`}
-          />
-        </div>
-      </section>
-
-      {/* Delay */}
-      <section className={styles.section}>
-        <div className={styles.sectionHeader}>
-          <h2 className={styles.sectionTitle}>Delay</h2>
-          <p className={styles.sectionDescription}>
-            hover 후 툴팁이 나타나기까지의 지연 시간을 조절할 수 있습니다.
-          </p>
-        </div>
-
-        <div className={styles.example}>
-          <h3 className={styles.exampleTitle}>Delay Options</h3>
-          <LivePreview
-            title="지연 시간 비교"
-            description="delay prop에 밀리초 단위 값을 전달합니다. 기본값은 200ms입니다. 버튼 사이를 바로 옮겨 다니면 두 번째 툴팁부터는 지연 없이 바로 뜹니다. 각 버튼의 지연을 보려면 버튼마다 포인터를 잠깐 치웠다 올리세요."
-            editable
-            code={`<div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', padding: '1.5rem' }}>
-  <Tooltip content="즉시 나타납니다" delay={0}>
-    <Button size="sm">delay=0</Button>
-  </Tooltip>
-  <Tooltip content="200ms 후 나타납니다" delay={200}>
-    <Button size="sm">delay=200 (기본)</Button>
-  </Tooltip>
-  <Tooltip content="500ms 후 나타납니다" delay={500}>
-    <Button size="sm">delay=500</Button>
-  </Tooltip>
-  <Tooltip content="1초 후 나타납니다" delay={1000}>
-    <Button size="sm">delay=1000</Button>
-  </Tooltip>
-</div>`}
-          />
-        </div>
-
-        <div className={styles.example}>
-          <h3 className={styles.exampleTitle}>Toolbar</h3>
-          <LivePreview
-            title="연달아 보는 툴팁"
-            description="첫 툴팁만 기다렸다 튀어 오르고, 옆 버튼으로 옮기면 바로 바뀝니다. 툴팁이 열려 있거나 닫힌 지 300ms 이내면 다음 툴팁은 delay와 등장 전이를 건너뛰고, 열려 있던 툴팁은 곧바로 사라집니다."
-            editable
-            code={`<div style={{ display: 'flex', gap: '0.5rem', padding: '1.5rem' }}>
-  <Tooltip content="굵게">
-    <IconButton aria-label="굵게" size="sm"><Bold /></IconButton>
-  </Tooltip>
-  <Tooltip content="기울임">
-    <IconButton aria-label="기울임" size="sm"><Italic /></IconButton>
-  </Tooltip>
-  <Tooltip content="밑줄">
-    <IconButton aria-label="밑줄" size="sm"><Underline /></IconButton>
-  </Tooltip>
-  <Tooltip content="링크">
-    <IconButton aria-label="링크" size="sm"><Link /></IconButton>
-  </Tooltip>
-</div>`}
-          />
-        </div>
-      </section>
-
-      {/* Disabled */}
-      <section className={styles.section}>
-        <div className={styles.sectionHeader}>
-          <h2 className={styles.sectionTitle}>Disabled</h2>
-          <p className={styles.sectionDescription}>
-            disabled prop으로 툴팁을 비활성화할 수 있습니다.
-          </p>
-        </div>
-
-        <div className={styles.example}>
-          <h3 className={styles.exampleTitle}>Disabled Tooltip</h3>
-          <LivePreview
-            title="비활성화"
-            description="disabled={true}이면 hover/focus 시 툴팁이 나타나지 않습니다."
-            editable
-            code={`<div style={{ display: 'flex', gap: '1.5rem', flexWrap: 'wrap', padding: '1.5rem' }}>
-  <Tooltip content="이 툴팁은 활성화됩니다" disabled={false}>
-    <Button size="sm">활성화</Button>
-  </Tooltip>
-  <Tooltip content="이 툴팁은 나타나지 않습니다" disabled={true}>
-    <Button size="sm">비활성화</Button>
-  </Tooltip>
-</div>`}
-          />
-        </div>
-
-        <div className={styles.example}>
-          <h3 className={styles.exampleTitle}>Conditional Disable</h3>
-          <LivePreview
-            title="조건부 비활성화"
-            description="상태에 따라 동적으로 툴팁을 활성화/비활성화합니다."
-            editable
-            code={`const [isDisabled, setIsDisabled] = useState(false);
-
-<div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-  <Tooltip content="저장하려면 모든 필드를 입력하세요" disabled={!isDisabled}>
-    <Button size="sm" disabled={isDisabled}>저장</Button>
-  </Tooltip>
-  <Button size="sm" variant="light" onClick={() => setIsDisabled((v) => !v)}>
-    {isDisabled ? '버튼 활성화' : '버튼 비활성화'}
-  </Button>
-</div>`}
-          />
-        </div>
-      </section>
-
-      {/* Controlled Mode */}
-      <section className={styles.section}>
-        <div className={styles.sectionHeader}>
-          <h2 className={styles.sectionTitle}>Controlled Mode</h2>
-          <p className={styles.sectionDescription}>
-            open / onOpenChange prop으로 툴팁 표시 상태를 외부에서 제어할 수
-            있습니다.
-          </p>
-        </div>
-
-        <div className={styles.example}>
-          <h3 className={styles.exampleTitle}>Controlled</h3>
-          <LivePreview
-            title="제어 모드"
-            description="open prop을 직접 전달하면 hover/focus 이벤트와 무관하게 표시 상태를 제어합니다."
-            editable
-            code={`const [open, setOpen] = useState(false);
-
-<div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-  <Tooltip content="제어 모드 툴팁입니다" open={open} onOpenChange={setOpen}>
-    <Button size="sm">hover도 동작합니다</Button>
-  </Tooltip>
-  <Button size="sm" variant="light" onClick={() => setOpen((v) => !v)}>
-    {open ? '툴팁 숨기기' : '툴팁 보이기'}
-  </Button>
-</div>`}
-          />
-        </div>
-      </section>
-
-      {/* Rich Content */}
-      <section className={styles.section}>
-        <div className={styles.sectionHeader}>
-          <h2 className={styles.sectionTitle}>Rich Content</h2>
-          <p className={styles.sectionDescription}>
-            content prop은 ReactNode를 받으므로 복잡한 내용도 표시할 수
-            있습니다.
-          </p>
-        </div>
-
-        <div className={styles.example}>
-          <h3 className={styles.exampleTitle}>JSX Content</h3>
-          <LivePreview
-            title="JSX 콘텐츠"
-            description="content에 JSX를 전달하여 아이콘, 강조 텍스트 등을 포함할 수 있습니다."
-            editable
-            code={`<div style={{ display: 'flex', gap: '1.5rem', flexWrap: 'wrap', padding: '1.5rem' }}>
-  <Tooltip content={<span><TriangleAlert size={16} style={{ verticalAlign: 'text-bottom' }} /> <strong>주의:</strong> 되돌릴 수 없습니다</span>} position="bottom">
-    <Button size="sm" variant="danger">삭제</Button>
-  </Tooltip>
-  <Tooltip content={<span><CircleCheck size={16} style={{ verticalAlign: 'text-bottom' }} /> 변경사항이 <strong>자동 저장</strong>됩니다</span>} position="right">
-    <Button size="sm">편집</Button>
-  </Tooltip>
-</div>`}
-          />
-        </div>
-      </section>
-
-      {/* Composition Patterns */}
-      <section className={styles.section}>
-        <div className={styles.sectionHeader}>
-          <h2 className={styles.sectionTitle}>Composition Patterns</h2>
-          <p className={styles.sectionDescription}>
-            실제 UI에서 자주 사용하는 패턴입니다.
-          </p>
-        </div>
-
-        <div className={styles.example}>
-          <h3 className={styles.exampleTitle}>Icon Buttons Toolbar</h3>
-          <LivePreview
-            title="아이콘 버튼 툴바"
-            description="아이콘 버튼에 툴팁을 붙여 기능을 설명합니다."
-            editable
-            code={`<div style={{ display: 'inline-flex', gap: '0.25rem', padding: '0.5rem', background: '#f3f4f6', borderRadius: '0.5rem' }}>
-  <Tooltip content="굵게" position="bottom" delay={0}>
-    <Button size="sm" variant="light"><strong>B</strong></Button>
-  </Tooltip>
-  <Tooltip content="기울임" position="bottom" delay={0}>
-    <Button size="sm" variant="light"><em>I</em></Button>
-  </Tooltip>
-  <Tooltip content="밑줄" position="bottom" delay={0}>
-    <Button size="sm" variant="light"><u>U</u></Button>
-  </Tooltip>
-  <Tooltip content="링크 삽입" position="bottom" delay={0}>
-    <Button size="sm" variant="light"><Link size={16} /></Button>
-  </Tooltip>
-</div>`}
-          />
-        </div>
-
-        <div className={styles.example}>
-          <h3 className={styles.exampleTitle}>Tooltip + Popover</h3>
-          <LivePreview
-            title="아이콘 버튼에 툴팁과 메뉴를 같이 달기"
-            description="호버하면 이름을 알려 주는 툴팁이 뜨고, 누르면 메뉴가 열립니다. Popover 안에 Tooltip을 넣으면 aria-expanded와 aria-describedby가 같은 버튼에 붙습니다."
-            editable
-            code={`<Popover
-  position="bottom"
-  content={
-    <List spacing="sm" style={{ padding: '0.25rem 0.5rem', minWidth: '140px' }}>
-      <ListItem style={{ padding: '0.5rem', borderRadius: '6px', cursor: 'pointer' }}>편집</ListItem>
-      <ListItem style={{ padding: '0.5rem', borderRadius: '6px', cursor: 'pointer' }}>복제</ListItem>
-      <ListItem style={{ padding: '0.5rem', borderRadius: '6px', cursor: 'pointer' }}>
-        <p style={{ margin: 0, fontSize: '0.875rem', color: themeContract.color.error.dark }}>삭제</p>
-      </ListItem>
-    </List>
-  }
->
-  <Tooltip content="더보기" position="top">
-    <IconButton aria-label="더보기"><Ellipsis /></IconButton>
-  </Tooltip>
-</Popover>`}
-          />
-        </div>
-
-        <div className={styles.example}>
-          <h3 className={styles.exampleTitle}>Form Field Help</h3>
-          <LivePreview
-            title="폼 필드 도움말"
-            description="입력 필드 옆 물음표 아이콘에 툴팁으로 안내 메시지를 제공합니다."
-            editable
-            code={`<div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', maxWidth: '320px' }}>
-  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-    <label style={{ fontSize: '0.875rem', fontWeight: 600 }}>비밀번호</label>
-    <Tooltip content="영문, 숫자, 특수문자 포함 8자 이상" position="right" delay={0}>
-      <span style={{ width: '16px', height: '16px', borderRadius: '50%', background: '#9ca3af', color: '#fff', fontSize: '0.7rem', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'help' }}>?</span>
-    </Tooltip>
-  </div>
-  <TextField type="password" placeholder="비밀번호 입력" />
-</div>`}
-          />
-        </div>
-      </section>
-
-      {/* Props API */}
-      <section className={styles.section}>
-        <div className={styles.sectionHeader}>
-          <h2 className={styles.sectionTitle}>Props API</h2>
-          <p className={styles.sectionDescription}>
-            Tooltip 컴포넌트의 전체 props 목록입니다.
-          </p>
-        </div>
-        <div className={styles.propsTableWrapper}>
-          <PropsTable props={propsData} />
-        </div>
-      </section>
-
-      {/* Accessibility */}
-      <section className={styles.section}>
-        <AccessibilitySection
-          componentName="Tooltip"
-          intro="Tooltip은 role='tooltip'과 aria-describedby를 통해 보조 기술에 추가 정보를 제공합니다. 키보드 포커스 시에도 툴팁이 나타납니다."
-          features={[
-            {
-              attribute: 'role="tooltip"',
-              effect: '툴팁 역할 전달',
-              description: '스크린 리더가 해당 요소를 툴팁으로 인식합니다.',
-            },
-            {
-              attribute: 'aria-describedby',
-              effect: '연관 요소 연결',
-              description:
-                '트리거 요소 자체가 툴팁 내용을 설명으로 참조합니다. 툴팁이 열릴 때만 설정되고, 요소가 이미 가진 값과는 공백으로 합쳐집니다.',
-            },
-            {
-              attribute: 'onFocus / onBlur',
-              effect: '키보드 접근성',
-              description: '마우스 없이 Tab 키로 포커스해도 툴팁이 나타납니다.',
-            },
-            {
-              attribute: 'delay',
-              effect: '실수 방지',
-              description:
-                '지연 시간으로 빠른 마우스 이동 시 불필요한 툴팁 표시를 방지합니다.',
-            },
-            {
-              attribute: 'onMouseEnter / onMouseLeave',
-              effect: '호버 가능 (WCAG 1.4.13)',
-              description:
-                '포인터를 트리거에서 툴팁으로 옮겨도 닫히지 않습니다. 툴팁 위에 포인터를 둔 채 내용을 읽을 수 있습니다.',
-            },
-          ]}
-        />
-      </section>
-
-      {/* Best Practices */}
-      <section className={styles.section}>
-        <div className={styles.sectionHeader}>
-          <h2 className={styles.sectionTitle}>Best Practices</h2>
-          <p className={styles.sectionDescription}>
-            Tooltip을 효과적으로 사용하기 위한 권장사항입니다.
-          </p>
-        </div>
-        <div className={styles.practicesGrid}>
-          <Card>
-            <Card.Body>
-              <div className={styles.practiceHeader}>
-                <span className={styles.practiceIcon}>O</span>
-                <span className={styles.practiceTitle}>권장</span>
-              </div>
-              <List>
-                <ListItem>짧고 명확한 설명 텍스트 사용</ListItem>
-                <ListItem>아이콘 버튼에 기능 설명 제공</ListItem>
-                <ListItem>긴 레이블의 잘린 텍스트 전체 내용 표시</ListItem>
-                <ListItem>키보드 접근 가능한 요소에만 사용</ListItem>
-                <ListItem>
-                  화면 가장자리 요소는 반대 방향 position 사용
-                </ListItem>
-              </List>
-            </Card.Body>
-          </Card>
-          <Card>
-            <Card.Body>
-              <div className={styles.practiceHeader}>
-                <span className={styles.practiceIconError}>X</span>
-                <span className={styles.practiceTitle}>지양</span>
-              </div>
-              <List>
-                <ListItem>
-                  필수 정보를 툴팁으로만 전달 (항상 보여야 할 내용)
-                </ListItem>
-                <ListItem>긴 문단이나 여러 단락의 내용</ListItem>
-                <ListItem>모바일 터치 전용 UI (hover 불가)</ListItem>
-                <ListItem>클릭 가능한 링크나 버튼을 content에 포함</ListItem>
-                <ListItem>자주 확인해야 하는 중요 정보</ListItem>
-              </List>
-            </Card.Body>
-          </Card>
-        </div>
-      </section>
-    </article>
+    <DetailLayout
+      name="Tooltip"
+      lead={LEAD}
+      stage={
+        <Stage label="Tooltip 시연" script={SCRIPT}>
+          <Tooltip
+            data-stage-target="trigger"
+            content={String(values.content)}
+            position={values.position as Position}
+            delay={Number(values.delay)}
+            arrow={values.arrow === 'true'}
+            disabled={values.disabled === true}
+          >
+            <Button variant="light" leftIcon={<Save />}>
+              저장
+            </Button>
+          </Tooltip>
+        </Stage>
+      }
+      customize={
+        <Customize controls={CONTROLS} values={values} onChange={setValues} />
+      }
+      code={codeOf({
+        component: 'Tooltip',
+        values: {
+          ...values,
+          children: '<Button leftIcon={<Save />}>저장</Button>',
+        },
+        defaults: DEFAULTS,
+      })
+        .replace('arrow="false"', 'arrow={false}')
+        .replace(/delay="(\d+)"/, 'delay={$1}')}
+      props={PROPS}
+      usage={<Usage />}
+      a11y={<A11y />}
+    />
   );
 }
