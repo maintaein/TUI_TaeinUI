@@ -1,528 +1,462 @@
-import { Card, List, ListItem } from '@taein-ui/core';
-import { LivePreview } from '../../../components/LivePreview';
+import {
+  useEffect,
+  useRef,
+  useState,
+  useSyncExternalStore,
+  type ComponentProps,
+  type ReactNode,
+} from 'react';
+import { Gift, House, LayoutGrid, Palette } from 'lucide-react';
+import { Button, HeaderBar } from '@taein-ui/core';
 import { CodeBlock } from '../../../components/CodeBlock';
-import { PropsTable } from '../../../components/PropsTable';
-import type { PropDefinition } from '../../../components/PropsTable/PropsTable';
-import { AccessibilitySection } from '../../../components/AccessibilitySection';
-import * as styles from './HeaderBarPage.css';
+import {
+  Customize,
+  codeOf,
+  type Control,
+  type Values,
+} from '../../../components/Customize';
+import { DetailLayout, Topic, Topics } from '../../../components/DetailLayout';
+import * as t from '../../../components/DocText';
+import type { PropDefinition } from '../../../components/PropsTable';
+import { Stage, type Act } from '../../../components/Stage';
 
-export function HeaderBarPage() {
-  const propsData: PropDefinition[] = [
-    {
-      name: 'logo',
-      type: 'ReactNode',
-      description: '좌측에 표시할 로고 요소',
-    },
-    {
-      name: 'title',
-      type: 'ReactNode',
-      description: '로고 옆에 표시할 제목 텍스트',
-    },
-    {
-      name: 'titleAs',
-      type: "'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6' | 'span'",
-      default: "'h1'",
-      description:
-        '제목 요소. 스타일은 같습니다. 페이지에 이미 h1이 있으면 낮은 단계나 span으로 바꾸세요',
-    },
-    {
-      name: 'items',
-      type: 'HeaderBarItem[]',
-      description:
-        "가운데 항목. { label, href?, onClick?, icon?, active?, links? }. href가 있으면 <a>, 없으면 <button>이고 active는 aria-current='page'입니다. navStyle='icon'이면 모든 항목에 icon이 필요합니다. links({ label, href?, onClick? }[])는 navStyle='dropdown'(항목을 누르면 열리는 하위 링크 판)과 navStyle='cards'(카드 안 링크 목록)에서 쓰이고 다른 형태에서는 무시됩니다. cards에서 links가 없는 항목은 카드 제목 자리에 그 항목 자체가 링크/버튼으로 놓입니다",
-    },
-    {
-      name: 'navStyle',
-      type: "'pill' | 'text' | 'dropdown' | 'cards' | 'icon'",
-      default: "'pill'",
-      description:
-        '항목이 보이는 모습. pill은 호버하면 원이 차오르며 글자가 바뀌는 알약(active 항목은 늘 채워지고 글자에 광휘), text는 호버와 active에 옅은 바탕이 깔리는 글자 링크, dropdown은 links가 있는 항목에 마우스를 올리면 아래에 작은 판이 열림(터치·키보드는 누르면 열고 닫음), cards는 햄버거를 누르면 바가 아래로 자라며 항목마다 카드가 솟음(항목은 바 안이 아니라 카드에만 있고 햄버거가 모든 폭에서 보임. 카드는 셋 이하를 권장), icon은 커서를 올린 아이콘만 커지는 아이콘 알약',
-    },
-    {
-      name: 'actions',
-      type: 'ReactNode',
-      description: '우측에 표시할 액션 요소 (버튼, 아이콘 등)',
-    },
-    {
-      name: 'sticky',
-      type: 'boolean',
-      default: 'false',
-      description: '스크롤 시 화면 위에 붙어 따라옴 (위 여백 유지)',
-    },
-    {
-      name: 'aria-label',
-      type: 'string',
-      description: '접근성 레이블',
-    },
-    {
-      name: 'className',
-      type: 'string',
-      description: '추가 CSS 클래스',
-    },
-  ];
+const LEAD =
+  '페이지 맨 위에 떠 있는 둥근 바입니다. 로고, 제목, 항목, 액션을 한 줄에 놓고 항목이 보이는 모습을 다섯 가지 중에서 고릅니다.';
 
-  return (
-    <article className={styles.container}>
-      {/* Header */}
-      <header className={styles.header}>
-        <h1 className={styles.title}>HeaderBar</h1>
-        <p className={styles.description}>
-          HeaderBar 컴포넌트는 페이지 상단에 떠 있는 둥근 바로 로고, 제목, 항목,
-          액션 버튼을 배치할 때 사용합니다. 스크롤 시 화면 위에 붙일 수 있고,
-          768px 미만에서는 항목이 햄버거 메뉴로 접힙니다.
-        </p>
-      </header>
+const CONTROLS: Control[] = [
+  {
+    prop: 'navStyle',
+    kind: 'choice',
+    options: ['pill', 'text', 'icon', 'dropdown', 'cards'],
+  },
+  { prop: 'logo', kind: 'toggle' },
+  { prop: 'actions', kind: 'toggle' },
+];
 
-      {/* Quick Reference */}
-      <section className={styles.quickReference}>
-        <Card className={styles.quickRefCard}>
-          <Card.Body padding="md">
-            <h3 className={styles.quickRefTitle}>Import</h3>
-            <CodeBlock
-              language="typescript"
-              code={`import { HeaderBar } from '@taein-ui/core';`}
-            />
-          </Card.Body>
-        </Card>
-        <Card className={styles.quickRefCard}>
-          <Card.Body padding="md">
-            <h3 className={styles.quickRefTitle}>Basic Usage</h3>
-            <CodeBlock
-              language="tsx"
-              code={`<HeaderBar
-  title="My App"
-  items={[
-    { label: '홈', href: '#', active: true },
-    { label: '소개', href: '#' },
-  ]}
-  actions={<Button>Login</Button>}
-/>`}
-            />
-          </Card.Body>
-        </Card>
-      </section>
+const INITIAL: Values = { navStyle: 'pill', logo: true, actions: false };
 
-      {/* Examples Section */}
-      <section className={styles.section}>
-        <div className={styles.sectionHeader}>
-          <h2 className={styles.sectionTitle}>Examples</h2>
-          <p className={styles.sectionDescription}>
-            다양한 사용 사례에 맞는 HeaderBar 예제입니다.
-          </p>
-        </div>
+const DEFAULTS: Values = { navStyle: 'pill' };
 
-        {/* Basic */}
-        <div className={styles.example}>
-          <h3 className={styles.exampleTitle}>Basic HeaderBar</h3>
-          <LivePreview
-            title="기본 사용법"
-            description="로고, 제목, 알약 항목 넷, 오른쪽 버튼을 배치한 떠 있는 둥근 바입니다. navStyle을 주지 않으면 알약(pill)입니다. 항목은 items로 넘기고, 지금 보고 있는 페이지는 active로 표시합니다. 창을 768px보다 좁히면 항목이 햄버거 메뉴로 접힙니다."
-            editable
-            code={`<HeaderBar
-  logo={<Palette size={24} />}
-  title="TUI"
-  items={[
-    { label: '컴포넌트', href: '#', active: true },
-    { label: '토큰', href: '#' },
-    { label: '가이드', href: '#' },
-    { label: '문의', href: '#' },
-  ]}
-  actions={<Button size="sm">시작하기</Button>}
-/>`}
-          />
-        </div>
+// 알약의 활성 항목이 옮겨 가는 모습이 이 컴포넌트의 주인공이라 항목을 눌러 활성을 바꾼다
+const LABELS = ['상품', '카테고리', '이벤트'];
+const LINK_LABELS = ['상품', '고객지원', '이벤트'];
 
-        {/* navStyle */}
-        <div className={styles.example}>
-          <h3 className={styles.exampleTitle}>navStyle: pill</h3>
-          <LivePreview
-            title="알약 항목"
-            description="기본 형태입니다. 항목이 바깥 알약 안의 알약 버튼이 됩니다. 마우스를 올리거나 키보드로 포커스하면 아래에서 원이 차오르고 글자가 위로 빠지며 같은 글자가 다른 색으로 올라옵니다. 들어올 때 slow, 나갈 때 base이고 도중에 바뀌면 지금 자리에서 이어받습니다. 터치에서는 움직이지 않습니다. active 항목은 늘 채워진 상태이고 덮는 글자에 은은한 광휘가 걸립니다. 다른 페이지로 넘어가 active가 바뀌면 새 항목은 차오르고 옛 항목은 비워집니다."
-            editable
-            code={`<HeaderBar
-  title="Store"
-  navStyle="pill"
-  items={[
-    { label: '상품', href: '#', active: true },
-    { label: '카테고리', href: '#' },
-    { label: '이벤트', href: '#' },
-    { label: '문의', href: '#' },
-  ]}
-/>`}
-          />
-        </div>
-
-        <div className={styles.example}>
-          <h3 className={styles.exampleTitle}>navStyle: text</h3>
-          <LivePreview
-            title="텍스트 항목"
-            description="호버나 키보드 포커스 때 글자 뒤에 옅은 바탕(알약 모양)이 깔리고, active 항목은 그 바탕이 늘 깔린 채 글자가 굵습니다."
-            editable
-            code={`<HeaderBar
-  title="Store"
-  navStyle="text"
-  items={[
-    { label: '상품', href: '#', active: true },
-    { label: '카테고리', href: '#' },
-    { label: '이벤트', href: '#' },
-  ]}
-/>`}
-          />
-        </div>
-
-        <div className={styles.example}>
-          <h3 className={styles.exampleTitle}>navStyle: icon</h3>
-          <LivePreview
-            title="아이콘 항목"
-            description="커서(또는 키보드 포커스)가 올라간 항목만 커지고 이웃은 그대로입니다. 호버와 active 항목에는 옅은 바탕이 깔립니다. 히트 영역은 고정 크기라 레이아웃이 흔들리지 않습니다. 모든 항목에 icon이 필요하고, label은 접근 이름입니다."
-            editable
-            code={`<HeaderBar
-  title="Store"
-  navStyle="icon"
-  items={[
-    { icon: <House size={20} />, label: '홈', href: '#', active: true },
-    { icon: <Plus size={20} />, label: '새로 만들기' },
-    { icon: <CircleCheck size={20} />, label: '완료함' },
-    { icon: <Bell size={20} />, label: '알림' },
-    { icon: <Settings size={20} />, label: '설정' },
-  ]}
-/>`}
-          />
-        </div>
-
-        <div className={styles.example}>
-          <h3 className={styles.exampleTitle}>navStyle: dropdown</h3>
-          <LivePreview
-            title="드롭다운 항목"
-            description="items[].links가 있는 항목은 꺾쇠가 붙은 버튼이고, 마우스를 올리면 바 아래에 하위 링크 판이 열리고 슬롯을 나가면 닫힙니다(버튼과 판 사이의 틈은 보이지 않는 다리가 이어 줍니다). 마우스로 누르면 열기만 하고, 터치·펜·키보드는 누르면 열고 닫습니다. 한 번에 하나만 열리고 Esc, 판 밖 누름, 링크 누름, 포커스 이탈로도 닫힙니다. 좁은 화면에서는 하위 링크가 세로 목록에 펼쳐져 보입니다."
-            editable
-            code={`<HeaderBar
-  title="Store"
-  navStyle="dropdown"
-  items={[
+// 데모는 이동 없이 활성만 바꾸려고 href 대신 onClick을 쓴다. 코드에는 가장 흔한 href 모양을 적는다
+const CODE_ITEMS: Record<string, string> = {
+  pill: `[
+    { label: '상품', href: '/products', active: true },
+    { label: '카테고리', href: '/categories' },
+    { label: '이벤트', href: '/events' },
+  ]`,
+  icon: `[
+    { icon: <House size={20} />, label: '홈', href: '/', active: true },
+    { icon: <LayoutGrid size={20} />, label: '카테고리', href: '/categories' },
+    { icon: <Gift size={20} />, label: '이벤트', href: '/events' },
+  ]`,
+  dropdown: `[
     {
       label: '상품',
       links: [
-        { label: '전체 상품', href: '#' },
-        { label: '신상품', href: '#' },
-        { label: '할인', href: '#' },
+        { label: '전체 상품', href: '/products' },
+        { label: '신상품', href: '/new' },
       ],
     },
     {
       label: '고객지원',
       links: [
-        { label: '자주 묻는 질문', href: '#' },
-        { label: '문의하기', href: '#' },
+        { label: '문의하기', href: '/contact' },
       ],
     },
-    { label: '이벤트', href: '#' },
-  ]}
-/>`}
-          />
-        </div>
+    { label: '이벤트', href: '/events' },
+  ]`,
+  cards: `[
+    {
+      label: '상품',
+      links: [
+        { label: '전체 상품', href: '/products' },
+        { label: '신상품', href: '/new' },
+      ],
+    },
+    {
+      label: '고객지원',
+      links: [
+        { label: '문의하기', href: '/contact' },
+      ],
+    },
+    { label: '이벤트', href: '/events' },
+  ]`,
+};
+CODE_ITEMS.text = CODE_ITEMS.pill;
 
-        <div className={styles.example}>
-          <h3 className={styles.exampleTitle}>navStyle: cards</h3>
-          <LivePreview
-            title="카드 펼침"
-            description="햄버거(모든 폭에서 보임)를 누르면 바 뒤의 면이 아래로 자라고, 면이 3/4쯤 자랐을 때부터 카드가 80ms 시차로 솟습니다. 닫으면 거꾸로 카드가 먼저 가라앉고 면이 줄어듭니다. 면은 겹쳐 자라 아래 내용을 밀지 않습니다. 항목은 바 안이 아니라 카드에만 있고, links가 없는 항목은 카드 제목이 곧 링크입니다. 카드는 셋 이하를 권장합니다. 아래 미리보기는 펼친 카드가 잘리지 않게 높이를 확보했습니다."
-            editable
-            code={`<div style={{ width: '100%', minHeight: '460px' }}>
-  <HeaderBar
-    title="TUI"
-    navStyle="cards"
-    items={[
-      {
-        label: '회사 소개',
-        links: [
-          { label: '비전', href: '#' },
-          { label: '팀', href: '#' },
-        ],
-      },
-      {
-        label: '프로젝트',
-        links: [
-          { label: '주요 사례', href: '#' },
-          { label: '진행 중', href: '#' },
-        ],
-      },
-      {
-        label: '연락',
-        links: [
-          { label: '이메일', href: '#' },
-          { label: '트위터', href: '#' },
-          { label: '링크드인', href: '#' },
-        ],
-      },
-    ]}
-  />
-</div>`}
-          />
-        </div>
+const ICON_IMPORTS = [
+  { name: 'House', from: 'lucide-react' },
+  { name: 'LayoutGrid', from: 'lucide-react' },
+  { name: 'Gift', from: 'lucide-react' },
+];
 
-        {/* sticky */}
-        <div className={styles.example}>
-          <h3 className={styles.exampleTitle}>sticky</h3>
-          <LivePreview
-            title="스크롤해도 위에 붙는 바"
-            description="sticky를 켜면 가장 가까운 스크롤 상자의 위에 바가 붙어 내용이 지나가도 따라옵니다. sticky는 스크롤 상자가 있어야 보이므로 아래 미리보기는 높이를 고정한 상자 안에 바와 긴 내용을 넣었습니다. 상자 안을 스크롤해 보세요."
-            editable
-            code={`<div style={{ width: '100%', height: '280px', overflow: 'auto' }}>
-  <HeaderBar
-    sticky
-    title="Store"
-    items={[
-      { label: '상품', href: '#', active: true },
-      { label: '카테고리', href: '#' },
-      { label: '이벤트', href: '#' },
-    ]}
-  />
-  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', padding: '1rem' }}>
-    {Array.from({ length: 8 }, (_, i) => (
-      <Card key={i} title={'상품 ' + (i + 1)}>스크롤하는 동안에도 위의 바는 그 자리에 붙어 있습니다.</Card>
-    ))}
-  </div>
-</div>`}
-          />
-        </div>
+// 항목 하나를 가리킨다. 알약과 글자는 호버로 바탕이 차오르고 누르면 활성이 옮겨 간다
+const WALK = (act: Act) => {
+  for (const i of [1, 2, 0]) {
+    const item = `item:${i}`;
+    act.move(item);
+    act.hover(item);
+    act.wait(0.8);
+    act.press(item);
+    act.leave(item);
+    act.wait(0.6);
+  }
+  act.home();
+  act.wait(0.4);
+};
 
-        {/* Actions */}
-        <div className={styles.example}>
-          <h3 className={styles.exampleTitle}>Multiple Actions</h3>
-          <LivePreview
-            title="다중 액션"
-            description="actions 영역은 검색, 알림, 사용자 메뉴 등 기능적 버튼을 배치하는 우측 영역입니다. items가 페이지 이동 링크라면, actions는 앱 전역에서 동작하는 기능 버튼입니다."
-            editable
-            code={`<HeaderBar
-  logo={<Package size={24} />}
+// 하위 링크가 있는 항목에 올라가면 아래로 판이 열리고, 떠나면 닫힌다
+const DROP = (act: Act) => {
+  for (const i of [0, 1]) {
+    const item = `item:${i}`;
+    act.move(item);
+    act.hover(item);
+    act.wait(1.6);
+    act.leave(item);
+    act.wait(0.5);
+  }
+  act.home();
+  act.wait(0.4);
+};
+
+// 햄버거를 눌러 메뉴를 펼치고 다시 눌러 접는다. cards는 모든 폭에서, 나머지는 768px 미만에서 이렇게 열린다
+const BURGER = (act: Act) => {
+  act.move('menu');
+  act.hover('menu');
+  act.wait(0.3);
+  act.press('menu');
+  act.leave('menu');
+  act.wait(2);
+  act.move('menu');
+  act.press('menu');
+  act.wait(1);
+  act.home();
+  act.wait(0.4);
+};
+
+const SCRIPTS: Record<string, (act: Act) => void> = {
+  pill: WALK,
+  text: WALK,
+  icon: WALK,
+  dropdown: DROP,
+  cards: BURGER,
+};
+
+// core가 항목을 햄버거 뒤로 접는 경계(768px 미만)와 같다
+const NARROW = '(max-width: 767.98px)';
+const subscribeNarrow = (notify: () => void) => {
+  const query = window.matchMedia(NARROW);
+  query.addEventListener('change', notify);
+  return () => query.removeEventListener('change', notify);
+};
+const isNarrow = () => window.matchMedia(NARROW).matches;
+
+const PROPS: PropDefinition[] = [
+  {
+    name: 'logo',
+    type: 'ReactNode',
+    description: '왼쪽에 놓을 로고',
+  },
+  {
+    name: 'title',
+    type: 'ReactNode',
+    description: '로고 옆에 놓을 제목',
+  },
+  {
+    name: 'titleAs',
+    type: "'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6' | 'span'",
+    default: "'h1'",
+    description:
+      '제목 요소. 모양은 같다. 페이지에 이미 h1이 있으면 낮은 단계나 span을 고른다',
+  },
+  {
+    name: 'items',
+    type: 'HeaderBarItem[]',
+    description:
+      '가운데 항목. 항목은 label, href, onClick, icon, active, links를 가진다. href가 있으면 a, 없으면 button이다. active는 지금 보는 페이지다. icon은 navStyle이 icon일 때 모든 항목에 필요하다. links는 dropdown과 cards에서만 쓰이고 다른 형태에서는 무시된다',
+  },
+  {
+    name: 'navStyle',
+    type: "'pill' | 'text' | 'icon' | 'dropdown' | 'cards'",
+    default: "'pill'",
+    description:
+      '항목이 보이는 모습. 알약, 글자, 아이콘 알약, 드롭다운, 카드 펼침이다',
+  },
+  {
+    name: 'actions',
+    type: 'ReactNode',
+    description: '오른쪽에 놓을 버튼이나 아이콘',
+  },
+  {
+    name: 'sticky',
+    type: 'boolean',
+    default: 'false',
+    description: '스크롤해도 가장 가까운 스크롤 상자의 위에 붙어 따라온다',
+  },
+  {
+    name: 'aria-label',
+    type: 'string',
+    description: '스크린 리더가 읽는 헤더 이름',
+  },
+];
+
+const ITEMS_CODE = `<HeaderBar
   title="Store"
   items={[
-    { label: '상품', href: '#', active: true },
-    { label: '카테고리', href: '#' },
-    { label: '이벤트', href: '#' },
+    { label: '상품', href: '/products', active: true },
+    { label: '카테고리', href: '/categories' },
   ]}
-  actions={
-    <div style={{ display: 'flex', gap: '0.25rem', alignItems: 'center' }}>
-      <IconButton aria-label="검색" size="sm"><Search /></IconButton>
-      <IconButton aria-label="알림" size="sm"><Bell /></IconButton>
-      <IconButton aria-label="장바구니" size="sm"><ShoppingCart /></IconButton>
-      <Button size="sm">로그인</Button>
-    </div>
-  }
-/>`}
-          />
-        </div>
+  actions={<Button size="sm">로그인</Button>}
+/>`;
 
-        {/* Combination */}
-        <div className={styles.example}>
-          <h3 className={styles.exampleTitle}>Combination</h3>
-          <LivePreview
-            title="조합 예제"
-            description="로고, 제목, 항목, 액션을 모두 조합한 실제 사용 예시입니다."
-            editable
-            code={`<div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-  {/* 일반 웹 앱 헤더 */}
-  <HeaderBar
-    logo={<Package size={20} />}
-    title="Store"
-    items={[
-      { label: '상품', href: '#', active: true },
-      { label: '카테고리', href: '#' },
-      { label: '이벤트', href: '#' },
-    ]}
-    actions={
-      <div style={{ display: 'flex', gap: '0.25rem', alignItems: 'center' }}>
-        <IconButton aria-label="검색" size="sm"><Search /></IconButton>
-        <IconButton aria-label="장바구니" size="sm"><ShoppingCart /></IconButton>
-        <Button size="sm">로그인</Button>
-      </div>
-    }
-  />
-  {/* 관리자 대시보드 헤더 */}
-  <HeaderBar
-    logo={<Settings size={20} />}
-    title="Admin"
-    actions={
-      <div style={{ display: 'flex', gap: '0.25rem', alignItems: 'center' }}>
-        <Badge variant="error" size="sm">3</Badge>
-        <IconButton aria-label="알림" size="sm"><Bell /></IconButton>
-      </div>
-    }
-  />
-</div>`}
-          />
-        </div>
+const STICKY_CODE = `<div style={{ height: 280, overflow: 'auto' }}>
+  <HeaderBar sticky title="Store" items={items} />
+  {/* 긴 내용 */}
+</div>`;
 
-        {/* Narrow */}
-        <div className={styles.example}>
-          <h3 className={styles.exampleTitle}>좁은 화면</h3>
-          <p className={styles.sectionDescription}>
-            화면 너비가 768px 미만이면 items가 숨고 햄버거 버튼이 나타납니다.
-            누르면 바 아래에 세로 목록 판이 내용을 밀지 않고 겹쳐 열립니다. Esc,
-            판 밖 누름, 항목 누름으로 닫힙니다. 브라우저 창을 줄여서 확인하세요.
-          </p>
-        </div>
-      </section>
+function Usage() {
+  return (
+    <Topics>
+      <Topic title="항목과 액션">
+        <p className={t.body} style={{ marginBottom: 12 }}>
+          가운데 항목은 <code>items</code>로, 오른쪽 버튼은 <code>actions</code>
+          로 넘깁니다. 안쪽에 자식을 두는 자리는 없습니다. 항목에{' '}
+          <code>href</code>를 주면 링크, 주지 않으면 버튼이고 지금 보는 페이지
+          항목에는 <code>active</code>를 줍니다. 항목을 <code>items</code>로
+          넘겨야 nav 요소와 이름, 현재 페이지 표시, 좁은 화면 메뉴가 함께
+          따라옵니다.
+        </p>
+        <CodeBlock code={ITEMS_CODE} />
+      </Topic>
+      <Topic title="항목의 모습">
+        <p className={t.body}>
+          <code>pill</code>은 마우스를 올리거나 키보드로 포커스하면 아래에서
+          원이 차오르고 글자가 같은 글자로 바뀝니다. 들어올 때 0.3초, 나갈 때
+          0.2초이고 도중에 바뀌어도 지금 자리에서 이어받습니다. 활성 항목은 늘
+          채워져 있어서, 활성이 다른 항목으로 넘어가면 새 항목은 차오르고 옛
+          항목은 비워집니다. 터치에서는 움직이지 않습니다. <code>text</code>는
+          호버와 활성에 옅은 바탕이 깔리는 글자 링크, <code>icon</code>은 커서를
+          올린 아이콘만 커지는 아이콘 알약이고 모든 항목에 <code>icon</code>이
+          필요합니다. 이때 <code>label</code>은 접근 이름입니다.
+        </p>
+      </Topic>
+      <Topic title="하위 링크가 있는 형태">
+        <p className={t.body}>
+          <code>dropdown</code>과 <code>cards</code>는 항목의 <code>links</code>
+          를 씁니다. dropdown은 <code>links</code>가 있는 항목에 마우스를 올리면
+          아래에 작은 판이 열리고, 마우스로 누르면 열기만 합니다. 터치, 펜,
+          키보드는 누를 때마다 열고 닫습니다. 한 번에 하나만 열리며 Esc, 판 밖
+          누름, 링크 누름, 포커스 이탈로 닫힙니다. <code>cards</code>는 햄버거를
+          누르면 바 뒤의 면이 아래로 자라고 항목마다 카드가 80ms 시차로
+          솟습니다. 항목은 바 안이 아니라 카드에만 있고 <code>links</code>가
+          없는 항목은 카드 제목이 곧 링크입니다. 카드는 셋 이하를 권합니다.
+        </p>
+      </Topic>
+      <Topic title="좁은 화면">
+        <p className={t.body}>
+          화면이 768px보다 좁으면 <code>cards</code>를 뺀 모든 형태에서 항목이
+          숨고 햄버거가 나타납니다. 누르면 바 아래에 세로 목록 판이 내용을 밀지
+          않고 겹쳐 열리며 Esc, 판 밖 누름, 항목 누름으로 닫힙니다.{' '}
+          <code>dropdown</code>의 하위 링크는 접지 않고 들여 써서 펼쳐 보입니다.
+          위 무대를 375px 폭으로 보면 이 모습입니다.
+        </p>
+      </Topic>
+      <Topic title="스크롤에 붙이기와 제목 단계">
+        <p className={t.body} style={{ marginBottom: 12 }}>
+          <code>sticky</code>를 켜면 바가 가장 가까운 스크롤 상자의 위에
+          붙습니다. 위 여백 16px은 그대로 남습니다. 스크롤 상자가 없으면 붙을
+          곳이 없으니 상자를 두고 그 안에 둡니다.
+        </p>
+        <CodeBlock code={STICKY_CODE} />
+        <p className={t.body} style={{ margin: '16px 0 0' }}>
+          <code>title</code>은 기본으로 <code>h1</code>입니다. 이 페이지처럼
+          제목이 이미 있으면 <code>titleAs</code>로 낮은 단계나{' '}
+          <code>span</code>을 고릅니다. 위 무대의 바도 <code>span</code>입니다.
+        </p>
+      </Topic>
+    </Topics>
+  );
+}
 
-      {/* Props API */}
-      <section className={styles.section}>
-        <div className={styles.sectionHeader}>
-          <h2 className={styles.sectionTitle}>Props API</h2>
-          <p className={styles.sectionDescription}>
-            HeaderBar 컴포넌트의 모든 Props와 타입 정보입니다. HTML header
-            속성도 모두 사용 가능합니다.
-          </p>
-        </div>
-        <div className={styles.propsTableWrapper}>
-          <PropsTable props={propsData} />
-        </div>
-      </section>
+function A11y() {
+  return (
+    <ul className={`${t.list} ${t.body}`}>
+      <li>
+        <code>header</code> 요소라 문서 최상위에 두면 스크린 리더가 배너로
+        읽습니다. <code>section</code>, <code>article</code>, <code>aside</code>
+        , <code>nav</code>, <code>main</code> 안에 두면 배너가 아닙니다.
+      </li>
+      <li>
+        <code>items</code>는 이름이 &quot;주요 메뉴&quot;인 <code>nav</code>로
+        그려지고, 활성 항목에는 <code>aria-current=&quot;page&quot;</code>가
+        붙습니다. 활성의 보이는 표시는 바탕과 글자 모양이고 스크린 리더에는{' '}
+        <code>aria-current</code>가 알립니다.
+      </li>
+      <li>
+        햄버거는 <code>aria-expanded</code>와 <code>aria-controls</code>를 갖고
+        이름이 열림에 따라 &quot;메뉴 열기&quot;와 &quot;메뉴 닫기&quot;로
+        바뀝니다. Esc로 닫으면 포커스가 햄버거로 돌아옵니다.
+      </li>
+      <li>
+        dropdown 항목의 버튼은 <code>aria-expanded</code>와{' '}
+        <code>aria-controls</code>로 하위 링크 판을 가리킵니다. 닫힌 판은{' '}
+        <code>visibility: hidden</code>이라 Tab 순서와 접근성 트리에서 빠지고,
+        Esc로 닫으면 포커스가 그 버튼으로 돌아옵니다. 마우스를 올려 여는
+        판이지만 키보드와 스크린 리더는 버튼을 눌러 엽니다.
+      </li>
+      <li>
+        cards에서 <code>links</code>가 있는 카드는 제목을 이름으로 갖는{' '}
+        <code>group</code>입니다. <code>links</code>가 없는 카드는 이름이 링크
+        자신이라 그룹이 아닙니다. 닫힌 카드 층도 Tab 순서에서 빠집니다.
+      </li>
+      <li>
+        pill의 호버 채움은 키보드 포커스로도 일어납니다. 클릭으로 생긴 포커스는
+        채움을 남기지 않습니다.
+      </li>
+      <li>
+        개발자가 직접 해야 합니다. 한 페이지에 헤더바는 하나만 둡니다. 배너가
+        여럿이면 스크린 리더 사용자가 헷갈립니다. 페이지에 이미 <code>h1</code>
+        이 있으면 <code>titleAs</code>를 바꿉니다. 헤더 목적을 밝히려면{' '}
+        <code>aria-label</code>을 줍니다.
+      </li>
+      <li>
+        개발자가 직접 해야 합니다. icon 형태는 아이콘만 보이므로 모든 항목의{' '}
+        <code>label</code>이 접근 이름이 됩니다. 의미가 드러나게 씁니다.
+      </li>
+    </ul>
+  );
+}
 
-      {/* Accessibility */}
-      <AccessibilitySection
-        componentName="HeaderBar"
-        intro="HeaderBar 컴포넌트는 네이티브 HTML header 요소를 기반으로 다음과 같은 접근성을 기본 제공합니다."
-        features={[
-          {
-            attribute: '<header> 요소',
-            effect: '문서 최상위에 두면 스크린 리더에서 "배너"로 인식합니다.',
-            description:
-              'role을 따로 적지 않고 header 요소의 기본 의미에 맡깁니다. section·article·aside·nav·main 안에 두면 banner가 아닙니다. landmark로 스크린 리더 사용자가 헤더 영역으로 빠르게 이동할 수 있습니다.',
-          },
-          {
-            attribute: 'aria-label',
-            effect: '헤더의 목적을 설명합니다.',
-            description:
-              'aria-label prop으로 헤더의 역할을 명시할 수 있습니다.',
-          },
-          {
-            attribute: '<h1> 제목',
-            effect: '페이지 제목 구조를 전달합니다.',
-            description:
-              'title prop은 기본으로 h1 요소로 렌더링됩니다. 페이지에 이미 h1이 있으면 titleAs로 낮은 단계나 span을 고르세요.',
-          },
-          {
-            attribute: '3단 레이아웃',
-            effect: '논리적 순서로 콘텐츠가 배치됩니다.',
-            description:
-              '좌측(로고/제목) → 중앙(항목 nav) → 우측(액션, 햄버거) 순서로 DOM이 구성됩니다.',
-          },
-          {
-            attribute: 'aria-current="page"',
-            effect: '지금 보고 있는 페이지를 알립니다.',
-            description:
-              'active 항목에 붙습니다. 보이는 선택 표시는 바탕입니다(알약 형태는 채워진 알약과 글자 광휘, 글자·아이콘 형태는 옅은 바탕과 굵은 글자). 스크린 리더에는 aria-current가 알립니다.',
-          },
-          {
-            attribute: '햄버거의 aria-expanded · aria-controls',
-            effect: '메뉴가 열렸는지와 어떤 목록을 여는지를 알립니다.',
-            description:
-              '접근 이름은 열림 상태에 따라 "메뉴 열기"와 "메뉴 닫기"로 바뀌고, Esc로 닫으면 포커스가 햄버거로 돌아옵니다.',
-          },
-          {
-            attribute: 'dropdown 버튼의 aria-expanded · aria-controls',
-            effect: '하위 링크 판이 열렸는지와 어떤 판을 여는지를 알립니다.',
-            description:
-              'links가 있는 항목은 버튼이 되어 항상 있는 판을 가리킵니다. 마우스를 올리면 열리지만 키보드와 스크린 리더는 버튼을 눌러 엽니다. 닫힌 판은 visibility: hidden이라 탭 순서와 접근성 트리에서 빠지고, Esc로 닫으면 포커스가 그 버튼으로 돌아옵니다.',
-          },
-          {
-            attribute: 'cards 카드의 role="group" · aria-labelledby',
-            effect: '카드를 제목이 붙은 그룹으로 알립니다.',
-            description:
-              'links가 있는 카드는 제목을 이름으로 갖는 그룹입니다. links가 없는 카드는 이름이 링크 자신이라 두 번 읽히지 않게 그룹이 아닙니다. 닫힌 카드 층은 visibility: hidden이라 탭 순서와 접근성 트리에서 빠집니다.',
-          },
-        ]}
-        additionalGuidance={[
-          {
-            title: '페이지당 하나의 HeaderBar 사용',
-            description: '페이지에 banner landmark는 하나만 있어야 합니다.',
-            examples: [
-              {
-                code: `// Good - 페이지 최상단에 하나만 배치
-<HeaderBar title="My App" aria-label="메인 헤더" items={[...]} />
+type NavStyle = NonNullable<ComponentProps<typeof HeaderBar>['navStyle']>;
 
-// Bad - 여러 HeaderBar 사용
-<HeaderBar title="Top" />
-<HeaderBar title="Sub" />`,
-                explanation:
-                  '한 페이지에 최상위 header(banner)가 여러 개이면 스크린 리더 사용자가 혼란을 겪을 수 있습니다.',
-              },
-            ],
-          },
-          {
-            title: '항목은 items로 넘기기',
-            description:
-              'items를 쓰면 nav 요소와 이름("주요 메뉴"), 현재 페이지 표시, 좁은 화면 메뉴가 함께 따라옵니다.',
-            examples: [
-              {
-                code: `// Good
-<HeaderBar
-  title="App"
-  items={[
-    { label: '홈', href: '/', active: true },
-    { label: '소개', href: '/about' },
-  ]}
-/>
+const ICONS: Record<string, ReactNode> = {
+  상품: <House size={20} />,
+  카테고리: <LayoutGrid size={20} />,
+  이벤트: <Gift size={20} />,
+};
 
-// Bad - 가운데 슬롯(children)은 없습니다
-<HeaderBar title="App">
-  <a href="/">홈</a>
-</HeaderBar>`,
-                explanation:
-                  'children은 지워졌습니다. 링크 목록은 items로, 버튼 같은 요소는 actions로 넘기세요.',
-              },
-            ],
-          },
-        ]}
+const LINKS = [
+  [{ label: '전체 상품' }, { label: '신상품' }],
+  [{ label: '문의하기' }],
+];
+
+export function HeaderBarPage() {
+  const [values, setValues] = useState<Values>(INITIAL);
+  const [active, setActive] = useState(LABELS[0]);
+  // 시연이 멈출 때 바를 새로 세운다. 대본이 펼쳐 둔 메뉴나 호버로 채운 알약이 남지 않게 한다
+  const [run, setRun] = useState(0);
+  const narrow = useSyncExternalStore(subscribeNarrow, isNarrow);
+  const box = useRef<HTMLDivElement>(null);
+  const navStyle = String(values.navStyle) as NavStyle;
+
+  // core 항목은 data-* 를 받지 않는다. 그려진 요소에 이름표를 달아 대본이 찾게 한다
+  useEffect(() => {
+    const bar = box.current;
+    bar
+      ?.querySelector('nav[aria-label="주요 메뉴"]')
+      ?.querySelectorAll(':scope > *')
+      .forEach((el, i) => {
+        // dropdown의 하위 링크가 있는 항목은 슬롯 안의 버튼이 호버를 받는다
+        const target = el.matches('a, button')
+          ? el
+          : el.querySelector('button');
+        target?.setAttribute('data-stage-target', `item:${i}`);
+      });
+    bar
+      ?.querySelector('button[aria-label^="메뉴"]')
+      ?.setAttribute('data-stage-target', 'menu');
+  });
+
+  const common = {
+    title: 'Store',
+    titleAs: 'span' as const,
+    logo: values.logo === true ? <Palette size={24} /> : undefined,
+    actions:
+      values.actions === true ? <Button size="sm">시작하기</Button> : undefined,
+  };
+
+  const bar =
+    navStyle === 'icon' ? (
+      <HeaderBar
+        key={run}
+        {...common}
+        navStyle="icon"
+        items={LABELS.map((label) => ({
+          icon: ICONS[label],
+          label,
+          active: label === active,
+          onClick: () => setActive(label),
+        }))}
       />
+    ) : navStyle === 'dropdown' || navStyle === 'cards' ? (
+      <HeaderBar
+        key={run}
+        {...common}
+        navStyle={navStyle}
+        items={LINK_LABELS.map((label, i) => ({ label, links: LINKS[i] }))}
+      />
+    ) : (
+      <HeaderBar
+        key={run}
+        {...common}
+        navStyle={navStyle}
+        items={LABELS.map((label) => ({
+          label,
+          active: label === active,
+          onClick: () => setActive(label),
+        }))}
+      />
+    );
 
-      {/* Best Practices */}
-      <section className={styles.section}>
-        <div className={styles.sectionHeader}>
-          <h2 className={styles.sectionTitle}>Best Practices</h2>
-          <p className={styles.sectionDescription}>
-            HeaderBar를 효과적으로 사용하기 위한 권장사항입니다.
-          </p>
-        </div>
-
-        <div className={styles.practicesGrid}>
-          <Card>
-            <Card.Body padding="lg">
-              <div className={styles.practiceHeader}>
-                <span className={styles.practiceIcon}>✓</span>
-                <h3 className={styles.practiceTitle}>Do</h3>
-              </div>
-              <List spacing="sm" className={styles.practiceList}>
-                <ListItem>페이지 최상단에 하나만 배치</ListItem>
-                <ListItem>로고와 제목으로 브랜드 아이덴티티 표현</ListItem>
-                <ListItem>네비게이션 링크는 items로 전달</ListItem>
-                <ListItem>주요 액션 버튼은 actions 영역에 배치</ListItem>
-                <ListItem>긴 페이지에서 sticky 사용 고려</ListItem>
-                <ListItem>aria-label로 헤더 목적 명시</ListItem>
-              </List>
-            </Card.Body>
-          </Card>
-
-          <Card>
-            <Card.Body padding="lg">
-              <div className={styles.practiceHeader}>
-                <span className={styles.practiceIconError}>✗</span>
-                <h3 className={styles.practiceTitle}>Don't</h3>
-              </div>
-              <List spacing="sm" className={styles.practiceList}>
-                <ListItem>한 페이지에 여러 HeaderBar 사용하지 않기</ListItem>
-                <ListItem>
-                  actions에 너무 많은 요소 넣지 않기 (3개 이하 권장)
-                </ListItem>
-                <ListItem>sticky 사용 시 z-index 충돌 주의</ListItem>
-                <ListItem>
-                  좁은 화면에서 접히므로 items를 6개 넘게 넣지 않기
-                </ListItem>
-              </List>
-            </Card.Body>
-          </Card>
-        </div>
-      </section>
-    </article>
+  return (
+    <DetailLayout
+      name="HeaderBar"
+      lead={LEAD}
+      stage={
+        <Stage
+          label="HeaderBar 시연"
+          script={narrow ? BURGER : SCRIPTS[navStyle]}
+          onPause={() => setRun((n) => n + 1)}
+          bar
+        >
+          <div ref={box} style={{ width: '100%' }}>
+            {bar}
+          </div>
+        </Stage>
+      }
+      customize={
+        <Customize controls={CONTROLS} values={values} onChange={setValues} />
+      }
+      code={codeOf({
+        component: 'HeaderBar',
+        values: {
+          navStyle: values.navStyle,
+          logo: values.logo,
+          title: 'Store',
+          items: true,
+          actions: values.actions,
+        },
+        defaults: DEFAULTS,
+        notation: {
+          logo: {
+            expr: '<Palette size={24} />',
+            import: { name: 'Palette', from: 'lucide-react' },
+          },
+          items: { expr: CODE_ITEMS[navStyle] },
+          actions: {
+            expr: '<Button size="sm">시작하기</Button>',
+            import: { name: 'Button', from: '@taein-ui/core' },
+          },
+        },
+        imports: navStyle === 'icon' ? ICON_IMPORTS : [],
+      })}
+      props={PROPS}
+      usage={<Usage />}
+      a11y={<A11y />}
+    />
   );
 }

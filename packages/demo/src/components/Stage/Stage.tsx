@@ -60,6 +60,8 @@ export interface StageProps {
    * 오버레이(Popover)용이다. 넘겨받기는 마우스가 무대에 들어오거나 일시정지 단추로 한다(키보드가 안쪽으로 들어갈 길은 단추 뒤)
    */
   lockWhilePlaying?: boolean;
+  /** 헤더바처럼 위에 붙어 가로로 긴 컴포넌트용. 안쪽 폭이 22rem 대신 46rem까지 넓어지고 일시정지 단추 줄 아래 위쪽에 앉는다 */
+  bar?: boolean;
   className?: string;
 }
 
@@ -191,6 +193,7 @@ export function Stage({
   children,
   onPause,
   lockWhilePlaying,
+  bar,
   className,
 }: StageProps) {
   const reduced = useReducedMotion();
@@ -606,7 +609,9 @@ export function Stage({
         </div>
       )}
       <div
-        className={styles.inner}
+        className={[styles.inner, bar && styles.innerBar]
+          .filter(Boolean)
+          .join(' ')}
         inert={!!lockWhilePlaying && !!demo && playing}
       >
         {typeof children === 'function' ? layer && children(layer) : children}

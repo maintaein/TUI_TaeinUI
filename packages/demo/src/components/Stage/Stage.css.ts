@@ -49,6 +49,13 @@ export const inner = style({
   width: 'min(calc(100% - 2rem), 22rem)',
 });
 
+// 바(헤더바)는 22rem에 눌리지 않게 넓히고 일시정지 단추 줄 아래 위쪽에 앉힌다. 판이 아래로 열릴 자리가 남는다
+export const innerBar = style({
+  width: 'min(calc(100% - 2rem), 46rem)',
+  alignSelf: 'start',
+  marginTop: '3.5rem',
+});
+
 export const cursor = style({
   position: 'absolute',
   top: 0,
