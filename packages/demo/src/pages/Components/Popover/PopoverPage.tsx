@@ -1,467 +1,295 @@
-import { Card, List, ListItem } from '@taein-ui/core';
-import { LivePreview } from '../../../components/LivePreview';
+import { useState, type ComponentProps } from 'react';
+import { Button, Popover } from '@taein-ui/core';
 import { CodeBlock } from '../../../components/CodeBlock';
-import { PropsTable } from '../../../components/PropsTable';
-import type { PropDefinition } from '../../../components/PropsTable/PropsTable';
-import { AccessibilitySection } from '../../../components/AccessibilitySection';
-import * as styles from './PopoverPage.css';
+import {
+  Customize,
+  codeOf,
+  type Control,
+  type Values,
+} from '../../../components/Customize';
+import { DetailLayout, Topic, Topics } from '../../../components/DetailLayout';
+import * as t from '../../../components/DocText';
+import type { PropDefinition } from '../../../components/PropsTable';
+import { Stage, type Act } from '../../../components/Stage';
+
+const LEAD =
+  '프로필 메뉴나 날짜 선택기처럼 단추 바로 옆에 작은 패널을 띄웁니다. 단추 쪽 모서리에서 펼쳐지고, 바깥을 누르면 닫힙니다.';
+
+const CONTROLS: Control[] = [
+  {
+    prop: 'position',
+    kind: 'choice',
+    options: ['top', 'bottom', 'left', 'right'],
+  },
+  { prop: 'arrow', kind: 'toggle' },
+];
+
+const INITIAL: Values = {
+  position: 'bottom',
+  arrow: true,
+};
+
+const DEFAULTS: Values = {
+  position: 'bottom',
+};
+
+const NOTATION = {
+  open: { expr: 'open' },
+  onOpenChange: { expr: 'setOpen' },
+  content: {
+    expr: '\n    <div>\n      <p>김태인</p>\n      <Button onClick={logout}>로그아웃</Button>\n    </div>\n  ',
+    import: { name: 'Button', from: '@taein-ui/core' },
+  },
+};
+
+// 커서가 단추를 눌러 팝오버를 연다. 단추 쪽 모서리에서 펼쳐지고 잠시 머문 뒤, 커서가 바깥 영역을 눌러 닫는다
+// shortcut: 쉬는 시간 2초는 열림(0.3초)과 읽을 시간을 합친 값이다, 열림이 길어지면 같이 늘린다
+const SCRIPT = (act: Act) => {
+  act.move('trigger');
+  act.hover('trigger');
+  act.wait(0.3);
+  act.press('trigger');
+  act.leave('trigger');
+  act.wait(2);
+  act.move('away');
+  act.click('away');
+  act.wait(1.2);
+  act.home();
+  act.wait(0.4);
+};
+
+const PROPS: PropDefinition[] = [
+  {
+    name: 'children',
+    type: 'ReactElement',
+    required: true,
+    description:
+      '트리거. 받은 onClick과 aria 속성을 자기 루트의 눌리는 요소에 다는 단일 요소(Button, IconButton, Avatar). 누르면 이동하는 링크는 안 된다',
+  },
+  {
+    name: 'content',
+    type: 'ReactNode',
+    required: true,
+    description: '팝오버 안에 그릴 내용',
+  },
+  {
+    name: 'open',
+    type: 'boolean',
+    description:
+      '열림 여부. 주면 부모가 쥐고(제어), 안 주면 스스로 연다(비제어)',
+  },
+  {
+    name: 'onOpenChange',
+    type: '(open: boolean) => void',
+    description:
+      '열림이 바뀔 때 불린다. 트리거를 누를 때, 바깥을 누를 때, Esc를 누를 때',
+  },
+  {
+    name: 'position',
+    type: "'top' | 'bottom' | 'left' | 'right'",
+    default: "'bottom'",
+    description: '트리거에서 어느 쪽에 뜰지',
+  },
+  {
+    name: 'arrow',
+    type: 'boolean',
+    default: 'false',
+    description: '트리거를 가리키는 화살표',
+  },
+  {
+    name: 'maxWidth',
+    type: 'string',
+    description: '최대 너비(CSS 단위). 안 주면 내용 너비를 따른다(최소 120px)',
+  },
+  {
+    name: 'closeOnOutsideClick',
+    type: 'boolean',
+    default: 'true',
+    description: '바깥을 눌러 닫을지 여부',
+  },
+  {
+    name: 'closeOnEscape',
+    type: 'boolean',
+    default: 'true',
+    description: 'Esc 키로 닫을지 여부. 닫으면 포커스가 트리거로 돌아간다',
+  },
+  {
+    name: 'disabled',
+    type: 'boolean',
+    default: 'false',
+    description: '트리거를 눌러도 열리지 않게 한다',
+  },
+];
+
+const UNCONTROLLED = `<Popover content={<p>김태인</p>}>
+  <Button>계정</Button>
+</Popover>`;
+
+const CONTROLLED = `const [open, setOpen] = useState(false);
+
+<Popover
+  open={open}
+  onOpenChange={setOpen}
+  content={<Button onClick={() => setOpen(false)}>로그아웃</Button>}
+>
+  <Button>계정</Button>
+</Popover>`;
+
+function Usage() {
+  return (
+    <Topics>
+      <Topic title="언제 쓰나">
+        <p className={t.body}>
+          단추를 누르면 그 옆에 프로필 메뉴, 날짜 선택기, 짧은 설명과 동작 같은
+          작은 패널을 보여 주고 싶을 때 씁니다. 뒤 화면을 막고 답을 받아야 하면{' '}
+          <code>Modal</code>, 마우스를 올렸을 때 잠깐 보이는 설명은{' '}
+          <code>Tooltip</code>이 맞습니다.
+        </p>
+      </Topic>
+      <Topic title="스스로 열기와 부모가 쥐기">
+        <p className={t.body} style={{ marginBottom: 12 }}>
+          <code>open</code>을 주지 않으면 트리거를 눌러 스스로 열고 닫습니다.
+        </p>
+        <CodeBlock code={UNCONTROLLED} />
+        <p className={t.body} style={{ margin: '12px 0' }}>
+          안의 단추로 닫거나 다른 상태와 묶으려면 <code>open</code>과{' '}
+          <code>onOpenChange</code>를 줍니다. 열림이 바뀔 때마다 이 함수가
+          불립니다.
+        </p>
+        <CodeBlock code={CONTROLLED} />
+      </Topic>
+      <Topic title="닫기">
+        <p className={t.body}>
+          트리거를 다시 누르거나, 팝오버 바깥에서 마우스를 누르거나(
+          <code>mousedown</code>), Esc를 누르면 닫힙니다. 바깥을 눌러 닫을 때는
+          포커스를 옮기지 않고, Esc로 닫을 때만 포커스가 트리거로 돌아갑니다.{' '}
+          <code>closeOnOutsideClick</code>과 <code>closeOnEscape</code>로 각각
+          끌 수 있습니다.
+        </p>
+      </Topic>
+      <Topic title="포털 없이 트리거 옆에 그려집니다">
+        <p className={t.body}>
+          팝오버는 <code>document.body</code>로 옮겨 그리지 않고 트리거 바로
+          옆에 <code>position: absolute</code>로 그립니다. 그래서 위 무대처럼
+          부모가 <code>overflow: hidden</code>이면 부모 밖으로 나간 부분이
+          잘립니다. 가장자리에 놓는 트리거는 <code>position</code>으로 안쪽을
+          향하게 하거나 부모의 overflow를 확인하세요.
+        </p>
+      </Topic>
+      <Topic title="움직임">
+        <p className={t.body}>
+          트리거 쪽 모서리(화살표가 붙는 쪽)를 기준으로 0.6배에서 1배로 펼쳐지며
+          0.3초가 걸립니다. 불투명도는 그보다 짧게 0.15초에 끝납니다. 닫힐 때는
+          0.195초 동안 접힙니다.
+        </p>
+      </Topic>
+    </Topics>
+  );
+}
+
+function A11y() {
+  return (
+    <ul className={`${t.list} ${t.body}`}>
+      <li>
+        트리거에 <code>aria-haspopup=&quot;dialog&quot;</code>와{' '}
+        <code>aria-expanded</code>가 붙고, 열려 있는 동안{' '}
+        <code>aria-controls</code>가 팝오버를 가리킵니다.
+      </li>
+      <li>
+        팝오버는 <code>role=&quot;dialog&quot;</code>입니다. 열린 직후에도
+        포커스는 트리거에 남아 있고, Tab을 한 번 누르면 팝오버 안의 첫 번째
+        요소로 들어갑니다.
+      </li>
+      <li>
+        포커스를 가두지 않습니다. 한 번 더 누르면 팝오버 밖으로 나가고, 닫을 때
+        포커스를 트리거로 되돌리는 것은 Esc일 때뿐입니다.
+      </li>
+      <li>
+        <code>disabled</code>이면 트리거에 <code>aria-disabled</code>가
+        붙습니다.
+      </li>
+      <li>
+        개발자가 직접 해야 합니다. 팝오버 다이얼로그에 이름을 붙이는 prop이
+        없으므로 안에 제목 글을 두어 무엇인지 읽히게 합니다. 트리거는 누를 수
+        있는 요소 하나여야 하고, 키보드로도 닫을 수 있도록 Esc를 끄지 않습니다.
+      </li>
+    </ul>
+  );
+}
+
+type Position = ComponentProps<typeof Popover>['position'];
 
 export function PopoverPage() {
-  const propsData: PropDefinition[] = [
-    {
-      name: 'children',
-      type: 'ReactElement',
-      required: true,
-      description:
-        '트리거 요소. 상호작용 가능한 단일 요소여야 합니다 (Button, IconButton, Avatar 등). onClick과 aria-haspopup·aria-expanded·aria-controls가 이 요소에 직접 붙습니다.',
-    },
-    {
-      name: 'content',
-      type: 'ReactNode',
-      required: true,
-      description: '팝오버 내부에 표시할 콘텐츠',
-    },
-    {
-      name: 'open',
-      type: 'boolean',
-      default: 'undefined',
-      description: '제어 모드: 팝오버 표시 여부를 외부에서 제어',
-    },
-    {
-      name: 'onOpenChange',
-      type: '(open: boolean) => void',
-      default: 'undefined',
-      description: '팝오버 표시 상태가 변경될 때 호출되는 콜백',
-    },
-    {
-      name: 'position',
-      type: "'top' | 'bottom' | 'left' | 'right'",
-      default: "'bottom'",
-      description: '팝오버 표시 위치',
-    },
-    {
-      name: 'closeOnOutsideClick',
-      type: 'boolean',
-      default: 'true',
-      description: '팝오버 외부 클릭 시 자동 닫기',
-    },
-    {
-      name: 'closeOnEscape',
-      type: 'boolean',
-      default: 'true',
-      description: 'ESC 키 입력 시 자동 닫기',
-    },
-    {
-      name: 'arrow',
-      type: 'boolean',
-      default: 'false',
-      description: '팝오버에 화살표 표시',
-    },
-    {
-      name: 'maxWidth',
-      type: 'string',
-      default: 'undefined',
-      description: '팝오버 최대 너비',
-    },
-    {
-      name: 'disabled',
-      type: 'boolean',
-      default: 'false',
-      description: '비활성화 상태 (클릭 무시)',
-    },
-    {
-      name: 'className',
-      type: 'string',
-      default: 'undefined',
-      description: '추가 CSS 클래스',
-    },
-  ];
+  const [values, setValues] = useState<Values>(INITIAL);
+  const [open, setOpen] = useState(false);
 
   return (
-    <article className={styles.container}>
-      {/* Header */}
-      <header className={styles.header}>
-        <h1 className={styles.title}>Popover</h1>
-        <p className={styles.description}>
-          Popover 컴포넌트는 프로필 메뉴, 날짜 선택기, 필터 패널 등 특정 요소를
-          클릭했을 때 근처에 패널을 띄울 때 사용합니다.
-        </p>
-      </header>
-
-      {/* Quick Reference */}
-      <section className={styles.quickReference}>
-        <Card className={styles.quickRefCard}>
-          <Card.Body padding="md">
-            <h3 className={styles.quickRefTitle}>Import</h3>
-            <CodeBlock
-              language="typescript"
-              code={`import { Popover } from '@taein-ui/core';`}
-            />
-          </Card.Body>
-        </Card>
-        <Card className={styles.quickRefCard}>
-          <Card.Body padding="md">
-            <h3 className={styles.quickRefTitle}>Basic Usage</h3>
-            <CodeBlock
-              language="tsx"
-              code={`<Popover content={<div>팝오버 내용</div>}>
-  <Button>열기</Button>
-</Popover>`}
-            />
-          </Card.Body>
-        </Card>
-      </section>
-
-      {/* Examples Section */}
-      <section className={styles.section}>
-        <div className={styles.sectionHeader}>
-          <h2 className={styles.sectionTitle}>Examples</h2>
-          <p className={styles.sectionDescription}>
-            다양한 사용 사례에 맞는 Popover 예제입니다.
-          </p>
-        </div>
-
-        {/* Basic (Uncontrolled) */}
-        <div className={styles.example}>
-          <h3 className={styles.exampleTitle}>Basic Popover</h3>
-          <LivePreview
-            title="기본 사용법 (비제어)"
-            description="가장 기본적인 비제어 모드 Popover입니다. 트리거를 클릭하면 열리고, 바깥 클릭이나 ESC로 닫힙니다."
-            editable
-            code={`<Popover maxWidth="240px" content={<div style={{ padding: '1rem' }}><p style={{ margin: 0, fontSize: '0.875rem' }}>안녕하세요! 팝오버 콘텐츠입니다.</p></div>}>
-  <Button>팝오버 열기</Button>
-</Popover>`}
-          />
-        </div>
-
-        {/* Controlled */}
-        <div className={styles.example}>
-          <h3 className={styles.exampleTitle}>Controlled</h3>
-          <LivePreview
-            title="제어 모드"
-            description="open과 onOpenChange를 사용하여 외부에서 팝오버 상태를 제어할 수 있습니다."
-            editable
-            code={`const [open, setOpen] = useState(false);
-
-<div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-  <Popover
-    open={open}
-    onOpenChange={setOpen}
-    maxWidth="200px"
-    content={<div style={{ padding: '1rem' }}><p style={{ margin: 0, fontSize: '0.875rem' }}>제어 모드 팝오버</p></div>}
-  >
-    <Button>트리거</Button>
-  </Popover>
-  <Button variant="light" onClick={() => setOpen(false)}>외부에서 닫기</Button>
-</div>`}
-          />
-        </div>
-
-        {/* Position */}
-        <div className={styles.example}>
-          <h3 className={styles.exampleTitle}>Position</h3>
-          <LivePreview
-            title="위치 옵션"
-            description="top, bottom, left, right 4가지 위치를 지원합니다."
-            editable
-            code={`<div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', justifyContent: 'center', padding: '4rem 2rem' }}>
-  <Popover position="top" content={<div style={{ padding: '0.75rem' }}><p style={{ margin: 0, fontSize: '0.875rem' }}>Top</p></div>}>
-    <Button variant="light">Top</Button>
-  </Popover>
-  <Popover position="bottom" content={<div style={{ padding: '0.75rem' }}><p style={{ margin: 0, fontSize: '0.875rem' }}>Bottom</p></div>}>
-    <Button variant="light">Bottom</Button>
-  </Popover>
-  <Popover position="left" content={<div style={{ padding: '0.75rem' }}><p style={{ margin: 0, fontSize: '0.875rem' }}>Left</p></div>}>
-    <Button variant="light">Left</Button>
-  </Popover>
-  <Popover position="right" content={<div style={{ padding: '0.75rem' }}><p style={{ margin: 0, fontSize: '0.875rem' }}>Right</p></div>}>
-    <Button variant="light">Right</Button>
-  </Popover>
-</div>`}
-          />
-        </div>
-
-        {/* Arrow */}
-        <div className={styles.example}>
-          <h3 className={styles.exampleTitle}>With Arrow</h3>
-          <LivePreview
-            title="화살표"
-            description="arrow prop으로 팝오버에 화살표를 표시합니다. 트리거와의 시각적 연결성을 높여줍니다."
-            editable
-            code={`<div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', justifyContent: 'center', padding: '4rem 2rem' }}>
-  <Popover arrow position="top" content={<div style={{ padding: '0.75rem' }}><p style={{ margin: 0, fontSize: '0.875rem' }}>Top Arrow</p></div>}>
-    <Button variant="light">Top</Button>
-  </Popover>
-  <Popover arrow position="bottom" content={<div style={{ padding: '0.75rem' }}><p style={{ margin: 0, fontSize: '0.875rem' }}>Bottom Arrow</p></div>}>
-    <Button variant="light">Bottom</Button>
-  </Popover>
-  <Popover arrow position="left" content={<div style={{ padding: '0.75rem' }}><p style={{ margin: 0, fontSize: '0.875rem' }}>Left Arrow</p></div>}>
-    <Button variant="light">Left</Button>
-  </Popover>
-  <Popover arrow position="right" content={<div style={{ padding: '0.75rem' }}><p style={{ margin: 0, fontSize: '0.875rem' }}>Right Arrow</p></div>}>
-    <Button variant="light">Right</Button>
-  </Popover>
-</div>`}
-          />
-        </div>
-
-        {/* Rich Content */}
-        <div className={styles.example}>
-          <h3 className={styles.exampleTitle}>Rich Content</h3>
-          <LivePreview
-            title="풍부한 콘텐츠"
-            description="Popover의 content에 TUI 컴포넌트를 조합하여 메뉴, 카드, 폼 등 다양한 콘텐츠를 담을 수 있습니다."
-            editable
-            code={`const [open, setOpen] = useState(false);
-const menu = (
-  <div style={{ minWidth: '200px' }}>
-    <div style={{ padding: '0.75rem 1rem' }}>
-      <p style={{ margin: 0, fontWeight: 600 }}>설정 메뉴</p>
-    </div>
-    <Divider spacing="sm" />
-    <List spacing="sm" style={{ padding: '0.25rem 0.5rem' }}>
-      <ListItem style={{ padding: '0.5rem', borderRadius: '6px', cursor: 'pointer' }}>일반</ListItem>
-      <ListItem style={{ padding: '0.5rem', borderRadius: '6px', cursor: 'pointer' }}>알림</ListItem>
-      <ListItem style={{ padding: '0.5rem', borderRadius: '6px', cursor: 'pointer' }}>보안</ListItem>
-    </List>
-    <Divider spacing="sm" />
-    <List spacing="sm" style={{ padding: '0.25rem 0.5rem 0.5rem' }}>
-      <ListItem style={{ padding: '0.5rem', borderRadius: '6px', cursor: 'pointer' }}>
-        <p style={{ margin: 0, fontSize: '0.875rem', color: themeContract.color.error.dark }}>로그아웃</p>
-      </ListItem>
-    </List>
-  </div>
-);
-
-<Popover open={open} onOpenChange={setOpen} content={menu}>
-  <Button variant="dark">설정</Button>
-</Popover>`}
-          />
-        </div>
-
-        {/* IconButton Trigger */}
-        <div className={styles.example}>
-          <h3 className={styles.exampleTitle}>IconButton Trigger</h3>
-          <LivePreview
-            title="IconButton 트리거"
-            description="트리거는 Button에 한정되지 않습니다. 클릭 가능한 요소라면 IconButton처럼 아이콘만 있는 버튼도 감쌀 수 있습니다."
-            editable
-            code={`<Popover
-  position="bottom"
-  content={
-    <List spacing="sm" style={{ padding: '0.25rem 0.5rem', minWidth: '140px' }}>
-      <ListItem style={{ padding: '0.5rem', borderRadius: '6px', cursor: 'pointer' }}>편집</ListItem>
-      <ListItem style={{ padding: '0.5rem', borderRadius: '6px', cursor: 'pointer' }}>복제</ListItem>
-      <ListItem style={{ padding: '0.5rem', borderRadius: '6px', cursor: 'pointer' }}>
-        <p style={{ margin: 0, fontSize: '0.875rem', color: themeContract.color.error.dark }}>삭제</p>
-      </ListItem>
-    </List>
-  }
->
-  <IconButton aria-label="더보기"><Ellipsis /></IconButton>
-</Popover>`}
-          />
-        </div>
-
-        {/* Avatar Trigger */}
-        <div className={styles.example}>
-          <h3 className={styles.exampleTitle}>Avatar Trigger</h3>
-          <LivePreview
-            title="Avatar 트리거"
-            description="onClick을 따로 넘기지 않아도 Avatar가 버튼이 되어 클릭과 키보드(Enter·Space)로 열립니다."
-            editable
-            code={`<Popover
-  position="bottom"
-  content={
-    <div style={{ minWidth: '220px' }}>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.125rem', padding: '0.75rem 1rem' }}>
-        <p style={{ margin: 0, fontWeight: 600 }}>홍길동</p>
-        <p style={{ margin: 0, fontSize: '0.75rem', color: themeContract.color.text.secondary }}>hong@example.com</p>
-      </div>
-      <Divider spacing="sm" />
-      <List spacing="sm" style={{ padding: '0.25rem 0.5rem 0.5rem' }}>
-        <ListItem style={{ padding: '0.5rem', borderRadius: '6px', cursor: 'pointer' }}>설정</ListItem>
-        <ListItem style={{ padding: '0.5rem', borderRadius: '6px', cursor: 'pointer' }}>
-          <p style={{ margin: 0, fontSize: '0.875rem', color: themeContract.color.error.dark }}>로그아웃</p>
-        </ListItem>
-      </List>
-    </div>
-  }
->
-  <Avatar src="https://i.pravatar.cc/150?img=40" alt="프로필 메뉴" size="lg" />
-</Popover>`}
-          />
-        </div>
-
-        {/* Close Options */}
-        <div className={styles.example}>
-          <h3 className={styles.exampleTitle}>Close Options</h3>
-          <LivePreview
-            title="닫기 옵션"
-            description="closeOnOutsideClick, closeOnEscape로 닫기 동작을 세밀하게 제어할 수 있습니다."
-            editable
-            code={`<div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem' }}>
-  <Popover
-    closeOnOutsideClick={false}
-    maxWidth="260px"
-    content={<div style={{ padding: '1rem' }}><p style={{ margin: 0, fontSize: '0.875rem' }}>바깥 클릭으로 닫히지 않습니다.</p></div>}
-  >
-    <Button variant="light">Outside Click 무시</Button>
-  </Popover>
-  <Popover
-    closeOnEscape={false}
-    maxWidth="240px"
-    content={<div style={{ padding: '1rem' }}><p style={{ margin: 0, fontSize: '0.875rem' }}>ESC로 닫히지 않습니다.</p></div>}
-  >
-    <Button variant="light">ESC 무시</Button>
-  </Popover>
-</div>`}
-          />
-        </div>
-      </section>
-
-      {/* Props API */}
-      <section className={styles.section}>
-        <div className={styles.sectionHeader}>
-          <h2 className={styles.sectionTitle}>Props API</h2>
-          <p className={styles.sectionDescription}>
-            Popover 컴포넌트의 모든 Props와 타입 정보입니다. HTML div 속성도
-            사용 가능합니다.
-          </p>
-        </div>
-        <div className={styles.propsTableWrapper}>
-          <PropsTable props={propsData} />
-        </div>
-      </section>
-
-      {/* Accessibility */}
-      <AccessibilitySection
-        componentName="Popover"
-        intro="Popover 컴포넌트는 다음과 같은 접근성을 기본 제공합니다."
-        features={[
-          {
-            attribute: 'role="dialog"',
-            effect: '팝오버를 대화 상자로 인식합니다.',
-            description:
-              '팝오버 콘텐츠에 role="dialog"가 설정되어 스크린 리더에서 대화 상자로 인식합니다.',
-          },
-          {
-            attribute: 'aria-haspopup="dialog"',
-            effect: '트리거에 팝업이 있음을 알립니다.',
-            description:
-              '트리거 요소에 aria-haspopup="dialog"가 설정되어 팝업의 존재를 미리 알립니다.',
-          },
-          {
-            attribute: 'aria-expanded',
-            effect: '팝오버의 열림/닫힘 상태를 전달합니다.',
-            description:
-              '트리거의 aria-expanded가 팝오버 상태에 따라 true/false로 변경됩니다.',
-          },
-          {
-            attribute: 'aria-controls',
-            effect: '트리거와 팝오버를 연결합니다.',
-            description:
-              '팝오버가 열릴 때 aria-controls로 트리거와 팝오버 콘텐츠를 연결합니다.',
-          },
-          {
-            attribute: 'aria-disabled="true"',
-            effect: '비활성 트리거를 누를 수 없다고 알립니다.',
-            description:
-              'disabled일 때 트리거에 aria-disabled="true"가 달립니다. aria-haspopup과 aria-expanded는 그대로 둡니다. 트리거에 aria-disabled나 disabled를 직접 줬다면 그 값을 따릅니다.',
-          },
-          {
-            attribute: 'Escape 키',
-            effect: 'ESC 키로 팝오버를 닫습니다.',
-            description:
-              'ESC를 누르면 팝오버가 닫히고 포커스가 트리거로 복귀합니다.',
-          },
-          {
-            attribute: '포커스 관리',
-            effect: '열릴 때 첫 focusable 요소로 포커스가 이동합니다.',
-            description:
-              '팝오버가 열리면 내부의 첫 포커스 가능한 요소로 포커스가 이동하고, 닫히면 트리거로 복귀합니다.',
-          },
-        ]}
-        additionalGuidance={[
-          {
-            title: 'Tooltip과의 구분',
-            description:
-              'Tooltip은 hover 시 짧은 텍스트를 보여주는 용도이고, Popover는 클릭 시 인터랙티브한 콘텐츠를 표시하는 용도입니다.',
-            examples: [
-              {
-                code: `// Popover: 클릭 인터랙션, 인터랙티브 콘텐츠
-<Popover content={<MenuList />}>
-  <Button>메뉴</Button>
-</Popover>
-
-// Tooltip: 호버 인터랙션, 텍스트 정보
-<Tooltip content="삭제합니다">
-  <IconButton buttonStyle="strong" aria-label="삭제"><Trash /></IconButton>
-</Tooltip>`,
-                explanation:
-                  'Popover는 버튼, 링크, 폼 등 인터랙티브 요소를 포함할 수 있습니다.',
-              },
-            ],
-          },
-        ]}
-      />
-
-      {/* Best Practices */}
-      <section className={styles.section}>
-        <div className={styles.sectionHeader}>
-          <h2 className={styles.sectionTitle}>Best Practices</h2>
-          <p className={styles.sectionDescription}>
-            Popover를 효과적으로 사용하기 위한 권장사항입니다.
-          </p>
-        </div>
-
-        <div className={styles.practicesGrid}>
-          <Card>
-            <Card.Body padding="lg">
-              <div className={styles.practiceHeader}>
-                <span className={styles.practiceIcon}>✓</span>
-                <h3 className={styles.practiceTitle}>Do</h3>
+    <DetailLayout
+      name="Popover"
+      lead={LEAD}
+      stage={
+        // 팝오버는 포털이 아니라 인라인이고 열릴 때 포커스를 가져가므로, 자동 시연 중에는 무대 안을 inert로 둔다
+        <Stage
+          label="Popover 시연"
+          script={SCRIPT}
+          onPause={() => setOpen(false)}
+          lockWhilePlaying
+        >
+          <Popover
+            open={open}
+            onOpenChange={setOpen}
+            position={values.position as Position}
+            arrow={values.arrow === true}
+            content={
+              <div style={{ display: 'grid', gap: 8, padding: 12 }}>
+                <p style={{ margin: 0 }}>김태인</p>
+                <Button
+                  size="sm"
+                  variant="light"
+                  onClick={() => setOpen(false)}
+                >
+                  로그아웃
+                </Button>
               </div>
-              <List spacing="sm" className={styles.practiceList}>
-                <ListItem>
-                  드롭다운 메뉴, 프로필 카드 등 인터랙티브 콘텐츠에 사용
-                </ListItem>
-                <ListItem>제어 모드로 외부 상태와 연동</ListItem>
-                <ListItem>팝오버 내부에 명확한 액션 버튼 배치</ListItem>
-                <ListItem>트리거 요소에 클릭 가능한 시각적 힌트 제공</ListItem>
-                <ListItem>
-                  콘텐츠 양이 적을 때 사용 (많으면 Modal 사용)
-                </ListItem>
-              </List>
-            </Card.Body>
-          </Card>
-
-          <Card>
-            <Card.Body padding="lg">
-              <div className={styles.practiceHeader}>
-                <span className={styles.practiceIconError}>✗</span>
-                <h3 className={styles.practiceTitle}>Don't</h3>
-              </div>
-              <List spacing="sm" className={styles.practiceList}>
-                <ListItem>
-                  단순 텍스트 정보에 Popover 사용하지 않기 (Tooltip 사용)
-                </ListItem>
-                <ListItem>팝오버 안에 또 다른 팝오버를 중첩하지 않기</ListItem>
-                <ListItem>
-                  긴 폼이나 복잡한 콘텐츠에 사용하지 않기 (Modal 사용)
-                </ListItem>
-                <ListItem>
-                  closeOnOutsideClick과 closeOnEscape를 동시에 false로 설정하지
-                  않기
-                </ListItem>
-                <ListItem>
-                  팝오버 트리거를 비인터랙티브 요소로 사용하지 않기
-                </ListItem>
-              </List>
-            </Card.Body>
-          </Card>
-        </div>
-      </section>
-    </article>
+            }
+          >
+            <Button data-stage-target="trigger" size="sm">
+              계정
+            </Button>
+          </Popover>
+          {/* 바깥 누름을 보이는 자리. 무대 왼쪽 아래 구석이다 */}
+          <span
+            data-stage-target="away"
+            style={{
+              position: 'fixed',
+              left: 16,
+              bottom: 16,
+              fontSize: '0.875rem',
+              opacity: 0.6,
+            }}
+          >
+            바깥 영역
+          </span>
+        </Stage>
+      }
+      customize={
+        <Customize controls={CONTROLS} values={values} onChange={setValues} />
+      }
+      code={codeOf({
+        component: 'Popover',
+        values: {
+          open: true,
+          onOpenChange: true,
+          content: true,
+          ...values,
+          children: '<Button>계정</Button>',
+        },
+        defaults: DEFAULTS,
+        notation: NOTATION,
+      })}
+      props={PROPS}
+      usage={<Usage />}
+      a11y={<A11y />}
+    />
   );
 }

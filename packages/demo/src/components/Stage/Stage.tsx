@@ -21,6 +21,8 @@ export interface Act {
   leave: (target: string) => void;
   /** 합성 pointerdown, 잠깐 뒤 pointerup과 click. 누르는 동안 대상과 무대 안 조상에 data-stage-active를 붙여 CSS :active 쌍둥이 규칙을 켠다. 커서는 눌렸다 돌아온다. holdSeconds를 주면 그만큼 누른 채 있는다(길게 누르기) */
   press: (target: string, holdSeconds?: number) => void;
+  /** press와 같되 합성 mousedown과 mouseup도 쏜다. 문서의 mousedown으로 바깥 누름을 읽는 core 컴포넌트(Popover)용 */
+  click: (target: string, holdSeconds?: number) => void;
   wait: (seconds: number) => void;
   /** 커서를 무대 안 쉬는 자리로 되돌린다 */
   home: (seconds?: number) => void;
@@ -53,6 +55,11 @@ export interface StageProps {
   children: ReactNode | ((container: HTMLElement) => ReactNode);
   /** 무대가 시연을 멈출 때(진짜 입력이 넘겨받음, 일시정지, 화면 밖, 탭 숨김) 부른다. 대본이 열어 둔 오버레이를 닫는 데 쓴다 */
   onPause?: () => void;
+  /**
+   * 자동 시연 중 무대 안 내용 전체를 `inert`로 둔다. 포털이 아니라 인라인으로 뜨면서 열릴 때 포커스를 가져가는
+   * 오버레이(Popover)용이다. 넘겨받기는 마우스가 무대에 들어오거나 일시정지 단추로 한다(키보드가 안쪽으로 들어갈 길은 단추 뒤)
+   */
+  lockWhilePlaying?: boolean;
   className?: string;
 }
 
@@ -149,7 +156,10 @@ const clearMirror = (root: Element) => {
 
 // React의 onMouseEnter와 onMouseLeave는 pointer가 아니라 mouseover와 mouseout에서 만들어진다.
 // relatedTarget이 없으면 창 밖에서 들어오고 나가는 것으로 읽혀 대상과 그 조상 모두에 enter와 leave가 간다
-const fireMouse = (el: Element | null, type: 'mouseover' | 'mouseout') =>
+const fireMouse = (
+  el: Element | null,
+  type: 'mouseover' | 'mouseout' | 'mousedown' | 'mouseup'
+) =>
   el?.dispatchEvent(
     new MouseEvent(type, { bubbles: true, cancelable: true, view: window })
   );
@@ -180,6 +190,7 @@ export function Stage({
   script,
   children,
   onPause,
+  lockWhilePlaying,
   className,
 }: StageProps) {
   const reduced = useReducedMotion();
@@ -245,6 +256,36 @@ export function Stage({
 
     // 대상 위치는 반복마다 다시 잰다(창 크기, 조작판으로 바뀐 버튼 크기)
     const tl = gsap.timeline({ repeat: -1, repeatRefresh: true, delay: 0.6 });
+    // 누름과 뗌을 한 호출에서 끝낸다. 중간에 멈춰도 눌린 채 남지 않는다
+    const pressWith = (target: string, holdSeconds: number, mouse: boolean) => {
+      tl.call(() => {
+        const el = find(target);
+        firePointer(el, 'pointerdown');
+        if (mouse) fireMouse(el, 'mousedown');
+        mark(el, root, ACTIVE_ATTR, true);
+        const id = window.setTimeout(
+          () => {
+            timers.delete(id);
+            firePointer(el, 'pointerup');
+            if (mouse) fireMouse(el, 'mouseup');
+            mark(el, root, ACTIVE_ATTR, false);
+            el?.click();
+          },
+          (dur.fast + holdSeconds) * 1000
+        );
+        timers.add(id);
+      })
+        .to(cur, {
+          scale: CURSOR_SCALE,
+          duration: dur.fast,
+          ease: ease.settle,
+        })
+        .to(
+          cur,
+          { scale: 1, duration: dur.fast, ease: ease.settle },
+          `+=${holdSeconds}`
+        );
+    };
     const act: Act = {
       move: (target, seconds = dur.slow * 2) => {
         tl.to(cur, {
@@ -271,34 +312,10 @@ export function Stage({
           mark(el, root, HOVER_ATTR, false);
         });
       },
-      press: (target, holdSeconds = HOLD) => {
-        // 누름과 뗌을 한 호출에서 끝낸다. 중간에 멈춰도 눌린 채 남지 않는다
-        tl.call(() => {
-          const el = find(target);
-          firePointer(el, 'pointerdown');
-          mark(el, root, ACTIVE_ATTR, true);
-          const id = window.setTimeout(
-            () => {
-              timers.delete(id);
-              firePointer(el, 'pointerup');
-              mark(el, root, ACTIVE_ATTR, false);
-              el?.click();
-            },
-            (dur.fast + holdSeconds) * 1000
-          );
-          timers.add(id);
-        })
-          .to(cur, {
-            scale: CURSOR_SCALE,
-            duration: dur.fast,
-            ease: ease.settle,
-          })
-          .to(
-            cur,
-            { scale: 1, duration: dur.fast, ease: ease.settle },
-            `+=${holdSeconds}`
-          );
-      },
+      press: (target, holdSeconds = HOLD) =>
+        pressWith(target, holdSeconds, false),
+      click: (target, holdSeconds = HOLD) =>
+        pressWith(target, holdSeconds, true),
       wait: (seconds) => {
         tl.to(cur, { duration: seconds });
       },
@@ -564,13 +581,13 @@ export function Stage({
       className={[styles.stage, className].filter(Boolean).join(' ')}
       onFocus={(e) => {
         const t = e.target as Element;
+        if (scripted.current || t.closest(CONTROL)) return;
+        // 오버레이 상자 안의 포커스는 사용자가 연 오버레이가 쥔 것이다. 마우스가 일시정지 단추 위로 가도 시연이 되살아나 상자를 inert로 만들지 않는다.
+        // 그 오버레이가 닫혀 포커스가 트리거로 돌아오면(마우스로 눌렀다면 키보드 포커스가 아니다) 넘겨받기가 풀린다
+        if (layer?.contains(t)) setFlag('focus', true);
         // 마우스로 누른 포커스는 hover가 맡는다. 키보드로 들어온 포커스만 넘겨받기로 본다
-        if (
-          !scripted.current &&
-          t.matches(':focus-visible') &&
-          !t.closest(CONTROL)
-        )
-          setFlag('focus', true);
+        else if (t.matches(':focus-visible')) setFlag('focus', true);
+        else if (layer) setFlag('focus', false);
       }}
       onBlur={(e) => {
         if (!e.currentTarget.contains(e.relatedTarget as Node))
@@ -588,7 +605,10 @@ export function Stage({
           </IconButton>
         </div>
       )}
-      <div className={styles.inner}>
+      <div
+        className={styles.inner}
+        inert={!!lockWhilePlaying && !!demo && playing}
+      >
         {typeof children === 'function' ? layer && children(layer) : children}
       </div>
       {typeof children === 'function' && (
