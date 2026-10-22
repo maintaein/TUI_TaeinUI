@@ -8,7 +8,7 @@
     <!-- Content Security Policy -->
     <!-- script-src: unsafe-eval은 useCodeEval의 new Function()에 필요. -->
     <!-- 위험한 전역(window/document/localStorage 등)은 useCodeEval에서 shadowing으로 차단. -->
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-eval'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self';" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: https:; connect-src 'self';" />
 
     <!-- SEO -->
     <meta name="description" content="TUI(TaeinUI)는 컴포넌트마다 다른 움직임을 갖는 React UI 컴포넌트 라이브러리입니다. 모션은 GSAP이 주도하고, 시인성·가독성·가시성은 어디서도 낮추지 않습니다." />
@@ -42,11 +42,6 @@
 
     <!-- Font preload: critical Pretendard font -->
     <link rel="preload" href="/fonts/PretendardVariable.woff2" as="font" type="font/woff2" crossorigin />
-
-    <!-- Google Fonts (Outfit은 ErrorPage 전용). 인라인 onload는 CSP script-src가 막아 평범한 stylesheet로 둔다 -->
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;700;900&display=swap" />
   </head>
   <body>
     <div id="root"></div>
