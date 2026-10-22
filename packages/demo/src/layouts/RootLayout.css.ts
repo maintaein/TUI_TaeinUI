@@ -1,14 +1,16 @@
 import { themeContract } from '@taein-ui/core';
 import { style } from '@vanilla-extract/css';
 
-const { color, spacing, borderRadius, animation, zIndex } = themeContract;
+const { color, palette, spacing, borderRadius, animation, zIndex } =
+  themeContract;
 
 // 서랍과 한 줄 배치로 바뀌는 폭. hooks/useMediaQuery의 breakpoints.compact와 같다
 const COMPACT = '(max-width: 1024px)';
 const MOBILE = '(max-width: 640px)';
 
 const INK = color.text.primary;
-const MUTED = color.text.secondary;
+// 회색 액자 위 대비를 위해 text.secondary보다 한 단계 어둡다(DocText의 MUTED와 같다)
+const MUTED = palette.gray[700];
 const FRAME = color.surface.hover;
 const LINE = color.border.default;
 const BLUE = color.primary.main;
@@ -233,7 +235,11 @@ export const rulerItem = style({
       transition: `transform ${animation.duration.base} ${animation.easing.settle}, background-color ${animation.duration.fast} ${animation.easing.settle}`,
     },
     '&:hover': { color: INK },
-    '&[aria-current="page"]': { color: BLUE, paddingLeft: '64px' },
+    // 글자는 액자 위 4.5:1을 위해 한 단계 어두운 파랑, 눈금선은 TUI 파랑
+    '&[aria-current="page"]': {
+      color: color.primary.dark,
+      paddingLeft: '64px',
+    },
     '&[aria-current="page"]::before': {
       transform: 'scaleX(1)',
       background: BLUE,

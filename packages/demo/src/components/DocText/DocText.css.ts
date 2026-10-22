@@ -1,10 +1,11 @@
 import { themeContract } from '@taein-ui/core';
 import { globalStyle, style } from '@vanilla-extract/css';
 
-const { color, spacing, borderRadius } = themeContract;
+const { color, palette, spacing, borderRadius } = themeContract;
 
 export const INK = color.text.primary;
-export const MUTED = color.text.secondary;
+// text.secondary(#717171)는 회색 액자(#F5F5F5) 위에서 4.48:1이라 AA에 못 미친다. 한 단계 어둡게 둔다(5.9:1)
+export const MUTED = palette.gray[700];
 export const FRAME = color.surface.hover;
 export const LINE = color.border.default;
 export const BLUE = color.primary.main;

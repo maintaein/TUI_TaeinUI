@@ -265,7 +265,7 @@ export function PopoverPage() {
               left: 16,
               bottom: 16,
               fontSize: '0.875rem',
-              opacity: 0.6,
+              color: t.MUTED,
             }}
           >
             바깥 영역
