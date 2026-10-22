@@ -44,7 +44,10 @@ export const List = ({
   ...props
 }: ListProps) => {
   return (
+    // Safari+VoiceOver는 list-style: none인 ul의 목록 의미를 지운다. 중복이 아니라 필요한 명시.
+    // eslint-disable-next-line jsx-a11y/no-redundant-roles
     <ul
+      role="list"
       className={clsx(
         list,
         spacingStyles[spacing],

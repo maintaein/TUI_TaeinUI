@@ -143,8 +143,10 @@ function A11y() {
     <ul className={`${t.list} ${t.body}`}>
       <li>
         <code>ul</code>과 <code>li</code> 요소로 그려져 스크린 리더가 목록과
-        항목으로 읽습니다. 속성은 목록은 <code>ul</code>에, 항목은{' '}
-        <code>li</code>에 그대로 전달됩니다.
+        항목으로 읽습니다. 점을 지워도 목록으로 읽히도록 <code>ul</code>에
+        <code>role=&quot;list&quot;</code>를 명시하고, 주면 그 값이 이깁니다.
+        속성은 목록은 <code>ul</code>에, 항목은 <code>li</code>에 그대로
+        전달됩니다.
       </li>
       <li>이름과 값은 문서에 쓰인 순서대로, 이름 다음에 값이 읽힙니다.</li>
       <li>

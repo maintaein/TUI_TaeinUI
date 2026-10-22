@@ -222,6 +222,26 @@ describe('List', () => {
       expect(container.querySelector('ul')).toBeInTheDocument();
     });
 
+    it('ul에 role="list"가 명시된다 (list-style: none이면 Safari가 목록 의미를 지운다)', () => {
+      render(
+        <List>
+          <ListItem label="이름" value="홍길동" />
+        </List>
+      );
+      const list = screen.getByRole('list');
+      expect(list.tagName).toBe('UL');
+      expect(list).toHaveAttribute('role', 'list');
+    });
+
+    it('소비자가 준 role이 이긴다', () => {
+      const { container } = render(
+        <List role="menu">
+          <ListItem label="이름" value="홍길동" />
+        </List>
+      );
+      expect(container.querySelector('ul')).toHaveAttribute('role', 'menu');
+    });
+
     it('ListItem은 <li> 요소로 렌더링된다', () => {
       const { container } = render(
         <List>
