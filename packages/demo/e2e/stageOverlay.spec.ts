@@ -177,15 +177,14 @@ for (const { name, url, trap } of PAGES) {
       await trigger.click();
       const dialog = page.locator(DIALOG);
       await expect(dialog).toBeVisible();
-      // Popover는 열 때 포커스를 옮기려 하지만 등장 첫 프레임이 visibility: hidden이라 실제로는 트리거에 남는다(core 한계)
-      if (trap)
-        await expect
-          .poll(() =>
-            page.evaluate(
-              () => !!document.activeElement?.closest('[role="dialog"]')
-            )
+      // Popover도 보이게 된 뒤 첫 요소로 포커스를 옮긴다
+      await expect
+        .poll(() =>
+          page.evaluate(
+            () => !!document.activeElement?.closest('[role="dialog"]')
           )
-          .toBe(true);
+        )
+        .toBe(true);
       // 포커스가 들어와도 페이지는 스크롤되지 않는다(시트가 무대 밖에서 들어오는 중이어도)
       expect(await page.evaluate(() => window.scrollY)).toBe(scrollBefore);
       // 가둔다: Tab을 여러 번 눌러도 다이얼로그 안(가두지 않는 Popover는 건너뛴다)

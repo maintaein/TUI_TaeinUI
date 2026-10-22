@@ -276,4 +276,95 @@ describe('useFocusTrap', () => {
     expect(result.current.previousActiveElementRef.current).toBe(trigger);
     document.body.removeChild(trigger);
   });
+
+  describe('Tab 가두기', () => {
+    const pressTab = (shiftKey = false) => {
+      const event = new KeyboardEvent('keydown', {
+        key: 'Tab',
+        shiftKey,
+        bubbles: true,
+        cancelable: true,
+      });
+      document.dispatchEvent(event);
+      return event;
+    };
+    const openTrap = (ref: RefObject<HTMLElement | null>) =>
+      renderHook(() =>
+        useFocusTrap({
+          open: true,
+          onClose: vi.fn(),
+          closeOnEscape: true,
+          containerRef: ref,
+        })
+      );
+
+    it('포커스가 안에 있고 포커스 가능한 요소가 없으면 Tab을 막는다', () => {
+      const empty = document.createElement('div');
+      document.body.appendChild(empty);
+      openTrap({ current: empty });
+      expect(empty).toHaveFocus();
+
+      expect(pressTab().defaultPrevented).toBe(true);
+      document.body.removeChild(empty);
+    });
+
+    it('포커스가 밖에 있고 되돌릴 수 없으면 Tab을 막지 않는다', () => {
+      const empty = document.createElement('div');
+      const outside = document.createElement('button');
+      document.body.append(empty, outside);
+      openTrap({ current: empty });
+      // 안으로 포커스가 못 들어가는 상태(예: inert인 상자 안)를 만든다.
+      empty.removeAttribute('tabindex');
+      outside.focus();
+      expect(outside).toHaveFocus();
+
+      expect(pressTab().defaultPrevented).toBe(false);
+      expect(outside).toHaveFocus();
+      document.body.removeChild(empty);
+      document.body.removeChild(outside);
+    });
+
+    it('포커스가 밖에 있고 되돌릴 수 있으면 첫 요소로 되돌리고 Tab을 막는다', () => {
+      const outside = document.createElement('button');
+      document.body.appendChild(outside);
+      openTrap(containerRef);
+      outside.focus();
+
+      expect(pressTab().defaultPrevented).toBe(true);
+      expect(container.querySelector('button')).toHaveFocus();
+      document.body.removeChild(outside);
+    });
+
+    it('열린 뒤 안에 생긴 요소까지 Tab이 돈다', () => {
+      openTrap(containerRef);
+      const extra = document.createElement('button');
+      container.appendChild(extra);
+      extra.focus();
+
+      expect(pressTab().defaultPrevented).toBe(true);
+      expect(container.querySelector('button')).toHaveFocus();
+    });
+
+    it('열린 뒤 안에 요소가 생기면 컨테이너에서 Tab이 그 안으로 간다', () => {
+      const empty = document.createElement('div');
+      document.body.appendChild(empty);
+      openTrap({ current: empty });
+      empty.appendChild(document.createElement('button'));
+
+      expect(pressTab().defaultPrevented).toBe(false);
+      document.body.removeChild(empty);
+    });
+
+    it('컨테이너에 포커스가 있을 때 Shift+Tab은 마지막 요소로 돈다', () => {
+      const empty = document.createElement('div');
+      document.body.appendChild(empty);
+      openTrap({ current: empty });
+      const added = document.createElement('button');
+      empty.appendChild(added);
+
+      expect(pressTab(true).defaultPrevented).toBe(true);
+      expect(added).toHaveFocus();
+      document.body.removeChild(empty);
+    });
+  });
 });

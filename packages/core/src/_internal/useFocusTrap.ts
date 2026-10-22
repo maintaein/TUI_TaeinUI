@@ -57,9 +57,7 @@ export const useFocusTrap = ({
     const container = containerRef.current;
     if (!container) return;
 
-    const focusableElements = getFocusableElements(container);
-    const firstFocusable = focusableElements[0];
-    const lastFocusable = focusableElements[focusableElements.length - 1];
+    const firstFocusable = getFocusableElements(container)[0];
 
     if (firstFocusable) {
       firstFocusable.focus();
@@ -74,23 +72,35 @@ export const useFocusTrap = ({
         return;
       }
 
-      if (e.key === 'Tab') {
-        if (focusableElements.length === 0) {
-          e.preventDefault();
-          return;
-        }
+      if (e.key !== 'Tab') return;
 
-        if (e.shiftKey) {
-          if (document.activeElement === firstFocusable) {
-            e.preventDefault();
-            lastFocusable?.focus();
-          }
-        } else {
-          if (document.activeElement === lastFocusable) {
-            e.preventDefault();
-            firstFocusable?.focus();
-          }
+      // 내용은 열린 뒤에도 바뀐다. 누를 때마다 다시 계산한다.
+      const focusableElements = getFocusableElements(container);
+      const first = focusableElements[0];
+      const last = focusableElements[focusableElements.length - 1];
+
+      if (!container.contains(document.activeElement)) {
+        // 포커스가 밖이면 안으로 되돌린다. 못 되돌리면(inert 등) 페이지 Tab을
+        // 삼키지 않고 브라우저에 맡긴다.
+        (first ?? container).focus();
+        if (container.contains(document.activeElement)) e.preventDefault();
+        return;
+      }
+
+      if (!first) {
+        e.preventDefault();
+        return;
+      }
+
+      const active = document.activeElement;
+      if (e.shiftKey) {
+        if (active === first || active === container) {
+          e.preventDefault();
+          last.focus();
         }
+      } else if (active === last) {
+        e.preventDefault();
+        first.focus();
       }
     };
 

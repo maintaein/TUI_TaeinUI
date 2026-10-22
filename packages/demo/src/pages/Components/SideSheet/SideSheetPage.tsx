@@ -35,7 +35,6 @@ const DEFAULTS: Values = {
 };
 
 const BODY = '배송 준비 중입니다. 도착 예정일은 내일입니다.';
-// 시트 안에는 포커스를 받을 요소를 둔다. 없으면 core의 Tab 처리가 자동 시연 중에도 페이지의 Tab을 막는다
 const CODE_BODY = `<p>${BODY}</p>\n  <Button onClick={() => setOpen(false)}>닫기</Button>`;
 
 const NOTATION = {

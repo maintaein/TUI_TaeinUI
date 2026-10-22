@@ -32,7 +32,6 @@ const DEFAULTS: Values = {
 };
 
 const BODY = '최신순, 인기순, 가격순으로 정렬할 수 있습니다.';
-// 시트 안에는 포커스를 받을 요소를 둔다. 없으면 core의 Tab 처리가 자동 시연 중에도 페이지의 Tab을 막는다
 const CODE_BODY = `<p>${BODY}</p>
   <Button onClick={() => setOpen(false)}>확인</Button>`;
 
