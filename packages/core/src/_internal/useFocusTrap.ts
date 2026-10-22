@@ -66,6 +66,12 @@ export const useFocusTrap = ({
       container.focus();
     }
 
+    // 포커스를 안으로 옮기지 못했으면(상자가 inert 등) 닫을 때 되돌릴 포커스도 없다.
+    // 되돌리면 그사이 다른 곳으로 옮겨 간 포커스를 빼앗고 브라우저가 그 요소로 스크롤한다.
+    if (!container.contains(document.activeElement)) {
+      previousActiveElementRef.current = null;
+    }
+
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && closeOnEscape) {
         onClose();

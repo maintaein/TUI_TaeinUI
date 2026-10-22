@@ -228,3 +228,41 @@ test('축소 모션이면 Modal 카드가 처음부터 열린 장면이다', asy
   await page.reload();
   await expectOpenScene(page, 'Modal');
 });
+
+test('위쪽 단추를 누른 채 내려가 오버레이 미니가 열리고 닫혀도 맨 위로 튀지 않는다', async ({
+  page,
+}) => {
+  test.setTimeout(60_000);
+  // 눌러서 포커스를 둔 위쪽 요소(스크롤로 사라지는 것). 멈췄다 다시 시작해 시연은 돈다
+  const pause = page.getByRole('button', { name: '움직임 멈춤' });
+  await pause.click();
+  await pause.click();
+  await bring(page, 'Modal');
+  // 미니 안은 inert라 포커스가 들어가지 못한다. 시연이 한 번 닫혔다 다시 열린 뒤에 다른 곳을 눌러 포커스를 옮긴다
+  const dialog = stage(page, 'Modal').locator('[role="dialog"]');
+  await expect(dialog).toHaveCount(0, { timeout: 15_000 });
+  await expect(dialog).toHaveCount(1, { timeout: 15_000 });
+  await page.mouse.click(5, 450);
+  expect(await page.evaluate(() => document.activeElement?.tagName)).toBe(
+    'BODY'
+  );
+  const y0 = await page.evaluate(() => scrollY);
+  expect(y0).toBeGreaterThan(1000);
+  // 다시 닫히고 열리는 동안 스크롤이 크게 바뀌지 않는다
+  const drift = await page.evaluate(
+    (start) =>
+      new Promise<number>((resolve) => {
+        let max = 0;
+        const id = setInterval(
+          () => (max = Math.max(max, Math.abs(scrollY - start))),
+          16
+        );
+        setTimeout(() => {
+          clearInterval(id);
+          resolve(max);
+        }, 9000);
+      }),
+    y0
+  );
+  expect(drift).toBeLessThan(100);
+});

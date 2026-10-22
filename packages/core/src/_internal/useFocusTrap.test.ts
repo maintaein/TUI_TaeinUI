@@ -277,6 +277,50 @@ describe('useFocusTrap', () => {
     document.body.removeChild(trigger);
   });
 
+  describe('포커스를 안으로 옮기지 못한 채 열렸을 때(inert 등)', () => {
+    // 비활성 단추는 focus()가 먹지 않는다. 상자가 inert일 때와 같은 상태다
+    const openStuck = (restoreFocusOnClose: boolean) => {
+      const stuck = document.createElement('div');
+      stuck.innerHTML = '<button disabled>Off</button>';
+      const trigger = document.createElement('button');
+      const other = document.createElement('button');
+      document.body.append(stuck, trigger, other);
+      trigger.focus();
+      const hook = renderHook(
+        ({ open }: { open: boolean }) =>
+          useFocusTrap({
+            open,
+            onClose: vi.fn(),
+            closeOnEscape: true,
+            containerRef: { current: stuck },
+            restoreFocusOnClose,
+          }),
+        { initialProps: { open: true } }
+      );
+      expect(stuck.contains(document.activeElement)).toBe(false);
+      const cleanup = () => document.body.replaceChildren(container);
+      return { ...hook, trigger, other, cleanup };
+    };
+
+    it('닫혀도 이전 요소로 포커스를 되돌리지 않는다(그사이 포커스가 옮겨졌다)', () => {
+      const { rerender, trigger, other, cleanup } = openStuck(true);
+      other.focus();
+
+      rerender({ open: false });
+
+      expect(other).toHaveFocus();
+      expect(trigger).not.toHaveFocus();
+      cleanup();
+    });
+
+    it('previousActiveElementRef도 비어 있어 직접 복원하는 쪽도 되돌리지 않는다', () => {
+      const { result, cleanup } = openStuck(false);
+
+      expect(result.current.previousActiveElementRef.current).toBeNull();
+      cleanup();
+    });
+  });
+
   describe('Tab 가두기', () => {
     const pressTab = (shiftKey = false) => {
       const event = new KeyboardEvent('keydown', {
