@@ -1,345 +1,218 @@
-import { Card, List, ListItem } from '@taein-ui/core';
-import { LivePreview } from '../../../components/LivePreview';
+import { useState, type ComponentProps } from 'react';
+import { Divider } from '@taein-ui/core';
 import { CodeBlock } from '../../../components/CodeBlock';
-import { PropsTable } from '../../../components/PropsTable';
-import type { PropDefinition } from '../../../components/PropsTable/PropsTable';
-import { AccessibilitySection } from '../../../components/AccessibilitySection';
-import * as styles from './DividerPage.css';
+import {
+  Customize,
+  codeOf,
+  type Control,
+  type Values,
+} from '../../../components/Customize';
+import { DetailLayout, Topic, Topics } from '../../../components/DetailLayout';
+import * as t from '../../../components/DocText';
+import type { PropDefinition } from '../../../components/PropsTable';
+import { Stage } from '../../../components/Stage';
 
+const LEAD =
+  '콘텐츠 사이에 선을 긋습니다. 가로 선은 섹션을 나누고, 세로 선은 한 줄에 놓인 메뉴를 나눕니다. 가운데에 글자를 넣을 수도 있습니다.';
+
+const CONTROLS: Control[] = [
+  { prop: 'orientation', kind: 'choice', options: ['horizontal', 'vertical'] },
+  { prop: 'variant', kind: 'choice', options: ['solid', 'dashed', 'dotted'] },
+  { prop: 'spacing', kind: 'choice', options: ['sm', 'md', 'lg'] },
+  { prop: 'textAlign', kind: 'choice', options: ['left', 'center', 'right'] },
+  { prop: 'children', kind: 'toggle' },
+];
+
+const INITIAL: Values = {
+  orientation: 'horizontal',
+  variant: 'solid',
+  spacing: 'md',
+  textAlign: 'center',
+  children: false,
+};
+
+const DEFAULTS: Values = {
+  orientation: 'horizontal',
+  variant: 'solid',
+  spacing: 'md',
+  textAlign: 'center',
+};
+
+const PROPS: PropDefinition[] = [
+  {
+    name: 'children',
+    type: 'ReactNode',
+    description:
+      '선 가운데에 놓을 글자. 있으면 선이 글자 양옆의 두 토막이 된다',
+  },
+  {
+    name: 'orientation',
+    type: "'horizontal' | 'vertical'",
+    default: "'horizontal'",
+    description: '방향. 세로는 가로 flex 줄 안에서 줄 높이를 채운다',
+  },
+  {
+    name: 'variant',
+    type: "'solid' | 'dashed' | 'dotted'",
+    default: "'solid'",
+    description: '선 모양. 글자가 있으면 적용되지 않고 선은 늘 실선이다',
+  },
+  {
+    name: 'spacing',
+    type: "'sm' | 'md' | 'lg'",
+    default: "'md'",
+    description: '선 바깥 여백. 가로는 위아래, 세로는 좌우로 8, 16, 24px',
+  },
+  {
+    name: 'textAlign',
+    type: "'left' | 'center' | 'right'",
+    default: "'center'",
+    description: '글자가 있을 때 글자의 자리',
+  },
+  {
+    name: 'aria-label',
+    type: 'string',
+    description:
+      '구분선 이름. 글자가 문자열이나 숫자면 그 글자가 이름이 되고, 이 값을 주면 그것이 이긴다',
+  },
+];
+
+const WITH_TEXT = `<Divider>또는</Divider>
+<Divider textAlign="left">최근 항목</Divider>`;
+
+const VERTICAL = `<div style={{ display: 'flex', alignItems: 'center', height: 40 }}>
+  <span>메뉴 A</span>
+  <Divider orientation="vertical" />
+  <span>메뉴 B</span>
+</div>`;
+
+function Usage() {
+  return (
+    <Topics>
+      <Topic title="언제 쓰나">
+        <p className={t.body}>
+          성격이 다른 내용 사이나 한 줄에 놓인 메뉴 사이를 나눌 때 씁니다.
+          간격만으로 나뉘는 곳에는 쓰지 않고, 구분선을 연달아 놓지 않습니다.
+          카드나 목록 안에서 이미 나뉜 곳을 한 번 더 나누지도 않습니다.
+        </p>
+      </Topic>
+      <Topic title="글자가 있는 구분선">
+        <p className={t.body} style={{ marginBottom: 12 }}>
+          문자열이나 숫자를 <code>children</code>으로 주면 선이 글자 양옆으로
+          갈라집니다. 로그인 폼의 &quot;또는&quot; 같은 곳에 쓰고{' '}
+          <code>textAlign</code>으로 글자의 자리를 고릅니다. 글자가 있으면 선이
+          두 토막이 되어 <code>variant</code>가 적용되지 않고 늘 실선입니다.
+        </p>
+        <CodeBlock code={WITH_TEXT} />
+      </Topic>
+      <Topic title="세로 구분선">
+        <p className={t.body} style={{ marginBottom: 12 }}>
+          세로 선은 가로 flex 줄 안에 두면 줄의 높이를 채웁니다. 블록 부모
+          안에서는 높이가 0이 되어 보이지 않으니, 그럴 때는 구분선에{' '}
+          <code>height</code>를 직접 줍니다. <code>spacing</code>은 이때 좌우
+          여백이 됩니다.
+        </p>
+        <CodeBlock code={VERTICAL} />
+      </Topic>
+    </Topics>
+  );
+}
+
+function A11y() {
+  return (
+    <ul className={`${t.list} ${t.body}`}>
+      <li>
+        <code>role=&quot;separator&quot;</code>와 <code>aria-orientation</code>
+        으로 방향이 있는 구분선으로 읽힙니다.
+      </li>
+      <li>
+        구분선의 이름은 안쪽 글자에서 계산되지 않아 일부 보조 기술이 글자를 읽지
+        않습니다. 그래서 글자가 문자열이나 숫자면 그 글자를{' '}
+        <code>aria-label</code>로 주고, 안쪽 글자는 <code>aria-hidden</code>으로
+        가려 두 번 읽히지 않게 합니다.
+      </li>
+      <li>
+        직접 <code>aria-label</code>을 주면 그 값이 이기고 안쪽 글자도 그대로
+        읽힙니다. 글자 자리에 요소를 넣으면 이름을 만들지 않습니다.
+      </li>
+      <li>
+        개발자가 직접 해야 합니다. 글자 자리에 요소를 넣을 때는{' '}
+        <code>aria-label</code>로 이름을 줍니다.
+      </li>
+      <li>
+        개발자가 직접 해야 합니다. 내용을 나누는 뜻이 없는 장식 선에는{' '}
+        <code>aria-hidden=&quot;true&quot;</code>를 줍니다.
+      </li>
+    </ul>
+  );
+}
+
+type Orientation = ComponentProps<typeof Divider>['orientation'];
+type Variant = ComponentProps<typeof Divider>['variant'];
+type Spacing = ComponentProps<typeof Divider>['spacing'];
+type TextAlign = ComponentProps<typeof Divider>['textAlign'];
+
+// 이 컴포넌트에는 시연할 움직임이 없다(M5에서 마운트 모션을 지웠다). 대본 없이 조작판 값만 바꿔 보인다
 export function DividerPage() {
-  const propsData: PropDefinition[] = [
-    {
-      name: 'children',
-      type: 'ReactNode',
-      description: '구분선 내부에 표시할 텍스트 또는 콘텐츠',
-    },
-    {
-      name: 'orientation',
-      type: "'horizontal' | 'vertical'",
-      default: "'horizontal'",
-      description: '구분선 방향',
-    },
-    {
-      name: 'variant',
-      type: "'solid' | 'dashed' | 'dotted'",
-      default: "'solid'",
-      description: '선 스타일',
-    },
-    {
-      name: 'spacing',
-      type: "'sm' | 'md' | 'lg'",
-      default: "'md'",
-      description: '구분선 여백. 가로는 위아래, 세로는 좌우',
-    },
-    {
-      name: 'textAlign',
-      type: "'left' | 'center' | 'right'",
-      default: "'center'",
-      description: '텍스트가 있을 때 정렬 위치',
-    },
-    {
-      name: 'className',
-      type: 'string',
-      description: '추가 CSS 클래스',
-    },
-  ];
+  const [values, setValues] = useState<Values>(INITIAL);
+  const vertical = values.orientation === 'vertical';
+  const text = values.children === true ? '또는' : undefined;
+
+  const divider = (
+    <Divider
+      orientation={values.orientation as Orientation}
+      variant={values.variant as Variant}
+      spacing={values.spacing as Spacing}
+      textAlign={values.textAlign as TextAlign}
+    >
+      {text}
+    </Divider>
+  );
 
   return (
-    <article className={styles.container}>
-      {/* Header */}
-      <header className={styles.header}>
-        <h1 className={styles.title}>Divider</h1>
-        <p className={styles.description}>
-          Divider 컴포넌트는 콘텐츠 사이에 시각적 구분선을 넣을 때 사용합니다.
-          섹션 분리, 메뉴 항목 구분, 레이아웃 정리 등에 활용할 수 있습니다.
-        </p>
-      </header>
-
-      {/* Quick Reference */}
-      <section className={styles.quickReference}>
-        <Card className={styles.quickRefCard}>
-          <Card.Body padding="md">
-            <h3 className={styles.quickRefTitle}>Import</h3>
-            <CodeBlock
-              language="typescript"
-              code={`import { Divider } from '@taein-ui/core';`}
-            />
-          </Card.Body>
-        </Card>
-        <Card className={styles.quickRefCard}>
-          <Card.Body padding="md">
-            <h3 className={styles.quickRefTitle}>Basic Usage</h3>
-            <CodeBlock
-              language="tsx"
-              code={`<Divider />
-<Divider>또는</Divider>`}
-            />
-          </Card.Body>
-        </Card>
-      </section>
-
-      {/* Examples Section */}
-      <section className={styles.section}>
-        <div className={styles.sectionHeader}>
-          <h2 className={styles.sectionTitle}>Examples</h2>
-          <p className={styles.sectionDescription}>
-            다양한 사용 사례에 맞는 Divider 예제입니다.
-          </p>
-        </div>
-
-        {/* Basic */}
-        <div className={styles.example}>
-          <h3 className={styles.exampleTitle}>Basic Divider</h3>
-          <LivePreview
-            title="기본 사용법"
-            description="콘텐츠 사이에 수평 구분선을 배치합니다."
-            editable
-            code={`<div style={{ width: '100%' }}>
-  <p style={{ color: '#374151' }}>첫 번째 섹션의 내용입니다.</p>
-  <Divider />
-  <p style={{ color: '#374151' }}>두 번째 섹션의 내용입니다.</p>
-</div>`}
-          />
-        </div>
-
-        {/* Variants */}
-        <div className={styles.example}>
-          <h3 className={styles.exampleTitle}>Variants</h3>
-          <LivePreview
-            title="선 스타일"
-            description="solid, dashed, dotted 세 가지 선 스타일을 제공합니다."
-            editable
-            code={`<div style={{ width: '100%' }}>
-  <p style={{ fontSize: '0.875rem', color: '#6b7280', marginBottom: '0.25rem' }}>solid (기본)</p>
-  <Divider variant="solid" />
-  <p style={{ fontSize: '0.875rem', color: '#6b7280', marginBottom: '0.25rem' }}>dashed</p>
-  <Divider variant="dashed" />
-  <p style={{ fontSize: '0.875rem', color: '#6b7280', marginBottom: '0.25rem' }}>dotted</p>
-  <Divider variant="dotted" />
-</div>`}
-          />
-        </div>
-
-        {/* Spacing */}
-        <div className={styles.example}>
-          <h3 className={styles.exampleTitle}>Spacing</h3>
-          <LivePreview
-            title="여백 크기"
-            description="sm, md, lg 세 가지 여백 옵션을 제공합니다."
-            editable
-            code={`<div style={{ width: '100%' }}>
-  <p style={{ color: '#374151' }}>sm 여백</p>
-  <Divider spacing="sm" />
-  <p style={{ color: '#374151' }}>md 여백 (기본)</p>
-  <Divider spacing="md" />
-  <p style={{ color: '#374151' }}>lg 여백</p>
-  <Divider spacing="lg" />
-  <p style={{ color: '#374151' }}>끝</p>
-</div>`}
-          />
-        </div>
-
-        {/* With Text */}
-        <div className={styles.example}>
-          <h3 className={styles.exampleTitle}>With Text</h3>
-          <LivePreview
-            title="텍스트 포함"
-            description="children으로 텍스트를 전달하면 구분선 사이에 텍스트가 표시됩니다."
-            editable
-            code={`<div style={{ width: '100%' }}>
-  <p style={{ color: '#374151' }}>로그인 폼 영역</p>
-  <Divider>또는</Divider>
-  <p style={{ color: '#374151' }}>소셜 로그인 영역</p>
-  <Divider>OR</Divider>
-  <p style={{ color: '#374151' }}>회원가입 영역</p>
-</div>`}
-          />
-        </div>
-
-        {/* Text Align */}
-        <div className={styles.example}>
-          <h3 className={styles.exampleTitle}>Text Align</h3>
-          <LivePreview
-            title="텍스트 정렬"
-            description="textAlign prop으로 텍스트 위치를 left, center, right로 조정합니다."
-            editable
-            code={`<div style={{ width: '100%' }}>
-  <Divider textAlign="left">LEFT</Divider>
-  <Divider textAlign="center">CENTER</Divider>
-  <Divider textAlign="right">RIGHT</Divider>
-</div>`}
-          />
-        </div>
-
-        {/* Vertical */}
-        <div className={styles.example}>
-          <h3 className={styles.exampleTitle}>Vertical</h3>
-          <LivePreview
-            title="수직 구분선"
-            description="orientation='vertical'로 수직 구분선을 사용합니다. 놓인 flex 줄의 높이를 채우고, spacing은 좌우 여백이 됩니다."
-            editable
-            code={`<div style={{ display: 'flex', alignItems: 'center', gap: '1rem', height: '60px' }}>
-  <span style={{ color: '#374151' }}>메뉴 A</span>
-  <Divider orientation="vertical" />
-  <span style={{ color: '#374151' }}>메뉴 B</span>
-  <Divider orientation="vertical" variant="dashed" />
-  <span style={{ color: '#374151' }}>메뉴 C</span>
-</div>`}
-          />
-        </div>
-
-        {/* Combination */}
-        <div className={styles.example}>
-          <h3 className={styles.exampleTitle}>Combination</h3>
-          <LivePreview
-            title="조합 예제"
-            description="variant, spacing, textAlign을 조합한 실제 사용 예시입니다."
-            editable
-            code={`<div style={{ width: '100%' }}>
-  <div style={{ textAlign: 'center', padding: '1rem 0' }}>
-    <h3 style={{ fontSize: '1.125rem', fontWeight: 600, color: '#1a2332', marginBottom: '0.5rem' }}>이메일로 로그인</h3>
-    <p style={{ fontSize: '0.875rem', color: '#6b7280' }}>등록된 이메일과 비밀번호를 입력하세요.</p>
-  </div>
-  <Divider variant="dashed" spacing="lg">간편 로그인</Divider>
-  <div style={{ display: 'flex', justifyContent: 'center', gap: '0.75rem', padding: '0.5rem 0' }}>
-    <Button size="sm" variant="dark">Google</Button>
-    <Button size="sm" variant="dark">GitHub</Button>
-    <Button size="sm" variant="dark">Kakao</Button>
-  </div>
-  <Divider spacing="lg" />
-  <p style={{ textAlign: 'center', fontSize: '0.875rem', color: '#6b7280' }}>
-    계정이 없으신가요? 회원가입하세요.
-  </p>
-</div>`}
-          />
-        </div>
-      </section>
-
-      {/* Props API */}
-      <section className={styles.section}>
-        <div className={styles.sectionHeader}>
-          <h2 className={styles.sectionTitle}>Props API</h2>
-          <p className={styles.sectionDescription}>
-            Divider 컴포넌트의 모든 Props와 타입 정보입니다. HTML div 속성도
-            모두 사용 가능합니다.
-          </p>
-        </div>
-        <div className={styles.propsTableWrapper}>
-          <PropsTable props={propsData} />
-        </div>
-      </section>
-
-      {/* Accessibility */}
-      <AccessibilitySection
-        componentName="Divider"
-        intro="Divider 컴포넌트는 시맨틱한 구분선으로 다음과 같은 접근성을 기본 제공합니다."
-        features={[
-          {
-            attribute: 'role="separator"',
-            effect: '스크린 리더에서 구분선으로 인식합니다.',
-            description:
-              'WAI-ARIA separator role을 사용하여 콘텐츠 구분을 명확히 전달합니다.',
-          },
-          {
-            attribute: 'aria-orientation',
-            effect: '구분선 방향을 알립니다.',
-            description:
-              'horizontal 또는 vertical 값으로 구분선의 방향을 스크린 리더에 전달합니다.',
-          },
-          {
-            attribute: 'aria-label',
-            effect: '구분선 글자를 이름으로 전달합니다.',
-            description:
-              'separator의 이름은 안쪽 글자에서 계산되지 않아 일부 보조 기술이 글자를 읽지 않습니다. 글자(children)가 문자열이나 숫자면 aria-label로 주고 안쪽 글자는 aria-hidden으로 가려 두 번 읽히지 않게 합니다. 직접 aria-label을 주면 그 값을 따르고 안쪽 글자도 그대로 읽히며, 요소를 넣었을 때는 이름을 만들지 않습니다.',
-          },
-          {
-            attribute: '시각적 구분',
-            effect: '콘텐츠 영역을 명확히 나눕니다.',
-            description:
-              'solid, dashed, dotted 스타일로 시각적 구분을 제공하여 콘텐츠 구조를 파악하기 쉽게 합니다.',
-          },
-          {
-            attribute: '텍스트 콘텐츠',
-            effect: '구분선의 맥락을 설명합니다.',
-            description:
-              'children으로 텍스트를 넣으면 스크린 리더가 구분선의 의미를 읽을 수 있습니다.',
-          },
-        ]}
-        additionalGuidance={[
-          {
-            title: '장식용 구분선과 의미 있는 구분선',
-            description:
-              '콘텐츠 구분이 아닌 단순 장식 목적이라면 aria-hidden을 사용하세요.',
-            examples: [
-              {
-                code: `// Good - 의미 있는 구분선
-<Divider>또는</Divider>
-
-// Good - 장식용
-<Divider aria-hidden="true" />
-
-// Bad - 불필요한 구분선 남발
-<Divider />
-<Divider />
-<Divider />`,
-                explanation:
-                  '구분선이 너무 많으면 스크린 리더 사용자에게 불필요한 정보가 전달됩니다.',
-              },
-            ],
-          },
-        ]}
-      />
-
-      {/* Best Practices */}
-      <section className={styles.section}>
-        <div className={styles.sectionHeader}>
-          <h2 className={styles.sectionTitle}>Best Practices</h2>
-          <p className={styles.sectionDescription}>
-            Divider를 효과적으로 사용하기 위한 권장사항입니다.
-          </p>
-        </div>
-
-        <div className={styles.practicesGrid}>
-          <Card>
-            <Card.Body padding="lg">
-              <div className={styles.practiceHeader}>
-                <span className={styles.practiceIcon}>✓</span>
-                <h3 className={styles.practiceTitle}>Do</h3>
-              </div>
-              <List spacing="sm" className={styles.practiceList}>
-                <ListItem>논리적으로 다른 콘텐츠 사이에 배치</ListItem>
-                <ListItem>
-                  로그인/회원가입 폼에서 "또는" 텍스트와 함께 사용
-                </ListItem>
-                <ListItem>수직 구분선은 인라인 메뉴 구분에 활용</ListItem>
-                <ListItem>spacing으로 적절한 시각적 여백 확보</ListItem>
-                <ListItem>텍스트가 있을 때 textAlign으로 가독성 향상</ListItem>
-              </List>
-            </Card.Body>
-          </Card>
-
-          <Card>
-            <Card.Body padding="lg">
-              <div className={styles.practiceHeader}>
-                <span className={styles.practiceIconError}>✗</span>
-                <h3 className={styles.practiceTitle}>Don't</h3>
-              </div>
-              <List spacing="sm" className={styles.practiceList}>
-                <ListItem>연속으로 여러 구분선을 배치하지 않기</ListItem>
-                <ListItem>
-                  padding/margin으로 대체 가능한 곳에 남용하지 않기
-                </ListItem>
-                <ListItem>
-                  수직 구분선을 가로 flex 줄 밖에 두지 않기(블록 부모에서는
-                  높이가 0이 된다. 그럴 땐 구분선에 height를 직접 준다)
-                </ListItem>
-                <ListItem>텍스트에 너무 긴 문장 넣지 않기</ListItem>
-                <ListItem>카드, 리스트 내부에서 중복 구분하지 않기</ListItem>
-              </List>
-            </Card.Body>
-          </Card>
-        </div>
-      </section>
-    </article>
+    <DetailLayout
+      name="Divider"
+      lead={LEAD}
+      stage={
+        <Stage label="Divider 미리보기">
+          {vertical ? (
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                height: '9rem',
+              }}
+            >
+              <span>메뉴 A</span>
+              {divider}
+              <span>메뉴 B</span>
+            </div>
+          ) : (
+            <div style={{ width: '100%' }}>
+              <p style={{ margin: 0 }}>첫 번째 섹션입니다.</p>
+              {divider}
+              <p style={{ margin: 0 }}>두 번째 섹션입니다.</p>
+            </div>
+          )}
+        </Stage>
+      }
+      customize={
+        <Customize controls={CONTROLS} values={values} onChange={setValues} />
+      }
+      code={codeOf({
+        component: 'Divider',
+        values: {
+          orientation: values.orientation,
+          variant: values.variant,
+          spacing: values.spacing,
+          textAlign: values.textAlign,
+          ...(text && { children: text }),
+        },
+        defaults: DEFAULTS,
+      })}
+      props={PROPS}
+      usage={<Usage />}
+      a11y={<A11y />}
+    />
   );
 }
