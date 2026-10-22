@@ -1,467 +1,244 @@
-import { Card, List, ListItem } from '@taein-ui/core';
-import { LivePreview } from '../../../components/LivePreview';
+import { useState, type ComponentProps } from 'react';
+import { Border } from '@taein-ui/core';
 import { CodeBlock } from '../../../components/CodeBlock';
-import { PropsTable } from '../../../components/PropsTable';
-import type { PropDefinition } from '../../../components/PropsTable/PropsTable';
-import { AccessibilitySection } from '../../../components/AccessibilitySection';
-import * as styles from './BorderPage.css';
+import {
+  Customize,
+  codeOf,
+  type Control,
+  type Values,
+} from '../../../components/Customize';
+import { DetailLayout, Topic, Topics } from '../../../components/DetailLayout';
+import * as t from '../../../components/DocText';
+import type { PropDefinition } from '../../../components/PropsTable';
+import { Stage, type Act } from '../../../components/Stage';
+
+const LEAD =
+  '콘텐츠 둘레에 선을 두릅니다. 영역을 나누거나 강조할 때 쓰고, 켜 두면 마우스를 올린 곳의 테두리를 따라 빛이 돕니다.';
+
+const CONTROLS: Control[] = [
+  {
+    prop: 'sides',
+    kind: 'choice',
+    options: [
+      'all',
+      'top',
+      'right',
+      'bottom',
+      'left',
+      'horizontal',
+      'vertical',
+    ],
+  },
+  { prop: 'variant', kind: 'choice', options: ['solid', 'dashed', 'dotted'] },
+  { prop: 'width', kind: 'choice', options: ['thin', 'medium', 'thick'] },
+  {
+    prop: 'color',
+    kind: 'choice',
+    options: ['default', 'primary', 'success', 'error', 'warning'],
+  },
+  {
+    prop: 'rounded',
+    kind: 'choice',
+    options: ['none', 'sm', 'md', 'lg', 'full'],
+  },
+  { prop: 'padding', kind: 'choice', options: ['none', 'sm', 'md', 'lg'] },
+  { prop: 'glow', kind: 'toggle' },
+];
+
+const INITIAL: Values = {
+  sides: 'all',
+  variant: 'solid',
+  width: 'medium',
+  color: 'default',
+  rounded: 'lg',
+  padding: 'lg',
+  glow: true,
+};
+
+const TEXT = '여기가 지금 살아 있습니다';
+
+// 커서가 테두리에 올라가 머문다. 빛이 테두리를 따라 도는 것이 보일 만큼 오래 둔다(한 바퀴는 6초)
+// shortcut: 호버 머무름 3초는 빛이 반 바퀴쯤 도는 값이다, 한 바퀴를 다 보이려면 6초로 늘린다
+const SCRIPT = (act: Act) => {
+  act.move('border');
+  act.hover('border');
+  act.wait(3);
+  act.leave('border');
+  act.wait(0.8);
+  act.home();
+  act.wait(0.6);
+};
+
+const PROPS: PropDefinition[] = [
+  {
+    name: 'children',
+    type: 'ReactNode',
+    required: true,
+    description: '테두리로 감쌀 내용',
+  },
+  {
+    name: 'sides',
+    type: "'all' | 'top' | 'right' | 'bottom' | 'left' | 'horizontal' | 'vertical'",
+    default: "'all'",
+    description: '선을 그을 변',
+  },
+  {
+    name: 'variant',
+    type: "'solid' | 'dashed' | 'dotted'",
+    default: "'solid'",
+    description: '선 모양',
+  },
+  {
+    name: 'width',
+    type: "'thin' | 'medium' | 'thick'",
+    default: "'thin'",
+    description: '선 두께. 1, 2, 4px',
+  },
+  {
+    name: 'color',
+    type: "'default' | 'primary' | 'success' | 'error' | 'warning'",
+    default: "'default'",
+    description: '선 색. 테마의 의미 색을 쓴다',
+  },
+  {
+    name: 'rounded',
+    type: "'none' | 'sm' | 'md' | 'lg' | 'full'",
+    default: "sides가 all이면 'md', 아니면 'none'",
+    description:
+      '모서리 둥글기. 일부 변만 그을 때는 선 끝이 휘지 않도록 none이고, 값을 주면 늘 그 값이 이긴다',
+  },
+  {
+    name: 'padding',
+    type: "'none' | 'sm' | 'md' | 'lg'",
+    default: "'none'",
+    description: '안쪽 여백. 0, 8, 16, 24px',
+  },
+  {
+    name: 'glow',
+    type: 'boolean',
+    default: 'false',
+    description:
+      '마우스를 올리거나 키보드 포커스가 들어오면 테두리를 따라 도는 빛. sides가 all일 때만 나타난다',
+  },
+];
+
+const QUOTE = `<Border sides="left" width="thick" color="primary" padding="md">
+  왼쪽 두꺼운 선으로 인용문을 강조합니다.
+</Border>`;
+
+function Usage() {
+  return (
+    <Topics>
+      <Topic title="호버 빛">
+        <p className={t.body}>
+          <code>glow</code>를 켜면 마우스를 올리거나 키보드 포커스가 안으로
+          들어올 때 빛이 테두리를 따라 6초에 한 바퀴 돕니다. 기본은 꺼져
+          있습니다. <code>sides</code>가 <code>all</code>일 때만 나타나고, 다른
+          값에서는 <code>glow</code>를 줘도 아무 일도 없습니다. 빛은 선 색을
+          따라가며 <code>default</code>는 회색이라 <code>primary</code> 색으로
+          돕니다. 호버는 마우스 같은 정밀 포인터에서만 켜지고 터치에서는 켜지지
+          않으며, 포커스는 입력 기기와 상관없이 켜집니다. 안에 포커스를 받을
+          요소가 없으면 호버로만 켜집니다. 움직임 줄이기 설정을 켠 환경에서는
+          돌지 않습니다.
+        </p>
+      </Topic>
+      <Topic title="일부 변만 긋기">
+        <p className={t.body} style={{ marginBottom: 12 }}>
+          <code>sides</code>로 한 변이나 위아래, 좌우만 긋습니다. 왼쪽 두꺼운
+          선은 인용문이나 중요한 안내를 강조하고, 아래쪽 선은 영역을 나눕니다.
+          이때 모서리는 둥글리지 않는 것이 기본입니다.
+        </p>
+        <CodeBlock code={QUOTE} />
+      </Topic>
+      <Topic title="색과 두께">
+        <p className={t.body}>
+          <code>color</code>는 의미 색(<code>primary</code>,{' '}
+          <code>success</code>, <code>error</code>, <code>warning</code>)이라
+          오류나 경고 상자에 어울립니다. 다만 뜻을 색 하나로만 전하지 말고
+          글자를 함께 둡니다. <code>thick</code>은 강조용 장식이니 남용하지
+          않습니다. 글자를 선에 붙여 두지 않도록 <code>padding</code>을 함께
+          줍니다.
+        </p>
+      </Topic>
+    </Topics>
+  );
+}
+
+function A11y() {
+  return (
+    <ul className={`${t.list} ${t.body}`}>
+      <li>
+        의미 없는 <code>div</code>로 그려지는 시각 장식이라 스크린 리더에서 따로
+        역할이 없습니다. <code>role</code>이나 <code>aria-*</code>는 div의
+        속성으로 그대로 전달됩니다.
+      </li>
+      <li>
+        <code>glow</code>의 빛은 <code>aria-hidden</code> 장식 요소이고 클릭을
+        받지 않습니다.
+      </li>
+      <li>
+        개발자가 직접 해야 합니다. 테두리가 의미 있는 영역을 감쌀 때는{' '}
+        <code>role</code>이나 <code>aria-label</code>을 줍니다.
+      </li>
+      <li>
+        개발자가 직접 해야 합니다. 색만으로 뜻을 전하지 않고 글자를 함께 둡니다.
+      </li>
+    </ul>
+  );
+}
+
+type Sides = ComponentProps<typeof Border>['sides'];
+type Variant = ComponentProps<typeof Border>['variant'];
+type Width = ComponentProps<typeof Border>['width'];
+type Color = ComponentProps<typeof Border>['color'];
+type Rounded = ComponentProps<typeof Border>['rounded'];
+type Padding = ComponentProps<typeof Border>['padding'];
 
 export function BorderPage() {
-  const propsData: PropDefinition[] = [
-    {
-      name: 'children',
-      type: 'ReactNode',
-      required: true,
-      description: 'Border 내부에 렌더링할 콘텐츠',
-    },
-    {
-      name: 'sides',
-      type: "'all' | 'top' | 'right' | 'bottom' | 'left' | 'horizontal' | 'vertical'",
-      default: "'all'",
-      description: '테두리를 표시할 방향',
-    },
-    {
-      name: 'variant',
-      type: "'solid' | 'dashed' | 'dotted'",
-      default: "'solid'",
-      description: '테두리 선 스타일',
-    },
-    {
-      name: 'width',
-      type: "'thin' | 'medium' | 'thick'",
-      default: "'thin'",
-      description: '테두리 두께 (1px / 2px / 4px)',
-    },
-    {
-      name: 'color',
-      type: "'default' | 'primary' | 'success' | 'error' | 'warning'",
-      default: "'default'",
-      description: '테두리 색상',
-    },
-    {
-      name: 'rounded',
-      type: "'none' | 'sm' | 'md' | 'lg' | 'full'",
-      default: "sides='all'이면 'md', 그 외 'none'",
-      description:
-        '모서리 둥글기. 미지정이면 부분 sides는 선 끝이 휘지 않도록 none이다. 명시하면 항상 우선한다',
-    },
-    {
-      name: 'padding',
-      type: "'none' | 'sm' | 'md' | 'lg'",
-      default: "'none'",
-      description: '내부 여백',
-    },
-    {
-      name: 'glow',
-      type: 'boolean',
-      default: 'false',
-      description:
-        "호버·포커스 시 테두리를 따라 도는 빛. sides='all'일 때만 나타난다",
-    },
-  ];
+  const [values, setValues] = useState<Values>(INITIAL);
+  const all = values.sides === 'all';
 
   return (
-    <article className={styles.container}>
-      {/* Header */}
-      <header className={styles.header}>
-        <h1 className={styles.title}>Border</h1>
-        <p className={styles.description}>
-          Border 컴포넌트는 콘텐츠 영역을 시각적으로 구분하거나 강조할 때
-          사용합니다. 인용문 강조, 섹션 구분선, 경고 박스 등에 활용할 수
-          있습니다.
-        </p>
-      </header>
-
-      {/* Quick Reference */}
-      <section className={styles.quickReference}>
-        <Card className={styles.quickRefCard}>
-          <Card.Body padding="md">
-            <h3 className={styles.quickRefTitle}>Import</h3>
-            <CodeBlock
-              language="typescript"
-              code={`import { Border } from '@taein-ui/core';`}
-            />
-          </Card.Body>
-        </Card>
-        <Card className={styles.quickRefCard}>
-          <Card.Body padding="md">
-            <h3 className={styles.quickRefTitle}>Basic Usage</h3>
-            <CodeBlock
-              language="tsx"
-              code={`<Border padding="md" rounded="md">
-  콘텐츠
-</Border>`}
-            />
-          </Card.Body>
-        </Card>
-      </section>
-
-      {/* Examples Section */}
-      <section className={styles.section}>
-        <div className={styles.sectionHeader}>
-          <h2 className={styles.sectionTitle}>Examples</h2>
-          <p className={styles.sectionDescription}>
-            다양한 사용 사례에 맞는 Border 예제입니다.
-          </p>
-        </div>
-
-        {/* Basic */}
-        <div className={styles.example}>
-          <h3 className={styles.exampleTitle}>Basic Border</h3>
-          <LivePreview
-            title="기본 사용법"
-            description="가장 기본적인 Border 사용 예제입니다. 기본값은 전체 방향, solid, thin입니다."
-            editable
-            code={`<Border padding="md">
-  기본 Border입니다.
-</Border>`}
-          />
-        </div>
-
-        {/* Sides */}
-        <div className={styles.example}>
-          <h3 className={styles.exampleTitle}>Sides</h3>
-          <LivePreview
-            title="방향 옵션"
-            description="sides prop으로 테두리를 표시할 방향을 지정합니다. all, top, right, bottom, left, horizontal, vertical을 지원합니다."
-            editable
-            code={`<div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '1.5rem' }}>
-  <Border sides="all" padding="sm">
-    <div style={{ textAlign: 'center', fontSize: '0.875rem' }}>all</div>
-  </Border>
-  <Border sides="top" padding="sm">
-    <div style={{ textAlign: 'center', fontSize: '0.875rem' }}>top</div>
-  </Border>
-  <Border sides="right" padding="sm">
-    <div style={{ textAlign: 'center', fontSize: '0.875rem' }}>right</div>
-  </Border>
-  <Border sides="bottom" padding="sm">
-    <div style={{ textAlign: 'center', fontSize: '0.875rem' }}>bottom</div>
-  </Border>
-  <Border sides="left" padding="sm">
-    <div style={{ textAlign: 'center', fontSize: '0.875rem' }}>left</div>
-  </Border>
-  <Border sides="horizontal" padding="sm">
-    <div style={{ textAlign: 'center', fontSize: '0.875rem' }}>horizontal</div>
-  </Border>
-  <Border sides="vertical" padding="sm">
-    <div style={{ textAlign: 'center', fontSize: '0.875rem' }}>vertical</div>
-  </Border>
-</div>`}
-          />
-        </div>
-
-        {/* Variants */}
-        <div className={styles.example}>
-          <h3 className={styles.exampleTitle}>Variants</h3>
-          <LivePreview
-            title="선 스타일"
-            description="variant prop으로 테두리 선의 스타일을 지정합니다."
-            editable
-            code={`<div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-  <Border variant="solid" padding="sm">
-    <div style={{ fontSize: '0.875rem' }}>solid (실선)</div>
-  </Border>
-  <Border variant="dashed" padding="sm">
-    <div style={{ fontSize: '0.875rem' }}>dashed (점선)</div>
-  </Border>
-  <Border variant="dotted" padding="sm">
-    <div style={{ fontSize: '0.875rem' }}>dotted (도트)</div>
-  </Border>
-</div>`}
-          />
-        </div>
-
-        {/* Width */}
-        <div className={styles.example}>
-          <h3 className={styles.exampleTitle}>Width</h3>
-          <LivePreview
-            title="두께 옵션"
-            description="width prop으로 테두리 두께를 조절합니다. thin(1px), medium(2px), thick(4px)을 제공합니다."
-            editable
-            code={`<div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-  <Border width="thin" padding="sm">
-    <div style={{ fontSize: '0.875rem' }}>thin (1px)</div>
-  </Border>
-  <Border width="medium" padding="sm">
-    <div style={{ fontSize: '0.875rem' }}>medium (2px)</div>
-  </Border>
-  <Border width="thick" padding="sm">
-    <div style={{ fontSize: '0.875rem' }}>thick (4px)</div>
-  </Border>
-</div>`}
-          />
-        </div>
-
-        {/* Colors */}
-        <div className={styles.example}>
-          <h3 className={styles.exampleTitle}>Colors</h3>
-          <LivePreview
-            title="색상 옵션"
-            description="color prop으로 테두리 색상을 지정합니다. 테마 시스템의 시맨틱 컬러를 사용합니다."
-            editable
-            code={`<div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-  <Border color="default" padding="sm">
-    <div style={{ fontSize: '0.875rem' }}>default</div>
-  </Border>
-  <Border color="primary" padding="sm">
-    <div style={{ fontSize: '0.875rem' }}>primary</div>
-  </Border>
-  <Border color="success" padding="sm">
-    <div style={{ fontSize: '0.875rem' }}>success</div>
-  </Border>
-  <Border color="error" padding="sm">
-    <div style={{ fontSize: '0.875rem' }}>error</div>
-  </Border>
-  <Border color="warning" padding="sm">
-    <div style={{ fontSize: '0.875rem' }}>warning</div>
-  </Border>
-</div>`}
-          />
-        </div>
-
-        {/* Rounded */}
-        <div className={styles.example}>
-          <h3 className={styles.exampleTitle}>Rounded</h3>
-          <LivePreview
-            title="모서리 둥글기"
-            description="rounded prop으로 모서리 둥글기를 조절합니다."
-            editable
-            code={`<div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: '1rem' }}>
-  <Border rounded="none" padding="sm">
-    <div style={{ textAlign: 'center', fontSize: '0.875rem' }}>none</div>
-  </Border>
-  <Border rounded="sm" padding="sm">
-    <div style={{ textAlign: 'center', fontSize: '0.875rem' }}>sm</div>
-  </Border>
-  <Border rounded="md" padding="sm">
-    <div style={{ textAlign: 'center', fontSize: '0.875rem' }}>md</div>
-  </Border>
-  <Border rounded="lg" padding="sm">
-    <div style={{ textAlign: 'center', fontSize: '0.875rem' }}>lg</div>
-  </Border>
-  <Border rounded="full" padding="sm">
-    <div style={{ textAlign: 'center', fontSize: '0.875rem' }}>full</div>
-  </Border>
-</div>`}
-          />
-        </div>
-
-        {/* Padding */}
-        <div className={styles.example}>
-          <h3 className={styles.exampleTitle}>Padding</h3>
-          <LivePreview
-            title="내부 여백"
-            description="padding prop으로 테두리 내부 여백을 설정합니다."
-            editable
-            code={`<div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-  <Border padding="none">
-    <div style={{ fontSize: '0.875rem', backgroundColor: '#f3f4f6' }}>none (0)</div>
-  </Border>
-  <Border padding="sm">
-    <div style={{ fontSize: '0.875rem', backgroundColor: '#f3f4f6' }}>sm</div>
-  </Border>
-  <Border padding="md">
-    <div style={{ fontSize: '0.875rem', backgroundColor: '#f3f4f6' }}>md</div>
-  </Border>
-  <Border padding="lg">
-    <div style={{ fontSize: '0.875rem', backgroundColor: '#f3f4f6' }}>lg</div>
-  </Border>
-</div>`}
-          />
-        </div>
-
-        {/* Glow */}
-        <div className={styles.example}>
-          <h3 className={styles.exampleTitle}>Glow</h3>
-          <LivePreview
-            title="호버 빛 (선택 기능)"
-            description="glow를 켜면 호버나 키보드 포커스(Tab) 시 빛이 테두리를 따라 6초에 한 바퀴 돕니다. 기본은 꺼져 있습니다. sides가 'all'일 때만 나타나고, 그 외 sides에서는 glow를 줘도 조용히 무시됩니다. 호버는 마우스 같은 정밀 포인터에서만 동작하고, 포커스는 입력 기기와 무관하게 동작합니다. color가 primary·success·error이면 빛이 그 색을 따라가고, default는 빛이 primary 색입니다."
-            editable
-            code={`<div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '1.5rem' }}>
-  <Border glow color="default" padding="md">
-    <button type="button">default (Tab으로 포커스)</button>
-  </Border>
-  <Border glow color="primary" padding="md">
-    <button type="button">primary</button>
-  </Border>
-  <Border glow color="success" padding="md">
-    <button type="button">success</button>
-  </Border>
-  <Border glow color="error" padding="md">
-    <button type="button">error</button>
-  </Border>
-  <Border glow sides="top" color="primary" padding="md">
-    <div style={{ fontSize: '0.875rem' }}>sides="top": 빛 없음</div>
-  </Border>
-</div>`}
-          />
-        </div>
-
-        {/* Combination */}
-        <div className={styles.example}>
-          <h3 className={styles.exampleTitle}>Combination</h3>
-          <LivePreview
-            title="조합 예제"
-            description="여러 props를 조합한 실제 사용 예시입니다."
-            editable
-            code={`<div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-  {/* 카드 스타일 */}
-  <Border rounded="lg" padding="lg" color="default" width="thin">
-    <div style={{ fontSize: '0.875rem' }}>
-      <strong>카드 스타일</strong>
-      <p style={{ marginTop: '0.5rem', color: '#6b7280' }}>rounded + padding + 기본 border로 카드처럼 사용할 수 있습니다.</p>
-    </div>
-  </Border>
-
-  {/* 강조 영역 */}
-  <Border sides="left" width="thick" color="primary" padding="md" rounded="none">
-    <div style={{ fontSize: '0.875rem' }}>
-      <strong>인용/강조 영역</strong>
-      <p style={{ marginTop: '0.5rem', color: '#6b7280' }}>왼쪽 두꺼운 테두리로 인용문이나 중요 정보를 강조할 수 있습니다.</p>
-    </div>
-  </Border>
-
-  {/* 경고 박스 */}
-  <Border color="error" variant="dashed" rounded="md" padding="md" width="medium">
-    <div style={{ fontSize: '0.875rem', color: '#dc2626' }}>
-      주의: 이 작업은 되돌릴 수 없습니다.
-    </div>
-  </Border>
-
-  {/* 구분선 역할 */}
-  <div>
-    <div style={{ fontSize: '0.875rem', marginBottom: '0.5rem' }}>섹션 A 콘텐츠</div>
-    <Border sides="bottom" color="default" />
-    <div style={{ fontSize: '0.875rem', marginTop: '0.5rem' }}>섹션 B 콘텐츠</div>
-  </div>
-
-  {/* 성공 알림 */}
-  <Border color="success" rounded="md" padding="md" width="medium">
-    <div style={{ fontSize: '0.875rem', color: '#059669' }}>
-      저장이 완료되었습니다.
-    </div>
-  </Border>
-</div>`}
-          />
-        </div>
-      </section>
-
-      {/* Props API */}
-      <section className={styles.section}>
-        <div className={styles.sectionHeader}>
-          <h2 className={styles.sectionTitle}>Props API</h2>
-          <p className={styles.sectionDescription}>
-            Border 컴포넌트의 모든 Props와 타입 정보입니다. HTML div 속성도 모두
-            사용 가능합니다.
-          </p>
-        </div>
-        <div className={styles.propsTableWrapper}>
-          <PropsTable props={propsData} />
-        </div>
-      </section>
-
-      {/* Accessibility */}
-      <AccessibilitySection
-        componentName="Border"
-        intro="Border 컴포넌트는 순수한 시각적 스타일링 컴포넌트로, 다음과 같은 접근성 특성을 가집니다."
-        features={[
-          {
-            attribute: '<div> 요소',
-            effect: '의미 없는 컨테이너로 렌더링됩니다.',
-            description:
-              '시각적 스타일만 제공하며, 스크린 리더에서 별도 역할을 갖지 않습니다.',
-          },
-          {
-            attribute: 'HTML 속성 전달',
-            effect: 'role, aria-* 등을 자유롭게 설정할 수 있습니다.',
-            description:
-              'HTMLAttributes를 확장하므로 필요에 따라 시맨틱 정보를 추가할 수 있습니다.',
-          },
-          {
-            attribute: '색상 대비',
-            effect: '테마 시스템의 시맨틱 컬러를 사용합니다.',
-            description:
-              'default, primary, success, error, warning 색상은 충분한 대비를 제공합니다.',
-          },
-        ]}
-        additionalGuidance={[
-          {
-            title: '시맨틱 역할이 필요한 경우',
-            description:
-              'Border가 의미 있는 영역을 감싸는 경우 적절한 role이나 시맨틱 요소를 함께 사용하세요.',
-            examples: [
-              {
-                code: `// 경고 영역
-<Border color="error" padding="md" role="alert">
-  오류가 발생했습니다.
-</Border>
-
-// 그룹 영역
-<Border padding="md" role="group" aria-label="사용자 정보">
-  <p>이름: 홍길동</p>
-  <p>이메일: hong@example.com</p>
-</Border>`,
-                explanation:
-                  '순수 장식 용도가 아닌 경우 role이나 aria-label을 추가하세요.',
-              },
-            ],
-          },
-        ]}
-      />
-
-      {/* Best Practices */}
-      <section className={styles.section}>
-        <div className={styles.sectionHeader}>
-          <h2 className={styles.sectionTitle}>Best Practices</h2>
-          <p className={styles.sectionDescription}>
-            Border를 효과적으로 사용하기 위한 권장사항입니다.
-          </p>
-        </div>
-
-        <div className={styles.practicesGrid}>
-          <Card>
-            <Card.Body padding="lg">
-              <div className={styles.practiceHeader}>
-                <span className={styles.practiceIcon}>✓</span>
-                <h3 className={styles.practiceTitle}>Do</h3>
-              </div>
-              <List spacing="sm" className={styles.practiceList}>
-                <ListItem>
-                  영역 구분에 sides="bottom" 또는 sides="top" 활용
-                </ListItem>
-                <ListItem>
-                  강조 영역에 sides="left" + color="primary" 조합 사용
-                </ListItem>
-                <ListItem>에러/경고 메시지에 적절한 color 사용</ListItem>
-                <ListItem>카드 스타일에 rounded + padding 조합 활용</ListItem>
-                <ListItem>의미 있는 영역에 role, aria-label 추가</ListItem>
-              </List>
-            </Card.Body>
-          </Card>
-
-          <Card>
-            <Card.Body padding="lg">
-              <div className={styles.practiceHeader}>
-                <span className={styles.practiceIconError}>✗</span>
-                <h3 className={styles.practiceTitle}>Don't</h3>
-              </div>
-              <List spacing="sm" className={styles.practiceList}>
-                <ListItem>
-                  테두리를 과도하게 중첩하여 시각적 복잡도 높이지 않기
-                </ListItem>
-                <ListItem>
-                  의미 전달 목적으로 색상에만 의존하지 않기 (텍스트 병행)
-                </ListItem>
-                <ListItem>thick 두께를 장식 외 목적으로 남용하지 않기</ListItem>
-                <ListItem>
-                  padding 없이 텍스트를 테두리에 밀착시키지 않기
-                </ListItem>
-              </List>
-            </Card.Body>
-          </Card>
-        </div>
-      </section>
-    </article>
+    <DetailLayout
+      name="Border"
+      lead={LEAD}
+      stage={
+        <Stage label="Border 시연" script={SCRIPT}>
+          <Border
+            data-stage-target="border"
+            sides={values.sides as Sides}
+            variant={values.variant as Variant}
+            width={values.width as Width}
+            color={values.color as Color}
+            rounded={values.rounded as Rounded}
+            padding={values.padding as Padding}
+            glow={values.glow === true}
+            // 무대 폭을 채운다. 코드에는 없다
+            style={{ justifySelf: 'stretch' }}
+          >
+            {TEXT}
+          </Border>
+        </Stage>
+      }
+      customize={
+        <Customize controls={CONTROLS} values={values} onChange={setValues} />
+      }
+      code={codeOf({
+        component: 'Border',
+        values: { ...values, children: TEXT },
+        // rounded의 기본값은 sides에 따라 달라진다
+        defaults: {
+          sides: 'all',
+          variant: 'solid',
+          width: 'thin',
+          color: 'default',
+          rounded: all ? 'md' : 'none',
+          padding: 'none',
+        },
+      })}
+      props={PROPS}
+      usage={<Usage />}
+      a11y={<A11y />}
+    />
   );
 }
