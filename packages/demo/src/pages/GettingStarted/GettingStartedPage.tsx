@@ -156,7 +156,7 @@ export function GettingStartedPage() {
           >
             GitHub Issues
           </a>
-          에 남겨 주세요.
+          에 남겨 주십시오.
         </p>
       </Block>
     </div>

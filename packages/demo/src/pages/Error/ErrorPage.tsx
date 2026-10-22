@@ -27,13 +27,13 @@ export function ErrorPage({
           title: '404',
           subtitle: 'Page Not Found',
           message:
-            '이 페이지는 TUI에 존재하지 않습니다. 홈으로 돌아가거나, 뒤로 가기를 해주세요.',
+            '이 페이지는 TUI에 존재하지 않습니다. 홈으로 돌아가거나 뒤로 가기를 눌러 주십시오.',
         };
       case '500':
         return {
           title: '500',
           subtitle: 'Internal Error',
-          message: '서버에 문제가 발생했습니다. 잠시 후 다시 시도해주세요.',
+          message: '서버에 문제가 발생했습니다. 잠시 후 다시 시도해 주십시오.',
         };
       default:
         return {
@@ -42,7 +42,7 @@ export function ErrorPage({
           message:
             error?.statusText ||
             error?.message ||
-            '예상치 못한 오류가 발생했습니다. 홈으로 돌아가거나 다시 시도해주세요.',
+            '예상치 못한 오류가 발생했습니다. 홈으로 돌아가거나 다시 시도해 주십시오.',
         };
     }
   };
