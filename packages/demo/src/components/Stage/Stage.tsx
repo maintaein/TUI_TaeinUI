@@ -193,6 +193,8 @@ export function Stage({
   const scripted = useRef(false);
   // 대본이 잡고 있는 것(drag)을 놓는 함수들. 멈추거나 정리될 때 잡은 채 남지 않게 부른다
   const holds = useRef(new Set<() => void>());
+  // 오버레이 상자 안으로 포커스가 막 들어왔다
+  const settling = useRef(false);
   const [flags, setFlags] = useState<Flags>({
     user: false,
     hover: false,
@@ -472,22 +474,24 @@ export function Stage({
 
   // core 오버레이는 열리면서 포커스를 받는다. 시트가 아직 무대 밖(아래, 옆)에서 들어오는 중이면 브라우저가 거기가 보이도록
   // 페이지를 스크롤한다(body에 fixed로 그릴 때는 없던 일이다). 스크롤은 포커스 이벤트보다 먼저 일어나므로 지금까지 본 위치를 적어 두고,
-  // 포커스가 들어온 그 프레임의 스크롤은 그 위치로 되돌린다
+  // 포커스가 들어온 직후(150ms)의 스크롤은 그 위치로 되돌린다. 그 사이 스크롤로 포인터 밑이 바뀌어 나는 pointerleave는 무대를 떠난 것이 아니다
   useEffect(() => {
     if (!layer) return;
     let known = { left: window.scrollX, top: window.scrollY };
-    let focused = false;
+    let timer = 0;
     const onFocusIn = () => {
-      focused = true;
-      requestAnimationFrame(() => (focused = false));
+      settling.current = true;
+      window.clearTimeout(timer);
+      timer = window.setTimeout(() => (settling.current = false), 150);
     };
     const onScroll = () => {
-      if (focused) window.scrollTo({ ...known, behavior: 'instant' });
+      if (settling.current) window.scrollTo({ ...known, behavior: 'instant' });
       else known = { left: window.scrollX, top: window.scrollY };
     };
     layer.addEventListener('focusin', onFocusIn);
     window.addEventListener('scroll', onScroll);
     return () => {
+      window.clearTimeout(timer);
       layer.removeEventListener('focusin', onFocusIn);
       window.removeEventListener('scroll', onScroll);
     };
@@ -539,7 +543,8 @@ export function Stage({
       );
     };
     const onLeave = (e: PointerEvent) => {
-      if (e.isTrusted) setFlags((f) => (f.hover ? { ...f, hover: false } : f));
+      if (e.isTrusted && !settling.current)
+        setFlags((f) => (f.hover ? { ...f, hover: false } : f));
     };
     root.addEventListener('pointerover', onOver);
     root.addEventListener('pointerleave', onLeave);

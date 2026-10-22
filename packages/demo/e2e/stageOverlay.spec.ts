@@ -9,6 +9,7 @@ import { test, expect, type Page } from '@playwright/test';
 const PAGES = [
   { name: 'Modal', url: '/components/modal' },
   { name: 'BottomSheet', url: '/components/bottom-sheet' },
+  { name: 'SideSheet', url: '/components/side-sheet' },
 ];
 
 const DIALOG = '[role="dialog"]:not([inert])';
