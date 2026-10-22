@@ -239,6 +239,8 @@ type Position = ComponentProps<typeof Snackbar>['position'];
 /** 무대 조각. 상세 페이지와 전체 컴포넌트 카드가 같이 쓴다 */
 export function SnackbarDemo({ values = INITIAL, mini }: DemoProps) {
   const [open, setOpen] = useState(false);
+  // 카드 속 미니가 서 있을 때(멈춤, 축소 모션, 화면 밖) 트리거 단추만이 아니라 열린 대표 장면을 보인다
+  const [still, setStill] = useState(false);
 
   // 바꾼 값이 보이도록 닫혀 있으면 다시 띄운다
   const [seen, setSeen] = useState(values);
@@ -249,7 +251,7 @@ export function SnackbarDemo({ values = INITIAL, mini }: DemoProps) {
 
   return (
     // 스낵바는 화면에 고정(fixed)이라 무대(contain: layout) 안에서 무대 모서리에 놓인다
-    <Stage mini={mini} label="Snackbar 시연" script={SCRIPT}>
+    <Stage mini={mini} label="Snackbar 시연" script={SCRIPT} onStill={setStill}>
       <Button
         data-stage-target="trigger"
         size="sm"
@@ -262,11 +264,12 @@ export function SnackbarDemo({ values = INITIAL, mini }: DemoProps) {
         // 열려 있는 채로 position만 바뀌면 core는 등장 때 정한 가운데 맞춤(xPercent)을 다시 잡지 않는다. 위치마다 새로 그려 처음부터 맞게 한다
         key={String(values.position)}
         data-stage-target="snack"
-        open={open}
+        open={open || still}
         message={String(values.message)}
         severity={values.severity as Severity}
         position={values.position as Position}
-        autoHideDuration={Number(values.autoHideDuration)}
+        // 서 있는 장면은 자동으로 닫히지 않는다
+        autoHideDuration={still ? null : Number(values.autoHideDuration)}
         onClose={() => setOpen(false)}
       />
     </Stage>

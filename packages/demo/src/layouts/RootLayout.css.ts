@@ -60,9 +60,6 @@ export const page = style({
 export const main = style({
   gridColumn: 2,
   padding: '0 2rem 2rem',
-  // 본문을 스크롤 영역으로 두면 안의 글자가 픽셀에 맞춰 그려진다. 빼면 누름 효과가 끝날 때 Button 글자가
-  // 소수점 위치에서 튄다(e2e buttonPressText, 빼면 12회 중 5회 실패, 두면 12회 통과). 안쪽 여백(2rem)이 포커스 링(4px)보다 커서 링을 자르지 않는다
-  overflowX: 'auto',
   '@media': { [COMPACT]: { padding: '0 1rem 1rem' } },
 });
 

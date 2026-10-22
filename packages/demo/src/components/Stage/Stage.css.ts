@@ -80,3 +80,5 @@ export const cursor = style({
 
 globalStyle(`${stageMini} > ${layer}`, { top: 0 });
 globalStyle(`${stageMini} > ${innerBar}`, { marginTop: spacing[4] });
+// 카드 속 미니는 연출 커서를 그리지 않는다(움직임 자체는 그대로). 커서는 타임라인의 대상이라 요소는 남기고 보이지만 않게 한다
+globalStyle(`${stageMini} > ${cursor}`, { display: 'none' });

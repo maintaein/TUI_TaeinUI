@@ -85,6 +85,11 @@ export interface StageProps {
    * 화면에 절반 이상 보일 때만 돌고, `MiniFrozen`이 켜지면 선다
    */
   mini?: boolean;
+  /**
+   * 카드 속 미니가 서 있는지(움직임 멈춤, 축소 모션, 화면 밖)가 바뀔 때 부른다. 오버레이 미니는 서 있을 때
+   * 트리거 단추만 두지 않고 열린 대표 장면을 보이는 데 쓴다. 상세 무대는 서 있어도 부르지 않는다(늘 false)
+   */
+  onStill?: (still: boolean) => void;
   className?: string;
 }
 
@@ -218,6 +223,7 @@ export function Stage({
   lockWhilePlaying,
   bar,
   mini,
+  onStill,
   className,
 }: StageProps) {
   const reduced = useReducedMotion();
@@ -226,6 +232,8 @@ export function Stage({
   const [layer, setLayer] = useState<HTMLDivElement | null>(null);
   const onPauseRef = useRef(onPause);
   onPauseRef.current = onPause;
+  const onStillRef = useRef(onStill);
+  onStillRef.current = onStill;
   const cursor = useRef<SVGSVGElement>(null);
   const timeline = useRef<gsap.core.Timeline | null>(null);
   // 대본이 준 포커스는 넘겨받기로 보지 않는다
@@ -246,6 +254,7 @@ export function Stage({
   const playing =
     !reduced && !Object.values(flags).some(Boolean) && !(mini && frozen);
   const demo = script && !reduced;
+  const still = !!mini && !playing;
 
   useEffect(mirrorHover, []);
 
@@ -567,6 +576,8 @@ export function Stage({
     });
   }, [playing, root, script, reduced]);
 
+  useLayoutEffect(() => onStillRef.current?.(still), [still]);
+
   // 화면 밖, 탭 숨김, 진짜 마우스. 합성 pointerover(isTrusted false)는 연출이라 무시한다
   useEffect(() => {
     if (!root) return;
@@ -662,6 +673,7 @@ export function Stage({
       {demo && (
         <MousePointer2
           ref={cursor}
+          data-stage-cursor
           className={styles.cursor}
           aria-hidden="true"
           fill="currentColor"

@@ -308,12 +308,20 @@ type Align = ComponentProps<typeof Modal>['footerAlign'];
 /** 무대 조각. 상세 페이지와 전체 컴포넌트 카드가 같이 쓴다 */
 export function ModalDemo({ values = INITIAL, mini }: DemoProps) {
   const [open, setOpen] = useState(false);
+  // 카드 속 미니가 서 있을 때(멈춤, 축소 모션, 화면 밖) 트리거 단추만이 아니라 열린 대표 장면을 보인다
+  const [still, setStill] = useState(false);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const close = () => setOpen(false);
 
   return (
     // 함수형 children이 넘기는 상자(container)에 그리면 모달이 무대 안에 갇힌다
-    <Stage mini={mini} label="Modal 시연" script={SCRIPT} onPause={close}>
+    <Stage
+      mini={mini}
+      label="Modal 시연"
+      script={SCRIPT}
+      onPause={close}
+      onStill={setStill}
+    >
       {(container) => (
         <>
           <Button
@@ -325,7 +333,7 @@ export function ModalDemo({ values = INITIAL, mini }: DemoProps) {
             모달 열기
           </Button>
           <Modal
-            open={open}
+            open={open || still}
             onClose={close}
             container={container}
             triggerRef={triggerRef}

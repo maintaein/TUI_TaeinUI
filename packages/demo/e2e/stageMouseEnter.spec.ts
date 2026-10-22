@@ -18,10 +18,16 @@ test('시연이 스낵바에 올라가면 막대가 서고, 진짜 마우스가 
       parseFloat((el.lastElementChild as HTMLElement).style.transform.slice(7))
     );
 
-  // 올라간 동안(data-stage-hover) 막대가 선다
-  await expect(snack).toHaveAttribute('data-stage-hover', '', {
-    timeout: 20_000,
-  });
+  // 올라간 동안(data-stage-hover) 막대가 선다. 올라가 있는 시간(1.6초)이 짧아, 단언의 재시도 간격(최대 1초)으로 늦게 알아채면 값을 읽기 전에
+  // 내려가 버린다. 프레임마다 보는 waitForFunction으로 붙는다
+  await page.waitForFunction(
+    () =>
+      document
+        .querySelector('[data-stage-target="snack"]')
+        ?.hasAttribute('data-stage-hover'),
+    null,
+    { timeout: 20_000 }
+  );
   const held = await bar();
   await page.waitForTimeout(600);
   expect(await bar()).toBe(held);

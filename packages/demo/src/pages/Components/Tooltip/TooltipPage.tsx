@@ -201,9 +201,12 @@ type Position = ComponentProps<typeof Tooltip>['position'];
 
 /** 무대 조각. 상세 페이지와 전체 컴포넌트 카드가 같이 쓴다 */
 export function TooltipDemo({ values = INITIAL, mini }: DemoProps) {
+  // 카드 속 미니가 서 있을 때(멈춤, 축소 모션, 화면 밖) 트리거 단추만이 아니라 열린 대표 장면을 보인다
+  const [still, setStill] = useState(false);
   return (
-    <Stage mini={mini} label="Tooltip 시연" script={SCRIPT}>
+    <Stage mini={mini} label="Tooltip 시연" script={SCRIPT} onStill={setStill}>
       <Tooltip
+        open={still || undefined}
         data-stage-target="trigger"
         content={String(values.content)}
         position={values.position as Position}

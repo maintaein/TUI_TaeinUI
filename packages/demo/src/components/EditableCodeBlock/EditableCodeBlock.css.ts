@@ -1,3 +1,4 @@
+import { themeContract } from '@taein-ui/core';
 import { style } from '@vanilla-extract/css';
 
 export const container = style({
@@ -30,7 +31,7 @@ export const copyButton = style({
   gap: '0.375rem',
   padding: '0.375rem 0.75rem',
   backgroundColor: 'transparent',
-  border: '1px solid #d1d5db',
+  border: `1px solid ${themeContract.color.border.default}`,
   borderRadius: '0.375rem',
   fontSize: '0.75rem',
   fontWeight: 500,

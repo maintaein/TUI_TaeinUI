@@ -161,3 +161,70 @@ for (const name of ['Modal', 'BottomSheet', 'SideSheet', 'Popover']) {
     await expect(el).toBeVisible();
   });
 }
+
+test('벽 미니는 연출 커서를 그리지 않고 상세 무대는 그린다', async ({
+  page,
+}) => {
+  const cursors = await page.evaluate(() =>
+    [...document.querySelectorAll('[data-stage-mini] [data-stage-cursor]')].map(
+      (c) => getComputedStyle(c).display
+    )
+  );
+  // 대본이 있는 스물셋(Divider와 List는 대본 없는 정지)
+  expect(cursors).toHaveLength(23);
+  expect(cursors.every((d) => d === 'none')).toBe(true);
+  await page.goto('/components/modal');
+  await expect(page.locator('[data-stage-cursor]').first()).toBeVisible();
+});
+
+// 열린 대표 장면: 정지한 오버레이 카드는 트리거 단추만이 아니라 열린 것이 카드 상자 안에 선다
+const OPEN_SCENE: Record<string, string> = {
+  Modal: '[role="dialog"]',
+  BottomSheet: '[role="dialog"]',
+  SideSheet: '[role="dialog"]',
+  Popover: '[role="dialog"]',
+  Snackbar: '[data-stage-target="snack"]',
+  Tooltip: '[role="tooltip"]',
+};
+
+const expectOpenScene = async (page: Page, name: string) => {
+  const el = await bring(page, name);
+  const open = el.locator(OPEN_SCENE[name]);
+  await expect(open).toBeVisible();
+  // 시트가 들어오는 전이가 끝나 카드 상자 안에 자리 잡을 때까지 본다
+  await expect
+    .poll(async () => {
+      const a = (await open.boundingBox())!;
+      const b = (await el.boundingBox())!;
+      return (
+        a.x >= b.x - 1 &&
+        a.y >= b.y - 1 &&
+        a.x + a.width <= b.x + b.width + 1 &&
+        a.y + a.height <= b.y + b.height + 1
+      );
+    })
+    .toBe(true);
+  // 포커스는 누른 "움직임 멈춤" 단추에 그대로 있고 미니로 들어가지 않는다
+  expect(
+    await page.evaluate(
+      () => !!document.activeElement?.closest('[data-stage-mini]')
+    )
+  ).toBe(false);
+  expect(await page.evaluate(() => document.body.style.overflow)).toBe('');
+  expect(await open.evaluate((o) => !!o.closest('[inert]'))).toBe(true);
+};
+
+for (const name of Object.keys(OPEN_SCENE)) {
+  test(`"움직임 멈춤" 뒤 ${name} 카드는 열린 장면이 카드 상자 안에 선다`, async ({
+    page,
+  }) => {
+    await page.getByRole('button', { name: '움직임 멈춤' }).click();
+    await expectOpenScene(page, name);
+  });
+}
+
+test('축소 모션이면 Modal 카드가 처음부터 열린 장면이다', async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.reload();
+  await expectOpenScene(page, 'Modal');
+});

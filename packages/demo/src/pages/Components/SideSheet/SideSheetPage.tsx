@@ -246,11 +246,19 @@ type Position = ComponentProps<typeof SideSheet>['position'];
 /** 무대 조각. 상세 페이지와 전체 컴포넌트 카드가 같이 쓴다 */
 export function SideSheetDemo({ values = INITIAL, mini }: DemoProps) {
   const [open, setOpen] = useState(false);
+  // 카드 속 미니가 서 있을 때(멈춤, 축소 모션, 화면 밖) 트리거 단추만이 아니라 열린 대표 장면을 보인다
+  const [still, setStill] = useState(false);
   const close = () => setOpen(false);
 
   return (
     // 함수형 children이 넘기는 상자(container)에 그리면 시트가 무대 안 가장자리에 갇힌다
-    <Stage mini={mini} label="SideSheet 시연" script={SCRIPT} onPause={close}>
+    <Stage
+      mini={mini}
+      label="SideSheet 시연"
+      script={SCRIPT}
+      onPause={close}
+      onStill={setStill}
+    >
       {(container) => (
         <>
           <Button
@@ -261,7 +269,7 @@ export function SideSheetDemo({ values = INITIAL, mini }: DemoProps) {
             시트 열기
           </Button>
           <SideSheet
-            open={open}
+            open={open || still}
             onClose={close}
             container={container}
             title={String(values.title)}
