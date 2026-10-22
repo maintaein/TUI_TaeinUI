@@ -33,6 +33,26 @@ export function ComponentsOverviewPage() {
         </h1>
       </div>
 
+      <div className={styles.dock} role="search">
+        <input
+          type="search"
+          className={styles.search}
+          placeholder="이름으로 찾기"
+          aria-label="이름으로 찾기"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+        />
+        {numberedGroups.map((g) => (
+          <Chip
+            key={g.label}
+            size="sm"
+            label={g.label}
+            selected={group === g.label}
+            onClick={() => setGroup(group === g.label ? null : g.label)}
+          />
+        ))}
+      </div>
+
       {shown.map((g) => (
         <section key={g.label} aria-labelledby={`group-${g.label}`}>
           <div className={wall.sectionHead}>
@@ -56,26 +76,6 @@ export function ComponentsOverviewPage() {
           찾는 이름의 컴포넌트가 없습니다.
         </p>
       )}
-
-      <div className={styles.dock} role="search">
-        <input
-          type="search"
-          className={styles.search}
-          placeholder="이름으로 찾기"
-          aria-label="이름으로 찾기"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-        />
-        {numberedGroups.map((g) => (
-          <Chip
-            key={g.label}
-            size="sm"
-            label={g.label}
-            selected={group === g.label}
-            onClick={() => setGroup(group === g.label ? null : g.label)}
-          />
-        ))}
-      </div>
     </div>
   );
 }

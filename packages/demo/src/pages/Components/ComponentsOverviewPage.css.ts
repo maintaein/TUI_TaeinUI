@@ -9,8 +9,6 @@ const MOBILE = '(max-width: 640px)';
 export const page = style({
   maxWidth: '1200px',
   margin: '0 auto',
-  // 떠 있는 찾기 막대가 마지막 카드를 가리지 않을 만큼 비워 둔다
-  paddingBottom: '120px',
 });
 
 export const head = style({
@@ -40,32 +38,23 @@ export const empty = style({
   color: MUTED,
 });
 
-// 화면 아래 떠 있는 찾기 막대
+// 머리 아래에 놓였다가 스크롤하면 알약 헤더 밑에 붙어 따라온다. 쉬는 자리에서는 카드를 가리지 않는다
 export const dock = style({
-  position: 'fixed',
-  bottom: spacing[6],
-  left: '50%',
-  transform: 'translateX(-50%)',
+  position: 'sticky',
+  top: '76px',
   zIndex: 15,
   display: 'flex',
   alignItems: 'center',
   gap: spacing[2],
+  width: 'fit-content',
+  maxWidth: '100%',
+  margin: `${spacing[6]} 0`,
   padding: spacing[2],
   background: color.background.default,
   border: `1px solid ${LINE}`,
   borderRadius: borderRadius.xl,
-  maxWidth: 'calc(100% - 32px)',
   overflowX: 'auto',
   scrollbarWidth: 'none',
-  '@media': {
-    [MOBILE]: {
-      left: spacing[3],
-      right: spacing[3],
-      transform: 'none',
-      maxWidth: 'none',
-      bottom: spacing[4],
-    },
-  },
 });
 
 export const search = style({
