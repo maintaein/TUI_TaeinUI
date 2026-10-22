@@ -1,82 +1,95 @@
 import { themeContract } from '@taein-ui/core';
-import { style } from '@vanilla-extract/css';
+import { globalStyle, style } from '@vanilla-extract/css';
+import { FRAME, INK, MONO, MUTED } from '../../components/DocText';
 
-const { color, spacing, font } = themeContract;
+const { spacing, borderRadius } = themeContract;
 
-export const container = style({
-  maxWidth: '1200px',
-  margin: '0 auto',
-  padding: '0 2rem 2rem',
+const MOBILE = '(max-width: 640px)';
+
+export const hero = style({
+  display: 'grid',
+  justifyItems: 'center',
+  gap: spacing[6],
+  padding: `${spacing[16]} ${spacing[6]} ${spacing[12]}`,
+  textAlign: 'center',
   '@media': {
-    '(max-width: 768px)': {
-      padding: '0 1rem 1rem',
+    [MOBILE]: {
+      gap: spacing[4],
+      padding: `${spacing[8]} ${spacing[4]} ${spacing[8]}`,
     },
   },
 });
 
-// 로고 이미지와 "Taein UI" 글자를 한 h1에 세로로 쌓는다.
 export const logo = style({
-  display: 'flex',
-  flexDirection: 'column',
-  alignItems: 'center',
-  margin: 0,
+  height: '72px',
+  width: 'auto',
+  '@media': { [MOBILE]: { height: '56px' } },
 });
 
-export const logoText = style({
-  marginTop: spacing[1],
-  fontSize: font.size.xl,
-  fontWeight: font.weight.semibold,
-  color: color.text.secondary,
+export const title = style({ fontSize: 'clamp(3.25rem, 15vw, 11rem)' });
+
+export const desc = style({
+  maxWidth: '760px',
+  textWrap: 'balance',
+  '@media': { [MOBILE]: { fontSize: '1.0625rem' } },
+});
+
+export const actions = style({
+  display: 'flex',
+  flexWrap: 'wrap',
+  justifyContent: 'center',
+  alignItems: 'center',
+  gap: spacing[2],
   '@media': {
-    '(max-width: 768px)': {
-      fontSize: font.size.base,
+    // 좁은 화면: 설치 줄은 한 줄을 다 쓰고, 버튼 둘은 반씩 나눈다
+    [MOBILE]: {
+      display: 'grid',
+      gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+      width: '100%',
     },
   },
 });
 
-// "Taein UI"와 쇼케이스 사이 여백.
-export const showcaseSlot = style({
+globalStyle(`${actions} > :first-child`, {
+  '@media': {
+    [MOBILE]: { gridColumn: '1 / -1', justifyContent: 'space-between' },
+  },
+});
+
+export const install = style({
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: spacing[2],
+  height: '48px',
+  padding: `0 ${spacing[2]} 0 ${spacing[4]}`,
+  background: FRAME,
+  borderRadius: borderRadius.md,
+  fontFamily: MONO,
+  fontSize: '0.8125rem',
+  color: INK,
+  whiteSpace: 'nowrap',
+});
+
+export const installDim = style({ color: MUTED });
+
+export const wide = style({ maxWidth: '1200px', margin: '0 auto' });
+
+export const showcase = style({
+  padding: `${spacing[10]} ${spacing[4]}`,
+  '@media': { [MOBILE]: { padding: `${spacing[5]} ${spacing[2]}` } },
+});
+
+// 가운데 정렬 격자 안에서 쇼케이스가 제 폭(44rem)까지 펴지게 한다
+export const fill = style({ width: '100%' });
+
+export const more = style({
+  display: 'flex',
+  justifyContent: 'center',
   marginTop: spacing[8],
 });
 
-export const logoImage = style({
-  height: '96px',
-  width: 'auto',
-  '@media': {
-    '(max-width: 768px)': {
-      height: '72px',
-    },
-  },
-});
-
-export const intro = style({
-  textAlign: 'center',
-  maxWidth: '800px',
-  margin: `${spacing[2]} auto 0`,
-});
-
-export const heroDescription = style({
-  fontSize: '1.25rem',
-  lineHeight: 1.8,
-  color: '#4b5563',
-  marginBottom: spacing[4],
-  wordBreak: 'keep-all',
-  '@media': {
-    '(max-width: 768px)': {
-      fontSize: '1rem',
-    },
-  },
-});
-
-export const heroActions = style({
-  display: 'flex',
-  gap: '1rem',
-  justifyContent: 'center',
-  '@media': {
-    '(max-width: 480px)': {
-      flexDirection: 'column',
-      alignItems: 'center',
-      gap: '0.75rem',
-    },
-  },
+export const moreLink = style({
+  fontSize: '0.875rem',
+  color: MUTED,
+  selectors: { '&:hover': { color: INK } },
 });
