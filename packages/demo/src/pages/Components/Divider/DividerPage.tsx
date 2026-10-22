@@ -13,7 +13,7 @@ import type { PropDefinition } from '../../../components/PropsTable';
 import { Stage } from '../../../components/Stage';
 
 const LEAD =
-  '콘텐츠 사이에 선을 긋습니다. 가로 선은 섹션을 나누고, 세로 선은 한 줄에 놓인 메뉴를 나눕니다. 가운데에 글자를 넣을 수도 있습니다.';
+  '콘텐츠 사이에 선을 긋습니다. 가로 선은 섹션을 나누고 세로 선은 한 줄에 놓인 메뉴를 나눕니다. 가운데에 글자를 넣을 수도 있습니다.';
 
 const CONTROLS: Control[] = [
   { prop: 'orientation', kind: 'choice', options: ['horizontal', 'vertical'] },
@@ -73,7 +73,7 @@ const PROPS: PropDefinition[] = [
     name: 'aria-label',
     type: 'string',
     description:
-      '구분선 이름. 글자가 문자열이나 숫자면 그 글자가 이름이 되고, 이 값을 주면 그것이 이긴다',
+      '구분선 이름. 글자가 문자열이나 숫자면 그 글자가 이름이 되고 이 값을 주면 그것이 이긴다',
   },
 ];
 
@@ -92,7 +92,7 @@ function Usage() {
       <Topic title="언제 쓰나">
         <p className={t.body}>
           성격이 다른 내용 사이나 한 줄에 놓인 메뉴 사이를 나눌 때 씁니다.
-          간격만으로 나뉘는 곳에는 쓰지 않고, 구분선을 연달아 놓지 않습니다.
+          간격만으로 나뉘는 곳에는 쓰지 않고 구분선을 연달아 놓지 않습니다.
           카드나 목록 안에서 이미 나뉜 곳을 한 번 더 나누지도 않습니다.
         </p>
       </Topic>
@@ -128,7 +128,7 @@ function A11y() {
       <li>
         구분선의 이름은 안쪽 글자에서 계산되지 않아 일부 보조 기술이 글자를 읽지
         않습니다. 그래서 글자가 문자열이나 숫자면 그 글자를{' '}
-        <code>aria-label</code>로 주고, 안쪽 글자는 <code>aria-hidden</code>으로
+        <code>aria-label</code>로 주고 안쪽 글자는 <code>aria-hidden</code>으로
         가려 두 번 읽히지 않게 합니다.
       </li>
       <li>

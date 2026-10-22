@@ -158,7 +158,7 @@ function Usage() {
     <Topics>
       <Topic title="언제 쓰나">
         <p className={t.body}>
-          정렬 기준 고르기, 필터 같은 짧은 선택을 손이 닿는 화면 아래에서 받을
+          손이 닿는 화면 아래에서 정렬 기준 고르기나 필터 같은 짧은 선택을 받을
           때 씁니다. 답을 받아야 하는 확인이나 긴 입력은 <code>Modal</code>,
           옆에서 보조 정보를 보여 줄 때는 <code>SideSheet</code>가 맞습니다.
         </p>
@@ -201,7 +201,7 @@ function Usage() {
           잠급니다. <code>container</code>에 요소를 주면 그 안에 그려지고 잠그지
           않습니다. 화면이 그 요소에 갇히려면 요소가{' '}
           <code>contain: layout</code>이나 <code>transform</code>으로 fixed의
-          기준이 되어야 합니다. 위 무대가 이렇게 만들어져 있습니다.
+          기준이 되어야 합니다. 위 무대도 같은 방식입니다.
         </p>
         <CodeBlock code={COMPOUND} />
       </Topic>

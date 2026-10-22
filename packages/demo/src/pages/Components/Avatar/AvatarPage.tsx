@@ -70,7 +70,7 @@ const PROPS: PropDefinition[] = [
     type: 'string',
     required: true,
     description:
-      '누구인지 알리는 이름. 이미지의 대체 텍스트가 되고, 이미지가 없으면 이니셜이 여기서 나온다',
+      '누구인지 알리는 이름. 이미지의 대체 텍스트가 되고 이미지가 없으면 이니셜이 여기서 나온다',
   },
   {
     name: 'src',
@@ -203,7 +203,7 @@ function Usage() {
         <p className={t.body} style={{ marginBottom: 12 }}>
           <code>src</code>가 없거나 불러오지 못하면 <code>alt</code>에서
           이니셜을 만들어 보입니다. 이름이 두 단어 이상이면 앞의 두 단어의 첫
-          글자를 대문자로 잇고, 한 단어면 첫 글자 하나이며, 비어 있으면{' '}
+          글자를 대문자로 잇습니다. 한 단어면 첫 글자 하나, 비어 있으면{' '}
           <code>?</code>입니다. <code>children</code>을 주면 이니셜 대신 그
           내용을 보입니다.
         </p>
@@ -238,12 +238,12 @@ function Usage() {
         <CodeBlock code={CLICKABLE} />
         <p className={t.body} style={{ margin: '16px 0 0' }}>
           누르는 동안은 0.95배로 눌립니다. <code>bouncy</code>를 켜면 눌림 대신
-          마우스를 올릴 때 튀며 15% 떠오르고, 누르면 떠오른 채 1.1배로 커졌다가
-          돌아옵니다. 키보드로 포커스가 오면 튀지 않고 떠오르기만 하며, 마우스로
-          눌러서 생긴 포커스와 터치에서는 떠오르지 않습니다. 누를 수 없는
-          아바타가 움직이면 누를 수 있다고 오해하게 되므로 <code>bouncy</code>는
-          누를 수 없는 아바타에서는 무시됩니다. 움직임 줄이기 설정을 켠
-          환경에서는 움직이지 않습니다.
+          마우스를 올릴 때 튀며 15% 떠오르고 누르면 떠오른 채 1.1배로 커졌다가
+          돌아옵니다. 키보드로 포커스가 오면 튀지 않고 떠오르기만 합니다.
+          마우스로 눌러서 생긴 포커스와 터치에서는 떠오르지 않습니다. 누를 수
+          없는 아바타가 움직이면 누를 수 있다고 오해하게 되므로{' '}
+          <code>bouncy</code>는 누를 수 없는 아바타에서는 무시됩니다. 움직임
+          줄이기 설정을 켠 환경에서는 움직이지 않습니다.
         </p>
       </Topic>
     </Topics>
@@ -254,9 +254,9 @@ function A11y() {
   return (
     <ul className={`${t.list} ${t.body}`}>
       <li>
-        이미지가 있으면 <code>img</code>에 <code>alt</code>가 붙고, 없으면
-        이니셜 칸이 <code>role=&quot;img&quot;</code>와 <code>aria-label</code>
-        로 <code>alt</code>를 전달합니다.
+        이미지가 있으면 <code>img</code>에 <code>alt</code>가 붙고 없으면 이니셜
+        칸이 <code>role=&quot;img&quot;</code>와 <code>aria-label</code>로{' '}
+        <code>alt</code>를 전달합니다.
       </li>
       <li>
         개발자가 직접 해야 합니다. <code>alt</code>에는 &quot;사진&quot;,

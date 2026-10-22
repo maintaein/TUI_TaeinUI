@@ -187,7 +187,7 @@ function Usage() {
       </Topic>
       <Topic title="범위와 단위">
         <p className={t.body} style={{ marginBottom: 12 }}>
-          <code>min</code>과 <code>max</code>로 범위를 정하고, <code>step</code>
+          <code>min</code>과 <code>max</code>로 범위를 정하고 <code>step</code>
           으로 한 번에 바뀌는 크기를 정합니다. 값이 범위 끝에 닿으면 그 방향의
           버튼이 꺼집니다. 범위는 <code>helperText</code>로도 알려 줍니다.
         </p>
@@ -213,17 +213,17 @@ function Usage() {
           버튼을 0.4초 넘게 누르고 있으면 값이 반복해서 바뀝니다. 간격이
           0.16초에서 시작해 약 1.2초에 걸쳐 0.04초까지 좁아지므로 오래 누를수록
           빨리 바뀝니다. 숫자를 직접 칠 수도 있습니다. 치는 동안에는 칸을
-          비우거나 범위 밖 숫자를 잠시 둘 수 있고, 칸을 벗어나거나 Enter를
-          누르면 <code>min</code>·<code>max</code> 안으로 맞춰 확정합니다.
-          비었거나 숫자가 아니면 직전 값으로 돌아갑니다. 칸에서 위·아래 화살표
-          키를 누르면 <code>step</code>만큼 오르내립니다.
+          비우거나 범위 밖 숫자를 잠시 둘 수 있고 칸을 벗어나거나 Enter를 누르면{' '}
+          <code>min</code>·<code>max</code> 안으로 맞춰 확정합니다. 비었거나
+          숫자가 아니면 직전 값으로 돌아갑니다. 칸에서 위·아래 화살표 키를
+          누르면 <code>step</code>만큼 오르내립니다.
         </p>
       </Topic>
       <Topic title="움직임">
         <p className={t.body}>
-          버튼을 누르면 누른 버튼과 숫자가 함께 깊이 눌리고, 떼면 살짝 부풀었다
+          버튼을 누르면 누른 버튼과 숫자가 함께 깊이 눌리고 떼면 살짝 부풀었다
           내려앉습니다. 숫자는 바뀔 때마다 바뀐 방향으로 조금 밀렸다 제자리를
-          잡고, 길게 누르면 간격이 좁아지는 만큼 더 빠르게 떨립니다. 숫자 칸의
+          잡고 길게 누르면 간격이 좁아지는 만큼 더 빠르게 떨립니다. 숫자 칸의
           테두리는 움직이지 않습니다. 움직임 줄이기 설정을 켠 환경에서는
           애니메이션 없이 값만 바뀝니다.
         </p>
@@ -237,16 +237,16 @@ function A11y() {
     <ul className={`${t.list} ${t.body}`}>
       <li>
         <code>label</code>이 <code>label</code> 요소로 숫자 칸과 연결됩니다.
-        스크린 리더가 칸의 용도를 읽고, 레이블을 눌러도 포커스가 갑니다.
+        스크린 리더가 칸의 용도를 읽고 레이블을 눌러도 포커스가 갑니다.
       </li>
       <li>
         숫자 칸은 <code>type=&quot;number&quot;</code> 입력이라 스핀 버튼으로
-        읽히고, <code>min</code>·<code>max</code>가 그대로 전달되어 범위도
+        읽히고 <code>min</code>·<code>max</code>가 그대로 전달되어 범위도
         읽습니다. 읽기 전용이 아니라 직접 칠 수 있습니다.
       </li>
       <li>
         증감 버튼에는 <code>aria-label</code>로 &quot;값 증가&quot;, &quot;값
-        감소&quot;가 붙어 있고, 누르는 영역은 최소 44px입니다. 범위 끝에 닿으면
+        감소&quot;가 붙어 있고 누르는 영역은 최소 44px입니다. 범위 끝에 닿으면
         그 버튼은 <code>disabled</code>가 됩니다.
       </li>
       <li>
@@ -260,7 +260,7 @@ function A11y() {
       </li>
       <li>
         <code>error</code>이면 <code>aria-invalid</code>가 <code>true</code>가
-        되고, 도움말이나 에러 메시지가 보일 때는 <code>aria-describedby</code>로
+        되고 도움말이나 에러 메시지가 보일 때는 <code>aria-describedby</code>로
         이어집니다.
       </li>
       <li>

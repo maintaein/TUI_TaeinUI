@@ -128,7 +128,7 @@ function Usage() {
       </Topic>
       <Topic title="간격과 구분선">
         <p className={t.body}>
-          항목은 <code>spacing</code>만큼 떨어지고, <code>divider</code>를 켜면
+          항목은 <code>spacing</code>만큼 떨어지고 <code>divider</code>를 켜면
           그 사이에 선이 그어집니다. 선 위쪽 여백은 <code>spacing</code>과 같은
           값이라, <code>spacing=&quot;none&quot;</code>이면 선이 글자에 바짝
           붙습니다. 항목이 많으면 한 목록에 몰아 두지 말고 섹션을 나눕니다.
@@ -143,14 +143,14 @@ function A11y() {
     <ul className={`${t.list} ${t.body}`}>
       <li>
         <code>ul</code>과 <code>li</code> 요소로 그려져 스크린 리더가 목록과
-        항목으로 읽습니다. 점을 지워도 목록으로 읽히도록 <code>ul</code>에
+        항목으로 읽습니다. 점을 지워도 목록으로 읽히도록 <code>ul</code>에{' '}
         <code>role=&quot;list&quot;</code>를 명시하고, 주면 그 값이 이깁니다.
         속성은 목록은 <code>ul</code>에, 항목은 <code>li</code>에 그대로
         전달됩니다.
       </li>
       <li>이름과 값은 문서에 쓰인 순서대로, 이름 다음에 값이 읽힙니다.</li>
       <li>
-        개발자가 직접 해야 합니다. 목록의 맥락을 밝히려면 제목 요소의 id를
+        개발자가 직접 해야 합니다. 목록의 맥락을 밝히려면 제목 요소의 id를{' '}
         <code>List</code>의 <code>aria-labelledby</code>로 연결합니다.
       </li>
       <li>

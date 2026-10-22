@@ -13,7 +13,7 @@ import type { PropDefinition } from '../../../components/PropsTable';
 import { Stage, type Act } from '../../../components/Stage';
 
 const LEAD =
-  '저장 완료, 오류 발생처럼 짧은 결과를 화면 모서리에 잠깐 알립니다. 남은 시간이 막대로 줄어들고, 마우스를 올리면 막대가 멈춥니다.';
+  '저장 완료, 오류 발생처럼 짧은 결과를 화면 모서리에 잠깐 알립니다. 남은 시간이 막대로 줄어들고 마우스를 올리면 막대가 멈춥니다.';
 
 const CONTROLS: Control[] = [
   { prop: 'message', kind: 'text', label: 'message' },
@@ -163,7 +163,7 @@ function Usage() {
       <Topic title="열고 닫기">
         <p className={t.body} style={{ marginBottom: 12 }}>
           열림은 부모가 쥡니다. <code>open</code>을 켜면 알림이 자기 모서리에서
-          올라오고, 닫기 단추나 자동 닫힘이 <code>onClose</code>를 부르면 거기서{' '}
+          올라오고 닫기 단추나 자동 닫힘이 <code>onClose</code>를 부르면 거기서{' '}
           <code>open</code>을 내립니다. <code>onClose</code>가 없으면 자동으로
           닫히지도, 막대가 줄지도 않습니다.
         </p>
@@ -172,7 +172,7 @@ function Usage() {
       <Topic title="남은 시간과 멈춤">
         <p className={t.body}>
           아래쪽 막대가 남은 시간을 말합니다. 마우스를 올리거나 안쪽에 키보드
-          포커스가 있으면 막대와 시계가 함께 멈추고, 떠나면 멈춘 자리에서
+          포커스가 있으면 막대와 시계가 함께 멈추고 떠나면 멈춘 자리에서
           이어집니다. 처음부터 다시 세지 않습니다. 기본은 6초입니다.
         </p>
       </Topic>
@@ -215,7 +215,7 @@ function A11y() {
         저장했습니다&quot;처럼 종류가 앞에 붙습니다.
       </li>
       <li>
-        닫기 단추의 이름은 &quot;닫기&quot;이고, 키보드 포커스를 받으면 포커스
+        닫기 단추의 이름은 &quot;닫기&quot;이고 키보드 포커스를 받으면 포커스
         링이 나옵니다.
       </li>
       <li>

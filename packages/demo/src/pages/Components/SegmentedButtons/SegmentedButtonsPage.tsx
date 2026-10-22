@@ -156,10 +156,10 @@ function Usage() {
           선택지는 <code>options</code> 배열로 줍니다. 그룹이 무엇을 고르는
           자리인지는 <code>aria-label</code>이나 <code>aria-labelledby</code>로
           꼭 알립니다. 둘 다 없으면 타입 오류가 납니다. 옵션에는{' '}
-          <code>icon</code>을 더할 수 있고, <code>iconOnly</code>로 아이콘만
-          보여 줄 수도 있습니다. 이때도 <code>label</code>은 꼭 적습니다. 화면
-          낭독이 그 글자를 읽습니다. 옵션 하나만 <code>disabled</code>로 꺼 둘
-          수도 있습니다.
+          <code>icon</code>을 더할 수 있고 <code>iconOnly</code>로 아이콘만 보여
+          줄 수도 있습니다. 이때도 <code>label</code>은 꼭 적습니다. 화면 낭독이
+          그 글자를 읽습니다. 옵션 하나만 <code>disabled</code>로 꺼 둘 수도
+          있습니다.
         </p>
         <CodeBlock code={ICONS} />
       </Topic>
@@ -179,7 +179,7 @@ function Usage() {
       <Topic title="움직임">
         <p className={t.body}>
           선택이 바뀌면 파란 표식이 사라졌다 나타나지 않고 하나의 물체로
-          미끄러집니다. 먼저 옛 칸과 새 칸을 함께 덮도록 늘어나고, 진행 방향의
+          미끄러집니다. 먼저 옛 칸과 새 칸을 함께 덮도록 늘어나고 진행 방향의
           앞쪽 끝이 새 칸 끝에 앉은 뒤 뒤쪽 끝이 따라와 자리를 잡습니다. 먼
           칸으로 옮길수록 더 길게 늘어납니다. 처음 놓일 때는 움직이지 않고 바로
           앉습니다. 움직임 줄이기 설정을 켠 환경에서는 애니메이션 없이 바로 옮겨
@@ -194,7 +194,7 @@ function A11y() {
   return (
     <ul className={`${t.list} ${t.body}`}>
       <li>
-        컨테이너에 <code>role=&quot;radiogroup&quot;</code>이 붙고, 옵션은 안쪽{' '}
+        컨테이너에 <code>role=&quot;radiogroup&quot;</code>이 붙고 옵션은 안쪽{' '}
         <code>input[type=&quot;radio&quot;]</code>가 맡아 스크린 리더가 단일
         선택 그룹으로 읽습니다. 각 옵션의 <code>aria-checked</code>가 선택
         여부를 전달합니다.
@@ -205,7 +205,7 @@ function A11y() {
       </li>
       <li>
         Tab은 그룹에 한 번 들어가 선택된 옵션(선택이 없거나 꺼져 있으면 첫 활성
-        옵션)에만 닿고, 한 번 더 누르면 그룹을 나갑니다.
+        옵션)에만 닿고 한 번 더 누르면 그룹을 나갑니다.
       </li>
       <li>
         왼쪽·위쪽 화살표는 이전 옵션, 오른쪽·아래쪽 화살표는 다음 활성 옵션으로
@@ -213,7 +213,7 @@ function A11y() {
         활성 옵션과 끝 활성 옵션으로, Space와 Enter는 선택합니다.
       </li>
       <li>
-        키보드로 포커스가 오면 옵션에 포커스 링이 생기고, 마우스로 눌렀을 때는
+        키보드로 포커스가 오면 옵션에 포커스 링이 생기고 마우스로 눌렀을 때는
         링이 켜지지 않습니다. <code>sm</code>도 누르는 영역은 44px입니다.
       </li>
       <li>

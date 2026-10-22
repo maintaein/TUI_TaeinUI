@@ -192,7 +192,7 @@ function Usage() {
     <Topics>
       <Topic title="레이블은 꼭 씁니다">
         <p className={t.body}>
-          <code>label</code>은 필수 prop입니다. 입력칸 위에 보이고, 입력칸과
+          <code>label</code>은 필수 prop입니다. 입력칸 위에 보이고 입력칸과
           연결되어 레이블을 누르면 입력칸에 포커스가 갑니다.{' '}
           <code>placeholder</code>는 입력을 시작하면 사라지므로 레이블을 대신할
           수 없습니다. 입력 형식의 예시를 보여 주는 용도로 씁니다.
@@ -201,7 +201,7 @@ function Usage() {
       <Topic title="입력 종류">
         <p className={t.body}>
           <code>type</code>을 이메일, 전화번호, 주소에 맞게 지정하면 모바일에서
-          알맞은 키보드가 뜨고, 비밀번호는 글자가 가려집니다. 기본은{' '}
+          알맞은 키보드가 뜨고 비밀번호는 글자가 가려집니다. 기본은{' '}
           <code>text</code>입니다. 전화번호는 <code>tel</code>, 주소는{' '}
           <code>url</code>입니다.
         </p>
@@ -223,9 +223,9 @@ function Usage() {
       <Topic title="여러 줄 입력">
         <p className={t.body} style={{ marginBottom: 12 }}>
           <code>multiline</code>을 켜면 textarea를 그립니다. <code>rows</code>로
-          보이는 줄 수를 정하고, <code>autoResize</code>를 함께 켜면 내용에 맞춰
+          보이는 줄 수를 정하고 <code>autoResize</code>를 함께 켜면 내용에 맞춰
           높이가 늘어납니다. <code>multiline</code>은 <code>true</code>나{' '}
-          <code>false</code>를 직접 적어야 하고, 값이 변수라면 삼항으로 갈라
+          <code>false</code>를 직접 적어야 하고 값이 변수라면 삼항으로 갈라
           씁니다. 도중에 바꾸면 다른 요소로 다시 그려져 포커스와 비제어 값이
           사라집니다.
         </p>
@@ -249,7 +249,7 @@ function A11y() {
     <ul className={`${t.list} ${t.body}`}>
       <li>
         <code>label</code>이 <code>label</code> 요소로 그려져 입력칸과
-        연결됩니다. 스크린 리더가 입력칸의 용도를 읽고, 레이블을 눌러도 포커스가
+        연결됩니다. 스크린 리더가 입력칸의 용도를 읽고 레이블을 눌러도 포커스가
         갑니다.
       </li>
       <li>

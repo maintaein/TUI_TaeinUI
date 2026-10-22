@@ -13,7 +13,7 @@ import type { PropDefinition } from '../../../components/PropsTable';
 import { Stage, type Act } from '../../../components/Stage';
 
 const LEAD =
-  '상세 정보나 설정 패널처럼 보던 화면을 유지한 채 보조 내용을 옆에서 밀어 넣어 보여 줍니다. 왼쪽이나 오른쪽 가장자리에 붙습니다.';
+  '보던 화면을 유지한 채 상세 정보나 설정 패널 같은 보조 내용을 옆에서 밀어 넣어 보여 줍니다. 왼쪽이나 오른쪽 가장자리에 붙습니다.';
 
 const CONTROLS: Control[] = [
   { prop: 'title', kind: 'text', label: 'title' },
@@ -158,8 +158,8 @@ function Usage() {
         <p className={t.body}>
           목록을 보다가 한 항목의 상세를 열거나, 설정 패널을 띄워도 원래 화면을
           계속 보이게 두고 싶을 때 씁니다. 답을 받아야 하는 확인은{' '}
-          <code>Modal</code>, 모바일에서 아래에서 올리는 선택은{' '}
-          <code>BottomSheet</code>가 맞습니다.
+          <code>Modal</code> 몫이고 모바일에서 아래에서 올리는 선택은{' '}
+          <code>BottomSheet</code> 몫입니다.
         </p>
       </Topic>
       <Topic title="열고 닫기">
@@ -199,7 +199,7 @@ function Usage() {
           잠급니다. <code>container</code>에 요소를 주면 그 안에 그려지고 잠그지
           않습니다. 화면이 그 요소에 갇히려면 요소가{' '}
           <code>contain: layout</code>이나 <code>transform</code>으로 fixed의
-          기준이 되어야 합니다. 위 무대가 이렇게 만들어져 있습니다.
+          기준이 되어야 합니다. 위 무대가 그 예입니다.
         </p>
         <CodeBlock code={COMPOUND} />
       </Topic>

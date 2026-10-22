@@ -68,7 +68,7 @@ export function GettingStartedPage() {
         <span className={t.label}>시작하기</span>
         <h1 className={cx(t.display, styles.title)}>설치부터 첫 화면까지</h1>
         <p className={cx(t.lead, t.muted, styles.leadMax)}>
-          TUI는 npm 패키지 하나입니다. 설치하고, 스타일 파일을 한 번 불러오고,
+          TUI는 npm 패키지 하나입니다. 설치하고 스타일 파일을 한 번 불러오고
           필요한 컴포넌트를 가져다 씁니다. 모션에 쓰는 GSAP은 패키지가 함께
           가져오므로 따로 설치하지 않습니다.
         </p>
@@ -117,7 +117,7 @@ export function GettingStartedPage() {
       <Block title="4. 글꼴 (권장)">
         <p className={t.body}>
           TUI는 Pretendard를 기본 글꼴로 씁니다. 불러오지 않아도 시스템 글꼴로
-          대체되지만, 같은 모습을 보려면 <code>index.html</code>의{' '}
+          대체되지만 같은 모습을 보려면 <code>index.html</code>의{' '}
           <code>&lt;head&gt;</code>에 넣어 둡니다.
         </p>
         <CodeBlock
@@ -146,7 +146,7 @@ export function GettingStartedPage() {
           <Link className={styles.link} to="/components/overview">
             전체 컴포넌트
           </Link>
-          에서 25개를 훑어보고, 마음에 드는 것의 페이지에서 무대를 만져 보며
+          에서 25개를 훑어보고 마음에 드는 것의 페이지에서 무대를 만져 보며
           코드를 가져갑니다. 막히는 부분은{' '}
           <a
             className={styles.link}

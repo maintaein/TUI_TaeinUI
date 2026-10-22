@@ -13,7 +13,7 @@ import type { PropDefinition } from '../../../components/PropsTable';
 import { Stage, type Act } from '../../../components/Stage';
 
 const LEAD =
-  '프로필 메뉴나 날짜 선택기처럼 단추 바로 옆에 작은 패널을 띄웁니다. 단추 쪽 모서리에서 펼쳐지고, 바깥을 누르면 닫힙니다.';
+  '단추 바로 옆에 프로필 메뉴나 날짜 선택기 같은 작은 패널을 띄웁니다. 단추 쪽 모서리에서 펼쳐지고, 바깥을 누르면 닫힙니다.';
 
 const CONTROLS: Control[] = [
   {
@@ -142,8 +142,8 @@ function Usage() {
         <p className={t.body}>
           단추를 누르면 그 옆에 프로필 메뉴, 날짜 선택기, 짧은 설명과 동작 같은
           작은 패널을 보여 주고 싶을 때 씁니다. 뒤 화면을 막고 답을 받아야 하면{' '}
-          <code>Modal</code>, 마우스를 올렸을 때 잠깐 보이는 설명은{' '}
-          <code>Tooltip</code>이 맞습니다.
+          <code>Modal</code>을 씁니다. 마우스를 올렸을 때 잠깐 보이는 설명은{' '}
+          <code>Tooltip</code>이 할 일입니다.
         </p>
       </Topic>
       <Topic title="스스로 열기와 부모가 쥐기">
@@ -173,12 +173,12 @@ function Usage() {
           옆에 <code>position: absolute</code>로 그립니다. 그래서 위 무대처럼
           부모가 <code>overflow: hidden</code>이면 부모 밖으로 나간 부분이
           잘립니다. 가장자리에 놓는 트리거는 <code>position</code>으로 안쪽을
-          향하게 하거나 부모의 overflow를 확인하세요.
+          향하게 하거나 부모의 overflow를 확인합니다.
         </p>
       </Topic>
       <Topic title="움직임">
         <p className={t.body}>
-          트리거 쪽 모서리(화살표가 붙는 쪽)를 기준으로 0.6배에서 1배로 펼쳐지며
+          화살표가 붙는 트리거 쪽 모서리를 기준으로 0.6배에서 1배로 펼쳐지며
           0.3초가 걸립니다. 불투명도는 그보다 짧게 0.15초에 끝납니다. 닫힐 때는
           0.195초 동안 접힙니다.
         </p>

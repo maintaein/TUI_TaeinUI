@@ -202,11 +202,11 @@ function Usage() {
     <Topics>
       <Topic title="언제 쓰나">
         <p className={t.body}>
-          삭제 확인, 입력 폼처럼 사용자가 답해야 다음으로 갈 수 있는 일에
-          씁니다. 잠깐 알리기만 하면 되는 내용은 <code>Snackbar</code>, 옆에서
-          보조 정보를 보여 줄 때는 <code>SideSheet</code>, 아래에서 고르게 할
-          때는 <code>BottomSheet</code>, 단추 바로 옆의 작은 패널은{' '}
-          <code>Popover</code>가 맞습니다.
+          사용자가 답해야 다음으로 갈 수 있는 일, 이를테면 삭제 확인이나 입력
+          폼에 씁니다. 잠깐 알리기만 하면 되는 내용은 <code>Snackbar</code>에
+          맡깁니다. 옆에서 보조 정보를 보여 줄 때는 <code>SideSheet</code>,
+          아래에서 고르게 할 때는 <code>BottomSheet</code>를 씁니다. 단추 바로
+          옆의 작은 패널이면 <code>Popover</code>입니다.
         </p>
       </Topic>
       <Topic title="열고 닫기">

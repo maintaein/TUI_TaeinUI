@@ -198,7 +198,7 @@ function Usage() {
         <p className={t.body}>
           <code>buttonStyle</code>로 눈에 띄는 정도를 고릅니다. 기본{' '}
           <code>ghost</code>는 배경 없이 아이콘만 있어 카드 모서리의 닫기처럼
-          콘텐츠 옆에 둘 때 맞고, <code>weak</code>는 툴바의 보조 동작,{' '}
+          콘텐츠 옆에 둘 때 맞습니다. <code>weak</code>는 툴바의 보조 동작,{' '}
           <code>strong</code>은 가장 눈에 띄어야 하는 동작에 씁니다.{' '}
           <code>variant</code>로 고르는 색은 <code>weak</code>와{' '}
           <code>strong</code>에만 적용되고 <code>ghost</code>는 회색 하나입니다.
@@ -217,9 +217,9 @@ function Usage() {
       <Topic title="움직임">
         <p className={t.body}>
           마우스를 올리면 아이콘이 부피를 지키며 옆으로 1.15배 퍼졌다가 출렁이며
-          돌아옵니다(젤리). 한 번 도는 동안 다시 들어와도 무시하고, 터치와
-          키보드 포커스, 비활성과 로딩에서는 일어나지 않습니다. 누르는 동안
-          버튼이 0.95배로 눌렸다 되밀리고, 아주 짧게 눌러도 끝까지 나옵니다.{' '}
+          돌아옵니다(젤리). 한 번 도는 동안 다시 들어와도 무시하고 터치와 키보드
+          포커스, 비활성과 로딩에서는 일어나지 않습니다. 누르는 동안 버튼이
+          0.95배로 눌렸다 되밀리고 아주 짧게 눌러도 끝까지 나옵니다.{' '}
           <code>hoverEffect=&quot;none&quot;</code>으로 젤리를 끌 수 있습니다.
           움직임 줄이기 설정을 켠 환경에서는 크기 변화 없이 색만 바뀝니다.
         </p>
@@ -252,7 +252,7 @@ function A11y() {
       </li>
       <li>키보드로 포커스하면 2px 포커스 링이 생깁니다.</li>
       <li>
-        <code>size=&quot;sm&quot;</code>는 보이는 크기가 36px이고, 눈에 보이지
+        <code>size=&quot;sm&quot;</code>는 보이는 크기가 36px이고 눈에 보이지
         않는 띠로 누르는 영역을 44px로 유지합니다. 이웃과 4px 안쪽으로 붙이면
         누르는 영역이 겹칩니다.
       </li>

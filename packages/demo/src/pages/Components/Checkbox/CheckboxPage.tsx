@@ -180,7 +180,7 @@ function Usage() {
       </Topic>
       <Topic title="움직임">
         <p className={t.body}>
-          체크하면 상자가 살짝 움츠렸다 되튀면서 안쪽이 차오르고, 체크 표시가
+          체크하면 상자가 살짝 움츠렸다 되튀면서 안쪽이 차오르고 체크 표시가
           그어집니다. 해제하면 표시가 거꾸로 지워집니다. 움직임 줄이기 설정을 켠
           환경에서는 애니메이션 없이 바로 바뀝니다.
         </p>
@@ -199,7 +199,7 @@ function A11y() {
       </li>
       <li>
         <code>label</code>이 <code>label</code> 요소로 입력과 연결됩니다. 레이블
-        글자를 눌러도 바뀌고, 눌리는 영역은 최소 44px입니다.
+        글자를 눌러도 바뀌고 눌리는 영역은 최소 44px입니다.
       </li>
       <li>
         <code>indeterminate</code>는 입력의 <code>indeterminate</code> 속성으로
@@ -211,7 +211,7 @@ function A11y() {
       </li>
       <li>
         <code>error</code>이면 <code>aria-invalid</code>가 <code>true</code>가
-        되고, 도움말이나 에러 메시지가 보일 때는 <code>aria-describedby</code>로
+        되고 도움말이나 에러 메시지가 보일 때는 <code>aria-describedby</code>로
         이어집니다.
       </li>
       <li>

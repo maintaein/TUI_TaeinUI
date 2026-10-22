@@ -153,7 +153,7 @@ function Usage() {
       </Topic>
       <Topic title="움직임">
         <p className={t.body}>
-          켜면 손잡이가 트랙을 가로지르며 가속하는 만큼 가로로 늘어나고, 함께
+          켜면 손잡이가 트랙을 가로지르며 가속하는 만큼 가로로 늘어나고 함께
           트랙이 왼쪽부터 파랗게 채워집니다. 도착하면 손잡이는 켜진 크기로
           커집니다. 끄면 같은 길을 거슬러 돌아옵니다. 움직임 줄이기 설정을 켠
           환경에서는 애니메이션 없이 바로 바뀝니다.
@@ -168,12 +168,12 @@ function A11y() {
     <ul className={`${t.list} ${t.body}`}>
       <li>
         입력에 <code>role=&quot;switch&quot;</code>가 붙어 스크린 리더가
-        &quot;스위치&quot;로 읽고, 켜짐 여부는 <code>aria-checked</code>가
+        &quot;스위치&quot;로 읽고 켜짐 여부는 <code>aria-checked</code>가
         전달합니다. 바뀔 때마다 <code>aria-checked</code>도 갱신됩니다.
       </li>
       <li>
         <code>label</code>이 <code>label</code> 요소로 입력과 연결됩니다. 레이블
-        글자를 눌러도 바뀌고, 눌리는 영역은 최소 44px입니다.
+        글자를 눌러도 바뀌고 눌리는 영역은 최소 44px입니다.
       </li>
       <li>
         네이티브 체크박스 입력 위에 만들어져 Tab으로 들어가고 Space로 바꿉니다.
@@ -185,7 +185,7 @@ function A11y() {
       </li>
       <li>
         <code>error</code>이면 <code>aria-invalid</code>가 <code>true</code>가
-        되고, 도움말이나 에러 메시지가 보일 때는 <code>aria-describedby</code>로
+        되고 도움말이나 에러 메시지가 보일 때는 <code>aria-describedby</code>로
         이어집니다.
       </li>
       <li>

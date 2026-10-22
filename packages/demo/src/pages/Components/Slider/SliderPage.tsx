@@ -178,7 +178,7 @@ function Usage() {
     <Topics>
       <Topic title="언제 쓰나">
         <p className={t.body}>
-          볼륨, 밝기, 가격 범위처럼 범위 안에서 연속으로 바꾸고, 정확한 숫자보다
+          볼륨, 밝기, 가격 범위처럼 범위 안에서 연속으로 바꾸고 정확한 숫자보다
           대략의 위치가 중요한 값에 씁니다. 정확한 숫자를 입력받아야 하면{' '}
           <code>NumericSpinner</code>가, 두세 개의 선택지 중 하나를 고르는
           자리에는 <code>SegmentedButtons</code>가 맞습니다.
@@ -187,10 +187,10 @@ function Usage() {
       <Topic title="범위와 단위">
         <p className={t.body} style={{ marginBottom: 12 }}>
           <code>min</code>, <code>max</code>, <code>step</code>으로 범위와
-          단위를 정합니다. 현재 값은 <code>showValue</code>로 보여 주고, 단위가
+          단위를 정합니다. 현재 값은 <code>showValue</code>로 보여 주고 단위가
           1이 아니면 <code>helperText</code>로 알려 줍니다. <code>marks</code>로
-          기준점을 트랙 아래에 표시하고, <code>trackColor</code>로 채움 색을
-          바꿀 수 있습니다.
+          기준점을 트랙 아래에 표시하고 <code>trackColor</code>로 채움 색을 바꿀
+          수 있습니다.
         </p>
         <CodeBlock code={RANGE} />
       </Topic>
@@ -222,8 +222,8 @@ function Usage() {
         <p className={t.body}>
           마우스를 올리면 라인이 두꺼워지고 머리가 부풉니다. 터치와 펜에서는
           일어나지 않습니다. 끌면 머리 둘레의 라인이 손의 속도에 비례해 부풀어
-          물결치고, 멈추면 매끈해집니다. <code>showThumbValue</code>를 켜면 잡고
-          있는 동안 머리 위에 값이 뜹니다. 키보드로 조작하면 잡은 것으로 보고,
+          물결치고 멈추면 매끈해집니다. <code>showThumbValue</code>를 켜면 잡고
+          있는 동안 머리 위에 값이 뜹니다. 키보드로 조작하면 잡은 것으로 보고
           마지막 키 입력 뒤 0.5초가 지나면 놓은 것으로 봅니다. 움직임 줄이기
           설정을 켠 환경에서는 물결과 두께 변화 없이 값만 바뀝니다.
         </p>
@@ -264,7 +264,7 @@ function A11y() {
       </li>
       <li>
         레이블은 꼭 줍니다. &quot;볼륨&quot;처럼 무엇을 조절하는지 구체적으로
-        적고, 단위가 1이 아닐 때는 <code>helperText</code>로 알립니다.
+        적고 단위가 1이 아닐 때는 <code>helperText</code>로 알립니다.
       </li>
     </ul>
   );

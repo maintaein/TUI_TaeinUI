@@ -13,7 +13,7 @@ import type { PropDefinition } from '../../../components/PropsTable';
 import { Stage, type Act } from '../../../components/Stage';
 
 const LEAD =
-  '콘텐츠 둘레에 선을 두릅니다. 영역을 나누거나 강조할 때 쓰고, 켜 두면 마우스를 올린 곳의 테두리를 따라 빛이 돕니다.';
+  '콘텐츠 둘레에 선을 두릅니다. 영역을 나누거나 강조할 때 쓰고 켜 두면 마우스를 올린 곳의 테두리를 따라 빛이 돕니다.';
 
 const CONTROLS: Control[] = [
   {
@@ -105,7 +105,7 @@ const PROPS: PropDefinition[] = [
     type: "'none' | 'sm' | 'md' | 'lg' | 'full'",
     default: "sides가 all이면 'md', 아니면 'none'",
     description:
-      '모서리 둥글기. 일부 변만 그을 때는 선 끝이 휘지 않도록 none이고, 값을 주면 늘 그 값이 이긴다',
+      '모서리 둥글기. 일부 변만 그을 때는 선 끝이 휘지 않도록 none이고 값을 주면 늘 그 값이 이긴다',
   },
   {
     name: 'padding',
@@ -133,11 +133,11 @@ function Usage() {
         <p className={t.body}>
           <code>glow</code>를 켜면 마우스를 올리거나 키보드 포커스가 안으로
           들어올 때 빛이 테두리를 따라 6초에 한 바퀴 돕니다. 기본은 꺼져
-          있습니다. <code>sides</code>가 <code>all</code>일 때만 나타나고, 다른
+          있습니다. <code>sides</code>가 <code>all</code>일 때만 나타나고 다른
           값에서는 <code>glow</code>를 줘도 아무 일도 없습니다. 빛은 선 색을
           따라가며 <code>default</code>는 회색이라 <code>primary</code> 색으로
           돕니다. 호버는 마우스 같은 정밀 포인터에서만 켜지고 터치에서는 켜지지
-          않으며, 포커스는 입력 기기와 상관없이 켜집니다. 안에 포커스를 받을
+          않으며 포커스는 입력 기기와 상관없이 켜집니다. 안에 포커스를 받을
           요소가 없으면 호버로만 켜집니다. 움직임 줄이기 설정을 켠 환경에서는
           돌지 않습니다.
         </p>

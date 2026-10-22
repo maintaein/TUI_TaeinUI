@@ -238,7 +238,7 @@ function Usage() {
           <code>pill</code>은 마우스를 올리거나 키보드로 포커스하면 아래에서
           원이 차오르고 글자가 같은 글자로 바뀝니다. 들어올 때 0.3초, 나갈 때
           0.2초이고 도중에 바뀌어도 지금 자리에서 이어받습니다. 활성 항목은 늘
-          채워져 있어서, 활성이 다른 항목으로 넘어가면 새 항목은 차오르고 옛
+          채워져 있어서 활성이 다른 항목으로 넘어가면 새 항목은 차오르고 옛
           항목은 비워집니다. 터치에서는 움직이지 않습니다. <code>text</code>는
           호버와 활성에 옅은 바탕이 깔리는 글자 링크, <code>icon</code>은 커서를
           올린 아이콘만 커지는 아이콘 알약이고 모든 항목에 <code>icon</code>이
@@ -249,7 +249,7 @@ function Usage() {
         <p className={t.body}>
           <code>dropdown</code>과 <code>cards</code>는 항목의 <code>links</code>
           를 씁니다. dropdown은 <code>links</code>가 있는 항목에 마우스를 올리면
-          아래에 작은 판이 열리고, 마우스로 누르면 열기만 합니다. 터치, 펜,
+          아래에 작은 판이 열리고 마우스로 누르면 열기만 합니다. 터치, 펜,
           키보드는 누를 때마다 열고 닫습니다. 한 번에 하나만 열리며 Esc, 판 밖
           누름, 링크 누름, 포커스 이탈로 닫힙니다. <code>cards</code>는 햄버거를
           누르면 바 뒤의 면이 아래로 자라고 항목마다 카드가 80ms 시차로
@@ -293,7 +293,7 @@ function A11y() {
       </li>
       <li>
         <code>items</code>는 이름이 &quot;주요 메뉴&quot;인 <code>nav</code>로
-        그려지고, 활성 항목에는 <code>aria-current=&quot;page&quot;</code>가
+        그려지고 활성 항목에는 <code>aria-current=&quot;page&quot;</code>가
         붙습니다. 활성의 보이는 표시는 바탕과 글자 모양이고 스크린 리더에는{' '}
         <code>aria-current</code>가 알립니다.
       </li>
@@ -305,7 +305,7 @@ function A11y() {
       <li>
         dropdown 항목의 버튼은 <code>aria-expanded</code>와{' '}
         <code>aria-controls</code>로 하위 링크 판을 가리킵니다. 닫힌 판은{' '}
-        <code>visibility: hidden</code>이라 Tab 순서와 접근성 트리에서 빠지고,
+        <code>visibility: hidden</code>이라 Tab 순서와 접근성 트리에서 빠지고
         Esc로 닫으면 포커스가 그 버튼으로 돌아옵니다. 마우스를 올려 여는
         판이지만 키보드와 스크린 리더는 버튼을 눌러 엽니다.
       </li>

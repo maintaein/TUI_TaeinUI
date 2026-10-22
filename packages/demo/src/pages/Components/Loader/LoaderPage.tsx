@@ -222,7 +222,7 @@ function A11y() {
     <ul className={`${t.list} ${t.body}`}>
       <li>
         <code>fuse</code>를 뺀 모양은 <code>role=&quot;status&quot;</code>와{' '}
-        <code>aria-live=&quot;polite&quot;</code>인 영역이라, 숨은 메시지가
+        <code>aria-live=&quot;polite&quot;</code>인 영역이라 숨은 메시지가
         바뀌면 스크린 리더가 읽습니다. orbit의 <code>status</code>가 완료나
         실패로 바뀔 때가 그렇습니다.
       </li>
@@ -243,7 +243,7 @@ function A11y() {
       </li>
       <li>
         개발자가 직접 해야 합니다. 무엇을 기다리는지 <code>label</code>이나{' '}
-        <code>aria-label</code>으로 구체적으로 적습니다. &quot;프로필을 불러오는
+        <code>aria-label</code>로 구체적으로 적습니다. &quot;프로필을 불러오는
         중&quot;처럼 씁니다.
       </li>
       <li>

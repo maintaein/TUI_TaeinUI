@@ -155,7 +155,7 @@ function Usage() {
         <p className={t.body}>
           <code>variant</code>로 색을, <code>buttonStyle</code>로 채우기를
           고릅니다. 한 화면에서 가장 중요한 동작 하나에만 <code>primary</code>와{' '}
-          <code>strong</code>을 주고, 나머지는 <code>weak</code>로 한 단계
+          <code>strong</code>을 주고 나머지는 <code>weak</code>로 한 단계
           낮춥니다. 지우기처럼 되돌릴 수 없는 동작에는 <code>danger</code>를
           씁니다.
         </p>
@@ -195,7 +195,7 @@ function A11y() {
       </li>
       <li>
         <code>loading</code> 중에는 <code>aria-busy</code>가 <code>true</code>가
-        되고, 안에서 도는 Loader는 &quot;로딩 중&quot;으로 읽힙니다.
+        되고 안에서 도는 Loader는 &quot;로딩 중&quot;으로 읽힙니다.
       </li>
       <li>
         <code>disabled</code>나 <code>loading</code>이면{' '}
