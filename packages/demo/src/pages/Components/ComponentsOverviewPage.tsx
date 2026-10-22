@@ -3,8 +3,21 @@ import { Chip } from '@taein-ui/core';
 import * as t from '../../components/DocText';
 import { FrameCard } from '../../components/FrameCard';
 import * as wall from '../../components/FrameCard/FrameCard.css';
-import { numberedGroups } from '../../data/components';
+import { cardCell, numberedGroups } from '../../data/components';
 import * as styles from './ComponentsOverviewPage.css';
+
+const wideOf = {
+  wide: wall.wideCard,
+  wide3: wall.wide3Card,
+  wide2: wall.wide2Card,
+};
+
+// 칸 표(data)를 FrameCard의 칸 클래스로 옮긴다
+const cellOf = (name: string) => {
+  const kind = cardCell[name];
+  if (kind === 'tall') return { className: wall.tall, inner: wall.tallInner };
+  return { className: kind && wideOf[kind] };
+};
 
 const total = numberedGroups.reduce((n, g) => n + g.items.length, 0);
 
@@ -24,12 +37,7 @@ export function ComponentsOverviewPage() {
   return (
     <div className={styles.page}>
       <div className={styles.head}>
-        <h1 className={`${t.display} ${styles.total}`}>
-          <span>
-            {total}
-            <span className={wall.count}>개</span>
-          </span>
-        </h1>
+        <h1 className={`${t.display} ${styles.total}`}>컴포넌트 {total}개</h1>
       </div>
 
       <div className={styles.dock} role="search">
@@ -64,7 +72,7 @@ export function ComponentsOverviewPage() {
           </div>
           <div className={wall.bento}>
             {g.items.map((item) => (
-              <FrameCard key={item.name} item={item} />
+              <FrameCard key={item.name} item={item} {...cellOf(item.name)} />
             ))}
           </div>
         </section>

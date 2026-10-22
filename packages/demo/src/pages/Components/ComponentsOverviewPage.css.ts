@@ -11,16 +11,12 @@ export const page = style({
   margin: '0 auto',
 });
 
-export const head = style({
-  display: 'grid',
-  gap: spacing[2],
-  padding: `${spacing[12]} 0 0`,
-});
+export const head = style({ padding: `${spacing[12]} 0 0` });
 
+// 한 줄로 쓴다. 좁은 화면에서도 줄이 꺾이지 않는 크기
 export const total = style({
-  display: 'grid',
-  gap: spacing[2],
-  fontSize: 'clamp(3.5rem, 12vw, 5rem)',
+  fontSize: 'clamp(2.25rem, 10vw, 5rem)',
+  whiteSpace: 'nowrap',
 });
 
 export const empty = style({

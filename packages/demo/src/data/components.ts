@@ -257,3 +257,26 @@ export const numberedGroups = Object.entries(categoryLabels).map(
       .map((c) => ({ ...c, no: String(++count).padStart(2, '0') })),
   })
 );
+
+/**
+ * 전체 컴포넌트 벽에서 넓은 몸을 가진 컴포넌트에 주는 칸. 적지 않은 컴포넌트는 한 칸이다.
+ * 세 줄(3열)과 두 줄(2열, 1024px 이하) 모두 계열마다 빈칸 없이 채워지도록 짠 표다. 칸을 바꾸면 두 폭 다 확인한다.
+ * - wide: 가로 두 칸(3열·2열 모두)
+ * - wide3: 3열에서만 가로 두 칸
+ * - wide2: 2열에서만 가로 두 칸
+ * - tall: 3열에서 세로 두 칸
+ */
+export const cardCell: Record<string, 'wide' | 'wide3' | 'wide2' | 'tall'> = {
+  TextField: 'tall',
+  Switch: 'tall',
+  SegmentedButtons: 'wide3',
+  Button: 'wide3',
+  Snackbar: 'wide',
+  Modal: 'wide',
+  BottomSheet: 'wide',
+  HeaderBar: 'wide',
+  Border: 'tall',
+  List: 'wide',
+  BoardRow: 'wide',
+  Card: 'wide2',
+};

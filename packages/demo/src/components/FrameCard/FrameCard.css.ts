@@ -107,3 +107,15 @@ export const wideCard = style({
   gridColumn: 'span 2',
   '@media': { [MOBILE]: { gridColumn: 'auto' } },
 });
+// 2열에서만 넓다. 3열에서는 한 칸
+export const wide2Card = style({
+  '@media': {
+    [COMPACT]: { gridColumn: 'span 2' },
+    [MOBILE]: { gridColumn: 'auto' },
+  },
+});
+// 3열에서만 넓다. 2열에서는 한 칸이라 짝이 맞는다
+export const wide3Card = style({
+  gridColumn: 'span 2',
+  '@media': { [COMPACT]: { gridColumn: 'auto' } },
+});
