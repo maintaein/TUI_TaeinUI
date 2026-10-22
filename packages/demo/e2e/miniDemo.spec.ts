@@ -88,9 +88,7 @@ test('"움직임 멈춤"이 전부 멈추고 다시 시작하면 움직인다', 
   const pause = page.getByRole('button', { name: '움직임 멈춤' });
   await expect(pause).toHaveAttribute('aria-pressed', 'false');
   await pause.click();
-  await expect(
-    page.getByRole('button', { name: '움직임 다시 시작' })
-  ).toHaveAttribute('aria-pressed', 'true');
+  await expect(pause).toHaveAttribute('aria-pressed', 'true');
   // 멈춘 뒤 연출 커서 위치가 변하지 않는다(보이는 카드 전부)
   await page.waitForTimeout(800);
   const cursors = () =>
@@ -107,7 +105,8 @@ test('"움직임 멈춤"이 전부 멈추고 다시 시작하면 움직인다', 
   const a = await cursors();
   await page.waitForTimeout(1500);
   expect(await cursors()).toBe(a);
-  await page.getByRole('button', { name: '움직임 다시 시작' }).click();
+  await pause.click();
+  await expect(pause).toHaveAttribute('aria-pressed', 'false');
   await page.waitForTimeout(2500);
   expect(await cursors()).not.toBe(a);
 });

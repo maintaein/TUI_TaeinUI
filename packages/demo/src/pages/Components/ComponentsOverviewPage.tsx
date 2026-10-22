@@ -50,7 +50,8 @@ export function ComponentsOverviewPage() {
             leftIcon={frozen ? <Play /> : <Pause />}
             onClick={() => setFrozen(!frozen)}
           >
-            {frozen ? '움직임 다시 시작' : '움직임 멈춤'}
+            {/* aria-pressed 토글은 이름을 고정하고 눌림 상태로 말한다(APG). 아이콘만 바뀐다 */}
+            움직임 멈춤
           </Button>
         </div>
 
