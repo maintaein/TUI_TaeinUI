@@ -33,3 +33,26 @@ test('Divider 무대는 대본이 없고 조작판 값이 무대와 코드를 �
   await expect(code).toContainText('orientation="vertical"');
   await expect(code).toContainText('또는');
 });
+
+test('List 무대는 대본이 없고 조작판 값이 무대와 코드를 같이 바꾼다', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.goto('/components/list');
+  const stage = page.getByRole('region', { name: 'List 미리보기' });
+  const list = stage.getByRole('list');
+  await expect(list).toBeVisible();
+  await expect(stage.locator('[data-stage-control]')).toHaveCount(0);
+  await expect(stage.locator('svg.lucide-mouse-pointer-2')).toHaveCount(0);
+
+  await pick(page, 'sm');
+  await pick(page, 'vertical');
+  await expect(list).toHaveCSS('row-gap', '8px');
+  await expect(list.getByRole('listitem').first()).toHaveCSS(
+    'flex-direction',
+    'column'
+  );
+  const code = page.locator('pre').first();
+  await expect(code).toContainText('spacing="sm"');
+  await expect(code).toContainText('layout="vertical"');
+});
