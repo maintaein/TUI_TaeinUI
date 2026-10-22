@@ -14,6 +14,8 @@ export interface CodeSpec {
   defaults: Values;
   /** prop별 사용자 정의 표기. 참일 때 `p={expr}`로 쓴다 */
   notation?: Record<string, Notation>;
+  /** `children` 글 안에 쓴 컴포넌트처럼 prop이 아닌 곳에서 쓰는 import */
+  imports?: { name: string; from: string }[];
 }
 
 const CORE = '@taein-ui/core';
@@ -24,8 +26,9 @@ export const codeOf = ({
   values,
   defaults,
   notation = {},
+  imports: extra = [],
 }: CodeSpec): string => {
-  const used: Notation[] = [];
+  const used: Notation[] = extra.map((e) => ({ expr: '', import: e }));
   const attrs = Object.entries(values).flatMap(([prop, value]) => {
     if (prop === 'children' || value === defaults[prop]) return [];
     if (value === false) return [];

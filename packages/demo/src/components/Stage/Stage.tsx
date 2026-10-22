@@ -1,4 +1,10 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import {
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type ReactNode,
+} from 'react';
 import gsap from 'gsap';
 import { MousePointer2, Pause, Play } from 'lucide-react';
 import { IconButton, themeContract, useReducedMotion } from '@taein-ui/core';
@@ -26,6 +32,11 @@ export interface Act {
   type: (target: string, text: string) => void;
   /** 입력칸을 비운다 */
   clear: (target: string) => void;
+  /**
+   * 대상(시트)의 윗부분(손잡이 자리)으로 가서 잡고 아래로 dy만큼 끌었다 놓는다. core 시트는 pointer가 아니라 mouse 이벤트로 끌린다:
+   * 합성 mousedown, 문서에 mousemove, 문서에 mouseup. 커서가 손잡이를 따라간다
+   */
+  pull: (target: string, dy: number, seconds?: number) => void;
   /** 범위 입력(슬라이더)의 손잡이를 잡고 to까지 끌었다 놓는다. 합성 pointerdown, 값을 코드로 옮기며 input 이벤트, 합성 pointerup. 커서가 손잡이를 따라간다 */
   drag: (target: string, to: number, seconds?: number) => void;
 }
@@ -371,6 +382,74 @@ export function Stage({
           onComplete: drop,
         });
       },
+      pull: (target, dy, seconds = dur.slower * 2) => {
+        const proxy = { v: 0 };
+        // 손잡이 자리: 윗변 가운데에서 16px 아래. 대상 위치는 반복마다 다시 잰다
+        const grip = () => {
+          const t = find(target)?.getBoundingClientRect();
+          const r = root.getBoundingClientRect();
+          return t
+            ? { x: t.left - r.left + t.width / 2, y: t.top - r.top + 16 }
+            : { x: 0, y: 0 };
+        };
+        let held = false;
+        let startY = 0;
+        // 잡은 자리(무대 기준). 시트가 내려가도 커서는 여기서 dy만큼만 간다
+        let anchor = { x: 0, y: 0 };
+        const send = (type: 'mousemove' | 'mouseup') =>
+          document.dispatchEvent(
+            new MouseEvent(type, {
+              bubbles: true,
+              clientY: startY + proxy.v,
+              button: 0,
+            })
+          );
+        const drop = () => {
+          if (!held) return;
+          held = false;
+          grips.delete(drop);
+          send('mouseup');
+          mark(find(target), root, ACTIVE_ATTR, false);
+        };
+        tl.to(cur, {
+          x: () => grip().x,
+          y: () => grip().y,
+          duration: dur.slow * 2,
+          ease: ease.settle,
+        })
+          .call(() => {
+            proxy.v = 0;
+          })
+          .to(proxy, {
+            v: dy,
+            duration: seconds,
+            ease: ease.drift,
+            onUpdate: () => {
+              const el = find(target);
+              if (!el) return;
+              if (!held) {
+                held = true;
+                grips.add(drop);
+                anchor = grip();
+                const r = root.getBoundingClientRect();
+                startY = r.top + anchor.y;
+                el.dispatchEvent(
+                  new MouseEvent('mousedown', {
+                    bubbles: true,
+                    cancelable: true,
+                    clientX: r.left + anchor.x,
+                    clientY: startY,
+                    button: 0,
+                  })
+                );
+                mark(el, root, ACTIVE_ATTR, true);
+              }
+              send('mousemove');
+              gsap.set(cur, { x: anchor.x, y: anchor.y + proxy.v });
+            },
+            onComplete: drop,
+          });
+      },
       home: (seconds = dur.slow * 2) => {
         tl.to(cur, {
           x: () => rest().x,
@@ -391,8 +470,32 @@ export function Stage({
     };
   }, [root, script, reduced]);
 
-  // 멈춤과 재개. 커서는 멈추면 사라지고 이어 가면 돌아온다
+  // core 오버레이는 열리면서 포커스를 받는다. 시트가 아직 무대 밖(아래, 옆)에서 들어오는 중이면 브라우저가 거기가 보이도록
+  // 페이지를 스크롤한다(body에 fixed로 그릴 때는 없던 일이다). 스크롤은 포커스 이벤트보다 먼저 일어나므로 지금까지 본 위치를 적어 두고,
+  // 포커스가 들어온 그 프레임의 스크롤은 그 위치로 되돌린다
   useEffect(() => {
+    if (!layer) return;
+    let known = { left: window.scrollX, top: window.scrollY };
+    let focused = false;
+    const onFocusIn = () => {
+      focused = true;
+      requestAnimationFrame(() => (focused = false));
+    };
+    const onScroll = () => {
+      if (focused) window.scrollTo({ ...known, behavior: 'instant' });
+      else known = { left: window.scrollX, top: window.scrollY };
+    };
+    layer.addEventListener('focusin', onFocusIn);
+    window.addEventListener('scroll', onScroll);
+    return () => {
+      layer.removeEventListener('focusin', onFocusIn);
+      window.removeEventListener('scroll', onScroll);
+    };
+  }, [layer]);
+
+  // 멈춤과 재개. 커서는 멈추면 사라지고 이어 가면 돌아온다.
+  // layout 단계에서 해야 넘겨받는 그 커밋 안에서 onPause가 오버레이를 닫는다(effect면 상자가 inert에서 풀린 뒤 닫히기 전의 틈에 Tab이 닫히는 중인 오버레이로 들어간다)
+  useLayoutEffect(() => {
     const tl = timeline.current;
     const cur = cursor.current;
     if (!tl || !cur) return;

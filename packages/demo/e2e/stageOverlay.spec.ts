@@ -6,7 +6,10 @@ import { test, expect, type Page } from '@playwright/test';
  * 사용자의 포커스를 빼앗는다. 그래서 무대는 시연 중 오버레이 상자를 inert로 두고 (container) 무대 안에 가둔다.
  * 사각형은 무대 안, body 스크롤은 잠기지 않고, 일시정지 단추는 늘 눌린다.
  */
-const PAGES = [{ name: 'Modal', url: '/components/modal' }];
+const PAGES = [
+  { name: 'Modal', url: '/components/modal' },
+  { name: 'BottomSheet', url: '/components/bottom-sheet' },
+];
 
 const DIALOG = '[role="dialog"]:not([inert])';
 const STAGE = '[role="region"]';
@@ -36,6 +39,7 @@ const sample = (page: Page) =>
       const d = document.querySelector('[role="dialog"]:not([inert])');
       const r = d?.getBoundingClientRect();
       w.__s.push({
+        t: performance.now(),
         any: !!any,
         id: document.activeElement?.id ?? document.activeElement?.tagName,
         dlg: r ? { l: r.left, t: r.top, r: r.right, b: r.bottom } : null,
@@ -47,6 +51,7 @@ const sample = (page: Page) =>
   });
 
 interface Frame {
+  t: number;
   any: boolean;
   id: string;
   dlg: { l: number; t: number; r: number; b: number } | null;
@@ -89,12 +94,16 @@ for (const { name, url } of PAGES) {
       expect(open.length).toBeGreaterThan(20);
       // (c) body 스크롤
       expect(fs.every((f) => f.overflow === '')).toBe(true);
-      // (b) 다이얼로그가 무대 사각형 안(등장 중 번지는 그림자와 올라타는 트윈 말고 쉬는 프레임 기준)
+      // (b) 다이얼로그가 무대 사각형 안
       const stage = (await page.locator(STAGE).first().boundingBox())!;
       const pause = (await page
         .getByRole('button', { name: '시연 멈춤' })
         .boundingBox())!;
-      const rest = open.slice(Math.floor(open.length / 2));
+      // 쉬는 구간: 열리고 0.8초 뒤부터 2초까지(등장이 끝났고 BottomSheet 시연이 끌기 시작하기 전)
+      const rest = open.filter(
+        (f) => f.t >= open[0].t + 800 && f.t <= open[0].t + 2000
+      );
+      expect(rest.length).toBeGreaterThan(10);
       for (const f of rest) {
         // 일시정지 단추와 겹치지 않는다
         const apart =
@@ -153,8 +162,15 @@ for (const { name, url } of PAGES) {
     }) => {
       const stage = page.locator(STAGE).first();
       const trigger = stage.locator('[data-stage-target="trigger"]');
+      // 마우스가 화면 안에 있어야 넘겨받는다(무대가 화면 아래로 걸쳐 있으면 밖으로 나간 좌표는 이벤트가 없다)
+      await stage.scrollIntoViewIfNeeded();
       const box = (await stage.boundingBox())!;
       await page.mouse.move(box.x + box.width * 0.2, box.y + box.height * 0.8);
+      // 넘겨받으면 연출 커서가 사라진다. 그 뒤에 열어야 상자가 inert가 아니라 포커스가 실제로 들어간다
+      await expect(
+        stage.locator(':scope > svg[aria-hidden="true"]')
+      ).toBeHidden();
+      const scrollBefore = await page.evaluate(() => window.scrollY);
       await trigger.click();
       const dialog = page.locator(DIALOG);
       await expect(dialog).toBeVisible();
@@ -165,6 +181,8 @@ for (const { name, url } of PAGES) {
           )
         )
         .toBe(true);
+      // 포커스가 들어와도 페이지는 스크롤되지 않는다(시트가 무대 밖에서 들어오는 중이어도)
+      expect(await page.evaluate(() => window.scrollY)).toBe(scrollBefore);
       // 가둔다: Tab을 여러 번 눌러도 다이얼로그 안
       for (let i = 0; i < 6; i++) {
         await page.keyboard.press('Tab');
