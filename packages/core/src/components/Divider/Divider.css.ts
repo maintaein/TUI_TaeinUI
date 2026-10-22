@@ -31,14 +31,21 @@ export const orientationStyles = styleVariants({
   },
 });
 
+// 글자가 있으면 루트 border가 0이고 선은 자식 두 토막이 그린다. variant가 거기까지
+// 닿도록 선 모양을 변수로 내려보낸다.
+const lineStyle = createVar();
+
 export const variantStyles = styleVariants({
   solid: {
+    vars: { [lineStyle]: 'solid' },
     borderStyle: 'solid',
   },
   dashed: {
+    vars: { [lineStyle]: 'dashed' },
     borderStyle: 'dashed',
   },
   dotted: {
+    vars: { [lineStyle]: 'dotted' },
     borderStyle: 'dotted',
   },
 });
@@ -69,12 +76,12 @@ export const dividerWithText = style({
 
 export const line = style({
   flex: 1,
-  borderTop: `1px solid ${themeContract.color.border.default}`,
+  borderTop: `1px ${lineStyle} ${themeContract.color.border.default}`,
 });
 
 export const lineVertical = style({
   flex: 1,
-  borderLeft: `1px solid ${themeContract.color.border.default}`,
+  borderLeft: `1px ${lineStyle} ${themeContract.color.border.default}`,
 });
 
 export const textContent = style({

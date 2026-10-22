@@ -543,6 +543,43 @@ describe('Divider', () => {
       expect(lineRule!.style.getPropertyValue('flex')).toBe('1');
     });
 
+    for (const variant of ['dashed', 'dotted'] as const) {
+      for (const orientation of ['horizontal', 'vertical'] as const) {
+        it(`글자가 있어도 ${orientation} 양쪽 선이 variant(${variant})를 따른다`, () => {
+          const { getByRole, container } = render(
+            <Divider variant={variant} orientation={orientation}>
+              글자
+            </Divider>
+          );
+          // 루트 border는 글자가 있으면 0이라, variant는 선 두 토막까지 변수로 닿아야 한다.
+          const varRule = ruleNamed(
+            getByRole('separator'),
+            new RegExp(`variantStyles_${variant}`)
+          );
+          const varName = Array.from(varRule.style).find((n) =>
+            n.startsWith('--')
+          );
+          expect(varName).toBeDefined();
+          expect(varRule.style.getPropertyValue(varName!)).toBe(variant);
+
+          const side =
+            orientation === 'vertical' ? 'border-left' : 'border-top';
+          const lines = Array.from(
+            container.querySelectorAll('[role="separator"] > div')
+          ).filter((_, i) => i !== 1);
+          expect(lines).toHaveLength(2);
+          for (const line of lines) {
+            const lineRule = rulesOf(line).find((r) =>
+              r.style.getPropertyValue(side)
+            );
+            expect(lineRule!.style.getPropertyValue(side)).toContain(
+              `var(${varName})`
+            );
+          }
+        });
+      }
+    }
+
     it('가로 + 글자: 선이 남은 길이를 나눠 갖는다 (보존)', () => {
       const { container } = render(<Divider>글자</Divider>);
 

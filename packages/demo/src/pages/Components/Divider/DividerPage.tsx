@@ -55,7 +55,7 @@ const PROPS: PropDefinition[] = [
     name: 'variant',
     type: "'solid' | 'dashed' | 'dotted'",
     default: "'solid'",
-    description: '선 모양. 글자가 있으면 적용되지 않고 선은 늘 실선이다',
+    description: '선 모양. 글자가 있으면 글자 양옆의 두 선에 적용된다',
   },
   {
     name: 'spacing',
@@ -101,7 +101,7 @@ function Usage() {
           문자열이나 숫자를 <code>children</code>으로 주면 선이 글자 양옆으로
           갈라집니다. 로그인 폼의 &quot;또는&quot; 같은 곳에 쓰고{' '}
           <code>textAlign</code>으로 글자의 자리를 고릅니다. 글자가 있으면 선이
-          두 토막이 되어 <code>variant</code>가 적용되지 않고 늘 실선입니다.
+          두 토막이 되고 <code>variant</code>는 두 토막 모두에 적용됩니다.
         </p>
         <CodeBlock code={WITH_TEXT} />
       </Topic>
