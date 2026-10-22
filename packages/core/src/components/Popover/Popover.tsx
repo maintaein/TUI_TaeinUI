@@ -143,21 +143,31 @@ export const Popover = ({
     return addDocumentListener('keydown', handleKeyDown);
   }, [isOpen, closeOnEscape, setOpen]);
 
-  // 포커스 관리
+  // 포커스 관리. 보이게 된(열림 클래스가 커밋된) 뒤에 옮긴다. 닫힘 스타일은
+  // visibility: hidden이라 그 전에는 focus()가 실패한다. 열림 직후 rAF에서 부르면
+  // 열림 클래스 커밋보다 먼저 돌아 실패했다. 커밋 직후로도 모자란 경우가 있다:
+  // 움직임 줄이기에서는 팝오버 자신은 visible인데 그 안쪽 요소의 계산 값이 한
+  // 프레임 더 hidden으로 남는다(Chromium 실측, 다음 프레임에 풀림).
+  // shortcut: 안 들어가면 프레임당 한 번씩 세 번까지만 다시 시도한다.
+  // 그래도 안 되면(내용이 다른 이유로 못 받는 경우) 포기한다.
   useEffect(() => {
-    if (!isOpen) return;
+    if (!visible) return;
 
-    // 다음 프레임에서 포커스 (렌더링 후)
-    requestAnimationFrame(() => {
+    let frame = 0;
+    let tries = 0;
+    const focusInside = () => {
       const popoverEl = popoverRef.current;
-      if (!popoverEl) return;
+      const focusable = popoverEl && getFirstFocusableElement(popoverEl);
+      if (!focusable) return;
 
-      const focusable = getFirstFocusableElement(popoverEl);
-      if (focusable) {
-        focusable.focus();
+      focusable.focus();
+      if (document.activeElement !== focusable && ++tries < 3) {
+        frame = requestAnimationFrame(focusInside);
       }
-    });
-  }, [isOpen]);
+    };
+    frame = requestAnimationFrame(focusInside);
+    return () => cancelAnimationFrame(frame);
+  }, [visible]);
 
   return (
     <div
