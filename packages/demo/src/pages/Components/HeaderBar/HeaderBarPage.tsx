@@ -124,6 +124,7 @@ const DROP = (act: Act) => {
 };
 
 // 햄버거를 눌러 메뉴를 펼치고 다시 눌러 접는다. cards는 모든 폭에서, 나머지는 768px 미만에서 이렇게 열린다
+// shortcut: 햄버거는 누를 때마다 뒤집히는 내부 상태라, 넘겨받은 뒤 이어 가면 열림과 닫힘 순서가 한 바퀴 뒤바뀔 수 있다(바를 새로 세워 닫힌 채 이어 간다), 바에 열림 prop이 생기면 Act.call로 맞춘다
 const BURGER = (act: Act) => {
   act.move('menu');
   act.hover('menu');

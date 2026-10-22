@@ -24,6 +24,11 @@ export interface Act {
   /** press와 같되 합성 mousedown과 mouseup도 쏜다. 문서의 mousedown으로 바깥 누름을 읽는 core 컴포넌트(Popover)용 */
   click: (target: string, holdSeconds?: number) => void;
   wait: (seconds: number) => void;
+  /**
+   * 대본의 이 지점에서 페이지의 코드를 부른다. 누를 때마다 뒤집히는 것(펼침 토글)의 상태를 누르기 전에 맞춰
+   * 넘겨받았다 이어 가도 열림과 닫힘 순서가 어긋나지 않게 한다
+   */
+  call: (fn: () => void) => void;
   /** 커서를 무대 안 쉬는 자리로 되돌린다 */
   home: (seconds?: number) => void;
   /** 대상에 포커스를 준다(다른 곳에 포커스가 있으면 뺏지 않는다) */
@@ -321,6 +326,9 @@ export function Stage({
         pressWith(target, holdSeconds, true),
       wait: (seconds) => {
         tl.to(cur, { duration: seconds });
+      },
+      call: (fn) => {
+        tl.call(fn);
       },
       focus: (target) => {
         tl.call(() => {
