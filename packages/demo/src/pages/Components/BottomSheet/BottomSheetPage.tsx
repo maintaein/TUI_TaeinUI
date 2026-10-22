@@ -10,7 +10,7 @@ import {
 import { DetailLayout, Topic, Topics } from '../../../components/DetailLayout';
 import * as t from '../../../components/DocText';
 import type { PropDefinition } from '../../../components/PropsTable';
-import { Stage, type Act } from '../../../components/Stage';
+import { Stage, type Act, type DemoProps } from '../../../components/Stage';
 
 const LEAD =
   '옵션 고르기나 필터처럼 짧은 작업을 화면 아래에서 올려 보여 줍니다. 손잡이를 아래로 끌어 닫을 수 있습니다.';
@@ -243,45 +243,51 @@ function A11y() {
 
 type Height = ComponentProps<typeof BottomSheet>['height'];
 
-export function BottomSheetPage() {
-  const [values, setValues] = useState<Values>(INITIAL);
+/** 무대 조각. 상세 페이지와 전체 컴포넌트 카드가 같이 쓴다 */
+export function BottomSheetDemo({ values = INITIAL, mini }: DemoProps) {
   const [open, setOpen] = useState(false);
   const close = () => setOpen(false);
+
+  return (
+    // 함수형 children이 넘기는 상자(container)에 그리면 시트가 무대 안 아래에 갇힌다
+    <Stage mini={mini} label="BottomSheet 시연" script={SCRIPT} onPause={close}>
+      {(container) => (
+        <>
+          <Button
+            data-stage-target="trigger"
+            size="sm"
+            onClick={() => setOpen(true)}
+          >
+            시트 열기
+          </Button>
+          <BottomSheet
+            data-stage-target="sheet"
+            open={open}
+            onClose={close}
+            container={container}
+            title={String(values.title)}
+            height={values.height as Height}
+            showClose={values.showClose === true}
+          >
+            <p style={{ margin: '0 0 0.75rem' }}>{BODY}</p>
+            <Button size="sm" onClick={close}>
+              확인
+            </Button>
+          </BottomSheet>
+        </>
+      )}
+    </Stage>
+  );
+}
+
+export function BottomSheetPage() {
+  const [values, setValues] = useState<Values>(INITIAL);
 
   return (
     <DetailLayout
       name="BottomSheet"
       lead={LEAD}
-      stage={
-        // 함수형 children이 넘기는 상자(container)에 그리면 시트가 무대 안 아래에 갇힌다
-        <Stage label="BottomSheet 시연" script={SCRIPT} onPause={close}>
-          {(container) => (
-            <>
-              <Button
-                data-stage-target="trigger"
-                size="sm"
-                onClick={() => setOpen(true)}
-              >
-                시트 열기
-              </Button>
-              <BottomSheet
-                data-stage-target="sheet"
-                open={open}
-                onClose={close}
-                container={container}
-                title={String(values.title)}
-                height={values.height as Height}
-                showClose={values.showClose === true}
-              >
-                <p style={{ margin: '0 0 0.75rem' }}>{BODY}</p>
-                <Button size="sm" onClick={close}>
-                  확인
-                </Button>
-              </BottomSheet>
-            </>
-          )}
-        </Stage>
-      }
+      stage={<BottomSheetDemo values={values} />}
       customize={
         <Customize controls={CONTROLS} values={values} onChange={setValues} />
       }

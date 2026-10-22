@@ -10,7 +10,7 @@ import {
 import { DetailLayout, Topic, Topics } from '../../../components/DetailLayout';
 import * as t from '../../../components/DocText';
 import type { PropDefinition } from '../../../components/PropsTable';
-import { Stage, type Act } from '../../../components/Stage';
+import { Stage, type Act, type DemoProps } from '../../../components/Stage';
 
 const LEAD =
   '약관 동의, 여러 항목 고르기처럼 항목을 하나씩 체크하고 해제하는 자리에 둡니다.';
@@ -228,6 +228,28 @@ function A11y() {
 
 type Size = ComponentProps<typeof Checkbox>['size'];
 
+/** 무대 조각. 상세 페이지와 전체 컴포넌트 카드가 같이 쓴다 */
+export function CheckboxDemo({ values = INITIAL, mini }: DemoProps) {
+  return (
+    <Stage mini={mini} label="Checkbox 시연" script={SCRIPT}>
+      <Checkbox
+        // 입력은 보이지 않는 겹침이라 보이는 상자(다음 형제)를 대상으로 삼는다
+        ref={(el) =>
+          el?.nextElementSibling?.setAttribute('data-stage-target', 'box')
+        }
+        label={String(values.label)}
+        size={values.size as Size}
+        helperText={String(values.helperText) || undefined}
+        errorMessage={String(values.errorMessage) || undefined}
+        indeterminate={values.indeterminate === true}
+        error={values.error === true}
+        required={values.required === true}
+        disabled={values.disabled === true}
+      />
+    </Stage>
+  );
+}
+
 export function CheckboxPage() {
   const [values, setValues] = useState<Values>(INITIAL);
 
@@ -235,24 +257,7 @@ export function CheckboxPage() {
     <DetailLayout
       name="Checkbox"
       lead={LEAD}
-      stage={
-        <Stage label="Checkbox 시연" script={SCRIPT}>
-          <Checkbox
-            // 입력은 보이지 않는 겹침이라 보이는 상자(다음 형제)를 대상으로 삼는다
-            ref={(el) =>
-              el?.nextElementSibling?.setAttribute('data-stage-target', 'box')
-            }
-            label={String(values.label)}
-            size={values.size as Size}
-            helperText={String(values.helperText) || undefined}
-            errorMessage={String(values.errorMessage) || undefined}
-            indeterminate={values.indeterminate === true}
-            error={values.error === true}
-            required={values.required === true}
-            disabled={values.disabled === true}
-          />
-        </Stage>
-      }
+      stage={<CheckboxDemo values={values} />}
       customize={
         <Customize controls={CONTROLS} values={values} onChange={setValues} />
       }

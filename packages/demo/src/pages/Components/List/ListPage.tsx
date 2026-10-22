@@ -11,7 +11,7 @@ import { DetailLayout, Topic, Topics } from '../../../components/DetailLayout';
 import * as t from '../../../components/DocText';
 import { PropsList } from '../../../components/PropsList';
 import type { PropDefinition } from '../../../components/PropsTable';
-import { Stage } from '../../../components/Stage';
+import { Stage, type DemoProps } from '../../../components/Stage';
 
 const LEAD =
   '설정 항목, 주문 내역, 사양처럼 이름과 값이 짝인 정보를 세로로 나열합니다. 항목 사이에 간격이나 구분선을 둡니다.';
@@ -165,6 +165,31 @@ type Spacing = ComponentProps<typeof List>['spacing'];
 type Layout = ComponentProps<typeof ListItem>['layout'];
 
 // 이 컴포넌트에는 호버나 누름이 없어 시연할 움직임이 없다. 대본 없이 조작판 값만 바꿔 보인다
+/** 무대 조각. 상세 페이지와 전체 컴포넌트 카드가 같이 쓴다 */
+export function ListDemo({ values = INITIAL, mini }: DemoProps) {
+  const layout = String(values.layout);
+  const labelWidth = values.labelWidth === 'auto' ? undefined : '96px';
+
+  return (
+    <Stage mini={mini} label="List 미리보기">
+      <List
+        spacing={values.spacing as Spacing}
+        divider={values.divider === true}
+      >
+        {ROWS.map(([label, value]) => (
+          <ListItem
+            key={label}
+            label={label}
+            value={value}
+            layout={layout as Layout}
+            labelWidth={labelWidth}
+          />
+        ))}
+      </List>
+    </Stage>
+  );
+}
+
 export function ListPage() {
   const [values, setValues] = useState<Values>(INITIAL);
   const layout = String(values.layout);
@@ -181,24 +206,7 @@ export function ListPage() {
     <DetailLayout
       name="List"
       lead={LEAD}
-      stage={
-        <Stage label="List 미리보기">
-          <List
-            spacing={values.spacing as Spacing}
-            divider={values.divider === true}
-          >
-            {ROWS.map(([label, value]) => (
-              <ListItem
-                key={label}
-                label={label}
-                value={value}
-                layout={layout as Layout}
-                labelWidth={labelWidth}
-              />
-            ))}
-          </List>
-        </Stage>
-      }
+      stage={<ListDemo values={values} />}
       customize={
         <Customize controls={CONTROLS} values={values} onChange={setValues} />
       }

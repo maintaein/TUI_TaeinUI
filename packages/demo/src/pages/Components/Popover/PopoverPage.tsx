@@ -10,7 +10,7 @@ import {
 import { DetailLayout, Topic, Topics } from '../../../components/DetailLayout';
 import * as t from '../../../components/DocText';
 import type { PropDefinition } from '../../../components/PropsTable';
-import { Stage, type Act } from '../../../components/Stage';
+import { Stage, type Act, type DemoProps } from '../../../components/Stage';
 
 const LEAD =
   '단추 바로 옆에 프로필 메뉴나 날짜 선택기 같은 작은 패널을 띄웁니다. 단추 쪽 모서리에서 펼쳐지고, 바깥을 누르면 닫힙니다.';
@@ -219,59 +219,62 @@ function A11y() {
 
 type Position = ComponentProps<typeof Popover>['position'];
 
+/** 무대 조각. 상세 페이지와 전체 컴포넌트 카드가 같이 쓴다 */
+export function PopoverDemo({ values = INITIAL, mini }: DemoProps) {
+  const [open, setOpen] = useState(false);
+
+  return (
+    // 팝오버는 포털이 아니라 인라인이고 열릴 때 포커스를 가져가므로, 자동 시연 중에는 무대 안을 inert로 둔다
+    <Stage
+      mini={mini}
+      label="Popover 시연"
+      script={SCRIPT}
+      onPause={() => setOpen(false)}
+      lockWhilePlaying
+    >
+      <Popover
+        open={open}
+        onOpenChange={setOpen}
+        position={values.position as Position}
+        arrow={values.arrow === true}
+        content={
+          <div style={{ display: 'grid', gap: 8, padding: 12 }}>
+            <p style={{ margin: 0 }}>김태인</p>
+            <Button size="sm" variant="light" onClick={() => setOpen(false)}>
+              로그아웃
+            </Button>
+          </div>
+        }
+      >
+        <Button data-stage-target="trigger" size="sm">
+          계정
+        </Button>
+      </Popover>
+      {/* 바깥 누름을 보이는 자리. 무대 왼쪽 아래 구석이다 */}
+      <span
+        data-stage-target="away"
+        style={{
+          position: 'fixed',
+          left: 16,
+          bottom: 16,
+          fontSize: '0.875rem',
+          color: t.MUTED,
+        }}
+      >
+        바깥 영역
+      </span>
+    </Stage>
+  );
+}
+
 export function PopoverPage() {
   const [values, setValues] = useState<Values>(INITIAL);
-  const [open, setOpen] = useState(false);
 
   return (
     <DetailLayout
       name="Popover"
       lead={LEAD}
-      stage={
-        // 팝오버는 포털이 아니라 인라인이고 열릴 때 포커스를 가져가므로, 자동 시연 중에는 무대 안을 inert로 둔다
-        <Stage
-          label="Popover 시연"
-          script={SCRIPT}
-          onPause={() => setOpen(false)}
-          lockWhilePlaying
-        >
-          <Popover
-            open={open}
-            onOpenChange={setOpen}
-            position={values.position as Position}
-            arrow={values.arrow === true}
-            content={
-              <div style={{ display: 'grid', gap: 8, padding: 12 }}>
-                <p style={{ margin: 0 }}>김태인</p>
-                <Button
-                  size="sm"
-                  variant="light"
-                  onClick={() => setOpen(false)}
-                >
-                  로그아웃
-                </Button>
-              </div>
-            }
-          >
-            <Button data-stage-target="trigger" size="sm">
-              계정
-            </Button>
-          </Popover>
-          {/* 바깥 누름을 보이는 자리. 무대 왼쪽 아래 구석이다 */}
-          <span
-            data-stage-target="away"
-            style={{
-              position: 'fixed',
-              left: 16,
-              bottom: 16,
-              fontSize: '0.875rem',
-              color: t.MUTED,
-            }}
-          >
-            바깥 영역
-          </span>
-        </Stage>
-      }
+      stage={<PopoverDemo values={values} />}
       customize={
         <Customize controls={CONTROLS} values={values} onChange={setValues} />
       }

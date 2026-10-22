@@ -1,8 +1,10 @@
 import { useState } from 'react';
-import { Chip } from '@taein-ui/core';
+import { Pause, Play } from 'lucide-react';
+import { Button, Chip } from '@taein-ui/core';
 import * as t from '../../components/DocText';
 import { FrameCard } from '../../components/FrameCard';
 import * as wall from '../../components/FrameCard/FrameCard.css';
+import { MiniFrozen } from '../../components/Stage';
 import { cardCell, numberedGroups } from '../../data/components';
 import * as styles from './ComponentsOverviewPage.css';
 
@@ -24,6 +26,8 @@ const total = numberedGroups.reduce((n, g) => n + g.items.length, 0);
 export function ComponentsOverviewPage() {
   const [query, setQuery] = useState('');
   const [group, setGroup] = useState<string | null>(null);
+  // 카드 미니 스물다섯이 저절로 움직이므로, 한꺼번에 멈출 길을 둔다(WCAG 2.2.2)
+  const [frozen, setFrozen] = useState(false);
 
   const needle = query.trim().toLowerCase();
   const shown = numberedGroups
@@ -35,54 +39,65 @@ export function ComponentsOverviewPage() {
     .filter((g) => g.items.length > 0);
 
   return (
-    <div className={styles.page}>
-      <div className={styles.head}>
-        <h1 className={`${t.display} ${styles.total}`}>컴포넌트 {total}개</h1>
-      </div>
-
-      <div className={styles.dock} role="search">
-        <input
-          type="search"
-          className={styles.search}
-          placeholder="이름으로 찾기"
-          aria-label="이름으로 찾기"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-        />
-        {numberedGroups.map((g) => (
-          <Chip
-            key={g.label}
+    <MiniFrozen.Provider value={frozen}>
+      <div className={styles.page}>
+        <div className={styles.head}>
+          <h1 className={`${t.display} ${styles.total}`}>컴포넌트 {total}개</h1>
+          <Button
             size="sm"
-            label={g.label}
-            selected={group === g.label}
-            onClick={() => setGroup(group === g.label ? null : g.label)}
+            variant="light"
+            aria-pressed={frozen}
+            leftIcon={frozen ? <Play /> : <Pause />}
+            onClick={() => setFrozen(!frozen)}
+          >
+            {frozen ? '움직임 다시 시작' : '움직임 멈춤'}
+          </Button>
+        </div>
+
+        <div className={styles.dock} role="search">
+          <input
+            type="search"
+            className={styles.search}
+            placeholder="이름으로 찾기"
+            aria-label="이름으로 찾기"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
           />
+          {numberedGroups.map((g) => (
+            <Chip
+              key={g.label}
+              size="sm"
+              label={g.label}
+              selected={group === g.label}
+              onClick={() => setGroup(group === g.label ? null : g.label)}
+            />
+          ))}
+        </div>
+
+        {shown.map((g) => (
+          <section key={g.label} aria-labelledby={`group-${g.label}`}>
+            <div className={wall.sectionHead}>
+              <h2 id={`group-${g.label}`} className={wall.sectionTitle}>
+                {g.label}
+                <span className={wall.count} aria-hidden="true">
+                  [{g.items.length}]
+                </span>
+              </h2>
+            </div>
+            <div className={wall.bento}>
+              {g.items.map((item) => (
+                <FrameCard key={item.name} item={item} {...cellOf(item.name)} />
+              ))}
+            </div>
+          </section>
         ))}
+
+        {shown.length === 0 && (
+          <p className={styles.empty} role="status">
+            찾는 이름의 컴포넌트가 없습니다.
+          </p>
+        )}
       </div>
-
-      {shown.map((g) => (
-        <section key={g.label} aria-labelledby={`group-${g.label}`}>
-          <div className={wall.sectionHead}>
-            <h2 id={`group-${g.label}`} className={wall.sectionTitle}>
-              {g.label}
-              <span className={wall.count} aria-hidden="true">
-                [{g.items.length}]
-              </span>
-            </h2>
-          </div>
-          <div className={wall.bento}>
-            {g.items.map((item) => (
-              <FrameCard key={item.name} item={item} {...cellOf(item.name)} />
-            ))}
-          </div>
-        </section>
-      ))}
-
-      {shown.length === 0 && (
-        <p className={styles.empty} role="status">
-          찾는 이름의 컴포넌트가 없습니다.
-        </p>
-      )}
-    </div>
+    </MiniFrozen.Provider>
   );
 }

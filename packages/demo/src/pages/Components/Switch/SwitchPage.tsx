@@ -10,7 +10,7 @@ import {
 import { DetailLayout, Topic, Topics } from '../../../components/DetailLayout';
 import * as t from '../../../components/DocText';
 import type { PropDefinition } from '../../../components/PropsTable';
-import { Stage, type Act } from '../../../components/Stage';
+import { Stage, type Act, type DemoProps } from '../../../components/Stage';
 
 const LEAD = '알림 받기, 자동 저장처럼 눌러서 바로 켜고 끄는 설정에 둡니다.';
 
@@ -202,6 +202,27 @@ function A11y() {
 
 type Size = ComponentProps<typeof Switch>['size'];
 
+/** 무대 조각. 상세 페이지와 전체 컴포넌트 카드가 같이 쓴다 */
+export function SwitchDemo({ values = INITIAL, mini }: DemoProps) {
+  return (
+    <Stage mini={mini} label="Switch 시연" script={SCRIPT}>
+      <Switch
+        // 입력은 보이지 않는 겹침이라 보이는 트랙(부모)을 대상으로 삼는다
+        ref={(el) =>
+          el?.parentElement?.setAttribute('data-stage-target', 'track')
+        }
+        label={String(values.label)}
+        size={values.size as Size}
+        helperText={String(values.helperText) || undefined}
+        errorMessage={String(values.errorMessage) || undefined}
+        error={values.error === true}
+        required={values.required === true}
+        disabled={values.disabled === true}
+      />
+    </Stage>
+  );
+}
+
 export function SwitchPage() {
   const [values, setValues] = useState<Values>(INITIAL);
 
@@ -209,23 +230,7 @@ export function SwitchPage() {
     <DetailLayout
       name="Switch"
       lead={LEAD}
-      stage={
-        <Stage label="Switch 시연" script={SCRIPT}>
-          <Switch
-            // 입력은 보이지 않는 겹침이라 보이는 트랙(부모)을 대상으로 삼는다
-            ref={(el) =>
-              el?.parentElement?.setAttribute('data-stage-target', 'track')
-            }
-            label={String(values.label)}
-            size={values.size as Size}
-            helperText={String(values.helperText) || undefined}
-            errorMessage={String(values.errorMessage) || undefined}
-            error={values.error === true}
-            required={values.required === true}
-            disabled={values.disabled === true}
-          />
-        </Stage>
-      }
+      stage={<SwitchDemo values={values} />}
       customize={
         <Customize controls={CONTROLS} values={values} onChange={setValues} />
       }

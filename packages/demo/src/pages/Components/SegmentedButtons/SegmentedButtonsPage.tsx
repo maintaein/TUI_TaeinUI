@@ -10,7 +10,7 @@ import {
 import { DetailLayout, Topic, Topics } from '../../../components/DetailLayout';
 import * as t from '../../../components/DocText';
 import type { PropDefinition } from '../../../components/PropsTable';
-import { Stage, type Act } from '../../../components/Stage';
+import { Stage, type Act, type DemoProps } from '../../../components/Stage';
 
 const LEAD =
   '보기 방식, 정렬, 기간처럼 서로 겹치지 않는 선택지 중 하나를 고르는 자리에 둡니다.';
@@ -230,6 +230,33 @@ function A11y() {
 
 type Size = ComponentProps<typeof SegmentedButtons>['size'];
 
+/** 무대 조각. 상세 페이지와 전체 컴포넌트 카드가 같이 쓴다 */
+export function SegmentedButtonsDemo({ values = INITIAL, mini }: DemoProps) {
+  return (
+    <Stage mini={mini} label="SegmentedButtons 시연" script={SCRIPT}>
+      {/* 옵션 라벨에 대상 이름을 붙이는 껍데기. 레이아웃에는 끼지 않는다 */}
+      <div
+        style={{ display: 'contents' }}
+        ref={(el) =>
+          el
+            ?.querySelectorAll('label')
+            .forEach((label, i) =>
+              label.setAttribute('data-stage-target', OPTIONS[i].value)
+            )
+        }
+      >
+        <SegmentedButtons
+          aria-label="기간"
+          options={OPTIONS}
+          size={values.size as Size}
+          fullWidth={values.fullWidth === true}
+          disabled={values.disabled === true}
+        />
+      </div>
+    </Stage>
+  );
+}
+
 export function SegmentedButtonsPage() {
   const [values, setValues] = useState<Values>(INITIAL);
 
@@ -237,29 +264,7 @@ export function SegmentedButtonsPage() {
     <DetailLayout
       name="SegmentedButtons"
       lead={LEAD}
-      stage={
-        <Stage label="SegmentedButtons 시연" script={SCRIPT}>
-          {/* 옵션 라벨에 대상 이름을 붙이는 껍데기. 레이아웃에는 끼지 않는다 */}
-          <div
-            style={{ display: 'contents' }}
-            ref={(el) =>
-              el
-                ?.querySelectorAll('label')
-                .forEach((label, i) =>
-                  label.setAttribute('data-stage-target', OPTIONS[i].value)
-                )
-            }
-          >
-            <SegmentedButtons
-              aria-label="기간"
-              options={OPTIONS}
-              size={values.size as Size}
-              fullWidth={values.fullWidth === true}
-              disabled={values.disabled === true}
-            />
-          </div>
-        </Stage>
-      }
+      stage={<SegmentedButtonsDemo values={values} />}
       customize={
         <Customize controls={CONTROLS} values={values} onChange={setValues} />
       }

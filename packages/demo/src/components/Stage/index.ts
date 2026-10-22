@@ -1,2 +1,2 @@
-export { Stage } from './Stage';
-export type { Act, StageProps } from './Stage';
+export { MiniFrozen, Stage } from './Stage';
+export type { Act, DemoProps, StageProps } from './Stage';

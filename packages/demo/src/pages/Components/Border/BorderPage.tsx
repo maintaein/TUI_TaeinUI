@@ -10,7 +10,7 @@ import {
 import { DetailLayout, Topic, Topics } from '../../../components/DetailLayout';
 import * as t from '../../../components/DocText';
 import type { PropDefinition } from '../../../components/PropsTable';
-import { Stage, type Act } from '../../../components/Stage';
+import { Stage, type Act, type DemoProps } from '../../../components/Stage';
 
 const LEAD =
   '콘텐츠 둘레에 선을 두릅니다. 영역을 나누거나 강조할 때 쓰고 켜 두면 마우스를 올린 곳의 테두리를 따라 빛이 돕니다.';
@@ -194,6 +194,28 @@ type Color = ComponentProps<typeof Border>['color'];
 type Rounded = ComponentProps<typeof Border>['rounded'];
 type Padding = ComponentProps<typeof Border>['padding'];
 
+/** 무대 조각. 상세 페이지와 전체 컴포넌트 카드가 같이 쓴다 */
+export function BorderDemo({ values = INITIAL, mini }: DemoProps) {
+  return (
+    <Stage mini={mini} label="Border 시연" script={SCRIPT}>
+      <Border
+        data-stage-target="border"
+        sides={values.sides as Sides}
+        variant={values.variant as Variant}
+        width={values.width as Width}
+        color={values.color as Color}
+        rounded={values.rounded as Rounded}
+        padding={values.padding as Padding}
+        glow={values.glow === true}
+        // 무대 폭을 채운다. 코드에는 없다
+        style={{ justifySelf: 'stretch' }}
+      >
+        {TEXT}
+      </Border>
+    </Stage>
+  );
+}
+
 export function BorderPage() {
   const [values, setValues] = useState<Values>(INITIAL);
   const all = values.sides === 'all';
@@ -202,24 +224,7 @@ export function BorderPage() {
     <DetailLayout
       name="Border"
       lead={LEAD}
-      stage={
-        <Stage label="Border 시연" script={SCRIPT}>
-          <Border
-            data-stage-target="border"
-            sides={values.sides as Sides}
-            variant={values.variant as Variant}
-            width={values.width as Width}
-            color={values.color as Color}
-            rounded={values.rounded as Rounded}
-            padding={values.padding as Padding}
-            glow={values.glow === true}
-            // 무대 폭을 채운다. 코드에는 없다
-            style={{ justifySelf: 'stretch' }}
-          >
-            {TEXT}
-          </Border>
-        </Stage>
-      }
+      stage={<BorderDemo values={values} />}
       customize={
         <Customize controls={CONTROLS} values={values} onChange={setValues} />
       }

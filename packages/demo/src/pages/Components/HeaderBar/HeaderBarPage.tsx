@@ -18,7 +18,7 @@ import {
 import { DetailLayout, Topic, Topics } from '../../../components/DetailLayout';
 import * as t from '../../../components/DocText';
 import type { PropDefinition } from '../../../components/PropsTable';
-import { Stage, type Act } from '../../../components/Stage';
+import { Stage, type Act, type DemoProps } from '../../../components/Stage';
 
 const LEAD =
   '페이지 맨 위에 떠 있는 둥근 바입니다. 로고, 제목, 항목, 액션을 한 줄에 놓고 항목이 보이는 모습을 다섯 가지 중에서 고릅니다.';
@@ -345,8 +345,8 @@ const LINKS = [
   [{ label: '문의하기' }],
 ];
 
-export function HeaderBarPage() {
-  const [values, setValues] = useState<Values>(INITIAL);
+/** 무대 조각. 상세 페이지와 전체 컴포넌트 카드가 같이 쓴다 */
+export function HeaderBarDemo({ values = INITIAL, mini }: DemoProps) {
   const [active, setActive] = useState(LABELS[0]);
   // 시연이 멈출 때 바를 새로 세운다. 대본이 펼쳐 둔 메뉴나 호버로 채운 알약이 남지 않게 한다
   const [run, setRun] = useState(0);
@@ -414,21 +414,29 @@ export function HeaderBarPage() {
     );
 
   return (
+    <Stage
+      mini={mini}
+      label="HeaderBar 시연"
+      script={narrow ? BURGER : SCRIPTS[navStyle]}
+      onPause={() => setRun((n) => n + 1)}
+      bar
+    >
+      <div ref={box} style={{ width: '100%' }}>
+        {bar}
+      </div>
+    </Stage>
+  );
+}
+
+export function HeaderBarPage() {
+  const [values, setValues] = useState<Values>(INITIAL);
+  const navStyle = String(values.navStyle) as NavStyle;
+
+  return (
     <DetailLayout
       name="HeaderBar"
       lead={LEAD}
-      stage={
-        <Stage
-          label="HeaderBar 시연"
-          script={narrow ? BURGER : SCRIPTS[navStyle]}
-          onPause={() => setRun((n) => n + 1)}
-          bar
-        >
-          <div ref={box} style={{ width: '100%' }}>
-            {bar}
-          </div>
-        </Stage>
-      }
+      stage={<HeaderBarDemo values={values} />}
       customize={
         <Customize controls={CONTROLS} values={values} onChange={setValues} />
       }

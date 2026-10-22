@@ -10,7 +10,7 @@ import {
 import { DetailLayout, Topic, Topics } from '../../../components/DetailLayout';
 import * as t from '../../../components/DocText';
 import type { PropDefinition } from '../../../components/PropsTable';
-import { Stage, type Act } from '../../../components/Stage';
+import { Stage, type Act, type DemoProps } from '../../../components/Stage';
 
 const LEAD =
   '보던 화면을 유지한 채 상세 정보나 설정 패널 같은 보조 내용을 옆에서 밀어 넣어 보여 줍니다. 왼쪽이나 오른쪽 가장자리에 붙습니다.';
@@ -243,52 +243,58 @@ function A11y() {
 type Width = ComponentProps<typeof SideSheet>['width'];
 type Position = ComponentProps<typeof SideSheet>['position'];
 
-export function SideSheetPage() {
-  const [values, setValues] = useState<Values>(INITIAL);
+/** 무대 조각. 상세 페이지와 전체 컴포넌트 카드가 같이 쓴다 */
+export function SideSheetDemo({ values = INITIAL, mini }: DemoProps) {
   const [open, setOpen] = useState(false);
   const close = () => setOpen(false);
+
+  return (
+    // 함수형 children이 넘기는 상자(container)에 그리면 시트가 무대 안 가장자리에 갇힌다
+    <Stage mini={mini} label="SideSheet 시연" script={SCRIPT} onPause={close}>
+      {(container) => (
+        <>
+          <Button
+            data-stage-target="trigger"
+            size="sm"
+            onClick={() => setOpen(true)}
+          >
+            시트 열기
+          </Button>
+          <SideSheet
+            open={open}
+            onClose={close}
+            container={container}
+            title={String(values.title)}
+            position={values.position as Position}
+            width={values.width as Width}
+            showClose={values.showClose === true}
+            // 시트 높이는 화면 높이(100vh)다. 상자 안에서는 상자 높이가 같은 구실을 한다
+            style={{ height: '100%' }}
+          >
+            <p style={{ margin: '0 0 0.75rem' }}>{BODY}</p>
+            <Button
+              size="sm"
+              variant="light"
+              data-stage-target="close"
+              onClick={close}
+            >
+              닫기
+            </Button>
+          </SideSheet>
+        </>
+      )}
+    </Stage>
+  );
+}
+
+export function SideSheetPage() {
+  const [values, setValues] = useState<Values>(INITIAL);
 
   return (
     <DetailLayout
       name="SideSheet"
       lead={LEAD}
-      stage={
-        // 함수형 children이 넘기는 상자(container)에 그리면 시트가 무대 안 가장자리에 갇힌다
-        <Stage label="SideSheet 시연" script={SCRIPT} onPause={close}>
-          {(container) => (
-            <>
-              <Button
-                data-stage-target="trigger"
-                size="sm"
-                onClick={() => setOpen(true)}
-              >
-                시트 열기
-              </Button>
-              <SideSheet
-                open={open}
-                onClose={close}
-                container={container}
-                title={String(values.title)}
-                position={values.position as Position}
-                width={values.width as Width}
-                showClose={values.showClose === true}
-                // 시트 높이는 화면 높이(100vh)다. 상자 안에서는 상자 높이가 같은 구실을 한다
-                style={{ height: '100%' }}
-              >
-                <p style={{ margin: '0 0 0.75rem' }}>{BODY}</p>
-                <Button
-                  size="sm"
-                  variant="light"
-                  data-stage-target="close"
-                  onClick={close}
-                >
-                  닫기
-                </Button>
-              </SideSheet>
-            </>
-          )}
-        </Stage>
-      }
+      stage={<SideSheetDemo values={values} />}
       customize={
         <Customize controls={CONTROLS} values={values} onChange={setValues} />
       }

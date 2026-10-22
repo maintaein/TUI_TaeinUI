@@ -11,7 +11,7 @@ import {
 import { DetailLayout, Topic, Topics } from '../../../components/DetailLayout';
 import * as t from '../../../components/DocText';
 import type { PropDefinition } from '../../../components/PropsTable';
-import { Stage, type Act } from '../../../components/Stage';
+import { Stage, type Act, type DemoProps } from '../../../components/Stage';
 
 const LEAD =
   '태그, 필터, 카테고리를 작은 라벨로 보입니다. 누르면 선택되고 삭제 버튼으로 지울 수도 있습니다.';
@@ -264,8 +264,8 @@ type Color = ComponentProps<typeof Chip>['color'];
 type Variant = ComponentProps<typeof Chip>['variant'];
 type Size = ComponentProps<typeof Chip>['size'];
 
-export function ChipPage() {
-  const [values, setValues] = useState<Values>(INITIAL);
+/** 무대 조각. 상세 페이지와 전체 컴포넌트 카드가 같이 쓴다 */
+export function ChipDemo({ values = INITIAL, mini }: DemoProps) {
   const [items, setItems] = useState(ALL);
   const [picked, setPicked] = useState<string[]>([]);
   const box = useRef<HTMLDivElement>(null);
@@ -297,37 +297,43 @@ export function ChipPage() {
     );
 
   return (
+    <Stage mini={mini} label="Chip 시연" script={SCRIPT}>
+      <div
+        ref={box}
+        style={{
+          display: 'flex',
+          flexWrap: 'wrap',
+          justifyContent: 'center',
+          gap: 8,
+        }}
+      >
+        {items.map((tag) => (
+          <Chip
+            key={tag}
+            label={tag}
+            color={values.color as Color}
+            variant={values.variant as Variant}
+            size={values.size as Size}
+            icon={values.icon === true ? <Tag size={14} /> : undefined}
+            disabled={values.disabled === true}
+            selected={picked.includes(tag)}
+            onClick={() => toggle(tag)}
+            onDelete={() => setItems((l) => l.filter((x) => x !== tag))}
+          />
+        ))}
+      </div>
+    </Stage>
+  );
+}
+
+export function ChipPage() {
+  const [values, setValues] = useState<Values>(INITIAL);
+
+  return (
     <DetailLayout
       name="Chip"
       lead={LEAD}
-      stage={
-        <Stage label="Chip 시연" script={SCRIPT}>
-          <div
-            ref={box}
-            style={{
-              display: 'flex',
-              flexWrap: 'wrap',
-              justifyContent: 'center',
-              gap: 8,
-            }}
-          >
-            {items.map((tag) => (
-              <Chip
-                key={tag}
-                label={tag}
-                color={values.color as Color}
-                variant={values.variant as Variant}
-                size={values.size as Size}
-                icon={values.icon === true ? <Tag size={14} /> : undefined}
-                disabled={values.disabled === true}
-                selected={picked.includes(tag)}
-                onClick={() => toggle(tag)}
-                onDelete={() => setItems((l) => l.filter((x) => x !== tag))}
-              />
-            ))}
-          </div>
-        </Stage>
-      }
+      stage={<ChipDemo values={values} />}
       customize={
         <Customize controls={CONTROLS} values={values} onChange={setValues} />
       }

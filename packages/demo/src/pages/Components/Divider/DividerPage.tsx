@@ -10,7 +10,7 @@ import {
 import { DetailLayout, Topic, Topics } from '../../../components/DetailLayout';
 import * as t from '../../../components/DocText';
 import type { PropDefinition } from '../../../components/PropsTable';
-import { Stage } from '../../../components/Stage';
+import { Stage, type DemoProps } from '../../../components/Stage';
 
 const LEAD =
   '콘텐츠 사이에 선을 긋습니다. 가로 선은 섹션을 나누고 세로 선은 한 줄에 놓인 메뉴를 나눕니다. 가운데에 글자를 넣을 수도 있습니다.';
@@ -153,11 +153,10 @@ type Spacing = ComponentProps<typeof Divider>['spacing'];
 type TextAlign = ComponentProps<typeof Divider>['textAlign'];
 
 // 이 컴포넌트에는 시연할 움직임이 없다(M5에서 마운트 모션을 지웠다). 대본 없이 조작판 값만 바꿔 보인다
-export function DividerPage() {
-  const [values, setValues] = useState<Values>(INITIAL);
+/** 무대 조각. 상세 페이지와 전체 컴포넌트 카드가 같이 쓴다 */
+export function DividerDemo({ values = INITIAL, mini }: DemoProps) {
   const vertical = values.orientation === 'vertical';
   const text = values.children === true ? '또는' : undefined;
-
   const divider = (
     <Divider
       orientation={values.orientation as Orientation}
@@ -170,32 +169,39 @@ export function DividerPage() {
   );
 
   return (
+    <Stage mini={mini} label="Divider 미리보기">
+      {vertical ? (
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            height: '9rem',
+          }}
+        >
+          <span>메뉴 A</span>
+          {divider}
+          <span>메뉴 B</span>
+        </div>
+      ) : (
+        <div style={{ width: '100%' }}>
+          <p style={{ margin: 0 }}>첫 번째 섹션입니다.</p>
+          {divider}
+          <p style={{ margin: 0 }}>두 번째 섹션입니다.</p>
+        </div>
+      )}
+    </Stage>
+  );
+}
+
+export function DividerPage() {
+  const [values, setValues] = useState<Values>(INITIAL);
+  const text = values.children === true ? '또는' : undefined;
+
+  return (
     <DetailLayout
       name="Divider"
       lead={LEAD}
-      stage={
-        <Stage label="Divider 미리보기">
-          {vertical ? (
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                height: '9rem',
-              }}
-            >
-              <span>메뉴 A</span>
-              {divider}
-              <span>메뉴 B</span>
-            </div>
-          ) : (
-            <div style={{ width: '100%' }}>
-              <p style={{ margin: 0 }}>첫 번째 섹션입니다.</p>
-              {divider}
-              <p style={{ margin: 0 }}>두 번째 섹션입니다.</p>
-            </div>
-          )}
-        </Stage>
-      }
+      stage={<DividerDemo values={values} />}
       customize={
         <Customize controls={CONTROLS} values={values} onChange={setValues} />
       }

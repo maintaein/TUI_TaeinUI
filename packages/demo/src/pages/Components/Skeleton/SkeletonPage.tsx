@@ -10,7 +10,7 @@ import {
 import { DetailLayout, Topic, Topics } from '../../../components/DetailLayout';
 import * as t from '../../../components/DocText';
 import type { PropDefinition } from '../../../components/PropsTable';
-import { Stage, type Act } from '../../../components/Stage';
+import { Stage, type Act, type DemoProps } from '../../../components/Stage';
 
 const LEAD =
   '콘텐츠가 들어올 자리의 윤곽을 미리 보입니다. 화면이 곧 채워진다는 것을 알려 빈 화면의 불안을 줄입니다.';
@@ -165,8 +165,8 @@ function A11y() {
 
 type Variant = ComponentProps<typeof Skeleton>['variant'];
 
-export function SkeletonPage() {
-  const [values, setValues] = useState<Values>(INITIAL);
+/** 무대 조각. 상세 페이지와 전체 컴포넌트 카드가 같이 쓴다 */
+export function SkeletonDemo({ values = INITIAL, mini }: DemoProps) {
   const [loading, setLoading] = useState(false);
   const [run, setRun] = useState(0);
   const timer = useRef(0);
@@ -190,77 +190,83 @@ export function SkeletonPage() {
       ? false
       : (values.animation as 'wave' | 'pulse');
 
+  // 바꾼 값이 뼈대에 보이도록 뼈대를 다시 보인다
+  const [seen, setSeen] = useState(values);
+  if (seen !== values) {
+    setSeen(values);
+    reload();
+  }
+
+  return (
+    <Stage mini={mini} label="Skeleton 시연" script={SCRIPT}>
+      <div
+        aria-busy={loading}
+        data-stage-state={loading ? 'loading' : 'ready'}
+        style={{ display: 'grid', gap: 16, width: '100%' }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          {loading ? (
+            <Skeleton variant="circle" width={48} animation={animation} />
+          ) : (
+            <Avatar alt="Taein Kim" size="lg" />
+          )}
+          <div style={{ display: 'grid', gap: 4, flex: 1, minWidth: 0 }}>
+            {loading ? (
+              <>
+                <Skeleton width="60%" animation={animation} />
+                <Skeleton width="40%" animation={animation} />
+              </>
+            ) : (
+              <>
+                <strong>Taein Kim</strong>
+                <span>디자인 시스템 작업 중</span>
+              </>
+            )}
+          </div>
+        </div>
+        {loading ? (
+          <Skeleton
+            variant={values.variant as Variant}
+            width={mediaWidth}
+            height={MEDIA_HEIGHT}
+            animation={animation}
+          />
+        ) : (
+          <img
+            src={IMAGE}
+            alt="TUI"
+            style={{
+              width: '100%',
+              height: MEDIA_HEIGHT,
+              objectFit: 'cover',
+              borderRadius: 12,
+            }}
+          />
+        )}
+        <Button
+          data-stage-target="reload"
+          size="sm"
+          variant="light"
+          onClick={reload}
+        >
+          새로고침
+        </Button>
+      </div>
+    </Stage>
+  );
+}
+
+export function SkeletonPage() {
+  const [values, setValues] = useState<Values>(INITIAL);
+  const mediaWidth = values.variant === 'circle' ? MEDIA_HEIGHT : '100%';
+
   return (
     <DetailLayout
       name="Skeleton"
       lead={LEAD}
-      stage={
-        <Stage label="Skeleton 시연" script={SCRIPT}>
-          <div
-            aria-busy={loading}
-            data-stage-state={loading ? 'loading' : 'ready'}
-            style={{ display: 'grid', gap: 16, width: '100%' }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-              {loading ? (
-                <Skeleton variant="circle" width={48} animation={animation} />
-              ) : (
-                <Avatar alt="Taein Kim" size="lg" />
-              )}
-              <div style={{ display: 'grid', gap: 4, flex: 1, minWidth: 0 }}>
-                {loading ? (
-                  <>
-                    <Skeleton width="60%" animation={animation} />
-                    <Skeleton width="40%" animation={animation} />
-                  </>
-                ) : (
-                  <>
-                    <strong>Taein Kim</strong>
-                    <span>디자인 시스템 작업 중</span>
-                  </>
-                )}
-              </div>
-            </div>
-            {loading ? (
-              <Skeleton
-                variant={values.variant as Variant}
-                width={mediaWidth}
-                height={MEDIA_HEIGHT}
-                animation={animation}
-              />
-            ) : (
-              <img
-                src={IMAGE}
-                alt="TUI"
-                style={{
-                  width: '100%',
-                  height: MEDIA_HEIGHT,
-                  objectFit: 'cover',
-                  borderRadius: 12,
-                }}
-              />
-            )}
-            <Button
-              data-stage-target="reload"
-              size="sm"
-              variant="light"
-              onClick={reload}
-            >
-              새로고침
-            </Button>
-          </div>
-        </Stage>
-      }
+      stage={<SkeletonDemo values={values} />}
       customize={
-        <Customize
-          controls={CONTROLS}
-          values={values}
-          // 바꾼 값이 뼈대에 보이도록 뼈대를 다시 보인다
-          onChange={(v) => {
-            setValues(v);
-            reload();
-          }}
-        />
+        <Customize controls={CONTROLS} values={values} onChange={setValues} />
       }
       code={codeOf({
         component: 'Skeleton',

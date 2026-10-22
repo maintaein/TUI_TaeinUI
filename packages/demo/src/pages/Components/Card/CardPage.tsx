@@ -11,7 +11,7 @@ import { DetailLayout, Topic, Topics } from '../../../components/DetailLayout';
 import * as t from '../../../components/DocText';
 import { PropsList } from '../../../components/PropsList';
 import type { PropDefinition } from '../../../components/PropsTable';
-import { Stage, type Act } from '../../../components/Stage';
+import { Stage, type Act, type DemoProps } from '../../../components/Stage';
 
 const LEAD =
   '상품, 글, 프로필처럼 관련된 정보를 하나의 영역으로 묶습니다. 이미지, 제목, 본문, 푸터를 쌓아 씁니다.';
@@ -269,6 +269,40 @@ function A11y() {
 type Variant = ComponentProps<typeof Card>['variant'];
 type Padding = ComponentProps<typeof Card>['padding'];
 
+/** 무대 조각. 상세 페이지와 전체 컴포넌트 카드가 같이 쓴다 */
+export function CardDemo({ values = INITIAL, mini }: DemoProps) {
+  const withImage = values.image === true;
+  const withFooter = values.footer === true;
+  const padding = String(values.padding);
+
+  return (
+    <Stage mini={mini} label="Card 시연" script={SCRIPT}>
+      <Card
+        data-stage-target="card"
+        variant={values.variant as Variant}
+        hoverLift={values.hoverLift === true}
+        disabled={values.disabled === true}
+        onClick={() => undefined}
+      >
+        {withImage && (
+          <Card.Image
+            src={IMAGE}
+            alt={IMAGE_ALT}
+            style={{ aspectRatio: '2' }}
+          />
+        )}
+        <Card.Header>
+          <Card.Title>월간 리포트</Card.Title>
+        </Card.Header>
+        <Card.Body padding={padding as Padding}>
+          이번 달 방문자가 지난달보다 12% 늘었습니다.
+        </Card.Body>
+        {withFooter && <Card.Footer>2026년 10월</Card.Footer>}
+      </Card>
+    </Stage>
+  );
+}
+
 export function CardPage() {
   const [values, setValues] = useState<Values>(INITIAL);
   const withImage = values.image === true;
@@ -295,32 +329,7 @@ export function CardPage() {
     <DetailLayout
       name="Card"
       lead={LEAD}
-      stage={
-        <Stage label="Card 시연" script={SCRIPT}>
-          <Card
-            data-stage-target="card"
-            variant={values.variant as Variant}
-            hoverLift={values.hoverLift === true}
-            disabled={values.disabled === true}
-            onClick={() => undefined}
-          >
-            {withImage && (
-              <Card.Image
-                src={IMAGE}
-                alt={IMAGE_ALT}
-                style={{ aspectRatio: '2' }}
-              />
-            )}
-            <Card.Header>
-              <Card.Title>월간 리포트</Card.Title>
-            </Card.Header>
-            <Card.Body padding={padding as Padding}>
-              이번 달 방문자가 지난달보다 12% 늘었습니다.
-            </Card.Body>
-            {withFooter && <Card.Footer>2026년 10월</Card.Footer>}
-          </Card>
-        </Stage>
-      }
+      stage={<CardDemo values={values} />}
       customize={
         <Customize controls={CONTROLS} values={values} onChange={setValues} />
       }

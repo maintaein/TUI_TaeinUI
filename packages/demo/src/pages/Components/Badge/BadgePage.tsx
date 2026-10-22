@@ -11,7 +11,7 @@ import {
 import { DetailLayout, Topic, Topics } from '../../../components/DetailLayout';
 import * as t from '../../../components/DocText';
 import type { PropDefinition } from '../../../components/PropsTable';
-import { Stage, type Act } from '../../../components/Stage';
+import { Stage, type Act, type DemoProps } from '../../../components/Stage';
 
 const LEAD =
   '읽지 않은 알림 수나 새 메시지처럼 작은 숫자와 상태를 알립니다. 숫자가 바뀌면 새 값이 밀려 들어옵니다.';
@@ -206,52 +206,59 @@ function A11y() {
 type Variant = ComponentProps<typeof Badge>['variant'];
 type Size = ComponentProps<typeof Badge>['size'];
 
+/** 무대 조각. 상세 페이지와 전체 컴포넌트 카드가 같이 쓴다 */
+export function BadgeDemo({ values = INITIAL, mini }: DemoProps) {
+  const [count, setCount] = useState(START);
+  const dot = values.dot === true;
+
+  return (
+    <Stage mini={mini} label="Badge 시연" script={SCRIPT}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 28 }}>
+        <IconButton
+          data-stage-target="dec"
+          aria-label="줄이기"
+          buttonStyle="weak"
+          onClick={() => setCount((c) => Math.max(0, c - 1))}
+        >
+          <Minus />
+        </IconButton>
+        {/* 배지는 core 크기 그대로 그린다. 자리 폭만 잡아 값이 바뀌어도 단추가 밀리지 않게 한다 */}
+        <div
+          data-stage-badge
+          style={{ minWidth: 40, display: 'grid', placeItems: 'center' }}
+        >
+          <Badge
+            variant={values.variant as Variant}
+            size={values.size as Size}
+            max={Number(values.max)}
+            dot={dot}
+            aria-label={dot ? '새 알림' : undefined}
+          >
+            {count}
+          </Badge>
+        </div>
+        <IconButton
+          data-stage-target="inc"
+          aria-label="늘리기"
+          buttonStyle="weak"
+          onClick={() => setCount((c) => c + 1)}
+        >
+          <Plus />
+        </IconButton>
+      </div>
+    </Stage>
+  );
+}
+
 export function BadgePage() {
   const [values, setValues] = useState<Values>(INITIAL);
-  const [count, setCount] = useState(START);
   const dot = values.dot === true;
 
   return (
     <DetailLayout
       name="Badge"
       lead={LEAD}
-      stage={
-        <Stage label="Badge 시연" script={SCRIPT}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 28 }}>
-            <IconButton
-              data-stage-target="dec"
-              aria-label="줄이기"
-              buttonStyle="weak"
-              onClick={() => setCount((c) => Math.max(0, c - 1))}
-            >
-              <Minus />
-            </IconButton>
-            {/* 배지는 core 크기 그대로 그린다. 자리 폭만 잡아 값이 바뀌어도 단추가 밀리지 않게 한다 */}
-            <div
-              data-stage-badge
-              style={{ minWidth: 40, display: 'grid', placeItems: 'center' }}
-            >
-              <Badge
-                variant={values.variant as Variant}
-                size={values.size as Size}
-                max={Number(values.max)}
-                dot={dot}
-                aria-label={dot ? '새 알림' : undefined}
-              >
-                {count}
-              </Badge>
-            </div>
-            <IconButton
-              data-stage-target="inc"
-              aria-label="늘리기"
-              buttonStyle="weak"
-              onClick={() => setCount((c) => c + 1)}
-            >
-              <Plus />
-            </IconButton>
-          </div>
-        </Stage>
-      }
+      stage={<BadgeDemo values={values} />}
       customize={
         <Customize controls={CONTROLS} values={values} onChange={setValues} />
       }

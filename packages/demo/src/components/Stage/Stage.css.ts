@@ -15,6 +15,13 @@ export const stage = style({
   borderRadius: borderRadius.lg,
 });
 
+// 카드 속 미니: 카드 상자를 채운다. 일시정지 단추 줄이 없으니 오버레이 상자와 바(헤더바)가 맨 위부터 쓴다
+export const stageMini = style({
+  alignSelf: 'stretch',
+  justifySelf: 'stretch',
+  borderRadius: 0,
+});
+
 export const tools = style({
   position: 'absolute',
   top: spacing[3],
@@ -70,3 +77,6 @@ export const cursor = style({
   marginLeft: '-4px',
   marginTop: '-4px',
 });
+
+globalStyle(`${stageMini} > ${layer}`, { top: 0 });
+globalStyle(`${stageMini} > ${innerBar}`, { marginTop: spacing[4] });

@@ -10,7 +10,7 @@ import {
 import { DetailLayout, Topic, Topics } from '../../../components/DetailLayout';
 import * as t from '../../../components/DocText';
 import type { PropDefinition } from '../../../components/PropsTable';
-import { Stage, type Act } from '../../../components/Stage';
+import { Stage, type Act, type DemoProps } from '../../../components/Stage';
 
 const LEAD =
   '볼륨, 밝기, 가격 범위처럼 연속된 값을 손잡이를 끌어 고르는 자리에 둡니다.';
@@ -272,6 +272,26 @@ function A11y() {
 
 type Variant = ComponentProps<typeof Slider>['variant'];
 
+/** 무대 조각. 상세 페이지와 전체 컴포넌트 카드가 같이 쓴다 */
+export function SliderDemo({ values = INITIAL, mini }: DemoProps) {
+  return (
+    <Stage mini={mini} label="Slider 시연" script={SCRIPT}>
+      <Slider
+        // 대본의 커서와 끌기는 보이지 않는 range 입력을 대상으로 삼는다
+        ref={(el) => el?.setAttribute('data-stage-target', 'slider')}
+        label={String(values.label)}
+        variant={values.variant as Variant}
+        defaultValue={START}
+        helperText={String(values.helperText) || undefined}
+        showValue={values.showValue === true}
+        showThumbValue={values.showThumbValue === true}
+        required={values.required === true}
+        disabled={values.disabled === true}
+      />
+    </Stage>
+  );
+}
+
 export function SliderPage() {
   const [values, setValues] = useState<Values>(INITIAL);
 
@@ -279,22 +299,7 @@ export function SliderPage() {
     <DetailLayout
       name="Slider"
       lead={LEAD}
-      stage={
-        <Stage label="Slider 시연" script={SCRIPT}>
-          <Slider
-            // 대본의 커서와 끌기는 보이지 않는 range 입력을 대상으로 삼는다
-            ref={(el) => el?.setAttribute('data-stage-target', 'slider')}
-            label={String(values.label)}
-            variant={values.variant as Variant}
-            defaultValue={START}
-            helperText={String(values.helperText) || undefined}
-            showValue={values.showValue === true}
-            showThumbValue={values.showThumbValue === true}
-            required={values.required === true}
-            disabled={values.disabled === true}
-          />
-        </Stage>
-      }
+      stage={<SliderDemo values={values} />}
       customize={
         <Customize controls={CONTROLS} values={values} onChange={setValues} />
       }

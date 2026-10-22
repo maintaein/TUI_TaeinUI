@@ -27,10 +27,10 @@ export const frameInner = style({
   overflow: 'hidden',
 });
 
-// 카드 속 미니. position: fixed 자손(Snackbar)과 core `container`로 들어온 오버레이가 이 상자 안에 갇힌다
-export const cardInner = style({ contain: 'layout' });
+// 카드 속 미니(Stage)가 상자를 채운다. 오버레이와 position: fixed 자손(Snackbar)은 Stage 안에 갇힌다
+export const cardInner = style({ padding: 0, minHeight: '220px' });
 // 오버레이는 열린 모습이 들어갈 만큼 높다
-export const cardInnerTall = style({ minHeight: '260px' });
+export const cardInnerTall = style({ minHeight: '280px' });
 
 export const frameFoot = style({
   display: 'flex',

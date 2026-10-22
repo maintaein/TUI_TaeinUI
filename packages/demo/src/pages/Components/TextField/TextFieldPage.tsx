@@ -10,7 +10,7 @@ import {
 import { DetailLayout, Topic, Topics } from '../../../components/DetailLayout';
 import * as t from '../../../components/DocText';
 import type { PropDefinition } from '../../../components/PropsTable';
-import { Stage, type Act } from '../../../components/Stage';
+import { Stage, type Act, type DemoProps } from '../../../components/Stage';
 
 const LEAD =
   '이름, 이메일, 비밀번호, 검색어처럼 글자를 입력받는 자리에 둡니다. 여러 줄이 필요하면 multiline을 켭니다.';
@@ -278,10 +278,9 @@ type Single = ComponentProps<typeof TextField>;
 type FieldType = NonNullable<Single['type']>;
 type Size = NonNullable<Single['size']>;
 
-export function TextFieldPage() {
-  const [values, setValues] = useState<Values>(INITIAL);
+/** 무대 조각. 상세 페이지와 전체 컴포넌트 카드가 같이 쓴다 */
+export function TextFieldDemo({ values = INITIAL, mini }: DemoProps) {
   const multiline = values.multiline === true;
-
   const shared = {
     'data-stage-target': 'field',
     label: String(values.label),
@@ -295,6 +294,25 @@ export function TextFieldPage() {
     fullWidth: values.fullWidth === true,
   };
 
+  return (
+    <Stage mini={mini} label="TextField 시연" script={SCRIPT}>
+      {multiline ? (
+        <TextField
+          {...shared}
+          multiline
+          autoResize={values.autoResize === true}
+        />
+      ) : (
+        <TextField {...shared} type={values.type as FieldType} />
+      )}
+    </Stage>
+  );
+}
+
+export function TextFieldPage() {
+  const [values, setValues] = useState<Values>(INITIAL);
+  const multiline = values.multiline === true;
+
   // type은 한 줄에만, autoResize는 여러 줄에만 있다. 조작판과 코드에도 그렇게 낸다
   const hidden = multiline ? 'type' : 'autoResize';
   const controls = CONTROLS.filter((c) => c.prop !== hidden);
@@ -305,19 +323,7 @@ export function TextFieldPage() {
     <DetailLayout
       name="TextField"
       lead={LEAD}
-      stage={
-        <Stage label="TextField 시연" script={SCRIPT}>
-          {multiline ? (
-            <TextField
-              {...shared}
-              multiline
-              autoResize={values.autoResize === true}
-            />
-          ) : (
-            <TextField {...shared} type={values.type as FieldType} />
-          )}
-        </Stage>
-      }
+      stage={<TextFieldDemo values={values} />}
       customize={
         <Customize controls={controls} values={values} onChange={setValues} />
       }

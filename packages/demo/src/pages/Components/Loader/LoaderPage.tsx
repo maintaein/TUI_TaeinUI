@@ -10,7 +10,7 @@ import {
 import { DetailLayout, Topic, Topics } from '../../../components/DetailLayout';
 import * as t from '../../../components/DocText';
 import type { PropDefinition } from '../../../components/PropsTable';
-import { Stage, type Act } from '../../../components/Stage';
+import { Stage, type Act, type DemoProps } from '../../../components/Stage';
 
 const LEAD =
   '요청이 끝나기를 기다리는 동안 일이 진행 중임을 보입니다. 점 궤도는 끝나면 체크나 X로 모여 결과까지 알립니다.';
@@ -256,8 +256,8 @@ function A11y() {
 
 type Size = ComponentProps<typeof Loader>['size'];
 
-export function LoaderPage() {
-  const [values, setValues] = useState<Values>(INITIAL);
+/** 무대 조각. 상세 페이지와 전체 컴포넌트 카드가 같이 쓴다 */
+export function LoaderDemo({ values = INITIAL, mini }: DemoProps) {
   const [status, setStatus] = useState<Status>('loading');
   const [progress, setProgress] = useState(35);
   const [running, setRunning] = useState(false);
@@ -295,59 +295,59 @@ export function LoaderPage() {
   const shown = type === 'orbit' || type === 'fuse' || status === 'loading';
 
   return (
+    <Stage mini={mini} label="Loader 시연" script={SCRIPT}>
+      <div
+        style={{
+          display: 'grid',
+          justifyItems: 'center',
+          gap: 20,
+        }}
+      >
+        <div
+          style={{
+            display: 'grid',
+            placeItems: 'center',
+            minHeight: 112,
+            minWidth: 'min(100%, 16rem)',
+          }}
+        >
+          {shown &&
+            (type === 'fuse' ? (
+              <Loader type="fuse" size={size} color={color} value={progress} />
+            ) : type === 'orbit' ? (
+              <Loader size={size} color={color} status={status} />
+            ) : (
+              <Loader
+                type={type as 'spinner' | 'dots' | 'bar' | 'wave' | 'inchworm'}
+                size={size}
+                color={color}
+              />
+            ))}
+        </div>
+        <p className={t.body}>{CAPTION[status]}</p>
+        <Button
+          data-stage-target="save"
+          size="sm"
+          variant="light"
+          disabled={running}
+          onClick={save}
+        >
+          저장
+        </Button>
+      </div>
+    </Stage>
+  );
+}
+
+export function LoaderPage() {
+  const [values, setValues] = useState<Values>(INITIAL);
+  const type = String(values.type);
+
+  return (
     <DetailLayout
       name="Loader"
       lead={LEAD}
-      stage={
-        <Stage label="Loader 시연" script={SCRIPT}>
-          <div
-            style={{
-              display: 'grid',
-              justifyItems: 'center',
-              gap: 20,
-            }}
-          >
-            <div
-              style={{
-                display: 'grid',
-                placeItems: 'center',
-                minHeight: 112,
-                minWidth: 'min(100%, 16rem)',
-              }}
-            >
-              {shown &&
-                (type === 'fuse' ? (
-                  <Loader
-                    type="fuse"
-                    size={size}
-                    color={color}
-                    value={progress}
-                  />
-                ) : type === 'orbit' ? (
-                  <Loader size={size} color={color} status={status} />
-                ) : (
-                  <Loader
-                    type={
-                      type as 'spinner' | 'dots' | 'bar' | 'wave' | 'inchworm'
-                    }
-                    size={size}
-                    color={color}
-                  />
-                ))}
-            </div>
-            <p className={t.body}>{CAPTION[status]}</p>
-            <Button
-              data-stage-target="save"
-              size="sm"
-              variant="light"
-              disabled={running}
-              onClick={save}
-            >
-              저장
-            </Button>
-          </div>
-        </Stage>
-      }
+      stage={<LoaderDemo values={values} />}
       customize={
         <Customize controls={CONTROLS} values={values} onChange={setValues} />
       }

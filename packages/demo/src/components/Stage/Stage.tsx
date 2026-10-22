@@ -1,4 +1,6 @@
 import {
+  createContext,
+  useContext,
   useEffect,
   useLayoutEffect,
   useRef,
@@ -9,6 +11,7 @@ import gsap from 'gsap';
 import { MousePointer2, Pause, Play } from 'lucide-react';
 import { IconButton, themeContract, useReducedMotion } from '@taein-ui/core';
 import { dur, ease } from '../ComponentShowcase/scenes';
+import type { Values } from '../Customize';
 import * as styles from './Stage.css';
 
 /** 대본이 타임라인에 얹는 동작. 대상은 `data-stage-target="이름"`이 붙은 요소다 */
@@ -48,6 +51,16 @@ export interface Act {
   drag: (target: string, to: number, seconds?: number) => void;
 }
 
+/** 상세 페이지의 무대 조각(`XxxDemo`)이 받는 값. 카드 미니는 values 없이 그 페이지의 처음 값으로 그린다 */
+export interface DemoProps {
+  values?: Values;
+  /** 전체 컴포넌트 카드 속 미니로 그린다. `Stage`에 그대로 넘긴다 */
+  mini?: boolean;
+}
+
+/** 미니 무대 전부를 한꺼번에 멈추게 하는 스위치(WCAG 2.2.2). 페이지 머리의 단추가 켠다 */
+export const MiniFrozen = createContext(false);
+
 export interface StageProps {
   /** 스크린 리더가 읽는 무대 이름 */
   label: string;
@@ -67,6 +80,11 @@ export interface StageProps {
   lockWhilePlaying?: boolean;
   /** 헤더바처럼 위에 붙어 가로로 긴 컴포넌트용. 안쪽 폭이 22rem 대신 46rem까지 넓어지고 일시정지 단추 줄 아래 위쪽에 앉는다 */
   bar?: boolean;
+  /**
+   * 카드 속 미니. 일시정지 단추와 넘겨받기가 없고 안쪽은 늘 `inert`라 만질 수 없다(대본이 쏘는 합성 이벤트는 그대로 먹는다).
+   * 화면에 절반 이상 보일 때만 돌고, `MiniFrozen`이 켜지면 선다
+   */
+  mini?: boolean;
   className?: string;
 }
 
@@ -199,9 +217,11 @@ export function Stage({
   onPause,
   lockWhilePlaying,
   bar,
+  mini,
   className,
 }: StageProps) {
   const reduced = useReducedMotion();
+  const frozen = useContext(MiniFrozen);
   const [root, setRoot] = useState<HTMLDivElement | null>(null);
   const [layer, setLayer] = useState<HTMLDivElement | null>(null);
   const onPauseRef = useRef(onPause);
@@ -223,7 +243,8 @@ export function Stage({
   });
   const setFlag = (key: keyof Flags, value: boolean) =>
     setFlags((f) => (f[key] === value ? f : { ...f, [key]: value }));
-  const playing = !reduced && !Object.values(flags).some(Boolean);
+  const playing =
+    !reduced && !Object.values(flags).some(Boolean) && !(mini && frozen);
   const demo = script && !reduced;
 
   useEffect(mirrorHover, []);
@@ -549,12 +570,14 @@ export function Stage({
   // 화면 밖, 탭 숨김, 진짜 마우스. 합성 pointerover(isTrusted false)는 연출이라 무시한다
   useEffect(() => {
     if (!root) return;
-    const io = new IntersectionObserver(([entry]) =>
-      setFlags((f) =>
-        f.offscreen === !entry.isIntersecting
-          ? f
-          : { ...f, offscreen: !entry.isIntersecting }
-      )
+    const io = new IntersectionObserver(
+      ([entry]) =>
+        setFlags((f) =>
+          f.offscreen === !entry.isIntersecting
+            ? f
+            : { ...f, offscreen: !entry.isIntersecting }
+        ),
+      { threshold: mini ? 0.5 : 0 }
     );
     io.observe(root);
     const onVisibility = () =>
@@ -564,14 +587,14 @@ export function Stage({
     onVisibility();
     document.addEventListener('visibilitychange', onVisibility);
     const onOver = (e: PointerEvent) => {
-      if (!e.isTrusted) return;
+      if (!e.isTrusted || mini) return;
       const onControl = (e.target as Element).closest(CONTROL) !== null;
       setFlags((f) =>
         f.hover === !onControl ? f : { ...f, hover: !onControl }
       );
     };
     const onLeave = (e: PointerEvent) => {
-      if (e.isTrusted && !settling.current)
+      if (e.isTrusted && !mini && !settling.current)
         setFlags((f) => (f.hover ? { ...f, hover: false } : f));
     };
     root.addEventListener('pointerover', onOver);
@@ -582,14 +605,19 @@ export function Stage({
       root.removeEventListener('pointerover', onOver);
       root.removeEventListener('pointerleave', onLeave);
     };
-  }, [root]);
+  }, [root, mini]);
 
   return (
     <div
       ref={setRoot}
-      role="region"
-      aria-label={label}
-      className={[styles.stage, className].filter(Boolean).join(' ')}
+      // 카드 속 미니는 안쪽이 inert라 읽을 것이 없다. 빈 landmark 스물다섯을 만들지 않고 숨긴다
+      role={mini ? undefined : 'region'}
+      aria-label={mini ? undefined : label}
+      aria-hidden={mini || undefined}
+      data-stage-mini={mini ? label : undefined}
+      className={[styles.stage, mini && styles.stageMini, className]
+        .filter(Boolean)
+        .join(' ')}
       onFocus={(e) => {
         const t = e.target as Element;
         if (scripted.current || t.closest(CONTROL)) return;
@@ -605,7 +633,7 @@ export function Stage({
           setFlag('focus', false);
       }}
     >
-      {demo && (
+      {demo && !mini && (
         <div className={styles.tools} data-stage-control>
           <IconButton
             size="sm"
@@ -620,7 +648,7 @@ export function Stage({
         className={[styles.inner, bar && styles.innerBar]
           .filter(Boolean)
           .join(' ')}
-        inert={!!lockWhilePlaying && !!demo && playing}
+        inert={mini || (!!lockWhilePlaying && !!demo && playing)}
       >
         {typeof children === 'function' ? layer && children(layer) : children}
       </div>
@@ -628,7 +656,7 @@ export function Stage({
         <div
           ref={setLayer}
           className={styles.layer}
-          inert={!!demo && playing}
+          inert={mini || (!!demo && playing)}
         />
       )}
       {demo && (

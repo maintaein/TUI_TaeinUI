@@ -10,7 +10,7 @@ import {
 import { DetailLayout, Topic, Topics } from '../../../components/DetailLayout';
 import * as t from '../../../components/DocText';
 import type { PropDefinition } from '../../../components/PropsTable';
-import { Stage, type Act } from '../../../components/Stage';
+import { Stage, type Act, type DemoProps } from '../../../components/Stage';
 
 const LEAD =
   '수량, 인원수, 페이지 번호처럼 작은 범위의 숫자를 버튼으로 올리고 내리는 자리에 둡니다.';
@@ -277,6 +277,35 @@ function A11y() {
 
 type Size = ComponentProps<typeof NumericSpinner>['size'];
 
+/** 무대 조각. 상세 페이지와 전체 컴포넌트 카드가 같이 쓴다 */
+export function NumericSpinnerDemo({ values = INITIAL, mini }: DemoProps) {
+  return (
+    <Stage mini={mini} label="NumericSpinner 시연" script={SCRIPT}>
+      <NumericSpinner
+        // 증감 버튼은 숫자 칸 상자의 앞뒤 형제라 입력에서 찾아 대상 이름을 붙인다
+        ref={(el) => {
+          const box = el?.parentElement;
+          box?.previousElementSibling?.setAttribute(
+            'data-stage-target',
+            'minus'
+          );
+          box?.nextElementSibling?.setAttribute('data-stage-target', 'plus');
+        }}
+        label={String(values.label)}
+        size={values.size as Size}
+        min={MIN}
+        max={MAX}
+        helperText={String(values.helperText) || undefined}
+        errorMessage={String(values.errorMessage) || undefined}
+        error={values.error === true}
+        required={values.required === true}
+        disabled={values.disabled === true}
+        fullWidth={values.fullWidth === true}
+      />
+    </Stage>
+  );
+}
+
 export function NumericSpinnerPage() {
   const [values, setValues] = useState<Values>(INITIAL);
 
@@ -284,34 +313,7 @@ export function NumericSpinnerPage() {
     <DetailLayout
       name="NumericSpinner"
       lead={LEAD}
-      stage={
-        <Stage label="NumericSpinner 시연" script={SCRIPT}>
-          <NumericSpinner
-            // 증감 버튼은 숫자 칸 상자의 앞뒤 형제라 입력에서 찾아 대상 이름을 붙인다
-            ref={(el) => {
-              const box = el?.parentElement;
-              box?.previousElementSibling?.setAttribute(
-                'data-stage-target',
-                'minus'
-              );
-              box?.nextElementSibling?.setAttribute(
-                'data-stage-target',
-                'plus'
-              );
-            }}
-            label={String(values.label)}
-            size={values.size as Size}
-            min={MIN}
-            max={MAX}
-            helperText={String(values.helperText) || undefined}
-            errorMessage={String(values.errorMessage) || undefined}
-            error={values.error === true}
-            required={values.required === true}
-            disabled={values.disabled === true}
-            fullWidth={values.fullWidth === true}
-          />
-        </Stage>
-      }
+      stage={<NumericSpinnerDemo values={values} />}
       customize={
         <Customize controls={CONTROLS} values={values} onChange={setValues} />
       }

@@ -11,7 +11,7 @@ import {
 import { DetailLayout, Topic, Topics } from '../../../components/DetailLayout';
 import * as t from '../../../components/DocText';
 import type { PropDefinition } from '../../../components/PropsTable';
-import { Stage, type Act } from '../../../components/Stage';
+import { Stage, type Act, type DemoProps } from '../../../components/Stage';
 
 const LEAD =
   '닫기, 메뉴 열기, 설정처럼 아이콘만으로 뜻이 분명한 동작을 버튼으로 만듭니다.';
@@ -264,6 +264,31 @@ type Look = ComponentProps<typeof IconButton>['buttonStyle'];
 type Size = ComponentProps<typeof IconButton>['size'];
 type Hover = ComponentProps<typeof IconButton>['hoverEffect'];
 
+/** 무대 조각. 상세 페이지와 전체 컴포넌트 카드가 같이 쓴다 */
+export function IconButtonDemo({ values = INITIAL, mini }: DemoProps) {
+  return (
+    <Stage mini={mini} label="IconButton 시연" script={SCRIPT}>
+      <div style={{ display: 'flex', gap: 12 }}>
+        {VARIANTS.map(({ variant, icon, label, target }) => (
+          <IconButton
+            key={variant}
+            data-stage-target={target}
+            variant={variant}
+            buttonStyle={values.buttonStyle as Look}
+            size={values.size as Size}
+            hoverEffect={values.hoverEffect as Hover}
+            loading={values.loading === true}
+            disabled={values.disabled === true}
+            aria-label={label}
+          >
+            {icon}
+          </IconButton>
+        ))}
+      </div>
+    </Stage>
+  );
+}
+
 export function IconButtonPage() {
   const [values, setValues] = useState<Values>(INITIAL);
 
@@ -271,27 +296,7 @@ export function IconButtonPage() {
     <DetailLayout
       name="IconButton"
       lead={LEAD}
-      stage={
-        <Stage label="IconButton 시연" script={SCRIPT}>
-          <div style={{ display: 'flex', gap: 12 }}>
-            {VARIANTS.map(({ variant, icon, label, target }) => (
-              <IconButton
-                key={variant}
-                data-stage-target={target}
-                variant={variant}
-                buttonStyle={values.buttonStyle as Look}
-                size={values.size as Size}
-                hoverEffect={values.hoverEffect as Hover}
-                loading={values.loading === true}
-                disabled={values.disabled === true}
-                aria-label={label}
-              >
-                {icon}
-              </IconButton>
-            ))}
-          </div>
-        </Stage>
-      }
+      stage={<IconButtonDemo values={values} />}
       customize={
         <Customize controls={CONTROLS} values={values} onChange={setValues} />
       }

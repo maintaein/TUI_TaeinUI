@@ -11,7 +11,7 @@ import {
 import { DetailLayout, Topic, Topics } from '../../../components/DetailLayout';
 import * as t from '../../../components/DocText';
 import type { PropDefinition } from '../../../components/PropsTable';
-import { Stage, type Act } from '../../../components/Stage';
+import { Stage, type Act, type DemoProps } from '../../../components/Stage';
 
 const LEAD =
   '단추나 아이콘 위에 마우스를 올리거나 포커스하면 짧은 설명을 띄웁니다. 가장 적게 움직이도록 만든 알림입니다.';
@@ -199,6 +199,26 @@ function A11y() {
 
 type Position = ComponentProps<typeof Tooltip>['position'];
 
+/** 무대 조각. 상세 페이지와 전체 컴포넌트 카드가 같이 쓴다 */
+export function TooltipDemo({ values = INITIAL, mini }: DemoProps) {
+  return (
+    <Stage mini={mini} label="Tooltip 시연" script={SCRIPT}>
+      <Tooltip
+        data-stage-target="trigger"
+        content={String(values.content)}
+        position={values.position as Position}
+        delay={Number(values.delay)}
+        arrow={values.arrow === 'true'}
+        disabled={values.disabled === true}
+      >
+        <Button variant="light" leftIcon={<Save />}>
+          저장
+        </Button>
+      </Tooltip>
+    </Stage>
+  );
+}
+
 export function TooltipPage() {
   const [values, setValues] = useState<Values>(INITIAL);
 
@@ -206,22 +226,7 @@ export function TooltipPage() {
     <DetailLayout
       name="Tooltip"
       lead={LEAD}
-      stage={
-        <Stage label="Tooltip 시연" script={SCRIPT}>
-          <Tooltip
-            data-stage-target="trigger"
-            content={String(values.content)}
-            position={values.position as Position}
-            delay={Number(values.delay)}
-            arrow={values.arrow === 'true'}
-            disabled={values.disabled === true}
-          >
-            <Button variant="light" leftIcon={<Save />}>
-              저장
-            </Button>
-          </Tooltip>
-        </Stage>
-      }
+      stage={<TooltipDemo values={values} />}
       customize={
         <Customize controls={CONTROLS} values={values} onChange={setValues} />
       }

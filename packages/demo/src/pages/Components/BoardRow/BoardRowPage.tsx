@@ -10,7 +10,7 @@ import {
 import { DetailLayout, Topic, Topics } from '../../../components/DetailLayout';
 import * as t from '../../../components/DocText';
 import type { PropDefinition } from '../../../components/PropsTable';
-import { Stage, type Act } from '../../../components/Stage';
+import { Stage, type Act, type DemoProps } from '../../../components/Stage';
 
 const LEAD =
   'FAQ나 상세 정보처럼 긴 내용을 제목 아래에 접어 두었다가 펼칩니다. 펼치면 아래 행들이 함께 밀려 납니다.';
@@ -167,11 +167,10 @@ function A11y() {
 
 type Variant = ComponentProps<typeof BoardRow>['variant'];
 
-export function BoardRowPage() {
-  const [values, setValues] = useState<Values>(INITIAL);
+/** 무대 조각. 상세 페이지와 전체 컴포넌트 카드가 같이 쓴다 */
+export function BoardRowDemo({ values = INITIAL, mini }: DemoProps) {
   const [open, setOpen] = useState(false);
   const disabled = values.disabled === true;
-
   // 누를 때마다 뒤집히는 상태라, 누르기 전에 상태를 맞춰 넘겨받았다 이어 가도 펼침과 닫힘 순서가 어긋나지 않게 한다
   const script = useCallback((act: Act) => {
     act.move('header');
@@ -189,45 +188,51 @@ export function BoardRowPage() {
   }, []);
 
   return (
+    <Stage mini={mini} label="BoardRow 시연" script={script}>
+      <div
+        // core BoardRow는 data-*를 제목 단추에 달 수 없어 그려진 단추에 이름표를 단다
+        ref={(el) =>
+          el
+            ?.querySelector('button[aria-expanded]')
+            ?.setAttribute('data-stage-target', 'header')
+        }
+        style={{ display: 'grid', gap: '0.5rem', width: '100%' }}
+      >
+        <BoardRow
+          title={TITLE}
+          variant={values.variant as Variant}
+          disabled={disabled}
+          expanded={open && !disabled}
+          onChange={setOpen}
+        >
+          {BODY.map((line) => (
+            <p key={line} style={{ margin: 0 }}>
+              {line}
+            </p>
+          ))}
+        </BoardRow>
+        {NEIGHBORS.map((title) => (
+          <BoardRow
+            key={title}
+            title={title}
+            variant={values.variant as Variant}
+          >
+            <p style={{ margin: 0 }}>답변이 들어갑니다.</p>
+          </BoardRow>
+        ))}
+      </div>
+    </Stage>
+  );
+}
+
+export function BoardRowPage() {
+  const [values, setValues] = useState<Values>(INITIAL);
+
+  return (
     <DetailLayout
       name="BoardRow"
       lead={LEAD}
-      stage={
-        <Stage label="BoardRow 시연" script={script}>
-          <div
-            // core BoardRow는 data-*를 제목 단추에 달 수 없어 그려진 단추에 이름표를 단다
-            ref={(el) =>
-              el
-                ?.querySelector('button[aria-expanded]')
-                ?.setAttribute('data-stage-target', 'header')
-            }
-            style={{ display: 'grid', gap: '0.5rem', width: '100%' }}
-          >
-            <BoardRow
-              title={TITLE}
-              variant={values.variant as Variant}
-              disabled={disabled}
-              expanded={open && !disabled}
-              onChange={setOpen}
-            >
-              {BODY.map((line) => (
-                <p key={line} style={{ margin: 0 }}>
-                  {line}
-                </p>
-              ))}
-            </BoardRow>
-            {NEIGHBORS.map((title) => (
-              <BoardRow
-                key={title}
-                title={title}
-                variant={values.variant as Variant}
-              >
-                <p style={{ margin: 0 }}>답변이 들어갑니다.</p>
-              </BoardRow>
-            ))}
-          </div>
-        </Stage>
-      }
+      stage={<BoardRowDemo values={values} />}
       customize={
         <Customize controls={CONTROLS} values={values} onChange={setValues} />
       }

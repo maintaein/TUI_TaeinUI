@@ -11,7 +11,7 @@ import { DetailLayout, Topic, Topics } from '../../../components/DetailLayout';
 import * as t from '../../../components/DocText';
 import { PropsList } from '../../../components/PropsList';
 import type { PropDefinition } from '../../../components/PropsTable';
-import { Stage, type Act } from '../../../components/Stage';
+import { Stage, type Act, type DemoProps } from '../../../components/Stage';
 
 const LEAD =
   '프로필 사진이나 이니셜로 사용자와 그룹을 나타냅니다. 댓글 작성자, 참여자 목록에 둡니다.';
@@ -288,6 +288,32 @@ type Size = ComponentProps<typeof Avatar>['size'];
 type Variant = ComponentProps<typeof Avatar>['variant'];
 type Status = ComponentProps<typeof Avatar>['status'];
 
+/** 무대 조각. 상세 페이지와 전체 컴포넌트 카드가 같이 쓴다 */
+export function AvatarDemo({ values = INITIAL, mini }: DemoProps) {
+  return (
+    <Stage mini={mini} label="Avatar 시연" script={SCRIPT}>
+      {/* core가 data-* 를 루트에 안 달아 주므로 감싼 요소가 첫 자식(루트)에 대상 표시를 단다 */}
+      <span
+        style={{ display: 'contents' }}
+        ref={(el) =>
+          el?.firstElementChild?.setAttribute('data-stage-target', 'avatar')
+        }
+      >
+        <Avatar
+          alt={String(values.alt)}
+          size={values.size as Size}
+          variant={values.variant as Variant}
+          status={
+            values.status === 'none' ? undefined : (values.status as Status)
+          }
+          bouncy={values.bouncy === true}
+          onClick={() => undefined}
+        />
+      </span>
+    </Stage>
+  );
+}
+
 export function AvatarPage() {
   const [values, setValues] = useState<Values>(INITIAL);
 
@@ -295,28 +321,7 @@ export function AvatarPage() {
     <DetailLayout
       name="Avatar"
       lead={LEAD}
-      stage={
-        <Stage label="Avatar 시연" script={SCRIPT}>
-          {/* core가 data-* 를 루트에 안 달아 주므로 감싼 요소가 첫 자식(루트)에 대상 표시를 단다 */}
-          <span
-            style={{ display: 'contents' }}
-            ref={(el) =>
-              el?.firstElementChild?.setAttribute('data-stage-target', 'avatar')
-            }
-          >
-            <Avatar
-              alt={String(values.alt)}
-              size={values.size as Size}
-              variant={values.variant as Variant}
-              status={
-                values.status === 'none' ? undefined : (values.status as Status)
-              }
-              bouncy={values.bouncy === true}
-              onClick={() => undefined}
-            />
-          </span>
-        </Stage>
-      }
+      stage={<AvatarDemo values={values} />}
       customize={
         <Customize controls={CONTROLS} values={values} onChange={setValues} />
       }

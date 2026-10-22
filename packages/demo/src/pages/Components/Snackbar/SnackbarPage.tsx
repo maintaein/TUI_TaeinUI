@@ -10,7 +10,7 @@ import {
 import { DetailLayout, Topic, Topics } from '../../../components/DetailLayout';
 import * as t from '../../../components/DocText';
 import type { PropDefinition } from '../../../components/PropsTable';
-import { Stage, type Act } from '../../../components/Stage';
+import { Stage, type Act, type DemoProps } from '../../../components/Stage';
 
 const LEAD =
   '저장 완료, 오류 발생처럼 짧은 결과를 화면 모서리에 잠깐 알립니다. 남은 시간이 막대로 줄어들고 마우스를 올리면 막대가 멈춥니다.';
@@ -236,48 +236,53 @@ function A11y() {
 type Severity = ComponentProps<typeof Snackbar>['severity'];
 type Position = ComponentProps<typeof Snackbar>['position'];
 
+/** 무대 조각. 상세 페이지와 전체 컴포넌트 카드가 같이 쓴다 */
+export function SnackbarDemo({ values = INITIAL, mini }: DemoProps) {
+  const [open, setOpen] = useState(false);
+
+  // 바꾼 값이 보이도록 닫혀 있으면 다시 띄운다
+  const [seen, setSeen] = useState(values);
+  if (seen !== values) {
+    setSeen(values);
+    setOpen(true);
+  }
+
+  return (
+    // 스낵바는 화면에 고정(fixed)이라 무대(contain: layout) 안에서 무대 모서리에 놓인다
+    <Stage mini={mini} label="Snackbar 시연" script={SCRIPT}>
+      <Button
+        data-stage-target="trigger"
+        size="sm"
+        variant="light"
+        onClick={() => setOpen(true)}
+      >
+        저장
+      </Button>
+      <Snackbar
+        // 열려 있는 채로 position만 바뀌면 core는 등장 때 정한 가운데 맞춤(xPercent)을 다시 잡지 않는다. 위치마다 새로 그려 처음부터 맞게 한다
+        key={String(values.position)}
+        data-stage-target="snack"
+        open={open}
+        message={String(values.message)}
+        severity={values.severity as Severity}
+        position={values.position as Position}
+        autoHideDuration={Number(values.autoHideDuration)}
+        onClose={() => setOpen(false)}
+      />
+    </Stage>
+  );
+}
+
 export function SnackbarPage() {
   const [values, setValues] = useState<Values>(INITIAL);
-  const [open, setOpen] = useState(false);
 
   return (
     <DetailLayout
       name="Snackbar"
       lead={LEAD}
-      stage={
-        // 스낵바는 화면에 고정(fixed)이라 무대(contain: layout) 안에서 무대 모서리에 놓인다
-        <Stage label="Snackbar 시연" script={SCRIPT}>
-          <Button
-            data-stage-target="trigger"
-            size="sm"
-            variant="light"
-            onClick={() => setOpen(true)}
-          >
-            저장
-          </Button>
-          <Snackbar
-            // 열려 있는 채로 position만 바뀌면 core는 등장 때 정한 가운데 맞춤(xPercent)을 다시 잡지 않는다. 위치마다 새로 그려 처음부터 맞게 한다
-            key={String(values.position)}
-            data-stage-target="snack"
-            open={open}
-            message={String(values.message)}
-            severity={values.severity as Severity}
-            position={values.position as Position}
-            autoHideDuration={Number(values.autoHideDuration)}
-            onClose={() => setOpen(false)}
-          />
-        </Stage>
-      }
+      stage={<SnackbarDemo values={values} />}
       customize={
-        <Customize
-          controls={CONTROLS}
-          values={values}
-          // 바꾼 값이 보이도록 닫혀 있으면 다시 띄운다
-          onChange={(v) => {
-            setValues(v);
-            setOpen(true);
-          }}
-        />
+        <Customize controls={CONTROLS} values={values} onChange={setValues} />
       }
       code={codeOf({
         component: 'Snackbar',

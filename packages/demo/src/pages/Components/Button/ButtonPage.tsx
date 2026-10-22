@@ -11,7 +11,7 @@ import {
 import { DetailLayout, Topic, Topics } from '../../../components/DetailLayout';
 import * as t from '../../../components/DocText';
 import type { PropDefinition } from '../../../components/PropsTable';
-import { Stage, type Act } from '../../../components/Stage';
+import { Stage, type Act, type DemoProps } from '../../../components/Stage';
 
 const LEAD =
   '누르면 일이 일어나는 자리에 둡니다. 폼 제출, 창 열기, 삭제 같은 동작을 맡습니다.';
@@ -213,8 +213,8 @@ type Variant = ComponentProps<typeof Button>['variant'];
 type Look = ComponentProps<typeof Button>['buttonStyle'];
 type Size = ComponentProps<typeof Button>['size'];
 
-export function ButtonPage() {
-  const [values, setValues] = useState<Values>(INITIAL);
+/** 무대 조각. 상세 페이지와 전체 컴포넌트 카드가 같이 쓴다 */
+export function ButtonDemo({ values = INITIAL, mini }: DemoProps) {
   // 연출 커서(또는 진짜 손)가 누르면 잠깐 loading이 된다
   const [busy, setBusy] = useState(false);
   const busyTimer = useRef(0);
@@ -227,27 +227,33 @@ export function ButtonPage() {
   };
 
   return (
+    <Stage mini={mini} label="Button 시연" script={SCRIPT}>
+      <Button
+        data-stage-target="button"
+        variant={values.variant as Variant}
+        buttonStyle={values.buttonStyle as Look}
+        size={values.size as Size}
+        loading={values.loading === true || busy}
+        disabled={values.disabled === true}
+        fullWidth={values.fullWidth === true}
+        leftIcon={values.leftIcon === true ? <Send /> : undefined}
+        rightIcon={values.rightIcon === true ? <ArrowRight /> : undefined}
+        onClick={press}
+      >
+        {String(values.children) || ' '}
+      </Button>
+    </Stage>
+  );
+}
+
+export function ButtonPage() {
+  const [values, setValues] = useState<Values>(INITIAL);
+
+  return (
     <DetailLayout
       name="Button"
       lead={LEAD}
-      stage={
-        <Stage label="Button 시연" script={SCRIPT}>
-          <Button
-            data-stage-target="button"
-            variant={values.variant as Variant}
-            buttonStyle={values.buttonStyle as Look}
-            size={values.size as Size}
-            loading={values.loading === true || busy}
-            disabled={values.disabled === true}
-            fullWidth={values.fullWidth === true}
-            leftIcon={values.leftIcon === true ? <Send /> : undefined}
-            rightIcon={values.rightIcon === true ? <ArrowRight /> : undefined}
-            onClick={press}
-          >
-            {String(values.children) || ' '}
-          </Button>
-        </Stage>
-      }
+      stage={<ButtonDemo values={values} />}
       customize={
         <Customize controls={CONTROLS} values={values} onChange={setValues} />
       }

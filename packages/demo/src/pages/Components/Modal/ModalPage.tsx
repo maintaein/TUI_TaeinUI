@@ -10,7 +10,7 @@ import {
 import { DetailLayout, Topic, Topics } from '../../../components/DetailLayout';
 import * as t from '../../../components/DocText';
 import type { PropDefinition } from '../../../components/PropsTable';
-import { Stage, type Act } from '../../../components/Stage';
+import { Stage, type Act, type DemoProps } from '../../../components/Stage';
 
 const LEAD =
   '삭제 확인이나 폼 입력처럼 사용자가 답하기 전에는 뒤 화면을 쓰지 못하게 해야 할 때 화면 가운데에 띄웁니다. 누른 단추 자리에서 자라 나옵니다.';
@@ -305,50 +305,56 @@ function A11y() {
 type Size = ComponentProps<typeof Modal>['size'];
 type Align = ComponentProps<typeof Modal>['footerAlign'];
 
-export function ModalPage() {
-  const [values, setValues] = useState<Values>(INITIAL);
+/** 무대 조각. 상세 페이지와 전체 컴포넌트 카드가 같이 쓴다 */
+export function ModalDemo({ values = INITIAL, mini }: DemoProps) {
   const [open, setOpen] = useState(false);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const close = () => setOpen(false);
 
   return (
+    // 함수형 children이 넘기는 상자(container)에 그리면 모달이 무대 안에 갇힌다
+    <Stage mini={mini} label="Modal 시연" script={SCRIPT} onPause={close}>
+      {(container) => (
+        <>
+          <Button
+            ref={triggerRef}
+            data-stage-target="trigger"
+            size="sm"
+            onClick={() => setOpen(true)}
+          >
+            모달 열기
+          </Button>
+          <Modal
+            open={open}
+            onClose={close}
+            container={container}
+            triggerRef={triggerRef}
+            title={String(values.title)}
+            size={values.size as Size}
+            showClose={values.showClose === true}
+            footer={
+              <Button size="sm" data-stage-target="close" onClick={close}>
+                확인
+              </Button>
+            }
+            footerAlign={values.footerAlign as Align}
+          >
+            {BODY}
+          </Modal>
+        </>
+      )}
+    </Stage>
+  );
+}
+
+export function ModalPage() {
+  const [values, setValues] = useState<Values>(INITIAL);
+
+  return (
     <DetailLayout
       name="Modal"
       lead={LEAD}
-      stage={
-        // 함수형 children이 넘기는 상자(container)에 그리면 모달이 무대 안에 갇힌다
-        <Stage label="Modal 시연" script={SCRIPT} onPause={close}>
-          {(container) => (
-            <>
-              <Button
-                ref={triggerRef}
-                data-stage-target="trigger"
-                size="sm"
-                onClick={() => setOpen(true)}
-              >
-                모달 열기
-              </Button>
-              <Modal
-                open={open}
-                onClose={close}
-                container={container}
-                triggerRef={triggerRef}
-                title={String(values.title)}
-                size={values.size as Size}
-                showClose={values.showClose === true}
-                footer={
-                  <Button size="sm" data-stage-target="close" onClick={close}>
-                    확인
-                  </Button>
-                }
-                footerAlign={values.footerAlign as Align}
-              >
-                {BODY}
-              </Modal>
-            </>
-          )}
-        </Stage>
-      }
+      stage={<ModalDemo values={values} />}
       customize={
         <Customize controls={CONTROLS} values={values} onChange={setValues} />
       }
