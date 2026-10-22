@@ -53,10 +53,8 @@ export function IntroductionPage() {
 
       <div className={styles.wide}>
         <div className={wall.frame}>
-          <div className={cx(wall.frameInner, styles.showcase)}>
-            <div className={styles.fill}>
-              <ComponentShowcase />
-            </div>
+          <div className={styles.fill}>
+            <ComponentShowcase />
           </div>
         </div>
 

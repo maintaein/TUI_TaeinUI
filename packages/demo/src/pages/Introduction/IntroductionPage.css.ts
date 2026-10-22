@@ -74,13 +74,9 @@ export const installDim = style({ color: MUTED });
 
 export const wide = style({ maxWidth: '1200px', margin: '0 auto' });
 
-export const showcase = style({
-  padding: `${spacing[10]} ${spacing[4]}`,
-  '@media': { [MOBILE]: { padding: `${spacing[5]} ${spacing[2]}` } },
-});
-
-// 가운데 정렬 격자 안에서 쇼케이스가 제 폭(44rem)까지 펴지게 한다
+// 쇼케이스의 흰 무대가 회색 액자를 가장자리까지 채운다(쇼케이스는 제 폭을 44rem으로 두므로 풀어 준다)
 export const fill = style({ width: '100%' });
+globalStyle(`${fill} > section`, { maxWidth: 'none' });
 
 export const more = style({
   display: 'flex',
