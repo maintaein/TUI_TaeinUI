@@ -9,7 +9,7 @@ test.describe('페이지 네비게이션', () => {
   test('시작하기 페이지로 이동한다', async ({ page }) => {
     await page.goto('/getting-started');
     await expect(page.getByRole('heading', { level: 1 })).toContainText(
-      '시작하기'
+      '설치부터 첫 화면까지'
     );
   });
 

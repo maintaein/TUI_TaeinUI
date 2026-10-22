@@ -247,15 +247,6 @@ export const categoryLabels: Record<ComponentInfo['category'], string> = {
   data: '데이터 표시',
 };
 
-export const categoryColors: Record<ComponentInfo['category'], string> = {
-  form: '#2563eb', // Primary Blue
-  button: '#10b981', // Success Green
-  feedback: '#f59e0b', // Warning Amber
-  overlay: '#8b5cf6', // Purple
-  layout: '#06b6d4', // Cyan
-  data: '#ec4899', // Pink
-};
-
 /** 번호(계열 순서대로 이어서 01부터)를 붙여 계열별로 묶은 목록. 사이드바와 상세 페이지 머리가 이것 하나를 쓴다 */
 let count = 0;
 export const numberedGroups = Object.entries(categoryLabels).map(
