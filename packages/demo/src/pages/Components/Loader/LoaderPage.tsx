@@ -1,660 +1,369 @@
-import { Card, List, ListItem } from '@taein-ui/core';
-import { LivePreview } from '../../../components/LivePreview';
+import { useEffect, useRef, useState, type ComponentProps } from 'react';
+import { Button, Loader } from '@taein-ui/core';
 import { CodeBlock } from '../../../components/CodeBlock';
-import { PropsTable } from '../../../components/PropsTable';
-import type { PropDefinition } from '../../../components/PropsTable/PropsTable';
-import { AccessibilitySection } from '../../../components/AccessibilitySection';
-import * as styles from './LoaderPage.css';
+import {
+  Customize,
+  codeOf,
+  type Control,
+  type Values,
+} from '../../../components/Customize';
+import { DetailLayout, Topic, Topics } from '../../../components/DetailLayout';
+import * as t from '../../../components/DocText';
+import type { PropDefinition } from '../../../components/PropsTable';
+import { Stage, type Act } from '../../../components/Stage';
 
-export function LoaderPage() {
-  const propsData: PropDefinition[] = [
-    {
-      name: 'type',
-      type: "'orbit' | 'spinner' | 'dots' | 'bar' | 'wave' | 'inchworm' | 'fuse'",
-      default: "'orbit'",
-      description:
-        '로더 타입 (점 궤도, 스피너, 점이 솟는 버블, 프로그레스 바, 물결 막대, 자벌레, 진행률 도화선)',
-    },
-    {
-      name: 'status',
-      type: "'loading' | 'done' | 'error'",
-      default: "'loading'",
-      description:
-        'orbit 전용 완료 표식. done이면 점 여덟 개가 체크로, error면 X로 모입니다. 다른 type에 주면 타입 오류입니다.',
-    },
-    {
-      name: 'value',
-      type: 'number',
-      description:
-        'fuse 전용 진행률 (0~100, 범위 밖은 자릅니다). type="fuse"일 때 필수이고, 다른 type에 주면 타입 오류입니다.',
-    },
-    {
-      name: 'size',
-      type: "'sm' | 'md' | 'lg' | 'xl'",
-      default: "'md'",
-      description: '로더 크기',
-    },
-    {
-      name: 'color',
-      type: "'primary' | 'secondary' | 'white' | string",
-      default: "'primary'",
-      description:
-        '로더 색상. preset 또는 임의의 CSS 색상값 (예: "#8b5cf6", "currentColor")',
-    },
-    {
-      name: 'label',
-      type: 'string',
-      description:
-        '로더 하단에 표시할 텍스트 라벨. 글자가 바뀌면 옛 글자는 흐려지며 사라지고 새 글자가 흐림에서 또렷하게 나타납니다.',
-    },
-    {
-      name: 'fullScreen',
-      type: 'boolean',
-      default: 'false',
-      description: '전체 화면 로더 (fixed 포지션, 반투명 배경)',
-    },
-    {
-      name: 'overlay',
-      type: 'boolean',
-      default: 'false',
-      description: '오버레이 로더 (absolute 포지션, 부모 요소 위에 겹침)',
-    },
-    {
-      name: 'aria-label',
-      type: 'string',
-      description:
-        '접근성 레이블 (기본값: label, 없으면 orbit은 status에 따라 "로딩 중" / "완료" / "실패", fuse는 "진행률", 나머지는 "로딩 중")',
-    },
-    {
-      name: 'className',
-      type: 'string',
-      description: '추가 CSS 클래스',
-    },
-  ];
+const LEAD =
+  '요청이 끝나기를 기다리는 동안 일이 진행 중임을 보입니다. 점 궤도는 끝나면 체크나 X로 모여 결과까지 알립니다.';
 
-  return (
-    <article className={styles.container}>
-      {/* Header */}
-      <header className={styles.header}>
-        <h1 className={styles.title}>Loader</h1>
-        <p className={styles.description}>
-          Loader 컴포넌트는 페이지 전체 또는 특정 영역이 로딩 중일 때
-          사용합니다. 오버레이, 라벨 등을 함께 표시할 수 있습니다.
-        </p>
-      </header>
+const CONTROLS: Control[] = [
+  {
+    prop: 'type',
+    kind: 'choice',
+    options: ['orbit', 'spinner', 'dots', 'bar', 'wave', 'inchworm', 'fuse'],
+  },
+  { prop: 'size', kind: 'choice', options: ['sm', 'md', 'lg', 'xl'] },
+  { prop: 'color', kind: 'choice', options: ['primary', 'secondary'] },
+];
 
-      {/* 저수준·고수준 사용 */}
-      <section className={styles.section}>
-        <div className={styles.sectionHeader}>
-          <h2 className={styles.sectionTitle}>저수준으로도, 고수준으로도</h2>
-          <p className={styles.sectionDescription}>
-            하나의 Loader가 type과 color로 두 가지 쓰임을 모두 덮습니다. 목적에
-            맞게 props를 고르세요.
-          </p>
-        </div>
+const INITIAL: Values = { type: 'orbit', size: 'xl', color: 'primary' };
 
-        <div className={styles.practicesGrid}>
-          <Card>
-            <Card.Body padding="lg">
-              <div className={styles.practiceHeader}>
-                <h3 className={styles.practiceTitle}>
-                  저수준 (인라인 인디케이터)
-                </h3>
-              </div>
-              <List spacing="sm" className={styles.practiceList}>
-                <ListItem>
-                  type="orbit", "spinner", "dots"만 단독으로 렌더링
-                </ListItem>
-                <ListItem>
-                  color에 CSS 색상 문자열을 직접 지정 (예: "#8b5cf6",
-                  "currentColor")
-                </ListItem>
-                <ListItem>
-                  텍스트, 버튼 옆에 자연스럽게 배치되는 작은 크기
-                </ListItem>
-                <ListItem>
-                  label, overlay, fullScreen을 생략하면 껍데기 없음
-                </ListItem>
-                <ListItem>커스텀 로딩 UI를 직접 조합할 때 사용</ListItem>
-              </List>
-            </Card.Body>
-          </Card>
+const DEFAULTS: Values = { type: 'orbit', size: 'md', color: 'primary' };
 
-          <Card>
-            <Card.Body padding="lg">
-              <div className={styles.practiceHeader}>
-                <h3 className={styles.practiceTitle}>
-                  고수준 (앱 수준 로딩 UI)
-                </h3>
-              </div>
-              <List spacing="sm" className={styles.practiceList}>
-                <ListItem>
-                  디자인 토큰 기반 색상 프리셋 (primary / secondary / white)
-                </ListItem>
-                <ListItem>
-                  label, overlay, fullScreen 등 앱 수준 기능 내장
-                </ListItem>
-                <ListItem>bar 타입 (프로그레스 바) 지원</ListItem>
-                <ListItem>빠르게 로딩 UI를 완성하고 싶을 때 사용</ListItem>
-              </List>
-            </Card.Body>
-          </Card>
-        </div>
-
-        <div className={styles.example} style={{ marginTop: '1.5rem' }}>
-          <h3 className={styles.exampleTitle}>언제 어떤 props를 쓸까?</h3>
-          <CodeBlock
-            language="tsx"
-            code={`// 1. 간단한 로딩 UI → label, overlay, fullScreen
-<Loader label="불러오는 중..." />
-<Loader overlay />
-<Loader fullScreen />
-
-// 2. 커스텀 로딩 UI를 직접 만들 때 → type, size, color만 지정
-<div className={myCustomOverlay}>
-  <Loader size="xl" color="#8b5cf6" />
-  <p>커스텀 레이아웃의 로딩 화면</p>
-</div>
-
-// 3. 브랜드 색상이 아닌 임의의 색상 → color에 CSS 색상 문자열
-<Loader color="#ea580c" />`}
-          />
-        </div>
-      </section>
-
-      {/* Quick Reference */}
-      <section className={styles.quickReference}>
-        <Card className={styles.quickRefCard}>
-          <Card.Body padding="md">
-            <h3 className={styles.quickRefTitle}>Import</h3>
-            <CodeBlock
-              language="typescript"
-              code={`import { Loader } from '@taein-ui/core';`}
-            />
-          </Card.Body>
-        </Card>
-        <Card className={styles.quickRefCard}>
-          <Card.Body padding="md">
-            <h3 className={styles.quickRefTitle}>Orbit</h3>
-            <CodeBlock language="tsx" code={`<Loader size="md" />`} />
-          </Card.Body>
-        </Card>
-        <Card className={styles.quickRefCard}>
-          <Card.Body padding="md">
-            <h3 className={styles.quickRefTitle}>With Label</h3>
-            <CodeBlock
-              language="tsx"
-              code={`<Loader label="불러오는 중..." />`}
-            />
-          </Card.Body>
-        </Card>
-      </section>
-
-      {/* Types */}
-      <section className={styles.section}>
-        <div className={styles.sectionHeader}>
-          <h2 className={styles.sectionTitle}>Types</h2>
-          <p className={styles.sectionDescription}>
-            일곱 가지 로더 타입을 제공합니다. type을 주지 않으면 점
-            궤도(orbit)입니다.
-          </p>
-        </div>
-
-        <div className={styles.example}>
-          <h3 className={styles.exampleTitle}>Orbit</h3>
-          <LivePreview
-            title="점 궤도 (기본)"
-            description="제자리에 있는 점 여덟 개의 밝기가 시계 방향으로 차례로 지나가서 점선 고리가 도는 것처럼 보입니다. type을 주지 않으면 이 모습입니다."
-            editable
-            code={`<div style={{ display: 'flex', gap: '2rem', alignItems: 'center' }}>
-  <Loader size="sm" />
-  <Loader size="md" />
-  <Loader size="lg" />
-  <Loader size="xl" />
-</div>`}
-          />
-        </div>
-
-        <div className={styles.example}>
-          <h3 className={styles.exampleTitle}>Spinner</h3>
-          <LivePreview
-            title="스피너"
-            description='회전하는 원형 스피너입니다. 예전 기본 모습이며 type="spinner"로 고릅니다.'
-            editable
-            code={`<div style={{ display: 'flex', gap: '2rem', alignItems: 'center' }}>
-  <Loader type="spinner" size="sm" />
-  <Loader type="spinner" size="md" />
-  <Loader type="spinner" size="lg" />
-  <Loader type="spinner" size="xl" />
-</div>`}
-          />
-        </div>
-
-        <div className={styles.example}>
-          <h3 className={styles.exampleTitle}>Dots</h3>
-          <LivePreview
-            title="점 애니메이션"
-            description="세 개의 점이 차례로 살짝 움츠렸다가 말랑하게 솟았다 내려앉는 버블입니다. 채팅이나 타이핑 인디케이터에 적합합니다."
-            editable
-            code={`<div style={{ display: 'flex', gap: '2rem', alignItems: 'center' }}>
-  <Loader type="dots" size="sm" />
-  <Loader type="dots" size="md" />
-  <Loader type="dots" size="lg" />
-  <Loader type="dots" size="xl" />
-</div>`}
-          />
-        </div>
-
-        <div className={styles.example}>
-          <h3 className={styles.exampleTitle}>Bar</h3>
-          <LivePreview
-            title="프로그레스 바"
-            description="좌우로 움직이는 프로그레스 바입니다. 페이지 상단이나 섹션 로딩에 적합합니다."
-            editable
-            code={`<div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-  <Loader type="bar" size="sm" />
-  <Loader type="bar" size="md" />
-  <Loader type="bar" size="lg" />
-  <Loader type="bar" size="xl" />
-</div>`}
-          />
-        </div>
-
-        <div className={styles.example}>
-          <h3 className={styles.exampleTitle}>Wave</h3>
-          <LivePreview
-            title="물결 막대"
-            description="가는 막대 한 줄 위를 보이지 않는 머리가 왼쪽에서 오른쪽으로 지나가고, 머리가 닿는 막대가 솟았다 가라앉습니다. 앞은 빨리 솟고 뒤는 천천히 가라앉습니다. 막대 간격은 8px로 고정이고 개수는 폭에 따라 정해집니다."
-            editable
-            code={`<div style={{ display: 'flex', gap: '2rem', alignItems: 'center' }}>
-  <Loader type="wave" size="sm" />
-  <Loader type="wave" size="md" />
-  <Loader type="wave" size="lg" />
-  <Loader type="wave" size="xl" />
-</div>`}
-          />
-        </div>
-
-        <div className={styles.example}>
-          <h3 className={styles.exampleTitle}>Inchworm</h3>
-          <LivePreview
-            title="자벌레"
-            description="bar와 같은 트랙 안에서 알약이 앞끝을 먼저 뻗고 뒤끝을 끌어와 3px 지나쳤다 앉는 걸음을 되풀이하며 왼쪽에서 오른쪽으로 기어갑니다. 한 걸음씩 나아간다는 뜻입니다."
-            editable
-            code={`<div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-  <Loader type="inchworm" size="sm" />
-  <Loader type="inchworm" size="md" />
-  <Loader type="inchworm" size="lg" />
-  <Loader type="inchworm" size="xl" />
-</div>`}
-          />
-        </div>
-
-        <div className={styles.example}>
-          <h3 className={styles.exampleTitle}>Status</h3>
-          <LivePreview
-            title="완료 표식"
-            description="orbit에 status를 주면 돌던 점 여덟 개가 그 자리에서 체크(done) 또는 X(error)로 미끄러져 모입니다. 같은 점들이 모양을 바꾸는 것이라 loading으로 돌아가면 같은 길로 원 위에 돌아갑니다. 이동 중에 상태가 바뀌어도 지금 위치에서 이어집니다. label도 같이 바꾸면 흐림으로 갈아끼워집니다."
-            editable
-            code={`const [status, setStatus] = useState('loading');
-const labels = { loading: '저장 중...', done: '저장했습니다', error: '저장하지 못했습니다' };
-
-<div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', alignItems: 'center' }}>
-  <div style={{ display: 'flex', gap: '0.5rem' }}>
-    <Button size="sm" variant="light" onClick={() => setStatus('loading')}>loading</Button>
-    <Button size="sm" variant="light" onClick={() => setStatus('done')}>done</Button>
-    <Button size="sm" variant="light" onClick={() => setStatus('error')}>error</Button>
-  </div>
-  <Loader size="xl" status={status} label={labels[status]} />
-</div>`}
-          />
-        </div>
-
-        <div className={styles.example}>
-          <h3 className={styles.exampleTitle}>Fuse</h3>
-          <LivePreview
-            title="도화선"
-            description="진행률(value, 0~100)을 받는 막대입니다. 결정된 진행이 얼마나 왔는지 한 방향(왼쪽에서 오른쪽)으로 채우고, 채운 끝에 붙은 불똥이 고르지 않게 깜빡이며 타들어 갑니다. 100이 되면 불똥이 사라집니다."
-            editable
-            code={`const [value, setValue] = useState(30);
-
-<div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', alignItems: 'flex-start' }}>
-  <div style={{ display: 'flex', gap: '0.5rem' }}>
-    <Button size="sm" variant="light" onClick={() => setValue(Math.max(0, value - 20))}>-20</Button>
-    <Button size="sm" variant="light" onClick={() => setValue(Math.min(100, value + 20))}>+20</Button>
-    <Button size="sm" variant="light" onClick={() => setValue(0)}>0</Button>
-  </div>
-  <Loader type="fuse" size="lg" value={value} label={value + '%'} />
-</div>`}
-          />
-        </div>
-      </section>
-
-      {/* Colors */}
-      <section className={styles.section}>
-        <div className={styles.sectionHeader}>
-          <h2 className={styles.sectionTitle}>Colors</h2>
-          <p className={styles.sectionDescription}>
-            로더 색상을 지정합니다. white는 어두운 배경에서 사용합니다.
-          </p>
-        </div>
-
-        <div className={styles.example}>
-          <h3 className={styles.exampleTitle}>Color Variants</h3>
-          <LivePreview
-            title="색상 변형"
-            description="primary(브랜드 색상), secondary(회색), white(흰색) 세 가지 색상을 제공합니다."
-            editable
-            code={`<div style={{ display: 'flex', gap: '2rem', alignItems: 'center' }}>
-  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem' }}>
-    <Loader color="primary" size="lg" />
-    <span style={{ fontSize: '0.75rem', color: '#6b7280' }}>primary</span>
-  </div>
-  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem' }}>
-    <Loader color="secondary" size="lg" />
-    <span style={{ fontSize: '0.75rem', color: '#6b7280' }}>secondary</span>
-  </div>
-  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem', backgroundColor: '#1f2937', padding: '1rem', borderRadius: '0.5rem' }}>
-    <Loader color="white" size="lg" />
-    <span style={{ fontSize: '0.75rem', color: '#9ca3af' }}>white</span>
-  </div>
-</div>`}
-          />
-        </div>
-
-        <div className={styles.example}>
-          <h3 className={styles.exampleTitle}>Colors with Types</h3>
-          <LivePreview
-            title="타입별 색상"
-            description="모든 타입에 색상을 적용할 수 있습니다."
-            editable
-            code={`<div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-  <div style={{ display: 'flex', gap: '2rem', alignItems: 'center' }}>
-    <span style={{ width: '80px', fontSize: '0.75rem', color: '#6b7280' }}>Spinner</span>
-    <Loader type="spinner" color="primary" />
-    <Loader type="spinner" color="secondary" />
-  </div>
-  <div style={{ display: 'flex', gap: '2rem', alignItems: 'center' }}>
-    <span style={{ width: '80px', fontSize: '0.75rem', color: '#6b7280' }}>Dots</span>
-    <Loader type="dots" color="primary" />
-    <Loader type="dots" color="secondary" />
-  </div>
-  <div style={{ display: 'flex', gap: '2rem', alignItems: 'center' }}>
-    <span style={{ width: '80px', fontSize: '0.75rem', color: '#6b7280' }}>Bar</span>
-    <Loader type="bar" color="primary" size="sm" />
-  </div>
-  <div style={{ display: 'flex', gap: '2rem', alignItems: 'center' }}>
-    <span style={{ width: '80px', fontSize: '0.75rem', color: '#6b7280' }}>Bar</span>
-    <Loader type="bar" color="secondary" size="sm" />
-  </div>
-</div>`}
-          />
-        </div>
-
-        <div className={styles.example}>
-          <h3 className={styles.exampleTitle}>Custom Color</h3>
-          <LivePreview
-            title="커스텀 색상"
-            description="color에 CSS 색상 문자열을 넘기면 orbit, spinner, dots 모두 그 색으로 그려집니다. 어두운 배경에서는 밝은 색을 지정하세요."
-            editable
-            code={`<div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-  <div style={{ display: 'flex', gap: '2rem', alignItems: 'center' }}>
-    <Loader color="#8b5cf6" />
-    <Loader color="#059669" />
-    <Loader color="#ea580c" />
-    <Loader color="#dc2626" />
-    <Loader color="#0ea5e9" />
-  </div>
-  <div style={{ display: 'flex', gap: '2rem', alignItems: 'center' }}>
-    <Loader type="dots" color="#8b5cf6" />
-    <Loader type="dots" color="#059669" />
-    <Loader type="dots" color="#ea580c" />
-    <Loader type="dots" color="#dc2626" />
-    <Loader type="dots" color="#0ea5e9" />
-  </div>
-  <div style={{ display: 'flex', gap: '2rem', alignItems: 'center', backgroundColor: '#1f2937', padding: '2rem', borderRadius: '0.75rem' }}>
-    <Loader color="#ffffff" />
-    <Loader color="#f59e0b" />
-    <Loader type="dots" color="#ffffff" />
-    <Loader type="dots" color="#f59e0b" />
-  </div>
-</div>`}
-          />
-        </div>
-      </section>
-
-      {/* Label */}
-      <section className={styles.section}>
-        <div className={styles.sectionHeader}>
-          <h2 className={styles.sectionTitle}>Label</h2>
-          <p className={styles.sectionDescription}>
-            로더 하단에 텍스트 라벨을 표시합니다.
-          </p>
-        </div>
-
-        <div className={styles.example}>
-          <h3 className={styles.exampleTitle}>With Label</h3>
-          <LivePreview
-            title="라벨 텍스트"
-            description="label prop으로 로더 하단에 현재 상태를 안내하는 텍스트를 표시합니다."
-            editable
-            code={`<div style={{ display: 'flex', gap: '3rem', alignItems: 'flex-start' }}>
-  <Loader type="spinner" label="불러오는 중..." />
-  <Loader type="dots" label="연결 대기 중..." />
-  <Loader type="spinner" label="저장 중..." color="secondary" />
-</div>`}
-          />
-        </div>
-      </section>
-
-      {/* Overlay */}
-      <section className={styles.section}>
-        <div className={styles.sectionHeader}>
-          <h2 className={styles.sectionTitle}>Overlay</h2>
-          <p className={styles.sectionDescription}>
-            부모 요소 위에 반투명 배경과 함께 로더를 겹쳐 표시합니다.
-          </p>
-        </div>
-
-        <div className={styles.example}>
-          <h3 className={styles.exampleTitle}>Overlay Mode</h3>
-          <LivePreview
-            title="오버레이 로더"
-            description="overlay prop으로 부모 요소를 덮는 로딩 상태를 표현합니다. 부모에 position: relative가 필요합니다."
-            editable
-            code={`const [loading, setLoading] = useState(true);
-
-<div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-  <Button size="sm" variant="light" onClick={() => setLoading(!loading)}>
-    {loading ? '로딩 해제' : '로딩 시작'}
-  </Button>
-  <div style={{ position: 'relative', padding: '2rem', backgroundColor: '#f9fafb', borderRadius: '0.75rem', minHeight: '150px' }}>
-    <p style={{ fontWeight: 500, marginBottom: '0.5rem' }}>카드 콘텐츠</p>
-    <p style={{ fontSize: '0.875rem', color: '#6b7280' }}>이 영역 위에 오버레이 로더가 표시됩니다.</p>
-    {loading && <Loader overlay label="데이터 로딩 중..." />}
-  </div>
-</div>`}
-          />
-        </div>
-      </section>
-
-      {/* Combination */}
-      <section className={styles.section}>
-        <div className={styles.sectionHeader}>
-          <h2 className={styles.sectionTitle}>Combinations</h2>
-          <p className={styles.sectionDescription}>
-            실제 사용 맥락에 맞는 조합 예제입니다.
-          </p>
-        </div>
-
-        <div className={styles.example}>
-          <h3 className={styles.exampleTitle}>Loading States</h3>
-          <LivePreview
-            title="로딩 상태 시뮬레이션"
-            description="버튼 클릭으로 로딩 상태를 토글하여 실제 사용 패턴을 시뮬레이션합니다."
-            editable
-            code={`const [state, setState] = useState('idle');
-const handleLoad = () => {
-  setState('loading');
-  setTimeout(() => setState('done'), 2000);
+// status는 orbit만, value는 fuse만 받는다. 코드에는 그 type일 때만 나온다
+const NOTATION = {
+  status: { expr: 'status' },
+  value: { expr: 'progress' },
 };
 
-<div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', alignItems: 'flex-start' }}>
-  <Button size="sm" onClick={handleLoad} disabled={state === 'loading'}>
-    {state === 'loading' ? '로딩 중...' : '데이터 불러오기'}
-  </Button>
-  {state === 'loading' && <Loader type="dots" label="데이터를 가져오는 중..." />}
-  {state === 'done' && (
-    <div style={{ padding: '1rem', backgroundColor: '#f0fdf4', borderRadius: '0.5rem', borderLeft: '3px solid #00C73C' }}>
-      <span style={{ color: '#059669', fontWeight: 500 }}>데이터를 성공적으로 불러왔습니다!</span>
-    </div>
-  )}
-</div>`}
-          />
-        </div>
+type Status = 'loading' | 'done' | 'error';
 
-        <div className={styles.example}>
-          <h3 className={styles.exampleTitle}>Inline Loader</h3>
-          <LivePreview
-            title="인라인 로더"
-            description="텍스트와 함께 인라인으로 배치하는 패턴입니다."
-            editable
-            code={`<div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-    <Loader type="spinner" size="sm" />
-    <span style={{ fontSize: '0.875rem', color: '#6b7280' }}>메시지를 전송하는 중...</span>
-  </div>
-  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-    <Loader type="dots" size="sm" />
-    <span style={{ fontSize: '0.875rem', color: '#6b7280' }}>상대방이 입력 중</span>
-  </div>
-  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-    <Loader type="spinner" size="sm" color="secondary" />
-    <span style={{ fontSize: '0.875rem', color: '#6b7280' }}>업로드 준비 중...</span>
-  </div>
-</div>`}
-          />
-        </div>
-      </section>
+const CAPTION: Record<Status, string> = {
+  loading: '저장 중...',
+  done: '저장했습니다',
+  error: '저장하지 못했습니다',
+};
 
-      {/* Props API */}
-      <section className={styles.section}>
-        <div className={styles.sectionHeader}>
-          <h2 className={styles.sectionTitle}>Props API</h2>
-          <p className={styles.sectionDescription}>
-            Loader 컴포넌트의 모든 Props와 타입 정보입니다. HTML div 속성도 모두
-            사용 가능합니다.
-          </p>
-        </div>
-        <div className={styles.propsTableWrapper}>
-          <PropsTable props={propsData} />
-        </div>
-      </section>
+// 저장이 끝나기까지(ms). 진행률은 이 시간 동안 0에서 100까지 오른다
+const STEP_MS = 160;
+const STEPS = 10;
+const RUN_MS = STEP_MS * STEPS;
 
-      {/* Accessibility */}
-      <AccessibilitySection
-        componentName="Loader"
-        intro="Loader 컴포넌트는 다음과 같은 접근성 기능을 기본 제공합니다."
-        features={[
-          {
-            attribute: 'role="status"',
-            effect: '로더가 상태 정보임을 전달합니다.',
-            description:
-              'role="status"로 설정되어 스크린 리더가 로딩 상태임을 인식합니다.',
-          },
-          {
-            attribute: '감싸는 영역의 aria-busy',
-            effect: '이 영역이 로딩 중임을 알립니다.',
-            description:
-              'Loader의 status 요소에는 aria-busy를 달지 않습니다. busy인 살아 있는 영역은 갱신 낭독이 미뤄질 수 있어 메시지가 안 읽힐 수 있기 때문입니다. 영역이 로딩 중임은 Loader를 감싸는 요소에 aria-busy와 이름을 주세요(예: <section aria-busy="true" aria-label="목록 로딩 중"><Loader /></section>, 로딩이 끝나면 aria-busy를 거둡니다. Skeleton과 같은 안내). Loader에 직접 넘긴 aria-busy는 어디에도 닿지 않습니다.',
-          },
-          {
-            attribute: 'role="progressbar"',
-            effect: 'fuse 타입의 진행률을 전달합니다.',
-            description:
-              'aria-valuemin 0, aria-valuemax 100, aria-valuenow(자른 value)가 함께 설정됩니다.',
-          },
-          {
-            attribute: 'aria-live="polite"',
-            effect: '상태 변화를 자동으로 읽습니다.',
-            description:
-              'fuse를 뺀 모든 타입의 상태 영역이 aria-live="polite"라, 숨은 메시지 글자가 바뀌면(예: orbit의 status가 완료·실패로) 스크린 리더가 읽습니다.',
-          },
-          {
-            attribute: 'aria-label',
-            effect: '로더의 용도를 설명합니다.',
-            description:
-              'label prop 또는 aria-label로 "로딩 중" 등 기본 레이블이 제공됩니다. label이 접근 이름과 같으면 보이는 라벨은 aria-hidden이 되어 한 번만 읽힙니다(상태 영역은 숨은 메시지가, fuse는 progressbar 이름이 읽습니다). aria-label이 label과 다르면 둘 다 읽힙니다.',
-          },
-        ]}
-        additionalGuidance={[
-          {
-            title: '맥락에 맞는 라벨',
-            description: '어떤 콘텐츠를 로딩하는지 구체적으로 안내하세요.',
-            examples: [
-              {
-                code: `// Good
-<Loader label="프로필 정보를 불러오는 중..." />
+// 커서가 저장 단추를 누르면 로더가 돌다가 끝나는 순간 결과로 바뀐다(점들이 체크나 X로 모인다).
+// 한 바퀴는 성공으로, 다음 바퀴는 실패로 끝난다. 결과가 보이는 동안 머문 뒤 돌아온다
+const SCRIPT = (act: Act) => {
+  act.move('save');
+  act.hover('save');
+  act.wait(0.5);
+  act.press('save');
+  act.leave('save');
+  act.wait(RUN_MS / 1000 + 2);
+  act.home();
+  act.wait(0.6);
+};
 
-// Bad - 맥락 부족
-<Loader />`,
-                explanation:
-                  'label이나 aria-label로 구체적인 맥락을 전달하면 스크린 리더 사용자의 이해도가 높아집니다.',
-              },
-            ],
-          },
-        ]}
-      />
+const PROPS: PropDefinition[] = [
+  {
+    name: 'type',
+    type: "'orbit' | 'spinner' | 'dots' | 'bar' | 'wave' | 'inchworm' | 'fuse'",
+    default: "'orbit'",
+    description:
+      '모양. 점 궤도, 스피너, 점 세 개, 막대, 물결 막대, 자벌레, 진행률 도화선',
+  },
+  {
+    name: 'status',
+    type: "'loading' | 'done' | 'error'",
+    default: "'loading'",
+    description:
+      'orbit 전용 결과 표식. done이면 점 여덟 개가 체크로, error면 X로 모인다. 다른 type에 주면 타입 오류',
+  },
+  {
+    name: 'value',
+    type: 'number',
+    description:
+      'fuse 전용 진행률(0~100, 범위 밖은 자른다). fuse에서는 필수이고 다른 type에 주면 타입 오류',
+  },
+  {
+    name: 'size',
+    type: "'sm' | 'md' | 'lg' | 'xl'",
+    default: "'md'",
+    description: '크기',
+  },
+  {
+    name: 'color',
+    type: "'primary' | 'secondary' | 'white' | string",
+    default: "'primary'",
+    description:
+      '색. 정해진 셋 중 하나나 임의의 CSS 색(예: "#8b5cf6", "currentColor")',
+  },
+  {
+    name: 'label',
+    type: 'string',
+    description:
+      '로더 아래에 보일 글자. 글자가 바뀌면 옛 글자가 흐려지며 사라지고 새 글자가 흐림에서 또렷해진다',
+  },
+  {
+    name: 'overlay',
+    type: 'boolean',
+    default: 'false',
+    description:
+      '부모 위에 반투명 배경과 함께 겹친다(absolute). 부모에 position: relative가 필요하다',
+  },
+  {
+    name: 'fullScreen',
+    type: 'boolean',
+    default: 'false',
+    description: '화면 전체를 반투명 배경으로 덮고 가운데에 놓는다(fixed)',
+  },
+  {
+    name: 'aria-label',
+    type: 'string',
+    description:
+      '스크린 리더가 읽을 이름. 없으면 label, 그것도 없으면 orbit은 status에 따라 "로딩 중", "완료", "실패", fuse는 "진행률", 나머지는 "로딩 중"',
+  },
+];
 
-      {/* Best Practices */}
-      <section className={styles.section}>
-        <div className={styles.sectionHeader}>
-          <h2 className={styles.sectionTitle}>Best Practices</h2>
-          <p className={styles.sectionDescription}>
-            Loader를 효과적으로 사용하기 위한 권장사항입니다.
-          </p>
-        </div>
+const STATUS = `const [status, setStatus] = useState<'loading' | 'done' | 'error'>('loading');
 
-        <div className={styles.practicesGrid}>
-          <Card>
-            <Card.Body padding="lg">
-              <div className={styles.practiceHeader}>
-                <span className={styles.practiceIcon}>&#10003;</span>
-                <h3 className={styles.practiceTitle}>Do</h3>
-              </div>
-              <List spacing="sm" className={styles.practiceList}>
-                <ListItem>200ms 이상 걸리는 작업에만 로더 표시</ListItem>
-                <ListItem>무엇을 로딩하는지 label로 안내</ListItem>
-                <ListItem>
-                  부분 로딩에는 overlay, 전체 로딩에는 fullScreen 사용
-                </ListItem>
-                <ListItem>인라인 로더는 sm 크기 사용</ListItem>
-                <ListItem>어두운 배경에서는 white 색상 사용</ListItem>
-              </List>
-            </Card.Body>
-          </Card>
+save()
+  .then(() => setStatus('done'))
+  .catch(() => setStatus('error'));
 
-          <Card>
-            <Card.Body padding="lg">
-              <div className={styles.practiceHeader}>
-                <span className={styles.practiceIconError}>&#10007;</span>
-                <h3 className={styles.practiceTitle}>Don't</h3>
-              </div>
-              <List spacing="sm" className={styles.practiceList}>
-                <ListItem>즉시 완료되는 작업에 로더 표시하지 않기</ListItem>
-                <ListItem>
-                  한 화면에 여러 개의 fullScreen 로더 사용하지 않기
-                </ListItem>
-                <ListItem>
-                  로딩 중 사용자 인터랙션을 막지 않는 곳에 overlay 남용하지 않기
-                </ListItem>
-                <ListItem>라벨 없이 장시간 로딩 상태를 유지하지 않기</ListItem>
-                <ListItem>로딩 완료 후 로더를 방치하지 않기</ListItem>
-              </List>
-            </Card.Body>
-          </Card>
-        </div>
-      </section>
-    </article>
+<Loader size="xl" status={status} />`;
+
+const PROGRESS = `<Loader type="fuse" value={progress} label={\`\${progress}%\`} />`;
+
+const COVER = `{/* 한 영역만 덮기: 부모에 position: relative */}
+<div style={{ position: 'relative' }}>
+  {content}
+  {loading && <Loader overlay label="불러오는 중..." />}
+</div>
+
+{/* 화면 전체 */}
+{loading && <Loader fullScreen />}`;
+
+const COLOR = `<Loader color="secondary" />
+<Loader color="#8b5cf6" />
+<Loader color="white" />   {/* 어두운 배경에서 */}`;
+
+function Usage() {
+  return (
+    <Topics>
+      <Topic title="언제 쓰나">
+        <p className={t.body}>
+          데이터를 불러오거나 저장하는 동안처럼 곧 끝날 일을 기다리게 할 때
+          씁니다. 끝나는 시간을 알면 <code>fuse</code>로 진행률을 보이고, 모르면
+          나머지 모양 중 하나를 고릅니다. 콘텐츠가 들어올 자리의 윤곽을 미리
+          보이려면 <code>Skeleton</code>이 맞습니다.
+        </p>
+      </Topic>
+      <Topic title="모양 고르기">
+        <ul className={`${t.list} ${t.body}`}>
+          <li>
+            <code>orbit</code>은 기본입니다. 점 여덟 개의 밝기가 시계 방향으로
+            지나가고, 결과(<code>status</code>)를 받습니다.
+          </li>
+          <li>
+            <code>spinner</code>는 도는 원, <code>dots</code>는 점 세 개가
+            차례로 솟는 모양입니다. 버튼 옆이나 채팅의 입력 중 표시에 맞습니다.
+          </li>
+          <li>
+            <code>bar</code>와 <code>inchworm</code>은 막대입니다. 페이지 위나
+            섹션 위에 가로로 길게 놓습니다. <code>inchworm</code>은 앞끝을 뻗고
+            뒤끝을 끌어오며 걷습니다.
+          </li>
+          <li>
+            <code>wave</code>는 가는 막대 줄 위로 물결이 왼쪽에서 오른쪽으로
+            지납니다.
+          </li>
+          <li>
+            <code>fuse</code>는 진행률(<code>value</code>)을 받아 왼쪽에서
+            오른쪽으로 채웁니다.
+          </li>
+        </ul>
+      </Topic>
+      <Topic title="결과까지 알리기">
+        <p className={t.body} style={{ marginBottom: 12 }}>
+          <code>orbit</code>에 <code>status</code>를 주면 돌던 점이 그 자리에서
+          체크(<code>done</code>)나 X(<code>error</code>)로 모입니다. 같은
+          점들이 모양을 바꾸는 것이라 로더를 지우고 다른 아이콘을 띄울 필요가
+          없습니다. <code>loading</code>으로 돌아가면 다시 돕니다.
+        </p>
+        <CodeBlock code={STATUS} />
+      </Topic>
+      <Topic title="진행률">
+        <p className={t.body} style={{ marginBottom: 12 }}>
+          <code>fuse</code>는 <code>value</code>가 필수입니다. 0 미만과 100
+          초과는 잘라서 그립니다.
+        </p>
+        <CodeBlock code={PROGRESS} />
+      </Topic>
+      <Topic title="영역을 덮기">
+        <p className={t.body} style={{ marginBottom: 12 }}>
+          <code>overlay</code>는 부모 위에, <code>fullScreen</code>은 화면 전체
+          위에 반투명 배경과 함께 겹칩니다. <code>label</code>을 주면 로더
+          아래에 글자가 놓입니다.
+        </p>
+        <CodeBlock code={COVER} />
+      </Topic>
+      <Topic title="색">
+        <p className={t.body} style={{ marginBottom: 12 }}>
+          정해진 색은 <code>primary</code>, <code>secondary</code>,{' '}
+          <code>white</code>입니다. <code>white</code>는 어두운 배경에서 씁니다.
+          그 밖의 색은 CSS 색을 그대로 넘깁니다.
+        </p>
+        <CodeBlock code={COLOR} />
+      </Topic>
+    </Topics>
+  );
+}
+
+function A11y() {
+  return (
+    <ul className={`${t.list} ${t.body}`}>
+      <li>
+        <code>fuse</code>를 뺀 모양은 <code>role=&quot;status&quot;</code>와{' '}
+        <code>aria-live=&quot;polite&quot;</code>인 영역이라, 숨은 메시지가
+        바뀌면 스크린 리더가 읽습니다. orbit의 <code>status</code>가 완료나
+        실패로 바뀔 때가 그렇습니다.
+      </li>
+      <li>
+        <code>fuse</code>는 <code>role=&quot;progressbar&quot;</code>이고{' '}
+        <code>aria-valuemin</code> 0, <code>aria-valuemax</code> 100,{' '}
+        <code>aria-valuenow</code>(자른 값)가 함께 붙습니다.
+      </li>
+      <li>
+        이름은 <code>aria-label</code>, 없으면 <code>label</code>, 그것도 없으면
+        모양에 맞는 기본 이름입니다. <code>label</code>이 이름과 같으면 보이는
+        글자는 <code>aria-hidden</code>이 되어 한 번만 읽힙니다.
+      </li>
+      <li>
+        개발자가 직접 해야 합니다. Loader는 <code>aria-busy</code>를 달지
+        않습니다. 로딩 중인 영역을 알리려면 그 영역을 감싼 요소에{' '}
+        <code>aria-busy</code>를 줍니다.
+      </li>
+      <li>
+        개발자가 직접 해야 합니다. 무엇을 기다리는지 <code>label</code>이나{' '}
+        <code>aria-label</code>으로 구체적으로 적습니다. &quot;프로필을 불러오는
+        중&quot;처럼 씁니다.
+      </li>
+      <li>
+        움직임 줄이기 설정을 켠 환경에서는 결과 표식이 미끄러지지 않고 바로
+        바뀝니다.
+      </li>
+    </ul>
+  );
+}
+
+type Size = ComponentProps<typeof Loader>['size'];
+
+export function LoaderPage() {
+  const [values, setValues] = useState<Values>(INITIAL);
+  const [status, setStatus] = useState<Status>('loading');
+  const [progress, setProgress] = useState(35);
+  const [running, setRunning] = useState(false);
+  const runs = useRef(0);
+
+  // 진행률이 오르다 끝나면 홀수 번째는 성공으로, 짝수 번째는 실패로 끝난다
+  useEffect(() => {
+    if (!running) return;
+    let step = 0;
+    const id = window.setInterval(() => {
+      step += 1;
+      if (step < STEPS) {
+        setProgress((step / STEPS) * 100);
+        return;
+      }
+      window.clearInterval(id);
+      setProgress(100);
+      setStatus(runs.current % 2 === 1 ? 'done' : 'error');
+      setRunning(false);
+    }, STEP_MS);
+    return () => window.clearInterval(id);
+  }, [running]);
+
+  const save = () => {
+    runs.current += 1;
+    setStatus('loading');
+    setProgress(0);
+    setRunning(true);
+  };
+
+  const type = String(values.type);
+  const size = values.size as Size;
+  const color = String(values.color);
+  // 점 궤도와 도화선은 결과가 로더에 남고, 나머지는 끝나면 로더가 사라지고 글자만 남는다
+  const shown = type === 'orbit' || type === 'fuse' || status === 'loading';
+
+  return (
+    <DetailLayout
+      name="Loader"
+      lead={LEAD}
+      stage={
+        <Stage label="Loader 시연" script={SCRIPT}>
+          <div
+            style={{
+              display: 'grid',
+              justifyItems: 'center',
+              gap: 20,
+            }}
+          >
+            <div
+              style={{
+                display: 'grid',
+                placeItems: 'center',
+                minHeight: 112,
+                minWidth: 'min(100%, 16rem)',
+              }}
+            >
+              {shown &&
+                (type === 'fuse' ? (
+                  <Loader
+                    type="fuse"
+                    size={size}
+                    color={color}
+                    value={progress}
+                  />
+                ) : type === 'orbit' ? (
+                  <Loader size={size} color={color} status={status} />
+                ) : (
+                  <Loader
+                    type={
+                      type as 'spinner' | 'dots' | 'bar' | 'wave' | 'inchworm'
+                    }
+                    size={size}
+                    color={color}
+                  />
+                ))}
+            </div>
+            <p className={t.body}>{CAPTION[status]}</p>
+            <Button
+              data-stage-target="save"
+              size="sm"
+              variant="light"
+              disabled={running}
+              onClick={save}
+            >
+              저장
+            </Button>
+          </div>
+        </Stage>
+      }
+      customize={
+        <Customize controls={CONTROLS} values={values} onChange={setValues} />
+      }
+      code={codeOf({
+        component: 'Loader',
+        values: {
+          ...values,
+          ...(type === 'orbit' ? { status: true } : {}),
+          ...(type === 'fuse' ? { value: true } : {}),
+        },
+        defaults: DEFAULTS,
+        notation: NOTATION,
+      })}
+      props={PROPS}
+      usage={<Usage />}
+      a11y={<A11y />}
+    />
   );
 }
