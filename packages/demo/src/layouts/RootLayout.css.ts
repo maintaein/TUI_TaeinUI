@@ -32,7 +32,7 @@ export const skipToContent = style({
   selectors: {
     '&:focus': {
       top: 0,
-      outline: `3px solid ${color.border.focus}`,
+      outline: `2px solid ${color.border.focus}`,
       outlineOffset: '2px',
     },
   },

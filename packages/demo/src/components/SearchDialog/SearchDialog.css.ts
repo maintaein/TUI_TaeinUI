@@ -1,11 +1,14 @@
+import { themeContract } from '@taein-ui/core';
 import { style, globalStyle } from '@vanilla-extract/css';
+
+const { color, palette } = themeContract;
 
 // 검색 모달 안에서 입력 아래에 이어 붙는다(떠 있는 드롭다운이 아니다)
 export const dropdown = style({
   marginTop: '0.75rem',
-  backgroundColor: '#ffffff',
+  backgroundColor: color.background.default,
   borderRadius: '10px',
-  border: '1px solid #e5e7eb',
+  border: `1px solid ${color.border.default}`,
   overflow: 'hidden',
 });
 
@@ -14,7 +17,7 @@ export const resultsList = style({
   overflowY: 'auto',
   padding: '0.375rem',
   scrollbarWidth: 'thin',
-  scrollbarColor: '#d1d5db transparent',
+  scrollbarColor: `${palette.gray[400]} transparent`,
 });
 
 globalStyle(`${resultsList}::-webkit-scrollbar`, {
@@ -26,7 +29,7 @@ globalStyle(`${resultsList}::-webkit-scrollbar-track`, {
 });
 
 globalStyle(`${resultsList}::-webkit-scrollbar-thumb`, {
-  backgroundColor: '#d1d5db',
+  backgroundColor: palette.gray[400],
   borderRadius: '3px',
 });
 
@@ -35,7 +38,7 @@ export const categoryGroup = style({
     '& + &': {
       marginTop: '0.25rem',
       paddingTop: '0.25rem',
-      borderTop: '1px solid #f3f4f6',
+      borderTop: `1px solid ${color.surface.hover}`,
     },
   },
 });
@@ -46,7 +49,7 @@ export const categoryLabel = style({
   fontWeight: 600,
   textTransform: 'uppercase',
   letterSpacing: '0.05em',
-  color: '#9ca3af',
+  color: color.text.secondary,
 });
 
 export const resultItem = style({
@@ -60,15 +63,15 @@ export const resultItem = style({
   cursor: 'pointer',
   transition: 'background-color 0.1s',
   ':hover': {
-    backgroundColor: '#f3f4f6',
+    backgroundColor: color.surface.hover,
   },
 });
 
 export const resultItemSelected = style({
-  backgroundColor: '#eff6ff',
+  backgroundColor: palette.primary[50],
   selectors: {
     '&:hover': {
-      backgroundColor: '#eff6ff',
+      backgroundColor: palette.primary[50],
     },
   },
 });
@@ -83,13 +86,13 @@ export const resultHeader = style({
 export const resultTitle = style({
   fontSize: '0.875rem',
   fontWeight: 600,
-  color: '#2563eb',
+  color: color.primary.dark,
   lineHeight: 1.4,
 });
 
 export const resultDescription = style({
   fontSize: '0.8125rem',
-  color: '#6b7280',
+  color: palette.gray[700],
   lineHeight: 1.5,
   display: '-webkit-box',
   WebkitLineClamp: 2,
@@ -106,19 +109,19 @@ export const sectionsList = style({
 
 export const sectionItem = style({
   fontSize: '0.75rem',
-  color: '#4b5563',
+  color: palette.gray[700],
   lineHeight: 1.5,
   padding: '0.0625rem 0',
 });
 
 export const sectionTitle = style({
   fontWeight: 600,
-  color: '#2563eb',
+  color: color.primary.dark,
 });
 
 export const highlight = style({
-  backgroundColor: '#fef08a',
-  color: '#92400e',
+  backgroundColor: palette.warning[100],
+  color: color.text.primary,
   fontWeight: 600,
   borderRadius: '2px',
   padding: '0 1px',
@@ -127,11 +130,11 @@ export const highlight = style({
 export const emptyState = style({
   padding: '2rem 1rem',
   textAlign: 'center',
-  color: '#6b7280',
+  color: color.text.secondary,
   fontSize: '0.875rem',
 });
 
 export const emptyStateQuery = style({
   fontWeight: 600,
-  color: '#374151',
+  color: color.text.primary,
 });
