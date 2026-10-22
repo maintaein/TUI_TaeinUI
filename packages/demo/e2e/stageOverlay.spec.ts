@@ -6,7 +6,7 @@ import { test, expect, type Page } from '@playwright/test';
  * 사용자의 포커스를 빼앗는다. 그래서 무대는 시연 중 오버레이 상자를 inert로 두고 (container) 무대 안에 가둔다.
  * 사각형은 무대 안, body 스크롤은 잠기지 않고, 일시정지 단추는 늘 눌린다.
  */
-const PAGES = [{ name: 'fixture', url: '/e2e/stage-overlay' }];
+const PAGES = [{ name: 'Modal', url: '/components/modal' }];
 
 const DIALOG = '[role="dialog"]:not([inert])';
 const STAGE = '[role="region"]';

@@ -37,8 +37,9 @@ export const codeOf = ({
     return [value === true ? prop : `${prop}="${value}"`];
   });
 
-  const imports = [`import { ${component} } from '${CORE}';`];
-  const byModule = new Map<string, string[]>();
+  const imports: string[] = [];
+  // core에서 가져오는 이름은 컴포넌트와 한 줄로 합친다
+  const byModule = new Map<string, string[]>([[CORE, [component]]]);
   for (const n of used)
     if (n.import)
       byModule.set(n.import.from, [

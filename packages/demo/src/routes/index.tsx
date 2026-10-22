@@ -131,11 +131,6 @@ const CardPage = lazy(() =>
 const E2ELivePage = lazy(() =>
   import('../pages/E2E/LivePage').then((m) => ({ default: m.LivePage }))
 );
-const E2EStageOverlayPage = lazy(() =>
-  import('../pages/E2E/StageOverlayPage').then((m) => ({
-    default: m.StageOverlayPage,
-  }))
-);
 
 // ─── Suspense wrapper ──────────────────────────────────────────────
 
@@ -177,14 +172,6 @@ const router = createBrowserRouter([
     element: (
       <LazyPage>
         <E2ELivePage />
-      </LazyPage>
-    ),
-  },
-  {
-    path: '/e2e/stage-overlay',
-    element: (
-      <LazyPage>
-        <E2EStageOverlayPage />
       </LazyPage>
     ),
   },

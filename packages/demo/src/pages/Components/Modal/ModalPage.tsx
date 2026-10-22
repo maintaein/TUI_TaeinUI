@@ -1,755 +1,373 @@
-import { Card, List, ListItem } from '@taein-ui/core';
-import { LivePreview } from '../../../components/LivePreview';
+import { useRef, useState, type ComponentProps } from 'react';
+import { Button, Modal } from '@taein-ui/core';
 import { CodeBlock } from '../../../components/CodeBlock';
-import { PropsTable } from '../../../components/PropsTable';
-import type { PropDefinition } from '../../../components/PropsTable/PropsTable';
-import { AccessibilitySection } from '../../../components/AccessibilitySection';
-import * as styles from './ModalPage.css';
+import {
+  Customize,
+  codeOf,
+  type Control,
+  type Values,
+} from '../../../components/Customize';
+import { DetailLayout, Topic, Topics } from '../../../components/DetailLayout';
+import * as t from '../../../components/DocText';
+import type { PropDefinition } from '../../../components/PropsTable';
+import { Stage, type Act } from '../../../components/Stage';
 
-export function ModalPage() {
-  const modalProps: PropDefinition[] = [
-    {
-      name: 'open',
-      type: 'boolean',
-      required: true,
-      description: '모달 표시 여부',
-    },
-    {
-      name: 'onClose',
-      type: '() => void',
-      required: true,
-      description: '닫기 이벤트 핸들러 (Esc, 백드롭 클릭 시 호출)',
-    },
-    {
-      name: 'children',
-      type: 'ReactNode',
-      required: true,
-      description: 'Flat: 본문 콘텐츠 / Compound: 서브 컴포넌트',
-    },
-    {
-      name: 'size',
-      type: "'sm' | 'md' | 'lg' | 'xl' | 'full'",
-      default: "'md'",
-      description:
-        '모달 너비 (sm:400px, md:600px, lg:800px, xl:1000px, full:100vw)',
-    },
-    {
-      name: 'closeOnBackdropClick',
-      type: 'boolean',
-      default: 'true',
-      description: '백드롭 클릭 시 닫힘 여부',
-    },
-    {
-      name: 'closeOnEscape',
-      type: 'boolean',
-      default: 'true',
-      description: 'Escape 키 입력 시 닫힘 여부',
-    },
-    {
-      name: 'triggerRef',
-      type: 'RefObject<HTMLElement | null>',
-      description:
-        '안 주면 열 때 포커스된 요소에서 자란다. Safari·Firefox(macOS)는 버튼 클릭에 포커스를 주지 않아 가운데에서 열린다. 주면 모든 브라우저에서 그 요소 자리에서 자란다.',
-    },
-    {
-      name: 'title',
-      type: 'string',
-      description: 'Flat: 모달 제목. 자동으로 Header + Title 구조 생성',
-    },
-    {
-      name: 'showClose',
-      type: 'boolean',
-      default: 'false',
-      description: 'Flat: 닫기(X) 버튼 표시 (title과 함께 사용)',
-    },
-    {
-      name: 'footer',
-      type: 'ReactNode',
-      description: 'Flat: 모달 푸터 영역',
-    },
-    {
-      name: 'footerAlign',
-      type: "'left' | 'center' | 'right'",
-      default: "'left'",
-      description: 'Flat: 푸터 버튼 정렬',
-    },
-    {
-      name: 'aria-labelledby',
-      type: 'string',
-      description: '모달 제목 요소의 id (접근성)',
-    },
-    {
-      name: 'aria-describedby',
-      type: 'string',
-      description: '모달 설명 요소의 id (접근성)',
-    },
-    {
-      name: 'aria-label',
-      type: 'string',
-      description: '모달의 접근성 레이블 (aria-labelledby 대체)',
-    },
-  ];
+const LEAD =
+  '삭제 확인이나 폼 입력처럼 사용자가 답하기 전에는 뒤 화면을 쓰지 못하게 해야 할 때 화면 가운데에 띄웁니다. 누른 단추 자리에서 자라 나옵니다.';
 
-  const headerProps: PropDefinition[] = [
-    {
-      name: 'children',
-      type: 'ReactNode',
-      required: true,
-      description: '헤더 내부 콘텐츠 (주로 Modal.Title)',
-    },
-    {
-      name: 'showClose',
-      type: 'boolean',
-      default: 'false',
-      description: '닫기(X) 버튼 표시 여부. Context를 통해 onClose 자동 연결',
-    },
-  ];
+const CONTROLS: Control[] = [
+  { prop: 'title', kind: 'text', label: 'title' },
+  { prop: 'size', kind: 'choice', options: ['sm', 'md', 'lg'] },
+  { prop: 'showClose', kind: 'toggle' },
+  { prop: 'footerAlign', kind: 'choice', options: ['left', 'center', 'right'] },
+];
 
-  const titleProps: PropDefinition[] = [
-    {
-      name: 'children',
-      type: 'ReactNode',
-      required: true,
-      description: '제목 텍스트',
-    },
-    {
-      name: 'as',
-      type: "'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6'",
-      default: "'h2'",
-      description: '렌더링할 HTML 헤딩 요소',
-    },
-  ];
+const INITIAL: Values = {
+  title: '저장했습니다',
+  size: 'sm',
+  showClose: true,
+  footerAlign: 'right',
+};
 
-  const footerProps: PropDefinition[] = [
-    {
-      name: 'children',
-      type: 'ReactNode',
-      required: true,
-      description: '푸터 내부 콘텐츠 (주로 버튼)',
-    },
-    {
-      name: 'align',
-      type: "'left' | 'center' | 'right'",
-      default: "'left'",
-      description: '버튼 정렬 방향',
-    },
-  ];
+const DEFAULTS: Values = {
+  size: 'md',
+  footerAlign: 'left',
+};
 
-  return (
-    <article className={styles.container}>
-      {/* Header */}
-      <header className={styles.header}>
-        <h1 className={styles.title}>Modal</h1>
-        <p className={styles.description}>
-          Modal 컴포넌트는 사용자의 확인이 필요한 대화상자, 폼 입력, 상세 정보
-          등을 화면 중앙에 띄울 때 사용합니다.
-        </p>
-      </header>
+const BODY = '변경사항을 안전하게 보관했습니다.';
 
-      {/* Quick Reference */}
-      <section className={styles.quickReference}>
-        <Card className={styles.quickRefCard}>
-          <Card.Body padding="md">
-            <h3 className={styles.quickRefTitle}>Flat (간편)</h3>
-            <CodeBlock
-              language="tsx"
-              code={`import { Modal, Button } from '@taein-ui/core';
+const NOTATION = {
+  open: { expr: 'open' },
+  onClose: { expr: '() => setOpen(false)' },
+  triggerRef: { expr: 'triggerRef' },
+  footer: {
+    expr: '<Button onClick={() => setOpen(false)}>확인</Button>',
+    import: { name: 'Button', from: '@taein-ui/core' },
+  },
+};
 
+// 커서가 단추를 눌러 모달을 연다. 모달이 단추 자리에서 자라 나오고 잠시 머문 뒤, 커서가 확인을 눌러 닫는다
+// shortcut: 열림(0.5초)과 머무름을 합친 쉬는 시간 2초는 core 열림 길이(slower 500ms)에 맞춘 값이다, 열림이 길어지면 같이 늘린다
+const SCRIPT = (act: Act) => {
+  act.move('trigger');
+  act.hover('trigger');
+  act.wait(0.3);
+  act.press('trigger');
+  act.leave('trigger');
+  act.wait(2);
+  act.move('close');
+  act.hover('close');
+  act.wait(0.3);
+  act.press('close');
+  act.leave('close');
+  act.wait(1.2);
+  act.home();
+  act.wait(0.4);
+};
+
+const PROPS: PropDefinition[] = [
+  {
+    name: 'open',
+    type: 'boolean',
+    required: true,
+    description: '보일지 여부',
+  },
+  {
+    name: 'onClose',
+    type: '() => void',
+    required: true,
+    description:
+      '닫으라는 요청이 올 때 불린다(Esc, 배경 클릭, 닫기 단추). 여기서 open을 내린다',
+  },
+  {
+    name: 'children',
+    type: 'ReactNode',
+    required: true,
+    description: 'Flat에서는 본문, Compound에서는 하위 컴포넌트',
+  },
+  {
+    name: 'size',
+    type: "'sm' | 'md' | 'lg' | 'xl' | 'full'",
+    default: "'md'",
+    description:
+      '너비. 400, 600, 800, 1000px이고 full은 화면 너비에서 64px을 뺀다. 놓일 자리보다 넓으면 자리에 맞게 줄어든다',
+  },
+  {
+    name: 'title',
+    type: 'string',
+    description: 'Flat. 제목. 머리글(Header)과 제목(Title)을 만들어 준다',
+  },
+  {
+    name: 'showClose',
+    type: 'boolean',
+    default: 'false',
+    description: 'Flat. 머리글 오른쪽의 닫기(X) 단추. title과 함께 쓴다',
+  },
+  {
+    name: 'footer',
+    type: 'ReactNode',
+    description: 'Flat. 아래쪽 푸터 영역',
+  },
+  {
+    name: 'footerAlign',
+    type: "'left' | 'center' | 'right'",
+    default: "'left'",
+    description: 'Flat. 푸터 안 단추의 정렬',
+  },
+  {
+    name: 'triggerRef',
+    type: 'RefObject<HTMLElement | null>',
+    description:
+      '모달을 연 단추. 모달이 그 자리에서 자라 나온다. 안 주면 열 때 포커스를 가진 요소를 쓴다',
+  },
+  {
+    name: 'closeOnBackdropClick',
+    type: 'boolean',
+    default: 'true',
+    description: '배경(스크림)을 눌러 닫을지 여부',
+  },
+  {
+    name: 'closeOnEscape',
+    type: 'boolean',
+    default: 'true',
+    description: 'Esc 키로 닫을지 여부',
+  },
+  {
+    name: 'container',
+    type: 'HTMLElement | null',
+    description:
+      '모달을 그릴 DOM 위치. 안 주거나 null이면 document.body. 주면 그 안에 그려지고 body 스크롤을 잠그지 않는다',
+  },
+  {
+    name: 'aria-labelledby',
+    type: 'string',
+    description: '제목 요소의 id. 제목을 Modal 밖에 둘 때 쓴다',
+  },
+  {
+    name: 'aria-describedby',
+    type: 'string',
+    description: '설명 요소의 id',
+  },
+  {
+    name: 'aria-label',
+    type: 'string',
+    description: '눈에 보이는 제목이 없을 때의 이름',
+  },
+];
+
+const BASIC = `const [open, setOpen] = useState(false);
+const triggerRef = useRef<HTMLButtonElement>(null);
+
+<Button ref={triggerRef} onClick={() => setOpen(true)}>
+  삭제
+</Button>
 <Modal
   open={open}
   onClose={() => setOpen(false)}
-  title="알림"
-  showClose
-  footer={<Button onClick={() => setOpen(false)}>확인</Button>}
+  triggerRef={triggerRef}
+  title="항목을 삭제할까요?"
+  footer={
+    <>
+      <Button variant="light" onClick={() => setOpen(false)}>취소</Button>
+      <Button variant="danger" onClick={remove}>삭제</Button>
+    </>
+  }
   footerAlign="right"
 >
-  <p>모달 내용입니다.</p>
-</Modal>`}
-            />
-          </Card.Body>
-        </Card>
-        <Card className={styles.quickRefCard}>
-          <Card.Body padding="md">
-            <h3 className={styles.quickRefTitle}>Compound (커스텀)</h3>
-            <CodeBlock
-              language="tsx"
-              code={`import { Modal, Button } from '@taein-ui/core';
+  삭제하면 되돌릴 수 없습니다.
+</Modal>`;
 
-<Modal open={open} onClose={() => setOpen(false)}>
+const COMPOUND = `<Modal open={open} onClose={() => setOpen(false)}>
   <Modal.Header showClose>
-    <Modal.Title>알림</Modal.Title>
+    <Modal.Title>프로필 수정</Modal.Title>
   </Modal.Header>
   <Modal.Content>
-    <p>모달 내용입니다.</p>
+    <TextField label="이름" />
   </Modal.Content>
   <Modal.Footer align="right">
-    <Button onClick={() => setOpen(false)}>확인</Button>
+    <Button onClick={() => setOpen(false)}>저장</Button>
   </Modal.Footer>
-</Modal>`}
-            />
-          </Card.Body>
-        </Card>
-      </section>
+</Modal>`;
 
-      {/* ===================== FLAT EXAMPLES ===================== */}
-      <section className={styles.section}>
-        <div className={styles.sectionHeader}>
-          <h2 className={styles.sectionTitle}>Examples</h2>
-          <p className={styles.sectionDescription}>
-            다양한 사용 사례에 맞는 modal 예제입니다.
-          </p>
-        </div>
+const CONTAINER = `<div style={{ position: 'relative', contain: 'layout' }} ref={setBox}>
+  {box && (
+    <Modal open={open} onClose={close} container={box} title="상자 안">
+      내용
+    </Modal>
+  )}
+</div>`;
 
-        <div className={styles.example}>
-          <LivePreview
-            title="기본 모달"
-            description="title과 footer를 props로 전달하는 가장 간단한 방식입니다. triggerRef를 주면 모든 브라우저에서 누른 버튼 자리에서 자라 나옵니다(Safari·Firefox는 버튼 클릭에 포커스를 주지 않아 생략하면 가운데에서 열립니다)."
-            editable
-            code={`const [open, setOpen] = useState(false);
-const triggerRef = useRef(null);
-
-<div>
-  <Button size="sm" ref={triggerRef} onClick={() => setOpen(true)}>모달 열기</Button>
-  <Modal
-    open={open}
-    onClose={() => setOpen(false)}
-    triggerRef={triggerRef}
-    title="알림"
-    showClose
-    footer={
-      <>
-        <Button size="sm" variant="light" onClick={() => setOpen(false)}>취소</Button>
-        <Button size="sm" onClick={() => setOpen(false)}>확인</Button>
-      </>
-    }
-    footerAlign="right"
-  >
-    <p>모달 내용이 여기에 표시됩니다.</p>
-  </Modal>
-</div>`}
-          />
-        </div>
-
-        <div className={styles.example}>
-          <h3 className={styles.exampleTitle}>Sizes</h3>
-          <LivePreview
-            title="size 옵션"
-            description="sm(400px), md(600px), lg(800px), xl(1000px), full(뷰포트 전체)"
-            editable
-            code={`const [size, setSize] = useState('md');
-const [open, setOpen] = useState(false);
-const triggerRef = useRef(null);
-const sizes = ['sm', 'md', 'lg', 'xl', 'full'];
-
-<div>
-  <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-    {sizes.map((s) => (
-      <Button key={s} size="sm" variant={s === size ? 'primary' : 'light'} onClick={(e) => { triggerRef.current = e.currentTarget; setSize(s); setOpen(true); }}>
-        {s}
-      </Button>
-    ))}
-  </div>
-  <Modal
-    open={open}
-    onClose={() => setOpen(false)}
-    triggerRef={triggerRef}
-    size={size}
-    title={'size="' + size + '"'}
-    showClose
-    footer={<Button size="sm" onClick={() => setOpen(false)}>닫기</Button>}
-    footerAlign="right"
-  >
-    <p>현재 모달 크기: <strong>{size}</strong></p>
-  </Modal>
-</div>`}
-          />
-        </div>
-
-        <div className={styles.example}>
-          <h3 className={styles.exampleTitle}>Footer Align</h3>
-          <LivePreview
-            title="Footer 정렬"
-            description="footerAlign으로 버튼 정렬 방향을 제어합니다. 기본값은 left입니다."
-            editable
-            code={`const [align, setAlign] = useState('left');
-const [open, setOpen] = useState(false);
-const triggerRef = useRef(null);
-
-<div>
-  <div style={{ display: 'flex', gap: '0.5rem' }}>
-    {['left', 'center', 'right'].map((a) => (
-      <Button key={a} size="sm" variant={a === align ? 'primary' : 'light'} onClick={(e) => { triggerRef.current = e.currentTarget; setAlign(a); setOpen(true); }}>{a}</Button>
-    ))}
-  </div>
-  <Modal
-    open={open}
-    onClose={() => setOpen(false)}
-    triggerRef={triggerRef}
-    size="sm"
-    title={'footerAlign="' + align + '"'}
-    showClose
-    footer={
-      <>
-        <Button size="sm" variant="light" onClick={() => setOpen(false)}>취소</Button>
-        <Button size="sm" onClick={() => setOpen(false)}>확인</Button>
-      </>
-    }
-    footerAlign={align}
-  >
-    <p>버튼 정렬: <strong>{align}</strong></p>
-  </Modal>
-</div>`}
-          />
-        </div>
-
-        <div className={styles.example}>
-          <h3 className={styles.exampleTitle}>Close Behavior</h3>
-          <LivePreview
-            title="닫힘 방식 제어"
-            description="백드롭 클릭 · Esc 키 닫힘을 개별적으로 비활성화할 수 있습니다."
-            editable
-            code={`const [open, setOpen] = useState(false);
-const triggerRef = useRef(null);
-
-<div>
-  <Button size="sm" ref={triggerRef} onClick={() => setOpen(true)}>백드롭 비활성 모달</Button>
-  <Modal
-    open={open}
-    onClose={() => setOpen(false)}
-    triggerRef={triggerRef}
-    closeOnBackdropClick={false}
-    title="설정 변경"
-    showClose
-    footer={
-      <>
-        <Button size="sm" variant="light" onClick={() => setOpen(false)}>취소</Button>
-        <Button size="sm" onClick={() => setOpen(false)}>저장</Button>
-      </>
-    }
-    footerAlign="right"
-  >
-    <p>배경 클릭으로 닫히지 않습니다. 작성 중 실수 방지에 유용합니다.</p>
-  </Modal>
-</div>`}
-          />
-        </div>
-
-        <div className={styles.example}>
-          <h3 className={styles.exampleTitle}>확인 다이얼로그</h3>
-          <LivePreview
-            title="Confirm Dialog"
-            description="위험한 작업 전 사용자 확인을 받는 가장 일반적인 패턴입니다."
-            editable
-            code={`const [open, setOpen] = useState(false);
-const [deleted, setDeleted] = useState(false);
-const triggerRef = useRef(null);
-
-<div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
-  <Button size="sm" variant="danger" ref={triggerRef} onClick={() => setOpen(true)} disabled={deleted}>삭제</Button>
-  {deleted && <span style={{ color: '#10b981', fontSize: '0.875rem' }}>삭제되었습니다</span>}
-  <Modal
-    open={open}
-    onClose={() => setOpen(false)}
-    triggerRef={triggerRef}
-    size="sm"
-    closeOnBackdropClick={false}
-    title="항목 삭제"
-    footer={
-      <>
-        <Button size="sm" variant="light" onClick={() => setOpen(false)}>취소</Button>
-        <Button size="sm" variant="danger" onClick={() => { setDeleted(true); setOpen(false); }}>삭제</Button>
-      </>
-    }
-    footerAlign="right"
-  >
-    <p>이 항목을 삭제하면 되돌릴 수 없습니다. 정말 삭제하시겠습니까?</p>
-  </Modal>
-</div>`}
-          />
-        </div>
-
-        <div className={styles.example}>
-          <h3 className={styles.exampleTitle}>폼 모달</h3>
-          <LivePreview
-            title="Form Modal"
-            description="사용자 입력을 받는 폼을 모달 안에 배치합니다."
-            editable
-            code={`const [open, setOpen] = useState(false);
-const [name, setName] = useState('');
-const triggerRef = useRef(null);
-
-<div>
-  <Button size="sm" ref={triggerRef} onClick={() => setOpen(true)}>프로필 수정</Button>
-  <Modal
-    open={open}
-    onClose={() => setOpen(false)}
-    triggerRef={triggerRef}
-    closeOnBackdropClick={false}
-    title="프로필 수정"
-    showClose
-    footer={
-      <>
-        <Button size="sm" variant="light" onClick={() => setOpen(false)}>취소</Button>
-        <Button size="sm" onClick={() => setOpen(false)} disabled={!name}>저장</Button>
-      </>
-    }
-    footerAlign="right"
-  >
-    <TextField label="이름" value={name} onChange={(e) => setName(e.target.value)} placeholder="이름을 입력하세요" fullWidth />
-  </Modal>
-</div>`}
-          />
-        </div>
-      </section>
-
-      {/* ===================== FLAT vs COMPOUND ===================== */}
-      <section className={styles.section}>
-        <div className={styles.sectionHeader}>
-          <h2 className={styles.sectionTitle}>Flat vs Compound 패턴</h2>
-          <p className={styles.sectionDescription}>
-            Modal은 하나의 컴포넌트로 두 가지 API 스타일을 모두 지원합니다.
-            간단하면 prop(title, footer), 직접 꾸미려면 조합(Modal.Header 등)을
-            쓰세요.
-          </p>
-        </div>
-
-        {/* 개요 비교 카드 */}
-        <div className={styles.patternCompareGrid}>
-          <div className={styles.patternCard}>
-            <p className={styles.patternCardTitle}>Flat Pattern (기본 권장)</p>
-            <p className={styles.patternCardDesc}>
-              title, footer 등 props만 전달하면 내부 구조가 자동 생성됩니다.
-              빠르고 간결한 모달 사용의 표준 방식입니다.
-            </p>
-            <p className={styles.patternCardWhen}>사용할 때</p>
-            <ul className={styles.patternCardList}>
-              <li>일반적인 확인/알림 모달을 빠르게 만들 때</li>
-              <li>title + footer 구조로 충분할 때</li>
-              <li>코드를 간결하게 유지하고 싶을 때</li>
-            </ul>
-          </div>
-          <div className={styles.patternCard}>
-            <p className={styles.patternCardTitle}>
-              Compound Pattern (커스텀용)
-            </p>
-            <p className={styles.patternCardDesc}>
-              Modal.Header, Modal.Content 등 점 표기법으로 내부 구조를 직접
-              구성합니다. 헤더에 이미지나 커스텀 레이아웃이 필요할 때
-              활용합니다.
-            </p>
-            <p className={styles.patternCardWhen}>사용할 때</p>
-            <ul className={styles.patternCardList}>
-              <li>헤더에 아이콘, 이미지 등 커스텀 요소가 필요할 때</li>
-              <li>도메인 전용 모달 컴포넌트(ConfirmModal 등)를 만들 때</li>
-              <li>서브 컴포넌트별로 className 오버라이드가 필요할 때</li>
-            </ul>
-          </div>
-        </div>
-
-        {/* 비교 테이블 */}
-        <div className={styles.patternCompareTableWrapper}>
-          <table className={styles.patternCompareTable}>
-            <thead className={styles.patternCompareHead}>
-              <tr>
-                <th className={styles.patternCompareTh}>항목</th>
-                <th className={styles.patternCompareTh}>Flat Pattern</th>
-                <th className={styles.patternCompareTh}>Compound Pattern</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr className={styles.patternCompareTr}>
-                <td className={styles.patternCompareTdLabel}>API 방식</td>
-                <td className={styles.patternCompareTd}>
-                  title, footer 등 props 전달
-                </td>
-                <td className={styles.patternCompareTd}>
-                  Modal.Header, Modal.Content 점 표기법
-                </td>
-              </tr>
-              <tr className={styles.patternCompareTr}>
-                <td className={styles.patternCompareTdLabel}>Import</td>
-                <td className={styles.patternCompareTd}>Modal 하나만</td>
-                <td className={styles.patternCompareTd}>Modal 하나만 (동일)</td>
-              </tr>
-              <tr className={styles.patternCompareTr}>
-                <td className={styles.patternCompareTdLabel}>커스텀 자유도</td>
-                <td className={styles.patternCompareTd}>
-                  제한적 (props로 제어)
-                </td>
-                <td className={styles.patternCompareTd}>
-                  높음 (서브 컴포넌트별 className, children 커스텀)
-                </td>
-              </tr>
-              <tr className={styles.patternCompareTr}>
-                <td className={styles.patternCompareTdLabel}>코드량</td>
-                <td className={styles.patternCompareTd}>간결함</td>
-                <td className={styles.patternCompareTd}>상대적으로 많음</td>
-              </tr>
-              <tr className={styles.patternCompareTr}>
-                <td className={styles.patternCompareTdLabel}>주 용도</td>
-                <td className={styles.patternCompareTd}>
-                  일반 확인/알림/폼 모달
-                </td>
-                <td className={styles.patternCompareTd}>
-                  도메인 전용 래퍼, 커스텀 레이아웃
-                </td>
-              </tr>
-              <tr className={styles.patternCompareTr}>
-                <td className={styles.patternCompareTdLabel}>권장 여부</td>
-                <td className={styles.patternCompareTd}>대부분의 경우 권장</td>
-                <td className={styles.patternCompareTd}>
-                  커스텀이 필요할 때 선택
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-
-        {/* Compound 실전 예시 */}
-        <div className={styles.example} style={{ marginTop: '2rem' }}>
-          <h3 className={styles.exampleTitle}>
-            Compound 실전 예시: 도메인 전용 모달 컴포넌트
-          </h3>
-          <p
-            className={styles.sectionDescription}
-            style={{ marginBottom: '1rem' }}
-          >
-            Compound Pattern으로 ConfirmModal 같은 재사용 컴포넌트를 만들 때
-            활용합니다. 소비자는 내부 구조를 몰라도 되고, props만 전달하면
-            됩니다.
-          </p>
-          <CodeBlock
-            language="tsx"
-            code={`// components/ConfirmModal.tsx
-import { Modal, Button } from '@taein-ui/core';
-import type { ReactNode } from 'react';
-
-interface ConfirmModalProps {
-  open: boolean;
-  onClose: () => void;
-  onConfirm: () => void;
-  title: string;
-  message: ReactNode;
-  confirmLabel?: string;
-  cancelLabel?: string;
-  danger?: boolean;
+function Usage() {
+  return (
+    <Topics>
+      <Topic title="언제 쓰나">
+        <p className={t.body}>
+          삭제 확인, 입력 폼처럼 사용자가 답해야 다음으로 갈 수 있는 일에
+          씁니다. 잠깐 알리기만 하면 되는 내용은 <code>Snackbar</code>, 옆에서
+          보조 정보를 보여 줄 때는 <code>SideSheet</code>, 아래에서 고르게 할
+          때는 <code>BottomSheet</code>, 단추 바로 옆의 작은 패널은{' '}
+          <code>Popover</code>가 맞습니다.
+        </p>
+      </Topic>
+      <Topic title="열고 닫기">
+        <p className={t.body} style={{ marginBottom: 12 }}>
+          열림은 부모가 쥡니다. 단추를 누르면 <code>open</code>을 켜고, Esc나
+          배경 클릭, 닫기 단추가 <code>onClose</code>를 부르면 거기서{' '}
+          <code>open</code>을 내립니다. 배경 클릭과 Esc는{' '}
+          <code>closeOnBackdropClick</code>, <code>closeOnEscape</code>로 끌 수
+          있습니다. 둘 다 끄면 모달 안에 닫는 단추를 꼭 두어야 합니다.
+        </p>
+        <CodeBlock code={BASIC} />
+      </Topic>
+      <Topic title="누른 단추에서 자라기">
+        <p className={t.body}>
+          <code>triggerRef</code>에 단추의 ref를 주면 모달이 그 자리에서 자라
+          나오고, 닫을 때 그 자리로 되접힙니다. 배율은 쓰지 않고 보이는 창만
+          단추 크기에서 넓혀 가므로 글자가 찌그러지지 않습니다. 안 주면 열 때
+          포커스를 가진 요소에서 자랍니다. macOS의 Safari와 Firefox는 단추를
+          눌러도 포커스를 주지 않아 가운데에서 열리므로 ref를 주는 쪽이
+          확실합니다. 열리는 데 0.5초 남짓 걸리고, 닫을 때는 그 65% 길이로
+          되감깁니다.
+        </p>
+      </Topic>
+      <Topic title="Flat과 Compound">
+        <p className={t.body} style={{ marginBottom: 12 }}>
+          위의 <code>title</code>, <code>footer</code>처럼 prop으로 짜면 머리글,
+          본문, 푸터를 만들어 줍니다. 제목 옆에 다른 것을 놓는 식으로 직접
+          짜려면 하위 컴포넌트를 씁니다.
+        </p>
+        <CodeBlock code={COMPOUND} />
+        <ul className={`${t.list} ${t.body}`} style={{ marginTop: 12 }}>
+          <li>
+            <code>Modal.Header</code>: <code>showClose</code>를 주면 오른쪽에
+            닫기 단추가 붙고 <code>onClose</code>에 자동으로 이어집니다.
+          </li>
+          <li>
+            <code>Modal.Title</code>: 기본 <code>h2</code>이고 <code>as</code>로
+            바꿉니다. <code>id</code>는 모달이 쥐고 있어 따로 주어도 덮어씁니다.
+          </li>
+          <li>
+            <code>Modal.Content</code>: 본문 영역입니다.
+          </li>
+          <li>
+            <code>Modal.Footer</code>: <code>align</code>(left, center,
+            right)으로 단추를 정렬합니다.
+          </li>
+        </ul>
+      </Topic>
+      <Topic title="상자 안에 그리기">
+        <p className={t.body} style={{ marginBottom: 12 }}>
+          모달은 기본적으로 <code>document.body</code>에 그려지고 열려 있는 동안
+          body 스크롤을 잠급니다. <code>container</code>에 요소를 주면 그 안에
+          그려지고 스크롤을 잠그지 않습니다. 화면이 그 요소에 갇히려면 요소가{' '}
+          <code>contain: layout</code>이나 <code>transform</code>으로 fixed의
+          기준이 되어야 합니다. 위 무대가 이렇게 만들어져 있습니다.
+        </p>
+        <CodeBlock code={CONTAINER} />
+      </Topic>
+    </Topics>
+  );
 }
 
-export function ConfirmModal({
-  open, onClose, onConfirm,
-  title, message,
-  confirmLabel = '확인', cancelLabel = '취소', danger = false,
-}: ConfirmModalProps) {
+function A11y() {
   return (
-    <Modal open={open} onClose={onClose} size="sm" closeOnBackdropClick={false}>
-      <Modal.Header>
-        <Modal.Title>{title}</Modal.Title>
-      </Modal.Header>
-      <Modal.Content>{message}</Modal.Content>
-      <Modal.Footer align="right">
-        <Button variant="light" onClick={onClose}>{cancelLabel}</Button>
-        <Button variant={danger ? 'danger' : 'primary'} onClick={onConfirm}>
-          {confirmLabel}
-        </Button>
-      </Modal.Footer>
-    </Modal>
+    <ul className={`${t.list} ${t.body}`}>
+      <li>
+        <code>role=&quot;dialog&quot;</code>와{' '}
+        <code>aria-modal=&quot;true&quot;</code>가 붙습니다. 배경은{' '}
+        <code>aria-hidden</code>입니다.
+      </li>
+      <li>
+        열면 포커스가 모달 안의 첫 번째 포커스 가능한 요소로 옮겨 가고, 없으면
+        모달 자체가 받습니다. Tab과 Shift+Tab은 모달 안에서만 돕니다.
+      </li>
+      <li>
+        Esc로 닫히고(<code>closeOnEscape</code>), 닫으면 포커스가 열기 직전에
+        있던 요소로 돌아갑니다.
+      </li>
+      <li>
+        닫히는 동안 모달은 <code>inert</code>라 포커스나 클릭을 받지 않습니다.
+      </li>
+      <li>
+        <code>container</code>를 주지 않으면 열려 있는 동안 body 스크롤이
+        잠깁니다.
+      </li>
+      <li>
+        개발자가 직접 해야 합니다. <code>title</code>이나{' '}
+        <code>Modal.Title</code>이 없으면 <code>aria-label</code> 또는{' '}
+        <code>aria-labelledby</code>로 이름을 줍니다. 닫을 길(닫기 단추, Esc,
+        배경 클릭) 가운데 하나는 항상 열어 둡니다.
+      </li>
+    </ul>
   );
-}`}
-          />
-        </div>
+}
 
-        {/* Compound 커스텀 확장 예시 */}
-        <div className={styles.example}>
-          <h3 className={styles.exampleTitle}>
-            Compound 커스텀 확장: 서브컴포넌트 교체
-          </h3>
-          <p
-            className={styles.sectionDescription}
-            style={{ marginBottom: '1rem' }}
-          >
-            Compound Pattern에서 특정 서브컴포넌트에 className이나 커스텀 요소를
-            조합해 확장할 수 있습니다.
-          </p>
-          <CodeBlock
-            language="tsx"
-            code={`// components/ProductDetailModal.tsx
-import { Modal, Button } from '@taein-ui/core';
-import * as styles from './ProductDetailModal.css';
+type Size = ComponentProps<typeof Modal>['size'];
+type Align = ComponentProps<typeof Modal>['footerAlign'];
 
-export function ProductDetailModal({ open, onClose, product }) {
+export function ModalPage() {
+  const [values, setValues] = useState<Values>(INITIAL);
+  const [open, setOpen] = useState(false);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const close = () => setOpen(false);
+
   return (
-    <Modal open={open} onClose={onClose} size="lg">
-      {/* className으로 헤더만 부분 스타일 오버라이드 */}
-      <Modal.Header className={styles.productHeader} showClose>
-        <img src={product.thumbnail} alt="" className={styles.thumbnail} />
-        <Modal.Title>{product.name}</Modal.Title>
-      </Modal.Header>
-      <Modal.Content className={styles.productContent}>
-        <p>{product.description}</p>
-      </Modal.Content>
-      <Modal.Footer align="right">
-        <Button onClick={onClose}>닫기</Button>
-      </Modal.Footer>
-    </Modal>
-  );
-}`}
-          />
-        </div>
-      </section>
-
-      {/* Props API */}
-      <section className={styles.section}>
-        <div className={styles.sectionHeader}>
-          <h2 className={styles.sectionTitle}>Props API</h2>
-          <p className={styles.sectionDescription}>
-            Modal 하나로 Flat과 Compound 모두 사용합니다. title이나 footer
-            prop이 있으면 Flat 모드로 자동 전환됩니다.
-          </p>
-        </div>
-
-        <div className={styles.example}>
-          <h3 className={styles.exampleTitle}>Modal</h3>
-          <div className={styles.propsTableWrapper}>
-            <PropsTable props={modalProps} />
-          </div>
-        </div>
-
-        <div className={styles.example}>
-          <h3 className={styles.exampleTitle}>Modal.Header</h3>
-          <div className={styles.propsTableWrapper}>
-            <PropsTable props={headerProps} />
-          </div>
-        </div>
-
-        <div className={styles.example}>
-          <h3 className={styles.exampleTitle}>Modal.Title</h3>
-          <div className={styles.propsTableWrapper}>
-            <PropsTable props={titleProps} />
-          </div>
-        </div>
-
-        <div className={styles.example}>
-          <h3 className={styles.exampleTitle}>Modal.Footer</h3>
-          <div className={styles.propsTableWrapper}>
-            <PropsTable props={footerProps} />
-          </div>
-        </div>
-      </section>
-
-      {/* Accessibility */}
-      <AccessibilitySection
-        componentName="Modal"
-        intro="Modal은 role='dialog', aria-modal, 포커스 트랩, 포커스 복귀를 통해 키보드와 스크린 리더 사용자가 모달 콘텐츠에 올바르게 접근할 수 있도록 지원합니다."
-        features={[
-          {
-            attribute: 'role="dialog"',
-            effect: '다이얼로그 역할 전달',
-            description: '스크린 리더가 해당 영역을 대화 상자로 인식합니다.',
-          },
-          {
-            attribute: 'aria-modal="true"',
-            effect: '모달 외부 비활성화',
-            description: '스크린 리더가 모달 뒤의 콘텐츠를 읽지 않도록 합니다.',
-          },
-          {
-            attribute: 'aria-labelledby / aria-label',
-            effect: '모달 제목 연결',
-            description: '스크린 리더가 모달 열림 시 제목을 읽어줍니다.',
-          },
-          {
-            attribute: '포커스 트랩 (Tab)',
-            effect: '모달 내부 포커스 순환',
-            description:
-              'Tab/Shift+Tab이 모달 내부 요소 사이에서만 순환되어 외부로 탈출하지 않습니다.',
-          },
-          {
-            attribute: 'Escape 키',
-            effect: '키보드 닫힘',
-            description:
-              'Esc 키로 모달을 닫을 수 있습니다. closeOnEscape={false}로 비활성화 가능합니다.',
-          },
-          {
-            attribute: '포커스 복귀',
-            effect: '이전 포커스 복원',
-            description:
-              '모달이 닫히면 모달을 열었던 요소(버튼 등)로 포커스가 자동 복귀됩니다.',
-          },
-        ]}
-        additionalGuidance={[
-          {
-            title: 'aria-labelledby 연결하기',
-            description:
-              'Modal.Title을 쓰면 Modal의 aria-labelledby에 자동으로 연결되어 스크린 리더가 모달 열림 시 제목을 읽어줍니다. aria-labelledby는 제목이 Modal.Title 밖에 있을 때만 직접 줍니다.',
-            examples: [
-              {
-                code: `// Modal.Title은 id를 직접 관리한다. id를 주지 않아도 연결된다.
-<Modal open={open} onClose={onClose}>
-  <Modal.Header>
-    <Modal.Title>설정 저장</Modal.Title>
-  </Modal.Header>
-  <Modal.Content>...</Modal.Content>
-</Modal>
-
-// 제목이 Modal.Title 밖에 있을 때만 직접 연결한다.
-<Modal open={open} onClose={onClose} aria-labelledby="custom-title">
-  <h2 id="custom-title">설정 저장</h2>
-  <Modal.Content>...</Modal.Content>
-</Modal>`,
-                explanation:
-                  'Modal.Title을 쓰면 연결이 자동입니다. Modal.Title에 준 id는 내부 id로 덮어쓰이므로 aria-labelledby에 쓰지 마세요.',
-              },
-            ],
-          },
-        ]}
-      />
-
-      {/* Best Practices */}
-      <section className={styles.section}>
-        <div className={styles.sectionHeader}>
-          <h2 className={styles.sectionTitle}>Best Practices</h2>
-          <p className={styles.sectionDescription}>
-            Modal을 효과적으로 사용하기 위한 권장사항입니다.
-          </p>
-        </div>
-        <div className={styles.practicesGrid}>
-          <Card>
-            <Card.Body padding="lg">
-              <div className={styles.practiceHeader}>
-                <span className={styles.practiceIcon}>✓</span>
-                <h3 className={styles.practiceTitle}>Do</h3>
-              </div>
-              <List spacing="sm" className={styles.practiceList}>
-                <ListItem>
-                  일반 모달은 Flat Pattern (title, footer props) 사용
-                </ListItem>
-                <ListItem>
-                  커스텀 레이아웃이 필요할 때만 Compound Pattern 활용
-                </ListItem>
-                <ListItem>명확한 제목으로 목적을 즉시 파악 가능하게</ListItem>
-                <ListItem>취소/확인 버튼을 함께 제공</ListItem>
-                <ListItem>
-                  Modal.Title로 제목 두기 (aria-labelledby 자동 연결)
-                </ListItem>
-              </List>
-            </Card.Body>
-          </Card>
-          <Card>
-            <Card.Body padding="lg">
-              <div className={styles.practiceHeader}>
-                <span className={styles.practiceIconError}>✗</span>
-                <h3 className={styles.practiceTitle}>Don't</h3>
-              </div>
-              <List spacing="sm" className={styles.practiceList}>
-                <ListItem>단순 알림에 모달 사용 (Snackbar 권장)</ListItem>
-                <ListItem>모달 안에 모달 중첩</ListItem>
-                <ListItem>너무 많은 내용을 한 모달에 담기</ListItem>
-                <ListItem>Flat으로 충분한데 불필요하게 Compound 사용</ListItem>
-                <ListItem>모바일에서 full 크기 남용</ListItem>
-              </List>
-            </Card.Body>
-          </Card>
-        </div>
-      </section>
-    </article>
+    <DetailLayout
+      name="Modal"
+      lead={LEAD}
+      stage={
+        // 함수형 children이 넘기는 상자(container)에 그리면 모달이 무대 안에 갇힌다
+        <Stage label="Modal 시연" script={SCRIPT} onPause={close}>
+          {(container) => (
+            <>
+              <Button
+                ref={triggerRef}
+                data-stage-target="trigger"
+                size="sm"
+                onClick={() => setOpen(true)}
+              >
+                모달 열기
+              </Button>
+              <Modal
+                open={open}
+                onClose={close}
+                container={container}
+                triggerRef={triggerRef}
+                title={String(values.title)}
+                size={values.size as Size}
+                showClose={values.showClose === true}
+                footer={
+                  <Button size="sm" data-stage-target="close" onClick={close}>
+                    확인
+                  </Button>
+                }
+                footerAlign={values.footerAlign as Align}
+              >
+                {BODY}
+              </Modal>
+            </>
+          )}
+        </Stage>
+      }
+      customize={
+        <Customize controls={CONTROLS} values={values} onChange={setValues} />
+      }
+      code={codeOf({
+        component: 'Modal',
+        values: {
+          open: true,
+          onClose: true,
+          triggerRef: true,
+          ...values,
+          footer: true,
+          children: BODY,
+        },
+        defaults: DEFAULTS,
+        notation: NOTATION,
+      })}
+      props={PROPS}
+      usage={<Usage />}
+      a11y={<A11y />}
+    />
   );
 }
