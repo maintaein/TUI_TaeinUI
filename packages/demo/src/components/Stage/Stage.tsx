@@ -9,9 +9,9 @@ import * as styles from './Stage.css';
 export interface Act {
   /** 연출 커서를 대상으로 옮긴다 */
   move: (target: string, seconds?: number) => void;
-  /** 합성 pointerover(마우스가 올라옴). 대상과 무대 안 조상에 data-stage-hover를 붙여 CSS :hover 쌍둥이 규칙을 켠다 */
+  /** 합성 pointerover와 mouseover(마우스가 올라옴, React의 onMouseEnter도 켠다). 대상과 무대 안 조상에 data-stage-hover를 붙여 CSS :hover 쌍둥이 규칙을 켠다 */
   hover: (target: string) => void;
-  /** 합성 pointerout. data-stage-hover를 뗀다 */
+  /** 합성 pointerout과 mouseout(onMouseLeave도 켠다). data-stage-hover를 뗀다 */
   leave: (target: string) => void;
   /** 합성 pointerdown, 잠깐 뒤 pointerup과 click. 누르는 동안 대상과 무대 안 조상에 data-stage-active를 붙여 CSS :active 쌍둥이 규칙을 켠다. 커서는 눌렸다 돌아온다. holdSeconds를 주면 그만큼 누른 채 있는다(길게 누르기) */
   press: (target: string, holdSeconds?: number) => void;
@@ -120,11 +120,23 @@ const mark = (el: Element | null, root: Element, attr: string, on: boolean) => {
     else n.removeAttribute(attr);
 };
 
-const clearMirror = (root: Element) =>
+// 올라가 있던 대상에는 mouseout도 보낸다. onMouseEnter로 멈춘 것(Snackbar 막대, Tooltip)이 멈춘 채 남지 않게 한다
+const clearMirror = (root: Element) => {
+  root
+    .querySelectorAll(`[${HOVER_ATTR}][data-stage-target]`)
+    .forEach((n) => fireMouse(n, 'mouseout'));
   root.querySelectorAll(`[${HOVER_ATTR}], [${ACTIVE_ATTR}]`).forEach((n) => {
     n.removeAttribute(HOVER_ATTR);
     n.removeAttribute(ACTIVE_ATTR);
   });
+};
+
+// React의 onMouseEnter와 onMouseLeave는 pointer가 아니라 mouseover와 mouseout에서 만들어진다.
+// relatedTarget이 없으면 창 밖에서 들어오고 나가는 것으로 읽혀 대상과 그 조상 모두에 enter와 leave가 간다
+const fireMouse = (el: Element | null, type: 'mouseover' | 'mouseout') =>
+  el?.dispatchEvent(
+    new MouseEvent(type, { bubbles: true, cancelable: true, view: window })
+  );
 
 const firePointer = (
   el: Element | null,
@@ -219,6 +231,7 @@ export function Stage({ label, script, children, className }: StageProps) {
         tl.call(() => {
           const el = find(target);
           firePointer(el, 'pointerover');
+          fireMouse(el, 'mouseover');
           // 합성 이벤트는 :hover를 못 켜므로 쌍둥이 규칙의 속성을 대상과 무대 안 조상에 붙인다
           mark(el, root, HOVER_ATTR, true);
         });
@@ -227,6 +240,7 @@ export function Stage({ label, script, children, className }: StageProps) {
         tl.call(() => {
           const el = find(target);
           firePointer(el, 'pointerout');
+          fireMouse(el, 'mouseout');
           mark(el, root, HOVER_ATTR, false);
         });
       },

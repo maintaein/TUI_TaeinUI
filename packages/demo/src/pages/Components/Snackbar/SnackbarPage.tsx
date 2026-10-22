@@ -1,530 +1,293 @@
-import { Card, List, ListItem } from '@taein-ui/core';
-import { LivePreview } from '../../../components/LivePreview';
+import { useState, type ComponentProps } from 'react';
+import { Button, Snackbar } from '@taein-ui/core';
 import { CodeBlock } from '../../../components/CodeBlock';
-import { PropsTable } from '../../../components/PropsTable';
-import type { PropDefinition } from '../../../components/PropsTable/PropsTable';
-import { AccessibilitySection } from '../../../components/AccessibilitySection';
-import * as styles from './SnackbarPage.css';
+import {
+  Customize,
+  codeOf,
+  type Control,
+  type Values,
+} from '../../../components/Customize';
+import { DetailLayout, Topic, Topics } from '../../../components/DetailLayout';
+import * as t from '../../../components/DocText';
+import type { PropDefinition } from '../../../components/PropsTable';
+import { Stage, type Act } from '../../../components/Stage';
+
+const LEAD =
+  '저장 완료, 오류 발생처럼 짧은 결과를 화면 모서리에 잠깐 알립니다. 남은 시간이 막대로 줄어들고, 마우스를 올리면 막대가 멈춥니다.';
+
+const CONTROLS: Control[] = [
+  { prop: 'message', kind: 'text', label: 'message' },
+  {
+    prop: 'severity',
+    kind: 'choice',
+    options: ['info', 'success', 'warning', 'error'],
+  },
+  {
+    prop: 'position',
+    kind: 'choice',
+    options: [
+      'top-left',
+      'top-center',
+      'top-right',
+      'bottom-left',
+      'bottom-center',
+      'bottom-right',
+    ],
+  },
+  {
+    prop: 'autoHideDuration',
+    kind: 'choice',
+    options: ['3000', '4000', '6000'],
+  },
+];
+
+const INITIAL: Values = {
+  message: '저장했습니다',
+  severity: 'success',
+  position: 'bottom-right',
+  autoHideDuration: '4000',
+};
+
+const DEFAULTS: Values = {
+  severity: 'info',
+  position: 'bottom-right',
+  autoHideDuration: '6000',
+};
+
+const NOTATION = {
+  open: { expr: 'open' },
+  onClose: { expr: '() => setOpen(false)' },
+};
+
+// 커서가 단추를 눌러 스낵바를 띄운다. 스낵바가 자기 구석에서 올라오고 막대가 줄어들다가,
+// 커서가 올라가면 막대가 멈춘다(머무름). 떠나면 남은 만큼 다시 줄어들어 사라진다
+// shortcut: 쉬는 시간(3.8초)은 autoHideDuration 6000(조작판의 가장 긴 값)까지 사라지기를 기다리는 값이다, 선택지를 늘리면 같이 늘린다
+const SCRIPT = (act: Act) => {
+  act.move('trigger');
+  act.hover('trigger');
+  act.wait(0.3);
+  act.press('trigger');
+  act.leave('trigger');
+  act.wait(1.2);
+  act.move('snack');
+  act.hover('snack');
+  act.wait(1.6);
+  act.leave('snack');
+  act.wait(3.8);
+  act.home();
+  act.wait(0.4);
+};
+
+const PROPS: PropDefinition[] = [
+  {
+    name: 'open',
+    type: 'boolean',
+    required: true,
+    description: '보일지 여부',
+  },
+  {
+    name: 'message',
+    type: 'ReactNode',
+    required: true,
+    description: '알림 글',
+  },
+  {
+    name: 'severity',
+    type: "'success' | 'error' | 'warning' | 'info'",
+    default: "'info'",
+    description: '종류. 색과 아이콘이 정해진다',
+  },
+  {
+    name: 'position',
+    type: "'top-left' | 'top-center' | 'top-right' | 'bottom-left' | 'bottom-center' | 'bottom-right'",
+    default: "'bottom-right'",
+    description:
+      '놓일 모서리. 화면에 고정(position: fixed)되고 가장자리에서 24px 떨어진다',
+  },
+  {
+    name: 'autoHideDuration',
+    type: 'number | null',
+    default: '6000',
+    description:
+      '자동으로 닫히기까지의 시간(ms). null이면 자동으로 닫히지 않는다. onClose가 없으면 닫을 수 없어 막대도 그리지 않는다',
+  },
+  {
+    name: 'onClose',
+    type: '() => void',
+    description:
+      '닫기 단추, 자동 닫힘, 같은 자리에 네 번째가 열려 밀려날 때(가장 오래된 것) 불린다. 여기서 open을 내린다',
+  },
+  {
+    name: 'action',
+    type: 'ReactNode',
+    description: '닫기 단추 왼쪽에 놓일 동작(예: 실행 취소 단추)',
+  },
+  {
+    name: 'stack',
+    type: 'boolean',
+    default: 'true',
+    description:
+      'false면 같은 자리에서 혼자 보인다. 열릴 때 같은 자리의 다른 스낵바를 닫고, 열려 있는 동안 새것이 열리면 자기가 닫힌다',
+  },
+];
+
+const BASIC = `const [open, setOpen] = useState(false);
+
+<Button onClick={() => setOpen(true)}>저장</Button>
+<Snackbar
+  open={open}
+  message="저장했습니다"
+  severity="success"
+  onClose={() => setOpen(false)}
+/>`;
+
+const ACTION = `<Snackbar
+  open={open}
+  message="메일을 삭제했습니다"
+  action={<Button size="sm" onClick={undo}>실행 취소</Button>}
+  onClose={() => setOpen(false)}
+/>`;
+
+const SINGLE = `<Snackbar open={open} message={message} stack={false} onClose={close} />`;
+
+function Usage() {
+  return (
+    <Topics>
+      <Topic title="언제 쓰나">
+        <p className={t.body}>
+          저장 완료, 전송 실패처럼 방금 한 일의 결과를 짧게 알릴 때 씁니다.
+          사용자가 반드시 읽고 답해야 하는 내용은 사라지는 알림에 맡기면 안
+          되므로 <code>Modal</code>이 맞습니다.
+        </p>
+      </Topic>
+      <Topic title="열고 닫기">
+        <p className={t.body} style={{ marginBottom: 12 }}>
+          열림은 부모가 쥡니다. <code>open</code>을 켜면 알림이 자기 모서리에서
+          올라오고, 닫기 단추나 자동 닫힘이 <code>onClose</code>를 부르면 거기서{' '}
+          <code>open</code>을 내립니다. <code>onClose</code>가 없으면 자동으로
+          닫히지도, 막대가 줄지도 않습니다.
+        </p>
+        <CodeBlock code={BASIC} />
+      </Topic>
+      <Topic title="남은 시간과 멈춤">
+        <p className={t.body}>
+          아래쪽 막대가 남은 시간을 말합니다. 마우스를 올리거나 안쪽에 키보드
+          포커스가 있으면 막대와 시계가 함께 멈추고, 떠나면 멈춘 자리에서
+          이어집니다. 처음부터 다시 세지 않습니다. 기본은 6초입니다.
+        </p>
+      </Topic>
+      <Topic title="실행 취소 같은 동작">
+        <p className={t.body} style={{ marginBottom: 12 }}>
+          <code>action</code>에 단추를 넘기면 닫기 단추 왼쪽에 놓입니다.
+        </p>
+        <CodeBlock code={ACTION} />
+      </Topic>
+      <Topic title="여러 개가 뜰 때">
+        <p className={t.body} style={{ marginBottom: 12 }}>
+          같은 자리에 동시에 열린 스낵바는 겹치지 않고 줄을 섭니다. 새것이
+          가장자리에 서고 먼저 있던 것은 안쪽으로 밀립니다. 한 자리에 최대
+          셋이고, 넷째가 열리면 가장 오래된 것의 <code>onClose</code>가
+          불립니다. 하나씩만 보이게 하려면 <code>stack={'{false}'}</code>를
+          줍니다. 새것이 이전 것을 바꿔 끼웁니다.
+        </p>
+        <CodeBlock code={SINGLE} />
+      </Topic>
+      <Topic title="움직임">
+        <p className={t.body}>
+          올라올 때는 모서리 쪽에서 300ms 동안 들어오며 나타납니다. 닫힐 때는 그
+          방향으로 되돌아 나갑니다. 줄 안쪽의 스낵바는 가는 길에 다른 스낵바가
+          있어 미끄러지지 않고 제자리에서 흐려집니다. 움직임 줄이기 설정을 켠
+          환경에서는 막대가 부드럽게 줄지 않고 여덟 단계로 끊겨 줄어듭니다.
+          시간은 그대로 흐릅니다.
+        </p>
+      </Topic>
+    </Topics>
+  );
+}
+
+function A11y() {
+  return (
+    <ul className={`${t.list} ${t.body}`}>
+      <li>
+        눈에 보이는 스낵바와 별개로 화면에 보이지 않는{' '}
+        <code>role=&quot;status&quot;</code> 영역이 하나 있어 메시지를 스크린
+        리더에 읽어 줍니다. 아이콘은 소리로 전해지지 않으므로 &quot;성공:
+        저장했습니다&quot;처럼 종류가 앞에 붙습니다.
+      </li>
+      <li>
+        닫기 단추의 이름은 &quot;닫기&quot;이고, 키보드 포커스를 받으면 포커스
+        링이 나옵니다.
+      </li>
+      <li>
+        마우스를 올리거나 안쪽에 포커스가 있으면 자동 닫힘이 멈추어 읽을 시간을
+        보장합니다. 마우스와 포커스가 둘 다 빠져야 다시 시작합니다.
+      </li>
+      <li>
+        닫히는 중에는 <code>inert</code>라 단추가 포커스나 클릭을 받지 않습니다.
+      </li>
+      <li>
+        개발자가 직접 해야 합니다. 사용자가 읽어야만 하는 정보는 스낵바로만
+        전하지 않습니다. 자동으로 사라지기 때문입니다.
+      </li>
+    </ul>
+  );
+}
+
+type Severity = ComponentProps<typeof Snackbar>['severity'];
+type Position = ComponentProps<typeof Snackbar>['position'];
 
 export function SnackbarPage() {
-  const propsData: PropDefinition[] = [
-    {
-      name: 'open',
-      type: 'boolean',
-      required: true,
-      description: '스낵바 표시 여부',
-    },
-    {
-      name: 'message',
-      type: 'ReactNode',
-      required: true,
-      description: '스낵바에 표시할 메시지',
-    },
-    {
-      name: 'severity',
-      type: "'success' | 'error' | 'warning' | 'info'",
-      default: "'info'",
-      description: '메시지 심각도에 따른 색상',
-    },
-    {
-      name: 'position',
-      type: "'top-left' | 'top-center' | 'top-right' | 'bottom-left' | 'bottom-center' | 'bottom-right'",
-      default: "'bottom-right'",
-      description: '화면 내 위치',
-    },
-    {
-      name: 'autoHideDuration',
-      type: 'number | null',
-      default: '6000',
-      description: '자동 닫힘까지 시간(ms). null이면 자동 닫힘 비활성화',
-    },
-    {
-      name: 'stack',
-      type: 'boolean',
-      default: 'true',
-      description:
-        'false면 같은 위치에 혼자 있다: 열릴 때 다른 스낵바를 닫고, 뒤에 새 스낵바가 열리면 이 스낵바가 닫힌다',
-    },
-    {
-      name: 'onClose',
-      type: '() => void',
-      description: '닫기 버튼 클릭 또는 자동 닫힘 시 호출',
-    },
-    {
-      name: 'action',
-      type: 'ReactNode',
-      description: '닫기 버튼 왼쪽에 표시할 커스텀 액션 (버튼 등)',
-    },
-    {
-      name: 'className',
-      type: 'string',
-      description: '추가 CSS 클래스',
-    },
-  ];
+  const [values, setValues] = useState<Values>(INITIAL);
+  const [open, setOpen] = useState(false);
 
   return (
-    <article className={styles.container}>
-      {/* Header */}
-      <header className={styles.header}>
-        <h1 className={styles.title}>Snackbar</h1>
-        <p className={styles.description}>
-          Snackbar 컴포넌트는 저장 완료, 에러 발생, 네트워크 상태 등 짧은 알림을
-          화면에 잠시 띄울 때 사용합니다. 같은 위치에 열린 스낵바는 자동으로
-          쌓이고(최대 3개, 넘치면 가장 오래된 것이 닫힘), 위치를 주지 않으면
-          오른쪽 아래에 나타납니다.
-        </p>
-      </header>
-
-      {/* Quick Reference */}
-      <div className={styles.quickReference}>
-        <Card className={styles.quickRefCard}>
-          <Card.Body>
-            <div className={styles.quickRefTitle}>Import</div>
-            <CodeBlock
-              code="import { Snackbar } from '@taein-ui/core';"
-              language="tsx"
-            />
-          </Card.Body>
-        </Card>
-        <Card className={styles.quickRefCard}>
-          <Card.Body>
-            <div className={styles.quickRefTitle}>Basic Usage</div>
-            <CodeBlock
-              code={`<Snackbar
-  open={open}
-  message="저장되었습니다"
-  onClose={() => setOpen(false)}
-/>`}
-              language="tsx"
-            />
-          </Card.Body>
-        </Card>
-        <Card className={styles.quickRefCard}>
-          <Card.Body>
-            <div className={styles.quickRefTitle}>Key Features</div>
-            <CodeBlock
-              code={`severity: 'success' | 'error' | 'warning' | 'info'
-position: 6가지 위치 옵션
-autoHideDuration: 자동 닫힘 (기본 6초)
-쌓기: 같은 위치에 최대 3개 (기본, 끄려면 stack={false})`}
-              language="text"
-            />
-          </Card.Body>
-        </Card>
-      </div>
-
-      {/* Severity */}
-      <section className={styles.section}>
-        <div className={styles.sectionHeader}>
-          <h2 className={styles.sectionTitle}>Severity</h2>
-          <p className={styles.sectionDescription}>
-            메시지의 심각도에 따라 4가지 색상 변형을 제공합니다. 버튼을 여러 번
-            누르면 스낵바가 오른쪽 아래에 하나씩 더해집니다.
-          </p>
-        </div>
-
-        <div className={styles.example}>
-          <h3 className={styles.exampleTitle}>Info (Default)</h3>
-          <LivePreview
-            title="Info 스낵바"
-            description="일반적인 알림 메시지에 사용합니다. 기본값입니다. 버튼을 누를 때마다 새 스낵바가 쌓이고, 4번째부터 가장 오래된 것이 빠집니다."
-            editable
-            code={`const [items, setItems] = useState([]);
-const show = () => setItems((prev) => [...prev, { id: prev.length + 1, open: true }]);
-const close = (id) => setItems((prev) => prev.map((item) => (item.id === id ? { ...item, open: false } : item)));
-
-<div>
-  <Button size="sm" onClick={show}>Info 스낵바 열기</Button>
-  {items.map((item) => (
-    <Snackbar key={item.id} open={item.open} message={'#' + item.id + ' 새로운 업데이트가 있습니다.'} severity="info" onClose={() => close(item.id)} autoHideDuration={3000} />
-  ))}
-</div>`}
+    <DetailLayout
+      name="Snackbar"
+      lead={LEAD}
+      stage={
+        // 스낵바는 화면에 고정(fixed)이라 무대(contain: layout) 안에서 무대 모서리에 놓인다
+        <Stage label="Snackbar 시연" script={SCRIPT}>
+          <Button
+            data-stage-target="trigger"
+            size="sm"
+            variant="light"
+            onClick={() => setOpen(true)}
+          >
+            저장
+          </Button>
+          <Snackbar
+            // 열려 있는 채로 position만 바뀌면 core는 등장 때 정한 가운데 맞춤(xPercent)을 다시 잡지 않는다. 위치마다 새로 그려 처음부터 맞게 한다
+            key={String(values.position)}
+            data-stage-target="snack"
+            open={open}
+            message={String(values.message)}
+            severity={values.severity as Severity}
+            position={values.position as Position}
+            autoHideDuration={Number(values.autoHideDuration)}
+            onClose={() => setOpen(false)}
           />
-        </div>
-
-        <div className={styles.example}>
-          <h3 className={styles.exampleTitle}>Success</h3>
-          <LivePreview
-            title="Success 스낵바"
-            description="작업이 성공적으로 완료되었을 때 사용합니다."
-            editable
-            code={`const [items, setItems] = useState([]);
-const show = () => setItems((prev) => [...prev, { id: prev.length + 1, open: true }]);
-const close = (id) => setItems((prev) => prev.map((item) => (item.id === id ? { ...item, open: false } : item)));
-
-<div>
-  <Button size="sm" onClick={show}>Success 스낵바 열기</Button>
-  {items.map((item) => (
-    <Snackbar key={item.id} open={item.open} message={'#' + item.id + ' 저장이 완료되었습니다.'} severity="success" onClose={() => close(item.id)} autoHideDuration={3000} />
-  ))}
-</div>`}
-          />
-        </div>
-
-        <div className={styles.example}>
-          <h3 className={styles.exampleTitle}>Error</h3>
-          <LivePreview
-            title="Error 스낵바"
-            description="오류가 발생했을 때 사용합니다."
-            editable
-            code={`const [items, setItems] = useState([]);
-const show = () => setItems((prev) => [...prev, { id: prev.length + 1, open: true }]);
-const close = (id) => setItems((prev) => prev.map((item) => (item.id === id ? { ...item, open: false } : item)));
-
-<div>
-  <Button size="sm" onClick={show}>Error 스낵바 열기</Button>
-  {items.map((item) => (
-    <Snackbar key={item.id} open={item.open} message={'#' + item.id + ' 저장에 실패했습니다. 다시 시도해주세요.'} severity="error" onClose={() => close(item.id)} autoHideDuration={3000} />
-  ))}
-</div>`}
-          />
-        </div>
-
-        <div className={styles.example}>
-          <h3 className={styles.exampleTitle}>Warning</h3>
-          <LivePreview
-            title="Warning 스낵바"
-            description="주의가 필요한 상황에 사용합니다. success와 함께 진한 면 위에 흰 글자로 표시됩니다."
-            editable
-            code={`const [items, setItems] = useState([]);
-const show = () => setItems((prev) => [...prev, { id: prev.length + 1, open: true }]);
-const close = (id) => setItems((prev) => prev.map((item) => (item.id === id ? { ...item, open: false } : item)));
-
-<div>
-  <Button size="sm" onClick={show}>Warning 스낵바 열기</Button>
-  {items.map((item) => (
-    <Snackbar key={item.id} open={item.open} message={'#' + item.id + ' 저장 공간이 부족합니다.'} severity="warning" onClose={() => close(item.id)} autoHideDuration={3000} />
-  ))}
-</div>`}
-          />
-        </div>
-
-        <div className={styles.example}>
-          <h3 className={styles.exampleTitle}>All Severities</h3>
-          <LivePreview
-            title="전체 Severity 비교"
-            description="4가지 심각도를 버튼으로 눌러 비교할 수 있습니다. 서로 다른 심각도의 스낵바도 함께 쌓입니다."
-            editable
-            code={`const [items, setItems] = useState([]);
-const messages = { info: '새 알림이 있습니다.', success: '완료되었습니다!', error: '오류가 발생했습니다.', warning: '주의가 필요합니다.' };
-const show = (severity) => setItems((prev) => [...prev, { id: prev.length + 1, severity, open: true }]);
-const close = (id) => setItems((prev) => prev.map((item) => (item.id === id ? { ...item, open: false } : item)));
-
-<div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-  {['info', 'success', 'error', 'warning'].map((s) => (
-    <Button key={s} size="sm" variant="light" onClick={() => show(s)}>
-      {s}
-    </Button>
-  ))}
-  {items.map((item) => (
-    <Snackbar key={item.id} open={item.open} message={'#' + item.id + ' ' + messages[item.severity]} severity={item.severity} onClose={() => close(item.id)} autoHideDuration={3000} />
-  ))}
-</div>`}
-          />
-        </div>
-      </section>
-
-      {/* Position */}
-      <section className={styles.section}>
-        <div className={styles.sectionHeader}>
-          <h2 className={styles.sectionTitle}>Position</h2>
-          <p className={styles.sectionDescription}>
-            6가지 위치 옵션으로 스낵바를 화면 가장자리에 배치할 수 있습니다.
-            위치마다 따로 쌓입니다.
-          </p>
-        </div>
-
-        <div className={styles.example}>
-          <h3 className={styles.exampleTitle}>Position Options</h3>
-          <LivePreview
-            title="위치 선택"
-            description="버튼을 클릭하여 각 위치에 스낵바를 표시합니다. 위치를 주지 않으면 bottom-right입니다. 같은 위치를 여러 번 누르면 그 자리에 쌓입니다."
-            editable
-            code={`const [items, setItems] = useState([]);
-const positions = ['top-left', 'top-center', 'top-right', 'bottom-left', 'bottom-center', 'bottom-right'];
-const show = (position) => setItems((prev) => [...prev, { id: prev.length + 1, position, open: true }]);
-const close = (id) => setItems((prev) => prev.map((item) => (item.id === id ? { ...item, open: false } : item)));
-
-<div>
-  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.5rem', maxWidth: '360px' }}>
-    {positions.map((pos) => (
-      <Button key={pos} size="sm" variant="light" onClick={() => show(pos)}>
-        {pos.replace('-', ' ')}
-      </Button>
-    ))}
-  </div>
-  {items.map((item) => (
-    <Snackbar key={item.id} open={item.open} message={'#' + item.id + ' ' + item.position + ' 위치의 스낵바'} position={item.position} onClose={() => close(item.id)} autoHideDuration={2000} />
-  ))}
-</div>`}
-          />
-        </div>
-      </section>
-
-      {/* Auto Hide Duration */}
-      <section className={styles.section}>
-        <div className={styles.sectionHeader}>
-          <h2 className={styles.sectionTitle}>Auto Hide Duration</h2>
-          <p className={styles.sectionDescription}>
-            일정 시간 후 자동으로 닫히는 기능을 제어합니다.
-          </p>
-        </div>
-
-        <div className={styles.example}>
-          <h3 className={styles.exampleTitle}>Custom Duration</h3>
-          <LivePreview
-            title="자동 닫힘 시간 조절"
-            description="autoHideDuration prop으로 밀리초 단위의 시간을 설정합니다. 기본값은 6000ms(6초)입니다."
-            editable
-            code={`const [items, setItems] = useState([]);
-const [duration, setDuration] = useState(3000);
-const show = () => setItems((prev) => [...prev, { id: prev.length + 1, duration, open: true }]);
-const close = (id) => setItems((prev) => prev.map((item) => (item.id === id ? { ...item, open: false } : item)));
-
-<div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-  <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-    {[1000, 3000, 6000, 10000].map((d) => (
-      <Button key={d} size="sm" variant={d === duration ? 'primary' : 'light'} onClick={() => setDuration(d)}>
-        {d / 1000}초
-      </Button>
-    ))}
-  </div>
-  <Button size="sm" variant="dark" onClick={show}>스낵바 열기 ({duration / 1000}초 후 자동 닫힘)</Button>
-  {items.map((item) => (
-    <Snackbar key={item.id} open={item.open} message={'#' + item.id + ' ' + item.duration / 1000 + '초 후 자동으로 닫힙니다.'} severity="info" onClose={() => close(item.id)} autoHideDuration={item.duration} />
-  ))}
-</div>`}
-          />
-        </div>
-
-        <div className={styles.example}>
-          <h3 className={styles.exampleTitle}>Persistent (No Auto Hide)</h3>
-          <LivePreview
-            title="자동 닫힘 비활성화"
-            description="autoHideDuration={null}로 설정하면 수동으로만 닫을 수 있습니다."
-            editable
-            code={`const [items, setItems] = useState([]);
-const show = () => setItems((prev) => [...prev, { id: prev.length + 1, open: true }]);
-const close = (id) => setItems((prev) => prev.map((item) => (item.id === id ? { ...item, open: false } : item)));
-
-<div>
-  <Button size="sm" onClick={show}>Persistent 스낵바 열기</Button>
-  {items.map((item) => (
-    <Snackbar key={item.id} open={item.open} message={'#' + item.id + ' 이 스낵바는 자동으로 닫히지 않습니다. X 버튼을 클릭하세요.'} severity="warning" onClose={() => close(item.id)} autoHideDuration={null} />
-  ))}
-</div>`}
-          />
-        </div>
-      </section>
-
-      {/* Custom Action */}
-      <section className={styles.section}>
-        <div className={styles.sectionHeader}>
-          <h2 className={styles.sectionTitle}>Custom Action</h2>
-          <p className={styles.sectionDescription}>
-            action prop으로 닫기 버튼 옆에 커스텀 액션을 추가할 수 있습니다.
-          </p>
-        </div>
-
-        <div className={styles.example}>
-          <h3 className={styles.exampleTitle}>Action Button</h3>
-          <LivePreview
-            title="실행 취소 액션"
-            description="action prop에 버튼을 전달하여 '실행 취소' 같은 추가 동작을 제공합니다."
-            editable
-            code={`const [items, setItems] = useState([]);
-const show = () => setItems((prev) => [...prev, { id: prev.length + 1, open: true }]);
-const close = (id) => setItems((prev) => prev.map((item) => (item.id === id ? { ...item, open: false } : item)));
-
-<div>
-  <Button size="sm" onClick={show}>삭제 실행</Button>
-  {items.map((item) => (
-    <Snackbar
-      key={item.id}
-      open={item.open}
-      message={'#' + item.id + ' 항목이 삭제되었습니다.'}
-      severity="info"
-      onClose={() => close(item.id)}
-      autoHideDuration={5000}
-      action={
-        <Button size="sm" variant="light" onClick={() => close(item.id)}>
-          실행 취소
-        </Button>
+        </Stage>
       }
-    />
-  ))}
-</div>`}
-          />
-        </div>
-      </section>
-
-      {/* Composition Patterns */}
-      <section className={styles.section}>
-        <div className={styles.sectionHeader}>
-          <h2 className={styles.sectionTitle}>Composition Patterns</h2>
-          <p className={styles.sectionDescription}>
-            실제 사용 시나리오에서의 스낵바 활용 패턴입니다.
-          </p>
-        </div>
-
-        <div className={styles.example}>
-          <h3 className={styles.exampleTitle}>Form Submit Feedback</h3>
-          <LivePreview
-            title="폼 제출 피드백"
-            description="폼 제출 성공/실패에 따라 다른 스낵바를 표시합니다."
-            editable
-            code={`const [items, setItems] = useState([]);
-const handleSubmit = (success) => {
-  const next = success ? { message: '설정이 저장되었습니다.', severity: 'success' } : { message: '저장에 실패했습니다.', severity: 'error' };
-  setItems((prev) => [...prev, { id: prev.length + 1, ...next, open: true }]);
-};
-const close = (id) => setItems((prev) => prev.map((item) => (item.id === id ? { ...item, open: false } : item)));
-
-<div style={{ display: 'flex', gap: '0.5rem' }}>
-  <Button size="sm" variant="primary" onClick={() => handleSubmit(true)}>저장 (성공)</Button>
-  <Button size="sm" variant="danger" onClick={() => handleSubmit(false)}>저장 (실패)</Button>
-  {items.map((item) => (
-    <Snackbar key={item.id} open={item.open} message={'#' + item.id + ' ' + item.message} severity={item.severity} onClose={() => close(item.id)} autoHideDuration={3000} />
-  ))}
-</div>`}
-          />
-        </div>
-      </section>
-
-      {/* Stack 끄기 */}
-      <section className={styles.section}>
-        <div className={styles.sectionHeader}>
-          <h2 className={styles.sectionTitle}>Stack 끄기</h2>
-          <p className={styles.sectionDescription}>
-            stack={'{false}'}를 주면 같은 위치에 하나만 보입니다. 열릴 때 다른
-            스낵바를 닫고, 뒤에 새 스낵바가 열리면 이 스낵바가 닫힙니다.
-          </p>
-        </div>
-
-        <div className={styles.example}>
-          <h3 className={styles.exampleTitle}>One at a Time</h3>
-          <LivePreview
-            title="하나씩만 보이기"
-            description="버튼을 여러 번 눌러도 스낵바는 하나만 보이고, 새것이 이전 것을 바꿔 끼웁니다."
-            editable
-            code={`const [items, setItems] = useState([]);
-const show = () => setItems((prev) => [...prev, { id: prev.length + 1, open: true }]);
-const close = (id) => setItems((prev) => prev.map((item) => (item.id === id ? { ...item, open: false } : item)));
-
-<div>
-  <Button size="sm" onClick={show}>스낵바 열기</Button>
-  {items.map((item) => (
-    <Snackbar key={item.id} open={item.open} stack={false} message={'#' + item.id + ' 알림'} autoHideDuration={null} onClose={() => close(item.id)} />
-  ))}
-</div>`}
-          />
-        </div>
-      </section>
-
-      {/* Props API */}
-      <section className={styles.section}>
-        <div className={styles.sectionHeader}>
-          <h2 className={styles.sectionTitle}>Props API</h2>
-          <p className={styles.sectionDescription}>
-            Snackbar 컴포넌트의 전체 props 목록입니다.
-          </p>
-        </div>
-        <div className={styles.propsTableWrapper}>
-          <PropsTable props={propsData} />
-        </div>
-      </section>
-
-      {/* Accessibility */}
-      <section className={styles.section}>
-        <div className={styles.sectionHeader}></div>
-        <AccessibilitySection
-          componentName="Snackbar"
-          intro="Snackbar는 role='alert'와 aria-live 속성으로 스크린 리더에 메시지를 전달하며, 닫기 버튼에 적절한 레이블과 포커스 인디케이터를 제공합니다."
-          features={[
-            {
-              attribute: 'role="alert"',
-              effect: '알림 역할 전달',
-              description: '스크린 리더가 스낵바를 알림으로 인식합니다.',
-            },
-            {
-              attribute: 'aria-live="polite"',
-              effect: '실시간 메시지 전달',
-              description: '현재 읽기가 끝난 후 스낵바 메시지를 읽어줍니다.',
-            },
-            {
-              attribute: 'aria-label="닫기"',
-              effect: '닫기 버튼 레이블',
-              description: 'IconButton에 설정되어 닫기 동작을 전달합니다.',
-            },
-            {
-              attribute: 'focus-visible',
-              effect: '포커스 인디케이터',
-              description: '닫기 버튼에 키보드 포커스 시 윤곽선이 표시됩니다.',
-            },
-            {
-              attribute: 'autoHideDuration',
-              effect: '충분한 읽기 시간',
-              description:
-                '기본 6초의 자동 닫힘 시간으로 메시지를 읽을 시간을 제공합니다.',
-            },
-            {
-              attribute: 'onClose (넘침)',
-              effect: '밀려날 때 한 번만 호출',
-              description:
-                '같은 위치에 넘쳐 밀려나는 스낵바의 onClose는 열려 있는 동안 한 번만 불리고, 하나가 던져도 나머지는 불리고, 던진 오류는 삼켜지지 않고 하나씩 전역 오류로 다시 던져집니다.',
-            },
-          ]}
+      customize={
+        <Customize
+          controls={CONTROLS}
+          values={values}
+          // 바꾼 값이 보이도록 닫혀 있으면 다시 띄운다
+          onChange={(v) => {
+            setValues(v);
+            setOpen(true);
+          }}
         />
-      </section>
-
-      {/* Best Practices */}
-      <section className={styles.section}>
-        <div className={styles.sectionHeader}>
-          <h2 className={styles.sectionTitle}>Best Practices</h2>
-          <p className={styles.sectionDescription}>
-            Snackbar를 효과적으로 사용하기 위한 권장사항입니다.
-          </p>
-        </div>
-        <div className={styles.practicesGrid}>
-          <Card>
-            <Card.Body>
-              <div className={styles.practiceHeader}>
-                <span className={styles.practiceIcon}>O</span>
-                <span className={styles.practiceTitle}>권장</span>
-              </div>
-              <List>
-                <ListItem>짧고 명확한 메시지 작성</ListItem>
-                <ListItem>severity를 상황에 맞게 선택</ListItem>
-                <ListItem>중요한 작업에는 실행 취소 액션 제공</ListItem>
-                <ListItem>자동 닫힘 시간은 메시지 길이에 맞게 설정</ListItem>
-                <ListItem>
-                  같은 위치에는 가능하면 하나만, 많아도 3개까지만 표시
-                </ListItem>
-              </List>
-            </Card.Body>
-          </Card>
-          <Card>
-            <Card.Body>
-              <div className={styles.practiceHeader}>
-                <span className={styles.practiceIconError}>X</span>
-                <span className={styles.practiceTitle}>지양</span>
-              </div>
-              <List>
-                <ListItem>긴 문장이나 여러 줄의 메시지 사용</ListItem>
-                <ListItem>중요한 정보를 스낵바로만 전달</ListItem>
-                <ListItem>
-                  알림을 한꺼번에 여러 개 쏟아내기 (4개째부터 가장 오래된 것이
-                  닫힘)
-                </ListItem>
-                <ListItem>자동 닫힘을 너무 짧게 설정 (최소 3초)</ListItem>
-                <ListItem>
-                  사용자 확인이 필요한 내용에 스낵바 사용 (Modal 사용)
-                </ListItem>
-              </List>
-            </Card.Body>
-          </Card>
-        </div>
-      </section>
-    </article>
+      }
+      code={codeOf({
+        component: 'Snackbar',
+        values: { open: true, ...values, onClose: true },
+        defaults: DEFAULTS,
+        notation: NOTATION,
+      }).replace(/autoHideDuration="(\d+)"/, 'autoHideDuration={$1}')}
+      props={PROPS}
+      usage={<Usage />}
+      a11y={<A11y />}
+    />
   );
 }
