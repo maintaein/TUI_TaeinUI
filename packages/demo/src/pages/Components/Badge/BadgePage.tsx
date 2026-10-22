@@ -226,8 +226,11 @@ export function BadgePage() {
             >
               <Minus />
             </IconButton>
-            {/* zoom: 20px짜리 배지가 무대에서 작아 보이지 않게 키운다. 코드의 크기는 그대로다 */}
-            <div style={{ zoom: 2.5, minWidth: 56, display: 'grid' }}>
+            {/* 배지는 core 크기 그대로 그린다. 자리 폭만 잡아 값이 바뀌어도 단추가 밀리지 않게 한다 */}
+            <div
+              data-stage-badge
+              style={{ minWidth: 40, display: 'grid', placeItems: 'center' }}
+            >
               <Badge
                 variant={values.variant as Variant}
                 size={values.size as Size}
