@@ -150,7 +150,10 @@ const rotate = keyframes({
 // span을 넣는다(닫힌 테두리라야 "한 바퀴"가 성립한다).
 export const glowRing = style({
   position: 'absolute',
-  inset: 0,
+  // inset 0의 기준은 padding box라 링이 테두리선 안쪽에 놓인다. 테두리 두께만큼
+  // 바깥으로 빼서 링의 바깥 가장자리를 border box에 맞춘다. 반경은 border box
+  // 기준이라 inherit이 그대로 맞는다.
+  inset: `calc(-1 * ${borderW})`,
   // borderW(테두리 두께 var)를 padding으로 써서 content-box와 border-box
   // 차이만큼만 mask로 남긴다. width 변형(thin/medium/thick)을 그대로
   // 따라간다.
