@@ -288,7 +288,7 @@ export function CardDemo({ values = INITIAL, mini }: DemoProps) {
           <Card.Image
             src={IMAGE}
             alt={IMAGE_ALT}
-            style={{ aspectRatio: '2' }}
+            style={{ aspectRatio: mini ? '3' : '2' }}
           />
         )}
         <Card.Header>

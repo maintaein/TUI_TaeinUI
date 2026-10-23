@@ -308,3 +308,55 @@ test('카드 이름 줄 높이가 스물다섯 모두 같고 시연 중에도 �
   expect(heights.BoardRow).toHaveLength(1);
   expect(heights.Border).toHaveLength(1);
 });
+
+// 미니 안 내용(배경 전체를 덮는 면 빼고)의 사각형과 흰 칸 가장자리 사이 가장 좁은 틈을 시간에 걸쳐 잰다
+const narrowestMargin = (page: Page, name: string, ms: number) =>
+  page.evaluate(
+    ([n, span]) =>
+      new Promise<number>((resolve) => {
+        const st = document.querySelector(`[data-stage-mini="${n} 시연"]`)!;
+        const box = st.parentElement!;
+        let min = Infinity;
+        const id = setInterval(() => {
+          const b = box.getBoundingClientRect();
+          let l = Infinity,
+            t = Infinity,
+            r = -Infinity,
+            bt = -Infinity;
+          for (const el of st.querySelectorAll('*')) {
+            if (el.closest('[data-stage-cursor]')) continue;
+            const s = getComputedStyle(el);
+            if (s.visibility === 'hidden' || s.display === 'none') continue;
+            const p = el.getBoundingClientRect();
+            if (p.width < 1 || p.height < 1) continue;
+            if (p.width > b.width - 1 && p.height > b.height - 1) continue;
+            l = Math.min(l, p.left);
+            t = Math.min(t, p.top);
+            r = Math.max(r, p.right);
+            bt = Math.max(bt, p.bottom);
+          }
+          min = Math.min(
+            min,
+            l - b.left,
+            t - b.top,
+            b.right - r,
+            b.bottom - bt
+          );
+        }, 50);
+        setTimeout(() => {
+          clearInterval(id);
+          resolve(min);
+        }, span);
+      }),
+    [name, ms] as const
+  );
+
+for (const name of ['Loader', 'Skeleton', 'Card']) {
+  test(`${name} 미니는 흰 칸 가장자리에서 12px 넘게 떨어져 있다`, async ({
+    page,
+  }) => {
+    test.setTimeout(40_000);
+    await bring(page, name);
+    expect(await narrowestMargin(page, name, 9000)).toBeGreaterThanOrEqual(12);
+  });
+}
