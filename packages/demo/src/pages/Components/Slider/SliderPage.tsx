@@ -46,18 +46,21 @@ const NOTATION = { defaultValue: { expr: String(START) } };
 
 // 커서가 손잡이로 가서 올라타(손잡이가 부풀고 라인이 두꺼워짐) 머문 뒤, 잡고 끌어 올렸다 놓고, 잠시 뒤 반대로 끌어 내린다
 // 끌기는 값을 코드로 옮기며 input 이벤트를 보낸다. core는 값이 바뀌는 것과 pointerdown·pointerup만 보므로 손으로 끄는 것과 같은 길이다
-const SCRIPT = (act: Act) => {
+const scriptOf = (drag: number, pause: number) => (act: Act) => {
   act.move('slider');
   act.hover('slider');
   act.wait(0.8);
-  act.drag('slider', 85, 1.6);
-  act.wait(0.9);
-  act.drag('slider', 25, 1.6);
+  act.drag('slider', 85, drag);
+  act.wait(pause);
+  act.drag('slider', 25, drag);
   act.wait(0.7);
   act.leave('slider');
   act.home();
   act.wait(0.6);
 };
+const SCRIPT = scriptOf(1.6, 0.9);
+// 전체 컴포넌트 카드는 끌기가 더 빠르다(상세 무대는 그대로)
+const MINI_SCRIPT = scriptOf(0.6, 0.4);
 
 const PROPS: PropDefinition[] = [
   {
@@ -275,7 +278,7 @@ type Variant = ComponentProps<typeof Slider>['variant'];
 /** 무대 조각. 상세 페이지와 전체 컴포넌트 카드가 같이 쓴다 */
 export function SliderDemo({ values = INITIAL, mini }: DemoProps) {
   return (
-    <Stage mini={mini} label="Slider 시연" script={SCRIPT}>
+    <Stage mini={mini} label="Slider 시연" script={mini ? MINI_SCRIPT : SCRIPT}>
       <Slider
         // 대본의 커서와 끌기는 보이지 않는 range 입력을 대상으로 삼는다
         ref={(el) => el?.setAttribute('data-stage-target', 'slider')}

@@ -274,7 +274,7 @@ export function IconButtonDemo({ values = INITIAL, mini }: DemoProps) {
             key={variant}
             data-stage-target={target}
             variant={variant}
-            buttonStyle={values.buttonStyle as Look}
+            buttonStyle={(mini ? 'ghost' : values.buttonStyle) as Look}
             size={values.size as Size}
             hoverEffect={values.hoverEffect as Hover}
             loading={values.loading === true}
