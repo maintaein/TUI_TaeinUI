@@ -280,3 +280,14 @@ export const cardCell: Record<string, 'wide' | 'wide3' | 'wide2' | 'tall'> = {
   BoardRow: 'wide',
   Card: 'wide2',
 };
+
+/**
+ * 전체 컴포넌트 카드 미니 칸의 최소 높이(px). 적지 않은 컴포넌트는 기본 높이다.
+ * 미니는 칸 크기를 바꾸지 못하고(넘치면 잘린다) 둘레에 여백을 둔 채 들어가야 하므로, 내용이 큰 것만 키운다.
+ */
+export const cardHeight: Record<string, number> = {
+  Loader: 268,
+  Skeleton: 268,
+  Card: 312,
+  BoardRow: 366,
+};

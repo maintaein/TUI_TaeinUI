@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import type { ComponentInfo } from '../../data/components';
+import { cardHeight, type ComponentInfo } from '../../data/components';
 import { DEMOS } from './demos';
 import { TOUCH_MINI } from './minis';
 import * as styles from './FrameCard.css';
@@ -38,6 +38,7 @@ export function FrameCard({ item, className, inner, touch }: FrameCardProps) {
             OVERLAYS.has(item.name) && styles.cardInnerTall,
             inner
           )}
+          style={{ minHeight: cardHeight[item.name] }}
         >
           <Demo mini />
         </div>

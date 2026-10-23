@@ -20,6 +20,8 @@ export const stageMini = style({
   alignSelf: 'stretch',
   justifySelf: 'stretch',
   borderRadius: 0,
+  // 안쪽 시연(펼침, 열림)이 키를 바꿔도 카드 키는 그대로다. 높이는 카드 상자(minHeight)가 정하고 넘치는 것은 잘린다
+  contain: 'size layout',
 });
 
 export const tools = style({

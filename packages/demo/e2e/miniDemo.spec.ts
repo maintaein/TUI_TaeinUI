@@ -266,3 +266,45 @@ test('위쪽 단추를 누른 채 내려가 오버레이 미니가 열리고 닫
   );
   expect(drift).toBeLessThan(100);
 });
+
+test('카드 이름 줄 높이가 스물다섯 모두 같고 시연 중에도 카드 높이가 변하지 않는다', async ({
+  page,
+}) => {
+  test.setTimeout(60_000);
+  const foots = await page.evaluate(() =>
+    [...document.querySelectorAll('[data-stage-mini]')].map(
+      (st) => st.parentElement!.parentElement!.lastElementChild!.clientHeight
+    )
+  );
+  expect(foots).toHaveLength(25);
+  expect(new Set(foots).size).toBe(1);
+
+  // 펼침이 있는 BoardRow와 키 큰 Border가 시연 중 칸을 키우지 않는다(둘이 한 화면에 든다)
+  await bring(page, 'BoardRow');
+  const heights = await page.evaluate(
+    () =>
+      new Promise<Record<string, number[]>>((resolve) => {
+        const names = ['BoardRow', 'Border'];
+        const seen: Record<string, Set<number>> = {
+          BoardRow: new Set(),
+          Border: new Set(),
+        };
+        const id = setInterval(() => {
+          for (const n of names) {
+            const f = document.querySelector(`[data-stage-mini="${n} 시연"]`)!
+              .parentElement!.parentElement!;
+            seen[n].add(f.getBoundingClientRect().height);
+          }
+        }, 50);
+        setTimeout(() => {
+          clearInterval(id);
+          resolve({
+            BoardRow: [...seen.BoardRow],
+            Border: [...seen.Border],
+          });
+        }, 12000);
+      })
+  );
+  expect(heights.BoardRow).toHaveLength(1);
+  expect(heights.Border).toHaveLength(1);
+});

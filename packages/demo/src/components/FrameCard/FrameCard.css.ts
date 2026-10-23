@@ -10,6 +10,8 @@ const MOBILE = '(max-width: 640px)';
 // 액자: 옅은 회색 틀 안에 흰 상자
 export const frame = style({
   display: 'grid',
+  // 같은 줄 카드 높이가 늘 때 흰 미니 칸이 늘고 이름 줄은 제 높이로 있다
+  gridTemplateRows: '1fr auto',
   gap: spacing[2],
   padding: spacing[2],
   background: FRAME,
