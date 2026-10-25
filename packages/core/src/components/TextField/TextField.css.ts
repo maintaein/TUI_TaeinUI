@@ -1,4 +1,4 @@
-import { style, styleVariants } from '@vanilla-extract/css';
+import { keyframes, style, styleVariants } from '@vanilla-extract/css';
 import { themeContract } from '../../tokens/theme.css';
 
 /** 테두리 두께(px). input의 border와 lineHeight 역산이 같은 값을 쓴다. */
@@ -106,4 +106,36 @@ export const multiline = style({
 // error 상태
 export const error = style({
   borderColor: `${themeContract.color.error.main} !important`,
+});
+
+// success 상태. 테두리는 success.dark다(main은 흰 바탕 대비 2.77:1이라 테두리 3:1에 못 미친다).
+// 호버·포커스 테두리 색을 이겨야 해서 error와 같이 !important를 쓴다.
+export const success = style({
+  borderColor: `${themeContract.color.success.dark} !important`,
+});
+
+// 오류가 걸릴 때 입력칸이 좌우로 짧게 흔들린다(모션 UI M46 shake-error의 키프레임).
+// 위치값(-2·4·-7·7px)은 토큰 스케일에 없는 연출 고유 거리라 리터럴이다: 10%·90%가 -2px,
+// 20%·80%가 +4px, 30%·50%·70%가 -7px, 40%·60%가 +7px로 점점 커졌다 잦아든다.
+// 한 번 도는 마운트형 모션이라 되돌아갈 상태가 없다(조항 1 밖). fill-mode가 없어 축소
+// 모션(0.01ms, 1회)에서는 흔들림이 사라지고 빨강만 남는다.
+const shakeFrames = {
+  '10%, 90%': { transform: 'translateX(-2px)' },
+  '20%, 80%': { transform: 'translateX(4px)' },
+  '30%, 50%, 70%': { transform: 'translateX(-7px)' },
+  '40%, 60%': { transform: 'translateX(7px)' },
+} as const;
+// 같은 오류가 다시 걸릴 때 애니메이션이 처음부터 다시 돌려면 animation-name이 바뀌어야 한다.
+// 키프레임 이름이 다른 클래스 둘을 번갈아 건다(TextField.tsx의 useErrorShake).
+const shakeA = keyframes(shakeFrames);
+const shakeB = keyframes(shakeFrames);
+
+// 길이는 duration 토큰 중 원본(0.42초)에 가장 가까운 slower(500ms)다.
+export const shake = styleVariants({
+  a: {
+    animation: `${shakeA} ${themeContract.animation.duration.slower} ${themeContract.animation.easing.drift}`,
+  },
+  b: {
+    animation: `${shakeB} ${themeContract.animation.duration.slower} ${themeContract.animation.easing.drift}`,
+  },
 });

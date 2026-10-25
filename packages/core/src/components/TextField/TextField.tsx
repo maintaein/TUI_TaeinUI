@@ -1,4 +1,4 @@
-import { forwardRef, useCallback, useEffect, useRef } from 'react';
+import { forwardRef, useCallback, useEffect, useRef, useState } from 'react';
 import type {
   ChangeEvent,
   InputHTMLAttributes,
@@ -21,6 +21,10 @@ interface TextFieldBaseProps {
   error?: boolean;
   /** 에러 메시지 */
   errorMessage?: string;
+  /** 성공 상태. 테두리와 메시지가 초록이 된다. `error`가 함께 켜지면 에러가 이긴다 */
+  success?: boolean;
+  /** 성공 메시지. `success`일 때 도움말 자리에 보인다 */
+  successMessage?: string;
   /** 도움말 텍스트 */
   helperText?: string;
   /** 전체 너비 사용 */
@@ -62,6 +66,25 @@ interface MultilineTextFieldProps
  */
 export type TextFieldProps = SingleLineTextFieldProps | MultilineTextFieldProps;
 
+/**
+ * 오류가 걸릴 때마다 흔들림 클래스를 돌려준다. 흔들리는 순간은 `error`가 꺼졌다 켜질 때와
+ * `error`가 켜진 채 `errorMessage`가 바뀔 때뿐이다(처음부터 켜져 있으면 흔들리지 않는다).
+ * 같은 클래스로는 CSS 애니메이션이 다시 돌지 않아서, 흔들릴 때마다 A와 B를 번갈아 건다.
+ * 상태는 렌더 중에 맞춘다(effect 안 setState는 연쇄 렌더라 lint가 막는다).
+ */
+const useErrorShake = (error: boolean, errorMessage: string | undefined) => {
+  const [prev, setPrev] = useState({ error, errorMessage });
+  const [count, setCount] = useState(0);
+  if (prev.error !== error || prev.errorMessage !== errorMessage) {
+    setPrev({ error, errorMessage });
+    if (error && (!prev.error || prev.errorMessage !== errorMessage)) {
+      setCount(count + 1);
+    }
+  }
+  if (!error || count === 0) return undefined;
+  return count % 2 === 1 ? styles.shake.a : styles.shake.b;
+};
+
 const SingleLineField = forwardRef<HTMLInputElement, SingleLineTextFieldProps>(
   (
     {
@@ -70,6 +93,8 @@ const SingleLineField = forwardRef<HTMLInputElement, SingleLineTextFieldProps>(
       size = 'md',
       error = false,
       errorMessage,
+      success = false,
+      successMessage,
       helperText,
       fullWidth = false,
       required = false,
@@ -81,36 +106,43 @@ const SingleLineField = forwardRef<HTMLInputElement, SingleLineTextFieldProps>(
       ...rest
     },
     ref
-  ) => (
-    <FormField
-      label={label}
-      helperText={helperText}
-      error={error}
-      errorMessage={errorMessage}
-      required={required}
-      fullWidth={fullWidth}
-    >
-      {({ inputId, helperId, hasHelper, isError }) => (
-        <input
-          ref={ref}
-          id={inputId}
-          type={type}
-          required={required}
-          disabled={disabled}
-          aria-invalid={isError}
-          aria-disabled={disabled}
-          aria-describedby={hasHelper ? helperId : undefined}
-          className={clsx(
-            styles.input,
-            styles.size[size],
-            isError && styles.error,
-            className
-          )}
-          {...rest}
-        />
-      )}
-    </FormField>
-  )
+  ) => {
+    const shake = useErrorShake(error, errorMessage);
+    return (
+      <FormField
+        label={label}
+        helperText={helperText}
+        error={error}
+        errorMessage={errorMessage}
+        success={success}
+        successMessage={successMessage}
+        required={required}
+        fullWidth={fullWidth}
+      >
+        {({ inputId, helperId, hasHelper, isError, isSuccess }) => (
+          <input
+            ref={ref}
+            id={inputId}
+            type={type}
+            required={required}
+            disabled={disabled}
+            aria-invalid={isError}
+            aria-disabled={disabled}
+            aria-describedby={hasHelper ? helperId : undefined}
+            className={clsx(
+              styles.input,
+              styles.size[size],
+              isError && styles.error,
+              isSuccess && styles.success,
+              shake,
+              className
+            )}
+            {...rest}
+          />
+        )}
+      </FormField>
+    );
+  }
 );
 
 SingleLineField.displayName = 'TextField';
@@ -122,6 +154,8 @@ const MultilineField = forwardRef<HTMLTextAreaElement, MultilineTextFieldProps>(
       size = 'md',
       error = false,
       errorMessage,
+      success = false,
+      successMessage,
       helperText,
       fullWidth = false,
       required = false,
@@ -137,6 +171,7 @@ const MultilineField = forwardRef<HTMLTextAreaElement, MultilineTextFieldProps>(
     ref
   ) => {
     const internalRef = useRef<HTMLTextAreaElement>(null);
+    const shake = useErrorShake(error, errorMessage);
 
     // ref 병합 (forwardRef와 내부 ref 모두 지원)
     const setRefs = useCallback(
@@ -186,10 +221,12 @@ const MultilineField = forwardRef<HTMLTextAreaElement, MultilineTextFieldProps>(
         helperText={helperText}
         error={error}
         errorMessage={errorMessage}
+        success={success}
+        successMessage={successMessage}
         required={required}
         fullWidth={fullWidth}
       >
-        {({ inputId, helperId, hasHelper, isError }) => (
+        {({ inputId, helperId, hasHelper, isError, isSuccess }) => (
           <textarea
             ref={setRefs}
             id={inputId}
@@ -204,6 +241,8 @@ const MultilineField = forwardRef<HTMLTextAreaElement, MultilineTextFieldProps>(
               styles.multiline,
               styles.multilineSize[size],
               isError && styles.error,
+              isSuccess && styles.success,
+              shake,
               className
             )}
             style={{ overflow: autoResize ? 'hidden' : 'auto', ...style }}

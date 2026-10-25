@@ -73,15 +73,19 @@ import { TextField } from '@taein-ui/core';
 | size | 'sm' \| 'md' \| 'lg' | 'md' | Input size |
 | error | boolean | false | Error state |
 | errorMessage | string | - | Error message |
+| success | boolean | false | Success state. Border and message turn `color.success.dark`. `error` wins when both are true |
+| successMessage | string | - | Success message, shown in the helper text's place while `success` is true |
 | helperText | string | - | Helper text |
 | fullWidth | boolean | false | Full width |
 | required | boolean | - | Required attribute |
 | disabled | boolean | - | Disabled attribute |
 | className | string | - | Additional CSS class |
 
+The input shakes left and right once, and turns red, whenever `error` goes from false to true or `errorMessage` changes while `error` stays true (not on first render). To shake again for the same mistake, change `errorMessage` or toggle `error`. The message drops in from 4px above. Reduced motion: no shake, color only.
+
 ### Accessibility
-- `aria-invalid` set automatically when `error` is true
-- `aria-describedby` linked to helper/error text
+- `aria-invalid` set automatically when `error` is true (not for `success`)
+- `aria-describedby` linked to helper/error/success text
 - Label always connected via `htmlFor`/`id`
 - `multiline` has no `height` prop: use `rows`, or `style={{ minHeight: 200 }}` for a pixel height
 - Write `multiline` as a `true`/`false` literal. For a variable, split with a ternary (`flag ? <TextField multiline /> : <TextField />`), and type a wrapper's props as `ComponentProps<typeof TextField>`. Toggling `multiline` swaps the element, so it remounts (focus and uncontrolled value are lost)

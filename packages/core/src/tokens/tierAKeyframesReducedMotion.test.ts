@@ -665,25 +665,23 @@ describe("검사 5: 'use client'가 진짜 지시어로 0건이다 (M2 경계, t
   });
 });
 
-describe('검사 6: 정적 2개(FormField·List)에 애니메이션이 0건이다 (task-4-brief.md R8)', () => {
+// M6 후속 Task 15: FormField는 정적이 아니게 됐다. 에러·성공 문구가 4px 위에서 내려오며
+// 나타나는 모션(settleIn, 마운트 1회)이 문구 요소에 있어서 FormField 파일을 정적 목록에서 뺀다.
+describe('검사 6: 정적 1개(List)에 애니메이션이 0건이다 (task-4-brief.md R8)', () => {
   /** `existsSync` 분기 없이 바로 읽는다. 디렉터리가 옮겨지면 던져야 한다. */
   const STATIC_CSS_FILES = [
-    ...findFiles(SRC + '/_internal', (n) => n === 'formField.css.ts'),
     ...findFiles(join(COMPONENTS, 'List'), (n) => n.endsWith('.css.ts')),
   ];
 
-  it('정적 2개의 .css.ts를 실제로 2개 읽었다. 0개를 읽고 "0건"이라 보고하는 진공을 막는다', () => {
+  it('정적 1개의 .css.ts를 실제로 1개 읽었다. 0개를 읽고 "0건"이라 보고하는 진공을 막는다', () => {
     // 무엇을 뒤집으면 빨개지는가: 위 목록에서 이름 하나를 빼면 1개가 되어
     // 여기가 빨개진다(오타는 findFiles가 그 자리에서 던진다). 셋이던 목록이
     // 둘이 된 것은 M5 7차 Task 23에서 `Text`가 삭제됐기 때문이다. 이 앵커가
     // 없으면 아래 `it`은 파일을 하나도 안 읽고도 초록이다.
-    expect(STATIC_CSS_FILES.map(rel)).toEqual([
-      '_internal/formField.css.ts',
-      'components/List/List.css.ts',
-    ]);
+    expect(STATIC_CSS_FILES.map(rel)).toEqual(['components/List/List.css.ts']);
   });
 
-  it('두 파일에 animation·transition·keyframes가 한 글자도 없다', () => {
+  it('List.css.ts에 animation·transition·keyframes가 한 글자도 없다', () => {
     // 무엇을 뒤집으면 빨개지는가: List.css.ts에 `transition: ...` 한 줄을
     // 넣으면(M2가 정적으로 남기기로 한 컴포넌트에 모션이 들어오면) 여기가
     // 빨개진다.

@@ -21,6 +21,8 @@
 
 ### Added
 
+- `TextField`에 `success`(`boolean`, 기본 `false`)와 `successMessage`(`string`)를 더했습니다. 켜지면 테두리와 메시지가 `color.success.dark`가 되고 메시지가 4px 위에서 내려오며 나타납니다. 메시지는 `helperText` 자리에 보이고 `aria-describedby`로 연결됩니다. `error`와 함께 켜면 `error`가 이기고 `aria-invalid`는 `error`일 때만 `true`입니다
+- `TextField`의 입력칸이 오류가 걸릴 때 좌우로 짧게 흔들리고 에러 문구가 4px 위에서 내려오며 나타납니다. `error`가 `false`에서 `true`로 바뀔 때와, `error`가 켜진 채 `errorMessage`가 바뀔 때 일어납니다(처음부터 켜져 있으면 없음). 같은 오류를 다시 보여 주려면 `errorMessage`를 바꾸거나 `error`를 껐다 켜세요. 축소 모션에서는 흔들림 없이 색만 바뀝니다. `NumericSpinner`의 에러 문구도 같은 내려오는 모션으로 나타납니다
 - `HeaderBar`에 `titleAs`(`'h1'` | `'h2'` ~ `'h6'` | `'span'`, 기본 `'h1'`)를 더했습니다. 제목 요소만 바뀌고 스타일은 같습니다. 페이지에 이미 h1이 있으면 낮은 단계나 `span`을 쓰세요.
 - `Modal`·`BottomSheet`·`SideSheet`에 `container`(`HTMLElement | null`, 기본 `document.body`)를 더했습니다. 오버레이를 그릴 DOM 위치를 고르고, 주어지면 body 스크롤을 잠그지 않습니다. 화면이 그 안에 갇히려면 container에 `contain: layout` 또는 `transform`을 줘서 `position: fixed`의 기준으로 만드세요. 안 주면 이전과 같고, 할 일은 없습니다.
 

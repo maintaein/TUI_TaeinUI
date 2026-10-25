@@ -41,7 +41,7 @@ All components follow consistent patterns:
 `ListItem`, `SideSheetHeader` 등)다. 두 숫자 모두 소스에서 검증된다.
 
 ### Form & Input
-- **TextField** - Text input with label, validation, helper text. Add `multiline` for a multiline textarea. Props: label, type, size, error, errorMessage, helperText, fullWidth, multiline, rows, autoResize (rows and autoResize only with multiline; type only without)
+- **TextField** - Text input with label, validation, helper text. Add `multiline` for a multiline textarea. Props: label, type, size, error, errorMessage, success, successMessage, helperText, fullWidth, multiline, rows, autoResize (rows and autoResize only with multiline; type only without)
 - **Checkbox**: Checkbox with label, indeterminate state. Props: label, size, error, errorMessage, helperText, indeterminate
 - **Switch**: Toggle switch. Props: label, size, error, errorMessage, helperText
 - **Slider**: Range slider with marks and value display. Props: label, variant, min, max, step, showValue, showThumbValue, marks, trackColor

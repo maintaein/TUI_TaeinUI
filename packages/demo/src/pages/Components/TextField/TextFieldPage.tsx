@@ -1,5 +1,5 @@
-import { useState, type ComponentProps } from 'react';
-import { TextField } from '@taein-ui/core';
+import { useState, type ChangeEvent, type ComponentProps } from 'react';
+import { Button, TextField } from '@taein-ui/core';
 import { CodeBlock } from '../../../components/CodeBlock';
 import {
   Customize,
@@ -26,9 +26,11 @@ const CONTROLS: Control[] = [
   { prop: 'size', kind: 'choice', options: ['sm', 'md', 'lg'] },
   { prop: 'helperText', kind: 'text' },
   { prop: 'errorMessage', kind: 'text' },
+  { prop: 'successMessage', kind: 'text' },
   { prop: 'multiline', kind: 'toggle' },
   { prop: 'autoResize', kind: 'toggle' },
   { prop: 'error', kind: 'toggle' },
+  { prop: 'success', kind: 'toggle' },
   { prop: 'required', kind: 'toggle' },
   { prop: 'disabled', kind: 'toggle' },
   { prop: 'fullWidth', kind: 'toggle' },
@@ -40,10 +42,12 @@ const INITIAL: Values = {
   type: 'email',
   size: 'md',
   helperText: '',
-  errorMessage: '',
+  errorMessage: '이메일 형식이 아닙니다. 예: user@taein.ui',
+  successMessage: '사용할 수 있는 이메일입니다',
   multiline: false,
   autoResize: false,
   error: false,
+  success: false,
   required: false,
   disabled: false,
   fullWidth: false,
@@ -55,11 +59,15 @@ const DEFAULTS: Values = {
   size: 'md',
   helperText: '',
   errorMessage: '',
+  successMessage: '',
 };
 
-// 커서가 입력칸으로 가서 올라타고(테두리가 호버 색으로), 눌러 포커스를 주고, 글자가 한 자씩 들어갔다 지워진다
-// shortcut: 글자는 이메일 모양 하나뿐이라 type="number"를 고르면 칸이 비어 있는 채로 포커스만 보인다, 종류별로 다른 글자가 필요해지면 type 도구가 글자를 함수로 받게 한다
-const TYPED = 'hello@taein.ui';
+// 실패에서 성공으로: 커서가 입력칸에 틀린 이메일을 쓰고 확인을 누르면 입력칸이 흔들리며 빨개지고 오류 문구가 내려온다.
+// 지우고 고쳐 쓴 뒤 다시 누르면 초록 확인이 보인다. 입력을 바꾸면 결과가 지워진다
+// shortcut: 글자는 이메일 모양 둘뿐이라 type="number"를 고르면 칸이 비어 있는 채로 포커스만 보인다, 종류별로 다른 글자가 필요해지면 type 도구가 글자를 함수로 받게 한다
+const WRONG = 'hello@taein';
+const RIGHT = 'hello@taein.ui';
+const EMAIL = /^\S+@\S+\.\S+$/;
 const SCRIPT = (act: Act) => {
   act.move('field');
   act.hover('field');
@@ -67,11 +75,25 @@ const SCRIPT = (act: Act) => {
   act.press('field');
   act.focus('field');
   act.wait(0.3);
-  act.type('field', TYPED);
-  act.wait(1.2);
+  act.type('field', WRONG);
+  act.wait(0.4);
+  act.move('submit', 0.5);
+  act.hover('submit');
+  act.press('submit');
+  act.wait(1.8);
+  act.leave('submit');
+  act.move('field', 0.5);
+  act.clear('field');
+  act.wait(0.3);
+  act.type('field', RIGHT);
+  act.wait(0.4);
+  act.move('submit', 0.5);
+  act.hover('submit');
+  act.press('submit');
+  act.wait(1.8);
+  act.leave('submit');
   act.clear('field');
   act.blur('field');
-  act.leave('field');
   act.wait(0.4);
   act.home();
   act.wait(0.8);
@@ -127,12 +149,25 @@ const PROPS: PropDefinition[] = [
     type: 'boolean',
     default: 'false',
     description:
-      '에러 상태. 테두리가 에러 색이 되고 aria-invalid가 true가 된다',
+      '에러 상태. 테두리가 에러 색이 되고 aria-invalid가 true가 된다. 켜질 때 입력칸이 좌우로 짧게 흔들린다',
   },
   {
     name: 'errorMessage',
     type: 'string',
     description: 'error일 때 입력칸 아래에 보이는 메시지',
+  },
+  {
+    name: 'success',
+    type: 'boolean',
+    default: 'false',
+    description:
+      '성공 상태. 테두리와 메시지가 초록(success.dark)이 되고 메시지가 위에서 내려온다. error가 함께 켜지면 error가 이긴다',
+  },
+  {
+    name: 'successMessage',
+    type: 'string',
+    description:
+      'success일 때 입력칸 아래에 보이는 메시지. helperText 자리를 대신한다',
   },
   {
     name: 'fullWidth',
@@ -187,6 +222,15 @@ const ERROR = `<TextField
   errorMessage="올바른 이메일 형식이 아닙니다. 예: user@example.com"
 />`;
 
+const SUCCESS = `<TextField
+  label="이메일"
+  type="email"
+  error={checked && !valid}
+  errorMessage="올바른 이메일 형식이 아닙니다. 예: user@example.com"
+  success={checked && valid}
+  successMessage="사용할 수 있는 이메일입니다"
+/>`;
+
 function Usage() {
   return (
     <Topics>
@@ -239,6 +283,23 @@ function Usage() {
           적습니다.
         </p>
         <CodeBlock code={ERROR} />
+        <p className={t.body} style={{ margin: '16px 0 12px' }}>
+          <code>error</code>가 켜질 때 입력칸이 좌우로 짧게 흔들리고 빨개집니다.{' '}
+          <code>error</code>가 <code>false</code>에서 <code>true</code>로 바뀔
+          때와, 켜진 채 <code>errorMessage</code>가 바뀔 때 일어나고 처음부터
+          켜져 있을 때는 없습니다. 같은 오류로 다시 제출해도 흔들리게 하려면{' '}
+          <code>errorMessage</code>를 바꾸거나 <code>error</code>를 껐다 켭니다.
+          사용자가 움직임을 줄이도록 설정했으면 흔들리지 않고 색만 바뀝니다.
+        </p>
+      </Topic>
+      <Topic title="성공 표시">
+        <p className={t.body} style={{ marginBottom: 12 }}>
+          검사를 통과했다는 확인이 필요하면 <code>success</code>와{' '}
+          <code>successMessage</code>를 씁니다. 테두리와 메시지가 초록이 되고
+          메시지가 위에서 내려오며 나타납니다. 메시지는 도움말 자리에 보이고{' '}
+          <code>error</code>와 함께 켜면 <code>error</code>가 이깁니다.
+        </p>
+        <CodeBlock code={SUCCESS} />
       </Topic>
     </Topics>
   );
@@ -258,9 +319,16 @@ function A11y() {
       </li>
       <li>
         <code>error</code>이면 <code>aria-invalid</code>가 <code>true</code>가
-        됩니다. <code>helperText</code>나 <code>errorMessage</code>가 보일 때는{' '}
-        <code>aria-describedby</code>로 입력칸에 이어져 입력칸에 들어가면 함께
-        읽힙니다.
+        됩니다. <code>success</code>는 <code>aria-invalid</code>를 바꾸지
+        않습니다. <code>helperText</code>, <code>errorMessage</code>,{' '}
+        <code>successMessage</code> 중 보이는 것은 <code>aria-describedby</code>
+        로 입력칸에 이어져 입력칸에 들어가면 함께 읽힙니다.
+      </li>
+      <li>
+        성공은 초록 하나에만 기대지 않고 <code>successMessage</code> 글자로도
+        전해야 합니다. 테두리와 메시지는 흰 바탕에서 대비가 충분한 짙은 초록(
+        <code>success.dark</code>)입니다. 오류의 흔들림은 움직임 줄이기 설정에서
+        사라지고 색과 글자가 남습니다.
       </li>
       <li>
         <code>disabled</code>이면 <code>aria-disabled</code>가 <code>true</code>
@@ -281,6 +349,9 @@ type Size = NonNullable<Single['size']>;
 /** 무대 조각. 상세 페이지와 전체 컴포넌트 카드가 같이 쓴다 */
 export function TextFieldDemo({ values = INITIAL, mini }: DemoProps) {
   const multiline = values.multiline === true;
+  // 확인을 누르면 입력값을 검사해 결과가 정해지고, 입력을 바꾸면 결과가 지워진다
+  const [text, setText] = useState('');
+  const [result, setResult] = useState<'error' | 'success' | null>(null);
   const shared = {
     'data-stage-target': 'field',
     label: String(values.label),
@@ -288,23 +359,47 @@ export function TextFieldDemo({ values = INITIAL, mini }: DemoProps) {
     placeholder: String(values.placeholder) || undefined,
     helperText: String(values.helperText) || undefined,
     errorMessage: String(values.errorMessage) || undefined,
-    error: values.error === true,
+    successMessage: String(values.successMessage) || undefined,
+    error: values.error === true || result === 'error',
+    success: values.success === true || result === 'success',
     required: values.required === true,
     disabled: values.disabled === true,
     fullWidth: values.fullWidth === true,
+    value: text,
+    onChange: (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+      setText(e.target.value);
+      setResult(null);
+    },
   };
 
   return (
     <Stage mini={mini} label="TextField 시연" script={SCRIPT}>
-      {multiline ? (
-        <TextField
-          {...shared}
-          multiline
-          autoResize={values.autoResize === true}
-        />
-      ) : (
-        <TextField {...shared} type={values.type as FieldType} />
-      )}
+      <form
+        noValidate
+        onSubmit={(e) => {
+          e.preventDefault();
+          setResult(EMAIL.test(text) ? 'success' : 'error');
+        }}
+        style={{
+          display: 'grid',
+          justifyItems: 'center',
+          gap: '0.75rem',
+          width: '100%',
+        }}
+      >
+        {multiline ? (
+          <TextField
+            {...shared}
+            multiline
+            autoResize={values.autoResize === true}
+          />
+        ) : (
+          <TextField {...shared} type={values.type as FieldType} />
+        )}
+        <Button type="submit" size="sm" data-stage-target="submit">
+          확인
+        </Button>
+      </form>
     </Stage>
   );
 }

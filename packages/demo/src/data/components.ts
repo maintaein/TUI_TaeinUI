@@ -286,6 +286,7 @@ export const cardCell: Record<string, 'wide' | 'wide3' | 'wide2' | 'tall'> = {
  * 미니는 칸 크기를 바꾸지 못하고(넘치면 잘린다) 둘레에 여백을 둔 채 들어가야 하므로, 내용이 큰 것만 키운다.
  */
 export const cardHeight: Record<string, number> = {
+  TextField: 232,
   Loader: 268,
   Skeleton: 268,
   Card: 312,

@@ -48,6 +48,8 @@ export default defineConfig({
     // 그 포커스 링이 눌리는 칩 루트의 것과 같은지를 CSSOM으로 잠근다.
     // Card도 같은 이유다. hoverLift 카드의 will-change가 쉴 때는 없고 호버·누름 중에만
     // 서는지를 CSSOM으로 잠근다.
+    // formField(TextField 메시지)도 같은 이유다. success 메시지 글자 색이 success.dark인지를
+    // CSSOM으로 잠근다.
     css: {
       include: [
         /Slider\.css/,
@@ -67,6 +69,7 @@ export default defineConfig({
         /\/NumericSpinner\.css/,
         /\/Chip\.css/,
         /\/Card\.css/,
+        /\/formField\.css/,
       ],
     },
     coverage: {

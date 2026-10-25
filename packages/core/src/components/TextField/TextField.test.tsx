@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event';
 import '@testing-library/jest-dom';
 import React, { createRef } from 'react';
 import { TextField } from './TextField';
+import { themeContract } from '../../tokens/theme.css';
 
 describe('TextField', () => {
   describe('렌더링 테스트', () => {
@@ -885,5 +886,204 @@ describe('TextField 생성 CSS (포커스 모양, task-15)', () => {
       expect(single?.style.getPropertyValue('font-size')).toBe(fontSize[size]);
       expect(multi?.style.getPropertyValue('padding')).toMatch(/ 1rem$/);
     }
+  });
+});
+
+describe('TextField 흔들림 오류 (M6 후속)', () => {
+  const shaken = (el: HTMLElement) => /shake/.test(el.className);
+  // 흔들림 클래스 이름 자체(A·B)가 바뀌어야 CSS 애니메이션이 처음부터 다시 돈다
+  const shakeToken = (el: HTMLElement) =>
+    el.className.split(' ').find((name) => /shake/.test(name));
+
+  it('처음부터 error면 흔들리지 않는다', () => {
+    render(<TextField label="이메일" error errorMessage="틀렸습니다" />);
+    expect(shaken(screen.getByLabelText('이메일'))).toBe(false);
+  });
+
+  it('error가 false에서 true로 바뀔 때 흔들린다', () => {
+    const { rerender } = render(<TextField label="이메일" />);
+    expect(shaken(screen.getByLabelText('이메일'))).toBe(false);
+    rerender(<TextField label="이메일" error />);
+    expect(shaken(screen.getByLabelText('이메일'))).toBe(true);
+  });
+
+  it('error가 true인 채 errorMessage가 바뀌면 다른 흔들림 클래스로 다시 흔들린다', () => {
+    const { rerender } = render(
+      <TextField label="이메일" error errorMessage="가" />
+    );
+    rerender(<TextField label="이메일" error errorMessage="나" />);
+    const first = shakeToken(screen.getByLabelText('이메일'));
+    expect(first).toBeDefined();
+    rerender(<TextField label="이메일" error errorMessage="다" />);
+    const second = shakeToken(screen.getByLabelText('이메일'));
+    expect(second).toBeDefined();
+    expect(second).not.toBe(first);
+  });
+
+  it('error를 껐다 켜면 다시 흔들린다', () => {
+    const { rerender } = render(<TextField label="이메일" />);
+    rerender(<TextField label="이메일" error />);
+    expect(shaken(screen.getByLabelText('이메일'))).toBe(true);
+    rerender(<TextField label="이메일" />);
+    expect(shaken(screen.getByLabelText('이메일'))).toBe(false);
+    rerender(<TextField label="이메일" error />);
+    expect(shaken(screen.getByLabelText('이메일'))).toBe(true);
+  });
+
+  it('error와 메시지가 그대로인 다른 렌더에서는 클래스가 바뀌지 않는다', () => {
+    const { rerender } = render(<TextField label="이메일" />);
+    rerender(<TextField label="이메일" error errorMessage="가" />);
+    const before = screen.getByLabelText('이메일').className;
+    rerender(
+      <TextField label="이메일" error errorMessage="가" helperText="도움말" />
+    );
+    expect(screen.getByLabelText('이메일').className).toBe(before);
+  });
+
+  it('error가 아닐 때 errorMessage만 바뀌면 흔들리지 않는다', () => {
+    const { rerender } = render(<TextField label="이메일" errorMessage="가" />);
+    rerender(<TextField label="이메일" errorMessage="나" />);
+    expect(shaken(screen.getByLabelText('이메일'))).toBe(false);
+  });
+
+  it('multiline도 같은 규칙으로 흔들린다', () => {
+    const { rerender } = render(<TextField label="소개" multiline />);
+    expect(shaken(screen.getByLabelText('소개'))).toBe(false);
+    rerender(<TextField label="소개" multiline error />);
+    expect(shaken(screen.getByLabelText('소개'))).toBe(true);
+  });
+
+  it('errorMessage가 바뀌면 문구 요소가 새로 그려져 내려앉는 모션이 다시 돈다', () => {
+    const { rerender } = render(
+      <TextField label="이메일" error errorMessage="가" />
+    );
+    const before = screen.getByText('가');
+    rerender(<TextField label="이메일" error errorMessage="나" />);
+    expect(screen.getByText('나')).not.toBe(before);
+  });
+
+  describe('생성 CSS', () => {
+    const shakeRules = () =>
+      sheetRules('TextField_input').filter((rule) =>
+        /^\.TextField_shake_/.test(rule.selectorText)
+      );
+
+    it('흔들림 규칙은 둘이고 duration이 토큰이라 축소 모션의 전역 규칙이 덮는다', () => {
+      const rules = shakeRules();
+      expect(rules).toHaveLength(2);
+      for (const rule of rules) {
+        const animation = rule.style.getPropertyValue('animation');
+        expect(animation).toContain(themeContract.animation.duration.slower);
+        expect(animation).not.toMatch(/\b(infinite|forwards|both)\b/);
+      }
+    });
+
+    it('두 규칙의 애니메이션 이름이 서로 다르다', () => {
+      const names = shakeRules().map(
+        (rule) => rule.style.getPropertyValue('animation').split(' ')[0]
+      );
+      expect(new Set(names).size).toBe(2);
+    });
+  });
+});
+
+describe('TextField success 상태 (M6 후속)', () => {
+  it.each([[false], [true]] as const)(
+    'multiline=%s: success면 success 클래스가 붙고 aria-invalid는 false다',
+    (multiline) => {
+      const props = { success: true, successMessage: '사용할 수 있습니다' };
+      if (multiline) render(<TextField label="항목" multiline {...props} />);
+      else render(<TextField label="항목" {...props} />);
+      const control = screen.getByLabelText('항목');
+      expect(control.className).toContain('success');
+      expect(control).toHaveAttribute('aria-invalid', 'false');
+    }
+  );
+
+  it('successMessage가 aria-describedby로 연결된다', () => {
+    render(
+      <TextField label="이메일" success successMessage="사용할 수 있습니다" />
+    );
+    expect(screen.getByText('사용할 수 있습니다')).toHaveAttribute(
+      'id',
+      screen.getByLabelText('이메일').getAttribute('aria-describedby')!
+    );
+  });
+
+  it('success인 동안 successMessage가 helperText 자리를 대신한다', () => {
+    const { rerender } = render(
+      <TextField label="이메일" helperText="도움말" successMessage="확인됨" />
+    );
+    expect(screen.getByText('도움말')).toBeInTheDocument();
+    expect(screen.queryByText('확인됨')).toBeNull();
+    rerender(
+      <TextField
+        label="이메일"
+        helperText="도움말"
+        success
+        successMessage="확인됨"
+      />
+    );
+    expect(screen.getByText('확인됨')).toBeInTheDocument();
+    expect(screen.queryByText('도움말')).toBeNull();
+  });
+
+  it('successMessage가 없으면 success여도 helperText가 남는다', () => {
+    render(<TextField label="이메일" helperText="도움말" success />);
+    expect(screen.getByText('도움말')).toBeInTheDocument();
+  });
+
+  it('error와 success가 둘 다 true면 error가 이긴다', () => {
+    render(
+      <TextField
+        label="이메일"
+        error
+        errorMessage="틀렸습니다"
+        success
+        successMessage="확인됨"
+      />
+    );
+    const control = screen.getByLabelText('이메일');
+    expect(control.className).toContain('error');
+    expect(control.className).not.toMatch(/success/);
+    expect(control).toHaveAttribute('aria-invalid', 'true');
+    expect(screen.getByText('틀렸습니다')).toBeInTheDocument();
+    expect(screen.queryByText('확인됨')).toBeNull();
+  });
+
+  it('success가 아니면 successMessage는 보이지 않는다', () => {
+    render(<TextField label="이메일" successMessage="확인됨" />);
+    expect(screen.queryByText('확인됨')).toBeNull();
+  });
+
+  it('success가 처음 켜질 때 흔들리지 않는다', () => {
+    const { rerender } = render(<TextField label="이메일" />);
+    rerender(<TextField label="이메일" success successMessage="확인됨" />);
+    expect(screen.getByLabelText('이메일').className).not.toMatch(/shake/);
+  });
+
+  describe('생성 CSS', () => {
+    // 토큰은 var(--이름) 문자열이라 이름만 떼어 비교한다
+    const varName = (token: string) => token.slice(4, -1);
+
+    it('테두리가 color.success.dark다 (main은 흰 바탕 대비가 모자란다)', () => {
+      const rule = sheetRules('TextField_input').find((r) =>
+        /^\.TextField_success__\w+$/.test(r.selectorText)
+      );
+      expect(rule).toBeDefined();
+      const border = rule!.style.getPropertyValue('border-color');
+      expect(border).toContain(varName(themeContract.color.success.dark));
+      expect(border).not.toContain(varName(themeContract.color.success.main));
+    });
+
+    it('메시지 글자가 color.success.dark다', () => {
+      const message = sheetRules('formField_successMessage').find((r) =>
+        /^\.formField_successMessage__\w+$/.test(r.selectorText)
+      );
+      expect(message).toBeDefined();
+      expect(message!.style.getPropertyValue('color')).toContain(
+        varName(themeContract.color.success.dark)
+      );
+    });
   });
 });
