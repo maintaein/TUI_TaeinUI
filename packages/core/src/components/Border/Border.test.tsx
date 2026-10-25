@@ -27,39 +27,13 @@ function commentBlockAbove(source: string, anchor: string): string {
   return comments.join('\n');
 }
 
-/** `glowLoop` 선언 블록(`const glowLoop = {` ~ 닫는 `};`)의 범위. */
-function glowLoopRange(): [number, number] {
-  const start = BORDER_CSS.indexOf('const glowLoop = {');
-  expect(start, 'const glowLoop 선언을 찾지 못했다').toBeGreaterThan(-1);
-  const end = BORDER_CSS.indexOf('};', start);
-  expect(end, 'glowLoop의 닫는 };를 찾지 못했다').toBeGreaterThan(start);
-  return [start, end];
-}
-
-/** 인덱스가 `glowLoop` 블록 안에 든다. "선언이 앞에 있기만 하면" 통과하는
- * lastIndexOf 판정은 glowLoop 뒤에 willChange를 단 별도 globalStyle을 두는
- * 상주 회귀를 못 잡는다. 위치 자체를 범위로 잠근다. */
-function expectInsideGlowLoop(index: number) {
-  const [start, end] = glowLoopRange();
-  expect(index).toBeGreaterThan(start);
-  expect(index).toBeLessThan(end);
-}
-
-/** 루프(animation·will-change)는 한 번 선언한 `glowLoop`를 :hover와
- * :focus-within 트리거 규칙 둘에만 펼친다. :hover는 포인터 게이트 때문에
- * 규칙이 갈라져서 선언이 두 번 쓰이면 tierA 소비처 수(6)가 7이 된다. */
-function expectGlowLoopOnlyInTriggers() {
-  const spreads = [...BORDER_CSS.matchAll(/\.\.\.glowLoop/g)];
-  expect(spreads).toHaveLength(2);
-
-  const triggers = spreads.map((spread) => {
-    const ruleStart = BORDER_CSS.lastIndexOf('globalStyle(', spread.index);
-    expect(ruleStart).toBeGreaterThan(-1);
-    const selector = BORDER_CSS.slice(ruleStart, spread.index);
-    expect(selector).toContain('::before');
-    return selector.includes(':hover') ? ':hover' : ':focus-within';
-  });
-  expect(triggers.sort()).toEqual([':focus-within', ':hover']);
+/** `glowRing::before` 규칙 본문. 회전·will-change·그라디언트가 모두 여기 한 곳에 있다. */
+function beforeBlock(): string {
+  const block = BORDER_CSS.match(
+    /globalStyle\(`\$\{glowRing\}::before`, \{([\s\S]*?)^\}\);/m
+  )?.[1];
+  expect(block, 'glowRing::before 블록을 찾지 못했다').toBeDefined();
+  return block as string;
 }
 
 describe('Border', () => {
@@ -400,16 +374,11 @@ describe('Border', () => {
   });
 
   describe('빛 루프 소스 검증', () => {
-    it('will-change가 :hover·:focus-within 트리거 규칙 안에서만 선언된다', () => {
-      // 링은 이제 항상 존재한다(예전엔 ::before가 :hover 선택자 안에서만
-      // 정의돼 비활성 시 통째로 사라졌다). 상주 will-change를 되살리면
-      // 비활성 Border마다 합성 레이어가 남으므로, 선언이 트리거 규칙
-      // 하나뿐인 것을 개수로 잠근다.
-      const hits = [...BORDER_CSS.matchAll(/willChange/g)];
-      expect(hits).toHaveLength(1);
-
-      expectInsideGlowLoop(hits[0].index);
-      expectGlowLoopOnlyInTriggers();
+    it('will-change가 ::before 규칙 하나에만 선언된다', () => {
+      // 링이 있는 Border에서만 렌더되므로 이 규칙이 곧 켜진 Border다.
+      // 다른 곳에 상주 will-change를 되살리면 안 쓰는 Border에도 합성 레이어가 남는다.
+      expect([...BORDER_CSS.matchAll(/willChange/g)]).toHaveLength(1);
+      expect(beforeBlock()).toContain("willChange: 'transform'");
     });
 
     it('conic-gradient + rotate + mask 숏핸드로 빛을 구현한다 (@property 없이)', () => {
@@ -445,23 +414,38 @@ describe('Border', () => {
       // 링 밖으로 새지 않게 가두는 것이 가독성 보증의 전부다.
       expect(ringBlock).toContain("overflow: 'hidden'");
 
-      const beforeBlock = BORDER_CSS.match(
-        /globalStyle\(`\$\{glowRing\}::before`, \{([\s\S]*?)^\}\);/m
-      )?.[1];
-      expect(beforeBlock, 'glowRing::before 블록을 찾지 못했다').toBeDefined();
-      // 회전은 여기가 아니라 트리거 규칙에 있다. 아래 it이 그것을 잠근다.
-      expect(beforeBlock).not.toContain('${rotate}');
-    });
-
-    it('루프가 :hover·:focus-within 트리거 규칙 안에서만 돈다', () => {
-      // 링은 항상 존재하고 sides 기본값이 all이므로, 회전이 기본 ::before
-      // 규칙에 있으면 페이지의 모든 Border가 안 보이는 채로 영원히 틱한다.
-      // will-change와 같은 규칙 안에 있는 것을 선언 개수로 잠근다.
       const hits = [...BORDER_CSS.matchAll(/\$\{rotate\}/g)];
       expect(hits).toHaveLength(1);
+      expect(beforeBlock()).toContain('${rotate}');
+    });
 
-      expectInsideGlowLoop(hits[0].index);
-      expectGlowLoopOnlyInTriggers();
+    it('빛은 늘 돈다: 호버·포커스 트리거도 호버 게이트도 링의 숨김(opacity)도 없다', () => {
+      // glow를 켠 Border는 마우스와 무관하게 로더로 돈다. 트리거 규칙이나
+      // opacity 0이 되살아나면 켜 놓고도 안 보이는 Border가 생긴다.
+      const code = BORDER_CSS.split('\n')
+        .filter((line) => !line.trim().startsWith('//'))
+        .join('\n');
+      expect(code).not.toContain(':hover');
+      expect(code).not.toContain(':focus-within');
+      expect(code).not.toContain('hover: hover');
+      expect(code).not.toContain('opacity');
+    });
+
+    it('꼬리 달린 빛: 머리는 glowColor로 밝고 뒤로 투명해지는 90~120도 꼬리가 달린다', () => {
+      const gradient = beforeBlock().match(/conic-gradient\(([^)]*)\)/)?.[1];
+      expect(gradient, 'conic-gradient를 찾지 못했다').toBeDefined();
+      const stops = [
+        ...(gradient as string).matchAll(
+          /(transparent|\$\{glowColor\})\s+(\d+)deg/g
+        ),
+      ].map((m) => ({ color: m[1], deg: Number(m[2]) }));
+      const head = stops[stops.length - 1];
+      expect(head).toEqual({ color: '${glowColor}', deg: 360 });
+      // 꼬리가 시작되는(투명이 끝나는) 각도
+      const tailStart = stops.filter((s) => s.color === 'transparent').at(-1)!;
+      const tail = head.deg - tailStart.deg;
+      expect(tail).toBeGreaterThanOrEqual(90);
+      expect(tail).toBeLessThanOrEqual(120);
     });
 
     it('빛 색이 color prop을 따라간다. default만 강조색을 유지한다', () => {
@@ -495,8 +479,9 @@ describe('Border', () => {
       expect(BORDER_CSS).toMatch(/conic-gradient\([^)]*\$\{glowColor\}/);
     });
 
-    it('루프 주기·커브가 loop.slow·easing.linear 토큰이다', () => {
-      expect(BORDER_CSS).toContain('${themeContract.animation.loop.slow}');
+    it('루프 주기·커브가 loop.base·easing.linear 토큰이다', () => {
+      expect(BORDER_CSS).toContain('${themeContract.animation.loop.base}');
+      expect(BORDER_CSS).not.toContain('animation.loop.slow');
       expect(BORDER_CSS).toContain('${themeContract.animation.easing.linear}');
     });
 
@@ -516,77 +501,45 @@ describe('Border', () => {
   });
 
   describe('빛 루프 생성 CSS (CSSOM)', () => {
-    const HOVER_GATE = '(hover: hover) and (pointer: fine)';
-
-    /** 최상위 스타일 규칙과 @media 안의 스타일 규칙을 게이트와 함께 평탄화한다. */
-    function flatRules(sheet: CSSStyleSheet) {
-      const out: { rule: CSSStyleRule; media: string | null }[] = [];
-      for (const rule of Array.from(sheet.cssRules)) {
-        if (rule instanceof CSSStyleRule) {
-          out.push({ rule, media: null });
-        } else if (rule instanceof CSSMediaRule) {
-          for (const inner of Array.from(rule.cssRules)) {
-            if (inner instanceof CSSStyleRule) {
-              out.push({ rule: inner, media: rule.conditionText });
-            }
-          }
-        }
-      }
-      return out;
-    }
-
-    function borderRules() {
+    function borderRules(): CSSStyleRule[] {
       const sheet = Array.from(document.styleSheets).find((candidate) =>
         Array.from(candidate.cssRules).some((rule) =>
           rule.cssText.includes('Border_')
         )
       );
       if (!sheet) throw new Error('Border.css.ts의 스타일시트를 찾지 못했다');
-      return flatRules(sheet);
+      return Array.from(sheet.cssRules).filter(
+        (rule): rule is CSSStyleRule => rule instanceof CSSStyleRule
+      );
     }
 
-    it('호버 규칙(opacity·애니메이션)은 (hover: hover) and (pointer: fine) 안에 있다', () => {
-      const hover = borderRules().filter(({ rule }) =>
-        rule.selectorText.includes(':hover')
-      );
-
-      // opacity 트리거 + ::before 애니메이션 부착, 둘이다.
-      expect(hover).toHaveLength(2);
-      for (const { media } of hover) {
-        expect(media).toBe(HOVER_GATE);
-      }
-    });
-
-    it(':focus-within 규칙은 포인터 게이트 밖에 있다', () => {
-      const focus = borderRules().filter(({ rule }) =>
-        rule.selectorText.includes(':focus-within')
-      );
-
-      expect(focus).toHaveLength(2);
-      for (const { media } of focus) {
-        expect(media).toBeNull();
-      }
-    });
-
-    it('rotate 애니메이션 길이가 loop.slow다 (loop.base가 아니다)', () => {
-      const looping = borderRules().filter(({ rule }) =>
+    it('::before 규칙 하나가 회전을 붙인다: rotate, loop.base, linear, infinite', () => {
+      const looping = borderRules().filter((rule) =>
         rule.style.getPropertyValue('animation').includes('rotate')
       );
-
-      // 트리거마다 하나(:hover, :focus-within).
-      expect(looping).toHaveLength(2);
-      for (const { rule } of looping) {
-        const animation = rule.style.getPropertyValue('animation');
-        expect(animation).toContain(themeContract.animation.loop.slow);
-        expect(animation).not.toContain(themeContract.animation.loop.base);
-        expect(animation).toContain('infinite');
-        expect(animation).not.toMatch(/\b(forwards|both)\b/);
-      }
+      expect(looping).toHaveLength(1);
+      expect(looping[0].selectorText).toMatch(/glowRing__\w+::before$/);
+      const animation = looping[0].style.getPropertyValue('animation');
+      expect(animation).toContain(themeContract.animation.loop.base);
+      expect(animation).toContain(themeContract.animation.easing.linear);
+      expect(animation).toContain('infinite');
+      expect(animation).not.toMatch(/\b(forwards|both)\b/);
     });
 
-    it('loop.slow는 6000ms다 (StarBorder speed 6s, loop.base의 4배)', () => {
-      expect(loop.slow).toBe('6000ms');
-      expect(parseInt(loop.slow) / parseInt(loop.base)).toBe(4);
+    it('호버·포커스 규칙이 없고 링은 숨겨져 있지 않다', () => {
+      for (const rule of borderRules()) {
+        expect(rule.selectorText).not.toContain(':hover');
+        expect(rule.selectorText).not.toContain(':focus-within');
+      }
+      const ring = borderRules().find((rule) =>
+        /glowRing__\w+$/.test(rule.selectorText)
+      );
+      expect(ring).toBeDefined();
+      expect(ring!.style.getPropertyValue('opacity')).not.toBe('0');
+    });
+
+    it('loop.base는 1500ms다 (로더 한 바퀴)', () => {
+      expect(loop.base).toBe('1500ms');
     });
   });
 });

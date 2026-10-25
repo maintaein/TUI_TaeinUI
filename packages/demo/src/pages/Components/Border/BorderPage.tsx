@@ -1,4 +1,4 @@
-import { useState, type ComponentProps } from 'react';
+import { useCallback, useState, type ComponentProps } from 'react';
 import { Border } from '@taein-ui/core';
 import { CodeBlock } from '../../../components/CodeBlock';
 import {
@@ -13,7 +13,7 @@ import type { PropDefinition } from '../../../components/PropsTable';
 import { Stage, type Act, type DemoProps } from '../../../components/Stage';
 
 const LEAD =
-  '콘텐츠 둘레에 선을 두릅니다. 영역을 나누거나 강조할 때 쓰고 켜 두면 마우스를 올린 곳의 테두리를 따라 빛이 돕니다.';
+  '콘텐츠 둘레에 선을 두릅니다. 영역을 나누거나 강조할 때 쓰고 glow를 켜면 꼬리 달린 빛이 테두리를 따라 돌며 진행 중임을 알립니다.';
 
 const CONTROLS: Control[] = [
   {
@@ -55,18 +55,15 @@ const INITIAL: Values = {
   glow: true,
 };
 
-const TEXT = '여기가 지금 살아 있습니다';
+const TEXT = '답변을 만들고 있습니다';
+const DONE = '답변이 완성됐습니다';
 
-// 커서가 테두리에 올라가 머문다. 빛이 테두리를 따라 도는 것이 보일 만큼 오래 둔다(한 바퀴는 6초)
-// shortcut: 호버 머무름 3초는 빛이 반 바퀴쯤 도는 값이다, 한 바퀴를 다 보이려면 6초로 늘린다
-const SCRIPT = (act: Act) => {
-  act.move('border');
-  act.hover('border');
-  act.wait(3);
-  act.leave('border');
-  act.wait(0.8);
-  act.home();
-  act.wait(0.6);
+// 로더로 쓰는 모습: 생성 중에는 빛이 돌고, 완료되면 글이 바뀌며 빛이 꺼진다. 다시 시작하면 돈다
+const SCRIPT = (act: Act, setBusy: (busy: boolean) => void) => {
+  act.call(() => setBusy(true));
+  act.wait(3.6);
+  act.call(() => setBusy(false));
+  act.wait(1.6);
 };
 
 const PROPS: PropDefinition[] = [
@@ -118,9 +115,13 @@ const PROPS: PropDefinition[] = [
     type: 'boolean',
     default: 'false',
     description:
-      '마우스를 올리거나 키보드 포커스가 들어오면 테두리를 따라 도는 빛. sides가 all일 때만 나타난다',
+      '켜져 있는 동안 꼬리 달린 빛이 테두리를 따라 1.5초에 한 바퀴 돈다. 진행 중임을 알리는 로더다. sides가 all일 때만 나타난다. 5초 넘게 움직이므로 끝나면 끈다',
   },
 ];
+
+const LOADER = `<Border glow={busy} padding="lg" color="primary">
+  {busy ? '답변을 만들고 있습니다' : '답변이 완성됐습니다'}
+</Border>`;
 
 const QUOTE = `<Border sides="left" width="thick" color="primary" padding="md">
   왼쪽 두꺼운 선으로 인용문을 강조합니다.
@@ -129,18 +130,23 @@ const QUOTE = `<Border sides="left" width="thick" color="primary" padding="md">
 function Usage() {
   return (
     <Topics>
-      <Topic title="호버 빛">
+      <Topic title="진행 중 빛">
         <p className={t.body}>
-          <code>glow</code>를 켜면 마우스를 올리거나 키보드 포커스가 안으로
-          들어올 때 빛이 테두리를 따라 6초에 한 바퀴 돕니다. 기본은 꺼져
-          있습니다. <code>sides</code>가 <code>all</code>일 때만 나타나고 다른
-          값에서는 <code>glow</code>를 줘도 아무 일도 없습니다. 빛은 선 색을
-          따라가며 <code>default</code>는 회색이라 <code>primary</code> 색으로
-          돕니다. 호버는 마우스 같은 정밀 포인터에서만 켜지고 터치에서는 켜지지
-          않으며 포커스는 입력 기기와 상관없이 켜집니다. 안에 포커스를 받을
-          요소가 없으면 호버로만 켜집니다. 움직임 줄이기 설정을 켠 환경에서는
-          돌지 않습니다.
+          <code>glow</code>를 켜면 꼬리 달린 빛이 테두리를 따라 1.5초에 한 바퀴
+          돕니다. 마우스를 올리거나 포커스가 들어와야 켜지는 것이 아니라 켜져
+          있는 동안 계속 돕니다. AI 답변을 만드는 중인 카드나 업로드 중인
+          카드처럼 진행 중인 상자에 씁니다. 기본은 꺼져 있습니다.{' '}
+          <code>sides</code>가 <code>all</code>일 때만 나타나고 다른 값에서는{' '}
+          <code>glow</code>를 줘도 아무 일도 없습니다. 빛은 선 색을 따라가며{' '}
+          <code>default</code>는 회색이라 <code>primary</code> 색으로 돕니다.
         </p>
+        <p className={t.body} style={{ marginTop: 12 }}>
+          5초 넘게 계속 움직이는 것은 끌 수 있어야 하므로(WCAG 2.2.2) 진행이
+          끝나면 <code>glow</code>를 끕니다. 꾸미기만 하려고 켜 두지 않습니다.
+          움직임 줄이기 설정을 켠 환경에서는 돌지 않고 빛이 한 자리에 멈춰
+          있습니다.
+        </p>
+        <CodeBlock code={LOADER} />
       </Topic>
       <Topic title="일부 변만 긋기">
         <p className={t.body} style={{ marginBottom: 12 }}>
@@ -174,7 +180,14 @@ function A11y() {
       </li>
       <li>
         <code>glow</code>의 빛은 <code>aria-hidden</code> 장식 요소이고 클릭을
-        받지 않습니다.
+        받지 않습니다. 진행 중이라는 사실은 빛이 전하지 못하므로 글자로 함께
+        알립니다. 진행 상태를 알리는 영역에는{' '}
+        <code>role=&quot;status&quot;</code>나 <code>aria-busy</code>를 직접
+        줍니다.
+      </li>
+      <li>
+        <code>glow</code>는 5초 넘게 움직이는 장식이므로 진행이 끝나면 끕니다.
+        움직임 줄이기 설정에서는 돌지 않습니다.
       </li>
       <li>
         개발자가 직접 해야 합니다. 테두리가 의미 있는 영역을 감쌀 때는{' '}
@@ -196,8 +209,17 @@ type Padding = ComponentProps<typeof Border>['padding'];
 
 /** 무대 조각. 상세 페이지와 전체 컴포넌트 카드가 같이 쓴다 */
 export function BorderDemo({ values = INITIAL, mini }: DemoProps) {
+  // 처음과 넘겨받을 때는 진행 중이라 조작판의 glow가 바로 보인다
+  const [busy, setBusy] = useState(true);
+  const script = useCallback((act: Act) => SCRIPT(act, setBusy), []);
+
   return (
-    <Stage mini={mini} label="Border 시연" script={SCRIPT}>
+    <Stage
+      mini={mini}
+      label="Border 시연"
+      script={script}
+      onPause={() => setBusy(true)}
+    >
       <Border
         data-stage-target="border"
         sides={values.sides as Sides}
@@ -206,11 +228,11 @@ export function BorderDemo({ values = INITIAL, mini }: DemoProps) {
         color={values.color as Color}
         rounded={values.rounded as Rounded}
         padding={values.padding as Padding}
-        glow={values.glow === true}
+        glow={values.glow === true && busy}
         // 무대 폭을 채운다. 코드에는 없다
         style={{ justifySelf: 'stretch' }}
       >
-        {TEXT}
+        {busy ? TEXT : DONE}
       </Border>
     </Stage>
   );

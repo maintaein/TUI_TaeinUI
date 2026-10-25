@@ -7,8 +7,7 @@ import { mountLive } from './livePreview';
  * 링은 `position: absolute`라 inset 0의 기준이 padding box다. 예전엔 링의 바깥 가장자리가
  * 테두리선 안쪽 가장자리에 놓여, 빛이 테두리선 위가 아니라 선 안쪽 띠에 그려졌다. 지금은
  * 링 바깥이 Border의 border box와 같고, 링 안쪽 구멍(빛이 비는 자리)이 padding box와 같다.
- * jsdom은 레이아웃을 계산하지 않아 잴 수 없다. 포커스로 빛을 켠다(:focus-within은 포인터
- * 종류와 무관하다).
+ * jsdom은 레이아웃을 계산하지 않아 잴 수 없다. glow를 켜면 호버·포커스 없이도 빛이 켜져 있다.
  */
 
 const widths = [
@@ -23,9 +22,8 @@ for (const { width, px } of widths) {
     test(`${width} ${rounded}: 빛 링 바깥은 border box, 안쪽 구멍은 padding box와 같다`, async ({
       page,
     }) => {
-      const code = `<Border id="b" glow width="${width}" rounded="${rounded}" padding="md"><button id="f">포커스</button></Border>`;
+      const code = `<Border id="b" glow width="${width}" rounded="${rounded}" padding="md"><span>내용</span></Border>`;
       await mountLive(page, code, '#b');
-      await page.locator('#f').focus();
 
       const m = await page.evaluate(() => {
         const b = document.getElementById('b')!;
@@ -64,7 +62,7 @@ for (const { width, px } of widths) {
         expect(Math.abs(v - m.inner[i])).toBeLessThan(1)
       );
       expect(m.hole[0] - m.ring[0]).toBeCloseTo(px, 0);
-      // 링이 켜져 있고 마스크가 살아 있다(꽉 찬 사각형이 아니다)
+      // 포커스·호버 없이 링이 켜져 있고 마스크가 살아 있다(꽉 찬 사각형이 아니다)
       await expect
         .poll(() =>
           page.evaluate(() =>

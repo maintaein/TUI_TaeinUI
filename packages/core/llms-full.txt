@@ -945,7 +945,7 @@ import { Border } from '@taein-ui/core';
 | color | 'default' \| 'primary' \| 'success' \| 'error' \| 'warning' | 'default' | Border color |
 | rounded | 'none' \| 'sm' \| 'md' \| 'lg' \| 'full' | 'md' if sides='all', else 'none' | Border radius. An explicit value always wins |
 | padding | 'none' \| 'sm' \| 'md' \| 'lg' | 'none' | Inner padding |
-| glow | boolean | false | Light that circles the border on hover/focus. Only with sides='all'. Hover is gated to (hover: hover) and (pointer: fine) |
+| glow | boolean | false | A light with a fading tail that circles the border for as long as it is on (a loader, one lap per 1500ms), regardless of hover or focus. Only with sides='all'. It moves for more than 5 seconds (WCAG 2.2.2), so turn it off when loading ends. Reduced motion: no rotation, the light stays in one place |
 | className | string | - | Additional CSS class |
 
 ---
