@@ -74,7 +74,7 @@ All components follow consistent patterns:
 - **List**: Ordered list with spacing. Props: spacing, divider. Child: ListItem(label, value, layout)
 - **BoardRow**: Expandable row/accordion. Props: title, variant, expanded, onChange, disabled
 - **Divider**: Content separator. Props: orientation, variant('solid'|'dashed'|'dotted'), spacing, children(text)
-- **Border**: Border wrapper. Props: sides, variant, width, color, rounded('md' default for sides='all', 'none' for partial sides), padding, glow(opt-in looping loader light)
+- **Border**: Border wrapper. Props: sides, variant, width, color, rounded('md' default for sides='all', 'none' for partial sides), padding, glow(opt-in single fading-tail light along the rounded perimeter, 3000ms per lap with two slow-fast-slow segments; reduced motion stays at the start)
 - **HeaderBar** - Floating rounded app header bar (centered, max 960px, 60px tall). Props: logo, title, titleAs('h1' default | 'h2'-'h6' | 'span'), items(`{ label, href?, onClick?, icon?, active?, links? }`), navStyle('pill' default | 'text' | 'dropdown' | 'cards' | 'icon'), actions, sticky. The root is a plain `<header>`, so it is the banner landmark only at the top level of the document. Under 768px the items fold into a hamburger + vertical list
 
 ## Design Tokens

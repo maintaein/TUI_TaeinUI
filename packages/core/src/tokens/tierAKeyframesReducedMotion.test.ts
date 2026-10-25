@@ -269,7 +269,7 @@ describe('Tier-A 11개 @keyframes 소스 열거 (M2 T4)', () => {
     // 무엇을 뒤집으면 빨개지는가: 루프에서 infinite를 빼거나 마운트 1회에
     // infinite를 붙이면(잘못된 도구 선택, 공통 제약 §2) 분류가 바뀌어 잡힌다.
     expect(LOOP.map((k) => `${k.file}:${k.name}`).sort()).toEqual([
-      'components/Border/Border.css.ts:rotate',
+      'components/Border/Border.css.ts:travel',
       'components/Loader/Loader.css.ts:bubbleRise',
       'components/Loader/Loader.css.ts:bubbleSquash',
       'components/Loader/Loader.css.ts:fadeInOut',
@@ -318,7 +318,7 @@ describe('Tier-A 11개 @keyframes 소스 열거 (M2 T4)', () => {
  * 리터럴 문자열로 잠겨 있었다. 여기서 LOOP 9개 전부로 일반화한다.
  */
 describe('검사 1: 무한 루프 12개가 축소 모드(iteration 1)에서 보이는 상태로 끝난다: 소비처 base가 표시 상태이고 fill-mode가 forwards/both가 아니다', () => {
-  it('LOOP 12개에서 프레임 30개·프레임 속성 34개·소비처 14곳을 실제로 순회한다, 파서가 0개를 세면 아래 검사들보다 먼저 여기가 빨개진다', () => {
+  it('LOOP 12개에서 프레임 31개·프레임 속성 35개·소비처 14곳을 실제로 순회한다, 파서가 0개를 세면 아래 검사들보다 먼저 여기가 빨개진다', () => {
     // 무엇을 뒤집으면 빨개지는가: 루프 하나를 `from`/`to` 표기로 바꾸거나
     // 프레임 값에 `${...}` 보간을 넣으면 parseFrames가 그 키프레임에서 0개를
     // 돌려준다. 개수가 어긋나 여기가 빨개진다. 개수 앵커가 없으면 같은
@@ -328,16 +328,17 @@ describe('검사 1: 무한 루프 12개가 축소 모드(iteration 1)에서 보�
     // 9곳에서 13곳(물결 1, 자벌레 1, fadeInOut +2)이다.
     // M5 task-20 3부: 불똥 깜빡임이 프레임 4개(각각 transform과 opacity, 속성 +8)와
     // 소비처 1곳을 더해 프레임 30개·속성 34개·소비처 14곳이다.
-    expect(LOOP.flatMap((k) => k.frames)).toHaveLength(30);
+    // Border travel은 offsetDistance 세 프레임이며 숏핸드의 이징은 프레임 속성 수에 포함하지 않는다.
+    expect(LOOP.flatMap((k) => k.frames)).toHaveLength(31);
     expect(
       LOOP.flatMap((k) => k.frames).flatMap((f) => Object.keys(f.props))
-    ).toHaveLength(34);
+    ).toHaveLength(35);
     expect(LOOP.flatMap((k) => k.usages)).toHaveLength(14);
   });
 
   it('0%·100% 프레임에 opacity:0 / scale(0)류가 없다', () => {
     // 무엇을 뒤집으면 빨개지는가: Loader.css.ts의 fadeInOut '0%, 100%'
-    // 프레임 opacity를 0.2 → 0으로 바꾸면(또는 Border rotate 0%에
+    // 프레임 opacity를 0.2 → 0으로 바꾸면(또는 Border travel 0%에
     // transform: 'scale(0)'를 끼워 넣으면) 여기가 빨개진다.
     const offenders: string[] = [];
     for (const k of LOOP) {
@@ -353,7 +354,7 @@ describe('검사 1: 무한 루프 12개가 축소 모드(iteration 1)에서 보�
 
   it('LOOP 소비처의 fill-mode에 forwards·both가 없다. 있으면 축소 모드에서 마지막 프레임에 고착한다 (M1 opacity:0.2 회귀 경로)', () => {
     // 무엇을 뒤집으면 빨개지는가: Loader.css.ts dot의 `backwards`를
-    // `both`로 되돌리면(M1 회귀 그 자체) 여기가 빨개진다. Border rotate나
+    // `both`로 되돌리면(M1 회귀 그 자체) 여기가 빨개진다. Border travel이나
     // Skeleton pulse에 `forwards`를 붙여도 같다.
     const offenders: string[] = [];
     for (const k of LOOP) {
@@ -526,18 +527,19 @@ describe('검사 3: keyframes 소비의 duration 자리가 리터럴이 아니�
   });
 });
 
-describe('검사 4: keyframes 본문이 transform·opacity 밖을 안 건드린다', () => {
-  it('14개 전체에서 프레임 32개·프레임 속성 38개를 실제로 순회한다, 파싱이 비면 화이트리스트 검사가 진공이다', () => {
+describe('검사 4: keyframes 본문은 레이아웃을 바꾸지 않는 속성만 움직인다', () => {
+  it('14개 전체에서 프레임 33개·프레임 속성 39개를 실제로 순회한다, 파싱이 비면 화이트리스트 검사가 진공이다', () => {
     // 무엇을 뒤집으면 빨개지는가: 프레임 값 하나를 백틱 보간(`\`${x}\``)으로
     // 바꾸면 PROP 정규식이 그 속성을 못 읽어 속성 수가 줄고, 프레임 키를
     // `from`/`to`로 바꾸면 FRAME 정규식이 그 프레임을 통째로 놓쳐 프레임 수가
     // 준다. 둘 다 여기가 먼저 잡는다.
     // M5 task-20 3부: 불똥 깜빡임 프레임 4개, 속성 8개가 더해 33개와 39개다.
     // M5 task-26: Divider의 grow(프레임 1개, 속성 1개)가 지워져 32개와 38개다.
-    expect(KEYFRAMES.flatMap((k) => k.frames)).toHaveLength(32);
+    // Border travel은 offsetDistance 세 프레임이며 숏핸드의 이징은 프레임 속성 수에 포함하지 않는다.
+    expect(KEYFRAMES.flatMap((k) => k.frames)).toHaveLength(33);
     expect(
       KEYFRAMES.flatMap((k) => k.frames).flatMap((f) => Object.keys(f.props))
-    ).toHaveLength(38);
+    ).toHaveLength(39);
   });
 
   /**
@@ -582,7 +584,13 @@ describe('검사 4: keyframes 본문이 transform·opacity 밖을 안 건드린�
     for (const k of KEYFRAMES) {
       for (const frame of k.frames) {
         for (const prop of Object.keys(frame.props)) {
-          const allowed = prop === 'transform' || prop === 'opacity';
+          // Border의 경로 이동은 레이아웃을 바꾸지 않아 이 키프레임에만 허용한다.
+          const allowed =
+            prop === 'transform' ||
+            prop === 'opacity' ||
+            (k.file === 'components/Border/Border.css.ts' &&
+              k.name === 'travel' &&
+              prop === 'offsetDistance');
           if (!allowed)
             offenders.push(`${k.file}:${k.name}@${frame.key} (${prop})`);
         }

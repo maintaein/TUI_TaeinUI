@@ -27,7 +27,7 @@ function commentBlockAbove(source: string, anchor: string): string {
   return comments.join('\n');
 }
 
-/** `glowRing::before` 규칙 본문. 회전·will-change·그라디언트가 모두 여기 한 곳에 있다. */
+/** `glowRing::before` 규칙 본문. 이동·will-change·그라디언트가 모두 여기 한 곳에 있다. */
 function beforeBlock(): string {
   const block = BORDER_CSS.match(
     /globalStyle\(`\$\{glowRing\}::before`, \{([\s\S]*?)^\}\);/m
@@ -350,9 +350,16 @@ describe('Border', () => {
       expect(ring?.className).toMatch(/glowRing/);
     });
 
-    it('sides가 all이 아니면 glowRing span이 없다', () => {
+    it.each([
+      'top',
+      'right',
+      'bottom',
+      'left',
+      'horizontal',
+      'vertical',
+    ] as const)('sides가 %s면 glowRing span이 없다', (sides) => {
       const { container } = render(
-        <Border sides="top" glow>
+        <Border sides={sides} glow>
           콘텐츠
         </Border>
       );
@@ -378,12 +385,15 @@ describe('Border', () => {
       // 링이 있는 Border에서만 렌더되므로 이 규칙이 곧 켜진 Border다.
       // 다른 곳에 상주 will-change를 되살리면 안 쓰는 Border에도 합성 레이어가 남는다.
       expect([...BORDER_CSS.matchAll(/willChange/g)]).toHaveLength(1);
-      expect(beforeBlock()).toContain("willChange: 'transform'");
+      expect(beforeBlock()).toContain("willChange: 'offset-distance'");
     });
 
-    it('conic-gradient + rotate + mask 숏핸드로 빛을 구현한다 (@property 없이)', () => {
-      expect(BORDER_CSS).toContain('conic-gradient');
-      expect(BORDER_CSS).toContain('rotate(360deg)');
+    it('offset-path + linear-gradient + mask 숏핸드로 빛을 구현한다', () => {
+      expect(beforeBlock()).toContain('offsetPath:');
+      expect(beforeBlock()).toContain("offsetRotate: 'auto'");
+      expect(BORDER_CSS).not.toContain('conic-gradient');
+      expect(BORDER_CSS).not.toContain('rotate(360deg)');
+      expect(BORDER_CSS).not.toContain("inset: '-100%'");
       // <geometry-box>(content-box)는 mask 숏핸드에만 올 수 있다. 롱핸드
       // maskImage에 넣으면 선언이 통째로 버려져(계산값 none) 마스크가 아예
       // 안 걸린다. 빛이 링이 아니라 박스 전체를 덮는다(리뷰 C1).
@@ -414,9 +424,9 @@ describe('Border', () => {
       // 링 밖으로 새지 않게 가두는 것이 가독성 보증의 전부다.
       expect(ringBlock).toContain("overflow: 'hidden'");
 
-      const hits = [...BORDER_CSS.matchAll(/\$\{rotate\}/g)];
+      const hits = [...BORDER_CSS.matchAll(/\$\{travel\}/g)];
       expect(hits).toHaveLength(1);
-      expect(beforeBlock()).toContain('${rotate}');
+      expect(beforeBlock()).toContain('${travel}');
     });
 
     it('빛은 늘 돈다: 호버·포커스 트리거도 호버 게이트도 링의 숨김(opacity)도 없다', () => {
@@ -431,21 +441,11 @@ describe('Border', () => {
       expect(code).not.toContain('opacity');
     });
 
-    it('꼬리 달린 빛: 머리는 glowColor로 밝고 뒤로 투명해지는 90~120도 꼬리가 달린다', () => {
-      const gradient = beforeBlock().match(/conic-gradient\(([^)]*)\)/)?.[1];
-      expect(gradient, 'conic-gradient를 찾지 못했다').toBeDefined();
-      const stops = [
-        ...(gradient as string).matchAll(
-          /(transparent|\$\{glowColor\})\s+(\d+)deg/g
-        ),
-      ].map((m) => ({ color: m[1], deg: Number(m[2]) }));
-      const head = stops[stops.length - 1];
-      expect(head).toEqual({ color: '${glowColor}', deg: 360 });
-      // 꼬리가 시작되는(투명이 끝나는) 각도
-      const tailStart = stops.filter((s) => s.color === 'transparent').at(-1)!;
-      const tail = head.deg - tailStart.deg;
-      expect(tail).toBeGreaterThanOrEqual(90);
-      expect(tail).toBeLessThanOrEqual(120);
+    it('머리가 앞서고 뒤로 투명해지는 고정 길이 꼬리가 달린다', () => {
+      expect(beforeBlock()).toContain(
+        'linear-gradient(to right, transparent, ${glowColor})'
+      );
+      expect(beforeBlock()).toContain('width: themeContract.spacing[12]');
     });
 
     it('빛 색이 color prop을 따라간다. default만 강조색을 유지한다', () => {
@@ -475,22 +475,33 @@ describe('Border', () => {
         expect(variant).toContain(`vars: { [glowColor]: ${token} }`);
       }
 
-      // conic-gradient가 그 var를 읽어야 색이 실제로 바뀐다.
-      expect(BORDER_CSS).toMatch(/conic-gradient\([^)]*\$\{glowColor\}/);
+      expect(BORDER_CSS).toMatch(/linear-gradient\([^)]*\$\{glowColor\}/);
     });
 
-    it('루프 주기·커브가 loop.base·easing.linear 토큰이다', () => {
-      expect(BORDER_CSS).toContain('${themeContract.animation.loop.base}');
+    it('한 바퀴는 loop.base의 두 배이며 drift는 키프레임이 아닌 animation 숏핸드에 있다', () => {
+      expect(beforeBlock()).toContain(
+        'calc(${themeContract.animation.loop.base} * 2)'
+      );
       expect(BORDER_CSS).not.toContain('animation.loop.slow');
-      expect(BORDER_CSS).toContain('${themeContract.animation.easing.linear}');
+      expect(beforeBlock()).toMatch(
+        /animation:\s*`[^`]*\$\{themeContract\.animation\.easing\.drift\}[^`]*`/
+      );
+      const frames = BORDER_CSS.match(
+        /const travel = keyframes\(\{([\s\S]*?)^\}\);/m
+      )?.[1];
+      expect(frames).toBeDefined();
+      expect(frames).not.toContain('animationTimingFunction');
+      for (const distance of ['0%', '50%', '100%']) {
+        expect(BORDER_CSS).toContain(`offsetDistance: '${distance}'`);
+      }
     });
 
     it('자율 루프라 조항 1 밖이라는 근거가 그 keyframes 정의 바로 위에 있다', () => {
       // 파일 전체 toMatch는 "조항 1" 네 글자가 파일 어디에 있기만 하면
       // 초록이다. 근거가 딴 데로 옮겨가거나 무관한 문장에 섞여도 모른다.
-      // 무엇을 뒤집으면 빨개지는가: 근거 주석을 const rotate = keyframes({ 정의 위에서 떼면.
+      // 근거를 키프레임 정의에서 떼면 실패해야 한다.
       expect(
-        commentBlockAbove(BORDER_CSS, 'const rotate = keyframes({')
+        commentBlockAbove(BORDER_CSS, 'const travel = keyframes({')
       ).toMatch(/조항 1/);
     });
 
@@ -513,15 +524,22 @@ describe('Border', () => {
       );
     }
 
-    it('::before 규칙 하나가 회전을 붙인다: rotate, loop.base, linear, infinite', () => {
+    it('glow의 ::before 규칙 하나에 둘레 경로와 무한 이동 애니메이션이 걸린다', () => {
+      const { container } = render(<Border glow>콘텐츠</Border>);
+      const ring = container.querySelector('span[aria-hidden="true"]')!;
       const looping = borderRules().filter((rule) =>
-        rule.style.getPropertyValue('animation').includes('rotate')
+        rule.style.getPropertyValue('animation').includes('travel')
       );
       expect(looping).toHaveLength(1);
       expect(looping[0].selectorText).toMatch(/glowRing__\w+::before$/);
+      expect(
+        ring.matches(looping[0].selectorText.replace('::before', ''))
+      ).toBe(true);
+      expect(looping[0].style.getPropertyValue('offset-path')).not.toBe('');
+      expect(looping[0].style.getPropertyValue('offset-distance')).toBe('0%');
       const animation = looping[0].style.getPropertyValue('animation');
       expect(animation).toContain(themeContract.animation.loop.base);
-      expect(animation).toContain(themeContract.animation.easing.linear);
+      expect(animation).toContain('* 2');
       expect(animation).toContain('infinite');
       expect(animation).not.toMatch(/\b(forwards|both)\b/);
     });
@@ -538,7 +556,7 @@ describe('Border', () => {
       expect(ring!.style.getPropertyValue('opacity')).not.toBe('0');
     });
 
-    it('loop.base는 1500ms다 (로더 한 바퀴)', () => {
+    it('loop.base 토큰 값 1500ms는 그대로다', () => {
       expect(loop.base).toBe('1500ms');
     });
   });

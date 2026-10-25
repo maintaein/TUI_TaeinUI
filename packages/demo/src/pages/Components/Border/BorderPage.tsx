@@ -115,7 +115,7 @@ const PROPS: PropDefinition[] = [
     type: 'boolean',
     default: 'false',
     description:
-      '켜져 있는 동안 꼬리 달린 빛이 테두리를 따라 1.5초에 한 바퀴 돈다. 진행 중임을 알리는 로더다. sides가 all일 때만 나타난다. 5초 넘게 움직이므로 끝나면 끈다',
+      '켜져 있는 동안 단일 꼬리 빛이 둥근 테두리를 따라 3초에 한 바퀴 돈다. 반바퀴마다 느려졌다 빨라지는 로더다. sides가 all일 때만 나타난다. 5초 넘게 움직이므로 끝나면 끈다',
   },
 ];
 
@@ -132,13 +132,14 @@ function Usage() {
     <Topics>
       <Topic title="진행 중 빛">
         <p className={t.body}>
-          <code>glow</code>를 켜면 꼬리 달린 빛이 테두리를 따라 1.5초에 한 바퀴
-          돕니다. 마우스를 올리거나 포커스가 들어와야 켜지는 것이 아니라 켜져
-          있는 동안 계속 돕니다. AI 답변을 만드는 중인 카드나 업로드 중인
-          카드처럼 진행 중인 상자에 씁니다. 기본은 꺼져 있습니다.{' '}
-          <code>sides</code>가 <code>all</code>일 때만 나타나고 다른 값에서는{' '}
-          <code>glow</code>를 줘도 아무 일도 없습니다. 빛은 선 색을 따라가며{' '}
-          <code>default</code>는 회색이라 <code>primary</code> 색으로 돕니다.
+          <code>glow</code>를 켜면 단일 꼬리 빛이 둥근 테두리를 따라 3초에 한
+          바퀴 돌며 반바퀴마다 느려졌다 빨라집니다. 마우스를 올리거나 포커스가
+          들어와야 켜지는 것이 아니라 켜져 있는 동안 계속 돕니다. AI 답변을
+          만드는 중인 카드나 업로드 중인 카드처럼 진행 중인 상자에 씁니다.
+          기본은 꺼져 있습니다. <code>sides</code>가 <code>all</code>일 때만
+          나타나고 다른 값에서는 <code>glow</code>를 줘도 아무 일도 없습니다.
+          빛은 선 색을 따라가며 <code>default</code>는 회색이라{' '}
+          <code>primary</code> 색으로 돕니다.
         </p>
         <p className={t.body} style={{ marginTop: 12 }}>
           5초 넘게 계속 움직이는 것은 끌 수 있어야 하므로(WCAG 2.2.2) 진행이

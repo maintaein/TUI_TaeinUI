@@ -35,7 +35,7 @@ export interface BorderProps extends HTMLAttributes<HTMLDivElement> {
   /** 내부 여백 @default 'none' */
   padding?: 'none' | 'sm' | 'md' | 'lg';
   /**
-   * 꼬리 달린 빛이 테두리를 따라 계속 도는 로더. 켜져 있는 동안 호버·포커스와 무관하게 돈다. `sides='all'`일 때만 나타난다.
+   * 단일 꼬리 빛이 둥근 테두리 길을 따라 3초에 한 바퀴 돌며 반바퀴마다 느려졌다 빨라지는 로더. 호버·포커스와 무관하며 `sides='all'`일 때만 나타난다.
    * 5초 넘게 계속 움직이므로(WCAG 2.2.2) 로딩이 끝나면 끈다. 축소 모션에서는 돌지 않고 빛이 한 자리에 멈춰 보인다 @default false
    */
   glow?: boolean;
@@ -70,9 +70,7 @@ export const Border = ({
       )}
       {...props}
     >
-      {/* glow는 선택 기능이다(기본 off). 켜면 호버·포커스와 무관하게 계속 돈다. 빛 루프는 닫힌 테두리(sides='all')에서만 "한 바퀴"가 성립한다.
-          회전하는 그라디언트를 가둘 그릇이라 실제 DOM 노드여야 한다
-          (pseudo-element는 자기 자식 pseudo-element를 못 갖는다, 리뷰 C2). */}
+      {/* 닫힌 테두리에서만 한 바퀴가 성립하며, 빛과 마스크를 분리할 실제 그릇이 필요하다. */}
       {glow && sides === 'all' && (
         <span className={glowRing} aria-hidden="true" />
       )}

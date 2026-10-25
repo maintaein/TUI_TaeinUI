@@ -4,7 +4,7 @@ import { test, expect } from '@playwright/test';
  * Border 상세의 무대: 클릭 0회로 로더가 돈다. "답변을 만들고 있습니다"인 동안 glow가 켜져
  * 꼬리 달린 빛이 테두리를 돌고, 완료 글로 바뀌면 glow가 꺼진다. 다시 시작하면 돈다.
  * 호버나 포커스와 무관하게 켜져 있는 동안 돈다.
- * 빛의 지표는 장식 링(aria-hidden span)의 불투명도와 그 ::before의 회전 애니메이션이다.
+ * 빛의 지표는 장식 링(aria-hidden span)의 불투명도와 그 ::before의 둘레 이동 거리다.
  */
 
 const state = () => {
@@ -15,8 +15,10 @@ const state = () => {
     lit: ring !== null,
     opacity: ring ? Number(getComputedStyle(ring).opacity) : 0,
     spinning: ring
-      ? getComputedStyle(ring, '::before').animationName !== 'none'
+      ? getComputedStyle(ring, '::before').offsetPath !== 'none' &&
+        getComputedStyle(ring, '::before').animationName !== 'none'
       : false,
+    distance: ring ? getComputedStyle(ring, '::before').offsetDistance : null,
     text: border.textContent,
   };
 };
@@ -54,6 +56,10 @@ for (const [width, height] of [
         { timeout: 20_000 }
       )
       .toBe(true);
+    const first = (await page.evaluate(state)).distance;
+    await expect
+      .poll(async () => (await page.evaluate(state)).distance)
+      .not.toBe(first);
     // 완료되면 글이 바뀌고 빛이 꺼진다
     await expect
       .poll(
@@ -124,10 +130,14 @@ test('축소 모션: 빛이 돌지 않고 한 자리에 보인다', async ({ pag
       opacity: Number(getComputedStyle(ring).opacity),
       iterations: cs.animationIterationCount,
       duration: cs.animationDuration,
+      distance: cs.offsetDistance,
     };
   });
   expect(m.opacity).toBe(1);
   // 반복 1회, 0.01ms: 처음 자세로 끝나 한 자리에 멈춰 있다
   expect(m.iterations).toBe('1');
   expect(parseFloat(m.duration)).toBeLessThan(0.001);
+  expect(m.distance).toBe('0%');
+  await page.waitForTimeout(100);
+  expect((await page.evaluate(state)).distance).toBe('0%');
 });

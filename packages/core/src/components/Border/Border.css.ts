@@ -134,21 +134,18 @@ export const paddingStyles = styleVariants({
   },
 });
 
-// 꼬리 달린 빛이 경계선을 따라 계속 돈다(장식계, 명제 §3). 자율 루프라 되돌아갈
-// 상태가 없고 조항 1 밖이다(공통 제약 §2). @keyframes가 맞는 도구다.
-// Vanilla Extract에 @property API가 없어 커스텀 프로퍼티 회전은 못 쓴다.
-// 대신 conic-gradient를 깐 요소를 transform: rotate()로 돌린다.
-const rotate = keyframes({
-  '0%': { transform: 'rotate(0deg)' },
-  '100%': { transform: 'rotate(360deg)' },
+// 자율 루프는 되돌아갈 상태가 없어 조항 1 밖이며, 두 반바퀴의 가감속을 각각 drift로 잇는다.
+const travel = keyframes({
+  '0%': {
+    offsetDistance: '0%',
+  },
+  '50%': {
+    offsetDistance: '50%',
+  },
+  '100%': { offsetDistance: '100%' },
 });
 
-// 링 자체는 돌지 않는다. 안쪽 그라디언트만 돈다. 요소를 돌리면 마스크도
-// 같이 돌아 사각 링이 박스 밖으로 튀어나간다(리뷰 C2). pseudo-element는 자기
-// 자식 pseudo-element를 가질 수 없어서, 회전하는 그라디언트를 가둘 그릇으로
-// 실제 DOM 노드 하나가 필요하다. Border.tsx가 glow이고 sides='all'일 때만 장식용
-// span을 넣는다(닫힌 테두리라야 "한 바퀴"가 성립한다). 링이 있으면 빛은 호버·포커스와
-// 무관하게 늘 돈다(로더). 그래서 링에는 opacity 0이나 트리거 규칙이 없다.
+// 링까지 움직이면 마스크가 콘텐츠를 가로지르므로, 빛을 가둘 고정 그릇이 필요하다.
 export const glowRing = style({
   position: 'absolute',
   // inset 0의 기준은 padding box라 링이 테두리선 안쪽에 놓인다. 테두리 두께만큼
@@ -175,33 +172,21 @@ export const glowRing = style({
   WebkitMaskComposite: 'xor',
 });
 
-// 회전하는 그라디언트는 링의 자식이다. 링의 overflow: hidden이 밖으로 못
-// 나가게 가두므로, 이 자식이 아무리 커도 빛이 콘텐츠를 덮을 수 없다.
-//
-// 빛 모양: 머리(360deg)는 glowColor로 밝고, 뒤쪽 110deg에 걸쳐 투명해지는 꼬리가
-// 달린다(250deg에서 360deg까지). 머리 앞은 곧바로 투명이라 머리의 앞 가장자리가
-// 또렷하다. 시계 방향으로 돌면 머리가 앞서고 꼬리가 뒤따른다.
-//
-// 한 바퀴는 loop.base(1500ms)다. 이 빛은 대기 환경광이 아니라 "지금 진행 중"을 알리는
-// 로더라 loop 토큰 중 로더다운 값(Loader의 막대·자벌레도 base)을 쓴다. 커브는 linear
-// 그대로다: 닫힌 회전에 sine.inOut을 걸면 빛이 매 바퀴 같은 각도에서 멈춰 고장으로
-// 읽힌다(alternate의 정지와 달리 납득할 되돌림 지점이 없다).
-// StarBorder의 opacity 0 키프레임은 가져오지 않는다: LOOP 키프레임의
-// 0%·100%에 opacity 0을 두면 축소 모드에서 반복이 1회로 접혀 마지막 프레임에
-// 고착한다. rotate는 opacity가 없고 360도는 0도와 같은 자리라 안전하다. 축소 모드에서는
-// 회전 없이 빛이 한 자리(0도 자세)에 멈춰 보인다.
-// shortcut: 각도 기준이라 가로로 긴 상자에서는 긴 변 위에서 빛이 더 빠르고 꼬리가 더 길게 보이고 짧은 변에서는 옅다, 둘레 속도가 일정해야 하면 offset-path로 바꾼다.
-// will-change는 이 규칙 하나에만 둔다. 링이 있는 Border에서만 렌더되므로 안 쓰는 Border에는
-// 합성 레이어가 남지 않는다.
+// opacity를 키프레임에 넣으면 축소 모션에서 빛이 숨은 채 끝날 수 있어 기본 자세를 그대로 보인다.
 globalStyle(`${glowRing}::before`, {
   content: '""',
   position: 'absolute',
-  // ponytail: inset -100%(3W×3H)면 카드형 비율에서 테두리를 다 덮는다. 15:1
-  // 같은 극단 비율에서는 먼 끝의 빛이 잘린다. 새어 나가는 게 아니라 안 보일
-  // 뿐이라 가독성 비용은 0이다. 정확한 대각선 크기는 측정이 필요해 M3(GSAP)로
-  // 넘긴다.
-  inset: '-100%',
-  backgroundImage: `conic-gradient(from 0deg, transparent 0deg, transparent 250deg, ${glowColor} 360deg)`,
-  animation: `${rotate} ${themeContract.animation.loop.base} ${themeContract.animation.easing.linear} infinite`,
-  willChange: 'transform',
+  // 48px면 긴 변에서도 꼬리를 읽을 수 있고 짧은 변 전체를 각도 부채꼴처럼 덮지 않는다.
+  width: themeContract.spacing[12],
+  // 경로가 띠 바깥 가장자리라 높이의 안쪽 절반이 테두리 두께를 덮어야 한다.
+  height: `calc(${borderW} * 2)`,
+  // 크로미엄에서 부모의 상속 반경을 따르므로 rounded 변형마다 경로를 복제할 필요가 없다.
+  offsetPath: 'border-box',
+  offsetDistance: '0%',
+  offsetRotate: 'auto',
+  backgroundImage: `linear-gradient(to right, transparent, ${glowColor})`,
+  // 1500ms로는 느린 구간을 읽기 어려워 두 배로 늘리고 토큰 값은 유지한다.
+  // 키프레임 안의 토큰 var 선언은 크로미엄이 버리므로 숏핸드에 두면 두 반바퀴 구간에 각각 drift가 적용된다.
+  animation: `${travel} calc(${themeContract.animation.loop.base} * 2) ${themeContract.animation.easing.drift} infinite`,
+  willChange: 'offset-distance',
 });
