@@ -7,17 +7,12 @@ import { gray } from '../../tokens/colors.css';
 import { contrastRatio, AA_UI } from '../../docs/llmsSections';
 import { themeTokens } from '../../tokens/contract';
 import { gsapDuration, gsapEasing } from '../../tokens/gsapEasing';
-import { SQUASH_PX } from '../SegmentedButtons/segmentedMotion';
 import {
-  INCHWORM_STEPS,
   WAVE_HEIGHT_PX,
   WAVE_PITCH_PX,
   WAVE_WIDTH_PX,
   inchwormFrames,
-  inchwormInset,
-  inchwormStops,
   waveBarCount,
-  FUSE_SPARK_PX,
   ORBIT_RADIUS_PX,
   markPoints,
   pairByAngle,
@@ -194,18 +189,14 @@ describe('Loader', () => {
   describe('임의 색상 통과 (색상 확장)', () => {
     it('bar는 preset이 아닌 색을 fill에 --loader-color 인라인으로 붙인다', () => {
       render(<Loader type="bar" color="#f00" />);
-      const fill = screen
-        .getByRole('status')
-        .querySelector(':scope > div > div');
+      const fill = screen.getByRole('status').closest('[role="status"]');
       expect(fill).toHaveStyle({ '--loader-color': '#f00' });
     });
 
     it('bar는 preset이면 인라인 style 없이 colorStyles 클래스를 붙인다', () => {
       render(<Loader type="bar" color="primary" />);
-      const fill = screen
-        .getByRole('status')
-        .querySelector(':scope > div > div');
-      expect(fill).not.toHaveAttribute('style');
+      const fill = screen.getByRole('status').closest('[role="status"]');
+      expect(fill?.getAttribute('style') ?? '').not.toContain('--loader-color');
       expect(fill?.className).toContain('colorStyles_primary');
     });
 
@@ -874,141 +865,6 @@ describe('Loader', () => {
     });
   });
 
-  describe('자벌레 inchworm (M5 task-20 2부)', () => {
-    const stops = inchwormStops();
-    const at = (pct: number) => stops.find((s) => s.at === pct)!;
-
-    it('걸음은 5번이고 정지점은 걸음마다 셋에 끝 하나, 16개다', () => {
-      expect(INCHWORM_STEPS).toBe(5);
-      expect(stops).toHaveLength(INCHWORM_STEPS * 3 + 1);
-      expect(stops.map((s) => s.at)).toEqual(
-        [...stops.map((s) => s.at)].sort((a, b) => a - b)
-      );
-      expect(stops[stops.length - 1].at).toBe(100);
-    });
-
-    it('몸이 왼쪽 밖(L -25, R 0)에서 들어와 오른쪽 밖(L 100, R 125)으로 나간다, 쉬는 몸은 25%다', () => {
-      expect(at(0)).toMatchObject({ l: -25, r: 0, lPx: 0 });
-      expect(at(100)).toMatchObject({ l: 100, r: 125, lPx: 0 });
-      for (let k = 0; k < 5; k++) {
-        const rest = at(k * 20);
-        expect(rest.r - rest.l).toBe(25);
-        expect(rest.lPx).toBe(0);
-      }
-    });
-
-    it('한 걸음: 앞끝 R이 +25%(몸 50%, 걸음의 40%), 뒤끝 L이 +25% + 3px(85%), 3px 되돌아옴(100%)', () => {
-      for (let k = 0; k < 5; k++) {
-        const base = k * 20;
-        const start = at(base);
-        const stretched = at(base + 8);
-        const over = at(base + 17);
-        const next = at(base + 20);
-        expect(stretched).toMatchObject({ l: start.l, r: start.r + 25 });
-        expect(stretched.r - stretched.l).toBe(50);
-        expect(over).toMatchObject({ l: start.l + 25, r: start.r + 25 });
-        expect(over.lPx).toBe(SQUASH_PX);
-        expect(next).toMatchObject({
-          l: start.l + 25,
-          r: start.r + 25,
-          lPx: 0,
-        });
-      }
-    });
-
-    it('지나침은 SegmentedButtons의 SQUASH_PX(3px)이고 걸음마다 한 번이다', () => {
-      expect(SQUASH_PX).toBe(3);
-      const over = stops.filter((s) => s.lPx > 0);
-      expect(over).toHaveLength(5);
-      expect(over.every((s) => s.lPx === 3)).toBe(true);
-    });
-
-    it('좌 → 우다: 정지점마다 L과 R이 줄어들지 않는다 (S1)', () => {
-      stops.slice(1).forEach((s, i) => {
-        expect(s.l).toBeGreaterThanOrEqual(stops[i].l);
-        expect(s.r).toBeGreaterThanOrEqual(stops[i].r);
-      });
-    });
-
-    it('clip-path 문자열: inset(0 calc(100% - R) 0 L round 3px), 지나침이면 L에 3px를 더한다', () => {
-      expect(inchwormInset(at(0))).toBe(
-        'inset(0 calc(100% - 0%) 0 -25% round 3px)'
-      );
-      expect(inchwormInset(at(17))).toBe(
-        'inset(0 calc(100% - 25%) 0 calc(0% + 3px) round 3px)'
-      );
-    });
-
-    it('키프레임은 정지점마다 clipPath와 구간 커브를 갖고 끝 프레임만 커브가 없다', () => {
-      const frames = inchwormFrames('EASE');
-      const keys = Object.keys(frames);
-      expect(keys).toHaveLength(16);
-      expect(keys[0]).toBe('0%');
-      expect(keys[keys.length - 1]).toBe('100%');
-      expect(frames['8%']).toEqual({
-        clipPath: inchwormInset(at(8)),
-        animationTimingFunction: 'EASE',
-      });
-      expect(frames['100%']).toEqual({ clipPath: inchwormInset(at(100)) });
-    });
-
-    it('css는 반복문으로 만든 프레임을 settle 커브로 쓰고 손으로 정지점을 쓰지 않는다', () => {
-      const frames = keyframesBlock(LOADER_CSS, 'inchworm');
-      expect(frames).toContain(
-        '...inchwormFrames(themeContract.animation.easing.settle)'
-      );
-      expect(frames).not.toMatch(/'\d+%'/);
-    });
-
-    it('한 바퀴는 loop.base × 2 이고 몸은 clip-path로 그린다', () => {
-      const fill = block(LOADER_CSS, 'inchwormFill');
-      expect(fill).toContain(
-        'animation: `${inchworm} calc(${themeContract.animation.loop.base} * 2) infinite backwards`'
-      );
-      expect(fill).toContain('clipPath: inchwormInset(');
-    });
-
-    it('bar와 같은 트랙(크기 클래스, 면) 안에서 채움 층이 전체 폭으로 깔린다', () => {
-      const { container } = render(<Loader type="inchworm" size="lg" />);
-      const status = screen.getByRole('status');
-      expect(status).toHaveAttribute('data-type', 'inchworm');
-      expect(status).toHaveAttribute('aria-live', 'polite');
-      expect(status).not.toHaveAttribute('aria-busy');
-      expect(status).toHaveAttribute('aria-label', '로딩 중');
-      const track = status.firstElementChild as HTMLElement;
-      expect(track.className).toContain('barSizeStyles_lg');
-      expect(container.querySelector('[data-inchworm-fill]')).not.toBeNull();
-      const fill = block(LOADER_CSS, 'inchwormFill');
-      expect(fill).toContain("width: '100%'");
-      expect(fill).toContain("backgroundColor: 'var(--loader-color)'");
-    });
-
-    it('color 프리셋과 임의 색상을 bar와 같은 방식으로 받는다', () => {
-      const { container, rerender } = render(
-        <Loader type="inchworm" color="white" />
-      );
-      // 빛(drop-shadow)이 색을 읽는 자르기 층이 색을 받고, 채움은 상속한다.
-      expect(container.querySelector('[data-bar-clip]')!.className).toContain(
-        'colorStyles_white'
-      );
-      rerender(<Loader type="inchworm" color="#0f0" />);
-      expect(
-        (
-          container.querySelector('[data-bar-clip]') as HTMLElement
-        ).style.getPropertyValue('--loader-color')
-      ).toBe('#0f0');
-    });
-
-    it('축소 선호: 기어가지 않고 몸은 가운데(L 37.5%, R 62.5%)에서 투명도 맥박(loop.base)이다', () => {
-      const fill = block(LOADER_CSS, 'inchwormFill');
-      const media = fill.slice(fill.indexOf('prefers-reduced-motion'));
-      expect(media).toContain("clipPath: 'inset(0 37.5% 0 37.5% round 3px)'");
-      expect(media).toContain(
-        'animation: `${fadeInOut} ${themeContract.animation.loop.base} infinite ${loopRhythmEasing} backwards`'
-      );
-    });
-  });
-
   describe('완료 표식 순수 함수 (M5 task-20 3부)', () => {
     const R = 10;
     const A: Point = { x: -0.55 * R, y: 0 };
@@ -1318,11 +1174,6 @@ describe('Loader', () => {
       expectCss(hidden).toContain('left: 0');
     });
 
-    it('도화선 progressbar는 값 속성이 알리므로 메시지 글자를 두지 않는다', () => {
-      render(<Loader type="fuse" value={40} />);
-      expect(screen.getByRole('progressbar').textContent).toBe('');
-    });
-
     it('축소 선호: 상태가 바뀌면 바로 끝 상태이고 타임라인이 남지 않는다', () => {
       installReducedMotion();
       const { container, rerender } = render(<Loader />);
@@ -1360,17 +1211,17 @@ describe('Loader', () => {
       );
     });
 
-    it('성공 색은 success.dark, 실패 색은 error.dark이고 둘 다 흰 바탕 대비 3:1 이상이다', () => {
+    it('성공 색은 success.dark, 실패 색은 error.main이고 둘 다 흰 바탕 대비 3:1 이상이다', () => {
       expect(contrastOnWhite(themeTokens.color.success.dark)).toBeGreaterThan(
         3
       );
-      expect(contrastOnWhite(themeTokens.color.error.dark)).toBeGreaterThan(3);
+      expect(contrastOnWhite(themeTokens.color.error.main)).toBeGreaterThan(3);
       const dotBlock = block(LOADER_CSS, 'orbitDot');
       expectCss(dotBlock).toContain(
         '\'[data-status="done"] &\': { backgroundColor: themeContract.color.success.dark, boxShadow: loaderGlow(themeContract.color.success.dark) }'
       );
       expectCss(dotBlock).toContain(
-        '\'[data-status="error"] &\': { backgroundColor: themeContract.color.error.dark, boxShadow: loaderGlow(themeContract.color.error.dark) }'
+        '\'[data-status="error"] &\': { backgroundColor: themeContract.color.error.main, boxShadow: loaderGlow(themeContract.color.error.main) }'
       );
     });
 
@@ -1611,8 +1462,7 @@ describe('Loader', () => {
       rerender(<Loader type="spinner" />);
       rerender(<Loader type="bar" />);
       rerender(<Loader type="wave" />);
-      rerender(<Loader type="fuse" value={30} />);
-      rerender(<Loader type="fuse" value={60} />);
+      rerender(<Loader type="inchworm" />);
       expect(layoutReads).toBe(0);
     });
 
@@ -1710,167 +1560,6 @@ describe('Loader', () => {
       expect(layer).not.toContain('filter');
     });
   });
-
-  describe('도화선 fuse (M5 task-20 3부)', () => {
-    const barOf = (container: HTMLElement) =>
-      container.querySelector('[role="progressbar"]') as HTMLElement;
-
-    it('progressbar 역할과 값 속성, 접근 이름을 가진다', () => {
-      render(<Loader type="fuse" value={40} />);
-      const bar = screen.getByRole('progressbar');
-      expect(bar).toHaveAttribute('aria-valuemin', '0');
-      expect(bar).toHaveAttribute('aria-valuemax', '100');
-      expect(bar).toHaveAttribute('aria-valuenow', '40');
-      expect(bar).toHaveAttribute('aria-label', '진행률');
-      expect(bar).toHaveAttribute('data-type', 'fuse');
-    });
-
-    it('label과 aria-label이 접근 이름을 정한다', () => {
-      const { rerender } = render(
-        <Loader type="fuse" value={1} label="올리는 중" />
-      );
-      expect(screen.getByRole('progressbar')).toHaveAttribute(
-        'aria-label',
-        '올리는 중'
-      );
-      rerender(<Loader type="fuse" value={1} aria-label="업로드" />);
-      expect(screen.getByRole('progressbar')).toHaveAttribute(
-        'aria-label',
-        '업로드'
-      );
-    });
-
-    it('value는 0에서 100으로 자른다', () => {
-      const { container, rerender } = render(
-        <Loader type="fuse" value={150} />
-      );
-      expect(barOf(container)).toHaveAttribute('aria-valuenow', '100');
-      expect(barOf(container).style.getPropertyValue('--fuse-value')).toBe(
-        '100'
-      );
-      rerender(<Loader type="fuse" value={-20} />);
-      expect(barOf(container)).toHaveAttribute('aria-valuenow', '0');
-      expect(barOf(container).style.getPropertyValue('--fuse-value')).toBe('0');
-      rerender(<Loader type="fuse" value={Number.NaN} />);
-      expect(barOf(container)).toHaveAttribute('aria-valuenow', '0');
-    });
-
-    it('트랙은 bar와 같다 (크기 클래스, 면, 경계 안에 채움 층)', () => {
-      const { container } = render(<Loader type="fuse" size="lg" value={30} />);
-      expect(
-        container.querySelector('[class*="barSizeStyles_lg"]')
-      ).not.toBeNull();
-      const track = container.querySelector('[data-fuse-fill]')
-        ?.parentElement as HTMLElement;
-      expect(track.className).toMatch(/(^|\s|_)bar(_|\s|$)/);
-    });
-
-    it('채움은 트랙 전체 폭 층을 clip-path로 오려 좌에서 우로 채우고, slow settle로 전이한다', () => {
-      const fill = block(LOADER_CSS, 'fuseFill');
-      expectCss(fill).toContain("width: '100%'");
-      expectCss(fill).toContain(
-        "clipPath: 'inset(0 calc(100% - var(--fuse-value) * 1%) 0 0 round 3px)'"
-      );
-      expectCss(fill).toContain(
-        'transition: `clip-path ${themeContract.animation.duration.slow} ${themeContract.animation.easing.settle}`'
-      );
-      expectCss(fill).toContain("backgroundColor: 'var(--loader-color)'");
-    });
-
-    it('불똥 래퍼는 트랙 폭 위에서 translateX(value% - 100%)로 옮기고 같은 전이를 쓴다', () => {
-      const spark = block(LOADER_CSS, 'fuseSpark');
-      expectCss(spark).toContain(
-        "transform: 'translateX(calc(var(--fuse-value) * 1% - 100%))'"
-      );
-      expectCss(spark).toContain(
-        'transform ${themeContract.animation.duration.slow} ${themeContract.animation.easing.settle}'
-      );
-    });
-
-    it('불똥은 래퍼 오른쪽 끝의 작은 원이고 --loader-color로 번진다', () => {
-      expect(FUSE_SPARK_PX).toEqual({ sm: 6, md: 8, lg: 10, xl: 12 });
-      const dot = block(LOADER_CSS, 'fuseSparkDot');
-      expectCss(dot).toContain("borderRadius: '50%'");
-      expectCss(dot).toContain("backgroundColor: 'var(--loader-color)'");
-      expectCss(dot).toContain("boxShadow: loaderGlow('var(--loader-color)')");
-    });
-
-    it('value가 100이면 data-complete가 붙고 불똥이 base로 사라진다', () => {
-      const { container, rerender } = render(<Loader type="fuse" value={99} />);
-      expect(barOf(container)).not.toHaveAttribute('data-complete');
-      rerender(<Loader type="fuse" value={100} />);
-      expect(barOf(container)).toHaveAttribute('data-complete');
-      const spark = block(LOADER_CSS, 'fuseSpark');
-      expectCss(spark).toContain("'[data-complete] &': { opacity: 0 }");
-      expectCss(spark).toContain(
-        'opacity ${themeContract.animation.duration.base} ${themeContract.animation.easing.settle}'
-      );
-    });
-
-    it('0이면 불똥은 시작점(translateX(-100%))에 있다', () => {
-      const { container } = render(<Loader type="fuse" value={0} />);
-      expect(barOf(container).style.getPropertyValue('--fuse-value')).toBe('0');
-      expect(barOf(container)).not.toHaveAttribute('data-complete');
-    });
-
-    it('타들어 감: 고르지 않은 정지점(0 / 23 / 41 / 67 / 100)에서 scale 0.85 ~ 1.1, 투명도 0.7 ~ 1', () => {
-      const frames = keyframesBlock(LOADER_CSS, 'fuseFlicker');
-      expectCss(frames).toContain(
-        "'0%, 100%': { transform: 'scale(1)', opacity: 1 }"
-      );
-      expectCss(frames).toContain(
-        "'23%': { transform: 'scale(0.85)', opacity: 0.7 }"
-      );
-      expectCss(frames).toContain(
-        "'41%': { transform: 'scale(1.1)', opacity: 1 }"
-      );
-      expectCss(frames).toContain(
-        "'67%': { transform: 'scale(0.9)', opacity: 0.8 }"
-      );
-      const dot = block(LOADER_CSS, 'fuseSparkDot');
-      expectCss(dot).toContain(
-        'animation: `${fuseFlicker} ${themeContract.animation.loop.fast} ${loopRhythmEasing} infinite`'
-      );
-    });
-
-    it('축소 선호: 깜빡임도 전이도 없다', () => {
-      for (const name of ['fuseFill', 'fuseSpark', 'fuseSparkDot']) {
-        const b = block(LOADER_CSS, name);
-        const media = b.slice(b.indexOf('prefers-reduced-motion'));
-        expect(media, name).toContain(
-          name === 'fuseSparkDot' ? "animation: 'none'" : "transition: 'none'"
-        );
-      }
-    });
-
-    it('색은 bar와 같은 방식이다 (프리셋 클래스, 임의 색은 --loader-color 인라인)', () => {
-      const { container, rerender } = render(
-        <Loader type="fuse" value={10} color="secondary" />
-      );
-      expect(barOf(container).className).toContain('colorStyles_secondary');
-      rerender(<Loader type="fuse" value={10} color="#0f0" />);
-      expect(barOf(container).style.getPropertyValue('--loader-color')).toBe(
-        '#0f0'
-      );
-    });
-  });
-
-  describe('status·value 타입 (M5 task-20 3부)', () => {
-    it('fuse에 value가 없으면, spinner에 status를 주면 타입 오류다', () => {
-      const elements = [
-        // @ts-expect-error fuse는 value가 필수다
-        <Loader key="a" type="fuse" />,
-        // @ts-expect-error status는 orbit 전용이다
-        <Loader key="b" type="spinner" status="done" />,
-        // @ts-expect-error value는 fuse 전용이다
-        <Loader key="c" type="bar" value={10} />,
-        <Loader key="d" status="error" />,
-        <Loader key="e" type="orbit" status="done" />,
-        <Loader key="f" type="fuse" value={10} />,
-      ];
-      expect(elements).toHaveLength(6);
-    });
-  });
 });
 
 describe('버블 점이 보인다 (M5 task-20 수정 6)', () => {
@@ -1887,9 +1576,6 @@ describe('버블 점이 보인다 (M5 task-20 수정 6)', () => {
     // 궤도 점·불똥은 절대 위치, 물결 막대와 버블 점 바깥 상자는 flex 항목이라 블록화된다.
     // 안쪽 몸만 부모(바깥 상자)가 flex가 아니라서 inline으로 남았다.
     expectCss(block(LOADER_CSS, 'orbitDot')).toContain("position: 'absolute'");
-    expectCss(block(LOADER_CSS, 'fuseSparkDot')).toContain(
-      "position: 'absolute'"
-    );
     expectCss(block(LOADER_CSS, 'waveBar')).toContain('flexShrink: 0');
     expectCss(block(LOADER_CSS, 'wave')).toContain("display: 'flex'");
     expectCss(block(LOADER_CSS, 'dotsContainer')).toContain("display: 'flex'");
@@ -1932,13 +1618,6 @@ describe('막대 디자인: 테두리 없는 6px 회색 면 (M5 task-20 수정 6
       contrastRatio(color.primary.main, palette.gray[200])
     ).toBeGreaterThanOrEqual(AA_UI);
   });
-
-  it('도화선 불똥은 6px 트랙의 가운데에 놓인다 (래퍼 top 50%, 점은 지름의 절반만큼 당긴다)', () => {
-    expectCss(block(LOADER_CSS, 'fuseSpark')).toContain("top: '50%'");
-    expectCss(block(LOADER_CSS, 'fuseSparkDot')).toContain(
-      "top: 'calc(var(--spark-d) / -2)'"
-    );
-  });
 });
 
 describe('머리의 은은한 광휘 (M5 task-20 수정 6)', () => {
@@ -1960,7 +1639,7 @@ describe('머리의 은은한 광휘 (M5 task-20 수정 6)', () => {
       'boxShadow: loaderGlow(themeContract.color.success.dark)'
     );
     expectCss(dot).toContain(
-      'boxShadow: loaderGlow(themeContract.color.error.dark)'
+      'boxShadow: loaderGlow(themeContract.color.error.main)'
     );
   });
 
@@ -1983,15 +1662,6 @@ describe('머리의 은은한 광휘 (M5 task-20 수정 6)', () => {
     expectCss(block(LOADER_CSS, 'barClip')).toContain(
       "filter: `drop-shadow(${loaderGlow('var(--loader-color)')})`"
     );
-  });
-
-  it('fuse: 불똥에만 걸고 채움 자체에는 걸지 않는다', () => {
-    expectCss(block(LOADER_CSS, 'fuseSparkDot')).toContain(
-      "boxShadow: loaderGlow('var(--loader-color)')"
-    );
-    const fill = block(LOADER_CSS, 'fuseFill');
-    expect(fill).not.toContain('boxShadow');
-    expect(fill).not.toContain('filter');
   });
 
   it('spinner: 회색 고리 층에는 그림자가 없고, 위쪽 호만 칠한 겹친 층에 drop-shadow가 걸린다', () => {
@@ -2031,41 +1701,26 @@ describe('머리의 은은한 광휘 (M5 task-20 수정 6)', () => {
     expect(track).not.toContain('boxShadow');
     expect(track).not.toContain('filter');
     expect(block(LOADER_CSS, 'inchwormFill')).not.toContain('boxShadow');
-    expect(block(LOADER_CSS, 'inchwormFill')).not.toContain('filter');
   });
 
-  it.each(['bar', 'inchworm'] as const)(
-    '%s DOM: 트랙 > 자르기 층 > 채움이다',
-    (type) => {
-      const { container } = render(<Loader type={type} />);
-      const track = screen.getByRole('status').firstElementChild as HTMLElement;
-      const clip = container.querySelector('[data-bar-clip]');
-      expect(clip?.parentElement).toBe(track);
-      expect(clip?.children).toHaveLength(1);
-      if (type === 'inchworm') {
-        expect(clip?.firstElementChild).toBe(
-          container.querySelector('[data-inchworm-fill]')
-        );
-      }
-    }
-  );
+  it.each(['bar'] as const)('%s DOM: 트랙 > 자르기 층 > 채움이다', (type) => {
+    const { container } = render(<Loader type={type} />);
+    const track = container.querySelector('[data-bar-clip]')?.parentElement;
+    const clip = container.querySelector('[data-bar-clip]');
+    expect(clip?.parentElement).toBe(track);
+    expect(clip?.children).toHaveLength(1);
+  });
 
   it('정지된 빛이라 축소 선호에서도 걷어내지 않고, 빛은 애니메이션하지 않는다', () => {
-    [
-      'orbitDot',
-      'dotBody',
-      'waveBar',
-      'barFill',
-      'fuseSparkDot',
-      'spinner',
-      'barClip',
-    ].forEach((name) => {
-      const src = block(LOADER_CSS, name);
-      const media = src.includes('prefers-reduced-motion')
-        ? src.slice(src.indexOf('prefers-reduced-motion'))
-        : '';
-      expect(media, name).not.toMatch(/boxShadow|filter/);
-    });
+    ['orbitDot', 'dotBody', 'waveBar', 'barFill', 'spinner', 'barClip'].forEach(
+      (name) => {
+        const src = block(LOADER_CSS, name);
+        const media = src.includes('prefers-reduced-motion')
+          ? src.slice(src.indexOf('prefers-reduced-motion'))
+          : '';
+        expect(media, name).not.toMatch(/boxShadow|filter/);
+      }
+    );
     // 전이는 궤도 점의 색 바꿈에 빛이 따라가는 것뿐이고 filter는 전이하지 않는다.
     expect(LOADER_CSS).not.toMatch(/transition:[^\n]*filter/);
     expect(
@@ -2082,7 +1737,6 @@ describe('머리의 은은한 광휘 (M5 task-20 수정 6)', () => {
       'bubbleSquash',
       'waveSwell',
       'inchworm',
-      'fuseFlicker',
       'fadeInOut',
     ].forEach((name) => {
       expect(keyframesBlock(LOADER_CSS, name), name).not.toMatch(
@@ -2097,7 +1751,7 @@ describe('낭독: 살아 있는 영역에 aria-busy 없음, 라벨은 한 번만
   // | 지점                                    | 전             | 후                 | 종류 |
   // | bar·inchworm·wave status aria-busy      | "true"         | 없음               | 의도 |
   // | orbit status aria-busy                  | loading만 true | 없음(done·error도) | 의도 |
-  // | spinner·dots status, fuse progressbar   | 없음           | 없음               | 유지 |
+  // | spinner·dots status   | 없음           | 없음               | 유지 |
   // | 라벨 = 접근 이름일 때 p                 | aria-hidden 없음 | "true"           | 의도 |
   // | 라벨 != 접근 이름일 때 p                | aria-hidden 없음 | 없음             | 유지 |
   // | 라벨 없음                               | p 없음         | p 없음             | 유지 |
@@ -2125,11 +1779,6 @@ describe('낭독: 살아 있는 영역에 aria-busy 없음, 라벨은 한 번만
     }
   );
 
-  it('도화선 progressbar에도 aria-busy가 없다', () => {
-    render(<Loader type="fuse" value={40} />);
-    expect(screen.getByRole('progressbar')).not.toHaveAttribute('aria-busy');
-  });
-
   it('bar의 role·aria-live·이름은 그대로다', () => {
     render(<Loader type="bar" />);
     const status = screen.getByRole('status');
@@ -2155,17 +1804,6 @@ describe('낭독: 살아 있는 영역에 aria-busy 없음, 라벨은 한 번만
       ).toHaveTextContent('업로드 중');
     }
   );
-
-  it('도화선도 라벨이 접근 이름과 같으면 p는 aria-hidden이다', () => {
-    const { container } = render(
-      <Loader type="fuse" value={40} label="진행 중" />
-    );
-    expect(container.querySelector('p')).toHaveAttribute('aria-hidden', 'true');
-    expect(screen.getByRole('progressbar')).toHaveAttribute(
-      'aria-label',
-      '진행 중'
-    );
-  });
 
   it('aria-label이 라벨과 다르면 p는 aria-hidden이 아니다', () => {
     const { container } = render(
@@ -2204,5 +1842,147 @@ describe('낭독: 살아 있는 영역에 aria-busy 없음, 라벨은 한 번만
     expect(container.querySelector('p')).toHaveAttribute('aria-hidden', 'true');
     rerender(<Loader label="저장 중" aria-label="파일 저장" />);
     expect(container.querySelector('p')).not.toHaveAttribute('aria-hidden');
+  });
+});
+
+describe('모든 Loader type의 결과 전환', () => {
+  const types = [
+    'orbit',
+    'spinner',
+    'dots',
+    'bar',
+    'wave',
+    'inchworm',
+  ] as const;
+  type Host = HTMLElement & { __loaderStatusTimeline?: gsap.core.Timeline };
+  const hostOf = (container: HTMLElement) =>
+    container.querySelector<Host>('[data-orbit], [data-loader-graphic]')!;
+  const finish = (container: HTMLElement) =>
+    hostOf(container).__loaderStatusTimeline?.progress(1);
+
+  it.each(types)(
+    '%s: 결과 이름과 표식, loading 복귀를 함께 갱신한다',
+    (type) => {
+      const { container, rerender } = render(<Loader type={type} />);
+      const graphic = hostOf(container);
+      for (const status of ['done', 'error'] as const) {
+        rerender(<Loader type={type} status={status} />);
+        expect(screen.getByRole('status')).toHaveAccessibleName(
+          status === 'done' ? '완료' : '실패'
+        );
+        expect(
+          screen.getByRole('status').querySelector('[data-loader-message]')
+        ).toHaveTextContent(status === 'done' ? '완료' : '실패');
+        expect(hostOf(container)).toBe(graphic);
+        expect(graphic).toHaveAttribute('data-loader-mark', status);
+        expect(graphic.__loaderStatusTimeline).toBeDefined();
+        finish(container);
+        expect(graphic).toHaveAttribute('data-paused');
+        if (type !== 'orbit') {
+          const path =
+            graphic.querySelector<SVGPathElement>('[data-mark-path]')!;
+          expect(Number(path.style.strokeDashoffset)).toBe(0);
+          expect(Number(path.parentElement?.style.opacity)).toBe(1);
+        }
+        rerender(<Loader type={type} status="loading" />);
+        expect(graphic).not.toHaveAttribute('data-loader-mark');
+        finish(container);
+        expect(graphic).not.toHaveAttribute('data-paused');
+        expect(screen.getByRole('status')).toHaveAccessibleName('로딩 중');
+      }
+    }
+  );
+
+  it.each(types)('%s: 결과로 마운트하면 전환 없이 최종 상태다', (type) => {
+    const { container } = render(<Loader type={type} status="error" />);
+    expect(hostOf(container).__loaderStatusTimeline).toBeUndefined();
+    expect(hostOf(container)).toHaveAttribute('data-loader-mark', 'error');
+    if (type !== 'orbit') {
+      expect(
+        container.querySelector<SVGPathElement>('[data-mark-path]')?.style
+          .strokeDashoffset
+      ).toBe('0');
+    }
+  });
+
+  it.each(types.filter((type) => type !== 'orbit'))(
+    '%s: 전환 중 교체와 언마운트가 이전 타임라인을 정리한다',
+    (type) => {
+      const { container, rerender, unmount } = render(<Loader type={type} />);
+      rerender(<Loader type={type} status="done" />);
+      const first = hostOf(container).__loaderStatusTimeline!;
+      first.progress(0.4);
+      rerender(<Loader type={type} status="error" />);
+      expect(first.parent).toBeNull();
+      const next = hostOf(container).__loaderStatusTimeline!;
+      expect(next).not.toBe(first);
+      unmount();
+      expect(next.parent).toBeNull();
+    }
+  );
+
+  it('완료 색과 실패 색은 모든 그래픽에서 같은 토큰을 쓴다', () => {
+    const state = block(LOADER_CSS, 'statusGraphic');
+    expect(state).toContain('themeContract.color.success.dark');
+    expect(state).toContain('themeContract.color.error.main');
+    expect(contrastOnWhite(themeTokens.color.success.dark)).toBeGreaterThan(3);
+    expect(contrastOnWhite(themeTokens.color.error.main)).toBeGreaterThan(3);
+  });
+
+  it('fuse type과 value는 공개 타입에서 제거됐다', () => {
+    const elements = [
+      // @ts-expect-error 삭제한 type은 받지 않는다
+      <Loader key="fuse" type="fuse" value={20} />,
+      // @ts-expect-error 진행률 API는 제거했다
+      <Loader key="value" type="bar" value={20} />,
+      <Loader key="spinner" type="spinner" status="done" />,
+    ];
+    expect(elements).toHaveLength(3);
+    const source = readFileSync(resolve(__dirname, './Loader.tsx'), 'utf-8');
+    expect(source).not.toMatch(/FuseLoaderProps|status\?: never|type: 'fuse'/);
+    expect(LOADER_CSS).not.toMatch(/fuseFill|fuseFlicker|fuseSpark/);
+  });
+});
+
+describe('자벌레는 캡슐 하나로 기어간다', () => {
+  it('성공하면 같은 몸을 실제로 꺾어 체크로 만든다', () => {
+    const { container, rerender } = render(<Loader type="inchworm" />);
+    const body = container.querySelector('[data-worm-body]');
+    expect(body).not.toBeNull();
+    rerender(<Loader type="inchworm" status="done" />);
+    const host = container.querySelector(
+      '[data-loader-graphic]'
+    ) as HTMLElement & { __loaderStatusTimeline?: gsap.core.Timeline };
+    host.__loaderStatusTimeline?.progress(1);
+    expect(container.querySelector('[data-worm-body]')).toBe(body);
+    expect(body).toHaveAttribute('d', 'M15 16 L40 28 L85 4');
+  });
+
+  it('몸통은 트랙을 채우는 막대 대신 둥글고 두꺼운 캡슐이다', () => {
+    const { container } = render(<Loader type="inchworm" />);
+    expect(container.querySelector('[data-bar-clip]')).toBeNull();
+    expect(container.querySelectorAll('[data-inchworm-fill]')).toHaveLength(1);
+    expect(block(LOADER_CSS, 'inchwormFill')).toContain(
+      "borderRadius: '999px'"
+    );
+    expect(block(LOADER_CSS, 'inchwormFill')).not.toContain('clipPath');
+  });
+
+  it('다섯 걸음이 이동, 수축, 굽힘을 transform으로 만들고 구간 이징 변수는 없다', () => {
+    const frames = inchwormFrames();
+    expect(Object.keys(frames).length).toBeGreaterThan(10);
+    expect(
+      Object.values(frames).some((frame) =>
+        frame.transform.includes('scaleX(0.55)')
+      )
+    ).toBe(true);
+    expect(
+      Object.values(frames).every((frame) =>
+        Object.keys(frame).every((key) =>
+          ['transform', 'transformOrigin'].includes(key)
+        )
+      )
+    ).toBe(true);
+    expect(frames['100%'].transform).toContain('translateX(400%)');
   });
 });

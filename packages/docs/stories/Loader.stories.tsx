@@ -163,30 +163,6 @@ export const Status: Story = {
   },
 };
 
-export const Fuse: Story = {
-  render: function FuseStory() {
-    const [value, setValue] = useState(30);
-    return (
-      <div
-        style={{
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '1.5rem',
-          alignItems: 'center',
-        }}
-      >
-        <div style={{ display: 'flex', gap: '0.5rem' }}>
-          <button onClick={() => setValue(Math.max(0, value - 20))}>-20</button>
-          <button onClick={() => setValue(Math.min(100, value + 20))}>
-            +20
-          </button>
-        </div>
-        <Loader type="fuse" size="lg" value={value} label={`${value}%`} />
-      </div>
-    );
-  },
-};
-
 export const Sizes: Story = {
   render: () => (
     <div

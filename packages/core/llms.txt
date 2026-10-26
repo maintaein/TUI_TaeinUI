@@ -58,7 +58,7 @@ All components follow consistent patterns:
 - **Avatar** - User avatar with image, fallback, status. Props: src, alt, size, variant('circular'|'rounded'|'square'), status, bouncy(opt-in hover/focus float + press grow, needs onClick or href)
 
 ### Feedback & Status
-- **Loader** - Loading indicator (orbit/spinner/dots/bar/wave/inchworm/fuse, default orbit), preset or any CSS color. Props: type, size, color, label, fullScreen, overlay, status(orbit only: 'loading'|'done'|'error', dots gather into a check or X), value(fuse only, required: 0-100 progress)
+- **Loader** - Loading indicator (orbit/spinner/dots/bar/wave/inchworm, default orbit), preset or any CSS color. Props: type, size, color, label, fullScreen, overlay, status(all types: 'loading'|'done'|'error', continuous transitions to a check or X; reduced motion shows the final mark immediately). Inchworm is one crawling capsule
 - **Skeleton** - Content placeholder. Props: variant('text'|'rect'|'circle'|'rounded'), animation('wave'|'pulse'|false), width, height. Decorative (`aria-hidden`), no live region: put `aria-busy` and an `aria-label` on the wrapping element
 - **Snackbar**: Toast notification. Props: open, message, severity('success'|'error'|'warning'|'info'), position, autoHideDuration, stack(default true), action. Snackbars open at the same position stack automatically (newest at the screen edge, max 3; the 4th evicts the oldest via its onClose). stack={false} keeps one Snackbar alone at its position
 - **Tooltip**: Hover tooltip. Props: children, content, position, delay, arrow

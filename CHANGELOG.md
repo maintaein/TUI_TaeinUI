@@ -21,12 +21,16 @@
 
 ### Added
 
+- `Loader`의 `status`를 모든 type으로 확장했습니다. 로딩 그래픽이 완료·실패 표식으로 이어지며 축소 모션에서는 즉시 최종 상태를 보입니다. 할 일: 결과 표식이 필요한 곳에 `status`를 지정합니다.
+
 - `TextField`에 `success`(`boolean`, 기본 `false`)와 `successMessage`(`string`)를 더했습니다. 켜지면 테두리와 메시지가 `color.success.dark`가 되고 메시지가 4px 위에서 내려오며 나타납니다. 메시지는 `helperText` 자리에 보이고 `aria-describedby`로 연결됩니다. `error`와 함께 켜면 `error`가 이기고 `aria-invalid`는 `error`일 때만 `true`입니다
 - `TextField`의 입력칸이 오류가 걸릴 때 좌우로 짧게 흔들리고 에러 문구가 4px 위에서 내려오며 나타납니다. `error`가 `false`에서 `true`로 바뀔 때와, `error`가 켜진 채 `errorMessage`가 바뀔 때 일어납니다(처음부터 켜져 있으면 없음). 같은 오류를 다시 보여 주려면 `errorMessage`를 바꾸거나 `error`를 껐다 켜세요. 축소 모션에서는 흔들림 없이 색만 바뀝니다. `NumericSpinner`의 에러 문구도 같은 내려오는 모션으로 나타납니다
 - `HeaderBar`에 `titleAs`(`'h1'` | `'h2'` ~ `'h6'` | `'span'`, 기본 `'h1'`)를 더했습니다. 제목 요소만 바뀌고 스타일은 같습니다. 페이지에 이미 h1이 있으면 낮은 단계나 `span`을 쓰세요.
 - `Modal`·`BottomSheet`·`SideSheet`에 `container`(`HTMLElement | null`, 기본 `document.body`)를 더했습니다. 오버레이를 그릴 DOM 위치를 고르고, 주어지면 body 스크롤을 잠그지 않습니다. 화면이 그 안에 갇히려면 container에 `contain: layout` 또는 `transform`을 줘서 `position: fixed`의 기준으로 만드세요. 안 주면 이전과 같고, 할 일은 없습니다.
 
 ### Changed
+
+- `Loader type="inchworm"`을 둥근 캡슐 몸통 하나가 수축·굽힘·신장을 반복하며 기어가는 모양으로 바꿨습니다. 할 일은 없습니다.
 
 - `Border`의 `glow`가 호버·포커스와 무관하게 켜져 있는 동안 계속 도는 로더가 됐습니다. 단일 꼬리 빛이 둥근 테두리 길을 따라 3000ms에 한 바퀴 돌며, 반바퀴마다 느려졌다 빨라집니다. 머리는 밝고 48px 길이의 꼬리는 뒤로 투명해집니다. 5초 넘게 계속 움직이므로(WCAG 2.2.2) 로딩이 끝나면 `glow`를 끄세요. 호버나 포커스 장식으로만 쓰던 곳은 `glow`를 끄거나, 로딩 중에만 켜세요. 축소 모션에서는 빛이 출발점에 멈춰 보입니다
 - `HeaderBar`의 루트 `<header>`에서 `role="banner"` 명시를 지웠습니다. HTML 기본 의미를 따라, 문서 최상위에 두면 그대로 banner이고 `section`·`article`·`aside`·`nav`·`main` 안에 두면 banner가 아닙니다. 할 일은 대개 없습니다. 최상위에 둔 HeaderBar는 그대로입니다.
@@ -40,6 +44,10 @@
 - `SegmentedButtons`를 마우스로 누르면 선택 표식 둘레에 키보드용 포커스 링이 켜지던 것을 고쳤습니다. 누른 옵션에 포커스를 옮기되 링은 켜지 않습니다(`focus({ focusVisible: false })`). 방향키·Tab으로 옮길 때는 링이 그대로 보입니다. `focusVisible` 옵션을 모르는 브라우저(Safari 18.4 이전 등)에서는 마우스 클릭에도 링이 켜집니다. 할 일은 없습니다.
 - `Modal`·`BottomSheet`·`SideSheet`가 포커스를 안으로 옮기지 못한 채(`container`로 받은 상자가 `inert`인 경우) 열렸다 닫힐 때, 열기 전에 포커스가 있던 요소로 포커스를 되돌려 그사이 다른 곳에 간 포커스를 빼앗고 브라우저가 그 요소로 스크롤하던 것을 고쳤습니다. 이제 포커스가 다이얼로그 안으로 들어간 경우에만 닫을 때 되돌립니다. 보통의 사용(포커스가 안으로 들어가는 다이얼로그)은 그대로입니다. 할 일은 없습니다.
 - `Border`의 `glow` 빛이 테두리선 위가 아니라 테두리 두께만큼 안쪽 띠에 그려지던 것을 고쳤습니다. 이제 빛이 테두리선과 겹쳐 돕니다(모서리 둥글기와 `width` 세 단계 모두). 빛이 감싼 콘텐츠를 덮지 않는 것과 `glow`를 안 쓴 `Border`는 그대로입니다. 할 일은 없습니다.
+
+### Removed
+
+- **BREAKING CHANGE:** `Loader type="fuse"`와 `value`를 제거했습니다. 할 일: fuse를 쓰던 곳은 `type="bar"`로 바꿉니다.
 
 ## [0.4.0] - 2026-10-17
 

@@ -13,6 +13,11 @@ import {
   bar,
   barFill,
   inchwormFill,
+  inchwormTrack,
+  statusGraphic,
+  resultMark,
+  closingRing,
+  wormSkin,
   barClip,
   barSizeStyles,
   colorStyles,
@@ -29,11 +34,6 @@ import {
   waveSizeStyles,
   labelLayer,
   visuallyHidden,
-  fuse,
-  fuseFill,
-  fuseSpark,
-  fuseSparkDot,
-  fuseSparkSizeStyles,
   spinnerSizeStyles,
   dotSizeStyles,
   dotDelayStyles,
@@ -41,7 +41,6 @@ import {
 import {
   ORBIT_DOTS,
   ORBIT_RADIUS_PX,
-  clampPercent,
   markPoints,
   pairByAngle,
   ringPoints,
@@ -50,10 +49,14 @@ import {
 } from './loaderMotion';
 
 /** 모든 type이 받는 prop */
-interface LoaderBaseProps extends Omit<
+export interface LoaderProps extends Omit<
   HTMLAttributes<HTMLDivElement>,
   'color'
 > {
+  /** 로딩 애니메이션 타입 @default 'orbit' */
+  type?: 'orbit' | 'spinner' | 'dots' | 'bar' | 'wave' | 'inchworm';
+  /** 로딩에서 완료 또는 실패 표식으로 이어진다 @default 'loading' */
+  status?: 'loading' | 'done' | 'error';
   /** 로더 크기 @default 'md' */
   size?: 'sm' | 'md' | 'lg' | 'xl';
   /** 로더 색상. preset 또는 임의의 CSS 색상값(예: '#f00', 'currentColor') @default 'primary' */
@@ -69,40 +72,6 @@ interface LoaderBaseProps extends Omit<
   /** 추가 CSS 클래스 */
   className?: string;
 }
-
-/** 점 궤도. `status`로 완료 표식을 받는다 */
-interface OrbitLoaderProps extends LoaderBaseProps {
-  /** 로딩 애니메이션 타입 @default 'orbit' */
-  type?: 'orbit';
-  /** 완료 표식. `done`이면 점들이 체크로, `error`면 X로 모인다 @default 'loading' */
-  status?: 'loading' | 'done' | 'error';
-  value?: never;
-}
-
-/** 진행률을 받는 도화선. `value`가 필수다 */
-interface FuseLoaderProps extends LoaderBaseProps {
-  /** 로딩 애니메이션 타입 */
-  type: 'fuse';
-  /** 진행률(0~100, 범위 밖은 자른다) */
-  value: number;
-  status?: never;
-}
-
-/** 그 밖의 type. `status`와 `value`는 받지 않는다 */
-interface PlainLoaderProps extends LoaderBaseProps {
-  /** 로딩 애니메이션 타입 */
-  type: 'spinner' | 'dots' | 'bar' | 'wave' | 'inchworm';
-  status?: never;
-  value?: never;
-}
-
-/**
- * 로딩 상태를 표시하는 컴포넌트. 점 궤도, 스피너, 점, 바, 물결, 자벌레, 도화선 타입 지원.
- *
- * `status`는 `type`이 `'orbit'`(또는 생략)일 때만, `value`는 `type="fuse"`일 때만
- * (그때는 필수) 받는다.
- */
-export type LoaderProps = OrbitLoaderProps | FuseLoaderProps | PlainLoaderProps;
 
 type ColorPreset = keyof typeof colorStyles;
 
@@ -121,10 +90,10 @@ const a11yLocked = {
   'aria-busy': undefined,
 } as const;
 
-type OrbitStatus = 'loading' | 'done' | 'error';
+type LoaderStatus = 'loading' | 'done' | 'error';
 type LoaderSize = keyof typeof ORBIT_RADIUS_PX;
 
-const STATUS_NAME: Record<OrbitStatus, string> = {
+const STATUS_NAME: Record<LoaderStatus, string> = {
   loading: '로딩 중',
   done: '완료',
   error: '실패',
@@ -139,7 +108,7 @@ interface OrbitHost extends HTMLDivElement {
 }
 
 /** 상태가 정하는 점 8개의 자리. loading은 원 위, 나머지는 각도순으로 짝지은 표식 자리 */
-const orbitTargets = (status: OrbitStatus, size: LoaderSize): Point[] => {
+const orbitTargets = (status: LoaderStatus, size: LoaderSize): Point[] => {
   const radius = ORBIT_RADIUS_PX[size];
   const ring = ringPoints(radius);
   return status === 'loading'
@@ -169,7 +138,7 @@ interface LabelHost extends HTMLParagraphElement {
 }
 
 interface OrbitGraphicProps {
-  status: OrbitStatus;
+  status: LoaderStatus;
   size: LoaderSize;
   reduced: boolean;
 }
@@ -181,7 +150,7 @@ interface OrbitGraphicProps {
  */
 const OrbitGraphic = ({ status, size, reduced }: OrbitGraphicProps) => {
   const hostRef = useRef<OrbitHost>(null);
-  const shownRef = useRef<{ status: OrbitStatus; size: LoaderSize } | null>(
+  const shownRef = useRef<{ status: LoaderStatus; size: LoaderSize } | null>(
     null
   );
 
@@ -278,6 +247,7 @@ const OrbitGraphic = ({ status, size, reduced }: OrbitGraphicProps) => {
       aria-hidden="true"
       data-orbit
       data-status={status}
+      data-loader-mark={status === 'loading' ? undefined : status}
     >
       {Array.from({ length: 8 }, (_, i) => (
         <span
@@ -291,10 +261,408 @@ const OrbitGraphic = ({ status, size, reduced }: OrbitGraphicProps) => {
   );
 };
 
+type PlainType = Exclude<NonNullable<LoaderProps['type']>, 'orbit'>;
+const GRAPHIC_PX = { sm: 16, md: 24, lg: 32, xl: 48 } as const;
+const DOT_PX = { sm: 4, md: 8, lg: 10, xl: 12 } as const;
+const CHECK_PATH = 'M10 24 L20 34 L38 14';
+const ERROR_PATH = 'M14 14 L34 34 M34 14 L14 34';
+
+/** 로딩 물체를 붙잡아 결과로 옮긴다. type의 수명과 타임라인의 수명을 맞춘다. */
+const StatusGraphic = ({
+  type,
+  status,
+  size,
+  reduced,
+}: OrbitGraphicProps & { type: PlainType }) => {
+  const hostRef = useRef<OrbitHost>(null);
+  const shownRef = useRef<{ status: LoaderStatus; size: LoaderSize } | null>(
+    null
+  );
+
+  useLayoutEffect(() => {
+    const host = hostRef.current;
+    if (!host) return;
+    const prev = shownRef.current;
+    shownRef.current = { status, size };
+    if (prev?.status === status && prev.size === size) {
+      if (reduced && host.__loaderStatusTimeline)
+        settleMotion(host.__loaderStatusTimeline);
+      return;
+    }
+    if (
+      (!prev || (prev.status === 'loading' && !host.__loaderStatusTimeline)) &&
+      status === 'loading'
+    )
+      return;
+
+    host.__loaderStatusTimeline?.kill();
+    const parts = [...host.querySelectorAll<HTMLElement>('[data-motion-part]')];
+    const mark = host.querySelector<SVGSVGElement>('[data-result-mark]')!;
+    const path = mark.querySelector('path')!;
+    const ring = host.querySelector('[data-closing-ring]');
+    const worm = host.querySelector('[data-worm-body]');
+    // CSS 루프를 끄기 전에 보이던 변형을 보존해야 결과로 이어지는 첫 프레임이 튀지 않는다.
+    if (!host.hasAttribute('data-paused')) {
+      const transforms = parts.map((part) => getComputedStyle(part).transform);
+      parts.forEach((part, i) => {
+        part.style.animation = 'none';
+        if (transforms[i] && transforms[i] !== 'none')
+          gsap.set(part, { transform: transforms[i] });
+      });
+    }
+    host.setAttribute('data-paused', '');
+    const arrive = () => {
+      host.__loaderStatusTimeline = undefined;
+      if (status === 'loading') {
+        gsap.set(parts, {
+          clearProps: 'transform,opacity,animation,transformOrigin',
+        });
+        host.removeAttribute('data-paused');
+      }
+    };
+    const timing = { duration: gsapDuration.slow, ease: gsapEasing.settle };
+    const immediate = reduced || !prev || prev.size !== size;
+    const timeline = gateMotion(immediate, () => {
+      const tl = gsap.timeline();
+      tl.to(host, { x: 0, ...timing }, 0);
+      if (status === 'loading') {
+        tl.to(mark, { opacity: 0, duration: gsapDuration.fast }, 0);
+        tl.to(
+          parts,
+          {
+            x: 0,
+            xPercent: 0,
+            y: 0,
+            scaleX: 1,
+            scaleY: 1,
+            rotation: 0,
+            opacity: 1,
+            ...timing,
+          },
+          0
+        );
+        if (ring) tl.set(ring, { opacity: 0 });
+        if (worm)
+          tl.to(
+            worm,
+            {
+              attr: { d: 'M16 16 L50 16 L84 16', 'stroke-width': 32 },
+              ...timing,
+            },
+            0
+          );
+        return tl;
+      }
+
+      const unit = GRAPHIC_PX[size] / 48;
+      const drawAt =
+        type === 'inchworm' && status === 'error'
+          ? gsapDuration.base + gsapDuration.slower
+          : type === 'spinner' || type === 'wave'
+            ? gsapDuration.slow
+            : gsapDuration.base;
+      if (prev?.status !== status) tl.set(path, { strokeDashoffset: 1 }, 0);
+      tl.to(
+        mark,
+        {
+          opacity: 1,
+          scale: 1,
+          duration: gsapDuration.base,
+          ease: gsapEasing.settle,
+        },
+        drawAt
+      );
+      tl.to(path, { strokeDashoffset: 0, ...timing }, drawAt);
+
+      if (type === 'spinner') {
+        const rotor = parts[0];
+        const rotation = Number(gsap.getProperty(rotor, 'rotation')) || 0;
+        tl.to(rotor, { rotation: rotation + 120, opacity: 0, ...timing }, 0);
+        tl.fromTo(
+          ring,
+          { opacity: 0, strokeDasharray: '0.25 1' },
+          { opacity: 1, strokeDasharray: '1 1', ...timing },
+          0
+        );
+      } else if (type === 'dots') {
+        const dots = parts.filter((part) => part.hasAttribute('data-dot'));
+        const check = [
+          [10, 24],
+          [20, 34],
+          [38, 14],
+        ];
+        dots.forEach((part, i) => {
+          const [x, y] = status === 'done' ? check[i] : [24, 24];
+          const start = (i - 1) * (DOT_PX[size] + 8);
+          tl.to(
+            part,
+            {
+              x: (x - 24) * unit - start,
+              y: (y - 24) * unit,
+              scale: 1,
+              ...timing,
+            },
+            0
+          );
+        });
+        tl.to(
+          parts.filter((part) => !part.hasAttribute('data-dot')),
+          { scaleX: 1, scaleY: 1, ...timing },
+          0
+        );
+        if (status === 'error')
+          tl.to(dots, { opacity: 0, duration: gsapDuration.base }, drawAt);
+      } else if (type === 'bar') {
+        const fill = parts[0];
+        tl.set(fill, { transformOrigin: '0% 50%' }, 0);
+        tl.to(fill, { x: 0, scaleX: 4, ...timing }, 0);
+        if (status === 'done')
+          tl.fromTo(
+            mark,
+            { scale: 0.6 },
+            { scale: 1, duration: gsapDuration.base, ease: gsapEasing.snap },
+            drawAt
+          );
+      } else if (type === 'wave') {
+        const bars = parts;
+        tl.to(
+          bars,
+          {
+            scaleY: 8 / { sm: 12, md: 16, lg: 24, xl: 32 }[size],
+            rotation: 90,
+            ...timing,
+          },
+          0
+        );
+        bars.forEach((part, i) => {
+          const half = bars.length / 2;
+          const first = i < half;
+          const t = ((i % half) + 0.5) / half;
+          const from =
+            status === 'done'
+              ? first
+                ? [10, 24]
+                : [20, 34]
+              : first
+                ? [14, 14]
+                : [34, 14];
+          const to =
+            status === 'done'
+              ? first
+                ? [20, 34]
+                : [38, 14]
+              : first
+                ? [34, 34]
+                : [14, 34];
+          const x = (from[0] + (to[0] - from[0]) * t - 24) * unit;
+          const y = (from[1] + (to[1] - from[1]) * t - 24) * unit;
+          const segment =
+            (Math.hypot(to[0] - from[0], to[1] - from[1]) * unit) / half;
+          tl.to(
+            part,
+            {
+              x: x - (i - (bars.length - 1) / 2) * 8,
+              y,
+              rotation:
+                (Math.atan2(to[1] - from[1], to[0] - from[0]) * 180) / Math.PI -
+                90,
+              scaleY: segment / { sm: 12, md: 16, lg: 24, xl: 32 }[size],
+              ...timing,
+            },
+            gsapDuration.slow
+          );
+        });
+        tl.to(
+          bars,
+          { opacity: 0, duration: gsapDuration.fast },
+          gsapDuration.slow * 2
+        );
+      } else {
+        const body = parts[0];
+        const bodyWidth = { sm: 100, md: 200, lg: 300, xl: 400 }[size] / 4;
+        tl.to(
+          body,
+          {
+            xPercent: 150,
+            x: 0,
+            y: 0,
+            rotation: 0,
+            transformOrigin: '50% 50%',
+            scaleX: status === 'done' ? (28 * unit) / (bodyWidth * 0.7) : 1,
+            scaleY: status === 'done' ? (20 * unit) / 12 : 1,
+            ...timing,
+          },
+          0
+        );
+        if (status === 'done')
+          tl.to(
+            worm,
+            {
+              attr: { d: 'M15 16 L40 28 L85 4', 'stroke-width': 6 },
+              ...timing,
+            },
+            0
+          );
+        else if (!immediate) {
+          [-8, 8, -5, 5, 0].forEach((rotation, i) =>
+            tl.to(
+              body,
+              {
+                rotation,
+                duration: gsapDuration.slower / 5,
+                ease: gsapEasing.drift,
+              },
+              gsapDuration.base + (i * gsapDuration.slower) / 5
+            )
+          );
+        }
+        tl.to(body, { opacity: 0, duration: gsapDuration.base }, drawAt);
+      }
+
+      if (
+        status === 'error' &&
+        (type === 'bar' || type === 'inchworm') &&
+        !immediate
+      ) {
+        // TextField와 같은 좌우 진폭을 쓰며 마지막은 원점으로 돌아온다.
+        const offsets = [-2, 4, -7, 7, -7, 7, -7, 4, -2, 0];
+        offsets.forEach((x, i) =>
+          tl.to(
+            host,
+            {
+              x,
+              duration: gsapDuration.slower / offsets.length,
+              ease: gsapEasing.drift,
+            },
+            gsapDuration.base + (i * gsapDuration.slower) / offsets.length
+          )
+        );
+      }
+      return tl;
+    });
+    if (immediate) arrive();
+    else {
+      host.__loaderStatusTimeline = timeline;
+      timeline.eventCallback('onComplete', () => {
+        timeline.kill();
+        arrive();
+      });
+    }
+  }, [type, status, size, reduced]);
+
+  useEffect(() => {
+    const host = hostRef.current;
+    return () => {
+      host?.__loaderStatusTimeline?.kill();
+    };
+  }, []);
+
+  return (
+    <div
+      ref={hostRef}
+      className={statusGraphic}
+      data-loader-graphic={type}
+      data-status={status}
+      data-loader-mark={status === 'loading' ? undefined : status}
+      aria-hidden={type === 'spinner' ? undefined : true}
+    >
+      {type === 'spinner' ? (
+        <div className={spinnerSizeStyles[size]}>
+          <div
+            className={clsx(spinner, spinnerSizeStyles[size])}
+            data-spinner
+            data-motion-part
+          />
+          <svg
+            className={closingRing}
+            viewBox="0 0 100 100"
+            role="presentation"
+          >
+            <circle
+              data-closing-ring
+              cx="50"
+              cy="50"
+              r="44"
+              pathLength="1"
+              opacity="0"
+            />
+          </svg>
+        </div>
+      ) : type === 'dots' ? (
+        <div className={dotsContainer}>
+          {(['first', 'second', 'third'] as const).map((delay) => (
+            <span
+              key={delay}
+              className={clsx(dot, dotSizeStyles[size], dotDelayStyles[delay])}
+              data-dot
+              data-delay={delay}
+              data-motion-part
+            >
+              <span
+                className={clsx(dotBody, dotDelayStyles[delay])}
+                data-motion-part
+              />
+            </span>
+          ))}
+        </div>
+      ) : type === 'bar' ? (
+        <div className={clsx(bar, barSizeStyles[size])}>
+          <div className={barClip} data-bar-clip>
+            <div className={barFill} data-motion-part />
+          </div>
+        </div>
+      ) : type === 'wave' ? (
+        <div
+          className={clsx(wave, waveSizeStyles[size])}
+          style={{ '--wave-n': waveBarCount(size) } as CSSProperties}
+          data-wave
+          aria-hidden="true"
+        >
+          {Array.from({ length: waveBarCount(size) }, (_, i) => (
+            <span
+              key={i}
+              className={waveBar}
+              style={{ '--wave-i': i } as CSSProperties}
+              data-wave-bar
+              data-motion-part
+            />
+          ))}
+        </div>
+      ) : (
+        <div className={clsx(inchwormTrack, barSizeStyles[size])} data-inchworm>
+          <div className={inchwormFill} data-inchworm-fill data-motion-part>
+            <svg
+              className={wormSkin}
+              viewBox="0 0 100 32"
+              preserveAspectRatio="none"
+              role="presentation"
+            >
+              <path data-worm-body d="M16 16 L50 16 L84 16" strokeWidth="32" />
+            </svg>
+          </div>
+        </div>
+      )}
+      <svg
+        className={clsx(resultMark, spinnerSizeStyles[size])}
+        viewBox="0 0 48 48"
+        data-result-mark
+        role="presentation"
+      >
+        <path
+          data-mark-path
+          d={status === 'error' ? ERROR_PATH : CHECK_PATH}
+          pathLength="1"
+          strokeDasharray="1"
+          strokeDashoffset="1"
+        />
+      </svg>
+    </div>
+  );
+};
+
 export const Loader = ({
   type = 'orbit',
   status = 'loading',
-  value,
   size = 'md',
   color = 'primary',
   label,
@@ -401,87 +769,8 @@ export const Loader = ({
   );
 
   const renderLoader = () => {
-    const defaultName =
-      type === 'fuse'
-        ? '진행률'
-        : type === 'orbit'
-          ? STATUS_NAME[status]
-          : STATUS_NAME.loading;
-    const accessibleLabel = ariaLabel || label || defaultName;
+    const accessibleLabel = ariaLabel || label || STATUS_NAME[status];
     const presetClass = isPreset(color) ? colorStyles[color] : undefined;
-
-    // 도화선: 진행률을 받는 막대. 채움은 clip-path로, 불똥은 곁의 래퍼로 옮긴다.
-    if (type === 'fuse') {
-      const percent = clampPercent(value ?? 0);
-      return (
-        <div
-          role="progressbar"
-          aria-valuemin={0}
-          aria-valuemax={100}
-          aria-valuenow={percent}
-          aria-label={accessibleLabel}
-          data-type="fuse"
-          data-size={size}
-          data-color={color}
-          data-complete={percent >= 100 ? '' : undefined}
-          className={presetClass}
-          style={
-            {
-              '--fuse-value': percent,
-              ...(presetClass ? {} : { '--loader-color': color }),
-            } as CSSProperties
-          }
-        >
-          <div className={clsx(fuse, barSizeStyles[size])}>
-            <div className={bar}>
-              <div className={fuseFill} data-fuse-fill />
-            </div>
-            <div className={fuseSpark} aria-hidden="true" data-fuse-spark>
-              <span className={clsx(fuseSparkDot, fuseSparkSizeStyles[size])} />
-            </div>
-          </div>
-        </div>
-      );
-    }
-
-    // 자벌레는 bar와 같은 트랙을 쓰고 채움 층만 다르다.
-    if (type === 'bar' || type === 'inchworm') {
-      return (
-        <div
-          role="status"
-          aria-live="polite"
-          aria-label={accessibleLabel}
-          data-type={type}
-          data-size={size}
-          data-color={color}
-        >
-          <div className={clsx(bar, barSizeStyles[size])}>
-            {/* 채움을 둥글게 자르는 층이 빛(drop-shadow)을 걸고 색 변수를 받는다.
-                colorStyles는 preset 3개만 가진 styleVariants라 임의 색상 문자열이면
-                클래스가 없다. 그때는 --loader-color를 인라인으로 직접 넘긴다. */}
-            <div
-              className={clsx(barClip, presetClass)}
-              data-bar-clip
-              style={
-                presetClass
-                  ? undefined
-                  : ({ '--loader-color': color } as CSSProperties)
-              }
-            >
-              {type === 'bar' ? (
-                <div className={barFill} />
-              ) : (
-                <div className={inchwormFill} data-inchworm-fill />
-              )}
-            </div>
-          </div>
-          <span className={visuallyHidden} data-loader-message>
-            {accessibleLabel}
-          </span>
-        </div>
-      );
-    }
-
     return (
       <div
         role="status"
@@ -489,52 +778,26 @@ export const Loader = ({
         aria-label={accessibleLabel}
         data-type={type}
         data-size={size}
+        data-color={color}
         className={clsx(inlineContainer, presetClass)}
         style={
           presetClass
             ? undefined
-            : ({ '--spinner-color': color } as CSSProperties)
+            : ({
+                '--spinner-color': color,
+                '--loader-color': color,
+              } as CSSProperties)
         }
       >
-        {type === 'dots' ? (
-          <div className={dotsContainer}>
-            {(['first', 'second', 'third'] as const).map((delay) => (
-              <span
-                key={delay}
-                className={clsx(
-                  dot,
-                  dotSizeStyles[size],
-                  dotDelayStyles[delay]
-                )}
-                data-dot
-                data-delay={delay}
-              >
-                <span className={clsx(dotBody, dotDelayStyles[delay])} />
-              </span>
-            ))}
-          </div>
-        ) : type === 'wave' ? (
-          <div
-            className={clsx(wave, waveSizeStyles[size])}
-            style={{ '--wave-n': waveBarCount(size) } as CSSProperties}
-            aria-hidden="true"
-            data-wave
-          >
-            {Array.from({ length: waveBarCount(size) }, (_, i) => (
-              <span
-                key={i}
-                className={waveBar}
-                style={{ '--wave-i': i } as CSSProperties}
-                data-wave-bar
-              />
-            ))}
-          </div>
-        ) : type === 'orbit' ? (
+        {type === 'orbit' ? (
           <OrbitGraphic status={status} size={size} reduced={reduced} />
         ) : (
-          <div
-            className={clsx(spinner, spinnerSizeStyles[size])}
-            data-spinner
+          <StatusGraphic
+            key={type}
+            type={type}
+            status={status}
+            size={size}
+            reduced={reduced}
           />
         )}
         <span className={visuallyHidden} data-loader-message>

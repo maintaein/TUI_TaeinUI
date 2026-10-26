@@ -2,14 +2,11 @@ import { style, styleVariants, keyframes } from '@vanilla-extract/css';
 import { themeContract } from '../../tokens/theme.css';
 import { loopRhythmEasing } from '../../tokens/loopRhythm.css';
 import {
-  FUSE_SPARK_PX,
   ORBIT_DOT_PX,
   ORBIT_RADIUS_PX,
   WAVE_HEIGHT_PX,
   WAVE_WIDTH_PX,
   inchwormFrames,
-  inchwormInset,
-  inchwormStops,
 } from './loaderMotion';
 
 // 머리의 은은한 광휘. 타입마다 "움직이는 파란 부분(머리)"에 같은 빛을 건다: 값이
@@ -84,22 +81,9 @@ const waveSwell = keyframes({
   '8%': { transform: 'scaleY(1)' },
 });
 
-// 자벌레(inchworm): 걸음 5번의 정지점을 loaderMotion의 순수 함수가 반복문으로
-// 만든다. 채움 층을 clip-path로 오려 몸 모양을 그린다(둥근 끝이 납작해지지
-// 않는다). clip-path는 transform·opacity 밖이지만 레이아웃을 건드리지 않는
-// 페인트 속성이다.
+// 몸통의 수축과 굽힘은 transform만 쓰고, 구간 이징은 animation에 둔다.
 const inchworm = keyframes({
-  ...inchwormFrames(themeContract.animation.easing.settle),
-});
-
-// 도화선(fuse)의 불똥: 타들어 가는 불이라 고르지 않게 깜빡인다. 정지점이 고르지
-// 않고(0 / 23 / 41 / 67 / 100) 크기 0.85 ~ 1.1, 투명도 0.7 ~ 1 사이를 오간다.
-// 구간 커브는 쓰는 쪽에서 drift로 건다(M5 task-20 3부).
-const fuseFlicker = keyframes({
-  '0%, 100%': { transform: 'scale(1)', opacity: 1 },
-  '23%': { transform: 'scale(0.85)', opacity: 0.7 },
-  '41%': { transform: 'scale(1.1)', opacity: 1 },
-  '67%': { transform: 'scale(0.9)', opacity: 0.8 },
+  ...inchwormFrames(),
 });
 
 // 축소 선호일 때 dots가 돌아가는 투명도 깜빡임. transform은 없다.
@@ -113,7 +97,7 @@ export const loaderContainer = style({
   flexDirection: 'column',
   alignItems: 'center',
   justifyContent: 'center',
-  gap: '1rem',
+  gap: themeContract.spacing[4],
 });
 
 export const fullScreenStyles = style({
@@ -180,7 +164,7 @@ export const barSizeStyles = styleVariants({
   xl: { width: '400px' },
 });
 
-// 막대(bar·inchworm)의 채움 자르기 층. 트랙과 같은 크기·위치의 투명한 층이고,
+// 막대(bar)의 채움 자르기 층. 트랙과 같은 크기·위치의 투명한 층이고,
 // 채움이 트랙 끝을 넘나들 때 둥근 끝(3px)으로 자른다(clip-path가 아니라 overflow +
 // border-radius). 빛(drop-shadow)은 이 층이 자기 내용을 둥글게 자른 결과에 걸리므로
 // 빛이 둥근 채움을 따라 번지고 트랙 끝에서 직선으로 끊기지 않는다. 트랙 면은 이 밖이라
@@ -198,29 +182,41 @@ export const barClip = style({
   filter: `drop-shadow(${loaderGlow('var(--loader-color)')})`,
 });
 
-// 자벌레의 채움 층. 트랙 전체 폭을 채우고 clip-path로 몸 모양만 남긴다.
-// 한 바퀴는 loop.base의 두 배(걸음 하나가 600ms)다. 구간 커브는 키프레임
-// 정지점마다 걸려 있어 여기에는 커브를 쓰지 않는다. 축소 선호에서는 기어가지
-// 않고 가운데에 머물며 투명도 맥박으로 돌아간다.
+export const inchwormTrack = style({
+  position: 'relative',
+  // 긴 몸통을 굽혀도 아래쪽이 잘리지 않도록 회전과 광휘가 머물 공간을 둔다.
+  height: themeContract.spacing[16],
+  overflow: 'hidden',
+});
+
+// 폭의 1/4인 몸통 하나가 움직인다. 트랙 면을 그리지 않아 막대로 보이지 않는다.
 export const inchwormFill = style({
   position: 'absolute',
-  top: 0,
+  top: `calc(50% - ${themeContract.spacing[2]})`,
   left: 0,
-  width: '100%',
-  height: '100%',
-  backgroundColor: 'var(--loader-color)',
-  clipPath: inchwormInset(inchwormStops()[0]),
-  animation: `${inchworm} calc(${themeContract.animation.loop.base} * 2) infinite backwards`,
-
+  width: '25%',
+  height: themeContract.spacing[4],
+  borderRadius: '999px',
+  filter: `drop-shadow(${loaderGlow('var(--loader-color)')})`,
+  transform: 'translateX(150%)',
+  animation: `${inchworm} calc(${themeContract.animation.loop.base} * 2) ${themeContract.animation.easing.settle} infinite backwards`,
   '@media': {
-    '(prefers-reduced-motion: reduce)': {
-      clipPath: 'inset(0 37.5% 0 37.5% round 3px)',
-      animation: `${fadeInOut} ${themeContract.animation.loop.base} infinite ${loopRhythmEasing} backwards`,
-    },
+    '(prefers-reduced-motion: reduce)': { animation: 'none' },
   },
 });
 
-// preset마다 두 변수를 같은 토큰으로 세운다. bar·fuse는 --loader-color를, spinner·
+export const wormSkin = style({
+  display: 'block',
+  width: '100%',
+  height: '100%',
+  overflow: 'visible',
+  fill: 'none',
+  stroke: 'var(--loader-color)',
+  strokeLinecap: 'round',
+  strokeLinejoin: 'round',
+});
+
+// preset마다 두 변수를 같은 토큰으로 세운다. bar·inchworm은 --loader-color를, spinner·
 // dots·wave·orbit은 --spinner-color를 읽어서 어느 형태든 같은 색으로 풀린다.
 export const colorStyles = styleVariants({
   primary: {
@@ -311,8 +307,8 @@ export const orbitDot = style({
       boxShadow: loaderGlow(themeContract.color.success.dark),
     },
     '[data-status="error"] &': {
-      backgroundColor: themeContract.color.error.dark,
-      boxShadow: loaderGlow(themeContract.color.error.dark),
+      backgroundColor: themeContract.color.error.main,
+      boxShadow: loaderGlow(themeContract.color.error.main),
     },
     '[data-paused] &': { animation: 'none' },
   },
@@ -380,7 +376,7 @@ export const waveBar = style({
 export const dotsContainer = style({
   display: 'flex',
   alignItems: 'center',
-  gap: '0.5rem',
+  gap: themeContract.spacing[2],
 });
 
 // 버블 점의 바깥 상자. 크기·솟음을 맡는다(위 bubbleRise). 주기는 Skeleton
@@ -495,75 +491,60 @@ export const visuallyHidden = style({
   border: 0,
 });
 
-// 도화선(fuse): 트랙은 bar와 같다. 채움 층은 트랙 전체 폭이고 clip-path로
-// 오른쪽을 잘라 --fuse-value(0~100)만큼 좌 → 우로 채운다. 채움은 자기
-// clip-path로 둥근 끝을 만들어 bar·inchworm의 자르기 층(barClip)이 없다. 불똥은
-// 트랙 밖으로 번지는 빛을 가지므로 트랙의 자식이 아니라 곁에 둔다.
-export const fuse = style({
+// 결과 색은 사용자가 고른 로딩 색보다 우선하며 모든 그래픽에 상속된다.
+export const statusGraphic = style({
   position: 'relative',
-});
-
-export const fuseFill = style({
-  position: 'absolute',
-  top: 0,
-  left: 0,
-  width: '100%',
-  height: '100%',
-  backgroundColor: 'var(--loader-color)',
-  clipPath: 'inset(0 calc(100% - var(--fuse-value) * 1%) 0 0 round 3px)',
-  // clip-path 전이는 레이아웃을 건드리지 않는 페인트 속성이다(자벌레와 같다).
-  // 둥근 끝(round 3px)을 지키며 오른쪽 가장자리만 옮기려면 이 속성이 필요하다.
-  transition: `clip-path ${themeContract.animation.duration.slow} ${themeContract.animation.easing.settle}`,
-
-  '@media': {
-    '(prefers-reduced-motion: reduce)': {
-      transition: 'none',
+  color: 'var(--spinner-color)',
+  transition: `color ${themeContract.animation.duration.base} ${themeContract.animation.easing.settle}`,
+  selectors: {
+    '&[data-status="done"]': {
+      color: themeContract.color.success.dark,
+      vars: {
+        '--loader-color': themeContract.color.success.dark,
+        '--spinner-color': themeContract.color.success.dark,
+      },
     },
+    '&[data-status="error"]': {
+      color: themeContract.color.error.main,
+      vars: {
+        '--loader-color': themeContract.color.error.main,
+        '--spinner-color': themeContract.color.error.main,
+      },
+    },
+  },
+  '@media': {
+    '(prefers-reduced-motion: reduce)': { transition: 'none' },
   },
 });
 
-// 불똥 래퍼: 트랙 폭과 같은 폭이고, 오른쪽 끝이 채움 끝에 오도록 옮긴다
-// (value% - 100%, transform이라 GPU). 100이면 base로 사라진다.
-export const fuseSpark = style({
+export const resultMark = style({
   position: 'absolute',
   top: '50%',
-  left: 0,
-  width: '100%',
-  height: 0,
+  left: '50%',
+  transform: 'translate(-50%, -50%)',
+  overflow: 'visible',
+  opacity: 0,
   pointerEvents: 'none',
-  transform: 'translateX(calc(var(--fuse-value) * 1% - 100%))',
-  transition: `transform ${themeContract.animation.duration.slow} ${themeContract.animation.easing.settle}, opacity ${themeContract.animation.duration.base} ${themeContract.animation.easing.settle}`,
-
+  fill: 'none',
+  stroke: 'currentColor',
+  strokeWidth: 4,
+  strokeLinecap: 'round',
+  strokeLinejoin: 'round',
+  filter: `drop-shadow(${loaderGlow('currentColor')})`,
   selectors: {
-    '[data-complete] &': { opacity: 0 },
-  },
-
-  '@media': {
-    '(prefers-reduced-motion: reduce)': {
-      transition: 'none',
-    },
+    '[data-loader-graphic="bar"] &': { left: '100%' },
   },
 });
 
-// 불똥 본체. 지름의 절반만큼 당겨 중심이 래퍼 오른쪽 끝에 놓인다.
-export const fuseSparkDot = style({
+export const closingRing = style({
   position: 'absolute',
-  top: 'calc(var(--spark-d) / -2)',
-  right: 'calc(var(--spark-d) / -2)',
-  width: 'var(--spark-d)',
-  height: 'var(--spark-d)',
-  borderRadius: '50%',
-  backgroundColor: 'var(--loader-color)',
-  boxShadow: loaderGlow('var(--loader-color)'),
-  animation: `${fuseFlicker} ${themeContract.animation.loop.fast} ${loopRhythmEasing} infinite`,
-
-  '@media': {
-    '(prefers-reduced-motion: reduce)': {
-      animation: 'none',
-    },
-  },
+  inset: 0,
+  width: '100%',
+  height: '100%',
+  fill: 'none',
+  stroke: 'currentColor',
+  strokeWidth: 6,
+  strokeDasharray: '0.25 1',
+  strokeLinecap: 'round',
+  transform: 'rotate(-90deg)',
 });
-
-export const fuseSparkSizeStyles = styleVariants(FUSE_SPARK_PX, (d) => ({
-  vars: { '--spark-d': `${d}px` },
-}));
