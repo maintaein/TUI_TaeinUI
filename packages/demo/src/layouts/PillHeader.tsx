@@ -1,7 +1,8 @@
 import { type RefObject } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { IconButton } from '@taein-ui/core';
-import { Menu, Search, X } from 'lucide-react';
+import { Menu, X } from 'lucide-react';
+import { GooeySearch } from '../components/GooeySearch';
 import * as styles from './RootLayout.css';
 
 export const GITHUB_URL = 'https://github.com/maintaein/TUI_TaeinUI';
@@ -13,6 +14,8 @@ interface PillHeaderProps {
   drawer: boolean;
   onMenu: () => void;
   onSearch: () => void;
+  searchOpen: boolean;
+  onSearchClose: () => void;
   searchRef: RefObject<HTMLButtonElement | null>;
 }
 
@@ -21,11 +24,13 @@ export function PillHeader({
   drawer,
   onMenu,
   onSearch,
+  searchOpen,
+  onSearchClose,
   searchRef,
 }: PillHeaderProps) {
   const { pathname } = useLocation();
   return (
-    <header className={styles.pill}>
+    <header className={styles.pill} data-search-open={searchOpen}>
       <IconButton
         aria-label={open ? '탐색 닫기' : '탐색 열기'}
         aria-expanded={open}
@@ -62,16 +67,12 @@ export function PillHeader({
           GitHub
         </a>
       </nav>
-      <button
-        ref={searchRef}
-        className={styles.keyBtn}
-        type="button"
-        aria-label="검색 (Ctrl K)"
-        onClick={onSearch}
-      >
-        <Search size={16} aria-hidden="true" />
-        <span className={styles.keyHint}>⌘K</span>
-      </button>
+      <GooeySearch
+        open={searchOpen}
+        onOpen={onSearch}
+        onClose={onSearchClose}
+        triggerRef={searchRef}
+      />
     </header>
   );
 }

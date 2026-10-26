@@ -90,7 +90,10 @@ export function SearchDropdown({
               return (
                 <button
                   key={result.entry.id}
+                  id={`header-search-${result.entry.id}`}
                   data-index={currentIndex}
+                  type="button"
+                  tabIndex={-1}
                   className={`${styles.resultItem} ${isSelected ? styles.resultItemSelected : ''}`}
                   onClick={() => onSelect(result.entry.path)}
                   onMouseEnter={() => onHover(currentIndex)}

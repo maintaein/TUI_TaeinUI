@@ -3,9 +3,8 @@ import { style, globalStyle } from '@vanilla-extract/css';
 
 const { color, palette } = themeContract;
 
-// 검색 모달 안에서 입력 아래에 이어 붙는다(떠 있는 드롭다운이 아니다)
+// 검색창 아래 패널의 배치는 GooeySearch가 맡는다.
 export const dropdown = style({
-  marginTop: '0.75rem',
   backgroundColor: color.background.default,
   borderRadius: '10px',
   border: `1px solid ${color.border.default}`,

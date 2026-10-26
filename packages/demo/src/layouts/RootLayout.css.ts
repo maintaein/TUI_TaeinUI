@@ -1,5 +1,5 @@
 import { themeContract } from '@taein-ui/core';
-import { style } from '@vanilla-extract/css';
+import { globalStyle, style } from '@vanilla-extract/css';
 
 const { color, palette, spacing, borderRadius, animation, zIndex } =
   themeContract;
@@ -85,6 +85,13 @@ export const pill = style({
   borderRadius: borderRadius.lg,
 });
 
+globalStyle(
+  `${pill}[data-search-open="true"] > button, ${pill}[data-search-open="true"] > a`,
+  {
+    '@media': { [MOBILE]: { visibility: 'hidden' } },
+  }
+);
+
 export const brand = style({
   display: 'flex',
   alignItems: 'center',
@@ -110,27 +117,6 @@ export const link = style({
     '&:hover': { color: INK },
     '&[aria-current="page"]': { color: INK, fontWeight: 600 },
   },
-});
-
-export const keyHint = style({ '@media': { [MOBILE]: { display: 'none' } } });
-
-export const keyBtn = style({
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  gap: spacing[1],
-  minWidth: '36px',
-  height: '36px',
-  padding: `0 ${spacing[2]}`,
-  border: 0,
-  borderRadius: borderRadius.base,
-  background: color.background.default,
-  fontFamily: MONO,
-  fontSize: '0.75rem',
-  color: INK,
-  cursor: 'pointer',
-  // 좁은 화면에서는 링크가 빠지므로 오른쪽 끝으로 민다
-  '@media': { [MOBILE]: { marginLeft: 'auto' } },
 });
 
 // ── 탐색: 넓은 화면의 문서 쪽은 붙박이 판(햄버거로 접고 편다), 그 밖에는 덮는 서랍 ──
@@ -252,6 +238,3 @@ export const rulerNo = style({
   fontSize: '0.75rem',
   minWidth: '18px',
 });
-
-// ── 검색 모달 ───────────────────────────────────────────────
-export const searchBody = style({ padding: spacing[4] });

@@ -5,7 +5,6 @@ import { X } from 'lucide-react';
 import clsx from 'clsx';
 import { PillHeader, GITHUB_URL } from './PillHeader';
 import { RulerNav } from './RulerNav';
-import { SearchModal } from './SearchModal';
 import { ScrollToTop } from '../components/ScrollToTop';
 import { componentsData } from '../data/components';
 import { useMediaQuery, breakpoints } from '../hooks/useMediaQuery';
@@ -84,6 +83,8 @@ export function RootLayout() {
         drawer={drawerOpen}
         onMenu={() => (dockMode ? setDocked((d) => !d) : setDrawer((d) => !d))}
         onSearch={openSearch}
+        searchOpen={searchOpen}
+        onSearchClose={closeSearch}
         searchRef={searchRef}
       />
 
@@ -129,12 +130,6 @@ export function RootLayout() {
       <main id="main-content" inert={drawerOpen} className={styles.main}>
         <Outlet />
       </main>
-
-      <SearchModal
-        open={searchOpen}
-        onClose={closeSearch}
-        triggerRef={searchRef}
-      />
     </div>
   );
 }
