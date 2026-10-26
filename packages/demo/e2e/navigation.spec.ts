@@ -224,7 +224,7 @@ test.describe('물방울 검색', () => {
   });
 
   for (const width of [1440, 390]) {
-    test(`${width}px에서 물방울이 250ms까지 천천히 출발하고 닫힐 때 제자리를 넘지 않는다`, async ({
+    test(`${width}px에서 물방울과 입력이 함께 펼쳐지고 닫힐 때 제자리를 넘지 않는다`, async ({
       page,
     }, testInfo) => {
       await page.setViewportSize({ width, height: 900 });
@@ -247,7 +247,7 @@ test.describe('물방울 검색', () => {
       const start = await ball.boundingBox();
       await search.evaluate((element) =>
         element.getAnimations({ subtree: true }).forEach((animation) => {
-          animation.currentTime = 250;
+          animation.currentTime = 187.5;
         })
       );
       const header = await page
@@ -261,6 +261,42 @@ test.describe('물방울 검색', () => {
       await page.screenshot({
         path: `${screenshotDir}/search-${width}-splitting.png`,
       });
+      await search.evaluate((element) =>
+        element.getAnimations({ subtree: true }).forEach((animation) => {
+          animation.currentTime = 300;
+        })
+      );
+      const reveal = await search.evaluate((element) => {
+        const input = element.querySelector('input')!;
+        const pill = element.querySelector(
+          '[data-testid="gooey-shapes"] > div'
+        )!;
+        const style = getComputedStyle(input);
+        const width = input.getBoundingClientRect().width;
+        // 브라우저는 보간 중인 클립을 px와 %가 섞인 calc로 반환한다.
+        const inset =
+          style.clipPath.match(/inset\(0px (.+?) 0px/)?.[1] ?? '0px';
+        const right = (
+          inset.replaceAll('- ', '-').match(/-?[\d.]+(?:%|px)/g) ?? []
+        ).reduce(
+          (sum, value) =>
+            sum + parseFloat(value) * (value.endsWith('%') ? width / 100 : 1),
+          0
+        );
+        const padding =
+          parseFloat(style.paddingLeft) + parseFloat(style.paddingRight);
+        return {
+          visible: width - right - padding,
+          inside: pill.getBoundingClientRect().width - padding,
+          full: input.getBoundingClientRect().width - padding,
+          focused: document.activeElement === input,
+        };
+      });
+      expect(reveal.visible).toBeGreaterThan(0);
+      expect(reveal.visible).toBeLessThanOrEqual(reveal.inside + 1);
+      expect(reveal.visible).toBeCloseTo(reveal.inside, 0);
+      expect(reveal.visible).toBeLessThan(reveal.full * 0.85);
+      expect(reveal.focused).toBe(false);
       await search.evaluate((element) =>
         element
           .getAnimations({ subtree: true })
@@ -297,8 +333,7 @@ test.describe('물방울 검색', () => {
         path: `${screenshotDir}/search-${width}-results.png`,
       });
       await trigger.click();
-      await expect(input).toBeHidden();
-      for (const elapsed of [0, 100, 250, 500, 750, 1000]) {
+      for (const elapsed of [0, 100, 187.5, 300, 600, 750]) {
         await search.evaluate(
           (element, time) =>
             element.getAnimations({ subtree: true }).forEach((animation) => {
@@ -313,6 +348,7 @@ test.describe('물방울 검색', () => {
           .soft(closing!.x, `닫힘 ${elapsed}ms`)
           .toBeGreaterThanOrEqual(before!.x - 0.5);
       }
+      await expect(input).toBeHidden();
     });
   }
 

@@ -174,8 +174,9 @@ export function GooeySearch({
           setSelectedIndex(0);
         }}
         onKeyDown={onKeyDown}
-        onAnimationEnd={() => {
-          if (open) inputRef.current?.focus();
+        onTransitionEnd={(event) => {
+          if (open && event.propertyName === 'clip-path')
+            inputRef.current?.focus();
         }}
       />
       <div className={styles.mover}>

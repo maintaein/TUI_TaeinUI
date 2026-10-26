@@ -1,5 +1,5 @@
 import { themeContract } from '@taein-ui/core';
-import { keyframes, style } from '@vanilla-extract/css';
+import { style } from '@vanilla-extract/css';
 
 const { color, spacing, borderRadius, animation, shadow, font } = themeContract;
 const REDUCED = '(prefers-reduced-motion: reduce)';
@@ -7,10 +7,10 @@ const MOBILE = '(max-width: 640px)';
 const SIZE = spacing[10];
 const END = `calc(100% - ${SIZE})`;
 const INPUT_WIDTH = `calc(100% - ${SIZE} - ${spacing[4]})`;
-// 원본의 느린 출발과 분리 비율에 맞춰 pill 800ms, 공 1000ms, 입력 지연 400ms를 slower에서 유도한다.
-const PILL_MOVE = `calc(${animation.duration.slower} * 1.6) ${animation.easing.drift}`;
-const BALL_MOVE = `calc(${animation.duration.slower} * 2) ${animation.easing.drift}`;
-const fadeIn = keyframes({ from: { opacity: 0 }, to: { opacity: 1 } });
+// 기존 분리 비율을 유지하며 25% 단축한 pill 600ms와 공 750ms를 slower에서 유도한다.
+const PILL_DURATION = `calc(${animation.duration.slower} * 1.2)`;
+const PILL_MOVE = `${PILL_DURATION} ${animation.easing.drift}`;
+const BALL_MOVE = `calc(${animation.duration.slower} * 1.5) ${animation.easing.drift}`;
 
 export const root = style({
   position: 'relative',
@@ -92,23 +92,27 @@ export const input = style({
   fontSize: font.size.base,
   visibility: 'hidden',
   opacity: 0,
-  // 전역 축소 모션 규칙이 visibility까지 지연시키면 즉시 포커스를 받을 수 없다.
-  transitionProperty: 'none',
+  clipPath: `inset(0 calc(100% - ${SIZE}) 0 0)`,
+  // 닫히는 동안에도 입력의 오른쪽 끝이 pill을 따라가도록 숨김을 늦춘다.
+  transition: `clip-path ${PILL_MOVE}, opacity ${PILL_MOVE}, visibility 0s linear ${PILL_DURATION}`,
   selectors: {
     [`${root}[data-open="true"] &`]: {
       visibility: 'visible',
-      animation: `${fadeIn} ${animation.duration.fast} ${animation.easing.settle} calc(${animation.duration.slower} * 0.8) both`,
+      opacity: 1,
+      clipPath: 'inset(0 0 0 0)',
+      transition: `clip-path ${PILL_MOVE}, opacity ${PILL_MOVE}, visibility 0s`,
     },
     '&:focus-visible': {
       outline: `2px solid ${color.border.focus}`,
-      outlineOffset: '2px',
+      outlineOffset: '-2px',
     },
     '&::placeholder': { color: color.text.secondary },
   },
   '@media': {
     [REDUCED]: {
+      transition: 'none',
       selectors: {
-        [`${root}[data-open="true"] &`]: { animation: 'none', opacity: 1 },
+        [`${root}[data-open="true"] &`]: { transition: 'none' },
       },
     },
   },
