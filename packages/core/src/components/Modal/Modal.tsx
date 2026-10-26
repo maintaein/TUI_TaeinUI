@@ -138,6 +138,64 @@ const activeTrigger = (dialog: HTMLElement) => {
     : el;
 };
 
+// 소비자 DOM 대신 장식용 복제를 비운다. 계산된 스타일은 조상 선택자와 상속도 보존한다.
+const copyTrigger = (trigger: HTMLElement, scale: number) => {
+  const copy = trigger.cloneNode(true) as HTMLElement;
+  const originals = [trigger, ...trigger.querySelectorAll('*')];
+  const copies = [
+    copy,
+    ...copy.querySelectorAll<HTMLElement | SVGElement>('*'),
+  ];
+  copies.forEach((node, index) => {
+    const computed = getComputedStyle(originals[index]);
+    for (const property of Array.from(computed)) {
+      node.style.setProperty(property, computed.getPropertyValue(property));
+    }
+    for (const attribute of Array.from(node.attributes)) {
+      if (attribute.name === 'id' || attribute.name.startsWith('data-')) {
+        node.removeAttribute(attribute.name);
+      }
+    }
+    node.removeAttribute('autofocus');
+  });
+  Object.assign(copy.style, {
+    position: 'static',
+    width: '100%',
+    height: '100%',
+    margin: '0',
+    boxSizing: 'border-box',
+    transform: 'none',
+    opacity: '1',
+    visibility: 'visible',
+    background: 'transparent',
+    borderColor: 'transparent',
+    boxShadow: 'none',
+    transition: 'none',
+    animation: 'none',
+  });
+  // inert만으로는 포커스 트랩의 querySelector를 피하지 못하므로 복제를 shadow DOM에 둔다.
+  const layer = document.createElement('div');
+  layer.attachShadow({ mode: 'open' }).appendChild(copy);
+  layer.setAttribute('aria-hidden', 'true');
+  layer.setAttribute('inert', '');
+  layer.setAttribute('data-modal-trigger-copy', '');
+  Object.assign(layer.style, {
+    position: 'absolute',
+    inset: 'auto',
+    left: '50%',
+    top: '50%',
+    boxSizing: 'border-box',
+    width: `${trigger.offsetWidth || trigger.getBoundingClientRect().width}px`,
+    height: `${trigger.offsetHeight || trigger.getBoundingClientRect().height}px`,
+    margin: '0',
+    transform: `translate(-50%, -50%) scale(${1 / scale})`,
+    opacity: '1',
+    visibility: 'visible',
+    pointerEvents: 'none',
+  });
+  return layer;
+};
+
 // Context로 onClose·titleId 전달 (Header의 닫기 버튼, Title의 id 연결에서 사용)
 interface ModalContextValue {
   onClose: () => void;
@@ -225,6 +283,8 @@ const ModalRoot = ({
     visibility: string;
     priority: string;
     tween: gsap.core.Tween;
+    colorTween: gsap.core.Tween;
+    copy: HTMLElement;
   } | null>(null);
   const focusReturnRef = useRef<HTMLElement | null>(null);
   const restoreTrigger = useCallback(() => {
@@ -235,6 +295,7 @@ const ModalRoot = ({
       morph.visibility,
       morph.priority
     );
+    morph.copy.remove();
     morphRef.current = null;
   }, []);
   const restoreFocus = useCallback(() => {
@@ -253,6 +314,13 @@ const ModalRoot = ({
     buildTimeline: (timeline) => {
       const backdropEl = backdropRef.current;
       const dialog = dialogRef.current;
+      const trigger = dialog
+        ? (triggerRef?.current ?? activeTrigger(dialog))
+        : null;
+      const start = dialog && !reduced ? triggerStart(dialog, trigger) : null;
+      // slower의 1.2배로 이동 구간을 늘려 색 변화와 별개로 형태를 읽을 시간을 준다.
+      const morphDuration = gsapDuration.slower * 1.2;
+      const contentStart = gsapDuration.slow + morphDuration;
 
       if (backdropEl) {
         timeline.fromTo(
@@ -260,7 +328,7 @@ const ModalRoot = ({
           { opacity: 0 },
           {
             opacity: 1,
-            duration: gsapDuration.slow,
+            duration: start ? contentStart : gsapDuration.slow,
             ease: gsapEasing.settle,
           },
           0
@@ -269,8 +337,6 @@ const ModalRoot = ({
       if (dialog) {
         // 테스트 손잡이. 타임라인을 만드는 자리에서 얹는다(SegmentedButtons와 같다).
         (dialog as ModalTimelineHost).__modalTimeline = timeline;
-        const trigger = triggerRef?.current ?? activeTrigger(dialog);
-        const start = !reduced ? triggerStart(dialog, trigger) : null;
         if (!start) {
           timeline.fromTo(
             dialog,
@@ -293,35 +359,66 @@ const ModalRoot = ({
           const panelRadius = radiusOf(dialog, dialog.offsetWidth);
           const end = `inset(-${CLIP_BLEED}px -${CLIP_BLEED}px -${CLIP_BLEED}px -${CLIP_BLEED}px round ${panelRadius}px)`;
           const panelColor = getComputedStyle(dialog).backgroundColor;
+          const { backgroundColor, ...geometry } = start;
+          const children = Array.from(dialog.children);
           timeline.fromTo(
             dialog,
-            { ...start, opacity: 1 },
+            { ...geometry, backgroundColor, opacity: 1 },
+            {
+              backgroundColor: panelColor,
+              duration: gsapDuration.slow,
+              ease: gsapEasing.settle,
+            },
+            0
+          );
+          const colorTween = timeline
+            .getChildren()
+            .slice(-1)[0] as gsap.core.Tween;
+          timeline.fromTo(
+            dialog,
+            { ...geometry, backgroundColor: panelColor, opacity: 1 },
             {
               x: 0,
               y: 0,
               scale: 1,
               clipPath: end,
               backgroundColor: panelColor,
+              // 첫 박자의 색을 덮지 않고, 역재생 때는 surface를 다시 칠한다.
+              immediateRender: false,
               // 쉬는 동안은 걷는다. 영구 inset(-50px)가 남으면 모달 밖 50px 너머
               // (푸터에 단 Popover 등)를 자른다. 완료 시 걷히고 역재생하면 GSAP이
               // 보간값을 다시 칠한다. x·y에는 걸지 않는다(transform을 걷으면 안 된다).
               clearProps: 'clipPath,backgroundColor',
-              duration: gsapDuration.slower,
-              ease: gsapEasing.settle,
+              duration: morphDuration,
+              // drift는 양 끝에서 천천히 움직여 settle보다 위치 이동의 출발이 덜 급하다.
+              ease: gsapEasing.drift,
             },
-            0
+            gsapDuration.slow
           );
           if (trigger && !dialog.contains(trigger)) {
+            const copy = copyTrigger(trigger, start.scale ?? 1);
+            dialog.appendChild(copy);
             morphRef.current = {
               trigger,
               visibility: trigger.style.getPropertyValue('visibility'),
               priority: trigger.style.getPropertyPriority('visibility'),
               tween: timeline.getChildren().slice(-1)[0] as gsap.core.Tween,
+              colorTween,
+              copy,
             };
             trigger.style.setProperty('visibility', 'hidden');
+            timeline.fromTo(
+              copy,
+              { opacity: 1 },
+              {
+                opacity: 0,
+                duration: gsapDuration.slow,
+                ease: gsapEasing.settle,
+              },
+              0
+            );
           }
-          if (dialog.children.length > 0) {
-            const children = Array.from(dialog.children);
+          if (children.length > 0) {
             timeline.fromTo(
               children,
               { opacity: 0 },
@@ -330,7 +427,7 @@ const ModalRoot = ({
                 duration: gsapDuration.slow,
                 ease: gsapEasing.settle,
               },
-              gsapDuration.slower
+              contentStart
             );
           }
         }
@@ -366,8 +463,22 @@ const ModalRoot = ({
       const start = triggerStart(dialog, morph.trigger);
       // 시작값만 갱신하므로 같은 타임라인이 현재 진행 위치에서 역방향으로 이어진다.
       if (start) {
-        morph.tween.vars.startAt = { ...start, opacity: 1 };
+        const { backgroundColor, ...geometry } = start;
+        morph.tween.vars.startAt = {
+          ...geometry,
+          backgroundColor: morph.colorTween.vars.backgroundColor,
+          opacity: 1,
+        };
         morph.tween.invalidate();
+        morph.colorTween.vars.startAt = {
+          ...geometry,
+          backgroundColor,
+          opacity: 1,
+        };
+        morph.colorTween.invalidate();
+        morph.copy.style.transform = `translate(-50%, -50%) scale(${1 / (start.scale ?? 1)})`;
+        morph.copy.style.width = `${morph.trigger.offsetWidth || morph.trigger.getBoundingClientRect().width}px`;
+        morph.copy.style.height = `${morph.trigger.offsetHeight || morph.trigger.getBoundingClientRect().height}px`;
       }
     }
   }, [open]);

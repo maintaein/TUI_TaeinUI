@@ -55,6 +55,12 @@ async function frame(page: Page, time: number) {
         width: rect.width - (right + left) * scaleX,
         height: rect.height - (top + bottom) * scaleY,
         color: getComputedStyle(dialog).backgroundColor,
+        copyOpacity: getComputedStyle(
+          dialog.querySelector('[data-modal-trigger-copy]')!
+        ).opacity,
+        backdropOpacity: getComputedStyle(
+          stage.querySelector('[data-backdrop]')!
+        ).opacity,
         hidden: getComputedStyle(
           stage.querySelector('[data-stage-target="trigger"]')!
         ).visibility,
@@ -87,13 +93,34 @@ for (const width of [1440, 390]) {
     expect(first.hidden).toBe('hidden');
     expect(first.color).toBe(buttonColor);
     expect(first.opacity).toBe('0');
-    for (const [index, time] of [0, 0.15, 0.5, 0.8].entries()) {
+    expect(first.copyOpacity).toBe('1');
+    const clearing = await frame(page, 0.15);
+    for (const key of ['x', 'y', 'width', 'height'] as const) {
+      expect(Math.abs(clearing[key] - first[key]), key).toBeLessThan(1);
+    }
+    expect(clearing.color).not.toBe(buttonColor);
+    expect(Number(clearing.copyOpacity)).toBeGreaterThan(0);
+    expect(Number(clearing.copyOpacity)).toBeLessThan(1);
+    const empty = await frame(page, 0.3);
+    expect(empty.copyOpacity).toBe('0');
+    const growing = await frame(page, 0.6);
+    expect(growing.width).toBeGreaterThan(button.width);
+    expect(growing.color).toBe(empty.color);
+    expect(growing.opacity).toBe('0');
+    expect(growing.copyOpacity).toBe('0');
+    expect(Number(growing.backdropOpacity)).toBeGreaterThan(
+      Number(clearing.backdropOpacity)
+    );
+    expect((await frame(page, 0.9)).opacity).toBe('0');
+    expect(Number((await frame(page, 1.05)).opacity)).toBeGreaterThan(0);
+    for (let index = 0; index < 12; index++) {
+      const time = (index + 1) / 10;
       await frame(page, time);
       await stage.screenshot({
         path: testInfo.outputPath(`open-${index}.png`),
       });
     }
-    const final = await frame(page, 0.8);
+    const final = await frame(page, 1.2);
     const stageBox = (await stage.boundingBox())!;
     expect(
       Math.abs(final.x + final.width / 2 - (stageBox.x + stageBox.width / 2))
@@ -105,13 +132,28 @@ for (const width of [1440, 390]) {
     await stage
       .locator('[data-stage-target="close"]')
       .evaluate((el) => (el as HTMLElement).click());
-    // 520ms 퇴장보다 긴 호스트 지연에도 첫 닫힘 프레임이 남는지 확인한다.
-    await page.waitForTimeout(650);
-    for (const [index, time] of [0.8, 0.5, 0.15, 0.001].entries()) {
+    // 780ms 퇴장보다 긴 호스트 지연에도 첫 닫힘 프레임이 남는지 확인한다.
+    await page.waitForTimeout(850);
+    for (let index = 0; index < 8; index++) {
+      const time = 1.2 - (index * 0.1) / 0.65;
       await frame(page, time);
       await stage.screenshot({
         path: testInfo.outputPath(`close-${index}.png`),
       });
+    }
+    const fading = await frame(page, 1.05);
+    expect(Number(fading.opacity)).toBeGreaterThan(0);
+    expect(fading.copyOpacity).toBe('0');
+    const shrinking = await frame(page, 0.6);
+    expect(shrinking.opacity).toBe('0');
+    expect(shrinking.copyOpacity).toBe('0');
+    expect(shrinking.color).toBe(empty.color);
+    const returning = await frame(page, 0.15);
+    expect(returning.opacity).toBe('0');
+    expect(Number(returning.copyOpacity)).toBeGreaterThan(0);
+    expect(returning.color).not.toBe(empty.color);
+    for (const key of ['x', 'y', 'width', 'height'] as const) {
+      expect(Math.abs(returning[key] - button[key]), key).toBeLessThan(3);
     }
     await stage.evaluate((el) => {
       (
@@ -196,7 +238,7 @@ test('닫힐 때 이동한 단추의 현재 사각형과 색으로 돌아간다'
     (el as HTMLElement).focus();
     (el as HTMLElement).click();
   });
-  await frame(page, 0.8);
+  await frame(page, 1.2);
   await trigger.evaluate((el) => {
     (el as HTMLElement).style.transition = 'none';
     (el as HTMLElement).style.transform = 'translate(40px, 30px)';
