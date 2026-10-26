@@ -4,6 +4,8 @@ import { addSheetOvershoot, addSheetFade } from './sheetFloat';
 import { gateMotion } from '../hooks/gateMotion';
 import { gsapDuration, gsapEasing } from '../tokens/gsapEasing';
 
+const SHEET_PACE = 1.3;
+
 type TweenLike = gsap.core.Tween & { vars: gsap.TweenVars };
 
 const sizedSheet = (width: number, height: number) => {
@@ -28,10 +30,15 @@ describe('addSheetOvershoot', () => {
     // 16px / 400px = 4%
     expect(up.vars.xPercent).toBeCloseTo(-4, 5);
     expect(up.vars.ease).toBe(gsapEasing.settle);
-    expect(up.duration()).toBeCloseTo(gsapDuration.slow, 5);
+    expect(up.duration()).toBeCloseTo(gsapDuration.slow * SHEET_PACE, 5);
     expect(settle.vars.xPercent).toBe(0);
+    expect(settle.duration()).toBeCloseTo(gsapDuration.base * SHEET_PACE, 5);
+    expect(timeline.duration()).toBeCloseTo(
+      (gsapDuration.slow + gsapDuration.base) * SHEET_PACE,
+      5
+    );
     expect(settle.vars.ease).toBe(gsapEasing.drift);
-    expect(settle.startTime()).toBeCloseTo(gsapDuration.slow, 5);
+    expect(settle.startTime()).toBeCloseTo(gsapDuration.slow * SHEET_PACE, 5);
   });
 
   it('xPercent -100(왼쪽)은 부호가 뒤집혀 +16px 상당으로 지나친다', () => {
@@ -63,6 +70,18 @@ describe('addSheetOvershoot', () => {
 });
 
 describe('addSheetFade', () => {
+  it('keeps the default BoardRow fade at 60 percent of unscaled slow', () => {
+    const timeline = newTimeline();
+    const fade = addSheetFade(timeline, [document.createElement('p')], false)!;
+    timeline.to({}, { duration: gsapDuration.slow });
+    timeline.time(gsapDuration.slow * 0.6 - 0.01);
+    expect(fade.paused()).toBe(true);
+    timeline.time(gsapDuration.slow * 0.6 + 0.01);
+    expect(fade.paused()).toBe(false);
+    fade.kill();
+    timeline.kill();
+  });
+
   it('항목이 없으면 null이고 등장 타임라인에 아무것도 걸지 않는다', () => {
     const timeline = newTimeline();
 

@@ -31,6 +31,7 @@ import { useReducedMotion } from '../../hooks/useReducedMotion';
 import {
   addSheetOvershoot,
   addSheetFade,
+  SHEET_PACE,
   setFloating,
   setFloatPaused,
 } from '../../_internal/sheetFloat';
@@ -144,7 +145,11 @@ const BottomSheetRoot = ({
         timeline.fromTo(
           backdropEl,
           { opacity: 0 },
-          { opacity: 1, duration: gsapDuration.base, ease: gsapEasing.settle },
+          {
+            opacity: 1,
+            duration: gsapDuration.base * SHEET_PACE,
+            ease: gsapEasing.settle,
+          },
           0
         );
       }
@@ -157,7 +162,12 @@ const BottomSheetRoot = ({
         const body = sheet.querySelector(`.${content}`);
         // 다시 만들 때(축소 선호가 뒤집힐 때) 낡은 페이드가 같은 대상을 놓고 다투지 않게 한다.
         fadeRef.current?.kill();
-        fadeRef.current = addSheetFade(timeline, body ? [body] : [], reduced);
+        fadeRef.current = addSheetFade(
+          timeline,
+          body ? [body] : [],
+          reduced,
+          gsapDuration.slow * SHEET_PACE
+        );
         if (fadeRef.current) {
           (sheet as BottomSheetTimelineHost).__bottomSheetFade =
             fadeRef.current;

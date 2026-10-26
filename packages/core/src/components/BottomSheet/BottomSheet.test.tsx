@@ -11,6 +11,8 @@ import { resolve } from 'node:path';
 import { BottomSheet } from './BottomSheet';
 import { gsapDuration, gsapEasing } from '../../tokens/gsapEasing';
 
+const SHEET_PACE = 1.3;
+
 describe('BottomSheet', () => {
   const defaultProps = {
     open: true,
@@ -658,6 +660,45 @@ describe('BottomSheet', () => {
 
     const items = Array.from({ length: 10 }, (_, i) => <p key={i}>항목 {i}</p>);
 
+    it.each([1, 0.5])(
+      'paced exit at progress %s unmounts after remaining time',
+      (progress) => {
+        vi.useFakeTimers();
+        try {
+          const { rerender } = render(<BottomSheet {...defaultProps} />);
+          const timeline = timelineOf(screen.getByRole('dialog'));
+          expect(timeline.duration()).toBeCloseTo(
+            gsapDuration.slow * SHEET_PACE,
+            5
+          );
+          const backdrop = document.querySelector('[role="presentation"]')!;
+          expect(tweensOn(timeline, backdrop)[0].duration()).toBeCloseTo(
+            gsapDuration.base * SHEET_PACE,
+            5
+          );
+          act(() => {
+            timeline.pause().progress(progress);
+          });
+          rerender(<BottomSheet {...defaultProps} open={false} />);
+          expect(timeline.reversed()).toBe(true);
+          expect(Math.abs(timeline.timeScale())).toBeCloseTo(1 / 0.65, 5);
+          timeline.pause();
+          const remaining =
+            gsapDuration.slow * SHEET_PACE * progress * 0.65 * 1000;
+          act(() => {
+            vi.advanceTimersByTime(Math.floor(remaining) - 1);
+          });
+          expect(screen.getByRole('dialog')).toBeInTheDocument();
+          act(() => {
+            vi.advanceTimersByTime(2);
+          });
+          expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+        } finally {
+          vi.useRealTimers();
+        }
+      }
+    );
+
     describe('bounce', () => {
       afterEach(() => {
         vi.restoreAllMocks();
@@ -673,11 +714,21 @@ describe('BottomSheet', () => {
 
         expect(rest).toHaveLength(0);
         expect(up.vars.ease).toBe(gsapEasing.settle);
-        expect(up.duration()).toBeCloseTo(gsapDuration.slow, 5);
+        expect(up.duration()).toBeCloseTo(gsapDuration.slow * SHEET_PACE, 5);
         expect(up.startTime()).toBe(0);
         expect(settle.vars.ease).toBe(gsapEasing.drift);
-        expect(settle.duration()).toBeCloseTo(gsapDuration.base, 5);
-        expect(settle.startTime()).toBeCloseTo(gsapDuration.slow, 5);
+        expect(settle.duration()).toBeCloseTo(
+          gsapDuration.base * SHEET_PACE,
+          5
+        );
+        expect(settle.startTime()).toBeCloseTo(
+          gsapDuration.slow * SHEET_PACE,
+          5
+        );
+        expect(timelineOf(sheet).duration()).toBeCloseTo(
+          (gsapDuration.slow + gsapDuration.base) * SHEET_PACE,
+          5
+        );
         expect(settle.vars.yPercent).toBe(0);
         // 16px / 400px = 4%
         expect(up.vars.yPercent).toBeCloseTo(-4, 5);
@@ -755,12 +806,12 @@ describe('BottomSheet', () => {
         const { timeline, fade } = renderItems();
 
         act(() => {
-          timeline.time(gsapDuration.slow * 0.6 - 0.05);
+          timeline.time(gsapDuration.slow * SHEET_PACE * 0.6 - 0.05);
         });
         expect(fade.paused()).toBe(true);
 
         act(() => {
-          timeline.time(gsapDuration.slow * 0.6 + 0.05);
+          timeline.time(gsapDuration.slow * SHEET_PACE * 0.6 + 0.05);
         });
         expect(fade.paused()).toBe(false);
       });
@@ -864,11 +915,11 @@ describe('BottomSheet', () => {
           return { sheet, timeline, fade, close, reopen };
         };
 
-        it('역재생되는 등장 타임라인은 시트 구간(500ms)이고 내용 페이드가 안에 없다', () => {
+        it('역재생되는 등장 타임라인은 시트 구간이고 내용 페이드가 안에 없다', () => {
           const { sheet, timeline } = openAndClose();
 
           expect(timeline.duration()).toBeCloseTo(
-            gsapDuration.slow + gsapDuration.base,
+            (gsapDuration.slow + gsapDuration.base) * SHEET_PACE,
             5
           );
           expect(tweensOn(timeline, screen.getByText('항목 0'))).toHaveLength(
@@ -1064,6 +1115,15 @@ describe('BottomSheet', () => {
 
         afterEach(() => {
           vi.unstubAllGlobals();
+        });
+
+        it('reduced motion opens and unmounts immediately', () => {
+          const { rerender } = render(<BottomSheet {...defaultProps} />);
+          const timeline = timelineOf(screen.getByRole('dialog'));
+          expect(timeline.progress()).toBe(1);
+          expect(timeline.isActive()).toBe(false);
+          rerender(<BottomSheet {...defaultProps} open={false} />);
+          expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
         });
 
         it('게이트가 끝 상태로 확정하면 켜지고, 잡으면 멈추고, 놓으면 풀린다', () => {

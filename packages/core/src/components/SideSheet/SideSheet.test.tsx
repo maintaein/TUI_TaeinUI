@@ -11,6 +11,8 @@ import { resolve } from 'node:path';
 import { SideSheet } from './SideSheet';
 import { gsapDuration, gsapEasing } from '../../tokens/gsapEasing';
 
+const SHEET_PACE = 1.3;
+
 describe('SideSheet', () => {
   const defaultProps = {
     open: true,
@@ -461,6 +463,45 @@ describe('SideSheet', () => {
       );
     const items = Array.from({ length: 10 }, (_, i) => <p key={i}>항목 {i}</p>);
 
+    it.each([1, 0.5])(
+      'paced exit at progress %s unmounts after remaining time',
+      (progress) => {
+        vi.useFakeTimers();
+        try {
+          const { rerender } = render(<SideSheet {...defaultProps} />);
+          const timeline = timelineOf(screen.getByRole('dialog'));
+          expect(timeline.duration()).toBeCloseTo(
+            gsapDuration.slow * SHEET_PACE,
+            5
+          );
+          const backdrop = document.querySelector('[role="presentation"]')!;
+          expect(tweensOn(timeline, backdrop)[0].duration()).toBeCloseTo(
+            gsapDuration.base * SHEET_PACE,
+            5
+          );
+          act(() => {
+            timeline.pause().progress(progress);
+          });
+          rerender(<SideSheet {...defaultProps} open={false} />);
+          expect(timeline.reversed()).toBe(true);
+          expect(Math.abs(timeline.timeScale())).toBeCloseTo(1 / 0.65, 5);
+          timeline.pause();
+          const remaining =
+            gsapDuration.slow * SHEET_PACE * progress * 0.65 * 1000;
+          act(() => {
+            vi.advanceTimersByTime(Math.floor(remaining) - 1);
+          });
+          expect(screen.getByRole('dialog')).toBeInTheDocument();
+          act(() => {
+            vi.advanceTimersByTime(2);
+          });
+          expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+        } finally {
+          vi.useRealTimers();
+        }
+      }
+    );
+
     afterEach(() => {
       vi.restoreAllMocks();
     });
@@ -478,11 +519,21 @@ describe('SideSheet', () => {
         // 16px / 400px = 4%
         expect(up.vars.xPercent).toBeCloseTo(-4, 5);
         expect(up.vars.ease).toBe(gsapEasing.settle);
-        expect(up.duration()).toBeCloseTo(gsapDuration.slow, 5);
+        expect(up.duration()).toBeCloseTo(gsapDuration.slow * SHEET_PACE, 5);
         expect(settle.vars.xPercent).toBe(0);
         expect(settle.vars.ease).toBe(gsapEasing.drift);
-        expect(settle.duration()).toBeCloseTo(gsapDuration.base, 5);
-        expect(settle.startTime()).toBeCloseTo(gsapDuration.slow, 5);
+        expect(settle.duration()).toBeCloseTo(
+          gsapDuration.base * SHEET_PACE,
+          5
+        );
+        expect(settle.startTime()).toBeCloseTo(
+          gsapDuration.slow * SHEET_PACE,
+          5
+        );
+        expect(timelineOf(sheet).duration()).toBeCloseTo(
+          (gsapDuration.slow + gsapDuration.base) * SHEET_PACE,
+          5
+        );
       });
 
       it('왼쪽: 1단 끝값이 양수 xPercent다', () => {
@@ -560,11 +611,11 @@ describe('SideSheet', () => {
         const { timeline, fade } = renderItems();
 
         act(() => {
-          timeline.time(gsapDuration.slow * 0.6 - 0.05);
+          timeline.time(gsapDuration.slow * SHEET_PACE * 0.6 - 0.05);
         });
         expect(fade.paused()).toBe(true);
         act(() => {
-          timeline.time(gsapDuration.slow * 0.6 + 0.05);
+          timeline.time(gsapDuration.slow * SHEET_PACE * 0.6 + 0.05);
         });
         expect(fade.paused()).toBe(false);
       });
@@ -704,6 +755,15 @@ describe('SideSheet', () => {
 
       afterEach(() => {
         vi.unstubAllGlobals();
+      });
+
+      it('reduced motion opens and unmounts immediately', () => {
+        const { rerender } = render(<SideSheet {...defaultProps} />);
+        const timeline = timelineOf(screen.getByRole('dialog'));
+        expect(timeline.progress()).toBe(1);
+        expect(timeline.isActive()).toBe(false);
+        rerender(<SideSheet {...defaultProps} open={false} />);
+        expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
       });
 
       it('내용 직계 자식이 끝 상태(opacity 1, y 0)이고 페이드 타임라인이 이미 끝났다', () => {

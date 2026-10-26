@@ -15,6 +15,9 @@ import { gateMotion } from '../hooks/gateMotion';
  */
 const BOUNCE_OVERSHOOT_PX = 16;
 
+// 두 시트의 개폐를 조금 느긋하게 하되 토큰과 다른 컴포넌트의 속도는 유지한다.
+export const SHEET_PACE = 1.3;
+
 /** 내용이 뜨기 시작하는 지점: 시트 1단(`slow`)의 60%. 시트가 거의 들어왔을 때다. */
 const FADE_AT = 0.6;
 
@@ -43,7 +46,7 @@ export const addSheetOvershoot = (
       { [axis]: from },
       {
         [axis]: past,
-        duration: gsapDuration.slow,
+        duration: gsapDuration.slow * SHEET_PACE,
         ease: gsapEasing.settle,
       },
       0
@@ -53,17 +56,21 @@ export const addSheetOvershoot = (
       { [axis]: past },
       {
         [axis]: 0,
-        duration: gsapDuration.base,
+        duration: gsapDuration.base * SHEET_PACE,
         ease: gsapEasing.drift,
         immediateRender: false,
       },
-      gsapDuration.slow
+      gsapDuration.slow * SHEET_PACE
     );
   } else {
     timeline.fromTo(
       sheet,
       { [axis]: from },
-      { [axis]: 0, duration: gsapDuration.slow, ease: gsapEasing.settle },
+      {
+        [axis]: 0,
+        duration: gsapDuration.slow * SHEET_PACE,
+        ease: gsapEasing.settle,
+      },
       0
     );
   }
@@ -82,7 +89,8 @@ export const addSheetOvershoot = (
 export const addSheetFade = (
   timeline: gsap.core.Timeline,
   items: Element[],
-  reduced: boolean
+  reduced: boolean,
+  enterDuration = gsapDuration.slow
 ): gsap.core.Timeline | null => {
   if (items.length === 0) return null;
 
@@ -107,7 +115,7 @@ export const addSheetFade = (
       fade.restart();
     },
     [],
-    gsapDuration.slow * FADE_AT
+    enterDuration * FADE_AT
   );
   return fade;
 };

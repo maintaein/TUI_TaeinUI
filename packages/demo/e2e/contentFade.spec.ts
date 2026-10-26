@@ -49,7 +49,7 @@ for (const { name, slug, key } of CASES) {
       const entrance = timelines[`${prefix}Timeline`];
       const fade = timelines[`${prefix}Fade`];
       // 등장 시점은 그대로 두고 내용만 두 중간 프레임에서 비교한다.
-      entrance.pause().time(0.2);
+      entrance.pause().progress(0.6);
       const targets = (
         fade.getChildren()[0] as gsap.core.Tween
       ).targets() as HTMLElement[];
@@ -88,5 +88,45 @@ for (const { name, slug, key } of CASES) {
     await page.screenshot({
       path: testInfo.outputPath(`${slug}-midpoint-1440.png`),
     });
+  });
+}
+
+for (const { name, slug, key } of CASES.filter(
+  ({ name }) => name !== 'BoardRow'
+)) {
+  test(`${name}: 1440에서 열림 여섯 프레임`, async ({ page }, testInfo) => {
+    await page.setViewportSize({ width: 1440, height: 1000 });
+    await page.goto(`/components/${slug}`);
+    const stage = page.getByRole('region', { name: `${name} 시연` });
+    await stage.scrollIntoViewIfNeeded();
+    const box = (await stage.boundingBox())!;
+    await page.mouse.move(box.x + box.width * 0.2, box.y + box.height * 0.8);
+    await expect(
+      stage.locator(':scope > svg[aria-hidden="true"]')
+    ).toBeHidden();
+    await expect(stage.locator('[role="dialog"]')).toHaveCount(0);
+    await stage.locator('[data-stage-target="trigger"]').click();
+    const sheet = stage.locator('[role="dialog"]');
+    await expect(sheet).toHaveCount(1);
+
+    for (const progress of [0, 0.2, 0.4, 0.6, 0.8, 1]) {
+      await sheet.evaluate(
+        (node, { key, progress }) => {
+          const host = node as unknown as Record<string, gsap.core.Timeline>;
+          const entrance = host[`${key}Timeline`];
+          const fade = host[`${key}Fade`];
+          const movement = entrance.getTweensOf(node)[0];
+          entrance.pause().progress(progress);
+          fade
+            .pause()
+            .time(Math.max(0, entrance.time() - movement.duration() * 0.6));
+          node.setAttribute('data-float-paused', '');
+        },
+        { key, progress }
+      );
+      await page.screenshot({
+        path: testInfo.outputPath(`${slug}-open-${progress * 100}-1440.png`),
+      });
+    }
   });
 }
