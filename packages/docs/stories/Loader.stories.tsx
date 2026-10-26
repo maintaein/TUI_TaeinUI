@@ -12,7 +12,7 @@ const meta = {
   argTypes: {
     type: {
       control: 'select',
-      options: ['orbit', 'spinner', 'dots', 'bar', 'wave', 'inchworm'],
+      options: ['orbit', 'spinner', 'dots', 'bar', 'wave'],
       description: 'Loader type (기본값 orbit)',
     },
     size: {
@@ -116,18 +116,6 @@ export const Types: Story = {
           Wave
         </p>
         <Loader type="wave" />
-      </div>
-      <div>
-        <p
-          style={{
-            marginBottom: '1rem',
-            fontSize: '0.875rem',
-            fontWeight: 600,
-          }}
-        >
-          Inchworm
-        </p>
-        <Loader type="inchworm" />
       </div>
     </div>
   ),

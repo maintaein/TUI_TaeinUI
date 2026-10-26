@@ -1,6 +1,9 @@
 import { test, expect, type Page } from '@playwright/test';
+import { type gsap } from 'gsap';
 
-const TYPES = ['orbit', 'spinner', 'dots', 'bar', 'wave', 'inchworm'] as const;
+type MotionHost = HTMLElement & { __loaderStatusTimeline?: gsap.core.Timeline };
+
+const TYPES = ['orbit', 'spinner', 'dots', 'bar', 'wave'] as const;
 const choose = async (page: Page, prop: string, value: string) => {
   const radios = page.getByRole('radiogroup', { name: prop, exact: true });
   if (await radios.count())
@@ -41,16 +44,61 @@ for (const reducedMotion of ['no-preference', 'reduce'] as const) {
         await choose(page, 'type', type);
         const status = stage.locator(`[role="status"][data-type="${type}"]`);
         for (const result of ['done', 'error'] as const) {
+          if (type === 'spinner' && reducedMotion === 'no-preference') {
+            await status.locator('[data-loader-graphic]').evaluate((el) => {
+              const observer = new MutationObserver(() => {
+                const tl = (el as MotionHost).__loaderStatusTimeline;
+                if (tl) {
+                  tl.pause(0);
+                  observer.disconnect();
+                }
+              });
+              observer.observe(el, {
+                attributes: true,
+                attributeFilter: ['data-status'],
+              });
+            });
+          }
           await choose(page, 'status', result);
           await expect(status).toHaveAccessibleName(
             result === 'done' ? '완료' : '실패'
           );
           const graphic = status.locator(`[data-loader-mark="${result}"]`);
           await expect(graphic).toBeVisible();
+          if (type === 'bar')
+            await expect(graphic.locator('[data-result-mark]')).toHaveCount(0);
+          if (type === 'spinner' && reducedMotion === 'no-preference') {
+            const scales: number[] = [];
+            for (const [i, fraction] of [0.01, 0.7, 1].entries()) {
+              scales.push(
+                await graphic.evaluate((el, progress) => {
+                  const tl = (el as MotionHost).__loaderStatusTimeline!;
+                  const tween = tl
+                    .getChildren()
+                    .find((child) => child.vars.scale === 1)!;
+                  tl.time(tween.startTime() + tween.duration() * progress);
+                  const mark = el.querySelector('[data-result-mark]')!;
+                  return new DOMMatrixReadOnly(getComputedStyle(mark).transform)
+                    .a;
+                }, fraction)
+              );
+              await stage.screenshot({
+                path: test
+                  .info()
+                  .outputPath(`spinner-${result}-frame-${i + 1}.png`),
+              });
+            }
+            expect(scales[0]).toBeGreaterThan(0.6);
+            expect(scales[0]).toBeLessThan(1);
+            expect(scales[1]).toBeGreaterThan(1);
+            expect(scales[2]).toBeCloseTo(1);
+          }
           const mark =
             type === 'orbit'
               ? graphic.locator('[data-orbit-dot]').first()
-              : graphic.locator('[data-mark-path]');
+              : type === 'bar'
+                ? graphic.locator('[data-motion-part]')
+                : graphic.locator('[data-mark-path]');
           await expect
             .poll(() =>
               mark.evaluate((el) => {
@@ -72,7 +120,7 @@ for (const reducedMotion of ['no-preference', 'reduce'] as const) {
           const box = await mark.boundingBox();
           expect(box?.width).toBeGreaterThan(0);
           expect(box?.height).toBeGreaterThan(0);
-          if (type !== 'orbit')
+          if (type !== 'orbit' && type !== 'bar')
             await expect
               .poll(() =>
                 mark.evaluate((el) => getComputedStyle(el).strokeDashoffset)
@@ -118,37 +166,6 @@ for (const reducedMotion of ['no-preference', 'reduce'] as const) {
     }
   });
 }
-
-test('자벌레의 네 프레임은 몸이 짧아졌다 길어지며 오른쪽으로 간다', async ({
-  page,
-}) => {
-  await page.setViewportSize({ width: 1440, height: 1000 });
-  await page.goto('/components/loader');
-  const stage = page.getByRole('region', { name: 'Loader 시연', exact: true });
-  await stage.getByRole('button', { name: '시연 멈춤', exact: true }).click();
-  await choose(page, 'type', 'inchworm');
-  const body = stage.locator('[data-inchworm-fill]');
-  const frames: { x: number; width: number; height: number }[] = [];
-  for (const [i, progress] of [0.2, 0.29, 0.39, 0.49].entries()) {
-    await body.evaluate((el, fraction) => {
-      const animation = el.getAnimations()[0];
-      animation.pause();
-      animation.currentTime =
-        Number(animation.effect!.getTiming().duration) * fraction;
-    }, progress);
-    const box = (await body.boundingBox())!;
-    const track = (await stage.locator('[data-inchworm]').boundingBox())!;
-    expect(box.y).toBeGreaterThanOrEqual(track.y - 1);
-    expect(box.y + box.height).toBeLessThanOrEqual(track.y + track.height + 1);
-    frames.push(box);
-    await stage.screenshot({
-      path: test.info().outputPath(`inchworm-crawl-${i + 1}.png`),
-    });
-  }
-  expect(frames[1].width).toBeLessThan(frames[0].width);
-  expect(frames[1].height).toBeGreaterThan(frames[0].height);
-  expect(frames[2].x).toBeGreaterThan(frames[0].x);
-});
 
 test('공유 미니도 로딩, 완료, 로딩, 실패 대본을 돈다', async ({ page }) => {
   test.setTimeout(30_000);

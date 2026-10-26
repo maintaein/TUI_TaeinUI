@@ -12,12 +12,9 @@ import {
   label as labelClass,
   bar,
   barFill,
-  inchwormFill,
-  inchwormTrack,
   statusGraphic,
   resultMark,
   closingRing,
-  wormSkin,
   barClip,
   barSizeStyles,
   colorStyles,
@@ -54,7 +51,7 @@ export interface LoaderProps extends Omit<
   'color'
 > {
   /** 로딩 애니메이션 타입 @default 'orbit' */
-  type?: 'orbit' | 'spinner' | 'dots' | 'bar' | 'wave' | 'inchworm';
+  type?: 'orbit' | 'spinner' | 'dots' | 'bar' | 'wave';
   /** 로딩에서 완료 또는 실패 표식으로 이어진다 @default 'loading' */
   status?: 'loading' | 'done' | 'error';
   /** 로더 크기 @default 'md' */
@@ -297,10 +294,9 @@ const StatusGraphic = ({
 
     host.__loaderStatusTimeline?.kill();
     const parts = [...host.querySelectorAll<HTMLElement>('[data-motion-part]')];
-    const mark = host.querySelector<SVGSVGElement>('[data-result-mark]')!;
-    const path = mark.querySelector('path')!;
+    const mark = host.querySelector<SVGSVGElement>('[data-result-mark]');
+    const path = mark?.querySelector('path');
     const ring = host.querySelector('[data-closing-ring]');
-    const worm = host.querySelector('[data-worm-body]');
     // CSS 루프를 끄기 전에 보이던 변형을 보존해야 결과로 이어지는 첫 프레임이 튀지 않는다.
     if (!host.hasAttribute('data-paused')) {
       const transforms = parts.map((part) => getComputedStyle(part).transform);
@@ -326,7 +322,7 @@ const StatusGraphic = ({
       const tl = gsap.timeline();
       tl.to(host, { x: 0, ...timing }, 0);
       if (status === 'loading') {
-        tl.to(mark, { opacity: 0, duration: gsapDuration.fast }, 0);
+        if (mark) tl.to(mark, { opacity: 0, duration: gsapDuration.fast }, 0);
         tl.to(
           parts,
           {
@@ -342,37 +338,55 @@ const StatusGraphic = ({
           0
         );
         if (ring) tl.set(ring, { opacity: 0 });
-        if (worm)
-          tl.to(
-            worm,
-            {
-              attr: { d: 'M16 16 L50 16 L84 16', 'stroke-width': 32 },
-              ...timing,
-            },
-            0
-          );
         return tl;
       }
 
       const unit = GRAPHIC_PX[size] / 48;
       const drawAt =
-        type === 'inchworm' && status === 'error'
-          ? gsapDuration.base + gsapDuration.slower
-          : type === 'spinner' || type === 'wave'
-            ? gsapDuration.slow
-            : gsapDuration.base;
-      if (prev?.status !== status) tl.set(path, { strokeDashoffset: 1 }, 0);
-      tl.to(
-        mark,
-        {
-          opacity: 1,
-          scale: 1,
-          duration: gsapDuration.base,
-          ease: gsapEasing.settle,
-        },
-        drawAt
-      );
-      tl.to(path, { strokeDashoffset: 0, ...timing }, drawAt);
+        type === 'spinner' || type === 'wave'
+          ? gsapDuration.slow
+          : gsapDuration.base;
+      if (mark && path) {
+        if (type === 'spinner') {
+          tl.set(path, { strokeDashoffset: 0 }, 0);
+          tl.set(
+            mark,
+            { scale: 0.6, opacity: 0, transformOrigin: '50% 50%' },
+            0
+          );
+          tl.to(
+            mark,
+            {
+              scale: 1,
+              duration: gsapDuration.base,
+              ease: gsapEasing.snap,
+            },
+            drawAt
+          );
+          tl.to(
+            mark,
+            {
+              opacity: 1,
+              duration: gsapDuration.base,
+              ease: gsapEasing.settle,
+            },
+            drawAt
+          );
+        } else {
+          if (prev?.status !== status) tl.set(path, { strokeDashoffset: 1 }, 0);
+          tl.to(
+            mark,
+            {
+              opacity: 1,
+              scale: 1,
+              duration: gsapDuration.base,
+              ease: gsapEasing.settle,
+            },
+            drawAt
+          );
+          tl.to(path, { strokeDashoffset: 0, ...timing }, drawAt);
+        }
+      }
 
       if (type === 'spinner') {
         const rotor = parts[0];
@@ -416,13 +430,6 @@ const StatusGraphic = ({
         const fill = parts[0];
         tl.set(fill, { transformOrigin: '0% 50%' }, 0);
         tl.to(fill, { x: 0, scaleX: 4, ...timing }, 0);
-        if (status === 'done')
-          tl.fromTo(
-            mark,
-            { scale: 0.6 },
-            { scale: 1, duration: gsapDuration.base, ease: gsapEasing.snap },
-            drawAt
-          );
       } else if (type === 'wave') {
         const bars = parts;
         tl.to(
@@ -477,53 +484,9 @@ const StatusGraphic = ({
           { opacity: 0, duration: gsapDuration.fast },
           gsapDuration.slow * 2
         );
-      } else {
-        const body = parts[0];
-        const bodyWidth = { sm: 100, md: 200, lg: 300, xl: 400 }[size] / 4;
-        tl.to(
-          body,
-          {
-            xPercent: 150,
-            x: 0,
-            y: 0,
-            rotation: 0,
-            transformOrigin: '50% 50%',
-            scaleX: status === 'done' ? (28 * unit) / (bodyWidth * 0.7) : 1,
-            scaleY: status === 'done' ? (20 * unit) / 12 : 1,
-            ...timing,
-          },
-          0
-        );
-        if (status === 'done')
-          tl.to(
-            worm,
-            {
-              attr: { d: 'M15 16 L40 28 L85 4', 'stroke-width': 6 },
-              ...timing,
-            },
-            0
-          );
-        else if (!immediate) {
-          [-8, 8, -5, 5, 0].forEach((rotation, i) =>
-            tl.to(
-              body,
-              {
-                rotation,
-                duration: gsapDuration.slower / 5,
-                ease: gsapEasing.drift,
-              },
-              gsapDuration.base + (i * gsapDuration.slower) / 5
-            )
-          );
-        }
-        tl.to(body, { opacity: 0, duration: gsapDuration.base }, drawAt);
       }
 
-      if (
-        status === 'error' &&
-        (type === 'bar' || type === 'inchworm') &&
-        !immediate
-      ) {
+      if (status === 'error' && type === 'bar' && !immediate) {
         // TextField와 같은 좌우 진폭을 쓰며 마지막은 원점으로 돌아온다.
         const offsets = [-2, 4, -7, 7, -7, 7, -7, 4, -2, 0];
         offsets.forEach((x, i) =>
@@ -611,7 +574,7 @@ const StatusGraphic = ({
             <div className={barFill} data-motion-part />
           </div>
         </div>
-      ) : type === 'wave' ? (
+      ) : (
         <div
           className={clsx(wave, waveSizeStyles[size])}
           style={{ '--wave-n': waveBarCount(size) } as CSSProperties}
@@ -628,34 +591,23 @@ const StatusGraphic = ({
             />
           ))}
         </div>
-      ) : (
-        <div className={clsx(inchwormTrack, barSizeStyles[size])} data-inchworm>
-          <div className={inchwormFill} data-inchworm-fill data-motion-part>
-            <svg
-              className={wormSkin}
-              viewBox="0 0 100 32"
-              preserveAspectRatio="none"
-              role="presentation"
-            >
-              <path data-worm-body d="M16 16 L50 16 L84 16" strokeWidth="32" />
-            </svg>
-          </div>
-        </div>
       )}
-      <svg
-        className={clsx(resultMark, spinnerSizeStyles[size])}
-        viewBox="0 0 48 48"
-        data-result-mark
-        role="presentation"
-      >
-        <path
-          data-mark-path
-          d={status === 'error' ? ERROR_PATH : CHECK_PATH}
-          pathLength="1"
-          strokeDasharray="1"
-          strokeDashoffset="1"
-        />
-      </svg>
+      {type !== 'bar' && (
+        <svg
+          className={clsx(resultMark, spinnerSizeStyles[size])}
+          viewBox="0 0 48 48"
+          data-result-mark
+          role="presentation"
+        >
+          <path
+            data-mark-path
+            d={status === 'error' ? ERROR_PATH : CHECK_PATH}
+            pathLength="1"
+            strokeDasharray="1"
+            strokeDashoffset="1"
+          />
+        </svg>
+      )}
     </div>
   );
 };

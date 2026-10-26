@@ -449,7 +449,7 @@ import { Avatar, AvatarGroup } from '@taein-ui/core';
 | alt | string | (required) | Alt text |
 | size | 'xs' \| 'sm' \| 'md' \| 'lg' \| 'xl' | 'md' | Avatar size |
 | variant | 'circular' \| 'rounded' \| 'square' | 'circular' | Border style |
-| status | 'loading' \| 'done' \| 'error' | 'loading' | All types. Continues from loading to a check or X; returns to its loop on loading. Success uses success.dark, failure error.main. Reduced motion shows final marks immediately |
+| status | 'loading' \| 'done' \| 'error' | 'loading' | All types. Bar fills or shakes without icons; spinner closes its ring then pops a check or X; other types form a check or X; returns to its loop on loading. Success uses success.dark, failure error.main. Reduced motion shows final states immediately |
 | children | ReactNode | - | Fallback content |
 | onClick | () => void | - | Click handler |
 | href | string | - | Link URL |
@@ -470,9 +470,9 @@ import { Avatar, AvatarGroup } from '@taein-ui/core';
 
 ## Loader
 
-Loading indicator with orbit (default), spinner, dots, bar, wave, or inchworm variants.
+Loading indicator with orbit (default), spinner, dots, bar or wave variants.
 
-The bar track is a borderless 6px gray (`palette.gray[200]`) surface with 3px rounded ends. Inchworm is one rounded capsule that contracts, arches and stretches along a track using transforms. Spinner closes its arc before drawing a mark; dots jump to vertices; bar fills or shakes; wave folds from a horizontal line; inchworm bends or shakes. The moving blue head of every type has a soft glow (`0 0 6px`, 45% of the head's own color), and it stays under reduced motion.
+The bar track is a borderless 6px gray (`palette.gray[200]`) surface with 3px rounded ends. Spinner closes its arc then pops its check or X from scale 0.6 at the center using snap for transform and settle for opacity; dots jump to vertices; bar fills green on success or shakes red on failure without icons; wave folds from a horizontal line. The moving blue head of every type has a soft glow (`0 0 6px`, 45% of the head's own color), and it stays under reduced motion.
 
 ```tsx
 import { Loader } from '@taein-ui/core';
@@ -481,7 +481,6 @@ import { Loader } from '@taein-ui/core';
 <Loader type="spinner" size="md" />
 <Loader type="dots" label="로딩 중..." />
 <Loader type="wave" />
-<Loader type="inchworm" size="lg" />
 <Loader status="done" label="Saved" />
 <Loader type="dots" status="error" />
 <Loader fullScreen overlay />
@@ -492,8 +491,8 @@ The status region carries no `aria-busy` (a busy live region may defer its updat
 ### Props (extends HTMLAttributes<HTMLDivElement>)
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
-| type | 'orbit' \| 'spinner' \| 'dots' \| 'bar' \| 'wave' \| 'inchworm' | 'orbit' | Loader type |
-| status | 'loading' \| 'done' \| 'error' | 'loading' | All types. Continues from loading to a check or X; returns to its loop on loading. Success uses success.dark, failure error.main. Reduced motion shows final marks immediately |
+| type | 'orbit' \| 'spinner' \| 'dots' \| 'bar' \| 'wave' | 'orbit' | Loader type |
+| status | 'loading' \| 'done' \| 'error' | 'loading' | All types. Bar fills or shakes without icons; spinner closes its ring then pops a check or X; other types form a check or X; returns to its loop on loading. Success uses success.dark, failure error.main. Reduced motion shows final states immediately |
 | size | 'sm' \| 'md' \| 'lg' \| 'xl' | 'md' | Loader size |
 | color | 'primary' \| 'secondary' \| 'white' \| string | 'primary' | Color preset or any CSS color value (e.g. '#f00', 'currentColor') |
 | label | string | - | Text label. Changing the text cross-fades with a blur. When the accessible name equals the label (no `aria-label`, or the same text) the visible label is `aria-hidden` so it is read once through the hidden message in the status region |

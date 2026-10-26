@@ -24,8 +24,7 @@ import { themeContract } from './theme.css';
  * 예비동작(`dotBody`)과 축소 선호의 투명도 깜빡임(`dot`)으로 이 자산을 소비한다:
  * 구간 커브가 `Skeleton`의 wave와 같다(스윕과 깜빡임은 주기도 같다). 버블 점의
  * 솟음은 넘치는 커브(`snap`)라 이 자산이 아니다. 제외되는 건 컴포넌트가 아니라
- * 회전(`spinner`: 주기 `loop.fast`, 커브 `linear` + 비등속 키프레임)과 자벌레
- * (`inchworm`: 커브 `settle`, 주기 `loop.base`의 2배)다. 둘 다 명제가 요구하는
+ * 회전(`spinner`: 주기 `loop.fast`, 커브 `linear` + 비등속 키프레임)이다. 명제가 요구하는
  * 별도 리듬이다(자세한 이유는 `Loader.css.ts` 참고).
  *
  * `Skeleton.css.ts`가 아니라 `tokens/`에 두는 이유: `Skeleton.css.ts`가

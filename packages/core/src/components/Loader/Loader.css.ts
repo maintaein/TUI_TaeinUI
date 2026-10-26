@@ -6,7 +6,6 @@ import {
   ORBIT_RADIUS_PX,
   WAVE_HEIGHT_PX,
   WAVE_WIDTH_PX,
-  inchwormFrames,
 } from './loaderMotion';
 
 // 머리의 은은한 광휘. 타입마다 "움직이는 파란 부분(머리)"에 같은 빛을 건다: 값이
@@ -34,8 +33,6 @@ const progress = keyframes({
 // 요구이지 계열 리듬(S1)의 예외가 아니다. 회전은 좌→우의 원형 형태라
 // "한 방향"은 그대로 지켜진다. 같은 파일의 점 궤도(orbit)와 버블 점의 예비동작은
 // 구간 커브가 Skeleton wave와 같아 공유 자산을 거친다(리뷰 F3, M5 task-20).
-// 자벌레(inchworm)도 공유 자산 밖이다: 구간 커브가 settle이고 주기가
-// loop.base의 2배다(걸음 5번이 한 바퀴라서).
 const spin = keyframes({
   '0%': { transform: 'rotate(0deg)' },
   '50%': { transform: 'rotate(200deg)' },
@@ -79,11 +76,6 @@ const bubbleSquash = keyframes({
 const waveSwell = keyframes({
   '0%, 40%, 100%': { transform: 'scaleY(0.3)' },
   '8%': { transform: 'scaleY(1)' },
-});
-
-// 몸통의 수축과 굽힘은 transform만 쓰고, 구간 이징은 animation에 둔다.
-const inchworm = keyframes({
-  ...inchwormFrames(),
 });
 
 // 축소 선호일 때 dots가 돌아가는 투명도 깜빡임. transform은 없다.
@@ -182,41 +174,7 @@ export const barClip = style({
   filter: `drop-shadow(${loaderGlow('var(--loader-color)')})`,
 });
 
-export const inchwormTrack = style({
-  position: 'relative',
-  // 긴 몸통을 굽혀도 아래쪽이 잘리지 않도록 회전과 광휘가 머물 공간을 둔다.
-  height: themeContract.spacing[16],
-  overflow: 'hidden',
-});
-
-// 폭의 1/4인 몸통 하나가 움직인다. 트랙 면을 그리지 않아 막대로 보이지 않는다.
-export const inchwormFill = style({
-  position: 'absolute',
-  top: `calc(50% - ${themeContract.spacing[2]})`,
-  left: 0,
-  width: '25%',
-  height: themeContract.spacing[4],
-  borderRadius: '999px',
-  filter: `drop-shadow(${loaderGlow('var(--loader-color)')})`,
-  transform: 'translateX(150%)',
-  animation: `${inchworm} calc(${themeContract.animation.loop.base} * 2) ${themeContract.animation.easing.settle} infinite backwards`,
-  '@media': {
-    '(prefers-reduced-motion: reduce)': { animation: 'none' },
-  },
-});
-
-export const wormSkin = style({
-  display: 'block',
-  width: '100%',
-  height: '100%',
-  overflow: 'visible',
-  fill: 'none',
-  stroke: 'var(--loader-color)',
-  strokeLinecap: 'round',
-  strokeLinejoin: 'round',
-});
-
-// preset마다 두 변수를 같은 토큰으로 세운다. bar·inchworm은 --loader-color를, spinner·
+// preset마다 두 변수를 같은 토큰으로 세운다. bar는 --loader-color를, spinner·
 // dots·wave·orbit은 --spinner-color를 읽어서 어느 형태든 같은 색으로 풀린다.
 export const colorStyles = styleVariants({
   primary: {
@@ -531,9 +489,6 @@ export const resultMark = style({
   strokeLinecap: 'round',
   strokeLinejoin: 'round',
   filter: `drop-shadow(${loaderGlow('currentColor')})`,
-  selectors: {
-    '[data-loader-graphic="bar"] &': { left: '100%' },
-  },
 });
 
 export const closingRing = style({

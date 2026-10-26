@@ -11,7 +11,6 @@ import {
   WAVE_HEIGHT_PX,
   WAVE_PITCH_PX,
   WAVE_WIDTH_PX,
-  inchwormFrames,
   waveBarCount,
   ORBIT_RADIUS_PX,
   markPoints,
@@ -21,6 +20,77 @@ import {
 } from './loaderMotion';
 
 const LOADER_CSS = readFileSync(resolve(__dirname, './Loader.css.ts'), 'utf-8');
+
+describe('bar 표식 제거와 spinner 버블 등장', () => {
+  type Host = HTMLElement & { __loaderStatusTimeline?: gsap.core.Timeline };
+  const scaleOf = (mark: SVGSVGElement) =>
+    Number(mark.style.transform.match(/scale\(([^, )]+)/)?.[1] ?? 1);
+
+  it.each(['done', 'error'] as const)(
+    'bar %s에는 결과 SVG가 없다',
+    (status) => {
+      const { container, rerender } = render(<Loader type="bar" />);
+      rerender(<Loader type="bar" status={status} />);
+      expect(container.querySelector('[data-result-mark]')).toBeNull();
+      expect(screen.getByRole('status')).toHaveAccessibleName(
+        status === 'done' ? '완료' : '실패'
+      );
+    }
+  );
+
+  it.each(['done', 'error'] as const)(
+    'spinner %s는 원을 닫고 중심에서 snap으로 솟는다',
+    (status) => {
+      const { container, rerender } = render(<Loader type="spinner" />);
+      rerender(<Loader type="spinner" status={status} />);
+      const host = container.querySelector<Host>('[data-loader-graphic]')!;
+      const mark = host.querySelector<SVGSVGElement>('[data-result-mark]')!;
+      const path = mark.querySelector('path')!;
+      const tl = host.__loaderStatusTimeline!.pause();
+      const scale = tl.getChildren().find((t) => t.vars.scale === 1)!;
+      expect(scale.vars.ease).toBe(gsapEasing.snap);
+      expect(scale.startTime()).toBe(gsapDuration.slow);
+      tl.time(gsapDuration.slow + gsapDuration.base * 0.01);
+      expect(scaleOf(mark)).toBeGreaterThan(0.6);
+      expect(scaleOf(mark)).toBeLessThan(0.7);
+      expect(Number(path.style.strokeDashoffset)).toBe(0);
+      expect(mark.style.transformOrigin).toBe('50% 50%');
+      const fade = tl
+        .getChildren()
+        .find(
+          (t) => t.vars.opacity === 1 && t.startTime() === gsapDuration.slow
+        )!;
+      expect(fade.vars.ease).toBe(gsapEasing.settle);
+      tl.time(gsapDuration.slow + gsapDuration.base * 0.7);
+      expect(scaleOf(mark)).toBeGreaterThan(1);
+      tl.progress(1);
+      expect(scaleOf(mark)).toBe(1);
+      expect(Number(mark.style.opacity)).toBe(1);
+    }
+  );
+
+  it.each(['done', 'error'] as const)(
+    '축소 모션 spinner %s는 즉시 최종 표식이다',
+    (status) => {
+      vi.stubGlobal('matchMedia', () => ({
+        matches: true,
+        addEventListener() {},
+        removeEventListener() {},
+      }));
+      const { container, rerender } = render(<Loader type="spinner" />);
+      rerender(<Loader type="spinner" status={status} />);
+      const host = container.querySelector<Host>('[data-loader-graphic]')!;
+      const mark = host.querySelector<SVGSVGElement>('[data-result-mark]')!;
+      expect(host.__loaderStatusTimeline).toBeUndefined();
+      expect(scaleOf(mark)).toBe(1);
+      expect(Number(mark.style.opacity)).toBe(1);
+      expect(Number(mark.querySelector('path')!.style.strokeDashoffset)).toBe(
+        0
+      );
+      vi.unstubAllGlobals();
+    }
+  );
+});
 
 /** `export const <name> = style({...});` 블록 하나를 소스에서 잘라낸다. */
 function block(source: string, name: string): string {
@@ -748,7 +818,7 @@ describe('Loader', () => {
   });
 
   describe('물결 막대 wave (M5 task-20 2부)', () => {
-    it('접근성: aria-busy를 달지 않는다 (bar·inchworm과 같다)', () => {
+    it('접근성: aria-busy를 달지 않는다 (bar와 같다)', () => {
       render(<Loader type="wave" />);
       expect(screen.getByRole('status')).not.toHaveAttribute('aria-busy');
     });
@@ -1462,7 +1532,6 @@ describe('Loader', () => {
       rerender(<Loader type="spinner" />);
       rerender(<Loader type="bar" />);
       rerender(<Loader type="wave" />);
-      rerender(<Loader type="inchworm" />);
       expect(layoutReads).toBe(0);
     });
 
@@ -1696,11 +1765,10 @@ describe('머리의 은은한 광휘 (M5 task-20 수정 6)', () => {
     expect(clip).not.toContain('boxShadow');
   });
 
-  it('트랙 면 층에는 빛이 없고, 자벌레 채움에도 box-shadow가 없다', () => {
+  it('트랙 면 층에는 빛이 없다', () => {
     const track = block(LOADER_CSS, 'bar');
     expect(track).not.toContain('boxShadow');
     expect(track).not.toContain('filter');
-    expect(block(LOADER_CSS, 'inchwormFill')).not.toContain('boxShadow');
   });
 
   it.each(['bar'] as const)('%s DOM: 트랙 > 자르기 층 > 채움이다', (type) => {
@@ -1736,7 +1804,6 @@ describe('머리의 은은한 광휘 (M5 task-20 수정 6)', () => {
       'bubbleRise',
       'bubbleSquash',
       'waveSwell',
-      'inchworm',
       'fadeInOut',
     ].forEach((name) => {
       expect(keyframesBlock(LOADER_CSS, name), name).not.toMatch(
@@ -1749,7 +1816,7 @@ describe('머리의 은은한 광휘 (M5 task-20 수정 6)', () => {
 describe('낭독: 살아 있는 영역에 aria-busy 없음, 라벨은 한 번만 (M5 기술 정리 R2·R3)', () => {
   // 회귀 분류표 (고치기 전 -> 고친 뒤)
   // | 지점                                    | 전             | 후                 | 종류 |
-  // | bar·inchworm·wave status aria-busy      | "true"         | 없음               | 의도 |
+  // | bar·wave status aria-busy      | "true"         | 없음               | 의도 |
   // | orbit status aria-busy                  | loading만 true | 없음(done·error도) | 의도 |
   // | spinner·dots status   | 없음           | 없음               | 유지 |
   // | 라벨 = 접근 이름일 때 p                 | aria-hidden 없음 | "true"           | 의도 |
@@ -1757,14 +1824,7 @@ describe('낭독: 살아 있는 영역에 aria-busy 없음, 라벨은 한 번만
   // | 라벨 없음                               | p 없음         | p 없음             | 유지 |
   // | 숨은 메시지 글자, role, aria-live, 이름 | 그대로         | 그대로             | 유지 |
   // | 소비자가 넘긴 aria-busy                 | 닿지 않음      | 닿지 않음          | 유지 |
-  const TYPES = [
-    'orbit',
-    'spinner',
-    'dots',
-    'bar',
-    'wave',
-    'inchworm',
-  ] as const;
+  const TYPES = ['orbit', 'spinner', 'dots', 'bar', 'wave'] as const;
 
   it.each(TYPES)('%s: status 요소에 aria-busy가 없다', (type) => {
     render(<Loader type={type} />);
@@ -1846,14 +1906,7 @@ describe('낭독: 살아 있는 영역에 aria-busy 없음, 라벨은 한 번만
 });
 
 describe('모든 Loader type의 결과 전환', () => {
-  const types = [
-    'orbit',
-    'spinner',
-    'dots',
-    'bar',
-    'wave',
-    'inchworm',
-  ] as const;
+  const types = ['orbit', 'spinner', 'dots', 'bar', 'wave'] as const;
   type Host = HTMLElement & { __loaderStatusTimeline?: gsap.core.Timeline };
   const hostOf = (container: HTMLElement) =>
     container.querySelector<Host>('[data-orbit], [data-loader-graphic]')!;
@@ -1878,7 +1931,7 @@ describe('모든 Loader type의 결과 전환', () => {
         expect(graphic.__loaderStatusTimeline).toBeDefined();
         finish(container);
         expect(graphic).toHaveAttribute('data-paused');
-        if (type !== 'orbit') {
+        if (type !== 'orbit' && type !== 'bar') {
           const path =
             graphic.querySelector<SVGPathElement>('[data-mark-path]')!;
           expect(Number(path.style.strokeDashoffset)).toBe(0);
@@ -1897,7 +1950,7 @@ describe('모든 Loader type의 결과 전환', () => {
     const { container } = render(<Loader type={type} status="error" />);
     expect(hostOf(container).__loaderStatusTimeline).toBeUndefined();
     expect(hostOf(container)).toHaveAttribute('data-loader-mark', 'error');
-    if (type !== 'orbit') {
+    if (type !== 'orbit' && type !== 'bar') {
       expect(
         container.querySelector<SVGPathElement>('[data-mark-path]')?.style
           .strokeDashoffset
@@ -1929,60 +1982,21 @@ describe('모든 Loader type의 결과 전환', () => {
     expect(contrastOnWhite(themeTokens.color.error.main)).toBeGreaterThan(3);
   });
 
-  it('fuse type과 value는 공개 타입에서 제거됐다', () => {
+  it('inchworm·fuse type과 value는 공개 타입에서 제거됐다', () => {
     const elements = [
       // @ts-expect-error 삭제한 type은 받지 않는다
       <Loader key="fuse" type="fuse" value={20} />,
       // @ts-expect-error 진행률 API는 제거했다
       <Loader key="value" type="bar" value={20} />,
+      // @ts-expect-error 삭제한 type은 받지 않는다
+      <Loader key="inchworm" type="inchworm" />,
       <Loader key="spinner" type="spinner" status="done" />,
     ];
-    expect(elements).toHaveLength(3);
+    expect(elements).toHaveLength(4);
     const source = readFileSync(resolve(__dirname, './Loader.tsx'), 'utf-8');
-    expect(source).not.toMatch(/FuseLoaderProps|status\?: never|type: 'fuse'/);
-    expect(LOADER_CSS).not.toMatch(/fuseFill|fuseFlicker|fuseSpark/);
-  });
-});
-
-describe('자벌레는 캡슐 하나로 기어간다', () => {
-  it('성공하면 같은 몸을 실제로 꺾어 체크로 만든다', () => {
-    const { container, rerender } = render(<Loader type="inchworm" />);
-    const body = container.querySelector('[data-worm-body]');
-    expect(body).not.toBeNull();
-    rerender(<Loader type="inchworm" status="done" />);
-    const host = container.querySelector(
-      '[data-loader-graphic]'
-    ) as HTMLElement & { __loaderStatusTimeline?: gsap.core.Timeline };
-    host.__loaderStatusTimeline?.progress(1);
-    expect(container.querySelector('[data-worm-body]')).toBe(body);
-    expect(body).toHaveAttribute('d', 'M15 16 L40 28 L85 4');
-  });
-
-  it('몸통은 트랙을 채우는 막대 대신 둥글고 두꺼운 캡슐이다', () => {
-    const { container } = render(<Loader type="inchworm" />);
-    expect(container.querySelector('[data-bar-clip]')).toBeNull();
-    expect(container.querySelectorAll('[data-inchworm-fill]')).toHaveLength(1);
-    expect(block(LOADER_CSS, 'inchwormFill')).toContain(
-      "borderRadius: '999px'"
+    expect(source).not.toMatch(
+      /inchworm|FuseLoaderProps|status\?: never|type: 'fuse'/
     );
-    expect(block(LOADER_CSS, 'inchwormFill')).not.toContain('clipPath');
-  });
-
-  it('다섯 걸음이 이동, 수축, 굽힘을 transform으로 만들고 구간 이징 변수는 없다', () => {
-    const frames = inchwormFrames();
-    expect(Object.keys(frames).length).toBeGreaterThan(10);
-    expect(
-      Object.values(frames).some((frame) =>
-        frame.transform.includes('scaleX(0.55)')
-      )
-    ).toBe(true);
-    expect(
-      Object.values(frames).every((frame) =>
-        Object.keys(frame).every((key) =>
-          ['transform', 'transformOrigin'].includes(key)
-        )
-      )
-    ).toBe(true);
-    expect(frames['100%'].transform).toContain('translateX(400%)');
+    expect(LOADER_CSS).not.toMatch(/fuseFill|fuseFlicker|fuseSpark/);
   });
 });

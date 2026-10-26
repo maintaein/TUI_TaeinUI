@@ -19,7 +19,7 @@ const CONTROLS: Control[] = [
   {
     prop: 'type',
     kind: 'choice',
-    options: ['orbit', 'spinner', 'dots', 'bar', 'wave', 'inchworm'],
+    options: ['orbit', 'spinner', 'dots', 'bar', 'wave'],
   },
   { prop: 'status', kind: 'choice', options: ['loading', 'done', 'error'] },
   { prop: 'size', kind: 'choice', options: ['sm', 'md', 'lg', 'xl'] },
@@ -71,17 +71,16 @@ const SCRIPT = (act: Act) => {
 const PROPS: PropDefinition[] = [
   {
     name: 'type',
-    type: "'orbit' | 'spinner' | 'dots' | 'bar' | 'wave' | 'inchworm'",
+    type: "'orbit' | 'spinner' | 'dots' | 'bar' | 'wave'",
     default: "'orbit'",
-    description:
-      '점 궤도, 스피너, 점 세 개, 막대, 물결 막대, 캡슐 자벌레입니다.',
+    description: '점 궤도, 스피너, 점 세 개, 막대, 물결 막대입니다.',
   },
   {
     name: 'status',
     type: "'loading' | 'done' | 'error'",
     default: "'loading'",
     description:
-      '모든 모양이 받습니다. done은 체크, error는 X와 실패색으로 이어집니다. loading으로 돌아가면 다시 움직입니다.',
+      '모든 모양이 받습니다. bar는 표식 없이 성공색이나 실패색으로 바뀝니다. spinner는 원이 닫힌 뒤 체크나 X가 솟아 안착합니다. loading으로 돌아가면 다시 움직입니다.',
   },
   {
     name: 'size',
@@ -165,8 +164,6 @@ function Usage() {
           </li>
           <li>
             <code>bar</code>는 페이지나 섹션 위에 놓는 막대입니다.
-            <code>inchworm</code>은 둥글고 긴 몸통 하나가 꼬리를 당기고 머리를
-            뻗으며 기어갑니다.
           </li>
           <li>
             <code>wave</code>는 가는 막대 줄 위로 물결이 왼쪽에서 오른쪽으로
@@ -176,11 +173,11 @@ function Usage() {
       </Topic>
       <Topic title="결과까지 알리기">
         <p className={t.body} style={{ marginBottom: 12 }}>
-          모든 모양에 <code>status</code>를 줍니다. 돌던 호가 닫히고 점이
-          모이며, 막대는 차오르고 물결은 접혀 체크(<code>done</code>)나 X(
-          <code>error</code>)로 이어집니다. 자벌레는 몸을 꺾어 체크가 되고,
-          실패하면 고개를 젓듯 흔들립니다. <code>loading</code>으로 돌아가면
-          다시 돕니다.
+          모든 모양에 <code>status</code>를 줍니다. 스피너는 원이 닫힌 뒤 체크(
+          <code>done</code>)나 X(<code>error</code>)가 중심에서 작게 솟아
+          안착합니다. 점은 모이고 물결은 접혀 결과 표식으로 이어집니다. 막대는
+          표식 없이 성공하면 초록으로 끝까지 차오르고, 실패하면 빨강으로
+          흔들립니다. <code>loading</code>으로 돌아가면 다시 돕니다.
         </p>
         <CodeBlock code={STATUS} />
       </Topic>

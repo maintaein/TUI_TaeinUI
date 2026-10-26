@@ -1,7 +1,4 @@
-/**
- * Loader의 물결(wave)과 자벌레(inchworm)가 쓰는 숫자와 순수 함수.
- * 키프레임을 반복문으로 만들기 때문에 시험이 값을 읽을 수 있게 .css.ts 밖에 둔다.
- */
+/** Loader 그래픽의 숫자와 순수 함수. */
 
 type Size = 'sm' | 'md' | 'lg' | 'xl';
 
@@ -27,34 +24,6 @@ export const waveBarCount = (size: Size): number =>
   WAVE_WIDTH_PX[size] / WAVE_PITCH_PX;
 
 const round2 = (n: number): number => Math.round(n * 100) / 100;
-
-/** 몸 길이만큼 다섯 번 기어가며 트랙 밖에서 순환한다. */
-export const inchwormFrames = (): Record<
-  string,
-  { transform: string; transformOrigin: string }
-> => {
-  const frames: ReturnType<typeof inchwormFrames> = {};
-  for (let step = 0; step < 5; step += 1) {
-    const x = (step - 1) * 100;
-    frames[`${step * 20}%`] = {
-      transform: `translateX(${x}%) scaleX(1) scaleY(1) rotate(0deg)`,
-      transformOrigin: '100% 100%',
-    };
-    frames[`${step * 20 + 9}%`] = {
-      transform: `translateX(${x}%) scaleX(0.55) scaleY(1.35) rotate(-8deg)`,
-      transformOrigin: '100% 100%',
-    };
-    frames[`${step * 20 + 19}%`] = {
-      transform: `translateX(${x + 100}%) scaleX(1) scaleY(1) rotate(0deg)`,
-      transformOrigin: '0% 100%',
-    };
-  }
-  frames['100%'] = {
-    transform: 'translateX(400%) scaleX(1) scaleY(1) rotate(0deg)',
-    transformOrigin: '0% 100%',
-  };
-  return frames;
-};
 
 /** 점 궤도의 점 개수 */
 export const ORBIT_DOTS = 8;

@@ -21,7 +21,7 @@
 
 ### Added
 
-- `Loader`의 `status`를 모든 type으로 확장했습니다. 로딩 그래픽이 완료·실패 표식으로 이어지며 축소 모션에서는 즉시 최종 상태를 보입니다. 할 일: 결과 표식이 필요한 곳에 `status`를 지정합니다.
+- `Loader`의 `status`를 모든 type으로 확장했습니다. 막대는 표식 없이 성공하면 초록(`success.dark`)으로 차오르고 실패하면 빨강(`error.main`)으로 흔들립니다. 스피너는 원을 닫은 뒤 체크/X가 중심의 작은 크기에서 솟아 안착하며, 다른 타입은 완료·실패 표식으로 이어집니다. 축소 모션에서는 즉시 최종 상태를 보입니다. 할 일: 결과를 알릴 곳에 `status`를 지정합니다.
 
 - `TextField`에 `success`(`boolean`, 기본 `false`)와 `successMessage`(`string`)를 더했습니다. 켜지면 테두리와 메시지가 `color.success.dark`가 되고 메시지가 4px 위에서 내려오며 나타납니다. 메시지는 `helperText` 자리에 보이고 `aria-describedby`로 연결됩니다. `error`와 함께 켜면 `error`가 이기고 `aria-invalid`는 `error`일 때만 `true`입니다
 - `TextField`의 입력칸이 오류가 걸릴 때 좌우로 짧게 흔들리고 에러 문구가 4px 위에서 내려오며 나타납니다. `error`가 `false`에서 `true`로 바뀔 때와, `error`가 켜진 채 `errorMessage`가 바뀔 때 일어납니다(처음부터 켜져 있으면 없음). 같은 오류를 다시 보여 주려면 `errorMessage`를 바꾸거나 `error`를 껐다 켜세요. 축소 모션에서는 흔들림 없이 색만 바뀝니다. `NumericSpinner`의 에러 문구도 같은 내려오는 모션으로 나타납니다
@@ -33,8 +33,6 @@
 - `Modal`이 연 요소의 모양과 배경색을 이어받아 창으로 자라고, 다 자란 뒤 내용이 나타납니다. 닫으면 내용이 먼저 사라지고 요소의 현재 자리로 줄어든 뒤 요소와 포커스가 돌아옵니다. 움직임 줄이기 설정에서는 요소를 숨기지 않고 즉시 표시합니다. API 변경과 할 일은 없습니다.
 
 - `BoardRow`·`BottomSheet`·`SideSheet`의 내부 내용이 항목별 시차와 위치 이동 없이 전체가 함께 페이드인하도록 바꿨습니다. 할 일은 없습니다.
-
-- `Loader type="inchworm"`을 둥근 캡슐 몸통 하나가 수축·굽힘·신장을 반복하며 기어가는 모양으로 바꿨습니다. 할 일은 없습니다.
 
 - `Border`의 `glow`가 호버·포커스와 무관하게 켜져 있는 동안 계속 도는 로더가 됐습니다. 단일 꼬리 빛이 둥근 테두리 길을 따라 3000ms에 한 바퀴 돌며, 반바퀴마다 느려졌다 빨라집니다. 머리는 밝고 48px 길이의 꼬리는 뒤로 투명해집니다. 5초 넘게 계속 움직이므로(WCAG 2.2.2) 로딩이 끝나면 `glow`를 끄세요. 호버나 포커스 장식으로만 쓰던 곳은 `glow`를 끄거나, 로딩 중에만 켜세요. 축소 모션에서는 빛이 출발점에 멈춰 보입니다
 - `HeaderBar`의 루트 `<header>`에서 `role="banner"` 명시를 지웠습니다. HTML 기본 의미를 따라, 문서 최상위에 두면 그대로 banner이고 `section`·`article`·`aside`·`nav`·`main` 안에 두면 banner가 아닙니다. 할 일은 대개 없습니다. 최상위에 둔 HeaderBar는 그대로입니다.
@@ -50,6 +48,8 @@
 - `Border`의 `glow` 빛이 테두리선 위가 아니라 테두리 두께만큼 안쪽 띠에 그려지던 것을 고쳤습니다. 이제 빛이 테두리선과 겹쳐 돕니다(모서리 둥글기와 `width` 세 단계 모두). 빛이 감싼 콘텐츠를 덮지 않는 것과 `glow`를 안 쓴 `Border`는 그대로입니다. 할 일은 없습니다.
 
 ### Removed
+
+- **BREAKING CHANGE:** `Loader type="inchworm"`을 제거했습니다. 할 일: `type="bar"` 또는 `type="wave"`로 바꾸세요.
 
 - **BREAKING CHANGE:** `Loader type="fuse"`와 `value`를 제거했습니다. 할 일: fuse를 쓰던 곳은 `type="bar"`로 바꿉니다.
 

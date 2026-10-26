@@ -238,13 +238,13 @@ export const searchIndex: SearchEntry[] = [
     path: '/components/loader',
     category: '피드백 & 상태',
     description:
-      '고수준 로더. orbit(기본)/spinner/dots/bar/wave/inchworm 타입과 label/overlay, 모든 타입의 완료·실패 표식(status)을 지원합니다.',
+      '고수준 로더. orbit(기본)/spinner/dots/bar/wave 타입과 label/overlay, 모든 타입의 완료·실패 상태(status)를 지원합니다.',
     sections: [
       { title: 'Basic Loader', content: '기본 로더 사용법' },
       {
         title: 'Types',
         content:
-          'orbit(기본), spinner, dots, bar, wave(물결 막대), inchworm(자벌레) 여섯 가지 로딩 타입. 모든 타입은 status로 체크/X 완료 표식',
+          'orbit(기본), spinner, dots, bar, wave(물결 막대) 다섯 가지 로딩 타입. status로 결과를 표시합니다. bar는 색과 흔들림, spinner는 원이 닫힌 뒤 버블처럼 등장하는 체크/X 표식입니다.',
       },
       { title: 'Overlay', content: 'overlay prop으로 전체 화면 오버레이 로딩' },
       { title: 'With Label', content: 'label prop으로 로딩 메시지 표시' },
