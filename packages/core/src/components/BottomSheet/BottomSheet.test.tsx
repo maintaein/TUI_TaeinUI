@@ -640,7 +640,7 @@ describe('BottomSheet', () => {
     });
   });
 
-  describe('등장: bounce · stagger · float', () => {
+  describe('등장: bounce · fade · float', () => {
     type Host = HTMLElement & { __bottomSheetTimeline?: gsap.core.Timeline };
     type TweenLike = gsap.core.Tween & {
       vars: gsap.TweenVars & { startAt?: gsap.TweenVars };
@@ -652,8 +652,8 @@ describe('BottomSheet', () => {
       return timeline!;
     };
     const tweensOn = (timeline: gsap.core.Timeline, target: Element) =>
-      (timeline.getChildren() as TweenLike[]).filter(
-        (t) => t.targets()[0] === target
+      (timeline.getChildren() as TweenLike[]).filter((t) =>
+        t.targets().includes(target)
       );
 
     const items = Array.from({ length: 10 }, (_, i) => <p key={i}>항목 {i}</p>);
@@ -713,15 +713,15 @@ describe('BottomSheet', () => {
       });
     });
 
-    describe('stagger', () => {
-      type StaggerHost = HTMLElement & {
-        __bottomSheetStagger?: gsap.core.Timeline;
+    describe('fade', () => {
+      type FadeHost = HTMLElement & {
+        __bottomSheetFade?: gsap.core.Timeline;
       };
-      /** 내용 시차는 등장 타임라인 밖의 별도 타임라인이다(닫을 때 되감지 않으려고). */
-      const staggerOf = (sheet: HTMLElement) => {
-        const stagger = (sheet as StaggerHost).__bottomSheetStagger;
-        expect(stagger).toBeDefined();
-        return stagger!;
+      /** 내용 페이드는 등장 타임라인 밖의 별도 타임라인이다(닫을 때 되감지 않으려고). */
+      const fadeOf = (sheet: HTMLElement) => {
+        const fade = (sheet as FadeHost).__bottomSheetFade;
+        expect(fade).toBeDefined();
+        return fade!;
       };
       const renderItems = () => {
         render(
@@ -733,55 +733,60 @@ describe('BottomSheet', () => {
         return {
           sheet,
           timeline: timelineOf(sheet),
-          stagger: staggerOf(sheet),
+          fade: fadeOf(sheet),
         };
       };
 
-      it('내용의 직계 자식에 y 24 → 0은 snap·slow, opacity는 settle·fast로 분리해 건다', () => {
-        const { stagger } = renderItems();
+      it('내용 전체가 위치 이동 없이 settle·fast로 페이드인한다', () => {
+        const { fade } = renderItems();
         const first = screen.getByText('항목 0');
-        const [rise, fade] = tweensOn(stagger, first);
+        const [tween, ...rest] = tweensOn(fade, first.parentElement!);
 
-        expect(rise.vars.startAt?.y).toBe(24);
-        expect(rise.vars.y).toBe(0);
-        expect(rise.vars.ease).toBe(gsapEasing.snap);
-        expect(rise.duration()).toBeCloseTo(gsapDuration.slow, 5);
-        expect(fade.vars.startAt?.opacity).toBe(0);
-        expect(fade.vars.opacity).toBe(1);
-        expect(fade.vars.ease).toBe(gsapEasing.settle);
-        expect(fade.duration()).toBeCloseTo(gsapDuration.fast, 5);
+        expect(rest).toHaveLength(0);
+        expect(tween.vars).not.toHaveProperty('y');
+        expect(tween.vars.startAt).not.toHaveProperty('y');
+        expect(tween.vars.startAt?.opacity).toBe(0);
+        expect(tween.vars.opacity).toBe(1);
+        expect(tween.vars.ease).toBe(gsapEasing.settle);
+        expect(tween.duration()).toBeCloseTo(gsapDuration.fast, 5);
       });
 
-      it('시차 타임라인은 등장이 1단(slow)의 60% 지점을 정방향으로 지날 때 처음부터 돈다', () => {
-        const { timeline, stagger } = renderItems();
+      it('페이드 타임라인은 등장이 1단(slow)의 60% 지점을 정방향으로 지날 때 처음부터 돈다', () => {
+        const { timeline, fade } = renderItems();
 
         act(() => {
           timeline.time(gsapDuration.slow * 0.6 - 0.05);
         });
-        expect(stagger.paused()).toBe(true);
+        expect(fade.paused()).toBe(true);
 
         act(() => {
           timeline.time(gsapDuration.slow * 0.6 + 0.05);
         });
-        expect(stagger.paused()).toBe(false);
+        expect(fade.paused()).toBe(false);
       });
 
-      it('시차는 0.045초이고 9번째부터는 8번째와 같은 시각에 시작한다', () => {
-        const { stagger } = renderItems();
-        const startOf = (i: number) =>
-          tweensOn(stagger, screen.getByText(`항목 ${i}`))[0].startTime();
-
-        expect(startOf(0)).toBe(0);
-        expect(startOf(1) - startOf(0)).toBeCloseTo(0.045, 5);
-        expect(startOf(7) - startOf(0)).toBeCloseTo(0.045 * 7, 5);
-        expect(startOf(8)).toBeCloseTo(startOf(7), 5);
-        expect(startOf(9)).toBeCloseTo(startOf(7), 5);
+      it('모든 항목이 같은 시점과 중간 불투명도로 함께 나타난다', () => {
+        const { fade } = renderItems();
+        act(() => {
+          fade.pause().time(gsapDuration.fast / 2);
+        });
+        const first = screen.getByText('항목 0');
+        expect(Number(first.parentElement!.style.opacity)).toBeGreaterThan(0);
+        expect(Number(first.parentElement!.style.opacity)).toBeLessThan(1);
+        for (let i = 0; i < 10; i++) {
+          const item = screen.getByText(`항목 ${i}`);
+          expect(tweensOn(fade, item.parentElement!)[0].startTime()).toBe(0);
+          expect(item.parentElement!.style.opacity).toBe(
+            first.parentElement!.style.opacity
+          );
+          expect(item.style.transform).toBe('');
+        }
       });
 
       it('헤더와 핸들은 대상이 아니다', () => {
-        const { sheet, timeline, stagger } = renderItems();
+        const { sheet, timeline, fade } = renderItems();
 
-        for (const tl of [timeline, stagger]) {
+        for (const tl of [timeline, fade]) {
           expect(tweensOn(tl, screen.getByRole('heading'))).toHaveLength(0);
           expect(
             tweensOn(tl, screen.getByTestId('bottomsheet-handle'))
@@ -790,18 +795,20 @@ describe('BottomSheet', () => {
         expect(tweensOn(timeline, sheet).length).toBeGreaterThan(0);
       });
 
-      it('자식 요소가 없으면(문자열 children) 이 단계를 건너뛴다', () => {
-        render(<BottomSheet {...defaultProps} title="제목" />);
+      it('문자열 children도 본문 컨테이너와 함께 페이드인한다', () => {
+        render(
+          <BottomSheet {...defaultProps} title="제목">
+            문자열 본문
+          </BottomSheet>
+        );
         const sheet = screen.getByRole('dialog');
-        const targets = (timelineOf(sheet).getChildren() as TweenLike[]).map(
-          (t) => t.targets()[0]
-        );
-
-        // 시트 안쪽 요소에는 아무것도 걸리지 않는다(시트 자신과 백드롭뿐)
-        expect(targets.some((t) => t !== sheet && sheet.contains(t))).toBe(
-          false
-        );
-        expect((sheet as StaggerHost).__bottomSheetStagger).toBeUndefined();
+        const body = screen.getByText('문자열 본문');
+        expect(tweensOn(fadeOf(sheet), body)).toHaveLength(1);
+        act(() => {
+          fadeOf(sheet).pause().progress(0.5);
+        });
+        expect(Number(body.style.opacity)).toBeGreaterThan(0);
+        expect(Number(body.style.opacity)).toBeLessThan(1);
       });
 
       it('Compound의 BottomSheet.Content 직계 자식에도 걸린다', () => {
@@ -815,9 +822,9 @@ describe('BottomSheet', () => {
         );
         const sheet = screen.getByRole('dialog');
 
-        expect(tweensOn(staggerOf(sheet), screen.getByText('나'))).toHaveLength(
-          2
-        );
+        expect(
+          tweensOn(fadeOf(sheet), screen.getByText('나').parentElement!)
+        ).toHaveLength(1);
       });
 
       describe('닫기', () => {
@@ -838,7 +845,7 @@ describe('BottomSheet', () => {
           );
           const sheet = screen.getByRole('dialog');
           const timeline = timelineOf(sheet);
-          const stagger = staggerOf(sheet);
+          const fade = fadeOf(sheet);
           act(() => {
             timeline.progress(1);
           });
@@ -854,10 +861,10 @@ describe('BottomSheet', () => {
                 {items}
               </BottomSheet>
             );
-          return { sheet, timeline, stagger, close, reopen };
+          return { sheet, timeline, fade, close, reopen };
         };
 
-        it('역재생되는 등장 타임라인은 시트 구간(500ms)이고 내용 시차가 안에 없다', () => {
+        it('역재생되는 등장 타임라인은 시트 구간(500ms)이고 내용 페이드가 안에 없다', () => {
           const { sheet, timeline } = openAndClose();
 
           expect(timeline.duration()).toBeCloseTo(
@@ -871,34 +878,34 @@ describe('BottomSheet', () => {
         });
 
         it('닫으면 내용은 되감기지 않고 끝 상태로 확정되어 시트에 실려 내려간다', () => {
-          const { timeline, stagger, close } = openAndClose();
+          const { timeline, fade, close } = openAndClose();
           const first = screen.getByText('항목 0');
-          // 시차 도중에 닫는다
+          // 페이드 도중에 닫는다
           act(() => {
-            stagger.progress(0.3);
+            fade.progress(0.3);
           });
 
           close();
 
           expect(timeline.reversed()).toBe(true);
-          expect(stagger.progress()).toBe(1);
-          expect(first.style.opacity).toBe('1');
+          expect(fade.progress()).toBe(1);
+          expect(first.parentElement!.style.opacity).toBe('1');
           expect(first.style.transform).not.toContain('24');
         });
 
-        it('역재생이 시차 지점을 지나도 시차가 다시 돌지 않는다', () => {
-          const { timeline, stagger, close } = openAndClose();
+        it('역재생이 페이드 지점을 지나도 페이드가 다시 돌지 않는다', () => {
+          const { timeline, fade, close } = openAndClose();
           close();
 
           act(() => {
             timeline.progress(0.2);
           });
 
-          expect(stagger.progress()).toBe(1);
+          expect(fade.progress()).toBe(1);
         });
 
-        it('시차 지점 아래까지 내려갔다가 다시 열면 지점을 지날 때 시차가 다시 돈다', () => {
-          const { timeline, stagger, close, reopen } = openAndClose();
+        it('페이드 지점 아래까지 내려갔다가 다시 열면 지점을 지날 때 페이드가 다시 돈다', () => {
+          const { timeline, fade, close, reopen } = openAndClose();
           close();
           act(() => {
             timeline.progress(0.2);
@@ -910,14 +917,16 @@ describe('BottomSheet', () => {
             timeline.progress(1);
           });
 
-          expect(stagger.progress()).toBe(0);
-          expect(stagger.paused()).toBe(false);
-          expect(screen.getByText('항목 0').style.opacity).toBe('0');
+          expect(fade.progress()).toBe(0);
+          expect(fade.paused()).toBe(false);
+          expect(screen.getByText('항목 0').parentElement!.style.opacity).toBe(
+            '0'
+          );
         });
 
-        it('시차 지점 위에서 다시 열면 시차가 다시 돌지 않고 내용이 그대로 있다', () => {
-          // 이유: 시트가 이미 시차 지점을 지난 높이라 내용이 사라졌다 다시 뜨면 번쩍인다
-          const { timeline, stagger, close, reopen } = openAndClose();
+        it('페이드 지점 위에서 다시 열면 페이드가 다시 돌지 않고 내용이 그대로 있다', () => {
+          // 이유: 시트가 이미 페이드 지점을 지난 높이라 내용이 사라졌다 다시 뜨면 번쩍인다
+          const { timeline, fade, close, reopen } = openAndClose();
           close();
           act(() => {
             timeline.progress(0.8);
@@ -928,8 +937,10 @@ describe('BottomSheet', () => {
             timeline.progress(1);
           });
 
-          expect(stagger.progress()).toBe(1);
-          expect(screen.getByText('항목 0').style.opacity).toBe('1');
+          expect(fade.progress()).toBe(1);
+          expect(screen.getByText('항목 0').parentElement!.style.opacity).toBe(
+            '1'
+          );
         });
       });
     });
@@ -1087,7 +1098,7 @@ describe('BottomSheet', () => {
           expect(sheet).toHaveAttribute('data-float-paused');
         });
 
-        it('내용 시차도 끝 상태로 확정된다', () => {
+        it('내용 페이드도 끝 상태로 확정된다', () => {
           render(
             <BottomSheet {...defaultProps} title="제목">
               {items}
@@ -1095,14 +1106,14 @@ describe('BottomSheet', () => {
           );
           const first = screen.getByText('항목 0');
 
-          expect(first.style.opacity).toBe('1');
-          expect(first.style.transform).toBe('translate(0, 0)');
+          expect(first.parentElement!.style.opacity).toBe('1');
+          expect(first.style.transform).toBe('');
           expect(
             (
               screen.getByRole('dialog') as HTMLElement & {
-                __bottomSheetStagger?: gsap.core.Timeline;
+                __bottomSheetFade?: gsap.core.Timeline;
               }
-            ).__bottomSheetStagger!.progress()
+            ).__bottomSheetFade!.progress()
           ).toBe(1);
         });
       });

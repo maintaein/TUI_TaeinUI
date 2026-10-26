@@ -575,7 +575,7 @@ describe('BoardRow 모션 잠금', () => {
 describe('BoardRow 펼침·접힘 모션', () => {
   type Host = HTMLElement & {
     __boardRowTimeline?: gsap.core.Timeline;
-    __boardRowStagger?: gsap.core.Timeline;
+    __boardRowFade?: gsap.core.Timeline;
   };
   type TweenLike = gsap.core.Tween & {
     vars: gsap.TweenVars & { startAt?: gsap.TweenVars };
@@ -625,8 +625,8 @@ describe('BoardRow 펼침·접힘 모션', () => {
     return wrapper.__boardRowTimeline!;
   };
   const tweensOn = (timeline: gsap.core.Timeline, target: Element) =>
-    (timeline.getChildren() as TweenLike[]).filter(
-      (t) => t.targets()[0] === target
+    (timeline.getChildren() as TweenLike[]).filter((t) =>
+      t.targets().includes(target)
     );
 
   // 전역 루트 타임라인을 손으로 조금씩 민다(jsdom엔 rAF 티커가 없다). 살아 있는
@@ -794,45 +794,60 @@ describe('BoardRow 펼침·접힘 모션', () => {
     expect(region).not.toHaveAttribute('inert');
   });
 
-  it('내용 시차: contentInner의 직계 자식이 위에서(y -24) 0으로 snap으로 내려오고, 접을 때는 끝 상태로 확정된다', () => {
+  it('내용 전체가 위치 이동 없이 함께 페이드인하고, 접을 때는 끝 상태로 확정된다', () => {
     const { button, region, wrapper } = renderRow();
     const inner = region.firstElementChild as HTMLElement;
     fireEvent.click(button);
 
-    const stagger = wrapper.__boardRowStagger;
-    expect(stagger).toBeDefined();
+    const fade = wrapper.__boardRowFade;
+    expect(fade).toBeDefined();
     const items = Array.from(inner.children);
     expect(items).toHaveLength(3);
+    act(() => {
+      fade!.pause().time(gsapDuration.fast / 2);
+    });
+    const first = items[0] as HTMLElement;
+    expect(Number(first.parentElement!.style.opacity)).toBeGreaterThan(0);
+    expect(Number(first.parentElement!.style.opacity)).toBeLessThan(1);
     for (const item of items) {
-      const rise = tweensOn(stagger!, item).find((t) => t.vars.y === 0);
-      expect(rise, '직계 자식마다 y 트윈이 있어야 한다').toBeDefined();
-      expect(rise!.vars.startAt?.y).toBe(-24);
-      expect(rise!.vars.ease).toBe(gsapEasing.snap);
+      const [tween, ...rest] = tweensOn(fade!, item.parentElement!);
+      expect(rest).toHaveLength(0);
+      expect(tween.startTime()).toBe(0);
+      expect(tween.vars.startAt?.opacity).toBe(0);
+      expect(tween.vars.opacity).toBe(1);
+      expect(tween.vars).not.toHaveProperty('y');
+      expect(tween.vars.startAt).not.toHaveProperty('y');
+      expect(tween.vars.ease).toBe(gsapEasing.settle);
+      expect(tween.duration()).toBeCloseTo(gsapDuration.fast, 5);
+      expect((item as HTMLElement).parentElement!.style.opacity).toBe(
+        first.parentElement!.style.opacity
+      );
+      expect((item as HTMLElement).style.transform).toBe('');
     }
 
-    // 접으면 시차가 끝 상태로 확정된다(내용이 그대로 높이에 잘린다).
+    // 접으면 페이드가 끝 상태로 확정된다(내용이 그대로 높이에 잘린다).
     fireEvent.click(button);
-    expect(stagger!.progress()).toBe(1);
+    expect(fade!.progress()).toBe(1);
     for (const item of items) {
-      expect((item as HTMLElement).style.opacity).toBe('1');
+      expect((item as HTMLElement).parentElement!.style.opacity).toBe('1');
     }
 
-    // 완전히 접힌 뒤 다시 펼치면 새 시차다.
+    // 완전히 접힌 뒤 다시 펼치면 새 페이드다.
     act(() => {
       timelineOf(wrapper).progress(1);
     });
     fireEvent.click(button);
-    expect(wrapper.__boardRowStagger).not.toBe(stagger);
+    expect(wrapper.__boardRowFade).not.toBe(fade);
   });
 
-  it('접히는 도중 다시 펼치면 시차를 돌리지 않는다. 내용이 opacity 1·y 0 그대로다(번쩍임 방지)', () => {
+  it('접히는 도중 다시 펼치면 페이드를 돌리지 않는다. 내용이 opacity 1·y 0 그대로다(번쩍임 방지)', () => {
     const { button, region, wrapper } = renderRow();
     const items = Array.from(region.firstElementChild!.children);
     fireEvent.click(button);
     act(() => {
       timelineOf(wrapper).progress(1);
     });
-    const stagger = wrapper.__boardRowStagger;
+    const fade = wrapper.__boardRowFade;
 
     // 접히는 도중(높이가 0이 아니다)에 다시 펼친다.
     fireEvent.click(button);
@@ -842,9 +857,9 @@ describe('BoardRow 펼침·접힘 모션', () => {
     expect(Number.parseFloat(wrapper.style.height)).toBeGreaterThan(1);
     fireEvent.click(button);
 
-    expect(wrapper.__boardRowStagger).toBe(stagger);
+    expect(wrapper.__boardRowFade).toBe(fade);
     for (const item of items) {
-      expect((item as HTMLElement).style.opacity).toBe('1');
+      expect((item as HTMLElement).parentElement!.style.opacity).toBe('1');
       expect((item as HTMLElement).style.transform).not.toContain('24');
     }
   });
@@ -912,7 +927,7 @@ describe('BoardRow 펼침·접힘 모션', () => {
       listeners.forEach((l) => l());
     });
     expect(wrapper.style.height).toBe('');
-    expect(wrapper.__boardRowStagger!.progress()).toBe(1);
+    expect(wrapper.__boardRowFade!.progress()).toBe(1);
 
     // 접힘 도중
     matches = false;

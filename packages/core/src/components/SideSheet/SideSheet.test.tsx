@@ -436,10 +436,10 @@ describe('SideSheet', () => {
     });
   });
 
-  describe('등장: 넘침 · 시차 · float', () => {
+  describe('등장: 넘침 · 페이드 · float', () => {
     type Host = HTMLElement & {
       __sideSheetTimeline?: gsap.core.Timeline;
-      __sideSheetStagger?: gsap.core.Timeline;
+      __sideSheetFade?: gsap.core.Timeline;
     };
     type TweenLike = gsap.core.Tween & {
       vars: gsap.TweenVars & { startAt?: gsap.TweenVars };
@@ -450,14 +450,14 @@ describe('SideSheet', () => {
       expect(timeline).toBeDefined();
       return timeline!;
     };
-    const staggerOf = (sheet: HTMLElement) => {
-      const stagger = (sheet as Host).__sideSheetStagger;
-      expect(stagger).toBeDefined();
-      return stagger!;
+    const fadeOf = (sheet: HTMLElement) => {
+      const fade = (sheet as Host).__sideSheetFade;
+      expect(fade).toBeDefined();
+      return fade!;
     };
     const tweensOn = (timeline: gsap.core.Timeline, target: Element) =>
-      (timeline.getChildren() as TweenLike[]).filter(
-        (t) => t.targets()[0] === target
+      (timeline.getChildren() as TweenLike[]).filter((t) =>
+        t.targets().includes(target)
       );
     const items = Array.from({ length: 10 }, (_, i) => <p key={i}>항목 {i}</p>);
 
@@ -506,7 +506,7 @@ describe('SideSheet', () => {
       });
     });
 
-    describe('내용 시차', () => {
+    describe('내용 페이드', () => {
       const renderItems = () => {
         render(
           <SideSheet {...defaultProps} title="제목">
@@ -517,43 +517,56 @@ describe('SideSheet', () => {
         return {
           sheet,
           timeline: timelineOf(sheet),
-          stagger: staggerOf(sheet),
+          fade: fadeOf(sheet),
         };
       };
 
-      it('내용 직계 자식이 위로 떠오른다. y 24 → 0 snap, x는 쓰지 않는다', () => {
-        const { stagger } = renderItems();
-        const [rise, fade] = tweensOn(stagger, screen.getByText('항목 0'));
+      it('내용 전체가 위치 이동 없이 settle·fast로 페이드인한다', () => {
+        const { fade } = renderItems();
+        const [tween, ...rest] = tweensOn(
+          fade,
+          screen.getByText('항목 0').parentElement!
+        );
 
-        expect(rise.vars.startAt?.y).toBe(24);
-        expect(rise.vars.y).toBe(0);
-        expect(rise.vars.ease).toBe(gsapEasing.snap);
-        expect(rise.vars).not.toHaveProperty('x');
-        expect(fade.vars.startAt?.opacity).toBe(0);
-        expect(fade.vars.ease).toBe(gsapEasing.settle);
+        expect(rest).toHaveLength(0);
+        expect(tween.vars).not.toHaveProperty('y');
+        expect(tween.vars.startAt).not.toHaveProperty('y');
+        expect(tween.vars).not.toHaveProperty('x');
+        expect(tween.vars.startAt?.opacity).toBe(0);
+        expect(tween.vars.opacity).toBe(1);
+        expect(tween.vars.ease).toBe(gsapEasing.settle);
+        expect(tween.duration()).toBeCloseTo(gsapDuration.fast, 5);
       });
 
-      it('시차는 0.045초이고 9번째부터는 8번째와 같은 시각에 시작한다', () => {
-        const { stagger } = renderItems();
-        const startOf = (i: number) =>
-          tweensOn(stagger, screen.getByText(`항목 ${i}`))[0].startTime();
-
-        expect(startOf(1) - startOf(0)).toBeCloseTo(0.045, 5);
-        expect(startOf(8)).toBeCloseTo(startOf(7), 5);
-        expect(startOf(9)).toBeCloseTo(startOf(7), 5);
+      it('모든 항목이 같은 시점과 중간 불투명도로 함께 나타난다', () => {
+        const { fade } = renderItems();
+        act(() => {
+          fade.pause().time(gsapDuration.fast / 2);
+        });
+        const first = screen.getByText('항목 0');
+        expect(Number(first.parentElement!.style.opacity)).toBeGreaterThan(0);
+        expect(Number(first.parentElement!.style.opacity)).toBeLessThan(1);
+        for (let i = 0; i < 10; i++) {
+          const item = screen.getByText(`항목 ${i}`);
+          expect(tweensOn(fade, item.parentElement!)[0].startTime()).toBe(0);
+          expect(item.parentElement!.style.opacity).toBe(
+            first.parentElement!.style.opacity
+          );
+          expect(item.style.transform).toBe('');
+        }
       });
 
-      it('시차 타임라인은 등장이 1단의 60% 지점을 정방향으로 지날 때 돈다', () => {
-        const { timeline, stagger } = renderItems();
+      it('페이드 타임라인은 등장이 1단의 60% 지점을 정방향으로 지날 때 돈다', () => {
+        const { timeline, fade } = renderItems();
 
         act(() => {
           timeline.time(gsapDuration.slow * 0.6 - 0.05);
         });
-        expect(stagger.paused()).toBe(true);
+        expect(fade.paused()).toBe(true);
         act(() => {
           timeline.time(gsapDuration.slow * 0.6 + 0.05);
         });
-        expect(stagger.paused()).toBe(false);
+        expect(fade.paused()).toBe(false);
       });
 
       it('Compound의 SideSheet.Content 직계 자식에도 걸린다', () => {
@@ -567,9 +580,9 @@ describe('SideSheet', () => {
         );
         const sheet = screen.getByRole('dialog');
 
-        expect(tweensOn(staggerOf(sheet), screen.getByText('나'))).toHaveLength(
-          2
-        );
+        expect(
+          tweensOn(fadeOf(sheet), screen.getByText('나').parentElement!)
+        ).toHaveLength(1);
       });
 
       it('닫으면 되감기지 않고 끝으로 확정되어 인라인 y가 0으로 돌아온다', () => {
@@ -579,10 +592,10 @@ describe('SideSheet', () => {
           </SideSheet>
         );
         const sheet = screen.getByRole('dialog');
-        const stagger = staggerOf(sheet);
+        const fade = fadeOf(sheet);
         act(() => {
           timelineOf(sheet).progress(1);
-          stagger.progress(0.3);
+          fade.progress(0.3);
         });
 
         view.rerender(
@@ -592,17 +605,25 @@ describe('SideSheet', () => {
         );
 
         const first = screen.getByText('항목 0');
-        expect(stagger.progress()).toBe(1);
-        expect(first.style.opacity).toBe('1');
+        expect(fade.progress()).toBe(1);
+        expect(first.parentElement!.style.opacity).toBe('1');
         expect(first.style.transform).not.toContain('24');
       });
 
-      it('자식 요소가 없으면(문자열 children) 시차가 없다', () => {
-        render(<SideSheet {...defaultProps} title="제목" />);
-
-        expect(
-          (screen.getByRole('dialog') as Host).__sideSheetStagger
-        ).toBeUndefined();
+      it('문자열 children도 본문 컨테이너와 함께 페이드인한다', () => {
+        render(
+          <SideSheet {...defaultProps} title="제목">
+            문자열 본문
+          </SideSheet>
+        );
+        const fade = fadeOf(screen.getByRole('dialog'));
+        const body = screen.getByText('문자열 본문');
+        expect(tweensOn(fade, body)).toHaveLength(1);
+        act(() => {
+          fade.pause().progress(0.5);
+        });
+        expect(Number(body.style.opacity)).toBeGreaterThan(0);
+        expect(Number(body.style.opacity)).toBeLessThan(1);
       });
     });
 
@@ -667,7 +688,7 @@ describe('SideSheet', () => {
       );
     });
 
-    describe('축소 선호(게이트가 시차를 끝으로 확정한다)', () => {
+    describe('축소 선호(게이트가 페이드를 끝으로 확정한다)', () => {
       beforeEach(() => {
         vi.stubGlobal(
           'matchMedia',
@@ -685,7 +706,7 @@ describe('SideSheet', () => {
         vi.unstubAllGlobals();
       });
 
-      it('내용 직계 자식이 끝 상태(opacity 1, y 0)이고 시차 타임라인이 이미 끝났다', () => {
+      it('내용 직계 자식이 끝 상태(opacity 1, y 0)이고 페이드 타임라인이 이미 끝났다', () => {
         render(
           <SideSheet {...defaultProps} title="제목">
             {items}
@@ -694,9 +715,9 @@ describe('SideSheet', () => {
         const sheet = screen.getByRole('dialog');
         const first = screen.getByText('항목 0');
 
-        expect(first.style.opacity).toBe('1');
-        expect(first.style.transform).toBe('translate(0, 0)');
-        expect(staggerOf(sheet).progress()).toBe(1);
+        expect(first.parentElement!.style.opacity).toBe('1');
+        expect(first.style.transform).toBe('');
+        expect(fadeOf(sheet).progress()).toBe(1);
       });
     });
 

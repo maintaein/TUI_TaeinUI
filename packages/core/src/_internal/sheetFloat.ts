@@ -2,10 +2,10 @@ import { gsap } from 'gsap';
 import { gsapDuration, gsapEasing } from '../tokens/gsapEasing';
 import { gateMotion } from '../hooks/gateMotion';
 
-// BottomSheet와 SideSheet가 나눠 쓰는 "튀며 들어오고, 내용이 떠오르고, 둥실거리는"
+// BottomSheet와 SideSheet가 나눠 쓰는 "튀며 들어오고, 내용이 페이드인하고, 둥실거리는"
 // 등장의 공통부. 시트마다 다른 것은 축과 시작 부호, 둥실거림 방향뿐이다.
 // 둥실거림의 CSS 쪽은 `sheetFloat.css.ts`.
-// 세 번째 소비자: BoardRow가 펼칠 때 `addSheetStagger`만 가져다 쓴다(이름은 그대로 둔다).
+// 세 번째 소비자: BoardRow가 펼칠 때 `addSheetFade`만 가져다 쓴다.
 
 /**
  * 시트가 들어와 목표를 지나치는 거리(px). 고정 px인 이유: 시트 이동거리는 시트
@@ -15,14 +15,8 @@ import { gateMotion } from '../hooks/gateMotion';
  */
 const BOUNCE_OVERSHOOT_PX = 16;
 
-/** 내용이 떠오르는 거리(px). `Modal`·`BubbleMenu`와 같은 24. */
-export const STAGGER_RISE_Y = 24;
-/** 내용 항목 사이의 시차(초). folderfloat `stagger = 45`ms. */
-const STAGGER_STEP = 0.045;
-/** 시차를 받는 항목 수. 9번째부터는 8번째와 같이 뜬다(긴 목록이 늦게 끝나지 않게). */
-const STAGGER_MAX = 8;
 /** 내용이 뜨기 시작하는 지점: 시트 1단(`slow`)의 60%. 시트가 거의 들어왔을 때다. */
-const STAGGER_AT = 0.6;
+const FADE_AT = 0.6;
 
 /**
  * 시트 본체의 2단 넘침 트윈을 타임라인 0초에 붙인다.
@@ -76,68 +70,46 @@ export const addSheetOvershoot = (
 };
 
 /**
- * 내용 항목들이 시차를 두고 떠오르는 **별도** 타임라인을 만들어 돌려준다. 항목이
- * 없으면 `null`.
+ * 내용 전체가 함께 페이드인하는 별도 타임라인을 돌려준다. 항목이 없으면 `null`.
  *
- * 등장 타임라인 **밖**에 두는 이유: 안에 두면 등장 길이가 시차 꼬리만큼 늘고(항목
- * 6개에 705ms), 훅이 퇴장을 역재생할 때 그 꼬리부터 풀어서 시트가 100ms 넘게
- * 가만히 있는다. 밖에 두면 되감기지 않는다.
+ * 등장 타임라인 밖에 두어 닫을 때 내용을 되감지 않고 끝 상태로 확정한다.
  *
- * 등장이 정방향으로 시차 지점(1단의 60%)을 지날 때 처음부터 돌린다. `call`은
- * 역재생이 이 지점을 지날 때도 불리므로 방향을 확인한다. 축소 선호면 시차 자체를
+ * 등장이 정방향으로 1단의 60%를 지날 때 처음부터 돌린다. `call`은
+ * 역재생이 이 지점을 지날 때도 불리므로 방향을 확인한다. 축소 선호면 페이드를
  * `gateMotion`이 만들자마자 끝 상태로 확정하고 죽이므로 `call`은 아무것도 하지
  * 않는다(죽은 타임라인을 다시 돌리지 않는다). 재열림은 DOM을 새로 만들어 다시 빌드된다.
- *
- * `y`와 `opacity`를 한 트윈에 묶지 않는다: snap은 넘치는 커브라 불투명도에 걸면
- * 1을 넘었다 돌아온다. GSAP의 `stagger`는 항목 수에 따라 간격을 나누므로 쓰지
- * 않고 항목별 시작 시각을 직접 준다(처음 8개만 시차를 받는다).
- * 시트가 옆에서 와도 항목은 위로 뜬다: 시트(옆)와 내용(위)이 다른 움직임으로
- * 읽혀야 한 덩어리로 뭉개지지 않는다.
- *
- * `rise`는 항목의 시작 `y`(px). 기본은 아래에서 뜨는 24이고, 음수를 주면 위에서
- * 내려온다(BoardRow).
  */
-export const addSheetStagger = (
+export const addSheetFade = (
   timeline: gsap.core.Timeline,
   items: Element[],
-  reduced: boolean,
-  rise = STAGGER_RISE_Y
+  reduced: boolean
 ): gsap.core.Timeline | null => {
   if (items.length === 0) return null;
 
-  const stagger = gateMotion(reduced, () => {
+  const fade = gateMotion(reduced, () => {
     const t = gsap.timeline({ paused: true });
-    items.forEach((item, i) => {
-      const start = Math.min(i, STAGGER_MAX - 1) * STAGGER_STEP;
-      t.fromTo(
-        item,
-        { y: rise },
-        { y: 0, duration: gsapDuration.slow, ease: gsapEasing.snap },
-        start
-      );
-      t.fromTo(
-        item,
-        { opacity: 0 },
-        {
-          opacity: 1,
-          duration: gsapDuration.fast,
-          ease: gsapEasing.settle,
-        },
-        start
-      );
-    });
+    t.fromTo(
+      items,
+      { opacity: 0 },
+      {
+        opacity: 1,
+        duration: gsapDuration.fast,
+        ease: gsapEasing.settle,
+      },
+      0
+    );
     return t;
   });
 
   timeline.call(
     () => {
       if (reduced || timeline.reversed()) return;
-      stagger.restart();
+      fade.restart();
     },
     [],
-    gsapDuration.slow * STAGGER_AT
+    gsapDuration.slow * FADE_AT
   );
-  return stagger;
+  return fade;
 };
 
 /**

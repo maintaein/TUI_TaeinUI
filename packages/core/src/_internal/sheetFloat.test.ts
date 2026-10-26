@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { gsap } from 'gsap';
-import { addSheetOvershoot, addSheetStagger } from './sheetFloat';
+import { addSheetOvershoot, addSheetFade } from './sheetFloat';
 import { gateMotion } from '../hooks/gateMotion';
 import { gsapDuration, gsapEasing } from '../tokens/gsapEasing';
 
@@ -62,44 +62,44 @@ describe('addSheetOvershoot', () => {
   });
 });
 
-describe('addSheetStagger', () => {
+describe('addSheetFade', () => {
   it('항목이 없으면 null이고 등장 타임라인에 아무것도 걸지 않는다', () => {
     const timeline = newTimeline();
 
-    expect(addSheetStagger(timeline, [], false)).toBeNull();
+    expect(addSheetFade(timeline, [], false)).toBeNull();
     expect(timeline.getChildren()).toHaveLength(0);
   });
 
-  it('시작 오프셋을 넘기면 그 값에서 0으로, 안 넘기면 24에서 0으로 뜬다', () => {
-    const own = document.createElement('p');
-    const dflt = document.createElement('p');
-    const fromAbove = addSheetStagger(newTimeline(), [own], false, -24)!;
-    const fromBelow = addSheetStagger(newTimeline(), [dflt], false)!;
-    const yOf = (t: gsap.core.Timeline) =>
-      (
-        tweensOf(t).find((x) => x.vars.y === 0)!.vars as gsap.TweenVars & {
-          startAt?: gsap.TweenVars;
-        }
-      ).startAt?.y;
+  it('항목 수와 무관하게 opacity만 fast 동안 함께 바뀐다', () => {
+    const items = Array.from({ length: 10 }, () => document.createElement('p'));
+    const fade = addSheetFade(newTimeline(), items, false)!;
+    fade.pause().time(gsapDuration.fast / 2);
 
-    expect(yOf(fromAbove)).toBe(-24);
-    expect(yOf(fromBelow)).toBe(24);
+    expect(fade.duration()).toBeCloseTo(gsapDuration.fast, 5);
+    expect(tweensOf(fade)).toHaveLength(1);
+    for (const item of items) {
+      expect(Number(item.style.opacity)).toBeGreaterThan(0);
+      expect(Number(item.style.opacity)).toBeLessThan(1);
+      expect(item.style.opacity).toBe(items[0].style.opacity);
+      expect(item.style.transform).toBe('');
+    }
+    fade.kill();
   });
 
-  it('축소 선호면 만들자마자 끝으로 확정되고, 등장이 시차 지점을 지나도 아무것도 하지 않는다', () => {
+  it('축소 선호면 만들자마자 끝으로 확정되고, 등장이 페이드 지점을 지나도 아무것도 하지 않는다', () => {
     const timeline = newTimeline();
     const item = document.createElement('p');
     timeline.to({}, { duration: 1 });
-    const stagger = addSheetStagger(timeline, [item], true)!;
+    const fade = addSheetFade(timeline, [item], true)!;
 
-    expect(stagger.progress()).toBe(1);
+    expect(fade.progress()).toBe(1);
     expect(item.style.opacity).toBe('1');
-    expect(stagger.isActive()).toBe(false);
+    expect(fade.isActive()).toBe(false);
 
     timeline.time(gsapDuration.slow * 0.6 + 0.05);
 
     // 죽은 타임라인을 다시 돌리지 않는다.
-    expect(stagger.progress()).toBe(1);
-    expect(stagger.paused()).toBe(true);
+    expect(fade.progress()).toBe(1);
+    expect(fade.paused()).toBe(true);
   });
 });

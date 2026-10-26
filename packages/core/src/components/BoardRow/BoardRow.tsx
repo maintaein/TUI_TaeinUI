@@ -9,7 +9,7 @@ import {
 import clsx from 'clsx';
 import { gsap } from 'gsap';
 import { Glyph } from '../../_internal/glyph';
-import { addSheetStagger, STAGGER_RISE_Y } from '../../_internal/sheetFloat';
+import { addSheetFade } from '../../_internal/sheetFloat';
 import { gateMotion, settleMotion } from '../../hooks/gateMotion';
 import { useReducedMotion } from '../../hooks/useReducedMotion';
 import { gsapDuration, gsapEasing } from '../../tokens/gsapEasing';
@@ -38,12 +38,12 @@ const COLLAPSE_SWELL_PX = 12;
 const EXIT_RATIO = 0.65;
 
 /**
- * 테스트 전용: 현재 높이 타임라인과 내용 시차 타임라인을 래퍼 노드에 얹는다
+ * 테스트 전용: 현재 높이 타임라인과 내용 페이드 타임라인을 래퍼 노드에 얹는다
  * (BottomSheet의 `__bottomSheetTimeline`과 같은 모양).
  */
 type BoardRowTimelineHost = HTMLDivElement & {
   __boardRowTimeline?: gsap.core.Timeline;
-  __boardRowStagger?: gsap.core.Timeline;
+  __boardRowFade?: gsap.core.Timeline;
 };
 
 /** 접을 수 있는 아코디언 행 컴포넌트. 제어/비제어 모드 지원 */
@@ -94,7 +94,7 @@ export const BoardRow = ({
   const regionRef = useRef<HTMLDivElement>(null);
   const innerRef = useRef<HTMLDivElement>(null);
   const timelineRef = useRef<gsap.core.Timeline | null>(null);
-  const staggerRef = useRef<gsap.core.Timeline | null>(null);
+  const fadeRef = useRef<gsap.core.Timeline | null>(null);
   const lastExpandedRef = useRef(isExpanded);
   // 처음 그릴 때의 모습(닫힘이면 높이 0과 inert)은 마크업에 박아 두고 이후엔
   // 건드리지 않는다. 이 값은 바뀌지 않으므로 React가 다시 쓰지 않아 GSAP이
@@ -119,12 +119,12 @@ export const BoardRow = ({
     // 트윈 중이면 중간값이다. 죽이기 전에 읽는다.
     const from = wrapper.getBoundingClientRect().height;
     timelineRef.current?.kill();
-    // 접을 때는 시차를 끝 상태로 확정해 내용이 그대로 높이에 잘리며 사라지게
-    // 한다(시트와 같다). 펼칠 때 살아 있는 시차는 없다. 펼침은 언제나 접힘(시차를
+    // 접을 때는 페이드를 끝 상태로 확정해 내용이 그대로 높이에 잘리며 사라지게
+    // 한다(시트와 같다). 펼칠 때 살아 있는 페이드는 없다. 펼침은 언제나 접힘(페이드를
     // 확정하고 비운다) 뒤에 오고, 열린 채 마운트하거나 덜 접힌 채 다시 펼치면
-    // 시차를 만들지 않는다.
-    if (staggerRef.current) settleMotion(staggerRef.current);
-    staggerRef.current = null;
+    // 페이드를 만들지 않는다.
+    if (fadeRef.current) settleMotion(fadeRef.current);
+    fadeRef.current = null;
 
     if (isExpanded) {
       region.removeAttribute('inert');
@@ -154,25 +154,14 @@ export const BoardRow = ({
           },
           gsapDuration.slow
         );
-        // 내용은 직계 자식마다 시차를 두고 위에서 내려온다(시트는 아래에서 뜬다).
-        // contentWrapper가 overflow: hidden이라 위로 올라간 항목은 헤더 밑에서
-        // 잘려 있다가 빠져나오듯 보인다. 세 번째 소비자다(시트 둘 다음).
         // 접히던 도중(from이 0이 아니면) 다시 펼치는 거라면 내용은 접힐 때 이미
-        // 끝 상태로 확정돼 보이고 있다. 시차가 opacity 0으로 리셋하면 번쩍인다.
+        // 끝 상태로 확정돼 보이고 있다. 페이드가 opacity 0으로 리셋하면 번쩍인다.
         // 0과의 비교는 부동소수점이라 1 미만으로 본다.
-        staggerRef.current =
-          from < 1
-            ? addSheetStagger(
-                tl,
-                Array.from(inner.children),
-                reduced,
-                -STAGGER_RISE_Y
-              )
-            : null;
+        fadeRef.current = from < 1 ? addSheetFade(tl, [inner], reduced) : null;
         return tl;
       });
       wrapper.__boardRowTimeline = timeline;
-      if (staggerRef.current) wrapper.__boardRowStagger = staggerRef.current;
+      if (fadeRef.current) wrapper.__boardRowFade = fadeRef.current;
       timelineRef.current = timeline;
       return;
     }
@@ -215,13 +204,13 @@ export const BoardRow = ({
   useEffect(() => {
     if (!reduced) return;
     if (timelineRef.current) settleMotion(timelineRef.current);
-    if (staggerRef.current) settleMotion(staggerRef.current);
+    if (fadeRef.current) settleMotion(fadeRef.current);
   }, [reduced]);
 
   useEffect(
     () => () => {
       timelineRef.current?.kill();
-      staggerRef.current?.kill();
+      fadeRef.current?.kill();
     },
     []
   );

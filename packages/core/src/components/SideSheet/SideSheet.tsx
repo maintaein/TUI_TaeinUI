@@ -27,7 +27,7 @@ import { createOverlayContext } from '../../_internal/createOverlayContext';
 import { useOverlayTransition } from '../../_internal/useOverlayTransition';
 import {
   addSheetOvershoot,
-  addSheetStagger,
+  addSheetFade,
   setFloating,
   setFloatPaused,
 } from '../../_internal/sheetFloat';
@@ -43,10 +43,10 @@ interface SideSheetContextValue {
 const [SideSheetContext, useSideSheetContext] =
   createOverlayContext<SideSheetContextValue>('SideSheet');
 
-/** 테스트 전용: 등장 타임라인과 내용 시차 타임라인을 시트 노드에 얹는다(BottomSheet와 같은 모양). */
+/** 테스트 전용: 등장 타임라인과 내용 페이드 타임라인을 시트 노드에 얹는다(BottomSheet와 같은 모양). */
 type SideSheetTimelineHost = HTMLDivElement & {
   __sideSheetTimeline?: gsap.core.Timeline;
-  __sideSheetStagger?: gsap.core.Timeline;
+  __sideSheetFade?: gsap.core.Timeline;
 };
 
 /** 화면 좌/우에서 슬라이드되는 시트 컴포넌트. Compound 패턴(SideSheet.Header/Content) 또는 Flat 패턴(title prop) 지원 */
@@ -100,8 +100,8 @@ const SideSheetRoot = ({
   const sheetRef = useRef<HTMLDivElement>(null);
   const backdropRef = useRef<HTMLDivElement>(null);
   const titleId = useId();
-  /** 내용 시차. 등장 타임라인 **밖**의 별도 타임라인이다(이유는 `addSheetStagger`). */
-  const staggerRef = useRef<gsap.core.Timeline | null>(null);
+  /** 내용 페이드. 등장 타임라인 **밖**의 별도 타임라인이다(이유는 `addSheetFade`). */
+  const fadeRef = useRef<gsap.core.Timeline | null>(null);
   const reduced = useReducedMotion();
 
   // 백드롭과 시트를 한 타임라인에 넣는다. 중단 지점에서 둘의 progress가
@@ -131,16 +131,13 @@ const SideSheetRoot = ({
           position === 'left' ? -100 : 100
         );
 
-        // 옆에서 와도 내용은 위로 뜬다. 헤더는 시트와 같이 들어오므로 대상이 아니다.
-        const items = Array.from(
-          sheet.querySelector(`.${content}`)?.children ?? []
-        );
-        // 다시 만들 때(축소 선호가 뒤집힐 때) 낡은 시차가 같은 대상을 놓고 다투지 않게 한다.
-        staggerRef.current?.kill();
-        staggerRef.current = addSheetStagger(timeline, items, reduced);
-        if (staggerRef.current) {
-          (sheet as SideSheetTimelineHost).__sideSheetStagger =
-            staggerRef.current;
+        // 헤더는 시트와 같이 들어오므로 내용 페이드 대상이 아니다.
+        const body = sheet.querySelector(`.${content}`);
+        // 다시 만들 때(축소 선호가 뒤집힐 때) 낡은 페이드가 같은 대상을 놓고 다투지 않게 한다.
+        fadeRef.current?.kill();
+        fadeRef.current = addSheetFade(timeline, body ? [body] : [], reduced);
+        if (fadeRef.current) {
+          (sheet as SideSheetTimelineHost).__sideSheetFade = fadeRef.current;
         }
 
         // 등장이 끝나면 둥실거리기 시작한다. 이후 시트가 사라질 때까지 붙어 있다.
@@ -152,15 +149,15 @@ const SideSheetRoot = ({
   });
 
   // 닫는 중엔 둥실거림이 그 자리에 선다(떼지 않는다. 떼면 시트가 툭 떨어진다).
-  // 내용 시차는 되감지 않고 끝 상태로 확정해 시트에 실려 나가게 한다.
+  // 내용 페이드는 되감지 않고 끝 상태로 확정해 시트에 실려 나가게 한다.
   useEffect(() => {
     setFloatPaused(sheetRef.current, !open);
-    if (!open) staggerRef.current?.progress(1);
+    if (!open) fadeRef.current?.progress(1);
   }, [open]);
 
   useEffect(
     () => () => {
-      staggerRef.current?.kill();
+      fadeRef.current?.kill();
     },
     []
   );

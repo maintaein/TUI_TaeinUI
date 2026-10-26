@@ -30,7 +30,7 @@ import { gateMotion } from '../../hooks/gateMotion';
 import { useReducedMotion } from '../../hooks/useReducedMotion';
 import {
   addSheetOvershoot,
-  addSheetStagger,
+  addSheetFade,
   setFloating,
   setFloatPaused,
 } from '../../_internal/sheetFloat';
@@ -48,10 +48,10 @@ const [BottomSheetContext, useBottomSheetContext] =
 /** 이 거리보다 아래로 끌고 놓으면 닫는다. */
 const DRAG_CLOSE_THRESHOLD_PX = 100;
 
-/** 테스트 전용: 등장 타임라인과 내용 시차 타임라인을 시트 노드에 얹는다(Modal과 같은 모양). */
+/** 테스트 전용: 등장 타임라인과 내용 페이드 타임라인을 시트 노드에 얹는다(Modal과 같은 모양). */
 type BottomSheetTimelineHost = HTMLDivElement & {
   __bottomSheetTimeline?: gsap.core.Timeline;
-  __bottomSheetStagger?: gsap.core.Timeline;
+  __bottomSheetFade?: gsap.core.Timeline;
 };
 
 /** 화면 하단에서 올라오는 시트 컴포넌트. Compound 패턴(BottomSheet.Header/Content) 또는 Flat 패턴(title prop) 지원 */
@@ -114,8 +114,8 @@ const BottomSheetRoot = ({
   const isDraggingRef = useRef(false);
   /** 놓은 뒤 쉬는 자리로 돌아가는 트윈. 다시 잡으면 죽인다. */
   const restTweenRef = useRef<gsap.core.Tween | null>(null);
-  /** 내용 시차. 등장 타임라인 **밖**의 별도 타임라인이다(이유는 `addSheetStagger`). */
-  const staggerRef = useRef<gsap.core.Timeline | null>(null);
+  /** 내용 페이드. 등장 타임라인 **밖**의 별도 타임라인이다(이유는 `addSheetFade`). */
+  const fadeRef = useRef<gsap.core.Timeline | null>(null);
   const reduced = useReducedMotion();
 
   // 접근성(포커스 트랩 + ESC) 및 스크롤 제어: 퇴장이 끝난 뒤 포커스를 복원해야
@@ -152,17 +152,15 @@ const BottomSheetRoot = ({
         (sheet as BottomSheetTimelineHost).__bottomSheetTimeline = timeline;
         addSheetOvershoot(timeline, sheet, 'yPercent', 100);
 
-        // 내용은 시트가 거의 올라왔을 때 시차를 두고 뜬다. 헤더·핸들은 시트와 같이
+        // 내용은 시트가 거의 올라왔을 때 함께 나타난다. 헤더·핸들은 시트와 같이
         // 올라오므로 대상이 아니다.
-        const items = Array.from(
-          sheet.querySelector(`.${content}`)?.children ?? []
-        );
-        // 다시 만들 때(축소 선호가 뒤집힐 때) 낡은 시차가 같은 대상을 놓고 다투지 않게 한다.
-        staggerRef.current?.kill();
-        staggerRef.current = addSheetStagger(timeline, items, reduced);
-        if (staggerRef.current) {
-          (sheet as BottomSheetTimelineHost).__bottomSheetStagger =
-            staggerRef.current;
+        const body = sheet.querySelector(`.${content}`);
+        // 다시 만들 때(축소 선호가 뒤집힐 때) 낡은 페이드가 같은 대상을 놓고 다투지 않게 한다.
+        fadeRef.current?.kill();
+        fadeRef.current = addSheetFade(timeline, body ? [body] : [], reduced);
+        if (fadeRef.current) {
+          (sheet as BottomSheetTimelineHost).__bottomSheetFade =
+            fadeRef.current;
         }
 
         // 등장이 끝나면 둥실거리기 시작한다. 이후 시트가 사라질 때까지 붙어 있다.
@@ -178,7 +176,7 @@ const BottomSheetRoot = ({
   });
 
   // 닫는 중엔 둥실거림이 그 자리에 선다(떼지 않는다. 떼면 시트가 툭 떨어진다).
-  // 내용 시차는 되감지 않고 끝 상태로 확정해 시트에 실려 내려가게 한다.
+  // 내용 페이드는 되감지 않고 끝 상태로 확정해 시트에 실려 내려가게 한다.
   // 손가락이 내려간 채 닫혀 놓는 이벤트를 아무도 못 받으면 `isDraggingRef`가
   // 낡은 채 남아 다시 열 때 멈춤을 풀지 못하므로 여기서 되돌린다.
   useEffect(() => {
@@ -186,7 +184,7 @@ const BottomSheetRoot = ({
     if (!open) {
       isDraggingRef.current = false;
       setFloatPaused(sheet, true);
-      staggerRef.current?.progress(1);
+      fadeRef.current?.progress(1);
     } else {
       setFloatPaused(sheet, false);
     }
@@ -194,7 +192,7 @@ const BottomSheetRoot = ({
 
   useEffect(
     () => () => {
-      staggerRef.current?.kill();
+      fadeRef.current?.kill();
     },
     []
   );
