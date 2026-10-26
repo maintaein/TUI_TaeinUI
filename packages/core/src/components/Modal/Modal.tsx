@@ -3,6 +3,9 @@ import {
   forwardRef,
   useId,
   useRef,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
   type ReactNode,
   type HTMLAttributes,
   type RefObject,
@@ -28,6 +31,7 @@ import { getActiveHTMLElement } from '../../_internal/dom';
 import { createOverlayContext } from '../../_internal/createOverlayContext';
 import { useOverlayTransition } from '../../_internal/useOverlayTransition';
 import { gsapDuration, gsapEasing } from '../../tokens/gsapEasing';
+import { useReducedMotion } from '../../hooks/useReducedMotion';
 
 /**
  * 트리거를 못 읽을 때의 시작 상태: 화면 가운데에서 살짝 위·작게 자란다.
@@ -46,15 +50,6 @@ const CENTER_START = { opacity: 0, x: 0, y: -20, scale: 0.95 } as const;
  */
 const CLIP_BLEED = 50;
 
-/**
- * 내용이 떠오르기 시작하는 지점: 상자 트윈(`slower`)의 45%. 내용(`slow`)은 상자보다
- * 25ms 늦게 끝난다. 레퍼런스(`BubbleMenu`의 라벨)도 주연과 조연을 일부러 어긋나게 둔다.
- */
-const CHILD_RISE_AT = 0.45;
-
-/** 내용이 떠오르는 거리(px). `BubbleMenu`의 라벨 `y: 24`와 같다. */
-const CHILD_RISE_Y = 24;
-
 /** 테스트 전용: 열린 타임라인을 다이얼로그 노드에 얹는다(SegmentedButtons와 같은 모양). */
 type ModalTimelineHost = HTMLDivElement & {
   __modalTimeline?: gsap.core.Timeline;
@@ -68,54 +63,58 @@ const radiusOf = (el: HTMLElement, width: number): number => {
   return raw.endsWith('%') ? (n / 100) * width : n;
 };
 
-/**
- * 트리거를 읽을 수 있을 때의 시작 상태. 못 읽으면 `null`이고 호출처는
- * `CENTER_START`로 물러난다.
- *
- * **`scale`을 쓰지 않는다.** 이전에는 `scale: 0.8`로 고정해 글자 가독성(이 모달의
- * 유일한 하드 제약)을 지켰다. 이제는 배율을 아예 안 쓴다. 패널 박스는 그대로 두고
- * `x`/`y`로 트리거에 겹친 뒤 `clip-path: inset()`으로 보이는 창만 트리거 크기로
- * 좁힌다. 글자는 단 한 프레임도 찌그러지지 않으니 24px 아이콘 버튼에서도 읽힌다.
- * 비율을 그대로 쓰면 본문 16px이 1px 미만이 되는 문제 자체가 없다.
- * 창이 열리면서 패널이 드러나고, `round`도 트리거 반경에서 패널 반경으로 같이
- * 보간된다(GSAP이 `inset()`을 `round`까지 선형 보간한다. 네 축 전부와 `round`
- * 하나를 from·to에 똑같이 적어야 구조가 같아 보간된다).
- *
- * 못 읽는 경우: 트리거가 없음(호출처가 `triggerRef.current`와 활성 요소를 모두
- * 못 구함) · 문서에서 떼어진 요소 · 크기 0(숨겨졌거나 레이아웃 없는 환경).
- * 어느 쪽도 예외를 던지지 않는다. 모달이 열리지 않는 것보다 가운데에서 자라는 게 낫다.
- */
+// clip-path의 round를 보간하면 scale과 달리 모서리의 둥글기가 찌그러지지 않는다.
 const triggerStart = (
   dialog: HTMLElement,
   trigger: HTMLElement | null | undefined
-): { x: number; y: number; clipPath: string } | null => {
+): {
+  x: number;
+  y: number;
+  clipPath: string;
+  backgroundColor: string;
+  scale?: number;
+} | null => {
   if (!trigger?.isConnected) return null;
 
   const from = trigger.getBoundingClientRect();
+  // 역재생 직전에도 이동 중인 패널이 아니라 최종 자리와 비교한다.
+  const transform = dialog.style.transform;
+  dialog.style.transform = 'none';
   const to = dialog.getBoundingClientRect();
+  dialog.style.transform = transform;
   if (
     from.width === 0 ||
     from.height === 0 ||
     to.width === 0 ||
-    to.height === 0
+    to.height === 0 ||
+    from.right <= 0 ||
+    from.bottom <= 0 ||
+    from.left >= window.innerWidth ||
+    from.top >= window.innerHeight
   ) {
     return null;
   }
 
-  // 트리거가 패널보다 큰 축은 음수 inset이 된다. 0으로 막아 그 축은 처음부터 다 보인다.
-  const insetY = Math.max(0, (to.height - from.height) / 2);
-  const insetX = Math.max(0, (to.width - from.width) / 2);
+  // transform이 있는 container에서는 뷰포트 거리와 CSS 픽셀의 배율이 다르다.
+  const scaleX = to.width / (dialog.offsetWidth || to.width);
+  const scaleY = to.height / (dialog.offsetHeight || to.height);
+  // 음수 clip만으로는 배경 면이 커지지 않으므로 더 큰 트리거일 때만 패널도 확대한다.
+  const scale = Math.max(1, from.width / to.width, from.height / to.height);
+  const insetY = (to.height - from.height / scale) / 2 / scaleY;
+  const insetX = (to.width - from.width / scale) / 2 / scaleX;
   // 알약(9999px)이 타원이 되지 않게 트리거 짧은 변의 절반으로 누른다.
   const round = Math.min(
-    radiusOf(trigger, from.width),
-    Math.min(from.width, from.height) / 2
+    radiusOf(trigger, from.width / scaleX),
+    Math.min(from.width / scaleX, from.height / scaleY) / 2
   );
 
   // translate의 차이를 그대로 넣으면 두 중심이 정확히 겹친다.
   return {
-    x: from.left + from.width / 2 - (to.left + to.width / 2),
-    y: from.top + from.height / 2 - (to.top + to.height / 2),
-    clipPath: `inset(${insetY}px ${insetX}px ${insetY}px ${insetX}px round ${round}px)`,
+    x: (from.left + from.width / 2 - (to.left + to.width / 2)) / scaleX,
+    y: (from.top + from.height / 2 - (to.top + to.height / 2)) / scaleY,
+    clipPath: `inset(${insetY}px ${insetX}px ${insetY}px ${insetX}px round ${round / scale}px)`,
+    backgroundColor: getComputedStyle(trigger).backgroundColor,
+    ...(scale > 1 ? { scale } : {}),
   };
 };
 
@@ -148,7 +147,7 @@ interface ModalContextValue {
 const [ModalContext, useModalContext] =
   createOverlayContext<ModalContextValue>('Modal');
 
-/** 모달 다이얼로그 컴포넌트. Compound 패턴(Modal.Header/Content/Footer) 또는 Flat 패턴(title/footer prop) 지원 */
+/** 누른 요소의 모양과 색을 이어받아 창으로 자라고 닫히면 돌아가는 다이얼로그. 축소 모션에서는 즉시 표시한다. */
 export interface ModalProps extends Omit<
   HTMLAttributes<HTMLDivElement>,
   'children' | 'title'
@@ -164,7 +163,7 @@ export interface ModalProps extends Omit<
   /** 배경 클릭으로 닫기 허용 @default true */
   closeOnBackdropClick?: boolean;
   /**
-   * 모달을 연 버튼. 다이얼로그가 그 버튼 자리에서 자라 나온다.
+   * 모달을 연 버튼. 버튼을 숨기고 그 모양·색에서 창으로 자라며, 닫힐 때 현재 자리로 돌아간 뒤 버튼과 포커스를 복원한다.
    * `.current`가 있으면 그것이 활성 요소를 이긴다. 그런데 분리됐거나 크기가 0이면
    * 활성 요소로 내려가지 않고 가운데에서 자란다(명시한 ref가 유일한 의도 표명이다).
    * 안 주거나 `.current`가 null이면 열 때 포커스된 요소를 쓴다.
@@ -220,11 +219,37 @@ const ModalRoot = ({
   const dialogRef = useRef<HTMLDivElement>(null);
   const backdropRef = useRef<HTMLDivElement>(null);
   const titleId = useId();
+  const reduced = useReducedMotion();
+  const morphRef = useRef<{
+    trigger: HTMLElement;
+    visibility: string;
+    priority: string;
+    tween: gsap.core.Tween;
+  } | null>(null);
+  const focusReturnRef = useRef<HTMLElement | null>(null);
+  const restoreTrigger = useCallback(() => {
+    const morph = morphRef.current;
+    if (!morph) return;
+    morph.trigger.style.setProperty(
+      'visibility',
+      morph.visibility,
+      morph.priority
+    );
+    morphRef.current = null;
+  }, []);
+  const restoreFocus = useCallback(() => {
+    focusReturnRef.current?.focus();
+    focusReturnRef.current = null;
+  }, []);
 
   // 백드롭과 다이얼로그를 **한 타임라인**에 넣는다. 따로 두면 여는 도중 닫았을 때
   // 둘의 progress가 갈라져 배경만 남거나 판만 남는 프레임이 생긴다.
   const { shouldRender } = useOverlayTransition({
     open,
+    onExited: () => {
+      restoreTrigger();
+      restoreFocus();
+    },
     buildTimeline: (timeline) => {
       const backdropEl = backdropRef.current;
       const dialog = dialogRef.current;
@@ -244,10 +269,8 @@ const ModalRoot = ({
       if (dialog) {
         // 테스트 손잡이. 타임라인을 만드는 자리에서 얹는다(SegmentedButtons와 같다).
         (dialog as ModalTimelineHost).__modalTimeline = timeline;
-        const start = triggerStart(
-          dialog,
-          triggerRef?.current ?? activeTrigger(dialog)
-        );
+        const trigger = triggerRef?.current ?? activeTrigger(dialog);
+        const start = !reduced ? triggerStart(dialog, trigger) : null;
         if (!start) {
           timeline.fromTo(
             dialog,
@@ -262,54 +285,43 @@ const ModalRoot = ({
             },
             0
           );
+          if (reduced) {
+            timeline.set(dialog, { clearProps: 'clipPath,backgroundColor' }, 0);
+            timeline.set(Array.from(dialog.children), { opacity: 1 }, 0);
+          }
         } else {
           const panelRadius = radiusOf(dialog, dialog.offsetWidth);
           const end = `inset(-${CLIP_BLEED}px -${CLIP_BLEED}px -${CLIP_BLEED}px -${CLIP_BLEED}px round ${panelRadius}px)`;
-          // 패널 배경이 먼저 불투명해지는 동안 그 아래 트리거 글자가 흐려진다.
-          // 트리거 요소는 직접 건드리지 않는다(중단 시 opacity 0으로 남을 위험).
+          const panelColor = getComputedStyle(dialog).backgroundColor;
           timeline.fromTo(
             dialog,
-            { opacity: 0 },
+            { ...start, opacity: 1 },
             {
-              opacity: 1,
-              duration: gsapDuration.slow,
+              x: 0,
+              y: 0,
+              scale: 1,
+              clipPath: end,
+              backgroundColor: panelColor,
+              // 쉬는 동안은 걷는다. 영구 inset(-50px)가 남으면 모달 밖 50px 너머
+              // (푸터에 단 Popover 등)를 자른다. 완료 시 걷히고 역재생하면 GSAP이
+              // 보간값을 다시 칠한다. x·y에는 걸지 않는다(transform을 걷으면 안 된다).
+              clearProps: 'clipPath,backgroundColor',
+              duration: gsapDuration.slower,
               ease: gsapEasing.settle,
             },
             0
           );
-          timeline.fromTo(
-            dialog,
-            { x: start.x, y: start.y, clipPath: start.clipPath },
-            {
-              x: 0,
-              y: 0,
-              clipPath: end,
-              // 쉬는 동안은 걷는다. 영구 inset(-50px)가 남으면 모달 밖 50px 너머
-              // (푸터에 단 Popover 등)를 자른다. 완료 시 걷히고 역재생하면 GSAP이
-              // 보간값을 다시 칠한다. x·y에는 걸지 않는다(transform을 걷으면 안 된다).
-              clearProps: 'clipPath',
-              duration: gsapDuration.slower,
-              // 화면 안에서의 변형은 ease-in-out이다. settle(power3.out)은 거리의 94%를
-              // 앞 절반에 쓰고 나머지를 기어가서, 상자가 먼저 열리고 내용이 뒤따른다.
-              ease: gsapEasing.drift,
-            },
-            0
-          );
+          if (trigger && !dialog.contains(trigger)) {
+            morphRef.current = {
+              trigger,
+              visibility: trigger.style.getPropertyValue('visibility'),
+              priority: trigger.style.getPropertyPriority('visibility'),
+              tween: timeline.getChildren().slice(-1)[0] as gsap.core.Tween,
+            };
+            trigger.style.setProperty('visibility', 'hidden');
+          }
           if (dialog.children.length > 0) {
             const children = Array.from(dialog.children);
-            const at = gsapDuration.slower * CHILD_RISE_AT;
-            // y와 opacity를 한 트윈에 묶지 않는다. snap(back.out)을 묶으면 불투명도도
-            // 1을 넘었다 돌아올 수 있다. 오버슛은 y에만 건다.
-            timeline.fromTo(
-              children,
-              { y: CHILD_RISE_Y },
-              {
-                y: 0,
-                duration: gsapDuration.slow,
-                ease: gsapEasing.snap,
-              },
-              at
-            );
             timeline.fromTo(
               children,
               { opacity: 0 },
@@ -318,7 +330,7 @@ const ModalRoot = ({
                 duration: gsapDuration.slow,
                 ease: gsapEasing.settle,
               },
-              at
+              gsapDuration.slower
             );
           }
         }
@@ -326,13 +338,45 @@ const ModalRoot = ({
     },
   });
 
-  useFocusTrap({
+  const { previousActiveElementRef } = useFocusTrap({
     open,
     onClose,
     closeOnEscape,
     containerRef: dialogRef,
     lockScroll: !container,
+    restoreFocusOnClose: false,
   });
+
+  useEffect(() => {
+    const previous = previousActiveElementRef.current;
+    if (
+      open &&
+      previous &&
+      !dialogRef.current?.contains(previous) &&
+      !focusReturnRef.current
+    ) {
+      focusReturnRef.current = previous;
+    }
+  }, [open, previousActiveElementRef]);
+
+  useLayoutEffect(() => {
+    const morph = morphRef.current;
+    const dialog = dialogRef.current;
+    if (!open && morph && dialog) {
+      const start = triggerStart(dialog, morph.trigger);
+      // 시작값만 갱신하므로 같은 타임라인이 현재 진행 위치에서 역방향으로 이어진다.
+      if (start) {
+        morph.tween.vars.startAt = { ...start, opacity: 1 };
+        morph.tween.invalidate();
+      }
+    }
+  }, [open]);
+
+  useLayoutEffect(
+    () => () => restoreTrigger(),
+    [shouldRender, reduced, restoreTrigger]
+  );
+  useEffect(() => () => restoreFocus(), [restoreFocus]);
 
   const contextValue = useMemo(
     () => ({ onClose, titleId }),
@@ -413,7 +457,7 @@ const ModalRoot = ({
           onClick={(e) => e.stopPropagation()}
           {...props}
         >
-          {content}
+          <div>{content}</div>
         </div>
       </div>
     </ModalContext.Provider>

@@ -13,7 +13,7 @@ import type { PropDefinition } from '../../../components/PropsTable';
 import { Stage, type Act, type DemoProps } from '../../../components/Stage';
 
 const LEAD =
-  '삭제 확인이나 폼 입력처럼 사용자가 답하기 전에는 뒤 화면을 쓰지 못하게 해야 할 때 화면 가운데에 띄웁니다. 누른 단추 자리에서 자라 나옵니다.';
+  '삭제 확인이나 폼 입력처럼 사용자가 답하기 전에는 뒤 화면을 쓰지 못하게 해야 할 때 씁니다. 누른 단추가 모양과 색을 바꾸며 창이 되고, 닫으면 다시 단추로 돌아옵니다.';
 
 const CONTROLS: Control[] = [
   { prop: 'title', kind: 'text', label: 'title' },
@@ -219,15 +219,16 @@ function Usage() {
         </p>
         <CodeBlock code={BASIC} />
       </Topic>
-      <Topic title="누른 단추에서 자라기">
+      <Topic title="누른 단추가 창이 되기">
         <p className={t.body}>
-          <code>triggerRef</code>에 단추의 ref를 주면 모달이 그 자리에서 자라
-          나오고, 닫을 때 그 자리로 되접힙니다. 배율은 쓰지 않고 보이는 창만
-          단추 크기에서 넓혀 가므로 글자가 찌그러지지 않습니다. 안 주면 열 때
-          포커스를 가진 요소에서 자랍니다. macOS의 Safari와 Firefox는 단추를
-          눌러도 포커스를 주지 않아 가운데에서 열리므로 ref를 주는 쪽이
-          확실합니다. 열리는 데 0.5초 남짓 걸리고, 닫을 때는 그 65% 길이로
-          되감깁니다.
+          누른 단추가 숨고, 그 자리의 모양과 배경색이 창으로 자랍니다. 창이 다
+          자라는 0.5초 동안 내용은 숨었다가 뒤이어 나타납니다. 닫으면 내용이
+          먼저 사라지고, 창이 단추의 현재 자리로 줄어든 뒤 단추와 포커스가
+          돌아옵니다. 열 때 포커스된 요소를 자동으로 읽으며,{' '}
+          <code>triggerRef</code>로 직접 지정할 수도 있습니다. macOS의 Safari와
+          Firefox는 단추를 눌러도 포커스를 주지 않아 ref를 주는 쪽이 확실합니다.
+          요소가 없거나 화면 밖이면 가운데에서 나타납니다. 움직임 줄이기
+          설정에서는 단추를 숨기지 않고 창을 바로 표시합니다.
         </p>
       </Topic>
       <Topic title="Flat과 Compound">

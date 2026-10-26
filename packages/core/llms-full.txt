@@ -603,6 +603,8 @@ import { Tooltip, Button } from '@taein-ui/core';
 
 Dialog modal with compound components.
 
+열 때 포커스된 요소(또는 기존 `triggerRef`)의 사각형·둥글기·배경색을 이어받아 창으로 자란다. 요소는 숨기고, `slower` 동안 `settle`로 창이 다 자란 뒤 내용을 `slow`로 페이드인한다. 닫으면 내용이 먼저 사라지고 요소의 현재 사각형·색으로 돌아간 뒤 visibility와 포커스를 복원한다. container의 transform 배율도 좌표에 반영한다. 요소가 없거나 화면 밖이면 가운데 등장으로 대체한다. 축소 모션에서는 요소를 숨기지 않고 즉시 표시한다. API 변경은 없다.
+
 ```tsx
 import { Modal, Button } from '@taein-ui/core';
 
@@ -657,7 +659,7 @@ import { Modal, Button } from '@taein-ui/core';
 - `role="dialog"`, `aria-modal="true"`
 - Focus trap (Tab cycles within modal)
 - ESC key closes modal
-- Focus restoration on close
+- Focus restoration after the closing animation and trigger visibility restoration
 
 ---
 
@@ -1151,7 +1153,7 @@ M3(Tier-B GSAP 런타임)에서 실제로 GSAP이 붙은 컴포넌트와 그 능
 
 | 컴포넌트 | 쓰는 능력 | 근거 |
 | --- | --- | --- |
-| Modal | 타임라인 상대 위치 · CSS가 못 보는 값 읽기(트리거 좌표) | 백드롭·다이얼로그를 한 타임라인의 위치 `0`에 넣고, `enterStart`가 트리거·다이얼로그의 `getBoundingClientRect()` 차이로 시작 x/y를 계산한다 |
+| Modal | 타임라인 상대 위치 · CSS가 못 보는 값 읽기(트리거 좌표) | 백드롭·다이얼로그를 한 타임라인에 넣고, `triggerStart`가 두 사각형 차이와 container 배율로 시작 x/y·clip-path·배경색을 읽는다. 닫을 때 트리거의 현재 값을 다시 읽는다 |
 | BottomSheet | 타임라인 상대 위치 · 제스처 추적(터치 드래그 1:1) | 등장·퇴장은 `useOverlayTransition`, 터치 드래그는 `gsap.quickSetter(sheet, 'y', 'px')`로 손가락을 1:1로 따라간다 |
 | SideSheet | 타임라인 상대 위치 | `useOverlayTransition`만 쓴다. 직접 `gsap` import도, 트리거 좌표도, 드래그도 없다 |
 | Snackbar | CSS가 못 보는 값 읽기(카운트다운 진행률 read-back) · 같은 위치 쌓임 오프셋(`y`, base settle) | `gsap.to(proxy, { remaining: 0, ... })`의 `remaining` 값 자체를 막대 렌더와 닫힘 판정이 함께 읽는다. CSS/WAAPI로는 진행률을 밖에서 못 읽는다. 유일한 GATE_ENFORCEMENT_EXCEPTIONS 항목이다. 같은 위치 쌓임 오프셋은 등장 타임라인과 따로 시트의 `y`를 `gsapDuration.base` `settle`로 트윈하고 `gateMotion`을 거친다(축소 선호면 즉시) |

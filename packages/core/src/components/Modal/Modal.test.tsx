@@ -484,8 +484,7 @@ describe('Modal', () => {
       expect(screen.getByRole('dialog').style.transform).not.toContain('scale');
     });
 
-    it('트리거가 패널보다 큰 축은 inset이 0이다', () => {
-      // 트리거 폭 800 > 패널 폭 600 → 가로 0. 높이 20 < 400 → 세로 190
+    it('트리거가 패널보다 크면 배경 면도 키워 시작 크기를 유지한다', () => {
       installLayout(
         { left: 0, top: 200, width: 800, height: 20 },
         { left: 200, top: 100, width: 600, height: 400 }
@@ -494,7 +493,10 @@ describe('Modal', () => {
       render(<TriggeredModal open />);
 
       expect(screen.getByRole('dialog').style.clipPath).toMatch(
-        /^inset\(190px 0px 190px 0px round /
+        /^inset\(192.5px 0px 192.5px 0px round /
+      );
+      expect(screen.getByRole('dialog').style.transform).toContain(
+        'scale(1.3333, 1.3333)'
       );
     });
 
@@ -586,6 +588,7 @@ describe('Modal', () => {
       expect(dialog.style.clipPath).toBe('');
       expect(dialog.style.opacity).toBe('1');
       expect(dialog.style.transform).not.toContain('scale');
+      expect(screen.getByText('열기').style.visibility).toBe('');
       vi.unstubAllGlobals();
     });
 
@@ -610,7 +613,135 @@ describe('Modal', () => {
 
       render(<Wrapped />);
 
-      expect(screen.getByText('본문').style.opacity).toBe('0');
+      expect(screen.getByText('본문').parentElement!.style.opacity).toBe('0');
+    });
+
+    it('Fragment 안의 직계 텍스트도 창이 자라는 동안 숨긴다', () => {
+      installLayout(
+        { left: 100, top: 200, width: 80, height: 20 },
+        { left: 200, top: 100, width: 600, height: 400 }
+      );
+      const ref = { current: document.createElement('button') };
+      document.body.appendChild(ref.current);
+      const { unmount } = render(
+        <Modal open onClose={() => {}} triggerRef={ref}>
+          안내<button>확인</button>
+        </Modal>
+      );
+      const textParent = screen.getByText('안내');
+      expect(textParent).not.toBe(screen.getByRole('dialog'));
+      expect(textParent.style.opacity).toBe('0');
+      unmount();
+      ref.current.remove();
+    });
+
+    it('버튼이 창이 되는 동안 숨기고, 퇴장이 끝나면 보인 뒤 포커스를 돌려준다', () => {
+      installLayout(
+        { left: 100, top: 200, width: 80, height: 20 },
+        { left: 200, top: 100, width: 600, height: 400 }
+      );
+      const { rerender } = render(
+        <TriggeredModal open={false} withRef={false} />
+      );
+      const trigger = screen.getByRole('button', { name: '열기' });
+      trigger.style.backgroundColor = 'rgb(20, 40, 60)';
+      trigger.focus();
+      rerender(<TriggeredModal open withRef={false} />);
+      const dialog = screen.getByRole('dialog') as HTMLElement & {
+        __modalTimeline: gsap.core.Timeline;
+      };
+      expect(trigger.style.visibility).toBe('hidden');
+      expect(dialog.style.opacity).toBe('1');
+      expect(dialog.style.backgroundColor).toBe('rgb(20, 40, 60)');
+      act(() => {
+        dialog.__modalTimeline.progress(1).pause();
+      });
+      rerender(<TriggeredModal open={false} withRef={false} />);
+      expect(trigger.style.visibility).toBe('hidden');
+      expect(trigger).not.toHaveFocus();
+      act(() => {
+        dialog.__modalTimeline.progress(0);
+      });
+      expect(trigger.style.visibility).toBe('');
+      expect(trigger).toHaveFocus();
+    });
+
+    it('열다 닫고 다시 열어도 같은 창을 유지하고 언마운트하면 visibility를 복원한다', () => {
+      installLayout(
+        { left: 100, top: 200, width: 80, height: 20 },
+        { left: 200, top: 100, width: 600, height: 400 }
+      );
+      const { rerender, unmount } = render(<TriggeredModal open />);
+      const trigger = screen.getByText('열기');
+      const dialog = screen.getByRole('dialog') as HTMLElement & {
+        __modalTimeline: gsap.core.Timeline;
+      };
+      act(() => {
+        dialog.__modalTimeline.progress(0.4).pause();
+      });
+      rerender(<TriggeredModal open={false} />);
+      act(() => {
+        dialog.__modalTimeline.progress(0.2).pause();
+      });
+      rerender(<TriggeredModal open />);
+      expect(screen.getByRole('dialog')).toBe(dialog);
+      expect(trigger.style.visibility).toBe('hidden');
+      unmount();
+      expect(trigger.style.visibility).toBe('');
+    });
+
+    it('화면 밖 트리거는 숨기지 않고 가운데에서 등장한다', () => {
+      installLayout(
+        { left: -200, top: 200, width: 80, height: 20 },
+        { left: 200, top: 100, width: 600, height: 400 }
+      );
+      render(<TriggeredModal open />);
+      expect(screen.getByText('열기').style.visibility).toBe('');
+      expect(screen.getByRole('dialog').style.transform).toContain(
+        'scale(0.95'
+      );
+    });
+
+    it('닫을 때 이동한 트리거의 현재 사각형과 색을 다시 읽는다', () => {
+      const box = { left: 100, top: 200, width: 80, height: 20 };
+      installLayout(box, { left: 200, top: 100, width: 600, height: 400 });
+      const { rerender } = render(<TriggeredModal open />);
+      const dialog = screen.getByRole('dialog') as HTMLElement & {
+        __modalTimeline: gsap.core.Timeline;
+      };
+      act(() => {
+        dialog.__modalTimeline.progress(1).pause();
+      });
+      box.left = 300;
+      box.top = 400;
+      screen.getByText('열기').style.backgroundColor = 'rgb(60, 40, 20)';
+      rerender(<TriggeredModal open={false} />);
+      const tween = dialog.__modalTimeline
+        .getChildren()
+        .find(
+          (child) => 'clipPath' in (child as gsap.core.Tween).vars
+        ) as gsap.core.Tween;
+      expect(tween.vars.startAt).toMatchObject({
+        x: -160,
+        y: 110,
+        backgroundColor: 'rgb(60, 40, 20)',
+        clipPath: 'inset(190px 260px 190px 260px round 0px)',
+      });
+    });
+
+    it('언마운트하면 기존 visibility 값과 우선순위를 복원한다', () => {
+      installLayout(
+        { left: 100, top: 200, width: 80, height: 20 },
+        { left: 200, top: 100, width: 600, height: 400 }
+      );
+      const { rerender, unmount } = render(<TriggeredModal open={false} />);
+      const trigger = screen.getByText('열기');
+      trigger.style.setProperty('visibility', 'visible', 'important');
+      rerender(<TriggeredModal open />);
+      expect(trigger.style.visibility).toBe('hidden');
+      unmount();
+      expect(trigger.style.visibility).toBe('visible');
+      expect(trigger.style.getPropertyPriority('visibility')).toBe('important');
     });
 
     describe('변형 타이밍', () => {
@@ -641,7 +772,7 @@ describe('Modal', () => {
         return timeline!;
       };
 
-      it('박스 트윈(x·y·clip-path)의 이징은 drift다. settle이 아니다', () => {
+      it('박스 트윈(x·y·clip-path)의 이징은 settle이다', () => {
         const box = openTimeline()
           .getChildren()
           .find((t) => 'clipPath' in (t as gsap.core.Tween).vars) as
@@ -649,8 +780,7 @@ describe('Modal', () => {
           | undefined;
 
         expect(box).toBeDefined();
-        expect(box!.vars.ease).toBe(gsapEasing.drift);
-        expect(box!.vars.ease).not.toBe(gsapEasing.settle);
+        expect(box!.vars.ease).toBe(gsapEasing.settle);
       });
 
       const boxTween = () =>
@@ -659,13 +789,13 @@ describe('Modal', () => {
           .find((t) => 'clipPath' in (t as gsap.core.Tween).vars) as
           | gsap.core.Tween
           | undefined;
-      const riseTween = () =>
+      const contentTween = () =>
         openTimeline()
           .getChildren()
           .find(
             (t) =>
-              'y' in (t as gsap.core.Tween).vars &&
-              !('clipPath' in (t as gsap.core.Tween).vars)
+              (t as gsap.core.Tween).targets()[0] ===
+              screen.getByText('본문').parentElement
           ) as gsap.core.Tween | undefined;
 
       it('박스 트윈의 끝 clip-path는 음수 inset이다. 그림자가 잘리지 않는다', () => {
@@ -685,46 +815,35 @@ describe('Modal', () => {
         expect(dialog.style.clipPath).toMatch(/^inset\(/);
       });
 
-      it('clearProps는 clipPath만 걷는다. transform은 건드리지 않는다', () => {
-        expect(boxTween()!.vars.clearProps).toBe('clipPath');
+      it('끝나면 clipPath와 배경색을 걷고 transform은 유지한다', () => {
+        expect(boxTween()!.vars.clearProps).toBe('clipPath,backgroundColor');
       });
 
       it('박스 트윈 duration은 slower다', () => {
         expect(boxTween()!.duration()).toBeCloseTo(gsapDuration.slower, 5);
       });
 
-      it('자식 트윈은 y: 24에서 시작하고 이징은 snap이다', () => {
-        const rise = riseTween();
-        expect(rise).toBeDefined();
-        expect(rise!.vars.ease).toBe(gsapEasing.snap);
-        expect(rise!.duration()).toBeCloseTo(gsapDuration.slow, 5);
-        expect((rise!.targets()[0] as HTMLElement).style.transform).toContain(
-          'translate(0px, 24px)'
-        );
+      it('내용은 이동 없이 창이 다 자란 뒤 페이드인한다', () => {
+        const fade = contentTween();
+        expect(fade).toBeDefined();
+        expect(fade!.vars.ease).toBe(gsapEasing.settle);
+        expect(fade!.duration()).toBeCloseTo(gsapDuration.slow, 5);
+        expect(screen.getByText('본문').style.transform).toBe('');
       });
 
-      it('자식 트윈은 박스 duration의 45%에서 시작한다', () => {
-        expect(riseTween()!.startTime()).toBeCloseTo(
-          gsapDuration.slower * 0.45,
-          5
-        );
+      it('내용 트윈은 박스가 끝난 다음 시작한다', () => {
+        expect(contentTween()!.startTime()).toBeCloseTo(gsapDuration.slower, 5);
       });
 
-      it('자식은 y로 지나쳤다 앉고(오버슛), 불투명도는 1을 넘지 않는다', () => {
+      it('창이 자라는 동안 내용은 숨기고, 뒤에 페이드인한다', () => {
         const timeline = openTimeline();
-        const child = screen.getByText('본문');
-        let minY = 0;
-        let maxOpacity = 0;
-        for (let t = 0; t <= timeline.duration(); t += 0.005) {
-          timeline.time(t);
-          const y = /translate(?:3d)?\([^,]+, (-?[\d.]+)px/.exec(
-            child.style.transform
-          );
-          if (y) minY = Math.min(minY, Number(y[1]));
-          maxOpacity = Math.max(maxOpacity, Number(child.style.opacity));
-        }
-        expect(minY).toBeLessThan(-1);
-        expect(maxOpacity).toBeLessThanOrEqual(1);
+        const child = screen.getByText('본문').parentElement!;
+        timeline.time(0.49);
+        expect(child.style.opacity).toBe('0');
+        timeline.time(0.65);
+        expect(Number(child.style.opacity)).toBeGreaterThan(0);
+        timeline.progress(1);
+        expect(child.style.opacity).toBe('1');
       });
     });
 
@@ -923,6 +1042,36 @@ describe('Modal', () => {
         expect(dialog.style.transform).toBe(
           'translate(0px, -20px) scale(0.95, 0.95)'
         );
+      });
+
+      it('자라는 중 축소 모션을 켜면 잘림과 숨긴 내용을 걷고 버튼도 복원한다', () => {
+        reduce = false;
+        installLayout(
+          { left: 100, top: 200, width: 80, height: 20 },
+          { left: 200, top: 100, width: 600, height: 400 }
+        );
+        const WithContent = () => {
+          const ref = useRef<HTMLButtonElement>(null);
+          return (
+            <>
+              <button ref={ref}>열기</button>
+              <Modal open onClose={() => {}} triggerRef={ref}>
+                <p>본문</p>
+              </Modal>
+            </>
+          );
+        };
+        render(<WithContent />);
+        const dialog = screen.getByRole('dialog');
+        expect(screen.getByText('본문').parentElement!.style.opacity).toBe('0');
+        act(() => {
+          reduce = true;
+          listeners.forEach((fn) => fn());
+        });
+        expect(dialog.style.clipPath).toBe('');
+        expect(dialog.style.backgroundColor).toBe('');
+        expect(screen.getByText('본문').parentElement!.style.opacity).toBe('1');
+        expect(screen.getByText('열기').style.visibility).toBe('');
       });
     });
 
