@@ -1,10 +1,8 @@
 import { themeContract } from '@taein-ui/core';
-import { style } from '@vanilla-extract/css';
-import { FRAME, LINE, MUTED } from '../../components/DocText';
+import { keyframes, style } from '@vanilla-extract/css';
+import { LINE } from '../../components/DocText';
 
-const { color, spacing, borderRadius } = themeContract;
-
-const MOBILE = '(max-width: 640px)';
+const { color, spacing, borderRadius, animation } = themeContract;
 
 export const page = style({
   maxWidth: '1200px',
@@ -26,17 +24,7 @@ export const total = style({
   whiteSpace: 'nowrap',
 });
 
-export const empty = style({
-  margin: `${spacing[20]} 0`,
-  textAlign: 'center',
-  color: MUTED,
-});
-
-// 머리 아래에 놓였다가 스크롤하면 알약 헤더 밑에 붙어 따라온다. 쉬는 자리에서는 카드를 가리지 않는다
 export const dock = style({
-  position: 'sticky',
-  top: '76px',
-  zIndex: 15,
   display: 'flex',
   alignItems: 'center',
   gap: spacing[2],
@@ -51,15 +39,14 @@ export const dock = style({
   scrollbarWidth: 'none',
 });
 
-export const search = style({
-  flexShrink: 0,
-  width: '220px',
-  height: '36px',
-  padding: `0 ${spacing[3]}`,
-  border: 0,
-  borderRadius: borderRadius.md,
-  background: FRAME,
-  font: 'inherit',
-  fontSize: '0.875rem',
-  '@media': { [MOBILE]: { width: '150px' } },
+const fadeIn = keyframes({
+  from: { opacity: 0 },
+  to: { opacity: 1 },
+});
+
+export const cardGroup = style({
+  animation: `${fadeIn} ${animation.duration.fast} ${animation.easing.settle}`,
+  '@media': {
+    '(prefers-reduced-motion: reduce)': { animation: 'none' },
+  },
 });

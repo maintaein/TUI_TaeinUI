@@ -24,19 +24,11 @@ const cellOf = (name: string) => {
 const total = numberedGroups.reduce((n, g) => n + g.items.length, 0);
 
 export function ComponentsOverviewPage() {
-  const [query, setQuery] = useState('');
   const [group, setGroup] = useState<string | null>(null);
   // 카드 미니 스물다섯이 저절로 움직이므로, 한꺼번에 멈출 길을 둔다(WCAG 2.2.2)
   const [frozen, setFrozen] = useState(false);
 
-  const needle = query.trim().toLowerCase();
-  const shown = numberedGroups
-    .filter((g) => !group || g.label === group)
-    .map((g) => ({
-      ...g,
-      items: g.items.filter((c) => c.name.toLowerCase().includes(needle)),
-    }))
-    .filter((g) => g.items.length > 0);
+  const shown = numberedGroups.filter((g) => !group || g.label === group);
 
   return (
     <MiniFrozen.Provider value={frozen}>
@@ -55,20 +47,13 @@ export function ComponentsOverviewPage() {
           </Button>
         </div>
 
-        <div className={styles.dock} role="search">
-          <input
-            type="search"
-            className={styles.search}
-            placeholder="이름으로 찾기"
-            aria-label="이름으로 찾기"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-          />
+        <div className={styles.dock} role="group" aria-label="묶음으로 보기">
           {numberedGroups.map((g) => (
             <Chip
               key={g.label}
               size="sm"
               label={g.label}
+              color={group === g.label ? 'primary' : 'default'}
               selected={group === g.label}
               onClick={() => setGroup(group === g.label ? null : g.label)}
             />
@@ -76,9 +61,16 @@ export function ComponentsOverviewPage() {
         </div>
 
         {shown.map((g) => (
-          <section key={g.label} aria-labelledby={`group-${g.label}`}>
+          <section
+            key={`${group ?? 'all'}-${g.label}`}
+            className={styles.cardGroup}
+            aria-labelledby={`group-${g.label.replace(/\s/g, '-')}`}
+          >
             <div className={wall.sectionHead}>
-              <h2 id={`group-${g.label}`} className={wall.sectionTitle}>
+              <h2
+                id={`group-${g.label.replace(/\s/g, '-')}`}
+                className={wall.sectionTitle}
+              >
                 {g.label}
                 <span className={wall.count} aria-hidden="true">
                   [{g.items.length}]
@@ -92,12 +84,6 @@ export function ComponentsOverviewPage() {
             </div>
           </section>
         ))}
-
-        {shown.length === 0 && (
-          <p className={styles.empty} role="status">
-            찾는 이름의 컴포넌트가 없습니다.
-          </p>
-        )}
       </div>
     </MiniFrozen.Provider>
   );
