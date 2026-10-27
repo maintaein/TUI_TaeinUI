@@ -626,6 +626,7 @@ export function Stage({
       aria-label={mini ? undefined : label}
       aria-hidden={mini || undefined}
       data-stage-mini={mini ? label : undefined}
+      data-frozen={(mini && frozen) || flags.user || undefined}
       className={[styles.stage, mini && styles.stageMini, className]
         .filter(Boolean)
         .join(' ')}

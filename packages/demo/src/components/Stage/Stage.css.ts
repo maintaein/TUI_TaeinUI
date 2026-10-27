@@ -15,6 +15,12 @@ export const stage = style({
   borderRadius: borderRadius.lg,
 });
 
+// 명시적 멈춤은 컴포넌트의 반복과 가상 요소까지 잡되 현재 자세를 보존한다.
+globalStyle(
+  `${stage}[data-frozen], ${stage}[data-frozen] *, ${stage}[data-frozen]::before, ${stage}[data-frozen]::after, ${stage}[data-frozen] *::before, ${stage}[data-frozen] *::after`,
+  { animationPlayState: 'paused !important' }
+);
+
 // 카드 속 미니: 카드 상자를 채운다. 일시정지 단추 줄이 없으니 오버레이 상자와 바(헤더바)가 맨 위부터 쓴다
 export const stageMini = style({
   alignSelf: 'stretch',
