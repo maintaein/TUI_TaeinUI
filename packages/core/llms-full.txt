@@ -34,7 +34,7 @@ UI components follow consistent patterns:
 - `ref`: All components support forwardRef
 - Form components require `label` prop for accessibility
 
-Motion components (HangulAssemble, JellyText, CopyButton, BurstToggle, HoldButton, StampButton, SloshGauge) take only `className` and `ref` (and `disabled` where it applies). They have no `size` or `variant`. GooeySearch is the exception: it is a controlled input with its own props. CopyButton also takes `value` and its label props. BurstToggle also takes `selected`, `selectedIcon` and a required `aria-label`. HoldButton also takes a required `onConfirm` and `confirmLabel`. StampButton also takes `stampLabel`. SloshGauge also takes a required `value` and `label`, plus `min`, `max` and `valueText`. FanMenu also takes a required `label` and `items` (2 to 8 `{ icon, label, onSelect }`). CodeSlots is a form component, not a plain motion one: it takes a required `label` like the other form components, plus `length`, `value`, `defaultValue`, `onChange`, `onComplete`, `helperText`, `error`, `errorMessage`, `success` and `successMessage`.
+Motion components (HangulAssemble, JellyText, CopyButton, BurstToggle, HoldButton, StampButton, SloshGauge, WingButton) take only `className` and `ref` (and `disabled` where it applies). They have no `size` or `variant`. GooeySearch is the exception: it is a controlled input with its own props. CopyButton also takes `value` and its label props. BurstToggle also takes `selected`, `selectedIcon` and a required `aria-label`. HoldButton also takes a required `onConfirm` and `confirmLabel`. StampButton also takes `stampLabel`. SloshGauge also takes a required `value` and `label`, plus `min`, `max` and `valueText`. FanMenu also takes a required `label` and `items` (2 to 8 `{ icon, label, onSelect }`). WingButton also takes `sentLabel` and `container`. CodeSlots is a form component, not a plain motion one: it takes a required `label` like the other form components, plus `length`, `value`, `defaultValue`, `onChange`, `onComplete`, `helperText`, `error`, `errorMessage`, `success` and `successMessage`.
 
 ---
 
@@ -1407,6 +1407,40 @@ Other native button attributes are passed to the hub, except `children`, `type` 
 
 ---
 
+## WingButton
+
+Send or submit button that grows wings and flies away (a mail "Send" button). Pressing it crouches the button slightly down-left (`translate(-2px, 2px) scale(0.97)`, `fast`; it rewinds on `pointerleave` or `pointercancel`). When the native click is confirmed, a decorative copy of the button is lifted onto a fixed layer at the same screen rectangle, and two SVG wings of pale `primary` feathers (4 per wing, 1.2 button heights long) unfold from its two ends (`snap`, the outer feathers folded and then opened) and flap three times (rotation +-20deg, `base` per flap). Then the copy takes off to the upper right at 45 degrees, accelerating (`exit`, 0.8s) while tilting -15deg and shrinking to 0.6x, with the flapping continuing, until it is out of the screen (or out of the `container`).
+
+The original button stays in place but invisible, so the layout does not move. A `sentLabel` mark fades in on its spot (`settle`). It does **not** come back: change the `key` to render it again. There is no undo API.
+
+It wraps `Button` primary strong (`md`), so it keeps the height, radius and press feel of `Button`. It has no `size` or `variant` prop.
+
+```tsx
+import { WingButton } from '@taein-ui/core';
+
+<WingButton onClick={send} sentLabel="보냈어요" container={stageRef.current}>보내기</WingButton>
+```
+
+### Props
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| children | ReactNode | (required) | Button text and the accessible name |
+| sentLabel | string | '보냈어요' | Text of the mark that appears where the button was |
+| container | HTMLElement \| null | document.body | Where the flight layer is drawn. Given an element, the flight stays inside it and is clipped by it. It must be a `position` reference (`relative` and so on) and must not scroll |
+| onClick | MouseEventHandler | - | Native click (on release). Called before the flight; `preventDefault()` there skips the flight. Never called on pointerdown (WCAG 2.5.2) |
+| disabled | boolean | false | Disabled state; it does not crouch or fly |
+| className | string | - | Additional CSS class (on the `<button>`) |
+| ref | Ref<HTMLButtonElement> | - | Forwarded to the `<button>` |
+
+Other native button attributes are passed to the `<button>`, except `children`. A `type="submit"` button submits on its first click as usual; after the flight there is no button to click again, and a click that still reaches the hidden button (implicit submission) is prevented.
+
+### Accessibility
+- The copy and the wings are `aria-hidden` and `inert` decoration (ids removed).
+- Focus: if the button had focus, it moves to the mark (`tabIndex=-1`) and the mark has no `role=status`, because the text of a focused element is read and a status role would read it twice. If it had no focus, nothing moves and the mark has `role="status"` so the text is read.
+- Reduced motion: no crouch, wings or flight. The button cross-fades to the mark (`base`). The focus rule is the same.
+
+---
+
 ## Design Tokens
 
 TUI uses `themeContract` for type-safe, theme-aware styling. 테마는 라이트
@@ -1621,6 +1655,8 @@ prop은 클라이언트 파일에서 넘긴다.
 `CodeSlots`도 `'use client'`가 붙는다. 값과 지워진 숫자의 빠짐 상태를 갖고 입력 이벤트에서 돈다. `onChange`·`onComplete` 같은 함수 prop은 클라이언트 파일에서 넘긴다.
 
 `FanMenu`도 `'use client'`가 붙는다. 열림·가리킴·포커스 상태를 갖고 포인터와 키보드 이벤트에서 돈다. `items`의 `onSelect` 같은 함수 prop은 클라이언트 파일에서 넘긴다.
+
+`WingButton`도 `'use client'`가 붙는다. 날아갔는지의 상태를 갖고 클릭에서 GSAP 타임라인을 돌리며 `document.body`에 비행 레이어를 그린다. `onClick` 같은 함수 prop과 `container`(DOM 요소)는 클라이언트 파일에서 넘긴다.
 
 `HoldButton`도 `'use client'`가 붙는다. 홀드 시계(GSAP 트윈)와 무장·실행 상태를 갖고 포인터와 키보드 이벤트에서 돈다. `onConfirm` 같은 함수 prop은 클라이언트 파일에서 넘긴다.
 
