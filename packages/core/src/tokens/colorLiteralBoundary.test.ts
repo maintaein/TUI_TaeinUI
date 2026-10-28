@@ -54,6 +54,16 @@ const ALLOWED: Record<string, { count: number; reason: string }> = {
     reason:
       '그림자 안의 rgba(0,0,0,a) 셋(elevated 휴지·호버 리프트·누름). shadows.css.ts에 같은 값이 없다',
   },
+  'components/LuminousFlow/LuminousFlow.css.ts': {
+    count: 4,
+    reason:
+      '고정 시안 팔레트(luminousFlowPalette.ts)의 채널로 만드는 rgb(채널 / 알파) 넷(안개 둘, 그레인 둘). canvas가 같은 팔레트를 JS 리터럴로 써서 테마 토큰을 읽을 수 없고, 색 덮어쓰기 API가 없는 것이 사용자 결정이다',
+  },
+  'components/LuminousFlow/LuminousFlow.tsx': {
+    count: 3,
+    reason:
+      '굽이 빛 마스크의 흰색 `#fff`·`#ffffffe6`·`#ffffff00`. destination-in으로 알파만 쓰는 마스크라 보이는 색이 아니고, canvas 그라디언트 정지점이라 CSS 변수를 못 읽는다',
+  },
   'components/SegmentedButtons/SegmentedButtons.css.ts': {
     count: 2,
     reason:

@@ -56,8 +56,11 @@ export default defineConfig({
     // 있는지(자동 채움과 포커스를 받는 조건)를 CSSOM으로 잠근다.
     // FanMenu도 같은 이유다. 축소 모드에서 항목·안내선·이름표의 전이가 꺼지는지, 빛나는 선이 pathLength 100에
     // 맞춰 그려지는지를 CSSOM으로 잠근다.
+    // LuminousFlow도 같은 이유다. 루트가 포인터 이벤트를 받지 않고 부모 상자를 채우는지를
+    // CSSOM으로 잠근다(배경이 아래 단추의 클릭을 가로채면 안 된다).
     css: {
       include: [
+        /\/LuminousFlow\.css/,
         /\/FanMenu\.css/,
         /\/CodeSlots\.css/,
         /Slider\.css/,
