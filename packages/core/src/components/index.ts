@@ -29,3 +29,4 @@ export * from './GooeySearch';
 export * from './CopyButton';
 export * from './BurstToggle';
 export * from './HoldButton';
+export * from './StampButton';

@@ -34,7 +34,7 @@ UI components follow consistent patterns:
 - `ref`: All components support forwardRef
 - Form components require `label` prop for accessibility
 
-Motion components (HangulAssemble, JellyText, CopyButton, BurstToggle, HoldButton) take only `className` and `ref` (and `disabled` where it applies). They have no `size` or `variant`. GooeySearch is the exception: it is a controlled input with its own props. CopyButton also takes `value` and its label props. BurstToggle also takes `selected`, `selectedIcon` and a required `aria-label`. HoldButton also takes a required `onConfirm` and `confirmLabel`.
+Motion components (HangulAssemble, JellyText, CopyButton, BurstToggle, HoldButton, StampButton) take only `className` and `ref` (and `disabled` where it applies). They have no `size` or `variant`. GooeySearch is the exception: it is a controlled input with its own props. CopyButton also takes `value` and its label props. BurstToggle also takes `selected`, `selectedIcon` and a required `aria-label`. HoldButton also takes a required `onConfirm` and `confirmLabel`. StampButton also takes `stampLabel`.
 
 ---
 
@@ -1243,6 +1243,40 @@ Other native button attributes are passed to the `<button>`, except `children`.
 
 ---
 
+## StampButton
+
+Approve or submit button that stamps. Press it and a stamp (a rounded box with a `primary` border, the `stampLabel` text in `primary`) drops from 1.5 button heights above the button, 1.6x in size and tilted -8deg, and lands in the middle (`exit`, `slow`). On contact the button dips 1px and returns (`fast`) and the stamp flattens briefly (`scaleY` 0.92). Then a very pale blue ink mark, a little larger than the stamp, spreads around it through an SVG mask whose circle grows outward (`slower`, `settle`). It ends with the stamp still tilted -8deg and the ink mark; the button text shows faintly through the stamp.
+
+It stamps **once**. After the press the button is `aria-disabled="true"` (not the `disabled` attribute, so keyboard focus stays) and click, Enter and Space do not call `onClick`. There is no undo API: change the `key` to render it again.
+
+It wraps `Button` `light` (`md`), so it keeps the height, radius and press feel of `Button`. It has no `size` or `variant` prop.
+
+```tsx
+import { StampButton } from '@taein-ui/core';
+
+<StampButton stampLabel="승인" onClick={submit}>제출</StampButton>
+```
+
+### Props
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| children | ReactNode | (required) | Button text and the accessible name |
+| stampLabel | string | '승인' | Text on the stamp. Also goes into the status sentence |
+| onClick | MouseEventHandler | - | Native click. Called before the stamp; `preventDefault()` there skips the stamp. Not called again after stamping |
+| disabled | boolean | false | Disabled state; nothing is stamped |
+| className | string | - | Additional CSS class (on the `<button>`) |
+| ref | Ref<HTMLButtonElement> | - | Forwarded to the `<button>` |
+
+Other native button attributes are passed to the `<button>`, except `children`.
+
+### Accessibility
+- After stamping, a visually hidden `role="status"` region says "{stampLabel} 도장을 찍었습니다" once.
+- The stamp and the ink mark are `aria-hidden` decoration. The accessible name stays `children`.
+- Once stamped, `aria-disabled="true"` locks the button without removing it from the tab order.
+- Reduced motion: no fall, no knock, no spread. The stamp and the ink mark appear at once in their end state.
+
+---
+
 ## Design Tokens
 
 TUI uses `themeContract` for type-safe, theme-aware styling. 테마는 라이트
@@ -1449,6 +1483,8 @@ prop은 클라이언트 파일에서 넘긴다.
 `CopyButton`도 `'use client'`가 붙는다. 결과 상태와 되돌림 타이머를 갖고 클릭에서 클립보드를 쓴다.
 
 `BurstToggle`도 `'use client'`가 붙는다. 터짐 상태를 갖고 클릭에서 GSAP 타임라인을 돌린다. 켜짐 상태는 소비자가 쥐므로 그 상태를 가진 클라이언트 파일에서 렌더한다.
+
+`StampButton`도 `'use client'`가 붙는다. 찍힘 상태를 갖고 클릭에서 GSAP 타임라인을 돌린다. `onClick` 같은 함수 prop은 클라이언트 파일에서 넘긴다.
 
 `HoldButton`도 `'use client'`가 붙는다. 홀드 시계(GSAP 트윈)와 무장·실행 상태를 갖고 포인터와 키보드 이벤트에서 돈다. `onConfirm` 같은 함수 prop은 클라이언트 파일에서 넘긴다.
 
