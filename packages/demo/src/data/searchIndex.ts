@@ -784,4 +784,33 @@ export const searchIndex: SearchEntry[] = [
       },
     ],
   },
+  {
+    id: 'morph',
+    pageTitle: '부품 이어받기',
+    path: '/motion/morph',
+    category: '모션',
+    description:
+      'Morph. 사라지는 요소의 모양을 새 요소가 이어받아 그 자리에서 자라납니다. 이어받기, 모프, 전환, 카드, 상세, 썸네일, morph, shared element, transition.',
+    sections: [
+      {
+        title: '애니메이션',
+        content:
+          '같은 morphId로 사라진 요소의 자리, 크기, 둥글기, 배경색에서 새 요소가 출발해 제 모습으로 바뀝니다. 형태가 바뀌는 동안 새 요소의 내용은 투명하다가 끝난 뒤 떠오릅니다. 카드를 누르면 카드 자리에서 상세 패널이 커지고 닫으면 카드로 돌아갑니다',
+      },
+      {
+        title: '짝은 morphId로',
+        content:
+          '사라지는 Morph가 모양을 morphId로 남기고 같은 morphId로 나타나는 Morph가 집어 갑니다. 같은 id가 둘이면 나중에 마운트된 것이 이어받고 100ms 안에 짝이 없으면 버립니다. 같은 Morph 안에서 children의 종류나 key가 바뀌어도 이어받습니다',
+      },
+      {
+        title: '접근성',
+        content:
+          '이전 요소 안에 포커스가 있었다면 새 래퍼의 첫 포커스 가능 자손으로, 없으면 래퍼 자신으로 옮겨 body로 떨어지지 않습니다. 끝나면 인라인 transform, 둥글기, 배경, opacity를 걷습니다. 복제본은 그리지 않습니다',
+      },
+      {
+        title: '움직임 줄이기',
+        content: '움직임 줄이기에서는 모양이 이어지지 않고 바로 바뀝니다',
+      },
+    ],
+  },
 ];

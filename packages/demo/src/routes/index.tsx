@@ -183,6 +183,11 @@ const WingButtonPage = lazy(() =>
     default: m.WingButtonPage,
   }))
 );
+const MorphPage = lazy(() =>
+  import('../pages/Motion/Morph').then((m) => ({
+    default: m.MorphPage,
+  }))
+);
 const JellyTextPage = lazy(() =>
   import('../pages/Motion/JellyText').then((m) => ({
     default: m.JellyTextPage,
@@ -580,6 +585,14 @@ const router = createBrowserRouter([
             element: (
               <LazyPage>
                 <WingButtonPage />
+              </LazyPage>
+            ),
+          },
+          {
+            path: 'morph',
+            element: (
+              <LazyPage>
+                <MorphPage />
               </LazyPage>
             ),
           },

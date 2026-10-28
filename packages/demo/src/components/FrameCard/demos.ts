@@ -22,6 +22,7 @@ import { SloshGaugeDemo } from '../../pages/Motion/SloshGauge/SloshGaugePage';
 import { CodeSlotsDemo } from '../../pages/Motion/CodeSlots/CodeSlotsPage';
 import { FanMenuDemo } from '../../pages/Motion/FanMenu/FanMenuPage';
 import { WingButtonDemo } from '../../pages/Motion/WingButton/WingButtonPage';
+import { MorphDemo } from '../../pages/Motion/Morph/MorphPage';
 import { GooeySearchDemo } from '../../pages/Motion/GooeySearch/GooeySearchPage';
 import { JellyTextDemo } from '../../pages/Motion/JellyText/JellyTextPage';
 import { LoaderDemo } from '../../pages/Components/Loader/LoaderPage';
@@ -75,4 +76,5 @@ export const DEMOS: Record<string, ComponentType<DemoProps>> = {
   CodeSlots: CodeSlotsDemo,
   FanMenu: FanMenuDemo,
   WingButton: WingButtonDemo,
+  Morph: MorphDemo,
 };

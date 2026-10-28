@@ -31,6 +31,7 @@ import {
   Stamp,
   Fan,
   Send,
+  Expand,
   Gauge,
   KeyRound,
   Trash2,
@@ -341,6 +342,17 @@ export const motionData: MotionInfo[] = [
     usage: '히어로 문구, 브랜드 슬로건',
     category: 'text',
     icon: Waves,
+  },
+  // Animation (1개)
+  {
+    name: 'Morph',
+    title: '부품 이어받기',
+    path: '/motion/morph',
+    description:
+      '사라지는 요소의 모양을 새 요소가 이어받아 그 자리에서 자라납니다.',
+    usage: '카드에서 상세로, 썸네일에서 크게 보기로',
+    category: 'animation',
+    icon: Expand,
   },
   // Component (1개)
   {

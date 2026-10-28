@@ -1,8 +1,8 @@
 import { test, expect, type Page } from '@playwright/test';
 
 const SENTENCE = '흩어진 자모가 모여 글자가 됩니다';
-// '컴포넌트' 분류는 물방울 검색창이, '마이크로 인터랙션' 분류는 복사됨이 들어오며 항목이 생겨 비어 있는 분류가 아니다
-const EMPTY = ['애니메이션', '배경'];
+// '애니메이션' 분류는 부품 이어받기가, '컴포넌트' 분류는 물방울 검색창이, '마이크로 인터랙션' 분류는 복사됨이 들어오며 항목이 생겨 비어 있는 분류가 아니다
+const EMPTY = ['배경'];
 
 test.describe('모션 계열 사이드바 (1280px)', () => {
   test.use({ viewport: { width: 1280, height: 800 } });
@@ -143,6 +143,19 @@ test.describe('모션 계열 사이드바 (1280px)', () => {
     await link.click();
     await expect(page).toHaveURL(/\/motion\/wing-button$/);
     await expect(nav.locator('[aria-current="page"]')).toHaveText(/날개 전송/);
+  });
+
+  test('애니메이션 분류에 부품 이어받기 링크가 있다', async ({ page }) => {
+    await page.goto('/components/button');
+    const nav = page.getByRole('navigation', { name: '문서' });
+    await expect(nav.getByText('애니메이션', { exact: true })).toBeVisible();
+    const link = nav.getByRole('link', { name: /부품 이어받기/ });
+    await expect(link).toHaveAttribute('href', '/motion/morph');
+    await link.click();
+    await expect(page).toHaveURL(/\/motion\/morph$/);
+    await expect(nav.locator('[aria-current="page"]')).toHaveText(
+      /부품 이어받기/
+    );
   });
 
   test('항목이 없는 분류는 사이드바에 없다', async ({ page }) => {
