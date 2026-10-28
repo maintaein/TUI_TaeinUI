@@ -30,9 +30,19 @@ export const mark = style({
   fontSize: font.size.base,
   fontWeight: font.weight.semibold,
   whiteSpace: 'nowrap',
+  // 긴 sentLabel이 자리 밖으로 넘치지 않게 글자 상자가 줄어들 수 있어야 한다
+  padding: `0 ${spacing[2]}`,
+  overflow: 'hidden',
   selectors: {
     '&:focus-visible': focusRing(),
   },
+});
+
+// 표지 글자. flex 항목은 글자를 직접 받으면 말줄임이 안 걸려 상자로 감싼다
+export const markText = style({
+  minWidth: 0,
+  overflow: 'hidden',
+  textOverflow: 'ellipsis',
 });
 
 // 비행 레이어. 기본은 화면 전체(고정)이고 container를 받으면 그 상자 안(absolute)에 갇혀 상자 밖은 잘린다.

@@ -1435,8 +1435,8 @@ import { WingButton } from '@taein-ui/core';
 Other native button attributes are passed to the `<button>`, except `children`. A `type="submit"` button submits on its first click as usual; after the flight there is no button to click again, and a click that still reaches the hidden button (implicit submission) is prevented.
 
 ### Accessibility
-- The copy and the wings are `aria-hidden` and `inert` decoration (ids removed).
-- Focus: if the button had focus, it moves to the mark (`tabIndex=-1`) and the mark has no `role=status`, because the text of a focused element is read and a status role would read it twice. If it had no focus, nothing moves and the mark has `role="status"` so the text is read.
+- The copy and the wings are `aria-hidden` and `inert` decoration (the copy loses its `id` and every `data-*` attribute).
+- Focus: if the button had focus, it moves to the mark (`tabIndex=-1`) and the status region stays empty, because the text of a focused element is read and a status text would read it twice. If it had no focus, nothing moves and, once the flight is over, `sentLabel` is put into a visually hidden `role="status"` region that exists from the start (a region inserted together with its text may not be read).
 - Reduced motion: no crouch, wings or flight. The button cross-fades to the mark (`base`). The focus rule is the same.
 
 ---

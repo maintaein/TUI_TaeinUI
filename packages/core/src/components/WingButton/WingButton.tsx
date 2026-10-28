@@ -12,6 +12,7 @@ import { createPortal } from 'react-dom';
 import { gsap } from 'gsap';
 import { Button } from '../Button';
 import { Glyph } from '../../_internal/glyph';
+import { visuallyHidden } from '../../_internal/visuallyHidden.css';
 import { gsapDuration, gsapEasing } from '../../tokens/gsapEasing';
 import { useReducedMotion } from '../../hooks/useReducedMotion';
 import { settleMotion } from '../../hooks/gateMotion';
@@ -19,6 +20,7 @@ import {
   root,
   crouch,
   mark,
+  markText,
   layer,
   craft,
   cloneHost,
@@ -78,8 +80,8 @@ const UNFURL_STAGGER = gsapDuration.base * 0.1;
 const UNFURL = gsapDuration.base - UNFURL_STAGGER * (FEATHERS.length - 1);
 // 날개 svg 좌표계(100x100)에서 뿌리는 왼쪽 아래 모서리다
 const ROOT = '0 100';
-// 표지는 이륙의 75%에 떠오르기 시작해 비행이 끝나는 순간 다 보인다
-const MARK_AT = PREP + TAKEOFF * 0.75;
+// 표지는 날아간 뒤(이륙이 끝나는 순간)에 떠오른다. 그 순간 복제본 레이어도 걷고 알림 글도 넣는다.
+const MARK_AT = PREP + TAKEOFF;
 
 // 깃털 하나: 뿌리(0,100)에서 오른쪽으로 length만큼 뻗는 잎 모양
 const featherPath = (length: number) =>
@@ -102,15 +104,22 @@ interface Launch {
   flight: Flight | null;
 }
 
+// anchor는 단추를 감싼 상자다. 단추 자신의 사각형은 누름 scale(0.95)이 걸려 있으면(마우스를 떼는 순간 아직 눌려 있다)
+// 줄어들어 복제본이 튀므로, 자식의 transform을 받지 않는 상자로 잰다.
 const measureFlight = (
   button: HTMLButtonElement,
+  anchor: HTMLElement,
   container: HTMLElement | null | undefined
 ): Flight => {
-  const rect = button.getBoundingClientRect();
+  const rect = anchor.getBoundingClientRect();
   const clone = button.cloneNode(true) as HTMLElement;
-  clone.removeAttribute('data-pressed');
-  clone.removeAttribute('id');
-  clone.querySelectorAll('[id]').forEach((node) => node.removeAttribute('id'));
+  // 복제본은 장식이다. 소비자의 data-*(테스트 손잡이, 누름 상태)와 id를 모두 걷는다
+  [clone, ...clone.querySelectorAll<HTMLElement>('*')].forEach((node) => {
+    node.removeAttribute('id');
+    Array.from(node.attributes)
+      .filter((attr) => attr.name.startsWith('data-'))
+      .forEach((attr) => node.removeAttribute(attr.name));
+  });
   clone.setAttribute('aria-hidden', 'true');
   clone.setAttribute('inert', '');
   clone.tabIndex = -1;
@@ -127,9 +136,11 @@ const measureFlight = (
   }
   const left = rect.left - originX;
   const top = rect.top - originY;
-  // 오른쪽 위 45도로 간다. 왼쪽 날개 끝까지 레이어의 오른쪽이나 위쪽 밖으로 나가는 거리
+  // 오른쪽 위 45도로 간다. 오른쪽과 위쪽 중 가까운 가장자리를 넘어 왼쪽 날개 끝까지 나가는 거리(그보다 멀리 가면 이미
+  // 안 보이는 구간이 길어 표지가 늦어 보인다). 이륙이 끝나는 순간 복제본과 날개는 레이어 밖이다.
   const distance =
-    Math.max(width - left, top + rect.height) + rect.height * WING_RATIO;
+    Math.max(0, Math.min(width - left, top + rect.height)) +
+    rect.height * WING_RATIO;
   return {
     clone,
     left,
@@ -145,7 +156,8 @@ const measureFlight = (
  * 메일 보내기·제출·전송 단추. 누르는 순간 왼쪽 아래로 살짝 웅크리고, click이 확정되면 단추 양 끝에서
  * 날개가 펴져 세 번 퍼덕인 뒤 단추 모양 복제본이 오른쪽 위로 가속하며 기울고 작아지며 화면(또는 `container`)
  * 밖으로 날아간다. 원래 단추는 그 순간 보이지 않게 두어 자리를 지키고, 날아간 뒤 그 자리에 `sentLabel`
- * 표지가 떠오른다. 돌아오지 않으며 소비자가 `key`를 바꿔 다시 그린다. 포커스가 있었으면 표지로 옮긴다.
+ * 표지가 떠오른다. 돌아오지 않으며 소비자가 `key`를 바꿔 다시 그린다. 포커스가 있었으면 표지로 옮기고, 없었으면
+ * 처음부터 있는 보이지 않는 알림 영역(`role="status"`)에 `sentLabel`을 넣는다.
  * 움직임 줄이기에서는 날개와 비행 없이 단추가 표지로 교차 페이드된다.
  */
 export const WingButton = forwardRef<HTMLButtonElement, WingButtonProps>(
@@ -238,7 +250,7 @@ export const WingButton = forwardRef<HTMLButtonElement, WingButtonProps>(
       const button = event.currentTarget;
       setLaunch({
         focused: button.ownerDocument.activeElement === button,
-        flight: reduced ? null : measureFlight(button, container),
+        flight: reduced ? null : measureFlight(button, el, container),
       });
       setFlying(!reduced);
     };
@@ -252,6 +264,7 @@ export const WingButton = forwardRef<HTMLButtonElement, WingButtonProps>(
       gsap.set(label, { opacity: 0 });
       if (launch.focused) label.focus({ preventScroll: true });
 
+      // 비행(레이어)은 이륙이 끝나는 순간 걷는다. 표지가 떠오르는 순간과 같다
       const done = () => setFlying(false);
       const { flight } = launch;
       const body = craftRef.current;
@@ -365,6 +378,7 @@ export const WingButton = forwardRef<HTMLButtonElement, WingButtonProps>(
             { scale: FAR_SCALE, duration: TAKEOFF, ease: gsapEasing.linear },
             PREP
           )
+          .call(done, [], MARK_AT)
           .to(
             label,
             {
@@ -413,18 +427,16 @@ export const WingButton = forwardRef<HTMLButtonElement, WingButtonProps>(
           </Button>
         </span>
         {launch && (
-          <span
-            ref={markRef}
-            tabIndex={-1}
-            // 포커스가 표지로 오면 그 글이 읽히므로 status까지 두면 두 번 읽힌다. 포커스가 없을 때만 status다.
-            role={launch.focused ? undefined : 'status'}
-            className={mark}
-            data-wing-mark=""
-          >
+          <span ref={markRef} tabIndex={-1} className={mark} data-wing-mark="">
             <Glyph name="check" size="sm" />
-            {sentLabel}
+            <span className={markText}>{sentLabel}</span>
           </span>
         )}
+        {/* 처음부터 있는 빈 알림 영역. 새로 삽입된 영역은 스크린 리더가 읽지 않을 수 있어 글만 나중에 넣는다. 포커스를
+            표지로 옮겼으면 포커스된 요소의 글이 읽히므로 비워 둔다(두 번 낭독 방지) */}
+        <span className={visuallyHidden} role="status">
+          {launch && !launch.focused && !flying ? sentLabel : ''}
+        </span>
         {flying &&
           flight &&
           createPortal(

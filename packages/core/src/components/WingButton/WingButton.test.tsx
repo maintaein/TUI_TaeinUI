@@ -56,8 +56,27 @@ const originalOffsetParent = Object.getOwnPropertyDescriptor(
   'offsetParent'
 );
 // 같은 이유로 단추의 화면 사각형도 돌려준다(복제본이 그 자리에 놓이는지 보려면 0이 아닌 값이 필요하다).
+// 브라우저의 레이아웃을 그대로 흉내 낸다: 단추는 누름(data-pressed)의 scale(0.95)가 사각형을 줄이고, 단추를 감싼 상자는
+// 자기 transform(웅크림 scale(0.97))만 사각형에 받으며 자식의 transform은 받지 않는다.
 const originalRect = Element.prototype.getBoundingClientRect;
 const BUTTON_RECT = { left: 100, top: 200, width: 120, height: 44 };
+const scaledRect = (scale: number) => {
+  const width = BUTTON_RECT.width * scale;
+  const height = BUTTON_RECT.height * scale;
+  const left = BUTTON_RECT.left + (BUTTON_RECT.width - width) / 2;
+  const top = BUTTON_RECT.top + (BUTTON_RECT.height - height) / 2;
+  return {
+    left,
+    top,
+    width,
+    height,
+    right: left + width,
+    bottom: top + height,
+    x: left,
+    y: top,
+    toJSON: () => ({}),
+  };
+};
 beforeAll(() => {
   Object.defineProperty(HTMLElement.prototype, 'offsetParent', {
     configurable: true,
@@ -66,15 +85,14 @@ beforeAll(() => {
     },
   });
   Element.prototype.getBoundingClientRect = function () {
-    if (this.tagName !== 'BUTTON') return originalRect.call(this);
-    return {
-      ...BUTTON_RECT,
-      right: BUTTON_RECT.left + BUTTON_RECT.width,
-      bottom: BUTTON_RECT.top + BUTTON_RECT.height,
-      x: BUTTON_RECT.left,
-      y: BUTTON_RECT.top,
-      toJSON: () => ({}),
-    };
+    if (this.tagName === 'BUTTON') {
+      return scaledRect(this.hasAttribute('data-pressed') ? 0.95 : 1);
+    }
+    if (this.firstElementChild?.tagName === 'BUTTON') {
+      const crouched = (this as HTMLElement).style.transform.includes('0.97');
+      return scaledRect(crouched ? 0.97 : 1);
+    }
+    return originalRect.call(this);
   };
 });
 afterAll(() => {
@@ -181,6 +199,67 @@ describe('WingButton', () => {
       expect(craft.style.top).toBe('200px');
       expect(craft.style.width).toBe('120px');
       expect(craft.style.height).toBe('44px');
+    });
+
+    it('누르고 있다 뗄 때(단추가 눌린 scale(0.95)이고 웅크린 채) click해도 복제본은 원래 단추의 사각형에서 출발한다', async () => {
+      const user = userEvent.setup();
+      const { container } = render(<WingButton>보내기</WingButton>);
+      await user.pointer({ keys: '[MouseLeft>]', target: button() });
+      act(
+        () =>
+          void (hostOf(container).__wingCrouch as gsap.core.Tween).progress(1)
+      );
+      // 시험의 전제: 단추는 눌려 있고 웅크림이 걸려 있다
+      expect(button()).toHaveAttribute('data-pressed');
+      expect((button().parentElement as HTMLElement).style.transform).toContain(
+        '0.97'
+      );
+      fireEvent.click(button());
+      const craft = layerOf()?.firstElementChild as HTMLElement;
+      expect(craft.style.left).toBe('100px');
+      expect(craft.style.top).toBe('200px');
+      expect(craft.style.width).toBe('120px');
+      expect(craft.style.height).toBe('44px');
+    });
+
+    it('복제본에는 소비자의 data-* 속성이 하나도 남지 않는다(장식이다)', () => {
+      render(
+        <WingButton data-testid="send" data-x="1">
+          <span data-y="2">보내기</span>
+        </WingButton>
+      );
+      fireEvent.pointerDown(button());
+      fireEvent.click(button());
+      const clone = layerOf()?.querySelector('button') as HTMLElement;
+      const names = [clone, ...clone.querySelectorAll('*')].flatMap((node) =>
+        node.getAttributeNames()
+      );
+      expect(names.filter((name) => name.startsWith('data-'))).toEqual([]);
+    });
+
+    it('이륙 거리는 container의 가까운 가장자리를 넘어 왼쪽 날개 끝까지 나가는 거리다', () => {
+      // 단추는 레이어 안 (100, 200), 높이 44. 위쪽으로 나가려면 200 + 44, 오른쪽이면 폭 - 100. 날개 길이는 높이의 1.2배
+      const wing = 44 * 1.2;
+      const takeoffX = (width: number) => {
+        const stage = document.createElement('div');
+        Object.defineProperty(stage, 'clientWidth', { value: width });
+        Object.defineProperty(stage, 'clientHeight', { value: 600 });
+        document.body.appendChild(stage);
+        const view = render(<WingButton container={stage}>보내기</WingButton>);
+        fireEvent.click(button());
+        const tl = hostOf(view.container).__wingTimeline as gsap.core.Timeline;
+        const craft = layerOf(stage)?.firstElementChild as HTMLElement;
+        const fly = tweensOf(tl, craft).find(
+          (t) => t.vars.y !== undefined && t.vars.y !== 0
+        );
+        view.unmount();
+        stage.remove();
+        return fly?.vars.x as number;
+      };
+      // 위가 가깝다(상자 폭 1000): 244 + 날개
+      expect(takeoffX(1000)).toBeCloseTo(244 + wing, 5);
+      // 오른쪽이 가깝다(상자 폭 150): 50 + 날개
+      expect(takeoffX(150)).toBeCloseTo(50 + wing, 5);
     });
 
     it('비행이 끝나면 복제본 레이어를 치운다', () => {
@@ -398,38 +477,51 @@ describe('WingButton', () => {
       expect(flapR.totalDuration()).toBeCloseTo(gsapDuration.base * 7, 5);
     });
 
-    it('표지는 비행이 끝나갈 때 settle로 떠오르고 처음엔 보이지 않는다', () => {
+    it('표지는 비행이 끝난 뒤에야 settle로 떠오르고 그 전에는 보이지 않으며 그 순간 레이어를 걷는다', () => {
       const { container, tl } = launch();
       const label = markOf(container) as HTMLElement;
       const fade = tweensOf(tl, label)[0];
+      const landing = gsapDuration.base * 7;
       expect(fade.vars.ease).toBe(gsapEasing.settle);
-      expect(fade.startTime()).toBeGreaterThan(gsapDuration.base * 3);
+      expect(fade.startTime()).toBeCloseTo(landing, 5);
       expect(fade.endTime()).toBeCloseTo(tl.duration(), 5);
-      tl.progress(0);
+      // 비행이 끝나기 직전까지 표지는 투명하고 복제본이 날고 있다
+      act(() => void tl.time(landing - 0.01));
       expect(label.style.opacity).toBe('0');
+      expect(layerOf()).not.toBeNull();
+      act(() => void tl.time(landing));
+      expect(layerOf()).toBeNull();
     });
   });
 
   describe('포커스', () => {
-    it('포커스가 있었으면 표지로 옮기고 표지에는 role=status가 없다', () => {
+    it('포커스가 있었으면 표지로 옮기고 표지에는 role이 없으며 알림 영역은 비어 있다(두 번 낭독 방지)', () => {
       const { container } = render(<WingButton>보내기</WingButton>);
       button().focus();
       fireEvent.click(button());
+      finish(hostOf(container).__wingTimeline as gsap.core.Timeline);
       const label = markOf(container) as HTMLElement;
       expect(label).toHaveFocus();
       expect(label).toHaveAttribute('tabindex', '-1');
       expect(label).not.toHaveAttribute('role');
-      expect(screen.queryByRole('status')).toBeNull();
+      expect(screen.getByRole('status')).toHaveTextContent('');
     });
 
-    it('포커스가 없었으면 옮기지 않고 표지가 role=status로 읽힌다', () => {
+    it('포커스가 없었으면 옮기지 않고, 마운트 때부터 있던 빈 알림 영역에 비행이 끝난 뒤 글이 들어간다', () => {
       const { container } = render(<WingButton>보내기</WingButton>);
+      // 새로 삽입된 live 영역은 읽히지 않을 수 있어 처음부터 DOM에 있어야 한다
+      const status = screen.getByRole('status');
+      expect(status).toHaveTextContent('');
       expect(button()).not.toHaveFocus();
       fireEvent.click(button());
+      expect(screen.getByRole('status')).toBe(status);
+      expect(status).toHaveTextContent('');
+      finish(hostOf(container).__wingTimeline as gsap.core.Timeline);
       const label = markOf(container) as HTMLElement;
       expect(label).not.toHaveFocus();
-      expect(label).toHaveAttribute('role', 'status');
-      expect(screen.getByRole('status')).toHaveTextContent('보냈어요');
+      expect(label).not.toHaveAttribute('role');
+      expect(screen.getByRole('status')).toBe(status);
+      expect(status).toHaveTextContent('보냈어요');
     });
 
     it('비행이 끝나도 포커스는 표지에 남는다', () => {

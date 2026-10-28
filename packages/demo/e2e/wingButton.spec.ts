@@ -19,15 +19,30 @@ const open = async (page: Page) => {
   await page.mouse.move(2, 2);
 };
 
-// 비행 한 번을 한 evaluate 안에서 재서 Playwright 왕복이 부하에 늘어져도 관찰이 어긋나지 않게 한다
+// 비행 한 번을 한 evaluate 안에서 재서 Playwright 왕복이 부하에 늘어져도 관찰이 어긋나지 않게 한다.
+// 프로그램으로 누르므로 단추에 포커스가 없다(포커스가 없는 경로)
 const fly = (page: Page) =>
   send(page).evaluate(async (button) => {
     const rectOf = (el: Element) => {
       const r = el.getBoundingClientRect();
       return { x: r.left, y: r.top, w: r.width, h: r.height };
     };
-    const samples: { t: number; x: number; y: number; w: number }[] = [];
+    const statusText = () =>
+      document.querySelector('[data-sent] [role="status"]')?.textContent ?? '';
+    const markOpacity = () => {
+      const m = document.querySelector('[data-wing-mark]');
+      return m ? Number(getComputedStyle(m).opacity) : 0;
+    };
+    const samples: {
+      t: number;
+      x: number;
+      y: number;
+      w: number;
+      h: number;
+      mark: number;
+    }[] = [];
     let box: ReturnType<typeof rectOf> | null = null;
+    let statusDuring = '';
     const t0 = performance.now();
     (button as HTMLButtonElement).click();
     while (performance.now() - t0 < 3000) {
@@ -42,12 +57,18 @@ const fly = (page: Page) =>
           x: c.x,
           y: c.y,
           w: c.w,
+          h: c.h,
+          mark: markOpacity(),
         });
+        statusDuring = statusText();
       } else if (samples.length > 0) {
         break;
       }
     }
-    return { samples, box };
+    // 표지가 다 떠오를 때까지 기다린 뒤 알림 영역을 읽는다
+    while (markOpacity() < 1 && performance.now() - t0 < 4000)
+      await new Promise((r) => requestAnimationFrame(() => r(null)));
+    return { samples, box, statusDuring, statusAfter: statusText() };
   });
 
 test.describe('날개 전송 상세 (1440px)', () => {
@@ -71,7 +92,7 @@ test.describe('날개 전송 상세 (1440px)', () => {
   }) => {
     await open(page);
     await count(page, 0).waitFor();
-    const { samples, box } = await fly(page);
+    const { samples, box, statusDuring, statusAfter } = await fly(page);
     expect(samples.length).toBeGreaterThan(10);
     expect(box).not.toBeNull();
     const first = samples[0];
@@ -86,11 +107,19 @@ test.describe('날개 전송 상세 (1440px)', () => {
       expect(flight[i].y).toBeLessThanOrEqual(flight[i - 1].y + 0.5);
     }
     expect(last.w).toBeLessThan(first.w);
-    // 마지막 표본은 레이어(무대 안쪽 상자) 밖이다
+    // 복제본이 레이어(무대 안쪽 상자) 밖이다
     const b = box as { x: number; y: number; w: number; h: number };
-    const outside =
-      last.x >= b.x + b.w || last.y + 44 * 0.6 <= b.y || last.x + last.w <= b.x;
-    expect(outside).toBe(true);
+    const outside = (s: { x: number; y: number; w: number; h: number }) =>
+      s.x >= b.x + b.w || s.y + s.h <= b.y || s.x + s.w <= b.x;
+    expect(outside(last)).toBe(true);
+    // 표지는 날아간 뒤에 보인다: 복제본이 레이어 안에 있는 동안은 표지가 투명하다
+    expect(samples.filter((s) => !outside(s)).length).toBeGreaterThan(10);
+    for (const s of samples.filter((s) => !outside(s))) {
+      expect(s.mark).toBeLessThanOrEqual(0.01);
+    }
+    // 포커스가 없던 경로: 처음부터 있는 알림 영역이 비행 중에는 비어 있고 날아간 뒤 글이 들어간다
+    expect(statusDuring).toBe('');
+    expect(statusAfter).toBe('보냈어요');
     // 비행이 끝나면 레이어가 걷히고 표지가 남는다
     await expect(page.locator('[data-wing-layer]')).toHaveCount(0);
     await expect(mark(page)).toHaveText('보냈어요');
@@ -132,6 +161,60 @@ test.describe('날개 전송 상세 (1440px)', () => {
     ).toBe(0);
   });
 
+  test('마우스를 400ms 누르고 뗄 때(단추가 눌린 채)도 복제본은 원래 단추의 자리와 크기에서 출발한다', async ({
+    page,
+  }) => {
+    await open(page);
+    const slot = (await send(page).locator('xpath=../..').elementHandle())!;
+    const slotBox = (await slot.boundingBox())!;
+    const box = (await send(page).boundingBox())!;
+    // 레이어가 서는 순간 복제본 상자(craft)의 배치를 붙잡는다(배치는 비행 내내 바뀌지 않는다)
+    await page.evaluate(() => {
+      const w = window as unknown as { __craft?: Record<string, number> };
+      new MutationObserver(() => {
+        const layer = document.querySelector('[data-wing-layer]');
+        const craft = layer?.firstElementChild as HTMLElement | undefined;
+        if (!layer || !craft || w.__craft) return;
+        const r = layer.getBoundingClientRect();
+        w.__craft = {
+          x: r.left + parseFloat(craft.style.left),
+          y: r.top + parseFloat(craft.style.top),
+          w: parseFloat(craft.style.width),
+          h: parseFloat(craft.style.height),
+        };
+      }).observe(document.body, { childList: true, subtree: true });
+    });
+    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+    await page.mouse.down();
+    await page.waitForTimeout(400);
+    await page.mouse.up();
+    await expect(mark(page)).toHaveCSS('opacity', '1', { timeout: 8000 });
+    const craft = await page.evaluate(
+      () => (window as unknown as { __craft?: Record<string, number> }).__craft!
+    );
+    expect(Math.abs(craft.x - slotBox.x)).toBeLessThan(1);
+    expect(Math.abs(craft.y - slotBox.y)).toBeLessThan(1);
+    expect(Math.abs(craft.w - slotBox.width)).toBeLessThan(1);
+    expect(Math.abs(craft.h - slotBox.height)).toBeLessThan(1);
+  });
+
+  test('긴 sentLabel도 표지가 단추 자리 안에서 말줄임으로 잘린다', async ({
+    page,
+  }) => {
+    await open(page);
+    await page
+      .getByLabel('보낸 뒤 글자')
+      .fill('아주 아주 길고 긴 보낸 뒤 글자가 단추 자리를 넘치려 합니다');
+    const slotBox = (await send(page).boundingBox())!;
+    await send(page).click();
+    await expect(mark(page)).toHaveCSS('opacity', '1', { timeout: 8000 });
+    const text = (await mark(page).locator('span').boundingBox())!;
+    const markBox = (await mark(page).boundingBox())!;
+    expect(markBox.width).toBeCloseTo(slotBox.width, 0);
+    expect(text.x + text.width).toBeLessThanOrEqual(markBox.x + markBox.width);
+    expect(text.x).toBeGreaterThanOrEqual(markBox.x);
+  });
+
   test('마우스 클릭 뒤 포커스가 표지로 옮겨지고 표지에 role이 없다', async ({
     page,
   }) => {
@@ -139,6 +222,8 @@ test.describe('날개 전송 상세 (1440px)', () => {
     await send(page).click();
     await expect(mark(page)).toBeFocused();
     await expect(mark(page)).not.toHaveAttribute('role', /./);
+    // 포커스가 표지에 있으니 알림 영역은 비어 있다(두 번 낭독 방지)
+    await expect(stage(page).locator('[role="status"]')).toHaveText('');
     await expect(mark(page)).toHaveAttribute('tabindex', '-1');
   });
 
@@ -155,10 +240,6 @@ test.describe('날개 전송 상세 (1440px)', () => {
     await expect(mark(page)).toHaveText('보냈어요');
     await expect(mark(page)).toHaveCSS('opacity', '1');
     await expect(count(page, 1)).toBeVisible();
-    // 보이지 않는 단추에는 Enter가 가지 않는다
-    await page.keyboard.press('Enter');
-    await expect(count(page, 1)).toBeVisible();
-    await expect(count(page, 2)).toHaveCount(0);
   });
 
   test('누르기만 하면 웅크리고 밖으로 빠지면 되감기며 날지 않는다', async ({

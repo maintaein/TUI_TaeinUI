@@ -775,7 +775,7 @@ export const searchIndex: SearchEntry[] = [
       {
         title: '접근성',
         content:
-          'onClick은 네이티브 click, 손을 뗄 때 실행되고 누르는 순간에는 실행되지 않습니다. 포커스가 있었다면 표지로 옮기고 이때 표지에는 role status를 두지 않으며 포커스가 없었다면 표지가 role status로 읽힙니다. 복제본과 날개는 aria-hidden, inert 장식입니다',
+          'onClick은 네이티브 click, 손을 뗄 때 실행되고 누르는 순간에는 실행되지 않습니다. 표지는 비행이 끝난 뒤에 나타납니다. 포커스가 있었다면 표지로 옮기고 알림 영역은 비워 두며 포커스가 없었다면 처음부터 있는 보이지 않는 role status 영역에 보냈어요를 넣습니다. 복제본과 날개는 aria-hidden, inert 장식입니다',
       },
       {
         title: '움직임 줄이기',
