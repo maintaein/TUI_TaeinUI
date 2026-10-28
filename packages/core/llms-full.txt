@@ -1205,11 +1205,11 @@ Other native button attributes are passed to the `<button>`, except `children` a
 
 ## HoldButton
 
-Hold-to-confirm button for things that cannot be undone (delete, pay, reset). Press and hold: the inside fills with `error[900]` from the left over 1.5 seconds, the last 30% trembles 1 to 2px with growing swing, and when it is full a check springs in and `onConfirm` is called. Letting go early drains the fill back (`base`, `settle`).
+Hold-to-confirm button for things that cannot be undone (delete, pay, reset). Press and hold: the inside fills with `primary.main` (blue) from the left, and the text turns white where the fill has passed over 1.5 seconds, the last 30% trembles 1 to 2px with growing swing, and when it is full a check springs in and `onConfirm` is called. Letting go early drains the fill back (`base`, `settle`).
 
 There is also a path that does not depend on time (WCAG 2.1.1; screen readers and voice control send one click). A short press, a keyboard tap or one click only **arms** the button: the label becomes `confirmLabel`, the fill rests at half and a `role="status"` region announces it. The next click calls `onConfirm`. Arming has no timer; it is released when focus leaves the button.
 
-It wraps `Button` `danger` (`md`), so it keeps the height, radius and press feel of `Button`. It has no `size` or `variant` prop and no hold-time prop: the hold is fixed at 1.5 seconds (`gsapDuration.slower` x 3) so it cannot be tuned down to nothing.
+It wraps `Button` `light` (`md`), so it keeps the height, radius, press and hover feel of `Button`. The white text is an `aria-hidden` copy of the text laid over the button and clipped to the same progress value as the fill. If `disabled` turns on during a hold, the hold is dropped and `onConfirm` is not called. It has no `size` or `variant` prop and no hold-time prop: the hold is fixed at 1.5 seconds (`gsapDuration.slower` x 3) so it cannot be tuned down to nothing.
 
 ```tsx
 import { HoldButton } from '@taein-ui/core';

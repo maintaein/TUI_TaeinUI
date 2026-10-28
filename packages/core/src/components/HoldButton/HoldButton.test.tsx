@@ -23,6 +23,10 @@ const fillOf = (container: HTMLElement) =>
   container.querySelector('[data-hold-fill]') as FillHost;
 const checkOf = (container: HTMLElement) =>
   container.querySelector('[data-hold-check]') as CheckHost | null;
+const inkOf = (container: HTMLElement) =>
+  container.querySelector('[data-hold-ink]') as HTMLElement;
+const inkValueOf = (container: HTMLElement) =>
+  Number(inkOf(container).style.getPropertyValue('--hold-v'));
 const labelOf = (container: HTMLElement) =>
   container.querySelector('[data-hold-label]') as HTMLElement;
 const scaleOf = (el: HTMLElement) =>
@@ -186,6 +190,66 @@ describe('HoldButton', () => {
         fillOf(container).__holdTween?.progress(0.3);
       });
       expect(scaleOf(fillOf(container))).toBeCloseTo(0.3, 5);
+    });
+  });
+
+  describe('채움 위 흰 글자', () => {
+    it('흰 글자 겹은 aria-hidden이고 같은 글자 둘을 담으며 이름에 섞이지 않는다', () => {
+      const { container } = render(
+        <HoldButton onConfirm={() => {}} confirmLabel="한 번 더">
+          삭제
+        </HoldButton>
+      );
+      expect(inkOf(container)).toHaveAttribute('aria-hidden', 'true');
+      expect(inkOf(container).textContent).toBe('삭제한 번 더');
+      expect(button()).toBeInTheDocument();
+    });
+
+    it('자르기 값이 채움의 scaleX를 그대로 따라간다', () => {
+      const { container } = render(
+        <HoldButton onConfirm={() => {}}>삭제</HoldButton>
+      );
+      expect(inkValueOf(container)).toBe(0);
+      fireEvent.pointerDown(button());
+      act(() => {
+        fillOf(container).__holdTween?.progress(0.3);
+      });
+      expect(inkValueOf(container)).toBeCloseTo(0.3, 5);
+      expect(inkValueOf(container)).toBe(scaleOf(fillOf(container)));
+    });
+
+    it('무장(채움 절반)에서는 글자가 반만 흰색이다', () => {
+      const { container } = render(
+        <HoldButton onConfirm={() => {}}>삭제</HoldButton>
+      );
+      fireEvent.click(button());
+      act(() => {
+        fillOf(container).__holdTween?.progress(1);
+      });
+      expect(inkValueOf(container)).toBe(0.5);
+    });
+
+    it('축소 모드에서는 자르기도 채움과 같은 단계값이다', () => {
+      stubReducedMotion();
+      const { container } = render(
+        <HoldButton onConfirm={() => {}}>삭제</HoldButton>
+      );
+      fireEvent.pointerDown(button());
+      act(() => {
+        fillOf(container).__holdTween?.progress(0.3);
+      });
+      expect(inkValueOf(container)).toBe(0.5);
+    });
+
+    it('떨림은 아래 글자와 흰 글자 겹에 함께 걸린다', () => {
+      const { container } = render(
+        <HoldButton onConfirm={() => {}}>삭제</HoldButton>
+      );
+      fireEvent.pointerDown(button());
+      const shake = fillOf(container).__holdShake;
+      const targets = shake?.getChildren(false)[0].targets() ?? [];
+      expect(targets).toContain(labelOf(container));
+      expect(targets).toHaveLength(2);
     });
   });
 
@@ -557,6 +621,42 @@ describe('HoldButton', () => {
     });
   });
 
+  describe('끝까지 누른 뒤', () => {
+    it('홀드를 채운 뒤 처음 상태로 돌아온 다음에 떼도 click이 무장으로 새지 않는다', () => {
+      vi.useFakeTimers();
+      const onConfirm = vi.fn();
+      const { container } = render(
+        <HoldButton onConfirm={onConfirm}>삭제</HoldButton>
+      );
+      holdToEnd(container);
+      act(() => {
+        vi.advanceTimersByTime(gsapDuration.slower * 4 * 1000 + 50);
+      });
+      expect(button()).toHaveAttribute('data-state', 'idle');
+      fireEvent.pointerUp(button());
+      fireEvent.click(button());
+      expect(button()).toHaveAttribute('data-state', 'idle');
+      expect(onConfirm).toHaveBeenCalledTimes(1);
+    });
+
+    it('다음 누름이 시작되면 표지가 내려 그 누름의 click은 다시 무장한다', () => {
+      vi.useFakeTimers();
+      const { container } = render(
+        <HoldButton onConfirm={() => {}}>삭제</HoldButton>
+      );
+      holdToEnd(container);
+      act(() => {
+        vi.advanceTimersByTime(gsapDuration.slower * 4 * 1000 + 50);
+      });
+      fireEvent.pointerUp(button());
+      fireEvent.click(button());
+      fireEvent.pointerDown(button());
+      fireEvent.pointerUp(button());
+      fireEvent.click(button());
+      expect(screen.getByRole('button')).toHaveAttribute('data-state', 'armed');
+    });
+  });
+
   describe('disabled', () => {
     it('어떤 경로로도 실행되지 않고 시계도 시작하지 않는다', () => {
       const onConfirm = vi.fn();
@@ -573,6 +673,41 @@ describe('HoldButton', () => {
       expect(fillOf(container).__holdTween).toBeUndefined();
       expect(onConfirm).not.toHaveBeenCalled();
       expect(button()).toBeDisabled();
+    });
+
+    it('홀드 도중 disabled가 켜지면 시간이 지나도 실행되지 않고 채움이 되감긴다', async () => {
+      const onConfirm = vi.fn();
+      const { container, rerender } = render(
+        <HoldButton onConfirm={onConfirm}>삭제</HoldButton>
+      );
+      fireEvent.pointerDown(button());
+      const clock = fillOf(container).__holdTween;
+      rerender(
+        <HoldButton onConfirm={onConfirm} disabled>
+          삭제
+        </HoldButton>
+      );
+      expect(clock?.parent).toBeFalsy();
+      expect(fillOf(container).__holdTween?.vars.p).toBe(0);
+      await wait(HOLD_SECONDS * 1000 + 400);
+      expect(onConfirm).not.toHaveBeenCalled();
+      expect(scaleOf(fillOf(container))).toBe(0);
+    });
+
+    it('무장 중에 disabled가 켜지면 무장이 풀리고 채움이 비워진다', () => {
+      const onConfirm = vi.fn();
+      const { container, rerender } = render(
+        <HoldButton onConfirm={onConfirm}>삭제</HoldButton>
+      );
+      fireEvent.click(button());
+      expect(screen.getByRole('button')).toHaveAttribute('data-state', 'armed');
+      rerender(
+        <HoldButton onConfirm={onConfirm} disabled>
+          삭제
+        </HoldButton>
+      );
+      expect(button()).toHaveAttribute('data-state', 'idle');
+      expect(fillOf(container).__holdTween?.vars.p).toBe(0);
     });
   });
 });

@@ -12,7 +12,6 @@ import {
   type PointerEvent,
   type ReactNode,
 } from 'react';
-import clsx from 'clsx';
 import { gsap } from 'gsap';
 import { Button } from '../Button';
 import { Glyph } from '../../_internal/glyph';
@@ -20,7 +19,7 @@ import { visuallyHidden } from '../../_internal/visuallyHidden.css';
 import { gsapDuration, gsapEasing } from '../../tokens/gsapEasing';
 import { useReducedMotion } from '../../hooks/useReducedMotion';
 import { gateMotion } from '../../hooks/gateMotion';
-import { root, fill, slot, text, check } from './HoldButton.css';
+import { fill, slot, text, ink, check } from './HoldButton.css';
 
 export interface HoldButtonProps extends Omit<
   ButtonHTMLAttributes<HTMLButtonElement>,
@@ -62,9 +61,16 @@ const DONE_TEXT = '실행했습니다';
 
 type Phase = 'idle' | 'armed' | 'done';
 
-const paint = (el: HTMLElement, p: number, reduced: boolean) => {
+// 채움(scaleX)과 흰 글자 겹의 자르기(--hold-v)는 같은 값을 쓴다. 축소 모드에서는 네 단계로 끊는다.
+const paint = (
+  fillEl: HTMLElement,
+  inkEl: HTMLElement | null,
+  p: number,
+  reduced: boolean
+) => {
   const value = reduced ? Math.ceil(p * REDUCED_STEPS) / REDUCED_STEPS : p;
-  el.style.transform = `scaleX(${value})`;
+  fillEl.style.transform = `scaleX(${value})`;
+  inkEl?.style.setProperty('--hold-v', String(value));
 };
 
 /**
@@ -99,12 +105,20 @@ export const HoldButton = forwardRef<HTMLButtonElement, HoldButtonProps>(
     const [phase, setPhase] = useState<Phase>('idle');
     const fillRef = useRef<FillHost>(null);
     const labelRef = useRef<HTMLSpanElement>(null);
+    const inkRef = useRef<HTMLSpanElement>(null);
+    const inkLabelRef = useRef<HTMLSpanElement>(null);
     const checkRef = useRef<CheckHost>(null);
     // 채움 값의 단일 출처. 시계 트윈도 되감기 트윈도 이 객체의 p를 몬다
     const proxy = useRef({ p: 0 });
     const tweenRef = useRef<gsap.core.Tween | null>(null);
     // 손이 누르고 있는 중. 상태가 아니라 ref인 이유: 그 사이 렌더가 없고, 바로 뒤에 오는 click이 읽는다
     const holdingRef = useRef(false);
+    // 채움이 향하는 값(0 처음, 0.5 무장, 1 가득). 비워야 하는지 알려고 둔다
+    const targetRef = useRef(0);
+    // 홀드를 끝까지 채운 누름의 표지. 그 누름을 떼며 생기는 click을 시간과 무관하게 무시한다(처음 상태로 돌아온 뒤에 떼도
+    // 무장으로 새지 않게). 다음 누름이 시작될 때 내린다.
+    // ponytail: 포인터가 단추 밖에서 떼어져 click이 안 오면 표지가 남아, 다음 보조기기 click 하나가 무시된다, 문제가 되면 pointerup을 문서에서 듣는다
+    const completedRef = useRef(false);
     // 트윈 콜백이 오래된 클로저를 쥐고 있어도 최신 값을 읽도록 효과에서 맞춘다
     const reducedRef = useRef(reduced);
     const onConfirmRef = useRef(onConfirm);
@@ -118,23 +132,30 @@ export const HoldButton = forwardRef<HTMLButtonElement, HoldButtonProps>(
       const el = fillRef.current;
       if (!el) return;
       tweenRef.current?.kill();
+      targetRef.current = target;
       const isReduced = reducedRef.current;
       const tween = gateMotion(isReduced, () =>
         gsap.to(proxy.current, {
           p: target,
           duration: gsapDuration.base,
           ease: gsapEasing.settle,
-          onUpdate: () => paint(el, proxy.current.p, isReduced),
+          onUpdate: () => paint(el, inkRef.current, proxy.current.p, isReduced),
         })
       );
       tweenRef.current = tween;
       el.__holdTween = tween;
     }, []);
 
-    const stopShake = () => {
+    const stopShake = useCallback(() => {
       fillRef.current?.__holdShake?.kill();
-      if (labelRef.current) gsap.set(labelRef.current, { x: 0 });
-    };
+      // 흰 글자 겹도 같이 떨리므로 둘 다 제자리로
+      gsap.set(
+        [labelRef.current, inkLabelRef.current].filter(
+          (node): node is HTMLSpanElement => node !== null
+        ),
+        { x: 0 }
+      );
+    }, []);
 
     // 실행. 홀드 완료와 두 번째 click이 같이 거친다
     const finish = () => {
@@ -147,21 +168,34 @@ export const HoldButton = forwardRef<HTMLButtonElement, HoldButtonProps>(
     const startHold = () => {
       const el = fillRef.current;
       const label = labelRef.current;
-      if (disabled || phase !== 'idle' || holdingRef.current || !el || !label) {
+      const inkLabel = inkLabelRef.current;
+      if (
+        disabled ||
+        phase !== 'idle' ||
+        holdingRef.current ||
+        !el ||
+        !label ||
+        !inkLabel
+      ) {
         return;
       }
       holdingRef.current = true;
+      targetRef.current = 1;
       tweenRef.current?.kill();
       proxy.current.p = 0;
-      paint(el, 0, reduced);
+      paint(el, inkRef.current, 0, reduced);
       // 이 트윈이 곧 홀드 시계다. gateMotion에 태우면 축소 모드에서 progress(1)로 즉시 실행되므로
       // 시계는 게이트를 거치지 않는다(gsapGateEnforcement 예외). 축소 모드는 그림만 단계로 끊는다.
       const clock = gsap.to(proxy.current, {
         p: 1,
         duration: HOLD_SECONDS,
         ease: gsapEasing.linear,
-        onUpdate: () => paint(el, proxy.current.p, reducedRef.current),
-        onComplete: finish,
+        onUpdate: () =>
+          paint(el, inkRef.current, proxy.current.p, reducedRef.current),
+        onComplete: () => {
+          completedRef.current = true;
+          finish();
+        },
       });
       tweenRef.current = clock;
       el.__holdTween = clock;
@@ -170,7 +204,11 @@ export const HoldButton = forwardRef<HTMLButtonElement, HoldButtonProps>(
         const shake = gsap.timeline({ delay: HOLD_SECONDS * SHAKE_FROM });
         const step = (HOLD_SECONDS * (1 - SHAKE_FROM)) / SHAKE_X.length;
         SHAKE_X.forEach((x) =>
-          shake.to(label, { x, duration: step, ease: gsapEasing.linear })
+          shake.to([label, inkLabel], {
+            x,
+            duration: step,
+            ease: gsapEasing.linear,
+          })
         );
         return shake;
       });
@@ -197,6 +235,7 @@ export const HoldButton = forwardRef<HTMLButtonElement, HoldButtonProps>(
         event.defaultPrevented ||
         disabled ||
         holdingRef.current ||
+        completedRef.current ||
         phase === 'done'
       ) {
         return;
@@ -212,6 +251,7 @@ export const HoldButton = forwardRef<HTMLButtonElement, HoldButtonProps>(
     const handlePointerDown = (event: PointerEvent<HTMLButtonElement>) => {
       onPointerDown?.(event);
       if (event.button > 0) return;
+      completedRef.current = false;
       startHold();
     };
 
@@ -225,6 +265,7 @@ export const HoldButton = forwardRef<HTMLButtonElement, HoldButtonProps>(
     const handleKeyDown = (event: KeyboardEvent<HTMLButtonElement>) => {
       onKeyDown?.(event);
       if (event.repeat || (event.key !== ' ' && event.key !== 'Enter')) return;
+      completedRef.current = false;
       startHold();
     };
 
@@ -242,6 +283,21 @@ export const HoldButton = forwardRef<HTMLButtonElement, HoldButtonProps>(
         moveFill(0);
       }
     };
+
+    // 홀드 도중 또는 무장 중에 disabled가 켜지면 거둔다. 네이티브 disabled 단추는 pointerup과 blur도 못 받아서
+    // 그대로 두면 시계가 끝까지 돌아 잠긴 단추가 실행된다. 상태(무장)는 렌더 중에, 시계와 채움은 효과에서 맞춘다.
+    const [wasDisabled, setWasDisabled] = useState(disabled);
+    if (wasDisabled !== disabled) {
+      setWasDisabled(disabled);
+      if (disabled && phase === 'armed') setPhase('idle');
+    }
+    useEffect(() => {
+      if (!disabled || phase === 'done') return;
+      const wasHolding = holdingRef.current;
+      holdingRef.current = false;
+      stopShake();
+      if (wasHolding || targetRef.current > 0) moveFill(0);
+    }, [disabled, phase, moveFill, stopShake]);
 
     // 실행 뒤 잠시 있다가 처음 상태로 돌아온다. 무장에는 이런 타이머가 없다(시간 제한을 만들지 않는다).
     useEffect(() => {
@@ -291,11 +347,10 @@ export const HoldButton = forwardRef<HTMLButtonElement, HoldButtonProps>(
         <Button
           {...props}
           ref={ref}
-          variant="danger"
-          className={clsx(root, className)}
+          variant="light"
+          className={className}
           disabled={disabled}
           aria-disabled={disabled || phase === 'done'}
-          data-hold=""
           data-state={phase}
           onClick={handleClick}
           onPointerDown={handlePointerDown}
@@ -331,6 +386,31 @@ export const HoldButton = forwardRef<HTMLButtonElement, HoldButtonProps>(
               aria-hidden={phase !== 'armed'}
             >
               {confirmLabel}
+            </span>
+          </span>
+          <span
+            ref={inkRef}
+            data-hold-ink=""
+            aria-hidden="true"
+            className={ink}
+          >
+            <span
+              ref={inkLabelRef}
+              data-done={phase === 'done' ? '' : undefined}
+              className={slot}
+            >
+              <span
+                className={text}
+                data-shown={phase !== 'armed' ? '' : undefined}
+              >
+                {children}
+              </span>
+              <span
+                className={text}
+                data-shown={phase === 'armed' ? '' : undefined}
+              >
+                {confirmLabel}
+              </span>
             </span>
           </span>
           {phase === 'done' && (
