@@ -57,6 +57,28 @@ test.describe('랜딩 소개 문장 (1440px)', () => {
     await expect.poll(() => minGlyphOpacity(page), { timeout: 15_000 }).toBe(1);
   });
 
+  test('긴 문장도 재생이 로드 뒤 2.5초 안에 끝난다', async ({ page }) => {
+    await page.goto('/');
+    await rendered(page);
+    // 모든 완성 글자가 보이고 흩어진 자모는 걷혀 있어야 끝이다
+    await expect
+      .poll(
+        () =>
+          page.locator('main [data-hangul-visual]').evaluate((root) => {
+            const op = (sel: string) =>
+              [...root.querySelectorAll(sel)].map((el) =>
+                Number(getComputedStyle(el).opacity)
+              );
+            return (
+              Math.min(...op('[data-hangul-glyph]')) === 1 &&
+              Math.max(...op('[data-hangul-jamo]')) === 0
+            );
+          }),
+        { timeout: 2_500, intervals: [100] }
+      )
+      .toBe(true);
+  });
+
   test('축소 모션에서는 마운트 직후부터 모든 완성 글자가 보인다', async ({
     page,
   }) => {
