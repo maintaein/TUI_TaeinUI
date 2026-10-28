@@ -3,6 +3,8 @@
   "compilerOptions": {
     "composite": true
   },
-  "include": ["src"],
-  "exclude": ["node_modules", "dist"]
+  // 시험 화면(/e2e/smoke)이 core 내부 엔진 소스를 직접 import한다(공개 export가 아니다).
+  // composite 프로젝트는 import하는 모든 파일이 include에 있어야 한다(TS6307).
+  "include": ["src", "../core/src/_internal/fluidSmoke", "../core/src/tokens"],
+  "exclude": ["node_modules", "dist", "../core/src/**/*.test.ts"]
 }

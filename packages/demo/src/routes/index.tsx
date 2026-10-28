@@ -189,6 +189,11 @@ const E2ELivePage = lazy(() =>
   import('../pages/E2E/LivePage').then((m) => ({ default: m.LivePage }))
 );
 
+// 유체 연기 엔진 e2e·GPU 측정 전용 시험 페이지(내비·검색에 없다)
+const E2ESmokePage = lazy(() =>
+  import('../pages/E2E/SmokePage').then((m) => ({ default: m.SmokePage }))
+);
+
 // ─── Suspense wrapper ──────────────────────────────────────────────
 
 function PageLoader() {
@@ -229,6 +234,14 @@ const router = createBrowserRouter([
     element: (
       <LazyPage>
         <E2ELivePage />
+      </LazyPage>
+    ),
+  },
+  {
+    path: '/e2e/smoke',
+    element: (
+      <LazyPage>
+        <E2ESmokePage />
       </LazyPage>
     ),
   },
