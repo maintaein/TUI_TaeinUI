@@ -542,4 +542,33 @@ export const searchIndex: SearchEntry[] = [
       },
     ],
   },
+  {
+    id: 'copy-button',
+    pageTitle: '복사됨',
+    path: '/motion/copy-button',
+    category: '모션',
+    description:
+      "CopyButton. 누르면 아이콘이 체크로 접히고 글자가 '복사됨'으로 바뀝니다. 복사, 클립보드, copy.",
+    sections: [
+      {
+        title: '마이크로 인터랙션',
+        content:
+          '복사 단추. 누르면 클립보드 아이콘이 접히며 체크 선이 그려지고 글자가 위로 빠지며 복사됨이 올라옵니다. 잠시 뒤 평소 모습으로 돌아옵니다. 클립보드에 복사, copy, clipboard',
+      },
+      {
+        title: '복사 실패',
+        content:
+          '클립보드가 없거나 쓰기가 거절되면 아이콘이 짧게 흔들리고 글자가 복사 실패가 됩니다. onCopy로 결과를 받습니다',
+      },
+      {
+        title: '접근성',
+        content:
+          '단추의 이름은 늘 label입니다. 결과는 aria-live 영역이 한 번 읽습니다',
+      },
+      {
+        title: '움직임 줄이기',
+        content: '움직임 줄이기에서는 아이콘과 글자가 움직임 없이 바뀝니다',
+      },
+    ],
+  },
 ];

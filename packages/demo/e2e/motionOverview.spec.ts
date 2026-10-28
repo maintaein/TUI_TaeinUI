@@ -72,15 +72,15 @@ test.describe('모션 전체 보기', () => {
   }) => {
     await page.goto('/motion');
     await expect(
-      page.getByRole('heading', { level: 1, name: '모션 3개' })
+      page.getByRole('heading', { level: 1, name: '모션 4개' })
     ).toBeVisible();
     const sections = page.locator('main section');
-    await expect(sections).toHaveCount(2);
-    for (const name of [/텍스트 애니메이션/, /컴포넌트/])
+    await expect(sections).toHaveCount(3);
+    for (const name of [/텍스트 애니메이션/, /컴포넌트/, /마이크로 인터랙션/])
       await expect(
         sections.getByRole('heading', { level: 2, name })
       ).toBeVisible();
-    for (const name of ['애니메이션', '마이크로 인터랙션', '배경'])
+    for (const name of ['애니메이션', '배경'])
       await expect(page.getByText(name, { exact: true })).toHaveCount(0);
 
     const card = page.locator('main section > div > div').first();
@@ -96,7 +96,7 @@ test.describe('모션 전체 보기', () => {
     page,
   }) => {
     await page.goto('/motion');
-    await expect(page.locator('main section')).toHaveCount(2);
+    await expect(page.locator('main section')).toHaveCount(3);
     const card = page.locator('main section > div > div').nth(1);
     await expect(card.getByText('JellyText', { exact: true })).toBeVisible();
     await expect(card.getByText('히어로 문구, 브랜드 슬로건')).toBeVisible();
@@ -124,7 +124,7 @@ test.describe('모션 전체 보기', () => {
     const filters = page.getByRole('group', { name: '분류로 보기' });
     const chip = filters.getByRole('button', { name: '컴포넌트', exact: true });
     const sections = page.locator('main section');
-    await expect(sections).toHaveCount(2);
+    await expect(sections).toHaveCount(3);
     await chip.click();
     await expect(chip).toHaveAttribute('aria-pressed', 'true');
     await expect(sections).toHaveCount(1);
@@ -134,7 +134,37 @@ test.describe('모션 전체 보기', () => {
     ).toBeVisible();
     await chip.click();
     await expect(chip).toHaveAttribute('aria-pressed', 'false');
-    await expect(sections).toHaveCount(2);
+    await expect(sections).toHaveCount(3);
+  });
+
+  test('마이크로 인터랙션 칩이 있고 누르면 복사됨 절만 보인다', async ({
+    page,
+  }) => {
+    await page.goto('/motion');
+    const filters = page.getByRole('group', { name: '분류로 보기' });
+    const chip = filters.getByRole('button', {
+      name: '마이크로 인터랙션',
+      exact: true,
+    });
+    await expect(chip).toBeVisible();
+    await chip.click();
+    const sections = page.locator('main section');
+    await expect(sections).toHaveCount(1);
+    await expect(sections).toHaveAccessibleName(/마이크로 인터랙션/);
+    await expect(
+      sections.getByText('CopyButton', { exact: true })
+    ).toBeVisible();
+  });
+
+  test('복사됨 카드가 효과 이름과 쓰는 곳을 보이고 누르면 상세로 간다', async ({
+    page,
+  }) => {
+    await page.goto('/motion');
+    const card = page.locator('main section > div > div').nth(3);
+    await expect(card.getByText('CopyButton', { exact: true })).toBeVisible();
+    await expect(card.getByText('코드 블록, 공유 링크')).toBeVisible();
+    await card.getByRole('link', { name: '복사됨' }).click();
+    await expect(page).toHaveURL(/\/motion\/copy-button$/);
   });
 
   test('움직임 멈춤을 켜면 완성 글자가 서고 끄면 다시 재생한다', async ({
@@ -232,6 +262,41 @@ test.describe('모션 전체 보기 물방울 검색창 미니 (1440px)', () => 
     await expect
       .poll(() => gooeyOpen(page), { timeout: 15_000, intervals: [100] })
       .toBe('false');
+  });
+});
+
+// 복사됨 미니: 보이지 않는 live 영역이 결과를 읽는다
+const copyResult = (page: Page) =>
+  page.locator('[data-stage-mini="CopyButton 미리보기"] [role="status"]');
+
+test.describe('모션 전체 보기 복사됨 미니 (1440px)', () => {
+  test.use({ viewport: { width: 1440, height: 900 } });
+
+  test('대본이 눌러 복사됨을 보이고 움직임 멈춤이면 서 있다', async ({
+    page,
+  }) => {
+    await page.goto('/motion');
+    // 미니는 절반 이상 보일 때만 돈다. 가장자리에 걸치지 않게 가운데로 가져온다
+    const centre = () =>
+      copyResult(page).evaluate((el) =>
+        el.closest('[data-stage-mini]')?.scrollIntoView({ block: 'center' })
+      );
+    await centre();
+    await expect(copyResult(page)).toHaveText('복사됨', { timeout: 15_000 });
+    await expect(copyResult(page)).toHaveText('', { timeout: 5_000 });
+
+    const pause = page.getByRole('button', { name: '움직임 멈춤' });
+    await pause.click();
+    await expect(pause).toHaveAttribute('aria-pressed', 'true');
+    await centre();
+    // 대본 한 바퀴보다 길게 기다려도 누르지 않는다
+    for (let i = 0; i < 50; i++) {
+      await expect(copyResult(page)).toHaveText('');
+      await page.waitForTimeout(100);
+    }
+    await pause.click();
+    await centre();
+    await expect(copyResult(page)).toHaveText('복사됨', { timeout: 15_000 });
   });
 });
 

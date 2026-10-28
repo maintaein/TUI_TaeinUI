@@ -143,6 +143,11 @@ const GooeySearchPage = lazy(() =>
     default: m.GooeySearchPage,
   }))
 );
+const CopyButtonPage = lazy(() =>
+  import('../pages/Motion/CopyButton').then((m) => ({
+    default: m.CopyButtonPage,
+  }))
+);
 const JellyTextPage = lazy(() =>
   import('../pages/Motion/JellyText').then((m) => ({
     default: m.JellyTextPage,
@@ -463,6 +468,14 @@ const router = createBrowserRouter([
             element: (
               <LazyPage>
                 <GooeySearchPage />
+              </LazyPage>
+            ),
+          },
+          {
+            path: 'copy-button',
+            element: (
+              <LazyPage>
+                <CopyButtonPage />
               </LazyPage>
             ),
           },

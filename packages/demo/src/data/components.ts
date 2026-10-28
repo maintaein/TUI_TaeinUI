@@ -4,6 +4,7 @@ import {
   ChevronsUpDown,
   CirclePlus,
   CircleUser,
+  ClipboardCheck,
   Columns3,
   Hash,
   Info,
@@ -342,6 +343,16 @@ export const motionData: MotionInfo[] = [
     usage: '헤더 검색, 도구 막대',
     category: 'component',
     icon: Search,
+  },
+  // Micro Interaction (1개)
+  {
+    name: 'CopyButton',
+    title: '복사됨',
+    path: '/motion/copy-button',
+    description: "누르면 아이콘이 체크로 접히고 글자가 '복사됨'으로 바뀝니다.",
+    usage: '코드 블록, 공유 링크',
+    category: 'micro',
+    icon: ClipboardCheck,
   },
 ];
 

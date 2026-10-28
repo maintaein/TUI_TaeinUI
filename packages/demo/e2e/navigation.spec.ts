@@ -24,8 +24,8 @@ test.describe('페이지 네비게이션', () => {
     const sidebar = page.getByRole('navigation', { name: '문서' });
     await expect(sidebar).toBeVisible();
     await expect(sidebar.locator('[aria-current="page"]')).toHaveText(/Button/);
-    // 시작 4개(소개, 시작하기, 전체 컴포넌트, 전체 모션) + UI 컴포넌트 25개 + 모션 3개(한글 조립, 젤리 글자, 물방울 검색창). 모션이 늘면 이 수도 늘린다
-    await expect(sidebar.getByRole('link')).toHaveCount(32);
+    // 시작 4개(소개, 시작하기, 전체 컴포넌트, 전체 모션) + UI 컴포넌트 25개 + 모션 4개(한글 조립, 젤리 글자, 물방울 검색창, 복사됨). 모션이 늘면 이 수도 늘린다
+    await expect(sidebar.getByRole('link')).toHaveCount(33);
   });
 
   test('404 페이지가 표시된다', async ({ page }) => {
