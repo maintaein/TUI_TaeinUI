@@ -17,6 +17,7 @@ import { visuallyHidden } from '../../_internal/visuallyHidden.css';
 import { gsapDuration, gsapEasing } from '../../tokens/gsapEasing';
 import { useReducedMotion } from '../../hooks/useReducedMotion';
 import { settleMotion } from '../../hooks/gateMotion';
+import { tailSpray, type Point } from './smokeTrail';
 import {
   root,
   crouch,
@@ -91,7 +92,7 @@ const MARK_AT = PREP + TAKEOFF;
 // 꼬리 연기가 밀려 나가는 속도(CSS px/초). 복제본의 실제 속도는 이륙 중 0에서 수천까지 변해 그대로 쓰면 연기가 들쭉날쭉하다.
 // 엔진을 처음 만들 때 꼬리 모양을 본 300~550의 가운데로 고정하고, 방향만 복제본 진행의 반대로 한다
 const SMOKE_SPEED = 400;
-// 이륙 터짐의 양(엔진 기본 1의 두 배): 흰 바탕에서 또렷하되 단추를 덮지 않는 선
+// 이륙 터짐의 양(엔진 기본 1의 절반): 2는 무대를 덮고 표지와 글자를 가렸다. 흰 바탕에서 또렷하되 단추를 덮지 않는 선
 const BURST_AMOUNT = 0.5;
 
 // 깃털 하나: 뿌리(0,100)에서 오른쪽으로 length만큼 뻗는 잎 모양
@@ -274,7 +275,6 @@ export const WingButton = forwardRef<HTMLButtonElement, WingButtonProps>(
       // 첫 생성이 동기로 최대 약 84ms 걸린다. 웅크림·날개 박자(이륙까지 0.6초) 앞에서 치러 첫 연기는 이륙 때 쓴다.
       // 엔진이 null(WebGL2 없음, 움직임 줄이기는 엔진이 스스로 거른다)이면 연기만 빠진다
       if (smoke) {
-        smokeRef.current?.dispose();
         smokeRef.current = createFluidSmoke({
           container: container ?? undefined,
         });
@@ -333,36 +333,18 @@ export const WingButton = forwardRef<HTMLButtonElement, WingButtonProps>(
         const feathers = body.querySelectorAll('[data-feather]');
         // 꼬리 분사: 이륙 중 매 프레임 복제본의 꼬리(진행 반대쪽 끝, 오른쪽 위로 날면 왼쪽 아래 모서리)에서 진행 반대로 뿜는다.
         // 진행 방향은 직전 프레임 중심과의 차로 구한다. 꼬리 점이 레이어 밖이면 뿜지 않는다
-        let last: { x: number; y: number } | null = null;
+        let last: Point | null = null;
         const trail = () => {
           const smokeNow = smokeRef.current;
           if (!smokeNow || timeline.time() < PREP) return;
-          const r = body.getBoundingClientRect();
-          const center = {
-            x: (r.left + r.right) / 2,
-            y: (r.top + r.bottom) / 2,
-          };
-          const before = last;
-          last = center;
-          if (!before) return;
-          const dx = center.x - before.x;
-          const dy = center.y - before.y;
-          const dist = Math.hypot(dx, dy);
-          const { bounds } = flight;
-          if (
-            dist < 0.5 ||
-            r.left < bounds.left ||
-            r.left > bounds.right ||
-            r.bottom < bounds.top ||
-            r.bottom > bounds.bottom
-          )
-            return;
-          smokeNow.emit(
-            r.left,
-            r.bottom,
-            (-dx / dist) * SMOKE_SPEED,
-            (-dy / dist) * SMOKE_SPEED
+          const { center, spray } = tailSpray(
+            body,
+            last,
+            flight.bounds,
+            SMOKE_SPEED
           );
+          last = center;
+          if (spray) smokeNow.emit(spray.x, spray.y, spray.vx, spray.vy);
         };
         timeline = gsap
           .timeline({ onComplete: done, onUpdate: trail })
