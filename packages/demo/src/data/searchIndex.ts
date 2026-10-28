@@ -600,4 +600,34 @@ export const searchIndex: SearchEntry[] = [
       },
     ],
   },
+  {
+    id: 'hold-button',
+    pageTitle: '꾹 눌러 확정',
+    path: '/motion/hold-button',
+    category: '모션',
+    description:
+      'HoldButton. 누르고 있는 동안 단추가 차오르고 다 차면 실행됩니다. 한 번 눌러 두고 다시 눌러도 됩니다. 꾹, 길게, 확정, 삭제, 결제, 초기화, hold.',
+    sections: [
+      {
+        title: '마이크로 인터랙션',
+        content:
+          '꾹 눌러 확정하는 단추. 누르고 있는 동안 안쪽이 왼쪽부터 차오르고 끝 구간에서 미세하게 떨리며, 다 차면 튕기며 체크가 나타나고 실행됩니다. 중간에 떼면 물 빠지듯 되감깁니다',
+      },
+      {
+        title: '실행은 onConfirm에',
+        content:
+          'onConfirm은 홀드를 다 채웠을 때와 두 번 눌러 확정의 두 번째 click에서 불립니다. 네이티브 onClick은 실행을 뜻하지 않습니다',
+      },
+      {
+        title: '접근성',
+        content:
+          '두 번 눌러 확정. click 한 번은 무장이 되어 글자가 confirmLabel로 바뀌고 role status가 알립니다. 무장에는 타이머가 없고 포커스가 빠지면 풀립니다. 홀드 시간은 1.5초로 고정입니다',
+      },
+      {
+        title: '움직임 줄이기',
+        content:
+          '움직임 줄이기에서는 누르는 시간은 같고, 차오름이 네 단계로 끊어 보입니다. 떨림과 튕김은 없습니다',
+      },
+    ],
+  },
 ];

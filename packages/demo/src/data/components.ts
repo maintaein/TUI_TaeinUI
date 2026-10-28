@@ -28,6 +28,7 @@ import {
   Tag,
   TextCursorInput,
   ToggleLeft,
+  Trash2,
   Waves,
   type LucideIcon,
 } from 'lucide-react';
@@ -345,7 +346,7 @@ export const motionData: MotionInfo[] = [
     category: 'component',
     icon: Search,
   },
-  // Micro Interaction (2개)
+  // Micro Interaction (3개)
   {
     name: 'CopyButton',
     title: '복사됨',
@@ -364,6 +365,16 @@ export const motionData: MotionInfo[] = [
     usage: '좋아요, 저장, 즐겨찾기',
     category: 'micro',
     icon: Heart,
+  },
+  {
+    name: 'HoldButton',
+    title: '꾹 눌러 확정',
+    path: '/motion/hold-button',
+    description:
+      '누르고 있는 동안 단추가 차오르고 다 차면 실행됩니다. 한 번 눌러 두고 다시 눌러도 됩니다.',
+    usage: '삭제, 결제, 초기화',
+    category: 'micro',
+    icon: Trash2,
   },
 ];
 

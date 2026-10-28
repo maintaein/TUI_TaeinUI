@@ -1,0 +1,1 @@
+export { HoldButtonPage } from './HoldButtonPage';

@@ -153,6 +153,11 @@ const BurstTogglePage = lazy(() =>
     default: m.BurstTogglePage,
   }))
 );
+const HoldButtonPage = lazy(() =>
+  import('../pages/Motion/HoldButton').then((m) => ({
+    default: m.HoldButtonPage,
+  }))
+);
 const JellyTextPage = lazy(() =>
   import('../pages/Motion/JellyText').then((m) => ({
     default: m.JellyTextPage,
@@ -489,6 +494,14 @@ const router = createBrowserRouter([
             element: (
               <LazyPage>
                 <BurstTogglePage />
+              </LazyPage>
+            ),
+          },
+          {
+            path: 'hold-button',
+            element: (
+              <LazyPage>
+                <HoldButtonPage />
               </LazyPage>
             ),
           },
