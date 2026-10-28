@@ -173,6 +173,11 @@ const CodeSlotsPage = lazy(() =>
     default: m.CodeSlotsPage,
   }))
 );
+const FanMenuPage = lazy(() =>
+  import('../pages/Motion/FanMenu').then((m) => ({
+    default: m.FanMenuPage,
+  }))
+);
 const JellyTextPage = lazy(() =>
   import('../pages/Motion/JellyText').then((m) => ({
     default: m.JellyTextPage,
@@ -541,6 +546,14 @@ const router = createBrowserRouter([
             element: (
               <LazyPage>
                 <CodeSlotsPage />
+              </LazyPage>
+            ),
+          },
+          {
+            path: 'fan-menu',
+            element: (
+              <LazyPage>
+                <FanMenuPage />
               </LazyPage>
             ),
           },

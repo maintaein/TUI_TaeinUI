@@ -1,0 +1,1 @@
+export { FanMenuPage } from './FanMenuPage';

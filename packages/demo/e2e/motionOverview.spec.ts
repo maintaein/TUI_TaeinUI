@@ -72,7 +72,7 @@ test.describe('모션 전체 보기', () => {
   }) => {
     await page.goto('/motion');
     await expect(
-      page.getByRole('heading', { level: 1, name: '모션 9개' })
+      page.getByRole('heading', { level: 1, name: '모션 10개' })
     ).toBeVisible();
     const sections = page.locator('main section');
     await expect(sections).toHaveCount(3);
@@ -220,6 +220,17 @@ test.describe('모션 전체 보기', () => {
     await expect(card.getByText('인증번호, PIN 입력')).toBeVisible();
     await card.getByRole('link', { name: '인증번호 슬롯' }).click();
     await expect(page).toHaveURL(/\/motion\/code-slots$/);
+  });
+
+  test('부채꼴 메뉴 카드가 효과 이름과 쓰는 곳을 보이고 누르면 상세로 간다', async ({
+    page,
+  }) => {
+    await page.goto('/motion');
+    const card = page.locator('main section > div > div').nth(9);
+    await expect(card.getByText('FanMenu', { exact: true })).toBeVisible();
+    await expect(card.getByText('빠른 작업, 공유 메뉴')).toBeVisible();
+    await card.getByRole('link', { name: '부채꼴 메뉴' }).click();
+    await expect(page).toHaveURL(/\/motion\/fan-menu$/);
   });
 
   test('움직임 멈춤을 켜면 완성 글자가 서고 끄면 다시 재생한다', async ({
@@ -553,6 +564,55 @@ test.describe('모션 전체 보기 인증번호 슬롯 미니 (1440px)', () => 
     await expect(slotsInput(page)).not.toHaveValue(frozen, {
       timeout: 15_000,
     });
+  });
+});
+
+// 부채꼴 메뉴 미니: 대본이 열고 호를 훑어 아이콘이 차례로 커지게 한 뒤 접는다
+const fanMini = (page: Page) =>
+  page.locator('[data-stage-mini="FanMenu 미리보기"]');
+const fanHub = (page: Page) => fanMini(page).locator('[aria-haspopup="menu"]');
+
+test.describe('모션 전체 보기 부채꼴 메뉴 미니 (1440px)', () => {
+  test.use({ viewport: { width: 1440, height: 900 } });
+
+  test('대본이 열고 호를 훑어 가리킴이 옮겨 가며 움직임 멈춤이면 서 있다', async ({
+    page,
+  }) => {
+    await page.goto('/motion');
+    const centre = () =>
+      fanMini(page).evaluate((el) => el.scrollIntoView({ block: 'center' }));
+    await centre();
+    await expect(fanHub(page)).toHaveAttribute('aria-expanded', 'true', {
+      timeout: 15_000,
+    });
+    // 훑는 동안 가리킨 아이콘이 생기고 이름표가 선다
+    await expect(fanMini(page).locator('[data-hot]')).toHaveCount(1, {
+      timeout: 8_000,
+    });
+
+    const pause = page.getByRole('button', { name: '움직임 멈춤' });
+    await pause.click();
+    await expect(pause).toHaveAttribute('aria-pressed', 'true');
+    await centre();
+    // 멈추기 직전에 예약된 누름이 끝나길 기다린 뒤의 자세가 그대로 서 있다
+    await page.waitForTimeout(600);
+    const snapshot = () =>
+      fanMini(page).evaluate((el) => ({
+        expanded: el
+          .querySelector('[aria-haspopup="menu"]')
+          ?.getAttribute('aria-expanded'),
+        hot: el.querySelector('[data-hot]')?.getAttribute('aria-label') ?? '',
+      }));
+    const frozen = await snapshot();
+    for (let i = 0; i < 40; i++) {
+      expect(await snapshot()).toEqual(frozen);
+      await page.waitForTimeout(100);
+    }
+    await pause.click();
+    await centre();
+    await expect
+      .poll(async () => JSON.stringify(await snapshot()), { timeout: 15_000 })
+      .not.toBe(JSON.stringify(frozen));
   });
 });
 

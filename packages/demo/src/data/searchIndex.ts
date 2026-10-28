@@ -719,4 +719,34 @@ export const searchIndex: SearchEntry[] = [
       },
     ],
   },
+  {
+    id: 'fan-menu',
+    pageTitle: '부채꼴 메뉴',
+    path: '/motion/fan-menu',
+    category: '모션',
+    description:
+      'FanMenu. 가운데 단추를 누르면 아이콘이 부채꼴로 차례차례 튀어나오고, 가리킨 쪽 아이콘이 커지며 이름표가 뜹니다. 부채꼴, 원형, 메뉴, 라디얼, radial, fan, 빠른 작업, 공유.',
+    sections: [
+      {
+        title: '마이크로 인터랙션',
+        content:
+          '가운데 허브를 누르면 아이콘이 위쪽 반원에 차례차례 튀어나오고 호를 따라 점선과 빛나는 선이 그려집니다. 마우스로 가리킨 쪽 아이콘이 커지며 이름표가 뜨고 아이콘을 누르면 번쩍인 뒤 접힙니다',
+      },
+      {
+        title: '자리는 소비자가 잡습니다',
+        content:
+          '항목은 2개에서 8개이고 늘 허브 위로 펼쳐집니다. 화면 가장자리 처리는 하지 않으므로 위와 좌우로 약 130px의 자리를 둬야 합니다',
+      },
+      {
+        title: '접근성',
+        content:
+          '메뉴 단추 패턴입니다. aria-haspopup과 aria-expanded, role=menu와 menuitem, 닫힌 동안 inert입니다. 키보드는 Enter와 Space와 위 화살표로 열고 화살표와 Home과 End로 호를 따라 이동하며 Esc로 접고 허브로 돌아옵니다. 터치는 방향 추적 없이 누른 아이콘이 선택됩니다',
+      },
+      {
+        title: '움직임 줄이기',
+        content:
+          '움직임 줄이기에서는 아이콘이 차례 없이 제자리에 바로 나타나고 사라집니다',
+      },
+    ],
+  },
 ];

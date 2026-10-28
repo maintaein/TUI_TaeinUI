@@ -20,6 +20,7 @@ import { HoldButtonDemo } from '../../pages/Motion/HoldButton/HoldButtonPage';
 import { StampButtonDemo } from '../../pages/Motion/StampButton/StampButtonPage';
 import { SloshGaugeDemo } from '../../pages/Motion/SloshGauge/SloshGaugePage';
 import { CodeSlotsDemo } from '../../pages/Motion/CodeSlots/CodeSlotsPage';
+import { FanMenuDemo } from '../../pages/Motion/FanMenu/FanMenuPage';
 import { GooeySearchDemo } from '../../pages/Motion/GooeySearch/GooeySearchPage';
 import { JellyTextDemo } from '../../pages/Motion/JellyText/JellyTextPage';
 import { LoaderDemo } from '../../pages/Components/Loader/LoaderPage';
@@ -71,4 +72,5 @@ export const DEMOS: Record<string, ComponentType<DemoProps>> = {
   StampButton: StampButtonDemo,
   SloshGauge: SloshGaugeDemo,
   CodeSlots: CodeSlotsDemo,
+  FanMenu: FanMenuDemo,
 };

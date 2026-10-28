@@ -29,6 +29,7 @@ import {
   TextCursorInput,
   ToggleLeft,
   Stamp,
+  Fan,
   Gauge,
   KeyRound,
   Trash2,
@@ -300,6 +301,8 @@ export const cardHeight: Record<string, number> = {
   Skeleton: 268,
   Card: 312,
   BoardRow: 366,
+  // 부채꼴이 허브 위로 약 130px 펼쳐지는 자리
+  FanMenu: 240,
 };
 
 // ─── 모션 ───────────────────────────────────────────────────────
@@ -349,7 +352,7 @@ export const motionData: MotionInfo[] = [
     category: 'component',
     icon: Search,
   },
-  // Micro Interaction (6개)
+  // Micro Interaction (7개)
   {
     name: 'CopyButton',
     title: '복사됨',
@@ -406,6 +409,16 @@ export const motionData: MotionInfo[] = [
     usage: '인증번호, PIN 입력',
     category: 'micro',
     icon: KeyRound,
+  },
+  {
+    name: 'FanMenu',
+    title: '부채꼴 메뉴',
+    path: '/motion/fan-menu',
+    description:
+      '가운데 단추를 누르면 아이콘이 부채꼴로 차례차례 튀어나오고, 가리킨 쪽 아이콘이 커지며 이름표가 뜹니다.',
+    usage: '빠른 작업, 공유 메뉴',
+    category: 'micro',
+    icon: Fan,
   },
 ];
 
