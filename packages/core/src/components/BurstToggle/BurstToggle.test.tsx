@@ -244,6 +244,32 @@ describe('BurstToggle', () => {
       expect(squash()).toBeUndefined();
     });
 
+    it('소비자가 onClick에서 preventDefault하면 상태를 바꿔도 터짐도 납작 트윈도 없다', () => {
+      const Prevented = () => {
+        const [selected, setSelected] = useState(false);
+        return (
+          <BurstToggle
+            aria-label="좋아요"
+            selected={selected}
+            selectedIcon={<On />}
+            onClick={(event) => {
+              event.preventDefault();
+              setSelected(!selected);
+            }}
+          >
+            <Off />
+          </BurstToggle>
+        );
+      };
+      const { container } = render(<Prevented />);
+      fireEvent.click(button());
+      expect(button()).toHaveAttribute('aria-pressed', 'true');
+      expect(dots(container)).toHaveLength(0);
+      fireEvent.click(button());
+      expect(button()).toHaveAttribute('aria-pressed', 'false');
+      expect(squash()).toBeUndefined();
+    });
+
     it('소비자가 상태를 바꾸면 그 렌더에서 점 8개가 터진다', () => {
       const { container } = render(<Controlled />);
       expect(dots(container)).toHaveLength(0);

@@ -76,6 +76,24 @@ describe('GooeySearch', () => {
       expect(trigger()).toHaveFocus();
     });
 
+    it('안쪽(children)이 Esc를 이미 처리했으면(preventDefault) 닫지 않고 포커스도 옮기지 않는다', () => {
+      const { onOpenChange } = setup({
+        children: (
+          <input
+            aria-label="결과 콤보"
+            onKeyDown={(event) => {
+              if (event.key === 'Escape') event.preventDefault();
+            }}
+          />
+        ),
+      });
+      const combo = screen.getByLabelText('결과 콤보');
+      combo.focus();
+      fireEvent.keyDown(combo, { key: 'Escape' });
+      expect(onOpenChange).not.toHaveBeenCalled();
+      expect(combo).toHaveFocus();
+    });
+
     it('닫혀 있으면 Esc를 들어 주지 않는다', () => {
       const { onOpenChange } = setup({ open: false });
       fireEvent.keyDown(document.body, { key: 'Escape' });

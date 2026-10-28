@@ -103,7 +103,8 @@ export const GooeySearch = forwardRef<HTMLDivElement, GooeySearchProps>(
           onOpenChangeRef.current(false, event);
       };
       const onKey = (event: KeyboardEvent) => {
-        if (event.key !== 'Escape') return;
+        // 안쪽(결과 목록의 combobox 등)이 이미 Esc를 처리했으면 열린 채 둔다
+        if (event.key !== 'Escape' || event.defaultPrevented) return;
         event.preventDefault();
         onOpenChangeRef.current(false, event);
         buttonRef.current?.focus();

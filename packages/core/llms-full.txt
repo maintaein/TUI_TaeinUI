@@ -1115,7 +1115,7 @@ const [query, setQuery] = useState('');
 ### Accessibility
 - The trigger is a button named by `openLabel` / `closeLabel` with `aria-expanded` and `aria-controls` pointing at the input. Put a shortcut hint in the name (for example 'Open search (Ctrl K)').
 - The input is `inert` while closed, so it is not reachable by keyboard or screen reader.
-- Esc closes and returns focus to the trigger. Selecting a result and where focus goes afterwards is yours to handle.
+- Esc closes and returns focus to the trigger, unless something inside (for example a combobox in `children`) already handled that Esc with `preventDefault()`. Selecting a result and where focus goes afterwards is yours to handle.
 - The combobox wiring is the consumer's: pass `role="combobox"`, `aria-expanded`, `aria-controls`, `aria-activedescendant` and the arrow/Enter keys through `inputProps`, and give the result list the matching roles.
 
 ---
@@ -1184,7 +1184,7 @@ import { Heart } from 'lucide-react';
 | selectedIcon | ReactNode | (required) | Icon shown while on |
 | children | ReactNode | (required) | Icon shown while off |
 | aria-label | string | (required) | Accessible name, the same in both states |
-| onClick | MouseEventHandler | - | Native click. Flip your state here |
+| onClick | MouseEventHandler | - | Native click. Flip your state here. `preventDefault()` there skips the burst and the press squash |
 | disabled | boolean | false | Disabled state; `onClick` is not called |
 | className | string | - | Additional CSS class (on the `<button>`) |
 | ref | Ref<HTMLButtonElement> | - | Forwarded to the `<button>` |

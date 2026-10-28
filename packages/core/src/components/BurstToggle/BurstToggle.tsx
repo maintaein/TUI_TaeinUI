@@ -174,6 +174,8 @@ export const BurstToggle = forwardRef<HTMLButtonElement, BurstToggleProps>(
 
     const handleClick = (event: MouseEvent<HTMLButtonElement>) => {
       onClick?.(event);
+      // 소비자가 막은 click은 다른 모션 단추처럼 우리 몫을 하지 않는다
+      if (event.defaultPrevented) return;
       const el = slotRef.current;
       if (!el) return;
       if (selected) {
