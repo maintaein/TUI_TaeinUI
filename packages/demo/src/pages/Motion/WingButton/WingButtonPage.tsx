@@ -41,6 +41,13 @@ const PROPS: PropDefinition[] = [
       '날개 단 단추가 날 레이어를 그릴 자리. 주면 그 상자 안에서 날고 상자 밖으로 나가며 잘립니다. 그 상자가 position의 기준(relative 등)이어야 하고 스크롤되지 않는 상자여야 합니다',
   },
   {
+    name: 'smoke',
+    type: 'boolean',
+    default: 'true',
+    description:
+      '이륙 때 터지고 꼬리를 따라 흩어지는 유체 연기. false면 연기 없이 납니다. WebGL2가 없거나 움직임 줄이기여도 연기만 빠지고 비행과 표지는 그대로입니다',
+  },
+  {
     name: 'onClick',
     type: 'MouseEventHandler<HTMLButtonElement>',
     description:
@@ -66,13 +73,13 @@ const PROPS: PropDefinition[] = [
 ];
 
 // 커서가 눌러 날려 보내고, 날아간 표지가 자리 잡을 때까지 보인 뒤 다시 시작한다. 단추를 새로 세우는 일을 맨 앞에 두어
-// 사용자가 만져 보낸 뒤에도 순서가 맞는다. 비행(약 1.4초)과 표지 떠오름(0.2초)이 끝난 뒤 잠깐 보인다
+// 사용자가 만져 보낸 뒤에도 순서가 맞는다. 비행(약 1.4초)과 표지 떠오름(0.2초)이 끝난 뒤 연기가 흩어질 때까지 보인다
 const SCRIPT = (act: Act, reset: () => void) => {
   act.call(reset);
   act.move('send');
   act.wait(0.3);
   act.press('send');
-  act.wait(2.4);
+  act.wait(3.6);
   act.home();
   act.wait(0.4);
 };
@@ -96,6 +103,7 @@ export function WingButtonDemo({ values = INITIAL, mini }: DemoProps) {
             key={round}
             data-stage-target="send"
             container={container}
+            smoke={!mini}
             sentLabel={String(values.sentLabel)}
             onClick={() => setSends((n) => n + 1)}
           >
@@ -187,7 +195,11 @@ function A11y() {
       </li>
       <li>
         움직임 줄이기에서는 날개와 비행 없이 단추가 &quot;보냈어요&quot;로
-        바뀝니다.
+        바뀝니다. 연기도 없습니다.
+      </li>
+      <li>
+        연기는 <code>aria-hidden</code>이고 포인터를 가로채지 않는 장식
+        캔버스입니다. 연기를 끄거나 WebGL2가 없어도 알림과 포커스는 같습니다.
       </li>
       <li>
         개발자가 직접 해야 합니다. 날아간 것은 &quot;눌렀다&quot;는 피드백일 뿐

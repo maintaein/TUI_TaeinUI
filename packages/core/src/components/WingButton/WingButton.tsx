@@ -12,6 +12,7 @@ import { createPortal } from 'react-dom';
 import { gsap } from 'gsap';
 import { Button } from '../Button';
 import { Glyph } from '../../_internal/glyph';
+import { createFluidSmoke, type FluidSmoke } from '../../_internal/fluidSmoke';
 import { visuallyHidden } from '../../_internal/visuallyHidden.css';
 import { gsapDuration, gsapEasing } from '../../tokens/gsapEasing';
 import { useReducedMotion } from '../../hooks/useReducedMotion';
@@ -43,6 +44,11 @@ export interface WingButtonProps extends Omit<
    * 기준(`relative` 등)이어야 하고 스크롤되는 상자는 지원하지 않는다.
    */
   container?: HTMLElement | null;
+  /**
+   * 이륙 때 터지고 꼬리를 따라 흩어지는 유체 연기(WebGL2). 끄면 연기 없이 날고, WebGL2가 없거나 움직임 줄이기여도
+   * 연기만 빠진다. 캔버스와 셰이더뿐이라 엄격한 CSP와 무관하다 @default true
+   */
+  smoke?: boolean;
   /** 비활성화 상태. 비활성이면 웅크리지도 날지도 않는다 @default false */
   disabled?: boolean;
 }
@@ -82,6 +88,11 @@ const UNFURL = gsapDuration.base - UNFURL_STAGGER * (FEATHERS.length - 1);
 const ROOT = '0 100';
 // 표지는 날아간 뒤(이륙이 끝나는 순간)에 떠오른다. 그 순간 복제본 레이어도 걷고 알림 글도 넣는다.
 const MARK_AT = PREP + TAKEOFF;
+// 꼬리 연기가 밀려 나가는 속도(CSS px/초). 복제본의 실제 속도는 이륙 중 0에서 수천까지 변해 그대로 쓰면 연기가 들쭉날쭉하다.
+// 엔진을 처음 만들 때 꼬리 모양을 본 300~550의 가운데로 고정하고, 방향만 복제본 진행의 반대로 한다
+const SMOKE_SPEED = 400;
+// 이륙 터짐의 양(엔진 기본 1의 두 배): 흰 바탕에서 또렷하되 단추를 덮지 않는 선
+const BURST_AMOUNT = 0.5;
 
 // 깃털 하나: 뿌리(0,100)에서 오른쪽으로 length만큼 뻗는 잎 모양
 const featherPath = (length: number) =>
@@ -95,6 +106,8 @@ interface Flight {
   height: number;
   dx: number;
   dy: number;
+  /** 레이어(창 또는 container 안쪽 상자)의 창 좌표 사각형. 이 밖에는 연기를 뿜지 않는다 */
+  bounds: { left: number; top: number; right: number; bottom: number };
 }
 
 interface Launch {
@@ -128,11 +141,13 @@ const measureFlight = (
   let originX = 0;
   let originY = 0;
   let width = document.documentElement.clientWidth;
+  let height = document.documentElement.clientHeight;
   if (container) {
     const box = container.getBoundingClientRect();
     originX = box.left + container.clientLeft;
     originY = box.top + container.clientTop;
     width = container.clientWidth;
+    height = container.clientHeight;
   }
   const left = rect.left - originX;
   const top = rect.top - originY;
@@ -149,6 +164,12 @@ const measureFlight = (
     height: rect.height,
     dx: distance,
     dy: -distance,
+    bounds: {
+      left: originX,
+      top: originY,
+      right: originX + width,
+      bottom: originY + height,
+    },
   };
 };
 
@@ -166,6 +187,7 @@ export const WingButton = forwardRef<HTMLButtonElement, WingButtonProps>(
       children,
       sentLabel = '보냈어요',
       container,
+      smoke = true,
       disabled = false,
       onClick,
       onPointerDown,
@@ -186,6 +208,8 @@ export const WingButton = forwardRef<HTMLButtonElement, WingButtonProps>(
     const wingLeftRef = useRef<HTMLSpanElement>(null);
     const wingRightRef = useRef<HTMLSpanElement>(null);
     const timelineRef = useRef<gsap.core.Timeline>(null);
+    // 연기는 비행(flying)에 묶지 않는다. 레이어가 걷힌 뒤에도 엔진 수명대로 흩어지고 언마운트에서만 끊는다
+    const smokeRef = useRef<FluidSmoke | null>(null);
     const crouched = useRef(false);
 
     // 웅크림을 되감는다. 눌림이 없었으면 아무 일도 없다
@@ -247,6 +271,14 @@ export const WingButton = forwardRef<HTMLButtonElement, WingButtonProps>(
       crouched.current = false;
       gsap.killTweensOf(el);
       gsap.set(el, { clearProps: 'transform' });
+      // 첫 생성이 동기로 최대 약 84ms 걸린다. 웅크림·날개 박자(이륙까지 0.6초) 앞에서 치러 첫 연기는 이륙 때 쓴다.
+      // 엔진이 null(WebGL2 없음, 움직임 줄이기는 엔진이 스스로 거른다)이면 연기만 빠진다
+      if (smoke) {
+        smokeRef.current?.dispose();
+        smokeRef.current = createFluidSmoke({
+          container: container ?? undefined,
+        });
+      }
       const button = event.currentTarget;
       setLaunch({
         focused: button.ownerDocument.activeElement === button,
@@ -299,8 +331,41 @@ export const WingButton = forwardRef<HTMLButtonElement, WingButtonProps>(
         gsap.set(wrap, { autoAlpha: 0 });
         gsap.set(body, CROUCH);
         const feathers = body.querySelectorAll('[data-feather]');
+        // 꼬리 분사: 이륙 중 매 프레임 복제본의 꼬리(진행 반대쪽 끝, 오른쪽 위로 날면 왼쪽 아래 모서리)에서 진행 반대로 뿜는다.
+        // 진행 방향은 직전 프레임 중심과의 차로 구한다. 꼬리 점이 레이어 밖이면 뿜지 않는다
+        let last: { x: number; y: number } | null = null;
+        const trail = () => {
+          const smokeNow = smokeRef.current;
+          if (!smokeNow || timeline.time() < PREP) return;
+          const r = body.getBoundingClientRect();
+          const center = {
+            x: (r.left + r.right) / 2,
+            y: (r.top + r.bottom) / 2,
+          };
+          const before = last;
+          last = center;
+          if (!before) return;
+          const dx = center.x - before.x;
+          const dy = center.y - before.y;
+          const dist = Math.hypot(dx, dy);
+          const { bounds } = flight;
+          if (
+            dist < 0.5 ||
+            r.left < bounds.left ||
+            r.left > bounds.right ||
+            r.bottom < bounds.top ||
+            r.bottom > bounds.bottom
+          )
+            return;
+          smokeNow.emit(
+            r.left,
+            r.bottom,
+            (-dx / dist) * SMOKE_SPEED,
+            (-dy / dist) * SMOKE_SPEED
+          );
+        };
         timeline = gsap
-          .timeline({ onComplete: done })
+          .timeline({ onComplete: done, onUpdate: trail })
           // 웅크림을 풀며 날개가 돋는다
           .to(
             body,
@@ -378,6 +443,19 @@ export const WingButton = forwardRef<HTMLButtonElement, WingButtonProps>(
             { scale: FAR_SCALE, duration: TAKEOFF, ease: gsapEasing.linear },
             PREP
           )
+          // 이륙 터짐: 움직이기 시작하는 순간 복제본 아래 가운데(단추 아래 가장자리)에서 한 번
+          .call(
+            () => {
+              const r = body.getBoundingClientRect();
+              smokeRef.current?.burst(
+                (r.left + r.right) / 2,
+                r.bottom,
+                BURST_AMOUNT
+              );
+            },
+            [],
+            PREP
+          )
           .call(done, [], MARK_AT)
           .to(
             label,
@@ -407,6 +485,7 @@ export const WingButton = forwardRef<HTMLButtonElement, WingButtonProps>(
       const el = crouchRef.current;
       return () => {
         if (el) gsap.killTweensOf(el);
+        smokeRef.current?.dispose();
       };
     }, []);
 

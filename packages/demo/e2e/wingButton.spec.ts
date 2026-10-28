@@ -288,6 +288,153 @@ test.describe('날개 전송 상세 (1440px)', () => {
   });
 });
 
+test.describe('날개 전송 상세 유체 연기 (1440px)', () => {
+  test.use({ viewport: { width: 1440, height: 900 } });
+
+  test('WebGL2와 float 렌더 확장이 있다(없으면 연기 없는 길로 조용히 통과하지 않게 실패한다)', async ({
+    page,
+  }) => {
+    await page.goto('/motion/wing-button');
+    const support = await page.evaluate(() => {
+      const gl = document.createElement('canvas').getContext('webgl2');
+      const floatRender = !!(
+        gl?.getExtension('EXT_color_buffer_float') ||
+        gl?.getExtension('EXT_color_buffer_half_float')
+      );
+      gl?.getExtension('WEBGL_lose_context')?.loseContext();
+      return { webgl2: !!gl, floatRender };
+    });
+    expect(support).toEqual({ webgl2: true, floatRender: true });
+  });
+
+  test('비행 중 무대 안 연기 canvas에 알파가 생기고 복제본 뒤에 깔리며, 표지가 뜬 뒤에도 남았다 사라진다', async ({
+    page,
+  }) => {
+    test.setTimeout(60_000);
+    await open(page);
+    // 관찰은 모두 한 evaluate 안에서 한다(병렬 부하에서 왕복이 수 초 걸린다).
+    // 연기 canvas는 preserveDrawingBuffer 없이 만들어지므로 엔진이 그린 같은 프레임의 rAF에서 읽어야 한다
+    const result = await send(page).evaluate(async (button) => {
+      const region = button.closest('[role="region"]') as HTMLElement;
+      const copy = document.createElement('canvas');
+      const alphaOf = (canvas: HTMLCanvasElement) => {
+        copy.width = canvas.width;
+        copy.height = canvas.height;
+        const ctx = copy.getContext('2d')!;
+        ctx.drawImage(canvas, 0, 0);
+        const { data } = ctx.getImageData(0, 0, copy.width, copy.height);
+        let n = 0;
+        for (let i = 3; i < data.length; i += 4) if (data[i] > 0) n += 1;
+        return n;
+      };
+      const frame = () =>
+        new Promise((r) => requestAnimationFrame(() => r(null)));
+      const t0 = performance.now();
+      (button as HTMLButtonElement).click();
+      const found = {
+        canvasInRegion: false,
+        insideStage: false,
+        behindClone: false,
+        alphaWhileFlying: 0,
+        alphaAfterLayerGone: 0,
+        canvasAfterMark: false,
+        goneAt: 0,
+        onBody: false,
+      };
+      let layerWasUp = false;
+      let n = 0;
+      while (performance.now() - t0 < 12_000) {
+        await frame();
+        n += 1;
+        const canvas = region.querySelector('canvas');
+        const layer = document.querySelector('[data-wing-layer]');
+        found.onBody ||= !!document.body.querySelector(':scope > canvas');
+        if (layer) layerWasUp = true;
+        if (canvas) {
+          found.canvasInRegion = true;
+          const c = canvas.getBoundingClientRect();
+          const r = region.getBoundingClientRect();
+          found.insideStage ||=
+            c.left >= r.left - 1 &&
+            c.right <= r.right + 1 &&
+            c.top >= r.top - 1 &&
+            c.bottom <= r.bottom + 1;
+          if (layer) {
+            found.behindClone ||=
+              Number(getComputedStyle(canvas).zIndex) <
+              Number(getComputedStyle(layer).zIndex);
+          }
+          if (n % 3 === 0) {
+            const a = alphaOf(canvas);
+            if (layer)
+              found.alphaWhileFlying = Math.max(found.alphaWhileFlying, a);
+            else if (layerWasUp)
+              found.alphaAfterLayerGone = Math.max(
+                found.alphaAfterLayerGone,
+                a
+              );
+          }
+          if (layerWasUp && !layer) found.canvasAfterMark = true;
+        } else if (layerWasUp && !layer) {
+          found.goneAt = performance.now() - t0;
+          break;
+        }
+      }
+      return found;
+    });
+    expect(result.canvasInRegion).toBe(true);
+    // 창 전체(body)가 아니라 무대 안에 갇힌다
+    expect(result.insideStage).toBe(true);
+    expect(result.onBody).toBe(false);
+    expect(result.behindClone).toBe(true);
+    expect(result.alphaWhileFlying).toBeGreaterThan(0);
+    // 레이어가 걷히고 표지가 뜬 뒤에도 연기는 남아 흩어지다 사라진다
+    expect(result.canvasAfterMark).toBe(true);
+    expect(result.alphaAfterLayerGone).toBeGreaterThan(0);
+    expect(result.goneAt).toBeGreaterThan(0);
+    await expect(mark(page)).toHaveCSS('opacity', '1');
+    await expect(stage(page).locator('canvas')).toHaveCount(0);
+  });
+
+  test('다시 단추로 열 번 되풀이해도 문맥이 쌓이지 않는다', async ({
+    page,
+  }) => {
+    test.setTimeout(90_000);
+    const warnings: string[] = [];
+    page.on('console', (m) => {
+      if (m.text().includes('Too many active WebGL contexts'))
+        warnings.push(m.text());
+    });
+    await open(page);
+    const leftovers = await stage(page).evaluate(async (region) => {
+      const frame = () =>
+        new Promise((r) => requestAnimationFrame(() => r(null)));
+      const wait = async (ms: number) => {
+        const t = performance.now();
+        while (performance.now() - t < ms) await frame();
+      };
+      const buttons = (name: string) =>
+        [...region.querySelectorAll('button')].find(
+          (b) => b.textContent?.trim() === name
+        ) as HTMLButtonElement;
+      const counts: number[] = [];
+      for (let i = 0; i < 10; i++) {
+        buttons('보내기').click();
+        // 이륙 때 연기가 터진 뒤(0.6초) 되돌린다
+        await wait(900);
+        buttons('다시').click();
+        await wait(100);
+        counts.push(region.querySelectorAll('canvas').length);
+      }
+      return counts;
+    });
+    // 되돌리면(언마운트) 연기 canvas가 바로 떨어진다
+    expect(leftovers).toEqual(Array(10).fill(0));
+    await page.waitForTimeout(1000);
+    expect(warnings).toEqual([]);
+  });
+});
+
 test.describe('날개 전송 상세 움직임 줄이기 (1440px)', () => {
   test.use({ viewport: { width: 1440, height: 900 } });
 

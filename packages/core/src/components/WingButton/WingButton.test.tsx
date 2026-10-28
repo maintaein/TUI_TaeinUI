@@ -596,4 +596,51 @@ describe('WingButton', () => {
       expect(markOf(container)).toHaveStyle({ opacity: '1' });
     });
   });
+
+  // jsdom에는 WebGL이 없어 엔진은 늘 null이다. 목을 쓰지 않고 "엔진이 문맥을 얻으려 했는가"를 canvas.getContext('webgl2')
+  // 호출로 본다(WebGL2RenderingContext만 있는 것으로 보이게 하고 getContext는 jsdom처럼 null을 돌려준다).
+  describe('유체 연기', () => {
+    const contextAttempts = () => {
+      vi.stubGlobal('WebGL2RenderingContext', class {});
+      return vi
+        .spyOn(HTMLCanvasElement.prototype, 'getContext')
+        .mockImplementation(() => null);
+    };
+    afterEach(() => {
+      vi.restoreAllMocks();
+    });
+
+    it('click 확정 때 엔진을 한 번 만들려 하고, 엔진이 null이어도 비행과 표지는 그대로다', () => {
+      const attempts = contextAttempts();
+      const { container } = render(<WingButton>보내기</WingButton>);
+      expect(attempts).not.toHaveBeenCalled();
+      fireEvent.click(button());
+      expect(attempts).toHaveBeenCalledTimes(1);
+      expect(attempts).toHaveBeenCalledWith('webgl2', expect.anything());
+      expect(layerOf()).not.toBeNull();
+      const tl = hostOf(container).__wingTimeline as gsap.core.Timeline;
+      finish(tl);
+      expect(layerOf()).toBeNull();
+      expect(markOf(container)).toHaveStyle({ opacity: '1' });
+    });
+
+    it('smoke={false}면 엔진을 만들려 하지 않고 비행은 그대로다', () => {
+      const attempts = contextAttempts();
+      render(<WingButton smoke={false}>보내기</WingButton>);
+      fireEvent.click(button());
+      expect(attempts).not.toHaveBeenCalled();
+      expect(layerOf()).not.toBeNull();
+    });
+
+    it('소비자 onClick이 막으면 엔진을 만들지 않는다', () => {
+      const attempts = contextAttempts();
+      render(
+        <WingButton onClick={(event) => event.preventDefault()}>
+          보내기
+        </WingButton>
+      );
+      fireEvent.click(button());
+      expect(attempts).not.toHaveBeenCalled();
+    });
+  });
 });

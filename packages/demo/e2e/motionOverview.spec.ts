@@ -646,6 +646,8 @@ test.describe('모션 전체 보기 날개 전송 미니 (1440px)', () => {
       timeout: 15_000,
     });
     await expect(wingMini(page).locator('[data-wing-mark]')).toHaveCount(1);
+    // 미니는 연기를 끈다(문맥 스물다섯 개가 한 화면에 뜨지 않게). 비행 중에도 연기 canvas가 없다
+    await expect(page.locator('canvas')).toHaveCount(0);
 
     const pause = page.getByRole('button', { name: '움직임 멈춤' });
     await pause.click();
