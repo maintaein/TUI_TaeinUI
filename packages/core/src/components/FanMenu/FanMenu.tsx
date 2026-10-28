@@ -142,7 +142,8 @@ export const FanMenu = forwardRef<HTMLButtonElement, FanMenuProps>(
       }
     }, [open, active]);
 
-    // 바깥 pointerdown으로 접힌다. 정밀 포인터에서는 가운데에서 포인터까지의 방향으로 가리킴을 따라간다.
+    // 바깥을 누르면 접힌다. pointerdown이 아니라 mousedown인 것은 Popover와 같은 까닭이다: 데모 무대의 다른 대본이 합성 pointerdown만 쏴도 이 메뉴가 접히지 않는다(진짜 마우스와 터치 탭은 mousedown도 낸다).
+    // 정밀 포인터에서는 가운데에서 포인터까지의 방향으로 가리킴을 따라간다.
     // 이벤트의 isTrusted는 거르지 않는다(데모 대본이 합성 이벤트를 쏜다).
     useEffect(() => {
       if (!open) return;
@@ -162,10 +163,10 @@ export const FanMenu = forwardRef<HTMLButtonElement, FanMenuProps>(
           )
         );
       };
-      document.addEventListener('pointerdown', onDown);
+      document.addEventListener('mousedown', onDown);
       if (fine) document.addEventListener('pointermove', onMove);
       return () => {
-        document.removeEventListener('pointerdown', onDown);
+        document.removeEventListener('mousedown', onDown);
         document.removeEventListener('pointermove', onMove);
       };
     }, [open, fine, count, closeMenu]);

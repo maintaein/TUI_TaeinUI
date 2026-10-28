@@ -279,12 +279,16 @@ describe('FanMenu', () => {
       expect(container.querySelector('[class*="flash"][data-on]')).toBeNull();
     });
 
-    it('바깥 pointerdown으로 접히고 안쪽 pointerdown으로는 접히지 않는다', async () => {
+    it('바깥 mousedown으로 접히고 안쪽 mousedown으로는 접히지 않으며 pointerdown만으로는 접히지 않는다', async () => {
       const { hub } = setup();
       await userEvent.click(hub);
-      pointer('pointerdown', 0, 0, hub);
+      const outside = screen.getByRole('button', { name: '뒤' });
+      pointer('mousedown', 0, 0, hub);
       expect(hub).toHaveAttribute('aria-expanded', 'true');
-      pointer('pointerdown', 0, 0, screen.getByRole('button', { name: '뒤' }));
+      // 다른 데모 대본의 합성 pointerdown은 메뉴를 접지 않는다
+      pointer('pointerdown', 0, 0, outside);
+      expect(hub).toHaveAttribute('aria-expanded', 'true');
+      pointer('mousedown', 0, 0, outside);
       expect(hub).toHaveAttribute('aria-expanded', 'false');
     });
   });

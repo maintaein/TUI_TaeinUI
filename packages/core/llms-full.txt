@@ -1400,7 +1400,7 @@ Other native button attributes are passed to the hub, except `children`, `type` 
 ### Accessibility
 - Menu button pattern: the hub has `aria-haspopup="menu"`, `aria-expanded` and `aria-controls`; the items are in `role="menu"` (named after the hub) as `role="menuitem"` with roving tabindex. The menu is `inert` while closed and while closing, so closed items are not in the tab order or the accessibility tree.
 - Opening with Enter, Space or ArrowUp focuses the first item; opening with the mouse keeps focus on the hub.
-- All four arrow keys move along the arc (wrapping at the ends); Home and End go to the ends. Esc folds and returns focus to the hub. Tab and a pointerdown outside fold without moving focus.
+- All four arrow keys move along the arc (wrapping at the ends); Home and End go to the ends. Esc folds and returns focus to the hub. Tab and a mousedown outside fold without moving focus.
 - A focused icon grows and shows its tag like a pointed one. The tag is an `aria-hidden` decoration (the item's accessible name is its `label`), closes with Esc, stays when the pointer moves onto it and never disappears on its own (WCAG 1.4.13).
 - Items are 44px, at least 24x24, and do not overlap.
 - Reduced motion: no stagger, guide drawing or flash. Items appear and disappear in place at once, and the pointed icon grows without a size transition.
