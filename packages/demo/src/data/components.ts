@@ -25,6 +25,7 @@ import {
   Tag,
   TextCursorInput,
   ToggleLeft,
+  Waves,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -311,7 +312,7 @@ export interface MotionInfo {
 }
 
 export const motionData: MotionInfo[] = [
-  // Text Animation (1개)
+  // Text Animation (2개)
   {
     name: 'HangulAssemble',
     title: '한글 조립',
@@ -320,6 +321,15 @@ export const motionData: MotionInfo[] = [
     usage: '첫 화면 소개 문장, 섹션 제목',
     category: 'text',
     icon: Languages,
+  },
+  {
+    name: 'JellyText',
+    title: '젤리 글자',
+    path: '/motion/jelly-text',
+    description: '커서가 지나가는 글자가 말랑하게 늘었다 출렁이며 돌아옵니다.',
+    usage: '히어로 문구, 브랜드 슬로건',
+    category: 'text',
+    icon: Waves,
   },
 ];
 

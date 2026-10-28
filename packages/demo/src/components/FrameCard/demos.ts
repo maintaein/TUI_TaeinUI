@@ -14,6 +14,7 @@ import { HeaderBarDemo } from '../../pages/Components/HeaderBar/HeaderBarPage';
 import { IconButtonDemo } from '../../pages/Components/IconButton/IconButtonPage';
 import { ListDemo } from '../../pages/Components/List/ListPage';
 import { HangulAssembleDemo } from '../../pages/Motion/HangulAssemble/HangulAssemblePage';
+import { JellyTextDemo } from '../../pages/Motion/JellyText/JellyTextPage';
 import { LoaderDemo } from '../../pages/Components/Loader/LoaderPage';
 import { ModalDemo } from '../../pages/Components/Modal/ModalPage';
 import { NumericSpinnerDemo } from '../../pages/Components/NumericSpinner/NumericSpinnerPage';
@@ -55,4 +56,5 @@ export const DEMOS: Record<string, ComponentType<DemoProps>> = {
   Chip: ChipDemo,
   Card: CardDemo,
   HangulAssemble: HangulAssembleDemo,
+  JellyText: JellyTextDemo,
 };

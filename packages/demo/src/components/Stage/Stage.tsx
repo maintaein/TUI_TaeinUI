@@ -32,6 +32,12 @@ export interface Act {
    * 넘겨받았다 이어 가도 열림과 닫힘 순서가 어긋나지 않게 한다
    */
   call: (fn: () => void) => void;
+  /**
+   * 커서를 대상의 왼쪽 끝으로 옮기고 오른쪽 끝까지 훑어 지나가며, 커서 자리마다 합성 pointermove를 쏜다
+   * (시작에 pointerover, 끝에 pointerout). 대상은 포인터 핸들러가 달린 요소 하나이거나 그것 하나만 감싼 상자다.
+   * 커서 자리를 읽는 JellyText 같은 컴포넌트용이다
+   */
+  sweep: (target: string, seconds?: number) => void;
   /** 커서를 무대 안 쉬는 자리로 되돌린다 */
   home: (seconds?: number) => void;
   /** 대상에 포커스를 준다(다른 곳에 포커스가 있으면 뺏지 않는다) */
@@ -196,7 +202,13 @@ const fireMouse = (
 
 const firePointer = (
   el: Element | null,
-  type: 'pointerdown' | 'pointerup' | 'pointerover' | 'pointerout'
+  type:
+    | 'pointerdown'
+    | 'pointerup'
+    | 'pointerover'
+    | 'pointerout'
+    | 'pointermove',
+  at?: { clientX: number; clientY: number }
 ) =>
   el?.dispatchEvent(
     new PointerEvent(type, {
@@ -207,6 +219,7 @@ const firePointer = (
       isPrimary: true,
       button: 0,
       buttons: type === 'pointerdown' ? 1 : 0,
+      ...at,
     })
   );
 
@@ -509,6 +522,45 @@ export function Stage({
             },
             onComplete: drop,
           });
+      },
+      sweep: (target, seconds = dur.slower * 3) => {
+        // 훑는 줄: 대상의 가운데 높이, 좌우 끝에서 4% 안쪽. 대상 위치는 반복마다 다시 잰다
+        const edge = (f: number) => {
+          const t = find(target)?.getBoundingClientRect();
+          const r = root.getBoundingClientRect();
+          return t
+            ? {
+                x: t.left - r.left + t.width * f,
+                y: t.top - r.top + t.height / 2,
+              }
+            : { x: 0, y: 0 };
+        };
+        // 합성 이벤트는 대상 안쪽 첫 요소(핸들러가 달린 요소)로 쏜다
+        const receiver = () => {
+          const box = find(target);
+          return box?.firstElementChild ?? box ?? null;
+        };
+        tl.to(cur, {
+          x: () => edge(0.04).x,
+          y: () => edge(0.04).y,
+          duration: dur.slow * 2,
+          ease: ease.settle,
+        })
+          .call(() => firePointer(receiver(), 'pointerover'))
+          .to(cur, {
+            x: () => edge(0.96).x,
+            y: () => edge(0.96).y,
+            duration: seconds,
+            ease: ease.drift,
+            onUpdate: () => {
+              const r = root.getBoundingClientRect();
+              firePointer(receiver(), 'pointermove', {
+                clientX: r.left + Number(gsap.getProperty(cur, 'x')),
+                clientY: r.top + Number(gsap.getProperty(cur, 'y')),
+              });
+            },
+          })
+          .call(() => firePointer(receiver(), 'pointerout'));
       },
       home: (seconds = dur.slow * 2) => {
         tl.to(cur, {

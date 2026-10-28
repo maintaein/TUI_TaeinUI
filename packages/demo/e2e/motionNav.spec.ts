@@ -22,6 +22,16 @@ test.describe('모션 계열 사이드바 (1280px)', () => {
     await expect(nav.locator('[aria-current="page"]')).toHaveText(/한글 조립/);
   });
 
+  test('텍스트 애니메이션 묶음에 젤리 글자 링크도 있다', async ({ page }) => {
+    await page.goto('/components/button');
+    const nav = page.getByRole('navigation', { name: '문서' });
+    const link = nav.getByRole('link', { name: /젤리 글자/ });
+    await expect(link).toHaveAttribute('href', '/motion/jelly-text');
+    await link.click();
+    await expect(page).toHaveURL(/\/motion\/jelly-text$/);
+    await expect(nav.locator('[aria-current="page"]')).toHaveText(/젤리 글자/);
+  });
+
   test('항목이 없는 분류는 사이드바에 없다', async ({ page }) => {
     await page.goto('/motion/hangul-assemble');
     const nav = page.getByRole('navigation', { name: '문서' });
@@ -67,6 +77,24 @@ test.describe('모션 검색', () => {
       await expect(page.getByRole('listbox')).toContainText('모션');
       await option.click();
       await expect(page).toHaveURL(/\/motion\/hangul-assemble$/);
+    });
+  }
+});
+
+test.describe('젤리 글자 검색', () => {
+  test.use({ viewport: { width: 1280, height: 800 } });
+
+  for (const term of ['젤리 글자', '말랑', '출렁', '젤리', 'JellyText']) {
+    test(`"${term}"로 찾아 이동한다`, async ({ page }) => {
+      await page.goto('/');
+      await page.keyboard.press('Control+k');
+      const input = page.getByRole('combobox', { name: '검색' });
+      await input.fill(term);
+      const option = page.getByRole('option', { name: /젤리 글자/ });
+      await expect(option).toBeVisible();
+      await expect(page.getByRole('listbox')).toContainText('모션');
+      await option.click();
+      await expect(page).toHaveURL(/\/motion\/jelly-text$/);
     });
   }
 });

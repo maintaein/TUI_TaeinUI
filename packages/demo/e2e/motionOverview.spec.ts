@@ -72,7 +72,7 @@ test.describe('모션 전체 보기', () => {
   }) => {
     await page.goto('/motion');
     await expect(
-      page.getByRole('heading', { level: 1, name: '모션 1개' })
+      page.getByRole('heading', { level: 1, name: '모션 2개' })
     ).toBeVisible();
     const sections = page.locator('main section');
     await expect(sections).toHaveCount(1);
@@ -89,6 +89,18 @@ test.describe('모션 전체 보기', () => {
     await expect(card.getByText('첫 화면 소개 문장, 섹션 제목')).toBeVisible();
     await card.getByRole('link', { name: '한글 조립' }).click();
     await expect(page).toHaveURL(/\/motion\/hangul-assemble$/);
+  });
+
+  test('젤리 글자 카드가 효과 이름과 쓰는 곳을 보이고 누르면 상세로 간다', async ({
+    page,
+  }) => {
+    await page.goto('/motion');
+    await expect(page.locator('main section')).toHaveCount(1);
+    const card = page.locator('main section > div > div').nth(1);
+    await expect(card.getByText('JellyText', { exact: true })).toBeVisible();
+    await expect(card.getByText('히어로 문구, 브랜드 슬로건')).toBeVisible();
+    await card.getByRole('link', { name: '젤리 글자' }).click();
+    await expect(page).toHaveURL(/\/motion\/jelly-text$/);
   });
 
   test('움직임 멈춤을 켜면 완성 글자가 서고 끄면 다시 재생한다', async ({
@@ -109,6 +121,39 @@ test.describe('모션 전체 보기', () => {
     await expect(pause).toHaveAttribute('aria-pressed', 'false');
     await expect.poll(() => minGlyphOpacity(page)).toBeLessThan(1);
     await expect.poll(() => minGlyphOpacity(page)).toBe(1);
+  });
+});
+
+// 젤리 글자 미니: 글자 칸 중 하나라도 단위 행렬이 아니면 출렁이는 중이다
+const jellyMoving = (page: Page) =>
+  page
+    .locator('[data-stage-mini] [data-jelly-cell]')
+    .evaluateAll((els) =>
+      els.some(
+        (el) => !new DOMMatrix(getComputedStyle(el).transform).isIdentity
+      )
+    );
+
+test.describe('모션 전체 보기 젤리 글자 미니 (1440px)', () => {
+  test.use({ viewport: { width: 1440, height: 900 } });
+
+  test('움직임 멈춤이면 대본의 커서가 서서 글자가 출렁이지 않고 끄면 다시 출렁인다', async ({
+    page,
+  }) => {
+    await page.goto('/motion');
+    const pause = page.getByRole('button', { name: '움직임 멈춤' });
+    // 대본은 0.6초 뒤 시작해 약 1.2초부터 글자를 훑는다. 그 구간을 멈춘 채로 통과시킨다
+    await pause.click();
+    await expect(pause).toHaveAttribute('aria-pressed', 'true');
+    for (let i = 0; i < 30; i++) {
+      expect(await jellyMoving(page)).toBe(false);
+      await page.waitForTimeout(100);
+    }
+    await pause.click();
+    await expect(pause).toHaveAttribute('aria-pressed', 'false');
+    await expect
+      .poll(() => jellyMoving(page), { timeout: 15_000, intervals: [50] })
+      .toBe(true);
   });
 });
 
@@ -134,6 +179,23 @@ test.describe('모션 전체 보기 (390px)', () => {
     // 마지막 글자 칸은 시작이 늦어 한동안 투명하다
     await expect.poll(() => minGlyphOpacity(page)).toBeLessThan(1);
     expect(await brokenWords(page, '[data-stage-mini]')).toBe(0);
+  });
+
+  test('카드 안 젤리 글자도 낱말이 갈리지 않는다', async ({ page }) => {
+    await page.goto('/motion');
+    await expect(page.locator('[data-jelly-word]').first()).toBeVisible();
+    const broken = await page
+      .locator('[data-stage-mini] [data-jelly-word]')
+      .evaluateAll(
+        (words) =>
+          words.filter((w) => {
+            const tops = [...w.querySelectorAll('[data-jelly-cell]')].map((c) =>
+              Math.round(c.getBoundingClientRect().top)
+            );
+            return new Set(tops).size > 1;
+          }).length
+      );
+    expect(broken).toBe(0);
   });
 
   test('상세 무대에서도 낱말이 갈리지 않는다', async ({ page }) => {

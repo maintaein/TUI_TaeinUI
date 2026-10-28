@@ -484,4 +484,33 @@ export const searchIndex: SearchEntry[] = [
       },
     ],
   },
+  {
+    id: 'jelly-text',
+    pageTitle: '젤리 글자',
+    path: '/motion/jelly-text',
+    category: '모션',
+    description:
+      'JellyText. 커서가 지나가는 글자가 말랑하게 늘었다 출렁이며 돌아옵니다.',
+    sections: [
+      {
+        title: '텍스트 애니메이션',
+        content:
+          '말랑한 글자. 커서와 가까운 글자가 가로로 늘었다가 세로로 눌리며 출렁이고 스프링처럼 돌아옵니다',
+      },
+      {
+        title: '어떻게 움직이나',
+        content:
+          '젤리처럼 출렁입니다. 한 칸 떨어지면 절반쯤 늘고 커서가 있는 줄의 글자만 반응합니다',
+      },
+      {
+        title: 'as',
+        content: 'h1, h2, p 등 루트 요소를 고릅니다',
+      },
+      {
+        title: '움직임 줄이기',
+        content:
+          '움직임 줄이기와 터치 화면에서는 평범한 글자로 보이고 출렁이지 않습니다',
+      },
+    ],
+  },
 ];

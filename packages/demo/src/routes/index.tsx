@@ -138,6 +138,11 @@ const HangulAssemblePage = lazy(() =>
     default: m.HangulAssemblePage,
   }))
 );
+const JellyTextPage = lazy(() =>
+  import('../pages/Motion/JellyText').then((m) => ({
+    default: m.JellyTextPage,
+  }))
+);
 
 // 회귀 e2e 전용 시험 페이지(내비·검색에 없다)
 const E2ELivePage = lazy(() =>
@@ -437,6 +442,14 @@ const router = createBrowserRouter([
             element: (
               <LazyPage>
                 <HangulAssemblePage />
+              </LazyPage>
+            ),
+          },
+          {
+            path: 'jelly-text',
+            element: (
+              <LazyPage>
+                <JellyTextPage />
               </LazyPage>
             ),
           },
