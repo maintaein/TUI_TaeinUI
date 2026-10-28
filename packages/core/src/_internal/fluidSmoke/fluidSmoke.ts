@@ -1,5 +1,14 @@
 import { themeContract } from '../../tokens/theme.css';
-import { FLUID_CONFIG, canvasPixels, fitGrid, splatRadius } from './grid';
+import {
+  FLUID_CONFIG,
+  MAX_FRAME_MS,
+  advanceIdle,
+  canvasPixels,
+  fadeFactor,
+  fitGrid,
+  isExpired,
+  splatRadius,
+} from './grid';
 import * as glsl from './shaders';
 
 export interface FluidSmoke {
@@ -253,7 +262,8 @@ export function createFluidSmoke(
     let disposed = false;
     let raf = 0;
     let lastFrame = performance.now();
-    let lastInject = lastFrame;
+    // 마지막 주입 뒤 흐른 시뮬레이션 시간(ms). 벽시계가 아니라 프레임마다 상한을 둔 dt의 합이다
+    let idleMs = 0;
     let injected = false;
     let frame = 0;
 
@@ -393,18 +403,17 @@ export function createFluidSmoke(
       return peak / 255;
     };
 
-    // rAF가 멈췄다 돌아오면 dt가 크게 튀므로 자르고, 수명은 시계로 센다.
+    // 멈췄다 돌아온 프레임의 dt는 상한으로 자른다. 수명도 같은 dt를 더해 세므로 버벅임이 연기 시간을 갉지 않는다
     const tick = (now: number) => {
       raf = 0;
-      const age = now - lastInject;
-      if (age > FLUID_CONFIG.maxLifeMs) return dispose();
-      const dt = Math.min(Math.max(0, now - lastFrame) / 1000, 1 / 30);
+      const frameMs = now - lastFrame;
       lastFrame = now;
+      idleMs = advanceIdle(idleMs, frameMs);
+      if (isExpired(idleMs)) return dispose();
+      const dt = Math.min(Math.max(0, frameMs), MAX_FRAME_MS) / 1000;
       feedBursts();
       step(dt);
-      render(
-        Math.min(1, (FLUID_CONFIG.maxLifeMs - age) / FLUID_CONFIG.fadeOutMs)
-      );
+      render(fadeFactor(idleMs));
       frame += 1;
       if (
         injected &&
@@ -452,7 +461,7 @@ export function createFluidSmoke(
         vx: (s.vx / rect.width) * sim.width,
         vy: (-s.vy / rect.height) * sim.height,
       });
-      lastInject = performance.now();
+      idleMs = 0;
       injected = true;
     };
 

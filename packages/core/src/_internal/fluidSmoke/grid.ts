@@ -22,7 +22,7 @@ export const FLUID_CONFIG = {
   confinement: 22,
   /** 속도 길이 상한(셀/초). 터짐 주입 최고 속도(1500px/초 * 1.2, 1440폭에서 약 256셀/초)의 네 배쯤으로 두어 정상 흐름은 안 건드리고 강화의 폭주만 끊는다 */
   speedCap: 1000,
-  /** 마지막 주입 뒤 이 시간이 지나면 밀도와 상관없이 접는다(ms) */
+  /** 마지막 주입 뒤 시뮬레이션 시간이 이만큼 흐르면 밀도와 상관없이 접는다(ms). 벽시계가 아니다 */
   maxLifeMs: 3000,
   /** 접기 직전 이 시간 동안 알파를 0으로 내린다(ms). 잔연이 툭 끊기지 않게 한다 */
   fadeOutMs: 700,
@@ -62,4 +62,27 @@ export function fitGrid(
 export function splatRadius(radiusPx: number, shortSidePx: number): number {
   const ratio = radiusPx / Math.max(1, shortSidePx);
   return ratio * ratio;
+}
+
+/**
+ * 프레임 하나가 수명에 더하는 시간의 상한(ms). 시뮬레이션 dt의 상한과 같다(1/30초).
+ * 셰이더 컴파일이나 무거운 페이지로 메인 스레드가 멈춘 시간을 수명으로 세면 연기가 보이기도
+ * 전에 접히므로, 멈춘 시간은 한 프레임 몫만 센다.
+ */
+export const MAX_FRAME_MS = 1000 / 30;
+
+/** 마지막 주입 뒤 흐른 시뮬레이션 시간(ms)에 이번 프레임을 더한다. 음수는 0, 큰 값은 상한으로 자른다 */
+export function advanceIdle(idleMs: number, frameMs: number): number {
+  return idleMs + Math.min(Math.max(0, frameMs), MAX_FRAME_MS);
+}
+
+/** 수명 상한(maxLifeMs)에 이르렀는가 */
+export function isExpired(idleMs: number): boolean {
+  return idleMs >= FLUID_CONFIG.maxLifeMs;
+}
+
+/** 끝 fadeOutMs 동안 1에서 0으로 내려가는 알파 배율(0~1) */
+export function fadeFactor(idleMs: number): number {
+  const left = FLUID_CONFIG.maxLifeMs - idleMs;
+  return Math.max(0, Math.min(1, left / FLUID_CONFIG.fadeOutMs));
 }

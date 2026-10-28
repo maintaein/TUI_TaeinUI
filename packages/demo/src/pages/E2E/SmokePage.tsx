@@ -23,10 +23,13 @@ interface SmokeHarness {
   alphaPixels(): number;
   /** 알파가 minAlpha(0~255)보다 큰 픽셀의 외접 상자 크기(CSS px). 없으면 0 */
   alphaExtent(minAlpha: number): { width: number; height: number };
-  /** 수명을 잇는다. 접힐 때까지 매 프레임 제자리(속도 0)에 작은 주입을 한다 */
-  keepAlive(x: number, y: number): void;
-  /** rAF를 n번(벽시계가 아니라 프레임 수) 기다린다 */
-  frames(n: number): Promise<void>;
+  /**
+   * 알파가 0이 아닌 픽셀이 생길 때까지 페이지 안에서 rAF마다 본다. 그 전에 연기가 접히면 false.
+   * 시험 쪽 왕복(수 초 걸릴 수 있다)을 끼우면 엔진이 먼저 끝나므로 관찰을 한 곳에서 한다
+   */
+  untilAlpha(): Promise<boolean>;
+  /** 알파 외접 상자의 긴 변이 limit(CSS px)을 넘을 때까지 같은 방식으로 본다 */
+  untilExtent(limit: number): Promise<boolean>;
   /** 연기 캔버스가 DOM에 붙어 있는가 */
   attached(): boolean;
   /** 현재 연기를 즉시 정리한다 */
@@ -49,6 +52,16 @@ export function SmokePage() {
   useEffect(() => {
     let smoke: FluidSmoke | null = null;
     let canvas: HTMLCanvasElement | null = null;
+
+    const until = (done: () => boolean) =>
+      new Promise<boolean>((resolve) => {
+        const check = () => {
+          if (done()) resolve(true);
+          else if (!canvas?.isConnected) resolve(false);
+          else requestAnimationFrame(check);
+        };
+        check();
+      });
 
     const harness: SmokeHarness = {
       support() {
@@ -152,18 +165,14 @@ export function SmokePage() {
           height: (maxY - minY + 1) / ratio,
         };
       },
-      keepAlive(x, y) {
-        const tick = () => {
-          if (!canvas?.isConnected) return;
-          smoke?.emit(x, y, 0, 0);
-          requestAnimationFrame(tick);
-        };
-        tick();
+      untilAlpha() {
+        return until(() => harness.alphaPixels() > 0);
       },
-      async frames(n) {
-        for (let i = 0; i < n; i++) {
-          await new Promise((resolve) => requestAnimationFrame(resolve));
-        }
+      untilExtent(limit) {
+        return until(() => {
+          const { width, height } = harness.alphaExtent(8);
+          return Math.max(width, height) > limit;
+        });
       },
       attached() {
         return !!canvas && canvas.isConnected;
