@@ -104,7 +104,7 @@ const PROPS: PropDefinition[] = [
 ];
 
 // 커서가 검색 단추를 눌러 열고, 입력창이 펼쳐지는 것을 보인 뒤 바깥 영역을 눌러 닫는다
-// shortcut: 쉬는 시간 1.8초는 갈라짐(0.75초)과 읽을 시간을 합친 값이다, 모션이 길어지면 같이 늘린다
+// ponytail: 쉬는 시간 1.8초는 갈라짐(0.75초)과 읽을 시간을 합친 값이다, 모션이 길어지면 같이 늘린다
 const SCRIPT = (act: Act) => {
   act.move('trigger');
   act.wait(0.3);
@@ -227,7 +227,7 @@ export function GooeySearchDemo({ values = INITIAL, mini }: DemoProps) {
             if (!next) setQuery('');
           }}
           triggerRef={triggerRef}
-          placeholder={String(values.placeholder)}
+          placeholder={mini ? undefined : String(values.placeholder)}
           inputProps={{
             value: query,
             onChange: (event) => setQuery(event.target.value),
@@ -242,7 +242,7 @@ export function GooeySearchDemo({ values = INITIAL, mini }: DemoProps) {
           )}
         </GooeySearch>
       </div>
-      {/* 바깥 누름을 보이는 자리. 무대 왼쪽 아래 구석이다 */}
+      {/* 바깥 누름을 보이는 자리. 무대 왼쪽 아래 구석이다. 카드 미니에서는 글자 없이 대상만 둔다 */}
       <span
         data-stage-target="away"
         style={{
@@ -253,7 +253,7 @@ export function GooeySearchDemo({ values = INITIAL, mini }: DemoProps) {
           color: t.MUTED,
         }}
       >
-        바깥 영역
+        {mini ? null : '바깥 영역'}
       </span>
     </Stage>
   );

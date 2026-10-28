@@ -15,6 +15,7 @@ test.describe('물방울 검색창 상세 (1440px)', () => {
       page.getByRole('heading', { level: 1, name: 'GooeySearch' })
     ).toBeVisible();
     await expect(root(page)).toBeVisible();
+    await expect(stage(page).getByText('바깥 영역')).toBeVisible();
     await expect(page.getByText('움직임 줄이기에서는')).toContainText(
       '갈라짐 없이 바로 열리고 닫힙니다.'
     );

@@ -111,6 +111,8 @@ test.describe('모션 전체 보기', () => {
     const card = page.locator('main section > div > div').nth(2);
     await expect(card.getByText('GooeySearch', { exact: true })).toBeVisible();
     await expect(card.getByText('헤더 검색, 도구 막대')).toBeVisible();
+    // 바깥 영역 표지는 상세 무대용이다. 카드 미니에는 글자를 그리지 않는다
+    await expect(card.getByText('바깥 영역')).toHaveCount(0);
     await card.getByRole('link', { name: '물방울 검색창' }).click();
     await expect(page).toHaveURL(/\/motion\/gooey-search$/);
   });
