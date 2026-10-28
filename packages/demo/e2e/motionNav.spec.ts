@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, type Page } from '@playwright/test';
 
 const SENTENCE = '흩어진 자모가 모여 글자가 됩니다';
 const EMPTY = ['애니메이션', '컴포넌트', '마이크로 인터랙션', '배경'];
@@ -128,16 +128,32 @@ test.describe('한글 조립 상세', () => {
     ).toBeVisible();
   });
 
-  test('축소 모션에서는 완성 문장이 바로 보인다', async ({ page }) => {
+  // 시각 글자(aria-hidden 묶음)의 가장 투명한 완성 글자 값. 이름(접근성 트리)은 재생과 무관하게 늘 완성 문장이라 불투명도를 잰다
+  const minGlyphOpacity = (page: Page) =>
+    page
+      .getByRole('region', { name: 'HangulAssemble 미리보기' })
+      .locator('[data-hangul-glyph]')
+      .evaluateAll((els) =>
+        Math.min(...els.map((el) => Number(getComputedStyle(el).opacity)))
+      );
+
+  test('움직임이 있으면 다시 재생 직후 완성 글자가 아직 흩어진 채로 시작한다', async ({
+    page,
+  }) => {
+    await page.goto('/motion/hangul-assemble');
+    await page.getByRole('button', { name: '다시 재생' }).click();
+    // 마지막 글자 칸은 시작이 늦어 1초 가까이 투명하다
+    await expect.poll(() => minGlyphOpacity(page)).toBeLessThan(1);
+  });
+
+  test('축소 모션에서는 다시 재생해도 완성 글자가 바로 보인다', async ({
+    page,
+  }) => {
     await page.emulateMedia({ reducedMotion: 'reduce' });
     await page.goto('/motion/hangul-assemble');
-    await expect(
-      page.getByRole('heading', { level: 2, name: SENTENCE })
-    ).toBeVisible();
-    expect(
-      await page
-        .getByRole('heading', { level: 2, name: SENTENCE })
-        .evaluate((el) => el.getAnimations({ subtree: true }).length)
-    ).toBe(0);
+    await page.getByRole('button', { name: '다시 재생' }).click();
+    expect(await minGlyphOpacity(page)).toBe(1);
+    await page.waitForTimeout(300);
+    expect(await minGlyphOpacity(page)).toBe(1);
   });
 });

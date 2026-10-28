@@ -13,6 +13,8 @@ export const sentence = style({
   color: color.text.primary,
   textAlign: 'center',
   wordBreak: 'keep-all',
+  // 무대 폭(22rem)에서 마지막 줄에 낱말 하나만 남지 않게 줄 길이를 고르게 나눈다
+  textWrap: 'balance',
 });
 
 export const stack = style({
