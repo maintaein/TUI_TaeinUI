@@ -433,21 +433,8 @@ export const labelLayer = style({
   },
 });
 
-// 시각적으로만 숨기는 글자. display: none·visibility: hidden은 접근성 트리에서도
-// 지워져 쓸 수 없다. Snackbar.css.ts의 visuallyHidden과 같은 규칙이다.
-export const visuallyHidden = style({
-  position: 'absolute',
-  top: 0,
-  left: 0,
-  width: '1px',
-  height: '1px',
-  padding: 0,
-  margin: '-1px',
-  overflow: 'hidden',
-  clip: 'rect(0, 0, 0, 0)',
-  whiteSpace: 'nowrap',
-  border: 0,
-});
+// 시각적으로만 숨기는 글자. 공용 정의는 _internal/visuallyHidden.css.ts에 있다.
+export { visuallyHidden } from '../../_internal/visuallyHidden.css';
 
 // 결과 색은 사용자가 고른 로딩 색보다 우선하며 모든 그래픽에 상속된다.
 export const statusGraphic = style({

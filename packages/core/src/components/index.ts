@@ -23,3 +23,4 @@ export * from './Avatar';
 export * from './Popover';
 export * from './Chip';
 export * from './Card';
+export * from './HangulAssemble';

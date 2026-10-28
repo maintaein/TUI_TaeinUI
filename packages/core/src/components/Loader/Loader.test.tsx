@@ -20,6 +20,11 @@ import {
 } from './loaderMotion';
 
 const LOADER_CSS = readFileSync(resolve(__dirname, './Loader.css.ts'), 'utf-8');
+// 시각적으로만 숨기는 글자는 공용 정의(_internal)에 있다. Loader.css.ts는 다시 내보내기만 한다.
+const VISUALLY_HIDDEN_CSS = readFileSync(
+  resolve(__dirname, '../../_internal/visuallyHidden.css.ts'),
+  'utf-8'
+);
 
 describe('bar 표식 제거와 spinner 버블 등장', () => {
   type Host = HTMLElement & { __loaderStatusTimeline?: gsap.core.Timeline };
@@ -1229,7 +1234,7 @@ describe('Loader', () => {
       ) as HTMLElement;
       expect(message).toHaveTextContent('불러오는 중');
       expect(message.className).toMatch(/visuallyHidden/);
-      const hidden = block(LOADER_CSS, 'visuallyHidden');
+      const hidden = block(VISUALLY_HIDDEN_CSS, 'visuallyHidden');
       expectCss(hidden).toContain("position: 'absolute'");
       expectCss(hidden).toContain("clip: 'rect(0, 0, 0, 0)'");
       expect(hidden).not.toContain('display');
@@ -1239,7 +1244,7 @@ describe('Loader', () => {
     it('숨은 메시지 글자는 top·left 0으로 문서 왼쪽 위에 놓여 페이지 스크롤을 늘리지 않는다', () => {
       // 위치 조상도 top·left도 없으면 안쪽 스크롤 컨테이너 속 자기 자리에 놓여 문서 높이를 늘린다.
       // CSSOM 대신 소스 텍스트로 잠그는 이유는 '버블 점이 보인다' 시험 위 주석과 같다.
-      const hidden = block(LOADER_CSS, 'visuallyHidden');
+      const hidden = block(VISUALLY_HIDDEN_CSS, 'visuallyHidden');
       expectCss(hidden).toContain('top: 0');
       expectCss(hidden).toContain('left: 0');
     });

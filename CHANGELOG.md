@@ -21,6 +21,8 @@
 
 ### Added
 
+- `HangulAssemble` 컴포넌트를 더했습니다(`text`, `as`, `className`, `ref`). 한글 글자를 초성·중성·종성으로 나눈 자모가 흩어진 자리에서 글자 칸 가운데로 날아와 모인 뒤 완성 글자로 바뀌며, 화면에 들어올 때 한 번 재생합니다. 첫 렌더는 완성 문장이고, 축소 모션이거나 `IntersectionObserver`가 없으면 움직임 없이 완성 문장만 보입니다. 스크린 리더는 완성 문장을 한 번 읽습니다. 한글이 아닌 글자는 페이드만 합니다. `text`가 바뀌면 다시 재생하지 않습니다. 할 일: 없음(새 컴포넌트).
+
 - `Loader`의 `status`를 모든 type으로 확장했습니다. 막대는 표식 없이 성공하면 초록(`success.dark`)으로 차오르고 실패하면 빨강(`error.main`)으로 흔들립니다. 스피너는 원을 닫은 뒤 체크/X가 중심의 작은 크기에서 솟아 안착하며, 다른 타입은 완료·실패 표식으로 이어집니다. 축소 모션에서는 즉시 최종 상태를 보입니다. 할 일: 결과를 알릴 곳에 `status`를 지정합니다.
 
 - `TextField`에 `success`(`boolean`, 기본 `false`)와 `successMessage`(`string`)를 더했습니다. 켜지면 테두리와 메시지가 `color.success.dark`가 되고 메시지가 4px 위에서 내려오며 나타납니다. 메시지는 `helperText` 자리에 보이고 `aria-describedby`로 연결됩니다. `error`와 함께 켜면 `error`가 이기고 `aria-invalid`는 `error`일 때만 `true`입니다

@@ -50,6 +50,8 @@ export default defineConfig({
     // 서는지를 CSSOM으로 잠근다.
     // formField(TextField 메시지)도 같은 이유다. success 메시지 글자 색이 success.dark인지를
     // CSSOM으로 잠근다.
+    // visuallyHidden(공용)도 같은 이유다. Snackbar의 숨은 라이브 리전이 top·left 0으로 놓이는지를
+    // CSSOM으로 잠그는데, 그 규칙이 이제 이 파일에 있다.
     css: {
       include: [
         /Slider\.css/,
@@ -70,6 +72,7 @@ export default defineConfig({
         /\/Chip\.css/,
         /\/Card\.css/,
         /\/formField\.css/,
+        /\/visuallyHidden\.css/,
       ],
     },
     coverage: {

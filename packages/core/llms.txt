@@ -26,7 +26,7 @@ function App() {
 
 ## API Patterns
 
-All components follow consistent patterns:
+UI components follow consistent patterns:
 - `variant`: Visual style (e.g., 'primary' | 'dark' | 'light')
 - `size`: Component size ('sm' | 'md' | 'lg')
 - `disabled`: Disabled state (boolean)
@@ -34,9 +34,11 @@ All components follow consistent patterns:
 - `ref`: All components support forwardRef
 - Form components require `label` prop for accessibility
 
-## Components (25 families, 33 exports)
+Motion components (HangulAssemble) take only `className` and `ref` (and `disabled` where it applies). They have no `size` or `variant`.
 
-세는 규칙: 아래 목록은 컴포넌트 **계열** 25개다. 최상위 export는 33개인데,
+## Components (26 families, 34 exports)
+
+세는 규칙: 아래 목록은 컴포넌트 **계열** 26개다. 최상위 export는 34개인데,
 차이는 개별로도 import할 수 있는 합성 하위 컴포넌트(`AvatarGroup`,
 `ListItem`, `SideSheetHeader` 등)다. 두 숫자 모두 소스에서 검증된다.
 
@@ -76,6 +78,9 @@ All components follow consistent patterns:
 - **Divider**: Content separator. Props: orientation, variant('solid'|'dashed'|'dotted'), spacing, children(text)
 - **Border**: Border wrapper. Props: sides, variant, width, color, rounded('md' default for sides='all', 'none' for partial sides), padding, glow(opt-in single fading-tail light along the rounded perimeter, 3000ms per lap with two slow-fast-slow segments; reduced motion stays at the start)
 - **HeaderBar** - Floating rounded app header bar (centered, max 960px, 60px tall). Props: logo, title, titleAs('h1' default | 'h2'-'h6' | 'span'), items(`{ label, href?, onClick?, icon?, active?, links? }`), navStyle('pill' default | 'text' | 'dropdown' | 'cards' | 'icon'), actions, sticky. The root is a plain `<header>`, so it is the banner landmark only at the top level of the document. Under 768px the items fold into a hamburger + vertical list
+
+### Motion
+- **HangulAssemble**: Sentence whose Hangul syllables assemble from flying jamo (ㅎ+ㅏ+ㄴ → 한) when it scrolls into view, once. Props: text(required), as('p' default | 'h1'-'h6' | 'span' | 'div'), className, ref. The first render is the finished sentence; the scattered start is applied just before playback, so SSR and no-JS show plain text. Reduced motion or no IntersectionObserver: always the finished sentence. Screen readers read one visually hidden copy of `text`; the animated layer is `aria-hidden`. Non-Hangul characters only fade in. Changing `text` does not replay
 
 ## Design Tokens
 
@@ -130,6 +135,8 @@ M3에서 GSAP 런타임이 실제로 붙은 컴포넌트와 그 능력. 계획�
   `'use client'`가 붙는다. 서버 컴포넌트에서 import하는 것은 그대로 된다.
 - `Badge`도 `'use client'`가 붙는다. 값이 바뀔 때 헌 값을 남겨 두고 교체 모션을 돌리는 상태(`useState`)를 갖는다.
 - `Loader`도 `'use client'`가 붙는다. GSAP 트윈으로 그려서 브라우저에서만 돈다.
+- `HangulAssemble`도 `'use client'`가 붙는다. 화면에 들어올 때를 보는 관찰자와 GSAP 타임라인이
+  브라우저에서만 돈다. 첫 렌더(서버 포함)는 완성 문장이라 하이드레이션 전에도 글자가 보인다.
 - `HeaderBar`도 `'use client'`가 붙는다. 좁은 화면 메뉴의 열림 상태와 GSAP 트윈, 그리고
   `navStyle="icon"`의 항목 확대가 브라우저에서만 돈다.
 - `TextField`는 `'use client'`가 붙는다. `multiline`의 `autoResize`가 높이를 읽고 쓰는 훅을 갖는다.

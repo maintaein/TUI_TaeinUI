@@ -26,13 +26,15 @@ function App() {
 
 ## API Patterns
 
-All components follow consistent patterns:
+UI components follow consistent patterns:
 - `variant`: Visual style (e.g., 'primary' | 'dark' | 'light')
 - `size`: Component size ('sm' | 'md' | 'lg')
 - `disabled`: Disabled state (boolean)
 - `className`: Additional CSS class (string)
 - `ref`: All components support forwardRef
 - Form components require `label` prop for accessibility
+
+Motion components (HangulAssemble) take only `className` and `ref` (and `disabled` where it applies). They have no `size` or `variant`.
 
 ---
 
@@ -1012,6 +1014,35 @@ The items hide and a hamburger button (two lines that gather into an X, `aria-ex
 
 ---
 
+## HangulAssemble
+
+Sentence whose Hangul syllables assemble from flying jamo when it scrolls into view. Each syllable is split into initial, medial and final (ㅎ+ㅏ+ㄴ → 한); the jamo fly to the middle of the syllable cell one cell after another (60ms apart), then cross-fade into the finished syllable. Characters that are not Hangul syllables (Latin, digits, punctuation, a lone jamo) only fade in, in the same order. Spaces are kept as they are.
+
+```tsx
+import { HangulAssemble } from '@taein-ui/core';
+
+<HangulAssemble text="안녕하세요" as="h1" />
+<HangulAssemble text="TaeinUI로 만든 한글 문장" className="hero" ref={ref} />
+```
+
+### Props
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| text | string | (required) | Sentence to show. Changing it does not replay: the new sentence appears finished |
+| as | 'h1' \| 'h2' \| 'h3' \| 'h4' \| 'h5' \| 'h6' \| 'p' \| 'span' \| 'div' | 'p' | Root element |
+| className | string | - | Additional CSS class |
+| ref | Ref<HTMLElement> | - | Forwarded to the root element |
+
+There is no `size` or `variant`: the type size comes from the root element's own font. It takes no other props.
+
+### Behavior
+- The first render (SSR included) is the finished sentence. The scattered start state is applied only just before playback, in a client effect. Mounted already on screen: it plays at once, before the first paint. Mounted below the fold: it waits, hides when `IntersectionObserver` reports it is off screen, plays once when it scrolls in, then stops observing.
+- Reduced motion, or an environment without `IntersectionObserver`: nothing is hidden, the finished sentence is shown. Printing always shows the finished sentence.
+- Accessibility: the root holds one visually hidden copy of `text` (read as the sentence) and an `aria-hidden` visual layer. The root has no `aria-label`. Each word is `white-space: nowrap`, so a Korean word is never split at a line end.
+- Motion: jamo flight `slower` `settle`, cross-fade `base`, start of each cell shifted by `fast` * 0.4. The scattered positions are fixed by character index (no randomness), so they are the same on every render.
+
+---
+
 ## Design Tokens
 
 TUI uses `themeContract` for type-safe, theme-aware styling. 테마는 라이트
@@ -1205,6 +1236,9 @@ prop은 클라이언트 파일에서 넘긴다.
 `Badge`도 `'use client'`가 붙는다. 값이 바뀔 때 헌 값을 남겨 두고 교체 모션을 돌리는 상태(`useState`)를 갖는다.
 
 `Loader`도 `'use client'`가 붙는다. GSAP 트윈으로 그려서 브라우저에서만 돈다.
+
+`HangulAssemble`도 `'use client'`가 붙는다. 화면에 들어올 때를 보는 관찰자와 GSAP 타임라인이 브라우저에서만 돈다.
+첫 렌더(서버 포함)는 완성 문장이라 하이드레이션 전에도 글자가 보인다.
 
 `HeaderBar`도 `'use client'`가 붙는다. 좁은 화면 메뉴의 열림 상태와 GSAP 트윈,
 그리고 `navStyle="icon"`의 항목 확대가 브라우저에서만 돈다.
