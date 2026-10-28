@@ -10,6 +10,7 @@ import {
   type CSSProperties,
   type FocusEvent,
   type KeyboardEvent,
+  type MouseEvent,
   type ReactNode,
 } from 'react';
 import clsx from 'clsx';
@@ -58,7 +59,20 @@ const PICK_MS = gsapDuration.slower * 0.75 * 1000;
  * 들어갈 자리(위로 약 130px, 좌우 약 130px)를 잡는다. 움직임 줄이기에서는 차례와 안내선 없이 제자리에 바로 나타난다.
  */
 export const FanMenu = forwardRef<HTMLButtonElement, FanMenuProps>(
-  ({ label, items, disabled = false, className, onKeyDown, ...props }, ref) => {
+  (
+    {
+      label,
+      items,
+      disabled = false,
+      className,
+      onClick,
+      onKeyDown,
+      onFocus,
+      onBlur,
+      ...props
+    },
+    ref
+  ) => {
     const reduced = useReducedMotion();
     const fine = useFinePointer();
     const menuId = useId();
@@ -71,6 +85,8 @@ export const FanMenu = forwardRef<HTMLButtonElement, FanMenuProps>(
     // 로빙 tabindex가 가리키는 항목
     const [active, setActive] = useState(0);
     const [focused, setFocused] = useState(-1);
+    // 허브에 포커스가 있는 동안은 항목이 Tab 순서에 없다(Tab은 접고 다음 요소로 간다). 항목은 방향키로만 들어간다
+    const [hubFocused, setHubFocused] = useState(false);
     const [pointerHot, setPointerHot] = useState(-1);
     const [picked, setPicked] = useState(-1);
     const [tagIndex, setTagIndex] = useState(0);
@@ -104,6 +120,8 @@ export const FanMenu = forwardRef<HTMLButtonElement, FanMenuProps>(
       []
     );
 
+    // 항목 수가 줄어도 로빙 위치는 범위 안에 있다
+    const roving = Math.min(active, count - 1);
     const hot = open ? (pointerHot >= 0 ? pointerHot : focused) : -1;
     // 이름표는 사라지는 동안에도 마지막 글자를 쥔다(렌더 중 이전값 비교)
     if (hot >= 0 && hot !== tagIndex) setTagIndex(hot);
@@ -117,7 +135,9 @@ export const FanMenu = forwardRef<HTMLButtonElement, FanMenuProps>(
       );
     }, []);
 
+    // 열 때마다 로빙 위치를 첫 항목으로 되돌린다
     const openMenu = () => {
+      setActive(0);
       settle();
       setOpen(true);
     };
@@ -138,9 +158,9 @@ export const FanMenu = forwardRef<HTMLButtonElement, FanMenuProps>(
     useLayoutEffect(() => {
       if (open && focusFirst.current) {
         focusFirst.current = false;
-        itemRefs.current[active]?.focus();
+        itemRefs.current[roving]?.focus();
       }
-    }, [open, active]);
+    }, [open, roving]);
 
     // 바깥을 누르면 접힌다. pointerdown이 아니라 mousedown인 것은 Popover와 같은 까닭이다: 데모 무대의 다른 대본이 합성 pointerdown만 쏴도 이 메뉴가 접히지 않는다(진짜 마우스와 터치 탭은 mousedown도 낸다).
     // 정밀 포인터에서는 가운데에서 포인터까지의 방향으로 가리킴을 따라간다.
@@ -201,6 +221,8 @@ export const FanMenu = forwardRef<HTMLButtonElement, FanMenuProps>(
       };
       if (event.key in target) {
         event.preventDefault();
+        // 포커스가 가리킴을 이어받도록 포인터 가리킴을 거둔다
+        setPointerHot(-1);
         itemRefs.current[(target[event.key] + count) % count]?.focus();
       }
     };
@@ -212,7 +234,7 @@ export const FanMenu = forwardRef<HTMLButtonElement, FanMenuProps>(
       if (event.key === 'ArrowUp') {
         event.preventDefault();
         if (open) {
-          itemRefs.current[active]?.focus();
+          itemRefs.current[roving]?.focus();
         } else {
           focusFirst.current = true;
           openMenu();
@@ -220,7 +242,12 @@ export const FanMenu = forwardRef<HTMLButtonElement, FanMenuProps>(
       }
     };
 
-    const onHubClick = () => {
+    const onHubClick = (event: MouseEvent<HTMLButtonElement>) => {
+      onClick?.(event);
+      if (event.defaultPrevented) {
+        keyedOpen.current = false;
+        return;
+      }
       if (open) {
         closeMenu(false);
       } else {
@@ -276,6 +303,14 @@ export const FanMenu = forwardRef<HTMLButtonElement, FanMenuProps>(
           aria-controls={menuId}
           onKeyDown={onHubKeyDown}
           onClick={onHubClick}
+          onFocus={(event) => {
+            setHubFocused(true);
+            onFocus?.(event);
+          }}
+          onBlur={(event) => {
+            setHubFocused(false);
+            onBlur?.(event);
+          }}
         >
           <svg
             aria-hidden="true"
@@ -314,7 +349,7 @@ export const FanMenu = forwardRef<HTMLButtonElement, FanMenuProps>(
                 type="button"
                 role="menuitem"
                 aria-label={item.label}
-                tabIndex={open && i === active ? 0 : -1}
+                tabIndex={open && !hubFocused && i === roving ? 0 : -1}
                 className={styles.item}
                 data-hot={hot === i ? '' : undefined}
                 style={
@@ -323,7 +358,8 @@ export const FanMenu = forwardRef<HTMLButtonElement, FanMenuProps>(
                     '--fan-y': `${rest.y}px`,
                     '--fan-hx': `${pushed.x}px`,
                     '--fan-hy': `${pushed.y}px`,
-                    '--fan-delay': delay,
+                    // 가리킨 항목의 커짐은 열고 닫는 중에도 시차 없이 바로 따라온다
+                    '--fan-delay': hot === i ? '0ms' : delay,
                   } as CSSProperties
                 }
                 onFocus={() => {

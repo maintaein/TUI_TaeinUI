@@ -129,6 +129,31 @@ test.describe('부채꼴 메뉴 상세 (1440px)', () => {
     await expect(hub(page)).toBeFocused();
   });
 
+  test('마우스로 연 뒤 Tab은 항목에 들어가지 않고 접고 다음 요소로 간다', async ({
+    page,
+  }) => {
+    await open(page);
+    await hub(page).click();
+    await expect(hub(page)).toHaveAttribute('aria-expanded', 'true');
+    await page.keyboard.press('Tab');
+    await expect(hub(page)).toHaveAttribute('aria-expanded', 'false');
+    expect(
+      await page.evaluate(() => document.activeElement?.getAttribute('role'))
+    ).not.toBe('menuitem');
+    await expect(hub(page)).not.toBeFocused();
+  });
+
+  test('키보드로 다시 열면 첫 항목에 포커스가 간다', async ({ page }) => {
+    await open(page);
+    await hub(page).focus();
+    await page.keyboard.press('Enter');
+    await page.keyboard.press('ArrowRight');
+    await page.keyboard.press('ArrowRight');
+    await page.keyboard.press('Escape');
+    await page.keyboard.press('Enter');
+    await expect(item(page, '사진')).toBeFocused();
+  });
+
   test('Esc는 접고 허브로 포커스를 돌린다', async ({ page }) => {
     await open(page);
     await hub(page).focus();

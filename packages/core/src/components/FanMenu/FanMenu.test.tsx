@@ -159,14 +159,91 @@ describe('FanMenu', () => {
       expect(itemsOf()[0]).toHaveFocus();
     });
 
-    it('열린 허브에서 Tab은 로빙 항목으로, 거기서 Tab은 메뉴 밖으로 나가며 접는다', async () => {
+    it('마우스로 열어 허브에 포커스가 있으면 Tab은 항목에 들어가지 않고 접고 다음 요소로 간다', async () => {
       const { hub } = setup();
       await userEvent.click(hub);
+      expect(itemsOf().every((el) => el.tabIndex === -1)).toBe(true);
       await userEvent.tab();
+      expect(screen.getByRole('button', { name: '뒤' })).toHaveFocus();
+      expect(hub).toHaveAttribute('aria-expanded', 'false');
+    });
+
+    it('마우스로 열린 허브에서 ArrowUp은 첫 항목으로 들어가고 거기서 Tab은 메뉴 밖으로 나가며 접는다', async () => {
+      const { hub } = setup();
+      await userEvent.click(hub);
+      await userEvent.keyboard('{ArrowUp}');
       expect(itemsOf()[0]).toHaveFocus();
       expect(itemsOf().filter((el) => el.tabIndex === 0)).toHaveLength(1);
       await userEvent.tab();
       expect(screen.getByRole('button', { name: '뒤' })).toHaveFocus();
+      expect(hub).toHaveAttribute('aria-expanded', 'false');
+    });
+
+    it('키보드로 다시 열면 마지막에 있던 항목이 아니라 첫 항목에 포커스가 간다', async () => {
+      const { hub } = setup();
+      hub.focus();
+      await userEvent.keyboard('{Enter}');
+      await userEvent.keyboard('{ArrowRight}{ArrowRight}');
+      expect(itemsOf()[2]).toHaveFocus();
+      await userEvent.keyboard('{Escape}');
+      await userEvent.keyboard('{Enter}');
+      expect(itemsOf()[0]).toHaveFocus();
+    });
+
+    it('항목 수를 줄인 뒤 다시 열어도 첫 항목에 포커스가 간다', async () => {
+      const { hub, rerender } = setup();
+      hub.focus();
+      await userEvent.keyboard('{Enter}');
+      await userEvent.keyboard('{End}{Escape}');
+      rerender(
+        <>
+          <button>앞</button>
+          <FanMenu
+            label="빠른 작업"
+            items={makeItems(() => {}, NAMES.slice(0, 2))}
+          />
+          <button>뒤</button>
+        </>
+      );
+      await userEvent.keyboard('{Enter}');
+      expect(itemsOf()).toHaveLength(2);
+      expect(itemsOf()[0]).toHaveFocus();
+    });
+
+    it('열린 채 항목 수가 줄어도 로빙 항목이 범위 안에 하나 남는다', async () => {
+      const { hub, rerender } = setup();
+      hub.focus();
+      await userEvent.keyboard('{Enter}{End}');
+      expect(itemsOf()[4]).toHaveFocus();
+      rerender(
+        <>
+          <button>앞</button>
+          <FanMenu
+            label="빠른 작업"
+            items={makeItems(() => {}, NAMES.slice(0, 2))}
+          />
+          <button>뒤</button>
+        </>
+      );
+      expect(itemsOf().map((el) => el.tabIndex)).toEqual([-1, 0]);
+    });
+  });
+
+  describe('소비자 onClick', () => {
+    it('허브 onClick이 먼저 불리고 열고 닫기도 그대로 된다', async () => {
+      const onClick = vi.fn();
+      const { hub } = setup({ onClick });
+      await userEvent.click(hub);
+      expect(onClick).toHaveBeenCalledTimes(1);
+      expect(hub).toHaveAttribute('aria-expanded', 'true');
+      await userEvent.click(hub);
+      expect(onClick).toHaveBeenCalledTimes(2);
+      expect(hub).toHaveAttribute('aria-expanded', 'false');
+    });
+
+    it('onClick이 preventDefault하면 열지 않는다', async () => {
+      const { hub } = setup({ onClick: (event) => event.preventDefault() });
+      await userEvent.click(hub);
       expect(hub).toHaveAttribute('aria-expanded', 'false');
     });
   });
@@ -205,6 +282,15 @@ describe('FanMenu', () => {
       await openByKey();
       await userEvent.keyboard('{ArrowRight}{ArrowRight}');
       expect(itemsOf().map((el) => el.tabIndex)).toEqual([-1, -1, 0, -1, -1]);
+    });
+
+    it('키보드로 옮기면 포인터 가리킴이 풀려 커지는 아이콘이 포커스를 따른다', async () => {
+      installMedia();
+      await openByKey();
+      moveTo(100);
+      expect(hotNames()).toEqual(['음악']);
+      await userEvent.keyboard('{ArrowRight}');
+      expect(hotNames()).toEqual(['메시지']);
     });
 
     it('포커스된 항목은 가리킨 항목처럼 이름표가 뜬다', async () => {
@@ -408,6 +494,17 @@ describe('FanMenu', () => {
       const closed = delays();
       expect(closed[0]).toMatch(/\* 0\.2 \* 4\)$/);
       expect(closed[4]).toMatch(/\* 0\.2 \* 0\)$/);
+    });
+
+    it('가리킨 항목은 시차 없이 바로 커진다', async () => {
+      installMedia();
+      const { hub } = setup();
+      await userEvent.click(hub);
+      moveTo(135);
+      const delay = (el: Element) =>
+        (el as HTMLElement).style.getPropertyValue('--fan-delay');
+      expect(delay(itemsOf()[1])).toBe('0ms');
+      expect(delay(itemsOf()[2])).not.toBe('0ms');
     });
 
     it('열고 닫는 동안만 data-settling이 켜져 가리킴 전이에는 시차가 없다', async () => {
