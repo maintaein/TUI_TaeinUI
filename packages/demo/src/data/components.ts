@@ -30,6 +30,7 @@ import {
   ToggleLeft,
   Stamp,
   Gauge,
+  KeyRound,
   Trash2,
   Waves,
   type LucideIcon,
@@ -348,7 +349,7 @@ export const motionData: MotionInfo[] = [
     category: 'component',
     icon: Search,
   },
-  // Micro Interaction (5개)
+  // Micro Interaction (6개)
   {
     name: 'CopyButton',
     title: '복사됨',
@@ -395,6 +396,16 @@ export const motionData: MotionInfo[] = [
     usage: '저장 공간, 할당량, 진행률',
     category: 'micro',
     icon: Gauge,
+  },
+  {
+    name: 'CodeSlots',
+    title: '인증번호 슬롯',
+    path: '/motion/code-slots',
+    description:
+      '숫자가 슬롯처럼 굴러 들어오고, 틀리면 칸이 물결치고 맞으면 하나로 합쳐집니다.',
+    usage: '인증번호, PIN 입력',
+    category: 'micro',
+    icon: KeyRound,
   },
 ];
 

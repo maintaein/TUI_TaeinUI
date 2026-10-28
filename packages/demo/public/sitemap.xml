@@ -40,4 +40,5 @@
   <url><loc>https://tui-taein-ui.vercel.app/motion/hold-button</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
   <url><loc>https://tui-taein-ui.vercel.app/motion/stamp-button</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
   <url><loc>https://tui-taein-ui.vercel.app/motion/slosh-gauge</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://tui-taein-ui.vercel.app/motion/code-slots</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
 </urlset>

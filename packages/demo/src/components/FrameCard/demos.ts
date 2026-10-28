@@ -19,6 +19,7 @@ import { BurstToggleDemo } from '../../pages/Motion/BurstToggle/BurstTogglePage'
 import { HoldButtonDemo } from '../../pages/Motion/HoldButton/HoldButtonPage';
 import { StampButtonDemo } from '../../pages/Motion/StampButton/StampButtonPage';
 import { SloshGaugeDemo } from '../../pages/Motion/SloshGauge/SloshGaugePage';
+import { CodeSlotsDemo } from '../../pages/Motion/CodeSlots/CodeSlotsPage';
 import { GooeySearchDemo } from '../../pages/Motion/GooeySearch/GooeySearchPage';
 import { JellyTextDemo } from '../../pages/Motion/JellyText/JellyTextPage';
 import { LoaderDemo } from '../../pages/Components/Loader/LoaderPage';
@@ -69,4 +70,5 @@ export const DEMOS: Record<string, ComponentType<DemoProps>> = {
   HoldButton: HoldButtonDemo,
   StampButton: StampButtonDemo,
   SloshGauge: SloshGaugeDemo,
+  CodeSlots: CodeSlotsDemo,
 };

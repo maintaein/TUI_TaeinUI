@@ -109,6 +109,20 @@ test.describe('모션 계열 사이드바 (1280px)', () => {
     );
   });
 
+  test('마이크로 인터랙션 분류에 인증번호 슬롯 링크가 있다', async ({
+    page,
+  }) => {
+    await page.goto('/components/button');
+    const nav = page.getByRole('navigation', { name: '문서' });
+    const link = nav.getByRole('link', { name: /인증번호 슬롯/ });
+    await expect(link).toHaveAttribute('href', '/motion/code-slots');
+    await link.click();
+    await expect(page).toHaveURL(/\/motion\/code-slots$/);
+    await expect(nav.locator('[aria-current="page"]')).toHaveText(
+      /인증번호 슬롯/
+    );
+  });
+
   test('항목이 없는 분류는 사이드바에 없다', async ({ page }) => {
     await page.goto('/motion/hangul-assemble');
     const nav = page.getByRole('navigation', { name: '문서' });

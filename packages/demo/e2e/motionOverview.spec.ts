@@ -72,7 +72,7 @@ test.describe('모션 전체 보기', () => {
   }) => {
     await page.goto('/motion');
     await expect(
-      page.getByRole('heading', { level: 1, name: '모션 8개' })
+      page.getByRole('heading', { level: 1, name: '모션 9개' })
     ).toBeVisible();
     const sections = page.locator('main section');
     await expect(sections).toHaveCount(3);
@@ -209,6 +209,17 @@ test.describe('모션 전체 보기', () => {
     await expect(card.getByText('저장 공간, 할당량, 진행률')).toBeVisible();
     await card.getByRole('link', { name: '출렁이는 게이지' }).click();
     await expect(page).toHaveURL(/\/motion\/slosh-gauge$/);
+  });
+
+  test('인증번호 슬롯 카드가 효과 이름과 쓰는 곳을 보이고 누르면 상세로 간다', async ({
+    page,
+  }) => {
+    await page.goto('/motion');
+    const card = page.locator('main section > div > div').nth(8);
+    await expect(card.getByText('CodeSlots', { exact: true })).toBeVisible();
+    await expect(card.getByText('인증번호, PIN 입력')).toBeVisible();
+    await card.getByRole('link', { name: '인증번호 슬롯' }).click();
+    await expect(page).toHaveURL(/\/motion\/code-slots$/);
   });
 
   test('움직임 멈춤을 켜면 완성 글자가 서고 끄면 다시 재생한다', async ({
@@ -497,6 +508,51 @@ test.describe('모션 전체 보기 출렁이는 게이지 미니 (1440px)', () 
       frozen!,
       { timeout: 15_000 }
     );
+  });
+});
+
+// 인증번호 슬롯 미니: 대본이 틀린 번호(111111)와 맞는 번호(123456)를 차례로 입력한다
+const slotsInput = (page: Page) =>
+  page.locator('[data-stage-mini="CodeSlots 미리보기"] input');
+
+test.describe('모션 전체 보기 인증번호 슬롯 미니 (1440px)', () => {
+  test.use({ viewport: { width: 1440, height: 900 } });
+
+  test('대본이 틀린 번호와 맞는 번호를 넣고 움직임 멈춤이면 서 있다', async ({
+    page,
+  }) => {
+    await page.goto('/motion');
+    const centre = () =>
+      slotsInput(page).evaluate((el) =>
+        el.closest('[data-stage-mini]')?.scrollIntoView({ block: 'center' })
+      );
+    await centre();
+    await expect(slotsInput(page)).toHaveAttribute('aria-invalid', 'true', {
+      timeout: 15_000,
+    });
+    await expect(slotsInput(page)).toHaveValue('111111');
+    // 비운 뒤 맞는 번호가 들어와 성공 메시지가 선다
+    const mini = page.locator('[data-stage-mini="CodeSlots 미리보기"]');
+    await expect(mini.getByText('확인했습니다')).toBeVisible({
+      timeout: 8_000,
+    });
+    await expect(slotsInput(page)).toHaveValue('123456');
+
+    const pause = page.getByRole('button', { name: '움직임 멈춤' });
+    await pause.click();
+    await expect(pause).toHaveAttribute('aria-pressed', 'true');
+    await centre();
+    const frozen = await slotsInput(page).inputValue();
+    // 대본 한 바퀴보다 길게 기다려도 값이 바뀌지 않는다
+    for (let i = 0; i < 80; i++) {
+      await expect(slotsInput(page)).toHaveValue(frozen);
+      await page.waitForTimeout(100);
+    }
+    await pause.click();
+    await centre();
+    await expect(slotsInput(page)).not.toHaveValue(frozen, {
+      timeout: 15_000,
+    });
   });
 });
 

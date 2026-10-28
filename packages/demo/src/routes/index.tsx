@@ -168,6 +168,11 @@ const SloshGaugePage = lazy(() =>
     default: m.SloshGaugePage,
   }))
 );
+const CodeSlotsPage = lazy(() =>
+  import('../pages/Motion/CodeSlots').then((m) => ({
+    default: m.CodeSlotsPage,
+  }))
+);
 const JellyTextPage = lazy(() =>
   import('../pages/Motion/JellyText').then((m) => ({
     default: m.JellyTextPage,
@@ -528,6 +533,14 @@ const router = createBrowserRouter([
             element: (
               <LazyPage>
                 <SloshGaugePage />
+              </LazyPage>
+            ),
+          },
+          {
+            path: 'code-slots',
+            element: (
+              <LazyPage>
+                <CodeSlotsPage />
               </LazyPage>
             ),
           },

@@ -689,4 +689,34 @@ export const searchIndex: SearchEntry[] = [
       },
     ],
   },
+  {
+    id: 'code-slots',
+    pageTitle: '인증번호 슬롯',
+    path: '/motion/code-slots',
+    category: '모션',
+    description:
+      'CodeSlots. 숫자가 슬롯처럼 굴러 들어오고, 틀리면 칸이 물결치고 맞으면 하나로 합쳐집니다. 인증, 번호, OTP, PIN, 슬롯, 비밀번호, 자동 채움.',
+    sections: [
+      {
+        title: '마이크로 인터랙션',
+        content:
+          '인증번호와 PIN을 넣는 칸. 숫자가 위에서 슬롯처럼 굴러 들어오고 지우면 아래로 빠집니다. 틀리면 칸이 왼쪽부터 물결치고 맞으면 칸들이 하나의 알약으로 합쳐집니다',
+      },
+      {
+        title: '입력은 숨은 input 하나',
+        content:
+          '칸 위에 투명하게 겹친 input 하나가 입력을 받아 붙여넣기와 문자 자동 채움이 됩니다. 숫자만 받고 length를 넘는 입력은 잘리며 length자가 다 차면 onComplete가 한 번 불립니다',
+      },
+      {
+        title: '접근성',
+        content:
+          '접근 가능한 이름은 label이고 errorMessage와 successMessage는 보이는 글이며 aria-describedby로 이어집니다. error면 aria-invalid가 true입니다. 칸 그림은 aria-hidden입니다',
+      },
+      {
+        title: '움직임 줄이기',
+        content:
+          '움직임 줄이기에서는 숫자와 색이 움직임 없이 바뀌고 맞으면 칸이 붙은 모양으로 바로 보입니다',
+      },
+    ],
+  },
 ];
