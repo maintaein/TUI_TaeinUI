@@ -8,7 +8,8 @@ import {
 import clsx from 'clsx';
 import * as styles from './LuminousFlow.css';
 import { palette } from './luminousFlowPalette';
-import { SCROLL_FLOW, shouldAnimate } from './luminousFlowMotion';
+import { SCROLL_FLOW } from './luminousFlowMotion';
+import { bindFlowListeners, createFlowLoop } from './luminousFlowLoop';
 import {
   SCENE_HEIGHT,
   SCENE_HEIGHT_COMPACT,
@@ -24,13 +25,15 @@ import {
 export interface LuminousFlowProps {
   className?: string;
   /**
-   * 상자 높이를 장면 높이(2162)에 맞춘 긴 물길로 그린다. 흐름 속도는 창 스크롤에서 읽는다.
+   * 상자 높이를 장면 높이(2162)에 맞춘 긴 물길로 그리고, 창에 보이는 구간(위아래 반 화면 여유)만 그린다.
    * 끄면 물길의 맨 위 구간(318)만 상자에 꽉 차게 그린다.
+   * 흐름 속도는 이 값과 상관없이 창 스크롤(휠 포함)에서 읽는다.
    */
   scrollScene?: boolean;
   /**
-   * true면 지금 장면에서 그리기를 멈춘다(rAF 예약 없음, 마지막 프레임 유지).
-   * false로 돌아오면 흐름 시간이 튀지 않고 이어서 흐른다. WCAG 2.2.2의 멈춤 수단이다.
+   * true면 흐름을 멈추고 지금 장면을 남긴다(이어 그리는 루프 없음). 크기·스크롤 구간이 바뀌면
+   * 그 장면을 한 번 다시 그린다. false로 돌아오면 흐름 시간이 튀지 않고 이어서 흐른다.
+   * WCAG 2.2.2의 멈춤 수단이다.
    */
   paused?: boolean;
 }
@@ -61,23 +64,21 @@ export const LuminousFlow = forwardRef<HTMLDivElement, LuminousFlowProps>(
       if (!rim) return;
       const media = window.matchMedia('(prefers-reduced-motion: reduce)');
       const sceneHeight = scrollScene ? SCENE_HEIGHT : SCENE_HEIGHT_COMPACT;
-      let frame = 0;
       let visible = true;
       const atmosphere = root.querySelector<SVGSVGElement>('svg');
       let atmosphereTexture: HTMLCanvasElement | null = null;
       let textureVersion = 0;
       let textureUrl: string | null = null;
-      const animating = () =>
-        shouldAnimate({
+      const loop = createFlowLoop({
+        readState: () => ({
           reduced: media.matches,
           hidden: document.hidden,
           visible,
           paused: pausedRef.current,
-        });
-      // 이어 그리지 않는 동안(정지 장면)에는 크기·텍스처가 바뀔 때 한 번 다시 그려야 한다
-      const redrawIfIdle = () => {
-        if (!animating()) syncMotion();
-      };
+        }),
+        onFrame: (now, running) => draw(now, running),
+        onSync: (running) => syncClocks(running),
+      });
       const cacheAtmosphere = (width: number, height: number) => {
         if (!atmosphere || !width || !height) return;
         const version = ++textureVersion;
@@ -107,7 +108,7 @@ export const LuminousFlow = forwardRef<HTMLDivElement, LuminousFlowProps>(
             paint.drawImage(image, 0, 0, texture.width, texture.height);
             atmosphereTexture = texture;
             atmosphere.style.visibility = 'hidden';
-            redrawIfIdle();
+            loop.redrawIfIdle();
           }
           URL.revokeObjectURL(url);
           if (textureUrl === url) textureUrl = null;
@@ -148,7 +149,7 @@ export const LuminousFlow = forwardRef<HTMLDivElement, LuminousFlowProps>(
       let flowTime = 0;
       let bobTime = 0;
 
-      // 그림은 루트 상자 안에서 그 상자만 채운다(창 좌표·overscan 없음)
+      // 그림은 루트 상자 안에서 그 상자만 채운다
       const resize = () => {
         width = root.clientWidth;
         height = root.clientHeight;
@@ -171,13 +172,13 @@ export const LuminousFlow = forwardRef<HTMLDivElement, LuminousFlowProps>(
           cacheAtmosphere(width * (wide ? 3 : 1), height);
         }
         sizeKey = key;
-        redrawIfIdle();
+        loop.redrawIfIdle();
       };
       const observer = new ResizeObserver(resize);
       observer.observe(root);
       const visibilityObserver = new IntersectionObserver((entries) => {
         visible = entries[0].isIntersecting;
-        syncMotion();
+        loop.sync();
       });
       visibilityObserver.observe(root);
 
@@ -199,9 +200,20 @@ export const LuminousFlow = forwardRef<HTMLDivElement, LuminousFlowProps>(
           0
         );
         context.lineCap = 'round';
-        // 상자가 곧 보이는 영역이므로 장면 전체가 대상이다(창 밖 잘라내기는 상자가 창의 여러 배가 되면 되살린다).
-        const top = 0;
-        const bottom = sceneHeight;
+        // 보이는 장면 구간. 비스크롤은 상자 전체가 보이고, scrollScene의 긴 상자는 창에 닿는 구간에
+        // 위아래 반 화면 여유(스크롤이 다음 프레임 전에 드러내는 만큼)를 더한다.
+        let top = 0;
+        let bottom = sceneHeight;
+        if (scrollScene) {
+          const overscan = window.innerHeight / 2;
+          const boxTop = root.getBoundingClientRect().top;
+          top = Math.max(0, (-boxTop - overscan) / scaleY);
+          bottom = Math.min(
+            sceneHeight,
+            (window.innerHeight + overscan - boxTop) / scaleY
+          );
+          if (bottom <= top) return;
+        }
 
         if (atmosphereTexture) {
           context.globalAlpha = 1;
@@ -385,11 +397,9 @@ export const LuminousFlow = forwardRef<HTMLDivElement, LuminousFlowProps>(
         });
       };
 
-      const draw = (now: number) => {
-        frame = 0;
+      const draw = (now: number, running: boolean) => {
         const delta = Math.min(0.1, Math.max(0, now - previousFrame) / 1000);
         previousFrame = now;
-        const running = animating();
         if (running) {
           const targetSpeed =
             SCROLL_FLOW.idleSpeed +
@@ -406,35 +416,33 @@ export const LuminousFlow = forwardRef<HTMLDivElement, LuminousFlowProps>(
           scrollVelocity *= Math.exp(-delta / SCROLL_FLOW.decayTime);
         }
         if (width && height) paintScene(media.matches ? 0 : flowTime);
-        if (running) frame = requestAnimationFrame(draw);
       };
-      // 이어 그리지 않는 상태(축소·paused)여도 보일 때는 정지 장면을 한 번 그린다
-      const syncMotion = () => {
-        cancelAnimationFrame(frame);
-        frame = 0;
+      // sync 때 시계를 새로 잡는다. 이어 그리지 않는 상태면 스크롤 속도와 흐름 속도도 쉬는 값으로 되돌린다
+      const syncClocks = (running: boolean) => {
         previousFrame = performance.now();
         previousScrollTime = previousFrame;
         previousScrollY = window.scrollY;
-        if (!animating()) {
+        if (!running) {
           scrollVelocity = 0;
           flowSpeed = SCROLL_FLOW.idleSpeed;
         }
-        if (!document.hidden && visible) frame = requestAnimationFrame(draw);
       };
       const onScroll = () => {
         const now = performance.now();
         const elapsed = Math.max(16, Math.min(100, now - previousScrollTime));
-        if (animating())
+        if (loop.animating())
           scrollVelocity = Math.min(
             SCROLL_FLOW.fullSpeedScroll,
             (Math.abs(window.scrollY - previousScrollY) / elapsed) * 1000
           );
         previousScrollY = window.scrollY;
         previousScrollTime = now;
+        // 긴 상자는 스크롤로 보이는 구간이 바뀌므로 정지 장면도 다시 그린다
+        if (scrollScene) loop.redrawIfIdle();
       };
       let previousWheelTime = 0;
       const onWheel = (event: WheelEvent) => {
-        if (event.ctrlKey || !animating()) return;
+        if (event.ctrlKey || !loop.animating()) return;
         const units =
           event.deltaMode === 1
             ? 16
@@ -454,24 +462,25 @@ export const LuminousFlow = forwardRef<HTMLDivElement, LuminousFlowProps>(
           )
         );
       };
-      syncRef.current = syncMotion;
+      syncRef.current = loop.sync;
       resize();
-      syncMotion();
-      window.addEventListener('scroll', onScroll, { passive: true });
-      window.addEventListener('wheel', onWheel, { passive: true });
-      media.addEventListener('change', syncMotion);
-      document.addEventListener('visibilitychange', syncMotion);
+      loop.sync();
+      const unbind = bindFlowListeners({
+        win: window,
+        doc: document,
+        media,
+        onScroll,
+        onWheel,
+        onSync: loop.sync,
+      });
       return () => {
         syncRef.current = () => {};
         textureVersion++;
         if (textureUrl) URL.revokeObjectURL(textureUrl);
-        cancelAnimationFrame(frame);
+        loop.stop();
         observer.disconnect();
         visibilityObserver.disconnect();
-        window.removeEventListener('scroll', onScroll);
-        window.removeEventListener('wheel', onWheel);
-        media.removeEventListener('change', syncMotion);
-        document.removeEventListener('visibilitychange', syncMotion);
+        unbind();
       };
     }, [scrollScene]);
 

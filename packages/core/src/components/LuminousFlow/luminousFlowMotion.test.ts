@@ -1,3 +1,5 @@
+import { readdirSync, readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { shouldAnimate } from './luminousFlowMotion';
 import { palette, paletteChannels } from './luminousFlowPalette';
@@ -34,5 +36,19 @@ describe('고정 팔레트', () => {
       blue: '14 94 165',
       glow: '127 227 238',
     });
+  });
+});
+
+describe('팔레트가 한 파일에만 있다', () => {
+  // 무엇을 되돌리면 빨개지는가: 다른 소스 파일에 `0x` 6자리 색(팔레트 사본)을 적으면 그 파일 이름이 찍힌다
+  it('`0x` 6자리 색 숫자는 luminousFlowPalette.ts 밖의 소스에 없다', () => {
+    const dir = __dirname;
+    const offenders = readdirSync(dir)
+      .filter((name) => /\.tsx?$/.test(name) && !/\.test\.tsx?$/.test(name))
+      .filter((name) => name !== 'luminousFlowPalette.ts')
+      .filter((name) =>
+        /\b0x[0-9a-f]{6}\b/i.test(readFileSync(join(dir, name), 'utf-8'))
+      );
+    expect(offenders).toEqual([]);
   });
 });

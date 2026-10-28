@@ -1512,8 +1512,8 @@ import { LuminousFlow } from '@taein-ui/core';
 ### Props
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
-| scrollScene | boolean | false | The box height maps to the whole river (2162 units). Off: only the top part (318 units) fills the box. The flow speed reads window scroll either way |
-| paused | boolean | false | true stops drawing on the current scene (no rAF is scheduled and the last frame stays). false continues without a jump in flow time. The pause control for WCAG 2.2.2 (a motion that lasts more than 5 seconds) |
+| scrollScene | boolean | false | The box height maps to the whole river (2162 units) and only the part near the window (plus half a screen above and below) is drawn. Off: only the top part (318 units) fills the box. The flow speed reads window scroll either way |
+| paused | boolean | false | true stops the flow and keeps the current scene: there is no repeating draw loop, and one still frame is redrawn when the box size (or, with `scrollScene`, the visible part) changes. false continues without a jump in flow time. The pause control for WCAG 2.2.2 (a motion that lasts more than 5 seconds) |
 | className | string | - | Additional CSS class (on the root) |
 | ref | Ref<HTMLDivElement> | - | Forwarded to the root `<div>` |
 

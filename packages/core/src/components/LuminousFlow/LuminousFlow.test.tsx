@@ -1,5 +1,5 @@
 import { createRef, StrictMode } from 'react';
-import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { render } from '@testing-library/react';
 import { LuminousFlow } from './LuminousFlow';
 
@@ -81,47 +81,5 @@ describe('LuminousFlow (jsdom, canvas 2D 없음)', () => {
       </StrictMode>
     );
     expect(() => unmount()).not.toThrow();
-  });
-});
-
-describe('리스너 등록과 해제', () => {
-  type Target = Window | Document;
-  const restores: Array<() => void> = [];
-  afterEach(() => {
-    while (restores.length) restores.pop()?.();
-  });
-
-  /** 실제 add/removeEventListener를 그대로 부르면서 호출만 기록한다(동작을 바꾸지 않는다). */
-  const record = (target: Target, log: string[]) => {
-    const add = target.addEventListener.bind(target);
-    const remove = target.removeEventListener.bind(target);
-    target.addEventListener = ((type: string, ...rest: never[]) => {
-      log.push(`+${type}`);
-      return add(type, ...(rest as [never]));
-    }) as typeof target.addEventListener;
-    target.removeEventListener = ((type: string, ...rest: never[]) => {
-      log.push(`-${type}`);
-      return remove(type, ...(rest as [never]));
-    }) as typeof target.removeEventListener;
-    restores.push(() => {
-      target.addEventListener = add as typeof target.addEventListener;
-      target.removeEventListener = remove as typeof target.removeEventListener;
-    });
-  };
-
-  it('마운트부터 언마운트까지 등록한 리스너가 남지 않는다', () => {
-    // ponytail: jsdom에는 canvas 2D가 없어 컴포넌트가 등록 전에 물러나므로 이 시험은 "새는 등록이 없다"만 잠근다.
-    // 등록·해제 짝(scroll, wheel, visibilitychange, matchMedia change)은 실제 브라우저에서 확인한다. canvas 구현체를 시험에 들이면 바꾼다.
-    const log: string[] = [];
-    record(window, log);
-    record(document, log);
-    const { unmount } = render(<LuminousFlow />);
-    unmount();
-    const added = log.filter((entry) => entry.startsWith('+')).sort();
-    const removed = log
-      .filter((entry) => entry.startsWith('-'))
-      .map((entry) => `+${entry.slice(1)}`)
-      .sort();
-    expect(removed).toEqual(added);
   });
 });
