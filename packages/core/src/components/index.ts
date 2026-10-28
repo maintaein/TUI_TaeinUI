@@ -30,3 +30,4 @@ export * from './CopyButton';
 export * from './BurstToggle';
 export * from './HoldButton';
 export * from './StampButton';
+export * from './SloshGauge';
