@@ -1353,7 +1353,7 @@ import { CodeSlots } from '@taein-ui/core';
 | className | string | - | Additional CSS class (on the root) |
 | ref | Ref<HTMLInputElement> | - | Forwarded to the hidden input |
 
-Other native input attributes (`name`, `autoFocus`, `required`) are passed to the input, except `type`, `size`, `id`, `style`, `maxLength`, `inputMode`, `pattern`, `autoComplete`, `onSelect` and `children`. The input has `inputMode="numeric"`, `autoComplete="one-time-code"`, `maxLength={length}` and `pattern="\d*"`. Characters that are not digits are dropped; a paste is filtered to its digits, so "123 456" fills 123456. The caret always stays at the end (no editing inside), so delete with Backspace from the end. There is no `size` or `variant`.
+Other native input attributes (`name`, `autoFocus`, `required`) are passed to the input, except `type`, `size`, `id`, `style`, `maxLength`, `inputMode`, `pattern`, `autoComplete`, `onSelect` and `children`. The input has `inputMode="numeric"`, `autoComplete="one-time-code"`, `maxLength={length}` and `pattern="\d*"`. Characters that are not digits are dropped; a paste is filtered to its digits, so "123 456" fills 123456. A paste of `length` digits or more replaces the whole value (a new code, so it never gets appended to a half-typed one); a shorter piece is appended to the current value and cut at `length`. The caret always stays at the end (no editing inside), so delete with Backspace from the end. There is no `size` or `variant`.
 
 ### Accessibility
 - The accessible name is `label`; `helperText`, `errorMessage` and `successMessage` are tied to the input by `aria-describedby`, and the message is visible text, so error and success do not rely on motion or color alone.

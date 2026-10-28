@@ -235,12 +235,14 @@ export const CodeSlots = forwardRef<HTMLInputElement, CodeSlotsProps>(
       commit(clean(e.target.value));
 
     // maxLength가 숫자 거르기보다 먼저 잘라 "123 456"이 5자가 되므로, 붙여넣기는 걸러서 직접 넣는다.
-    // 커서가 늘 끝이라 붙여넣은 글은 현재 값 뒤에 붙는다
+    // length자 이상이면 새 번호 한 벌이라 값 전체를 바꾸고(이어 붙이면 틀린 번호가 자동 제출된다),
+    // 짧은 조각이면 현재 값 뒤에 붙인다(커서가 늘 끝이다)
     const handlePaste = (e: ClipboardEvent<HTMLInputElement>) => {
       onPaste?.(e);
       if (e.defaultPrevented) return;
       e.preventDefault();
-      commit(clean(current + e.clipboardData.getData('text')));
+      const digits = e.clipboardData.getData('text').replace(/\D/g, '');
+      commit(clean(digits.length >= length ? digits : current + digits));
     };
 
     const active = Math.min(current.length, length - 1);

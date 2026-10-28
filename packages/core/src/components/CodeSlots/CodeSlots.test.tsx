@@ -193,12 +193,54 @@ describe('CodeSlots', () => {
       }
     );
 
-    it('붙여넣기는 이미 찬 값 뒤에 붙고 넘치면 잘린다', async () => {
+    it('짧은 조각이 넘치면 length까지 잘린다', async () => {
       const user = userEvent.setup();
-      render(<CodeSlots label="인증번호" defaultValue="12" />);
+      render(<CodeSlots label="인증번호" defaultValue="1234" />);
       await user.click(input());
-      await user.paste('3-4 5 6 7 8');
+      await user.paste('5-6 7');
       expect(input().value).toBe('123456');
+    });
+
+    it('length자 이상을 붙여넣으면 값 전체가 바뀌고 짧은 조각은 이어 붙는다', async () => {
+      const user = userEvent.setup();
+      const onComplete = vi.fn();
+      render(
+        <CodeSlots label="인증번호" defaultValue="12" onComplete={onComplete} />
+      );
+      await user.click(input());
+      await user.paste('654321');
+      expect(input().value).toBe('654321');
+      expect(onComplete).toHaveBeenCalledTimes(1);
+      expect(onComplete).toHaveBeenCalledWith('654321');
+    });
+
+    it('꽉 찬 값에 새 번호를 붙여넣으면 교체된다', async () => {
+      const user = userEvent.setup();
+      const onComplete = vi.fn();
+      render(
+        <CodeSlots
+          label="인증번호"
+          defaultValue="123456"
+          onComplete={onComplete}
+        />
+      );
+      await user.click(input());
+      await user.paste('999999');
+      expect(input().value).toBe('999999');
+      expect(onComplete).toHaveBeenCalledTimes(1);
+      expect(onComplete).toHaveBeenCalledWith('999999');
+    });
+
+    it('짧은 조각은 현재 값 뒤에 붙는다', async () => {
+      const user = userEvent.setup();
+      const onComplete = vi.fn();
+      render(
+        <CodeSlots label="인증번호" defaultValue="12" onComplete={onComplete} />
+      );
+      await user.click(input());
+      await user.paste('34');
+      expect(input().value).toBe('1234');
+      expect(onComplete).not.toHaveBeenCalled();
     });
 
     it('length로 칸 수가 정해진다', async () => {
