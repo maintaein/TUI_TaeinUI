@@ -1315,9 +1315,9 @@ Other native div attributes are passed to the root, except `children` and `role`
 One-time code and PIN input (a form component: `label` is required). The real input is a single `<input>` laid transparently over the slots (not `display: none`), so focus, paste and one-time-code autofill land on it near the slots. The slots are `aria-hidden` pictures of its value.
 
 - Typing a digit rolls it into its slot from above (`translateY(-100%)` to 0 with a slight overshoot, `base`, `snap`). Deleting drops the digit out below.
-- `error`: the slots shake one after another from the left (the same keyframes and tokens as the TextField error shake, a stagger of `fast` x 0.3 per slot) and the borders turn `error`.
+- `error`: the slots shake one after another from the left (the same kind of keyframes and tokens as the TextField error shake, `slower` and `drift`, but ±4px to fit the 8px gap; a stagger of `fast` x 0.3 per slot) and the borders turn `error`.
 - `success`: the gap between the slots shrinks to 0 and the borders between them disappear, so the slots merge into one pill (`slower`, `settle`). The borders are `success.dark` (`success.main` is 2.77:1 on white).
-- The slot to type into next (the last slot when full) shows the focus ring while the input has focus.
+- The slot to type into next (the last slot when full) shows the focus ring while the input has focus; once merged, the whole pill shows one ring instead.
 
 ```tsx
 import { CodeSlots } from '@taein-ui/core';
@@ -1353,7 +1353,7 @@ import { CodeSlots } from '@taein-ui/core';
 | className | string | - | Additional CSS class (on the root) |
 | ref | Ref<HTMLInputElement> | - | Forwarded to the hidden input |
 
-Other native input attributes (`name`, `autoFocus`, `required`) are passed to the input, except `type`, `size`, `id`, `style`, `maxLength`, `inputMode`, `pattern`, `autoComplete`, `onSelect` and `children`. The input has `inputMode="numeric"`, `autoComplete="one-time-code"`, `maxLength={length}` and `pattern="\d*"`. Characters that are not digits are dropped. The caret always stays at the end (no editing inside), so delete with Backspace from the end. There is no `size` or `variant`.
+Other native input attributes (`name`, `autoFocus`, `required`) are passed to the input, except `type`, `size`, `id`, `style`, `maxLength`, `inputMode`, `pattern`, `autoComplete`, `onSelect` and `children`. The input has `inputMode="numeric"`, `autoComplete="one-time-code"`, `maxLength={length}` and `pattern="\d*"`. Characters that are not digits are dropped; a paste is filtered to its digits, so "123 456" fills 123456. The caret always stays at the end (no editing inside), so delete with Backspace from the end. There is no `size` or `variant`.
 
 ### Accessibility
 - The accessible name is `label`; `helperText`, `errorMessage` and `successMessage` are tied to the input by `aria-describedby`, and the message is visible text, so error and success do not rely on motion or color alone.

@@ -171,6 +171,36 @@ describe('CodeSlots', () => {
       expect(digits(container)).toHaveLength(6);
     });
 
+    it.each([
+      ['123 456'],
+      ['123-456'],
+      ['인증번호는 123456입니다'],
+      ['G-123456'],
+    ])(
+      '구분자나 글이 낀 붙여넣기(%s)도 숫자만 남아 채워지고 onComplete가 한 번 불린다',
+      async (text) => {
+        const user = userEvent.setup();
+        const onComplete = vi.fn();
+        const { container } = render(
+          <CodeSlots label="인증번호" onComplete={onComplete} />
+        );
+        await user.click(input());
+        await user.paste(text);
+        expect(input().value).toBe('123456');
+        expect(digits(container)).toEqual(['1', '2', '3', '4', '5', '6']);
+        expect(onComplete).toHaveBeenCalledTimes(1);
+        expect(onComplete).toHaveBeenCalledWith('123456');
+      }
+    );
+
+    it('붙여넣기는 이미 찬 값 뒤에 붙고 넘치면 잘린다', async () => {
+      const user = userEvent.setup();
+      render(<CodeSlots label="인증번호" defaultValue="12" />);
+      await user.click(input());
+      await user.paste('3-4 5 6 7 8');
+      expect(input().value).toBe('123456');
+    });
+
     it('length로 칸 수가 정해진다', async () => {
       const user = userEvent.setup();
       const onComplete = vi.fn();
@@ -477,14 +507,6 @@ describe('CodeSlots', () => {
       expect(container.querySelectorAll('[class*="wave"]')).toHaveLength(0);
       expect(cells(container)[0].className).toMatch(/cellError/);
     });
-
-    it('합쳐짐은 끝 상태로 바로 선다', () => {
-      stubReducedMotion();
-      const { container } = render(
-        <CodeSlots label="인증번호" success successMessage="맞음" />
-      );
-      expect(cells(container)[0].parentElement!.className).toMatch(/merged/);
-    });
   });
 
   describe('생성 CSS', () => {
@@ -520,6 +542,42 @@ describe('CodeSlots', () => {
       expect(
         byClass('cellSuccess')!.style.getPropertyValue('border-color')
       ).toBe(themeContract.color.success.dark);
+    });
+
+    it('합쳐진 동안은 칸별 포커스 링이 꺼지고 묶음(알약) 전체가 링을 가진다', () => {
+      const merged = rules().filter((r) => /_merged__/.test(r.selectorText));
+      // 칸별 링을 끄는 규칙: 묶음 포커스 + merged 아래 지금 칸
+      const off = merged.find((r) => /data-active/.test(r.selectorText));
+      expect(off).toBeDefined();
+      expect(off!.selectorText).toMatch(/:focus-within/);
+      expect(off!.style.getPropertyValue('outline')).toBe('none');
+      // 알약 전체의 링: 묶음 포커스 아래 merged 자신. 둥글기를 알약과 같게 가져 링이 곡선을 따른다
+      const ring = merged.find(
+        (r) =>
+          /:focus-within/.test(r.selectorText) &&
+          !/data-active/.test(r.selectorText) &&
+          / \.CodeSlots_merged__\w+$/.test(r.selectorText)
+      );
+      expect(ring).toBeDefined();
+      expect(ring!.style.getPropertyValue('outline')).toContain('2px solid');
+      expect(
+        byClass('merged')!.style.getPropertyValue('border-radius')
+      ).toContain('/ 2');
+    });
+
+    it('움직임 줄이기 미디어 질의에서 합쳐짐 전이가 꺼진다', () => {
+      const sheet = Array.from(document.styleSheets).find((c) =>
+        Array.from(c.cssRules).some((r) => r.cssText.includes('CodeSlots_cell'))
+      )!;
+      const reduced = Array.from(sheet.cssRules)
+        .filter((r): r is CSSMediaRule => r instanceof CSSMediaRule)
+        .filter((m) => /prefers-reduced-motion/.test(m.conditionText))
+        .flatMap((m) => Array.from(m.cssRules) as CSSStyleRule[])
+        .filter((r) => /CodeSlots_(cells|cell)__/.test(r.selectorText));
+      // 간격(cells)과 칸의 테두리·둥글기 전이 둘 다 꺼진다
+      expect(
+        reduced.map((r) => r.style.getPropertyValue('transition'))
+      ).toEqual(['none', 'none']);
     });
 
     it('지금 칸의 포커스 링은 묶음에 포커스가 있을 때만 켜진다', () => {

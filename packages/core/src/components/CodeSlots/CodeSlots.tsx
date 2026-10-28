@@ -4,6 +4,7 @@ import {
   useRef,
   useState,
   type ChangeEvent,
+  type ClipboardEvent,
   type InputHTMLAttributes,
   type SyntheticEvent,
 } from 'react';
@@ -63,7 +64,8 @@ interface Leaving {
 }
 
 // 칸 사이 물결 시차: duration 토큰 fast(150ms)의 0.3배(45ms). 토큰 스케일에 없는 사이 값이라 calc로 유도한다.
-const WAVE_STAGGER = `calc(${themeContract.animation.duration.fast} * 0.3`;
+const waveDelay = (i: number) =>
+  `calc(${themeContract.animation.duration.fast} * 0.3 * ${i})`;
 
 /**
  * 오류가 걸릴 때마다 물결 클래스를 돌려준다(TextField의 useErrorShake와 같은 규칙). 처음부터 켜져 있으면 물결치지 않고,
@@ -175,6 +177,7 @@ export const CodeSlots = forwardRef<HTMLInputElement, CodeSlotsProps>(
       defaultValue = '',
       onChange,
       onComplete,
+      onPaste,
       helperText,
       error = false,
       errorMessage,
@@ -220,13 +223,24 @@ export const CodeSlots = forwardRef<HTMLInputElement, CodeSlotsProps>(
         leaving: t.leaving.filter((g) => g.key !== key),
       }));
 
-    const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
-      const next = clean(e.target.value);
+    const commit = (next: string) => {
       // 숫자 아닌 글자만 들어왔거나 같은 값으로 잘리면 바뀐 것이 없다
       if (next === current) return;
       if (valueProp === undefined) setInner(next);
       onChange?.(next);
       if (next.length === length) onComplete?.(next);
+    };
+
+    const handleChange = (e: ChangeEvent<HTMLInputElement>) =>
+      commit(clean(e.target.value));
+
+    // maxLength가 숫자 거르기보다 먼저 잘라 "123 456"이 5자가 되므로, 붙여넣기는 걸러서 직접 넣는다.
+    // 커서가 늘 끝이라 붙여넣은 글은 현재 값 뒤에 붙는다
+    const handlePaste = (e: ClipboardEvent<HTMLInputElement>) => {
+      onPaste?.(e);
+      if (e.defaultPrevented) return;
+      e.preventDefault();
+      commit(clean(current + e.clipboardData.getData('text')));
     };
 
     const active = Math.min(current.length, length - 1);
@@ -259,6 +273,7 @@ export const CodeSlots = forwardRef<HTMLInputElement, CodeSlotsProps>(
               className={styles.input}
               value={current}
               onChange={handleChange}
+              onPaste={handlePaste}
               onSelect={caretToEnd}
               {...rest}
             />
@@ -279,7 +294,7 @@ export const CodeSlots = forwardRef<HTMLInputElement, CodeSlotsProps>(
                   )}
                   style={
                     !reduced && wave
-                      ? { animationDelay: `${WAVE_STAGGER} * ${i})` }
+                      ? { animationDelay: waveDelay(i) }
                       : undefined
                   }
                 >

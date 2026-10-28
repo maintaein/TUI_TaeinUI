@@ -17,7 +17,7 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-// 123456을 넣으면 성공, 다른 여섯 자리면 오류 연출이 돈다
+// 123456(칸이 4개면 1234)을 넣으면 성공, 다른 번호면 오류 연출이 돈다
 const Demo = (args: ComponentProps<typeof CodeSlots>) => {
   const [code, setCode] = useState('');
   const [result, setResult] = useState<'wrong' | 'ok' | null>(null);
@@ -30,7 +30,9 @@ const Demo = (args: ComponentProps<typeof CodeSlots>) => {
           setCode(next);
           setResult(null);
         }}
-        onComplete={(full) => setResult(full === '123456' ? 'ok' : 'wrong')}
+        onComplete={(full) =>
+          setResult(full === '123456'.slice(0, full.length) ? 'ok' : 'wrong')
+        }
         error={result === 'wrong'}
         errorMessage="번호가 맞지 않습니다"
         success={result === 'ok'}

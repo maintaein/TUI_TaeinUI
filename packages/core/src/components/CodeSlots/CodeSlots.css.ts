@@ -20,11 +20,18 @@ export const cells = style({
   gap: spacing[2],
   // gap: 합쳐질 때 간격이 0으로 줄어드는 전이다. gap은 레이아웃 속성이지만 칸이 고정 크기라 다른 요소를 밀지 않는다.
   transition: `gap ${animation.duration.slower} ${animation.easing.settle}`,
+  // 움직임 줄이기: 합쳐짐은 전이 없이 끝 상태로 선다(전역 reduce 규칙과 같은 결과를 이 파일에서도 못박는다)
+  '@media': { '(prefers-reduced-motion: reduce)': { transition: 'none' } },
 });
 
 // 성공: 간격이 0으로 줄고 칸 테두리가 사이에서 사라지며 바깥 둥글기만 남는다(cell의 selectors가 짝이다).
+// 포커스 링은 칸별이 아니라 묶음(알약) 전체에 하나만 준다. 칸 링은 칸의 네모 모서리를 따라 알약 밖으로 튀어나온다.
 export const merged = style({
   gap: 0,
+  borderRadius: PILL_R,
+  selectors: {
+    [`${group}:focus-within &`]: focusRing(),
+  },
 });
 
 // 실제 입력. display:none이면 포커스와 자동 채움을 못 받으므로 투명하게 칸 위에 겹친다.
@@ -60,9 +67,14 @@ export const cell = style({
   backgroundColor: color.background.paper,
   // border-color는 오류·성공 색 전환, border-radius와 border-left-width, border-right-width는 합쳐질 때 바깥 둥글기만 남기고 칸 사이 테두리를 지우는 전이다.
   transition: `border-color ${animation.duration.fast} ${animation.easing.settle}, border-radius ${animation.duration.slower} ${animation.easing.settle}, border-left-width ${animation.duration.slower} ${animation.easing.settle}, border-right-width ${animation.duration.slower} ${animation.easing.settle}`,
+  '@media': { '(prefers-reduced-motion: reduce)': { transition: 'none' } },
   selectors: {
     // 지금 입력할 칸의 포커스 링(2.4.7). 묶음 안에 포커스가 있을 때만 보인다.
     [`${group}:focus-within &[data-active="true"]`]: focusRing(),
+    // 합쳐진 동안은 칸별 링을 끈다(링은 merged 묶음이 가진다)
+    [`${group}:focus-within ${merged} &[data-active="true"]`]: {
+      outline: 'none',
+    },
     [`${merged} &`]: { borderRadius: 0 },
     [`${merged} &:first-child`]: {
       borderTopLeftRadius: PILL_R,
