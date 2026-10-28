@@ -157,7 +157,7 @@ GSAP 런타임(M3에서 시작해 M7까지)이 실제로 붙은 컴포넌트와 
 - `Divider`, `Border`, `List`, `Skeleton`은 지시문이 없다. 서버 컴포넌트로 렌더된다.
   `Button`, `IconButton`은 누름 상태를 `useClickRebound` 훅이 갖기 때문에
   `'use client'`가 붙는다. 서버 컴포넌트에서 import하는 것은 그대로 된다.
-- `BurstToggle`, `HoldButton`, `StampButton`, `SloshGauge`, `CodeSlots`, `FanMenu`, `WingButton`도 `'use client'`가 붙는다. 상태를 갖고 클릭·포인터·키보드 이벤트나 GSAP 타임라인이 브라우저에서만 돈다.
+- `BurstToggle`, `HoldButton`, `StampButton`, `SloshGauge`, `CodeSlots`, `FanMenu`, `WingButton`도 `'use client'`가 붙는다. 상태를 갖고 클릭·포인터·키보드 이벤트나 GSAP 타임라인이 브라우저에서만 돈다(`FanMenu`는 GSAP이 아니라 CSS 전이다).
   `onClick`·`onConfirm`·`onChange`·`onSelect` 같은 함수 prop과 `WingButton`의 `container`(DOM 요소)는 클라이언트 파일에서 넘긴다. `SloshGauge`는 표시 요소라 함수 prop이 없다.
 - `LuminousFlow`도 `'use client'`가 붙는다. canvas 그리기·스크롤 구독·관찰자를 브라우저에서만 돌린다. 첫 렌더(서버 포함)는 대기층 SVG와 어두운 바탕이다.
 - `Morph`도 `'use client'`가 붙는다. 사라지는 요소의 모양을 등록부에 남기고 새 요소가 마운트될 때 GSAP 타임라인을 돌리며 포커스를 옮긴다.

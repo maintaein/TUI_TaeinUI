@@ -85,14 +85,14 @@ function LoginForm() {
 
 ## 모션
 
-GSAP 런타임이 붙어 있는 컴포넌트입니다. 여기 없는 컴포넌트는 CSS 트랜지션으로만 구현했습니다.
+GSAP 런타임이 붙어 있는 컴포넌트는 24개입니다. 아래 표는 그중 일부이고, 전체 명단과 각자 쓰는 능력은 `packages/core/llms.txt`의 "Motion (GSAP Runtime)" 절에 있습니다. 명단에 없는 컴포넌트는 GSAP을 쓰지 않습니다(CSS 트랜지션·키프레임, LuminousFlow는 canvas 루프).
 
 | 컴포넌트                                           | GSAP이 맡는 일                                    |
 | -------------------------------------------------- | ------------------------------------------------- |
 | Modal, BottomSheet, SideSheet                      | 타임라인 상대 위치, 트리거 좌표 읽기, 드래그 추적 |
 | Checkbox, Switch, SegmentedButtons, NumericSpinner | 모양 변형, 여러 목표를 동시에 중단                |
 | Slider, HeaderBar                                  | 제스처·포인터 추적                                |
-| Snackbar, TextField, TextArea                      | CSS가 못 보는 값 읽기(진행률·줄바꿈 위치)         |
+| Snackbar                                           | CSS가 못 보는 값 읽기(카운트다운 진행률)          |
 
 `prefers-reduced-motion: reduce`에서는 CSS 전역 규칙이 트랜지션·애니메이션을 끄고,
 GSAP으로 도는 트윈은 인라인 스타일이라 그 규칙이 안 닿으므로 각 훅이 `gateMotion`으로
