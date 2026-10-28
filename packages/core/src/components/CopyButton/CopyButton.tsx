@@ -85,6 +85,8 @@ export const CopyButton = forwardRef<HTMLButtonElement, CopyButtonProps>(
       let ok = false;
       try {
         // 클립보드는 보안 맥락이 아니거나 권한이 막히면 없거나 거절한다. 둘 다 실패 경로다.
+        // 계약: navigator.clipboard는 onClick 직후 같은 틱(await 앞)에서 읽는다. demo 시연이 이 순서에
+        // 기대 합성 클릭에만 가짜 클립보드를 끼웠다 거둔다(CopyButtonPage의 rehearse). await를 앞에 두지 않는다.
         await navigator.clipboard.writeText(value);
         ok = true;
       } catch {
@@ -157,7 +159,8 @@ export const CopyButton = forwardRef<HTMLButtonElement, CopyButtonProps>(
           </span>
         </Button>
         <span className={visuallyHidden} role="status" aria-live="polite">
-          {liveText}
+          {/* 누를 때마다 노드를 새로 세워 같은 결과가 이어져도 낭독기가 다시 읽는다 */}
+          {outcome && <span key={outcome.id}>{liveText}</span>}
         </span>
       </>
     );

@@ -20,6 +20,14 @@ const moving = (page: Page) =>
     )
   );
 
+// 보이지 않는 쉬는 글자와 아이콘까지 단추 안 모든 요소가 단위 행렬이다(축소 모션)
+const anyMoving = (page: Page) =>
+  copyButton(page).evaluate((el) =>
+    [...el.querySelectorAll('*')].some(
+      (n) => !new DOMMatrix(getComputedStyle(n).transform).isIdentity
+    )
+  );
+
 test.describe('복사됨 상세 (1440px)', () => {
   test.use({
     viewport: { width: 1440, height: 900 },
@@ -90,6 +98,35 @@ test.describe('복사됨 상세 (1440px)', () => {
   });
 });
 
+test.describe('시연이 navigator.clipboard를 되돌린다 (1440px)', () => {
+  test.use({ viewport: { width: 1440, height: 900 } });
+
+  test('원래 own 속성이 있던 환경에서는 시연 뒤에도 그 속성이 그대로다', async ({
+    page,
+  }) => {
+    const mark = { name: 'polyfill' };
+    await page.addInitScript((m) => {
+      Object.defineProperty(navigator, 'clipboard', {
+        value: m,
+        configurable: true,
+        writable: true,
+      });
+    }, mark);
+    await page.goto('/motion/copy-button');
+    // 대본의 합성 클릭이 지나가며 시연 클립보드가 쓰였다(복사됨)
+    await expect(live(page)).toHaveText('복사됨', { timeout: 15_000 });
+    const kept = await page.evaluate(
+      () =>
+        (
+          Object.getOwnPropertyDescriptor(navigator, 'clipboard')?.value as
+            | { name?: string }
+            | undefined
+        )?.name
+    );
+    expect(kept).toBe('polyfill');
+  });
+});
+
 test.describe('복사 실패 (1440px)', () => {
   test.use({ viewport: { width: 1440, height: 900 } });
 
@@ -134,9 +171,9 @@ test.describe('복사됨 축소 모션', () => {
     await page.goto('/motion/copy-button');
     await copyButton(page).click();
     await expect(shownText(page)).toHaveText('복사됨');
-    // 바뀌는 내내 한 번도 움직이지 않는다
+    // 바뀌는 내내 한 번도 움직이지 않는다. 빠지는 글자와 아이콘도 제자리에서 페이드만 한다
     for (let i = 0; i < 10; i++) {
-      expect(await moving(page)).toBe(false);
+      expect(await anyMoving(page)).toBe(false);
       await page.waitForTimeout(20);
     }
   });

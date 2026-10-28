@@ -180,6 +180,52 @@ describe('CopyButton', () => {
     });
   });
 
+  describe('낭독과 호출 순서', () => {
+    it('다시 눌러 같은 결과가 이어져도 live 영역 안 노드가 새로 서서 다시 읽힌다', async () => {
+      const user = userEvent.setup();
+      render(<CopyButton value="x" />);
+      await user.click(screen.getByRole('button'));
+      await liveText('복사됨');
+      const first = live().firstElementChild;
+      expect(first).not.toBeNull();
+      await user.click(screen.getByRole('button'));
+      await waitFor(() => expect(live().firstElementChild).not.toBe(first));
+      expect(live()).toHaveTextContent('복사됨');
+    });
+
+    it('연속 실패도 노드가 새로 선다', async () => {
+      render(<CopyButton value="x" />);
+      fireEvent.click(screen.getByRole('button'));
+      await liveText('복사 실패');
+      const first = live().firstElementChild;
+      fireEvent.click(screen.getByRole('button'));
+      await waitFor(() => expect(live().firstElementChild).not.toBe(first));
+      expect(live()).toHaveTextContent('복사 실패');
+    });
+
+    // 계약: demo 시연(CopyButtonPage의 rehearse)은 onClick에서 가짜 클립보드를 끼우고 마이크로태스크에서
+    // 거둔다. core가 onClick 직후 같은 틱에 navigator.clipboard를 읽어야 그 가짜가 쓰인다.
+    it('onClick 직후 같은 틱에 navigator.clipboard를 읽는다', async () => {
+      const onCopy = vi.fn();
+      render(
+        <CopyButton
+          value="x"
+          onCopy={onCopy}
+          onClick={() => {
+            Object.defineProperty(navigator, 'clipboard', {
+              value: { writeText: () => Promise.resolve() },
+              configurable: true,
+            });
+            queueMicrotask(removeClipboard);
+          }}
+        />
+      );
+      fireEvent.click(screen.getByRole('button'));
+      await waitFor(() => expect(onCopy).toHaveBeenCalledTimes(1));
+      expect(onCopy).toHaveBeenCalledWith(true);
+    });
+  });
+
   describe('입력 규칙', () => {
     it('disabled면 복사하지 않는다', async () => {
       const user = userEvent.setup();
@@ -271,8 +317,12 @@ describe('CopyButton', () => {
     it('글자와 아이콘의 이동·회전은 축소 모션에서 transform none이고 흔들림은 animation none이다', () => {
       // 글자 스타일, 아이콘 스타일, 체크 선, 흔들림
       expect(blocks).toHaveLength(4);
-      expect(blocks[0]).toMatch(/transform: 'none'/);
-      expect(blocks[1]).toMatch(/transform: 'none'/);
+      // 선택자(selectors) 앞이 블록의 최상위 규칙이다. 안쪽 '&[data-shown]'의 같은 글자와 구분한다
+      expect(blocks[0].split('selectors')[0]).toMatch(/transform: 'none'/);
+      expect(blocks[1].split('selectors')[0]).toMatch(/transform: 'none'/);
+      // 보이는 쪽도 이동이 없어야 한다
+      expect(blocks[0]).toMatch(/selectors: \{[^}]*transform: 'none'/);
+      expect(blocks[1]).toMatch(/selectors: \{[^}]*transform: 'none'/);
       expect(blocks[2]).toMatch(/transition: 'none'/);
       expect(blocks[3]).toMatch(/animation: 'none'/);
     });

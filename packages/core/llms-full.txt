@@ -1151,7 +1151,7 @@ Other native button attributes are passed to the `<button>`, except `children`, 
 ### Accessibility
 - The accessible name is always `label`; the name does not change after a copy. The other two labels are `aria-hidden`.
 - A visually hidden `aria-live="polite"` region (`role="status"`) next to the button reads the copied or failed label once, and is emptied when the button returns to rest.
-- Pressing again while the copied or failed label shows copies again and restarts the timer. The region text does not change in that case, so it is not read a second time.
+- Pressing again while the copied or failed label shows copies again and restarts the timer. Each press renders a fresh node inside the region, so the result is read again.
 - The timer is cleared on unmount.
 - Reduced motion: the icon and the label only cross-fade. No sliding, rotating, line drawing or shake.
 

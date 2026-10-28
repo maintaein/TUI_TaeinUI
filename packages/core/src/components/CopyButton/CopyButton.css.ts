@@ -10,6 +10,8 @@ const MOVE = animation.duration.slow;
 // 상태가 바뀌어도 단추 너비가 변하지 않는다. 밖으로 밀려난 글자는 이 칸에서 잘린다.
 export const slot = style({
   display: 'grid',
+  // 글자가 칸보다 짧을 때(복사, 복사됨) 남는 폭을 양쪽이 나눠 가진다
+  justifyItems: 'center',
   overflow: 'hidden',
   lineHeight: 1.5,
 });

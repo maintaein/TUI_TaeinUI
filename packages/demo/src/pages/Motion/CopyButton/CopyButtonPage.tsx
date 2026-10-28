@@ -170,11 +170,16 @@ function A11y() {
 // ponytail: core가 onClick과 clipboard 읽기 사이에 await를 두면 시연이 실패 연출로 바뀐다, e2e(copyButton.spec)가 잡는다
 const rehearse = (event: MouseEvent<HTMLButtonElement>) => {
   if (event.nativeEvent.isTrusted) return;
+  // 원래 own 속성(폴리필 등)이 있었다면 그 기술자로 되돌리고, 없었다면(프로토타입의 getter) 지운다
+  const original = Object.getOwnPropertyDescriptor(navigator, 'clipboard');
   Object.defineProperty(navigator, 'clipboard', {
     value: { writeText: () => Promise.resolve() },
     configurable: true,
   });
-  queueMicrotask(() => Reflect.deleteProperty(navigator, 'clipboard'));
+  queueMicrotask(() => {
+    if (original) Object.defineProperty(navigator, 'clipboard', original);
+    else Reflect.deleteProperty(navigator, 'clipboard');
+  });
 };
 
 /** 무대 조각. 대본의 커서가 단추를 누르고, 마우스를 올리면 직접 눌러 볼 수 있다 */
