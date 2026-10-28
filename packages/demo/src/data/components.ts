@@ -28,6 +28,7 @@ import {
   Tag,
   TextCursorInput,
   ToggleLeft,
+  Stamp,
   Trash2,
   Waves,
   type LucideIcon,
@@ -346,7 +347,7 @@ export const motionData: MotionInfo[] = [
     category: 'component',
     icon: Search,
   },
-  // Micro Interaction (3개)
+  // Micro Interaction (4개)
   {
     name: 'CopyButton',
     title: '복사됨',
@@ -375,6 +376,15 @@ export const motionData: MotionInfo[] = [
     usage: '삭제, 결제, 초기화',
     category: 'micro',
     icon: Trash2,
+  },
+  {
+    name: 'StampButton',
+    title: '도장 확정',
+    path: '/motion/stamp-button',
+    description: '누르면 도장이 내려와 쾅 찍히고 파란 인주가 번집니다.',
+    usage: '결재, 제출, 승인',
+    category: 'micro',
+    icon: Stamp,
   },
 ];
 

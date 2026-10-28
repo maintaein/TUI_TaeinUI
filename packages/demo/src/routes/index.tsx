@@ -158,6 +158,11 @@ const HoldButtonPage = lazy(() =>
     default: m.HoldButtonPage,
   }))
 );
+const StampButtonPage = lazy(() =>
+  import('../pages/Motion/StampButton').then((m) => ({
+    default: m.StampButtonPage,
+  }))
+);
 const JellyTextPage = lazy(() =>
   import('../pages/Motion/JellyText').then((m) => ({
     default: m.JellyTextPage,
@@ -502,6 +507,14 @@ const router = createBrowserRouter([
             element: (
               <LazyPage>
                 <HoldButtonPage />
+              </LazyPage>
+            ),
+          },
+          {
+            path: 'stamp-button',
+            element: (
+              <LazyPage>
+                <StampButtonPage />
               </LazyPage>
             ),
           },

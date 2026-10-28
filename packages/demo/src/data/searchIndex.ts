@@ -630,4 +630,34 @@ export const searchIndex: SearchEntry[] = [
       },
     ],
   },
+  {
+    id: 'stamp-button',
+    pageTitle: '도장 확정',
+    path: '/motion/stamp-button',
+    category: '모션',
+    description:
+      'StampButton. 누르면 도장이 내려와 쾅 찍히고 파란 인주가 번집니다. 도장, 결재, 승인, 제출, 확정, 인주, stamp.',
+    sections: [
+      {
+        title: '마이크로 인터랙션',
+        content:
+          '결재와 제출 단추. 누르면 도장이 단추 위에서 1.6배로 기울어 내려와 쾅 찍히고(단추가 1px 눌립니다), 도장 둘레로 옅은 파란 인주 자국이 번집니다',
+      },
+      {
+        title: '다시 찍기는 key로',
+        content:
+          '한 번만 찍힙니다. 되돌리는 prop은 없고 key를 바꿔 단추를 새로 그리면 처음 상태로 돌아갑니다',
+      },
+      {
+        title: '접근성',
+        content:
+          '찍힌 뒤에는 aria-disabled로 잠겨 click, Enter, Space가 onClick을 부르지 않고 포커스는 남습니다. role status가 도장을 찍었다고 알립니다. 도장과 인주는 aria-hidden 장식입니다',
+      },
+      {
+        title: '움직임 줄이기',
+        content:
+          '움직임 줄이기에서는 도장과 인주 자국이 움직임 없이 바로 나타납니다',
+      },
+    ],
+  },
 ];

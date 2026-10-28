@@ -72,7 +72,7 @@ test.describe('모션 전체 보기', () => {
   }) => {
     await page.goto('/motion');
     await expect(
-      page.getByRole('heading', { level: 1, name: '모션 6개' })
+      page.getByRole('heading', { level: 1, name: '모션 7개' })
     ).toBeVisible();
     const sections = page.locator('main section');
     await expect(sections).toHaveCount(3);
@@ -187,6 +187,17 @@ test.describe('모션 전체 보기', () => {
     await expect(card.getByText('삭제, 결제, 초기화')).toBeVisible();
     await card.getByRole('link', { name: '꾹 눌러 확정' }).click();
     await expect(page).toHaveURL(/\/motion\/hold-button$/);
+  });
+
+  test('도장 확정 카드가 효과 이름과 쓰는 곳을 보이고 누르면 상세로 간다', async ({
+    page,
+  }) => {
+    await page.goto('/motion');
+    const card = page.locator('main section > div > div').nth(6);
+    await expect(card.getByText('StampButton', { exact: true })).toBeVisible();
+    await expect(card.getByText('결재, 제출, 승인')).toBeVisible();
+    await card.getByRole('link', { name: '도장 확정' }).click();
+    await expect(page).toHaveURL(/\/motion\/stamp-button$/);
   });
 
   test('움직임 멈춤을 켜면 완성 글자가 서고 끄면 다시 재생한다', async ({
@@ -394,6 +405,44 @@ test.describe('모션 전체 보기 꾹 눌러 확정 미니 (1440px)', () => {
     await pause.click();
     await centre();
     await expect(holdButton(page)).toHaveAttribute('data-state', 'done', {
+      timeout: 15_000,
+    });
+  });
+});
+
+// 도장 확정 미니: 대본이 찍고(aria-disabled가 true) 잠시 뒤 key로 되살린다(false)
+const stampButton = (page: Page) =>
+  page.locator('[data-stage-mini="StampButton 미리보기"] button');
+
+test.describe('모션 전체 보기 도장 확정 미니 (1440px)', () => {
+  test.use({ viewport: { width: 1440, height: 900 } });
+
+  test('대본이 찍고 다시 세우며 움직임 멈춤이면 서 있다', async ({ page }) => {
+    await page.goto('/motion');
+    const centre = () =>
+      stampButton(page).evaluate((el) =>
+        el.closest('[data-stage-mini]')?.scrollIntoView({ block: 'center' })
+      );
+    await centre();
+    await expect(stampButton(page)).toHaveAttribute('aria-disabled', 'true', {
+      timeout: 15_000,
+    });
+    await expect(stampButton(page)).toHaveAttribute('aria-disabled', 'false', {
+      timeout: 8_000,
+    });
+
+    const pause = page.getByRole('button', { name: '움직임 멈춤' });
+    await pause.click();
+    await expect(pause).toHaveAttribute('aria-pressed', 'true');
+    await centre();
+    // 대본 한 바퀴보다 길게 기다려도 누르지 않는다
+    for (let i = 0; i < 80; i++) {
+      await expect(stampButton(page)).toHaveAttribute('aria-disabled', 'false');
+      await page.waitForTimeout(100);
+    }
+    await pause.click();
+    await centre();
+    await expect(stampButton(page)).toHaveAttribute('aria-disabled', 'true', {
       timeout: 15_000,
     });
   });
