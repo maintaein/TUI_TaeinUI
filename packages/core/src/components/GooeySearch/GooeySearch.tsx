@@ -76,6 +76,11 @@ export const GooeySearch = forwardRef<HTMLDivElement, GooeySearchProps>(
     const filterId = useId();
     const inputId = useId();
     const reduced = useReducedMotion();
+    // 소비자가 매 렌더 새 함수를 넘겨도 문서 리스너가 다시 붙지 않게 최신 값을 ref로 읽는다
+    const onOpenChangeRef = useRef(onOpenChange);
+    useEffect(() => {
+      onOpenChangeRef.current = onOpenChange;
+    });
 
     useImperativeHandle(ref, () => rootRef.current as HTMLDivElement);
     useImperativeHandle(
@@ -95,12 +100,12 @@ export const GooeySearch = forwardRef<HTMLDivElement, GooeySearchProps>(
           event.target instanceof Node &&
           !rootRef.current?.contains(event.target)
         )
-          onOpenChange(false, event);
+          onOpenChangeRef.current(false, event);
       };
       const onKey = (event: KeyboardEvent) => {
         if (event.key !== 'Escape') return;
         event.preventDefault();
-        onOpenChange(false, event);
+        onOpenChangeRef.current(false, event);
         buttonRef.current?.focus();
       };
       document.addEventListener('pointerdown', onPointer);
@@ -109,7 +114,7 @@ export const GooeySearch = forwardRef<HTMLDivElement, GooeySearchProps>(
         document.removeEventListener('pointerdown', onPointer);
         document.removeEventListener('keydown', onKey);
       };
-    }, [open, onOpenChange]);
+    }, [open]);
 
     return (
       <div

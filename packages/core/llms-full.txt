@@ -1078,7 +1078,7 @@ Round search button that splits like a water drop: pressing it pulls a second bl
 Controlled: you hold `open`. `onOpenChange(next, event?)` is called for the trigger click, for Esc (keydown on the document) and for a pointerdown outside the component, and the DOM event that caused it is the second argument, so a consumer can ignore some of them (for example synthetic pointer events in a scripted demo). Esc also moves focus back to the trigger. The component holds no input value: pass `value`, `onChange` and the rest through `inputProps`, and put the result list in `children`. Under reduced motion it opens and closes without splitting.
 
 ```tsx
-import { useRef, useState } from 'react';
+import { useState } from 'react';
 import { GooeySearch } from '@taein-ui/core';
 
 const [open, setOpen] = useState(false);

@@ -99,6 +99,27 @@ describe('GooeySearch', () => {
       expect(onOpenChange).not.toHaveBeenCalled();
     });
 
+    it('열린 채 onOpenChange가 다른 함수로 바뀌어도 Esc와 바깥 pointerdown은 새 함수를 부른다', () => {
+      const first = vi.fn();
+      const second = vi.fn();
+      const { rerender } = render(
+        <>
+          <button type="button">바깥</button>
+          <GooeySearch open onOpenChange={first} />
+        </>
+      );
+      rerender(
+        <>
+          <button type="button">바깥</button>
+          <GooeySearch open onOpenChange={second} />
+        </>
+      );
+      fireEvent.keyDown(document.body, { key: 'Escape' });
+      fireEvent.pointerDown(screen.getByText('바깥'));
+      expect(first).not.toHaveBeenCalled();
+      expect(second).toHaveBeenCalledTimes(2);
+    });
+
     it('제어 소비자가 상태를 쥐면 트리거로 열고 닫을 수 있다', () => {
       const Controlled = () => {
         const [open, setOpen] = useState(false);
