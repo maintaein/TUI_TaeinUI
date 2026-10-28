@@ -234,13 +234,17 @@ describe('BurstToggle', () => {
       expect(dots(container)).toHaveLength(8);
     });
 
-    it('점은 바깥으로 퍼지며 사라지고 slower·settle이다', () => {
+    it('점은 settle로 바깥으로 퍼지고 linear로 작아지며 사라진다(slower)', () => {
       const { container } = render(<Controlled />);
       fireEvent.click(button());
-      const [tween] = ringOf(container).__burstDots?.getChildren(false) ?? [];
-      expect(tween.vars.opacity).toBe(0);
-      expect(tween.vars.ease).toBe(gsapEasing.settle);
-      expect(tween.duration()).toBe(gsapDuration.slower);
+      const [spread, fade] =
+        ringOf(container).__burstDots?.getChildren(false) ?? [];
+      expect(spread.vars.ease).toBe(gsapEasing.settle);
+      expect(spread.duration()).toBe(gsapDuration.slower);
+      expect(fade.vars.opacity).toBe(0);
+      expect(fade.vars.scale).toBeLessThan(1);
+      expect(fade.vars.ease).toBe(gsapEasing.linear);
+      expect(fade.duration()).toBe(gsapDuration.slower);
     });
 
     it('언마운트하면 돌던 터짐 트윈을 죽인다', () => {

@@ -77,19 +77,32 @@ export const BurstToggle = forwardRef<HTMLButtonElement, BurstToggleProps>(
     useLayoutEffect(() => {
       const el = ringRef.current;
       if (burst === null || !el) return;
+      const dots = Array.from(el.children);
       const timeline = gateMotion(reduced, () =>
-        gsap.timeline({ onComplete: () => setBurst(null) }).fromTo(
-          Array.from(el.children),
-          { x: 0, y: 0, scale: 1, opacity: 1 },
-          {
-            x: (i: number) => Math.cos(DOT_ANGLES[i]) * SPREAD,
-            y: (i: number) => Math.sin(DOT_ANGLES[i]) * SPREAD,
-            scale: 0.3,
-            opacity: 0,
-            duration: gsapDuration.slower,
-            ease: gsapEasing.settle,
-          }
-        )
+        gsap
+          .timeline({ onComplete: () => setBurst(null) })
+          .fromTo(
+            dots,
+            { x: 0, y: 0 },
+            {
+              x: (i: number) => Math.cos(DOT_ANGLES[i]) * SPREAD,
+              y: (i: number) => Math.sin(DOT_ANGLES[i]) * SPREAD,
+              duration: gsapDuration.slower,
+              ease: gsapEasing.settle,
+            }
+          )
+          // 작아짐과 사라짐은 linear로 따로 돈다. settle은 앞에서 거의 끝나 점이 160ms쯤에 이미 안 보인다
+          .fromTo(
+            dots,
+            { scale: 1, opacity: 1 },
+            {
+              scale: 0.3,
+              opacity: 0,
+              duration: gsapDuration.slower,
+              ease: gsapEasing.linear,
+            },
+            '<'
+          )
       );
       el.__burstDots = timeline;
       return () => {
