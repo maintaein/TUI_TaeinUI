@@ -128,6 +128,11 @@ const CardPage = lazy(() =>
 );
 
 // Motion
+const MotionOverviewPage = lazy(() =>
+  import('../pages/Motion/MotionOverviewPage').then((m) => ({
+    default: m.MotionOverviewPage,
+  }))
+);
 const HangulAssemblePage = lazy(() =>
   import('../pages/Motion/HangulAssemble').then((m) => ({
     default: m.HangulAssemblePage,
@@ -419,10 +424,13 @@ const router = createBrowserRouter([
       {
         path: 'motion',
         children: [
-          // T3가 전체 보기 페이지를 만들면 이 이동을 바꾼다
           {
             index: true,
-            element: <Navigate to="hangul-assemble" replace />,
+            element: (
+              <LazyPage>
+                <MotionOverviewPage />
+              </LazyPage>
+            ),
           },
           {
             path: 'hangul-assemble',

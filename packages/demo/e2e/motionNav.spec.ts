@@ -29,11 +29,6 @@ test.describe('모션 계열 사이드바 (1280px)', () => {
       await expect(nav.getByText(name, { exact: true })).toHaveCount(0);
   });
 
-  test('/motion은 한글 조립으로 이동한다', async ({ page }) => {
-    await page.goto('/motion');
-    await expect(page).toHaveURL(/\/motion\/hangul-assemble$/);
-  });
-
   test('모션 상세에도 붙박이 사이드바가 붙는다', async ({ page }) => {
     await page.goto('/motion/hangul-assemble');
     await expect(page.locator('#site-nav')).toBeInViewport();

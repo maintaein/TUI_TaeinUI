@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useContext, useState } from 'react';
 import { Button, HangulAssemble } from '@taein-ui/core';
 import { CodeBlock } from '../../../components/CodeBlock';
 import {
@@ -10,7 +10,7 @@ import {
 import { DetailLayout, Topic, Topics } from '../../../components/DetailLayout';
 import * as t from '../../../components/DocText';
 import type { PropDefinition } from '../../../components/PropsTable';
-import { Stage, type DemoProps } from '../../../components/Stage';
+import { MiniFrozen, Stage, type DemoProps } from '../../../components/Stage';
 import * as styles from './HangulAssemblePage.css';
 
 const LEAD =
@@ -106,14 +106,18 @@ function A11y() {
 export function HangulAssembleDemo({ values = INITIAL, mini }: DemoProps) {
   const [run, setRun] = useState(0);
   const as = values.as as 'h1' | 'h2' | 'p';
+  // 카드 미니는 "움직임 멈춤"이 켜지면 완성 문장으로 서고, 꺼지면 key가 바뀌어 새로 재생한다
+  const frozen = useContext(MiniFrozen) && !!mini;
 
   return (
     <Stage mini={mini} label="HangulAssemble 미리보기">
       <div className={styles.stack}>
         <HangulAssemble
-          key={run}
+          key={`${run}-${frozen}`}
           as={as}
-          className={styles.sentence}
+          className={
+            frozen ? `${styles.sentence} ${styles.still}` : styles.sentence
+          }
           text={String(values.text)}
         />
         {!mini && (

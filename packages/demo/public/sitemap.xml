@@ -31,5 +31,6 @@
   <url><loc>https://tui-taein-ui.vercel.app/components/border</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
   <url><loc>https://tui-taein-ui.vercel.app/components/header-bar</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
   <!-- Motion -->
+  <url><loc>https://tui-taein-ui.vercel.app/motion</loc><changefreq>monthly</changefreq><priority>0.9</priority></url>
   <url><loc>https://tui-taein-ui.vercel.app/motion/hangul-assemble</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
 </urlset>

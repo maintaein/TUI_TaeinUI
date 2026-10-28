@@ -48,6 +48,25 @@ export const frameTitle = style({
   selectors: { '&:hover': { color: BLUE } },
 });
 
+// 모션 카드의 컴포넌트 이름과 쓰는 곳 줄. UI 카드에는 없다
+export const frameName = style({
+  fontFamily: MONO,
+  fontSize: '0.75rem',
+  color: MUTED,
+});
+
+export const frameUsage = style({
+  marginTop: spacing[1],
+  fontSize: '0.875rem',
+  color: INK,
+  wordBreak: 'keep-all',
+});
+
+export const frameUsageLabel = style({
+  fontSize: '0.75rem',
+  color: MUTED,
+});
+
 export const no = style({
   fontFamily: MONO,
   fontSize: '0.75rem',

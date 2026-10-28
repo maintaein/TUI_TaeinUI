@@ -13,6 +13,7 @@ import { DividerDemo } from '../../pages/Components/Divider/DividerPage';
 import { HeaderBarDemo } from '../../pages/Components/HeaderBar/HeaderBarPage';
 import { IconButtonDemo } from '../../pages/Components/IconButton/IconButtonPage';
 import { ListDemo } from '../../pages/Components/List/ListPage';
+import { HangulAssembleDemo } from '../../pages/Motion/HangulAssemble/HangulAssemblePage';
 import { LoaderDemo } from '../../pages/Components/Loader/LoaderPage';
 import { ModalDemo } from '../../pages/Components/Modal/ModalPage';
 import { NumericSpinnerDemo } from '../../pages/Components/NumericSpinner/NumericSpinnerPage';
@@ -26,7 +27,7 @@ import { SwitchDemo } from '../../pages/Components/Switch/SwitchPage';
 import { TextFieldDemo } from '../../pages/Components/TextField/TextFieldPage';
 import { TooltipDemo } from '../../pages/Components/Tooltip/TooltipPage';
 
-/** 전체 컴포넌트 카드 미니. 각 상세 페이지의 무대 조각(대본 포함)을 그대로 쓴다 */
+/** 전체 컴포넌트·전체 모션 카드 미니. 각 상세 페이지의 무대 조각(대본 포함)을 그대로 쓴다 */
 export const DEMOS: Record<string, ComponentType<DemoProps>> = {
   TextField: TextFieldDemo,
   Checkbox: CheckboxDemo,
@@ -53,4 +54,5 @@ export const DEMOS: Record<string, ComponentType<DemoProps>> = {
   Avatar: AvatarDemo,
   Chip: ChipDemo,
   Card: CardDemo,
+  HangulAssemble: HangulAssembleDemo,
 };

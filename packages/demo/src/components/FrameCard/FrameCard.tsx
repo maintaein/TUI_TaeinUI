@@ -1,5 +1,9 @@
 import { Link } from 'react-router-dom';
-import { cardHeight, type ComponentInfo } from '../../data/components';
+import {
+  cardHeight,
+  type ComponentInfo,
+  type MotionInfo,
+} from '../../data/components';
 import { DEMOS } from './demos';
 import { TOUCH_MINI } from './minis';
 import * as styles from './FrameCard.css';
@@ -11,7 +15,10 @@ const cx = (...c: (string | false | undefined)[]) =>
   c.filter(Boolean).join(' ');
 
 export interface FrameCardProps {
-  item: Pick<ComponentInfo, 'name' | 'path'> & { no: string };
+  /** 모션 카드는 효과 이름(title)을 크게, 컴포넌트 이름을 작게, 쓰는 곳(usage)을 한 줄로 더한다 */
+  item: Pick<ComponentInfo, 'name' | 'path'> & {
+    no: string;
+  } & Partial<Pick<MotionInfo, 'title' | 'usage'>>;
   /** 칸 모양(tall, wideCard 같은 벽 클래스) */
   className?: string;
   /** 액자 안 흰 상자의 추가 클래스 */
@@ -44,9 +51,18 @@ export function FrameCard({ item, className, inner, touch }: FrameCardProps) {
         </div>
       )}
       <div className={styles.frameFoot}>
-        <Link className={styles.frameTitle} to={item.path}>
-          {item.name}
-        </Link>
+        <div>
+          <Link className={styles.frameTitle} to={item.path}>
+            {item.title ?? item.name}
+          </Link>
+          {item.title && <p className={styles.frameName}>{item.name}</p>}
+          {item.usage && (
+            <p className={styles.frameUsage}>
+              <span className={styles.frameUsageLabel}>쓰는 곳</span>{' '}
+              {item.usage}
+            </p>
+          )}
+        </div>
         <span className={styles.no}>{item.no}</span>
       </div>
     </div>

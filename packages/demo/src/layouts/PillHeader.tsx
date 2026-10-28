@@ -58,6 +58,13 @@ export function PillHeader({
         >
           컴포넌트
         </Link>
+        <Link
+          to="/motion"
+          className={styles.link}
+          aria-current={pathname.startsWith('/motion') ? 'page' : undefined}
+        >
+          모션
+        </Link>
         <a
           className={styles.link}
           href={GITHUB_URL}

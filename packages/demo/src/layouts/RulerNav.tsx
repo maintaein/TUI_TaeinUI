@@ -17,6 +17,9 @@ export function RulerNav() {
           <NavLink to="/components/overview" end className={styles.rulerItem}>
             전체 컴포넌트
           </NavLink>
+          <NavLink to="/motion" end className={styles.rulerItem}>
+            전체 모션
+          </NavLink>
         </div>
         {numberedGroups.map((g) => (
           <div key={g.label} className={styles.rulerGroup}>
