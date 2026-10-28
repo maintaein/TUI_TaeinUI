@@ -34,3 +34,4 @@ export * from './SloshGauge';
 export * from './CodeSlots';
 export * from './FanMenu';
 export * from './WingButton';
+export * from './Morph';
