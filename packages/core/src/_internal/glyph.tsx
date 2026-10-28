@@ -3,6 +3,8 @@ import { glyphBase } from './glyph.css';
 export type GlyphName =
   | 'close'
   | 'search'
+  | 'copy'
+  | 'check'
   | 'plus'
   | 'minus'
   | 'chevron-down'
@@ -30,6 +32,8 @@ const SIZE_MAP = {
 export const GLYPH_PATHS: Record<GlyphName, string> = {
   close: 'M18 6L6 18M6 6l12 12',
   search: 'M21 21l-4.34-4.34M19 11a8 8 0 1 1-16 0 8 8 0 0 1 16 0',
+  copy: 'M10 8h10a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H10a2 2 0 0 1-2-2V10a2 2 0 0 1 2-2zM4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2',
+  check: 'M20 6L9 17l-5-5',
   plus: 'M12 5v14m-7-7h14',
   minus: 'M5 12h14',
   'chevron-down': 'M6 9l6 6 6-6',

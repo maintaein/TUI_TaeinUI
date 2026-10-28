@@ -21,6 +21,8 @@
 
 ### Added
 
+- `CopyButton` 컴포넌트를 더했습니다(`value`, `label`, `copiedLabel`, `failedLabel`, `onCopy`, `disabled`, `className`, `ref`, 네이티브 button 속성). 누르면 `value`를 클립보드에 쓰고, 클립보드 아이콘이 접히며 체크 선이 그려지고 글자 "복사"가 위로 빠지며 "복사됨"이 아래에서 올라옵니다. `loop.base`(1500ms) 뒤에 되돌아옵니다. 클립보드가 없거나 쓰기가 거절되면 아이콘이 좌우로 짧게 흔들리고(TextField 오류 흔들림과 같은 키프레임·토큰) 글자가 "복사 실패"가 된 뒤 되돌아옵니다. `Button`의 `light` 변형(`md`)을 감싸 누름·호버 성격을 그대로 갖습니다. 단추의 접근 가능한 이름은 늘 `label`이고 결과는 보이지 않는 `aria-live="polite"` 영역이 한 번 읽습니다. 소비자 `onClick`이 먼저 불리고 `preventDefault()`하면 복사하지 않습니다. 네이티브 `onCopy`(클립보드 이벤트)는 받지 않고 같은 이름으로 결과 콜백을 받습니다. 움직임 줄이기에서는 이동·흔들림 없이 교차 페이드만 합니다. `Glyph`에 `copy`와 `check`를 더했습니다(core 내부). 할 일: 없음(새 컴포넌트).
+
 - `GooeySearch` 컴포넌트를 더했습니다(`open`, `onOpenChange`, `triggerRef`, `openLabel`, `closeLabel`, `inputLabel`, `placeholder`, `inputProps`, `children`, `className`, `ref`). 둥근 검색 단추를 누르면 물방울이 떨어져 나가듯 단추가 오른쪽으로 갈라지고 그 사이로 입력창이 늘어나며, 닫으면 두 덩어리가 끈적하게 합쳐집니다. 열림 상태는 소비자가 쥐고(`onOpenChange(next, event)`는 트리거 클릭·Esc·바깥 pointerdown을 일으킨 DOM 이벤트를 둘째 인자로 넘깁니다), 입력값과 결과 목록, combobox 연결은 `inputProps`와 `children`으로 넘깁니다. Esc로 닫으면 트리거로 포커스가 돌아오고, 움직임 줄이기에서는 갈라짐 없이 바로 열리고 닫힙니다. 할 일: 없음(새 컴포넌트).
 
 - `JellyText` 컴포넌트를 더했습니다(`text`, `as`, `className`, `ref`). 마우스 커서가 지나가는 글자가 가로로 늘었다 세로로 눌리며(부피 유지, 최대 1.3배) 출렁이고 스프링으로 돌아옵니다. 가운데 글자가 가장 크게, 한 칸 떨어지면 절반쯤 퍼지고, 커서가 있는 줄의 글자만 반응합니다. `IconButton`의 `hoverEffect="jelly"`와 같은 성격입니다. 호버가 되는 정밀 포인터(`(hover: hover) and (pointer: fine)`)에서만 움직이고, 터치와 축소 모션에서는 포인터 핸들러 없이 평범한 글자입니다. 스크린 리더는 완성 문장을 한 번 읽고 낱말은 줄 끝에서 갈리지 않습니다. 할 일: 없음(새 컴포넌트).

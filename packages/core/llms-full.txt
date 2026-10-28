@@ -34,7 +34,7 @@ UI components follow consistent patterns:
 - `ref`: All components support forwardRef
 - Form components require `label` prop for accessibility
 
-Motion components (HangulAssemble, JellyText) take only `className` and `ref` (and `disabled` where it applies). They have no `size` or `variant`. GooeySearch is the exception: it is a controlled input with its own props.
+Motion components (HangulAssemble, JellyText, CopyButton) take only `className` and `ref` (and `disabled` where it applies). They have no `size` or `variant`. GooeySearch is the exception: it is a controlled input with its own props. CopyButton also takes `value` and its label props.
 
 ---
 
@@ -1120,6 +1120,43 @@ const [query, setQuery] = useState('');
 
 ---
 
+## CopyButton
+
+Copy button for one string. Pressing it writes `value` with `navigator.clipboard.writeText`. On success the clipboard icon folds into a check (the check's lines draw in) and the label slides up out of the way while the copied label rises from below; after `loop.base` (1500ms) everything runs back. If `navigator.clipboard` is missing (an insecure context) or rejects the write, the icon shakes sideways (the same keyframes and tokens as the TextField error shake) and the label becomes the failed label, then returns. The three labels share one grid cell, so the button keeps its width in every state.
+
+It wraps `Button` (`variant="light"`, the outline look, `md` size), so it keeps the press and hover feel of `Button`. It has no `size` or `variant` prop.
+
+```tsx
+import { CopyButton } from '@taein-ui/core';
+
+<CopyButton value="pnpm add @taein-ui/core" />
+<CopyButton value={url} label="링크 복사" copiedLabel="복사됨" failedLabel="복사 실패" onCopy={(ok) => track(ok)} />
+```
+
+### Props
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| value | string | (required) | Text to copy |
+| label | string | '복사' | Resting label and the button's accessible name in every state |
+| copiedLabel | string | '복사됨' | Label after a successful copy |
+| failedLabel | string | '복사 실패' | Label after a failed copy |
+| onCopy | (ok: boolean) => void | - | Called with the result. Not called when `onClick` calls `preventDefault()` or the button is disabled. (This replaces the native clipboard `onCopy`, which is not accepted) |
+| disabled | boolean | false | Disabled state; nothing is copied |
+| onClick | MouseEventHandler | - | Runs before the copy. `event.preventDefault()` skips the copy |
+| className | string | - | Additional CSS class (on the `<button>`) |
+| ref | Ref<HTMLButtonElement> | - | Forwarded to the `<button>` |
+
+Other native button attributes are passed to the `<button>`, except `children`, `value` and `onCopy`.
+
+### Accessibility
+- The accessible name is always `label`; the name does not change after a copy. The other two labels are `aria-hidden`.
+- A visually hidden `aria-live="polite"` region (`role="status"`) next to the button reads the copied or failed label once, and is emptied when the button returns to rest.
+- Pressing again while the copied or failed label shows copies again and restarts the timer. The region text does not change in that case, so it is not read a second time.
+- The timer is cleared on unmount.
+- Reduced motion: the icon and the label only cross-fade. No sliding, rotating, line drawing or shake.
+
+---
+
 ## Design Tokens
 
 TUI uses `themeContract` for type-safe, theme-aware styling. 테마는 라이트
@@ -1322,6 +1359,8 @@ prop은 클라이언트 파일에서 넘긴다.
 
 `GooeySearch`도 `'use client'`가 붙는다. 바깥 pointerdown과 Esc를 문서에서 듣고 포커스를 옮기는 효과를 갖는다.
 열림 상태는 소비자가 쥐므로 그 상태를 가진 클라이언트 파일에서 렌더한다.
+
+`CopyButton`도 `'use client'`가 붙는다. 결과 상태와 되돌림 타이머를 갖고 클릭에서 클립보드를 쓴다.
 
 `HeaderBar`도 `'use client'`가 붙는다. 좁은 화면 메뉴의 열림 상태와 GSAP 트윈,
 그리고 `navStyle="icon"`의 항목 확대가 브라우저에서만 돈다.
