@@ -34,7 +34,7 @@ UI components follow consistent patterns:
 - `ref`: All components support forwardRef
 - Form components require `label` prop for accessibility
 
-Motion components (HangulAssemble, JellyText, CopyButton, BurstToggle) take only `className` and `ref` (and `disabled` where it applies). They have no `size` or `variant`. GooeySearch is the exception: it is a controlled input with its own props. CopyButton also takes `value` and its label props. BurstToggle also takes `selected`, `selectedIcon` and a required `aria-label`.
+Motion components (HangulAssemble, JellyText, CopyButton, BurstToggle, HoldButton) take only `className` and `ref` (and `disabled` where it applies). They have no `size` or `variant`. GooeySearch is the exception: it is a controlled input with its own props. CopyButton also takes `value` and its label props. BurstToggle also takes `selected`, `selectedIcon` and a required `aria-label`. HoldButton also takes a required `onConfirm` and `confirmLabel`.
 
 ---
 
@@ -1203,6 +1203,46 @@ Other native button attributes are passed to the `<button>`, except `children` a
 
 ---
 
+## HoldButton
+
+Hold-to-confirm button for things that cannot be undone (delete, pay, reset). Press and hold: the inside fills with `error[900]` from the left over 1.5 seconds, the last 30% trembles 1 to 2px with growing swing, and when it is full a check springs in and `onConfirm` is called. Letting go early drains the fill back (`base`, `settle`).
+
+There is also a path that does not depend on time (WCAG 2.1.1; screen readers and voice control send one click). A short press, a keyboard tap or one click only **arms** the button: the label becomes `confirmLabel`, the fill rests at half and a `role="status"` region announces it. The next click calls `onConfirm`. Arming has no timer; it is released when focus leaves the button.
+
+It wraps `Button` `danger` (`md`), so it keeps the height, radius and press feel of `Button`. It has no `size` or `variant` prop and no hold-time prop: the hold is fixed at 1.5 seconds (`gsapDuration.slower` x 3) so it cannot be tuned down to nothing.
+
+```tsx
+import { HoldButton } from '@taein-ui/core';
+
+<HoldButton onConfirm={deleteAll} confirmLabel="한 번 더 누르면 삭제">삭제</HoldButton>
+```
+
+### Props
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| children | ReactNode | (required) | Button text and the resting accessible name |
+| onConfirm | () => void | (required) | Runs when the hold completes, and on the second click of the armed path. Called once per run |
+| confirmLabel | string | '한 번 더 누르면 실행' | Label while armed (also the accessible name then, and what the status region announces) |
+| disabled | boolean | false | Disabled state; no path runs `onConfirm` |
+| onClick | MouseEventHandler | - | Native click. **Not** a confirmation: a click is produced every time a press ends, so do not run the action here |
+| className | string | - | Additional CSS class (on the `<button>`) |
+| ref | Ref<HTMLButtonElement> | - | Forwarded to the `<button>` |
+
+Other native button attributes are passed to the `<button>`, except `children`.
+
+### Behavior
+- Holding starts on pointerdown or on Space or Enter keydown (a repeated keydown is ignored). pointerup, pointercancel, pointerleave and keyup drain it back.
+- Letting go during a hold also produces a click. That click arms the button, and the fill drains to half and rests there.
+- When the hold completes it runs once and the click that follows is ignored.
+- After running, a `role="status"` region says it is done and the button becomes `aria-disabled` (focus stays). It returns to rest after 2 seconds and cannot run again meanwhile.
+
+### Accessibility
+- The hold-and-fill path is never the only path: one click arms and a second click runs, so keyboard, screen reader and voice users are not asked to hold anything for a length of time.
+- The accessible name is `children` at rest and `confirmLabel` while armed. A visually hidden `role="status"` region announces the armed and the done states.
+- Reduced motion: the hold time is unchanged (shortening it would run the action at once). The fill grows in four steps instead of continuously; there is no tremble and no spring.
+
+---
+
 ## Design Tokens
 
 TUI uses `themeContract` for type-safe, theme-aware styling. 테마는 라이트
@@ -1409,6 +1449,8 @@ prop은 클라이언트 파일에서 넘긴다.
 `CopyButton`도 `'use client'`가 붙는다. 결과 상태와 되돌림 타이머를 갖고 클릭에서 클립보드를 쓴다.
 
 `BurstToggle`도 `'use client'`가 붙는다. 터짐 상태를 갖고 클릭에서 GSAP 타임라인을 돌린다. 켜짐 상태는 소비자가 쥐므로 그 상태를 가진 클라이언트 파일에서 렌더한다.
+
+`HoldButton`도 `'use client'`가 붙는다. 홀드 시계(GSAP 트윈)와 무장·실행 상태를 갖고 포인터와 키보드 이벤트에서 돈다. `onConfirm` 같은 함수 prop은 클라이언트 파일에서 넘긴다.
 
 `HeaderBar`도 `'use client'`가 붙는다. 좁은 화면 메뉴의 열림 상태와 GSAP 트윈,
 그리고 `navStyle="icon"`의 항목 확대가 브라우저에서만 돈다.

@@ -38,7 +38,7 @@ interface GateEnforcementException {
 
 /**
  * 게이트 없이 gsap을 쓰는 게 정당한 파일의 목록. 첫 입주자는 M3 T3
- * `Snackbar`다. 아래 "정확히 이 항목들" 검사가 목록이 몰래 늘지 않는지 잠근다.
+ * `Snackbar`, 둘째는 M7 T9 `HoldButton`이다. 아래 "정확히 이 항목들" 검사가 목록이 몰래 늘지 않는지 잠근다.
  */
 const GATE_ENFORCEMENT_EXCEPTIONS: GateEnforcementException[] = [
   {
@@ -51,6 +51,16 @@ const GATE_ENFORCEMENT_EXCEPTIONS: GateEnforcementException[] = [
       '막대의 그림(연속→이산 단계)뿐이고 시계는 그대로 둔다. 등장·퇴장 타임라인은 ' +
       '같은 파일의 useOverlayTransition을 통해 이미 게이트를 거치고, 같은 위치 쌓임 ' +
       '오프셋(`y`)은 이 파일이 gateMotion으로 직접 거친다(M5 task-21).',
+  },
+  {
+    path: 'components/HoldButton/HoldButton.tsx',
+    reason:
+      '홀드 시계 gsap.to(1.5초, linear)가 실행 시점이다. gateMotion은 진행 중 애니메이션을 ' +
+      'progress(1)로 확정하고 kill하므로, 축소 선호에서 이걸 거치면 단추를 누르자마자 ' +
+      'onConfirm이 불린다. 홀드 시간을 줄이면 오조작을 막는다는 단추의 존재 이유가 사라지므로 ' +
+      '축소 모드도 시간은 그대로 둔다(M7 T9, 사용자 확정). 축소 모드가 바꾸는 건 차오름의 그림(연속→' +
+      '네 단계)뿐이다. 시계와 분리된 장식 트윈은 이 파일이 gateMotion으로 직접 거친다: 마지막 30% ' +
+      '떨림, 실행 뒤 체크의 spring 튕김, 되감기와 무장 이동.',
   },
 ];
 
@@ -77,9 +87,10 @@ describe('GSAP 진입점은 게이트를 거친다 (T2 강제)', () => {
   it('예외 목록은 정확히 이 항목들이고, 이 개수다', () => {
     // 목록이 저절로 늘어나지 않게 길이와 내용을 같이 잠근다. 새 예외가
     // 필요해지면 여기부터 고쳐야 하고, 그 순간 이유를 적어야 한다.
-    expect(GATE_ENFORCEMENT_EXCEPTIONS).toHaveLength(1);
+    expect(GATE_ENFORCEMENT_EXCEPTIONS).toHaveLength(2);
     expect(GATE_ENFORCEMENT_EXCEPTIONS.map((e) => e.path)).toEqual([
       'components/Snackbar/Snackbar.tsx',
+      'components/HoldButton/HoldButton.tsx',
     ]);
     expect(
       GATE_ENFORCEMENT_EXCEPTIONS.every((e) => e.reason.trim().length > 0)
