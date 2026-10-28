@@ -72,7 +72,7 @@ test.describe('모션 전체 보기', () => {
   }) => {
     await page.goto('/motion');
     await expect(
-      page.getByRole('heading', { level: 1, name: '모션 4개' })
+      page.getByRole('heading', { level: 1, name: '모션 5개' })
     ).toBeVisible();
     const sections = page.locator('main section');
     await expect(sections).toHaveCount(3);
@@ -165,6 +165,17 @@ test.describe('모션 전체 보기', () => {
     await expect(card.getByText('코드 블록, 공유 링크')).toBeVisible();
     await card.getByRole('link', { name: '복사됨' }).click();
     await expect(page).toHaveURL(/\/motion\/copy-button$/);
+  });
+
+  test('좋아요 터짐 카드가 효과 이름과 쓰는 곳을 보이고 누르면 상세로 간다', async ({
+    page,
+  }) => {
+    await page.goto('/motion');
+    const card = page.locator('main section > div > div').nth(4);
+    await expect(card.getByText('BurstToggle', { exact: true })).toBeVisible();
+    await expect(card.getByText('좋아요, 저장, 즐겨찾기')).toBeVisible();
+    await card.getByRole('link', { name: '좋아요 터짐' }).click();
+    await expect(page).toHaveURL(/\/motion\/burst-toggle$/);
   });
 
   test('움직임 멈춤을 켜면 완성 글자가 서고 끄면 다시 재생한다', async ({
@@ -297,6 +308,45 @@ test.describe('모션 전체 보기 복사됨 미니 (1440px)', () => {
     await pause.click();
     await centre();
     await expect(copyResult(page)).toHaveText('복사됨', { timeout: 15_000 });
+  });
+});
+
+// 좋아요 터짐 미니: 대본이 눌러 켜고(aria-pressed) 다시 눌러 끈다
+const likeButton = (page: Page) =>
+  page.locator('[data-stage-mini="BurstToggle 미리보기"] button');
+
+test.describe('모션 전체 보기 좋아요 터짐 미니 (1440px)', () => {
+  test.use({ viewport: { width: 1440, height: 900 } });
+
+  test('대본이 켜고 끄며 움직임 멈춤이면 서 있다', async ({ page }) => {
+    await page.goto('/motion');
+    // 미니는 절반 이상 보일 때만 돈다. 가장자리에 걸치지 않게 가운데로 가져온다
+    const centre = () =>
+      likeButton(page).evaluate((el) =>
+        el.closest('[data-stage-mini]')?.scrollIntoView({ block: 'center' })
+      );
+    await centre();
+    await expect(likeButton(page)).toHaveAttribute('aria-pressed', 'true', {
+      timeout: 15_000,
+    });
+    await expect(likeButton(page)).toHaveAttribute('aria-pressed', 'false', {
+      timeout: 5_000,
+    });
+
+    const pause = page.getByRole('button', { name: '움직임 멈춤' });
+    await pause.click();
+    await expect(pause).toHaveAttribute('aria-pressed', 'true');
+    await centre();
+    // 대본 한 바퀴보다 길게 기다려도 누르지 않는다
+    for (let i = 0; i < 50; i++) {
+      await expect(likeButton(page)).toHaveAttribute('aria-pressed', 'false');
+      await page.waitForTimeout(100);
+    }
+    await pause.click();
+    await centre();
+    await expect(likeButton(page)).toHaveAttribute('aria-pressed', 'true', {
+      timeout: 15_000,
+    });
   });
 });
 

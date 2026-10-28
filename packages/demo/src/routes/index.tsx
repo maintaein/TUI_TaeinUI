@@ -148,6 +148,11 @@ const CopyButtonPage = lazy(() =>
     default: m.CopyButtonPage,
   }))
 );
+const BurstTogglePage = lazy(() =>
+  import('../pages/Motion/BurstToggle').then((m) => ({
+    default: m.BurstTogglePage,
+  }))
+);
 const JellyTextPage = lazy(() =>
   import('../pages/Motion/JellyText').then((m) => ({
     default: m.JellyTextPage,
@@ -476,6 +481,14 @@ const router = createBrowserRouter([
             element: (
               <LazyPage>
                 <CopyButtonPage />
+              </LazyPage>
+            ),
+          },
+          {
+            path: 'burst-toggle',
+            element: (
+              <LazyPage>
+                <BurstTogglePage />
               </LazyPage>
             ),
           },

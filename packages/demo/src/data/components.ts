@@ -7,6 +7,7 @@ import {
   ClipboardCheck,
   Columns3,
   Hash,
+  Heart,
   Info,
   Languages,
   LayoutPanelTop,
@@ -344,7 +345,7 @@ export const motionData: MotionInfo[] = [
     category: 'component',
     icon: Search,
   },
-  // Micro Interaction (1개)
+  // Micro Interaction (2개)
   {
     name: 'CopyButton',
     title: '복사됨',
@@ -353,6 +354,16 @@ export const motionData: MotionInfo[] = [
     usage: '코드 블록, 공유 링크',
     category: 'micro',
     icon: ClipboardCheck,
+  },
+  {
+    name: 'BurstToggle',
+    title: '좋아요 터짐',
+    path: '/motion/burst-toggle',
+    description:
+      '켜면 아이콘이 납작했다가 튕기며 채워지고 파란 점이 터져 흩어집니다.',
+    usage: '좋아요, 저장, 즐겨찾기',
+    category: 'micro',
+    icon: Heart,
   },
 ];
 

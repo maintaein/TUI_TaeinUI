@@ -571,4 +571,33 @@ export const searchIndex: SearchEntry[] = [
       },
     ],
   },
+  {
+    id: 'burst-toggle',
+    pageTitle: '좋아요 터짐',
+    path: '/motion/burst-toggle',
+    category: '모션',
+    description:
+      'BurstToggle. 켜면 아이콘이 납작했다가 튕기며 채워지고 파란 점이 터져 흩어집니다. 좋아요, 하트, 터짐, burst.',
+    sections: [
+      {
+        title: '마이크로 인터랙션',
+        content:
+          '좋아요 단추. 켜면 아이콘이 납작했다가 튕기며 채워지고 파란 점이 아이콘 가운데에서 터져 흩어집니다. 끄면 조용히 꺼진 아이콘으로 돌아갑니다. 좋아요, 저장, 즐겨찾기, 하트, 별, 북마크, like, heart, burst',
+      },
+      {
+        title: '상태 들기',
+        content:
+          'selected를 소비자가 쥐고 onClick에서 뒤집습니다. 터짐은 이 단추를 눌러 켜질 때만 일어납니다',
+      },
+      {
+        title: '접근성',
+        content:
+          'aria-pressed가 selected를 따르고 이름은 aria-label로 고정입니다. 터지는 점은 aria-hidden 장식입니다',
+      },
+      {
+        title: '움직임 줄이기',
+        content: '움직임 줄이기에서는 아이콘만 바뀌고 점은 터지지 않습니다',
+      },
+    ],
+  },
 ];

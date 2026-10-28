@@ -15,6 +15,7 @@ import { IconButtonDemo } from '../../pages/Components/IconButton/IconButtonPage
 import { ListDemo } from '../../pages/Components/List/ListPage';
 import { HangulAssembleDemo } from '../../pages/Motion/HangulAssemble/HangulAssemblePage';
 import { CopyButtonDemo } from '../../pages/Motion/CopyButton/CopyButtonPage';
+import { BurstToggleDemo } from '../../pages/Motion/BurstToggle/BurstTogglePage';
 import { GooeySearchDemo } from '../../pages/Motion/GooeySearch/GooeySearchPage';
 import { JellyTextDemo } from '../../pages/Motion/JellyText/JellyTextPage';
 import { LoaderDemo } from '../../pages/Components/Loader/LoaderPage';
@@ -61,4 +62,5 @@ export const DEMOS: Record<string, ComponentType<DemoProps>> = {
   JellyText: JellyTextDemo,
   GooeySearch: GooeySearchDemo,
   CopyButton: CopyButtonDemo,
+  BurstToggle: BurstToggleDemo,
 };
