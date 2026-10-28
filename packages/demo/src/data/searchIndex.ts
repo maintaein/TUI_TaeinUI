@@ -30,7 +30,7 @@ export const searchIndex: SearchEntry[] = [
       {
         title: '빠른 미리보기',
         content:
-          '컴포넌트 패밀리 25개(top-level export 33개), GSAP 모션 14개 컴포넌트, Zero-runtime CSS, Tree-shakable',
+          '컴포넌트 패밀리 38개(UI 컴포넌트 25개, 모션 컴포넌트 13개, top-level export 46개), GSAP으로 움직이는 컴포넌트 24개, Zero-runtime CSS, Tree-shakable',
       },
     ],
   },

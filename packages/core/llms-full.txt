@@ -1,7 +1,7 @@
 # TUI (TaeinUI): Full API Reference
 
 > A React + TypeScript UI component library where each component carries its own motion.
-> GSAP is the motion runtime (14 components today); visibility, legibility and readability
+> GSAP is the motion runtime (24 components today); visibility, legibility and readability
 > are never traded for it. Zero-runtime CSS via Vanilla Extract, tree-shakable, WCAG 2.2 AA.
 > Runtime dependencies: @vanilla-extract/css, @vanilla-extract/recipes, clsx, gsap.
 
@@ -1194,6 +1194,7 @@ Other native button attributes are passed to the `<button>`, except `children` a
 ### Behavior
 - The burst happens only when this button's own click goes from off to on. A `selected` that is already true on mount, or that changes from outside without a click, does not burst.
 - The burst plays in the render where `selected` actually becomes true after this button's click. If your `onClick` refuses the change (login needed, rejected), nothing bursts.
+- Known limit: if `selected` turns on from outside right after a refused click, the dots can burst once. A late turn-on after an async confirmation looks the same, so the two cannot be told apart.
 - Pressing again while the burst runs turns it off and clears the remaining dots at once.
 - The dots are `aria-hidden` decoration. They exist only while the burst runs and leave the DOM when it ends. The button has `overflow: visible`, so they are not clipped, and they are absolutely placed, so they never push the layout.
 
@@ -1664,9 +1665,9 @@ Semantic 색상은 역할별 4슬롯이다. 슬롯을 바꿔 쓰면 대비가 �
 
 ## Motion (GSAP Runtime)
 
-M3(Tier-B GSAP 런타임)에서 실제로 GSAP이 붙은 컴포넌트와 그 능력이다. 계획서의
-예측이 아니라 구현된 소스에서 읽었다. 아래에 없는 컴포넌트는 CSS 트랜지션만
-쓴다. 공유 easing·duration 토큰은 위 Design Tokens > Animation 절 참고.
+GSAP 런타임(M3 Tier-B에서 시작해 M7까지)에서 실제로 GSAP이 붙은 컴포넌트와 그 능력이다. 계획서의
+예측이 아니라 구현된 소스에서 읽었다. 아래에 없는 컴포넌트는 GSAP을 쓰지 않는다(CSS 트랜지션·키프레임을 쓰고,
+`LuminousFlow`는 canvas 그리기 루프를 쓴다). 공유 easing·duration 토큰은 위 Design Tokens > Animation 절 참고.
 
 | 컴포넌트 | 쓰는 능력 | 근거 |
 | --- | --- | --- |
@@ -1685,6 +1686,15 @@ M3(Tier-B GSAP 런타임)에서 실제로 GSAP이 붙은 컴포넌트와 그 능
 | Chip | 타임라인 상대 위치 · CSS가 못 보는 값 읽기(폭과 gap으로 자리 닫기) | 삭제는 두 구간이다. 먼저 `scale`·`opacity`가 0으로 빨려 들어가고, 이어서 `marginInlineEnd`를 `-(offsetWidth + columnGap)`으로 줘 자리를 닫아 오른쪽 칩이 미끄러져 온다. `onDelete`는 타임라인이 끝난 뒤 불린다 |
 | IconButton | 타임라인 상대 위치 | 기본으로 켜져 있고 `hoverEffect="none"`으로 끈다. 마우스가 들어오면 아이콘 칸이 두 구간 타임라인을 돈다. 먼저 `scaleX`가 1.15로, `scaleY`가 그 역수로 퍼지고(부피 보존), 이어서 둘이 1로 spring 커브를 타고 1을 지나쳤다가 앉는다. 도는 중에 다시 들어오면 무시한다 |
 | Loader | 타임라인 상대 위치 · 다중 목표 중단 | `type="orbit"`의 `status`가 `done`·`error`로 바뀌면 점 8개가 한 타임라인에서 각도순으로 짝지은 체크·X 자리로 모인다(점마다 `fast / 8` 시차, `slow` `settle`). `loading`으로 돌아오면 같은 길로 원 위에 돌아가 도착한 뒤에 밝기 키프레임이 재개되고, 도중에 바뀌면 점의 지금 위치에서 이어간다. 라벨 글자가 바뀌면 타임라인 하나가 두 글자 층을 흐림으로 교체한다(옛 층 투명도 0·`blur(2px)`, 새 층 0·`blur(2px)`에서 1·`blur(0)`, `base` `settle`). 켜지지 않은 층은 절대 위치(`left: 0; right: 0`)라 칸 폭에 들어가지 않고, 타임라인이 끝나거나 죽으면 옛 층은 글자를 비운다. 칸 폭은 새 글자 기준으로 그 커밋에 바로 바뀌고 트윈하지 않는다. 라벨이 칸 폭을 정하는 배치(내용 폭으로 줄어들고 한쪽에 붙은 자리)에서는 그래픽도 그때 한 번 옮겨 가므로, 라벨이 바뀌는 로더는 가운데 정렬 자리에 둔다. 라벨 교체는 레이아웃을 읽지 않는다 |
+| HangulAssemble | 타임라인 상대 위치 · CSS가 못 보는 값 읽기(글꼴 크기) | 자모 조각 전체를 타임라인 하나에 시차(`staggerStep`)로 넣고, 조각이 `slower` `settle`로 글자 칸 안 제자리로 모인 뒤 완성 글자와 선형 교차 페이드한다. 제자리 좌표는 em 단위 슬롯에 글자 칸의 글꼴 크기(`getComputedStyle`)를 곱해 얻는다. 축소 선호에서는 `gateMotion`이 끝 상태(완성 글자)로 확정한다 |
+| JellyText | 타임라인 상대 위치 · 다중 목표 중단 · CSS가 못 보는 값 읽기(글자 칸 위치) | 커서가 지나가는 글자 칸마다 `scaleX`·`scaleY`가 `fast` `settle`로 퍼졌다가 `slower` `spring`으로 1에 앉는 타임라인을 돈다(부피 유지, `transformOrigin: 50% 100%`). 도중에 다시 지나가면 옛 타임라인을 죽이고 지금 값에서 새로 출발한다. 글자 칸 위치는 `getBoundingClientRect()`와 `offsetLeft`로 읽어 커서와의 가로 거리를 잰다 |
+| BurstToggle | 타임라인 상대 위치 · 다중 목표 중단 | 켜면 점들이 사방으로 `slower` `settle`로 퍼지는 타임라인과, 아이콘 칸이 납작했다 튕기는 타임라인(`fast` `settle`로 시작)이 따로 돈다. 새 터짐이 서면 이전 아이콘 칸 타임라인을 죽이고 새로 만든다. 켜짐 상태는 소비자가 쥔다 |
+| HoldButton | 다중 목표 중단 · CSS가 못 보는 값 읽기(홀드 진행값) | 진행값 `p`(0~1) 하나를 `gsap.to`로 트윈하고(홀드 시계, 선형), `onUpdate`가 채움을 그린다. 이 시계는 `gateMotion`을 거치지 않는다(축소 모드에서 즉시 실행되면 안 되므로 `GATE_ENFORCEMENT_EXCEPTIONS` 항목, 축소 모드는 그림만 단계로 끊는다). 놓으면 시계를 죽이고 지금 `p`에서 0으로 `base` `settle`로 되감는다. 끝 무렵의 떨림은 시계와 분리된 장식 타임라인(게이트를 거친다)이다 |
+| StampButton | 타임라인 상대 위치 | 한 타임라인이 도장을 `slow` `exit`로 떨어뜨리고, 닿는 시점(`LAND`)에 단추 본체의 눌림, 도장 면의 납작해짐(둘 다 `yoyo`), 잉크 번짐 원의 반지름(`attr: { r }`)을 그 시점 기준 상대 위치로 겹쳐 돈다 |
+| SloshGauge | 타임라인 상대 위치 · 다중 목표 중단 · CSS가 못 보는 값 읽기(수위·진폭 값 자체) | 수위·진폭·위상을 쥔 상태 객체를 한 타임라인에서 트윈하고(수위 `slower` `settle`, 진폭은 0으로 `drift`), `onUpdate`가 그 값으로 수면 경로(`d`)를 다시 그린다. 값이 또 바뀌면 옛 타임라인을 죽이고 지금 수위·진폭에서 새 목표로 이어진다. 수위 변화량에 비례한 충격(`sloshKick`)을 진폭에 더해 출렁임이 시작된다 |
+| CodeSlots | 단일 트윈(숫자가 굴러 들어옴, 지우면 빠짐) | 숫자가 들어오면 `yPercent -100 → 0`(`base` `snap`)으로 굴러 들어오고, 지우면 `0 → 100`(`base` `exit`)으로 빠진 뒤 `onComplete`가 빠짐을 확정한다. 슬롯 하나가 트윈 하나씩 갖고 정리 때 죽인다 |
+| WingButton | 타임라인 상대 위치 · 다중 목표 중단 · CSS가 못 보는 값 읽기(단추·container 좌표) | 누르는 순간 웅크림을 `fast` `settle`로 트윈하고(`overwrite: true`) 떼거나 나가면 `base` `settle`로 되돌려, 웅크리는 도중에 풀려도 지금 값에서 이어진다. 발사하면 단추 좌표와 `container` 좌표(`getBoundingClientRect()`)를 읽어 비행 경로를 만들고 `document.body`의 비행 레이어에서 타임라인 하나가 날개 펼침·퍼덕임·이륙을 돌며 `onUpdate`가 연기 궤적을 낸다. 축소 선호에서는 단추와 표지가 교차 페이드한다 |
+| Morph | 타임라인 상대 위치 · CSS가 못 보는 값 읽기(옛·새 요소 좌표와 스타일) | 사라지는 요소의 사각형·둥글기·배경색을 등록부에 남기고, 새 요소가 마운트되면 두 사각형 차이로 `x`·`y`·`scaleX`·`scaleY`·`borderRadius`·`backgroundColor`를 `fromTo`로 한 타임라인에 트윈한다. 내용은 모양이 자리 잡은 뒤(`SHAPE_DURATION` 시점)에 `slow` `settle`로 떠오른다. 이미 도는 중인 옛 요소의 현재 배율은 `gsap.getProperty`로 읽어 이어받는다 |
 
 **Flip은 이 목록 어디에도 없다.** 유일한 후보였던 `Card`는 레이아웃 변화를
 CSS 전환으로 충분히 표현할 수 있다고 판단해 채택하지 않았다.
