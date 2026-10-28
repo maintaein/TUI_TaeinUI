@@ -52,8 +52,11 @@ export default defineConfig({
     // CSSOM으로 잠근다.
     // visuallyHidden(공용)도 같은 이유다. Snackbar의 숨은 라이브 리전이 top·left 0으로 놓이는지를
     // CSSOM으로 잠그는데, 그 규칙이 이제 이 파일에 있다.
+    // CodeSlots도 같은 이유다. 숨은 input이 display:none이 아니라 투명하게 칸 위에 겹쳐
+    // 있는지(자동 채움과 포커스를 받는 조건)를 CSSOM으로 잠근다.
     css: {
       include: [
+        /\/CodeSlots\.css/,
         /Slider\.css/,
         /\/Button\.css/,
         /\/IconButton\.css/,

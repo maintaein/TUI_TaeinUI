@@ -31,3 +31,4 @@ export * from './BurstToggle';
 export * from './HoldButton';
 export * from './StampButton';
 export * from './SloshGauge';
+export * from './CodeSlots';

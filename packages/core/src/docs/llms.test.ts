@@ -119,7 +119,7 @@ describe('발행 문서와 소스 일치 검사', () => {
 
   it('최상위 export에 Modal·Card의 합성 조각 별칭 10개가 없고 점 표기 조각은 남아 있다', () => {
     // 별칭(ModalHeader, CardBody 등)은 점 표기와 같은 컴포넌트라 이름만 둘이었다.
-    // 지금은 Modal.Header처럼 한 이름만 쓰고, 최상위 export는 41개다.
+    // 지금은 Modal.Header처럼 한 이름만 쓰고, 최상위 export는 42개다.
     const aliases = [
       'ModalHeader',
       'ModalTitle',
@@ -136,7 +136,7 @@ describe('발행 문서와 소스 일치 검사', () => {
     for (const alias of aliases) {
       expect(names, `${alias}가 아직 최상위로 export된다`).not.toContain(alias);
     }
-    expect(names).toHaveLength(41);
+    expect(names).toHaveLength(42);
 
     const modal: Record<string, unknown> = core.Modal;
     const card: Record<string, unknown> = core.Card;

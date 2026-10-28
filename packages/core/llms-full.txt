@@ -34,7 +34,7 @@ UI components follow consistent patterns:
 - `ref`: All components support forwardRef
 - Form components require `label` prop for accessibility
 
-Motion components (HangulAssemble, JellyText, CopyButton, BurstToggle, HoldButton, StampButton, SloshGauge) take only `className` and `ref` (and `disabled` where it applies). They have no `size` or `variant`. GooeySearch is the exception: it is a controlled input with its own props. CopyButton also takes `value` and its label props. BurstToggle also takes `selected`, `selectedIcon` and a required `aria-label`. HoldButton also takes a required `onConfirm` and `confirmLabel`. StampButton also takes `stampLabel`. SloshGauge also takes a required `value` and `label`, plus `min`, `max` and `valueText`.
+Motion components (HangulAssemble, JellyText, CopyButton, BurstToggle, HoldButton, StampButton, SloshGauge) take only `className` and `ref` (and `disabled` where it applies). They have no `size` or `variant`. GooeySearch is the exception: it is a controlled input with its own props. CopyButton also takes `value` and its label props. BurstToggle also takes `selected`, `selectedIcon` and a required `aria-label`. HoldButton also takes a required `onConfirm` and `confirmLabel`. StampButton also takes `stampLabel`. SloshGauge also takes a required `value` and `label`, plus `min`, `max` and `valueText`. CodeSlots is a form component, not a plain motion one: it takes a required `label` like the other form components, plus `length`, `value`, `defaultValue`, `onChange`, `onComplete`, `helperText`, `error`, `errorMessage`, `success` and `successMessage`.
 
 ---
 
@@ -1310,6 +1310,59 @@ Other native div attributes are passed to the root, except `children` and `role`
 
 ---
 
+## CodeSlots
+
+One-time code and PIN input (a form component: `label` is required). The real input is a single `<input>` laid transparently over the slots (not `display: none`), so focus, paste and one-time-code autofill land on it near the slots. The slots are `aria-hidden` pictures of its value.
+
+- Typing a digit rolls it into its slot from above (`translateY(-100%)` to 0 with a slight overshoot, `base`, `snap`). Deleting drops the digit out below.
+- `error`: the slots shake one after another from the left (the same keyframes and tokens as the TextField error shake, a stagger of `fast` x 0.3 per slot) and the borders turn `error`.
+- `success`: the gap between the slots shrinks to 0 and the borders between them disappear, so the slots merge into one pill (`slower`, `settle`). The borders are `success.dark` (`success.main` is 2.77:1 on white).
+- The slot to type into next (the last slot when full) shows the focus ring while the input has focus.
+
+```tsx
+import { CodeSlots } from '@taein-ui/core';
+
+<CodeSlots
+  label="인증번호"
+  length={6}
+  value={code}
+  onChange={setCode}
+  onComplete={verify}
+  error={wrong}
+  errorMessage="번호가 맞지 않습니다"
+  success={ok}
+  successMessage="확인했습니다"
+/>
+```
+
+### Props
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| label | string | (required) | Accessible name and visible label |
+| length | number | 6 | Number of slots |
+| value | string | - | Controlled value. Digits only |
+| defaultValue | string | - | Initial value (uncontrolled) |
+| onChange | (value: string) => void | - | Receives the digits-only value |
+| onComplete | (value: string) => void | - | Called once when `length` digits are in |
+| helperText | string | - | Helper text |
+| error | boolean | false | Error state. Wave and `error` borders; `aria-invalid="true"` |
+| errorMessage | string | - | Shown instead of `helperText` while `error` |
+| success | boolean | false | Success state. The slots merge into one pill. `error` wins when both are on |
+| successMessage | string | - | Shown instead of `helperText` while `success` |
+| disabled | boolean | false | Disables input |
+| className | string | - | Additional CSS class (on the root) |
+| ref | Ref<HTMLInputElement> | - | Forwarded to the hidden input |
+
+Other native input attributes (`name`, `autoFocus`, `required`) are passed to the input, except `type`, `size`, `id`, `style`, `maxLength`, `inputMode`, `pattern`, `autoComplete`, `onSelect` and `children`. The input has `inputMode="numeric"`, `autoComplete="one-time-code"`, `maxLength={length}` and `pattern="\d*"`. Characters that are not digits are dropped. The caret always stays at the end (no editing inside), so delete with Backspace from the end. There is no `size` or `variant`.
+
+### Accessibility
+- The accessible name is `label`; `helperText`, `errorMessage` and `successMessage` are tied to the input by `aria-describedby`, and the message is visible text, so error and success do not rely on motion or color alone.
+- `aria-invalid="true"` while `error`.
+- The slots are `aria-hidden`; the hidden input is the only focus stop.
+- Reduced motion: no roll, drop, wave or merge transition. Digits and colors change at once and the merged shape appears in its end state.
+
+---
+
 ## Design Tokens
 
 TUI uses `themeContract` for type-safe, theme-aware styling. 테마는 라이트
@@ -1520,6 +1573,8 @@ prop은 클라이언트 파일에서 넘긴다.
 `StampButton`도 `'use client'`가 붙는다. 찍힘 상태를 갖고 클릭에서 GSAP 타임라인을 돌린다. `onClick` 같은 함수 prop은 클라이언트 파일에서 넘긴다.
 
 `SloshGauge`도 `'use client'`가 붙는다. 수위가 바뀔 때 GSAP 타임라인을 돌려 수면을 그린다. 표시 요소라 함수 prop은 없다.
+
+`CodeSlots`도 `'use client'`가 붙는다. 값과 지워진 숫자의 빠짐 상태를 갖고 입력 이벤트에서 돈다. `onChange`·`onComplete` 같은 함수 prop은 클라이언트 파일에서 넘긴다.
 
 `HoldButton`도 `'use client'`가 붙는다. 홀드 시계(GSAP 트윈)와 무장·실행 상태를 갖고 포인터와 키보드 이벤트에서 돈다. `onConfirm` 같은 함수 prop은 클라이언트 파일에서 넘긴다.
 
