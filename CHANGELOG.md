@@ -21,6 +21,8 @@
 
 ### Added
 
+- `BurstToggle` 컴포넌트를 더했습니다(`selected`, `selectedIcon`, `children`, `aria-label`, `onClick`, `disabled`, `className`, `ref`, 네이티브 button 속성). 좋아요·저장·즐겨찾기용 제어 토글 단추입니다. 켜면 아이콘이 납작해졌다가 1.2배를 넘겨 튕기며 켜진 아이콘으로 바뀌고, 파란(`primary`) 점 8개가 아이콘 가운데에서 바깥으로 터져 흩어지며 사라집니다. 끌 때는 작게 눌리며 조용히 꺼진 아이콘으로 바뀝니다. 채워짐은 두 아이콘의 교체로 만들고, 아이콘 칸은 `IconButton` `md`와 같습니다. 터짐은 이 단추의 click이 켜짐으로 보낼 때만 일어나고, 처음부터 켜져 있거나 바깥에서 `selected`가 바뀌면 터지지 않습니다. 켜는 중 다시 눌러 끄면 남은 점이 바로 거둬집니다. 점은 `aria-hidden` 장식이고 끝나면 DOM에서 사라집니다. 움직임 줄이기에서는 아이콘만 바뀝니다. 할 일: 없음(새 컴포넌트).
+
 - `CopyButton` 컴포넌트를 더했습니다(`value`, `label`, `copiedLabel`, `failedLabel`, `onCopy`, `disabled`, `className`, `ref`, 네이티브 button 속성). 누르면 `value`를 클립보드에 쓰고, 클립보드 아이콘이 접히며 체크 선이 그려지고 글자 "복사"가 위로 빠지며 "복사됨"이 아래에서 올라옵니다. `loop.base`(1500ms) 뒤에 되돌아옵니다. 클립보드가 없거나 쓰기가 거절되면 아이콘이 좌우로 짧게 흔들리고(TextField 오류 흔들림과 같은 키프레임·토큰) 글자가 "복사 실패"가 된 뒤 되돌아옵니다. `Button`의 `light` 변형(`md`)을 감싸 누름·호버 성격을 그대로 갖습니다. 단추의 접근 가능한 이름은 늘 `label`이고 결과는 보이지 않는 `aria-live="polite"` 영역이 한 번 읽습니다. 소비자 `onClick`이 먼저 불리고 `preventDefault()`하면 복사하지 않습니다. 네이티브 `onCopy`(클립보드 이벤트)는 받지 않고 같은 이름으로 결과 콜백을 받습니다. 움직임 줄이기에서는 이동·흔들림 없이 교차 페이드만 합니다. `Glyph`에 `copy`와 `check`를 더했습니다(core 내부). 할 일: 없음(새 컴포넌트).
 
 - `GooeySearch` 컴포넌트를 더했습니다(`open`, `onOpenChange`, `triggerRef`, `openLabel`, `closeLabel`, `inputLabel`, `placeholder`, `inputProps`, `children`, `className`, `ref`). 둥근 검색 단추를 누르면 물방울이 떨어져 나가듯 단추가 오른쪽으로 갈라지고 그 사이로 입력창이 늘어나며, 닫으면 두 덩어리가 끈적하게 합쳐집니다. 열림 상태는 소비자가 쥐고(`onOpenChange(next, event)`는 트리거 클릭·Esc·바깥 pointerdown을 일으킨 DOM 이벤트를 둘째 인자로 넘깁니다), 입력값과 결과 목록, combobox 연결은 `inputProps`와 `children`으로 넘깁니다. Esc로 닫으면 트리거로 포커스가 돌아오고, 움직임 줄이기에서는 갈라짐 없이 바로 열리고 닫힙니다. 할 일: 없음(새 컴포넌트).

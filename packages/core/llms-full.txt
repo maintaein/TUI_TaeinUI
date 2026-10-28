@@ -34,7 +34,7 @@ UI components follow consistent patterns:
 - `ref`: All components support forwardRef
 - Form components require `label` prop for accessibility
 
-Motion components (HangulAssemble, JellyText, CopyButton) take only `className` and `ref` (and `disabled` where it applies). They have no `size` or `variant`. GooeySearch is the exception: it is a controlled input with its own props. CopyButton also takes `value` and its label props.
+Motion components (HangulAssemble, JellyText, CopyButton, BurstToggle) take only `className` and `ref` (and `disabled` where it applies). They have no `size` or `variant`. GooeySearch is the exception: it is a controlled input with its own props. CopyButton also takes `value` and its label props. BurstToggle also takes `selected`, `selectedIcon` and a required `aria-label`.
 
 ---
 
@@ -1157,6 +1157,52 @@ Other native button attributes are passed to the `<button>`, except `children`, 
 
 ---
 
+## BurstToggle
+
+Toggle button for like, save and favorite. Turning it on, the icon squashes flat (about 0.7 tall and 1.15 wide), springs past 1.2x and settles back to 1, and at the same moment it swaps to the selected icon while a ring of 8 small dots in the `primary` color bursts outward from the icon center, shrinking and fading. Turning it off quietly swaps to the off icon with a small press and no dots. The state is yours (a controlled component, like `Chip`'s `selected`).
+
+The filled look is made by swapping two icons, not by giving an outline icon a fill. The icon cell is the `IconButton` `md` size and the icon `svg` is `1em`. It has no `size` or `variant` prop.
+
+```tsx
+import { BurstToggle } from '@taein-ui/core';
+import { Heart } from 'lucide-react';
+
+<BurstToggle
+  aria-label="좋아요"
+  selected={liked}
+  onClick={() => setLiked(!liked)}
+  selectedIcon={<Heart fill="currentColor" />}
+>
+  <Heart />
+</BurstToggle>
+```
+
+### Props
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| selected | boolean | (required) | On state. Announced with `aria-pressed` |
+| selectedIcon | ReactNode | (required) | Icon shown while on |
+| children | ReactNode | (required) | Icon shown while off |
+| aria-label | string | (required) | Accessible name, the same in both states |
+| onClick | MouseEventHandler | - | Native click. Flip your state here |
+| disabled | boolean | false | Disabled state; `onClick` is not called |
+| className | string | - | Additional CSS class (on the `<button>`) |
+| ref | Ref<HTMLButtonElement> | - | Forwarded to the `<button>` |
+
+Other native button attributes are passed to the `<button>`, except `children` and `aria-pressed`.
+
+### Behavior
+- The burst happens only when this button's own click goes from off to on. A `selected` that is already true on mount, or that changes from outside without a click, does not burst.
+- The burst starts on the click, before your state update returns. If you refuse the change, the burst still plays once.
+- Pressing again while the burst runs turns it off and clears the remaining dots at once.
+- The dots are `aria-hidden` decoration. They exist only while the burst runs and leave the DOM when it ends. The button has `overflow: visible`, so they are not clipped, and they are absolutely placed, so they never push the layout.
+
+### Accessibility
+- A `<button>` with `aria-pressed` and a fixed `aria-label`; the icons are `aria-hidden`.
+- Reduced motion: only the icon swaps. No squash, spring or dots.
+
+---
+
 ## Design Tokens
 
 TUI uses `themeContract` for type-safe, theme-aware styling. 테마는 라이트
@@ -1361,6 +1407,8 @@ prop은 클라이언트 파일에서 넘긴다.
 열림 상태는 소비자가 쥐므로 그 상태를 가진 클라이언트 파일에서 렌더한다.
 
 `CopyButton`도 `'use client'`가 붙는다. 결과 상태와 되돌림 타이머를 갖고 클릭에서 클립보드를 쓴다.
+
+`BurstToggle`도 `'use client'`가 붙는다. 터짐 상태를 갖고 클릭에서 GSAP 타임라인을 돌린다. 켜짐 상태는 소비자가 쥐므로 그 상태를 가진 클라이언트 파일에서 렌더한다.
 
 `HeaderBar`도 `'use client'`가 붙는다. 좁은 화면 메뉴의 열림 상태와 GSAP 트윈,
 그리고 `navStyle="icon"`의 항목 확대가 브라우저에서만 돈다.
