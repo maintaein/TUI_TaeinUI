@@ -155,6 +155,30 @@ describe('HangulAssemble', () => {
       ]);
     });
 
+    it('조합용 자모로 쓴 한글(NFD)도 글자 칸 하나와 자모 조각이 된다', () => {
+      // U+1112 U+1161 U+11AB = 한(NFD). 낭독용 숨은 문장은 원문 그대로다.
+      const nfd = '\u1112\u1161\u11AB';
+      const { container } = render(<HangulAssemble text={nfd} />);
+
+      expect(q(container, 'cell')).toHaveLength(1);
+      expect(q(container, 'glyph')[0].textContent).toBe('한');
+      expect(q(container, 'jamo').map((j) => j.textContent)).toEqual([
+        'ㅎ',
+        'ㅏ',
+        'ㄴ',
+      ]);
+      expect(screen.getByText(nfd)).toBeInTheDocument();
+    });
+
+    it('ZWJ로 이은 이모지는 글자 칸 하나이고 자모 조각이 없다', () => {
+      const family = '\u{1F468}\u200D\u{1F469}\u200D\u{1F467}';
+      const { container } = render(<HangulAssemble text={family} />);
+
+      expect(q(container, 'cell')).toHaveLength(1);
+      expect(q(container, 'glyph')[0].textContent).toBe(family);
+      expect(q(container, 'jamo')).toHaveLength(0);
+    });
+
     it('비한글 글자(라틴, 숫자, 문장부호, 홀로 쓴 자모)에는 자모 조각이 없다', () => {
       const { container } = render(<HangulAssemble text="A1.ㄱ" />);
 

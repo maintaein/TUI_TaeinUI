@@ -13,6 +13,7 @@ import { useReducedMotion } from '../../hooks/useReducedMotion';
 import { gsapDuration, gsapEasing } from '../../tokens/gsapEasing';
 import { visuallyHidden } from '../../_internal/visuallyHidden.css';
 import { decomposeHangul } from './decomposeHangul';
+import { jamoSlots, type JamoSlot } from './jamoSlots';
 import {
   root as rootClass,
   word,
@@ -51,10 +52,35 @@ const isInView = (el: HTMLElement): boolean => {
   return rect.top < window.innerHeight && rect.bottom >= 0;
 };
 
-/** 글자 칸 하나가 재생에 쓰는 두 층 */
+/**
+ * 쪼개는 단위는 자소군(grapheme)이다. 코드포인트로 쪼개면 조합용 자모로 쓴 한글(NFD)과
+ * ZWJ 이모지, 결합 부호가 칸마다 갈려 깨진다. 한글은 앞서 NFC로 합쳐 음절 하나가 된다.
+ */
+// 저장소의 lib 대상(ES2020)에는 Intl.Segmenter 타입이 없어 필요한 모양만 적는다.
+// ponytail: Segmenter가 없는 환경(Firefox 124 이하)은 코드포인트로 쪼개 NFD·ZWJ가 갈린다, 지원 하한을 올릴 때 지운다.
+interface GraphemeSegmenter {
+  segment(input: string): Iterable<{ segment: string }>;
+}
+const Segmenter = (
+  Intl as unknown as {
+    Segmenter?: new (
+      locale?: string,
+      options?: { granularity: 'grapheme' }
+    ) => GraphemeSegmenter;
+  }
+).Segmenter;
+const segmenter =
+  Segmenter && new Segmenter(undefined, { granularity: 'grapheme' });
+const graphemes = (word: string): string[] =>
+  segmenter
+    ? Array.from(segmenter.segment(word), (part) => part.segment)
+    : [...word];
+
+/** 글자 칸 하나가 재생에 쓰는 두 층과 조각의 제자리 */
 interface CellParts {
   glyph: HTMLElement;
   pieces: HTMLElement[];
+  slots: JamoSlot[];
 }
 
 /**
@@ -90,12 +116,17 @@ export const HangulAssemble = forwardRef<HTMLElement, HangulAssembleProps>(
 
       const parts: CellParts[] = [
         ...el.querySelectorAll<HTMLElement>('[data-hangul-cell]'),
-      ].map((c) => ({
-        glyph: c.querySelector<HTMLElement>(
+      ].map((c) => {
+        const glyphEl = c.querySelector<HTMLElement>(
           '[data-hangul-glyph]'
-        ) as HTMLElement,
-        pieces: [...c.querySelectorAll<HTMLElement>('[data-hangul-jamo]')],
-      }));
+        ) as HTMLElement;
+        const jamo = decomposeHangul(glyphEl.textContent ?? '');
+        return {
+          glyph: glyphEl,
+          pieces: [...c.querySelectorAll<HTMLElement>('[data-hangul-jamo]')],
+          slots: jamo ? jamoSlots(jamo) : [],
+        };
+      });
       if (parts.length === 0) return;
 
       const targets = parts.flatMap((p) => [p.glyph, ...p.pieces]);
@@ -115,13 +146,19 @@ export const HangulAssemble = forwardRef<HTMLElement, HangulAssembleProps>(
           gsap.set(p.glyph, { opacity: 0 });
           p.pieces.forEach((piece, k) => {
             const { x, y } = scatterOffset(i, k);
-            gsap.set(piece, { x: x * em, y: y * em, opacity: 0 });
+            gsap.set(piece, {
+              x: x * em,
+              y: y * em,
+              scale: p.slots[k].scale,
+              opacity: 0,
+            });
           });
         });
       };
 
       const play = () => {
         startedRef.current = text;
+        const em = Number.parseFloat(getComputedStyle(el).fontSize) || 16;
         timeline = gateMotion(reduced, () => {
           const tl = gsap.timeline({ onComplete: rest });
           parts.forEach((p, i) => {
@@ -142,8 +179,9 @@ export const HangulAssemble = forwardRef<HTMLElement, HangulAssembleProps>(
             tl.to(
               p.pieces,
               {
-                x: 0,
-                y: 0,
+                // 글자 한가운데 한 점이 아니라 음절 구조 속 제자리로 모인다.
+                x: (k: number) => p.slots[k].x * em,
+                y: (k: number) => p.slots[k].y * em,
                 opacity: 1,
                 duration: gsapDuration.slower,
                 ease: gsapEasing.settle,
@@ -202,34 +240,39 @@ export const HangulAssemble = forwardRef<HTMLElement, HangulAssembleProps>(
       <Tag ref={setRoot} className={clsx(rootClass, className)}>
         <span className={visuallyHidden}>{text}</span>
         <span aria-hidden="true" data-hangul-visual="">
-          {text.split(/(\s+)/).map((segment, i) =>
-            i % 2 === 1 ? (
-              segment
-            ) : segment ? (
-              <span key={i} className={word} data-hangul-word="">
-                {[...segment].map((char, j) => {
-                  const parts = decomposeHangul(char);
-                  const pieces = parts
-                    ? [parts.initial, parts.medial, parts.final].filter(
-                        (piece): piece is string => piece !== undefined
-                      )
-                    : [];
-                  return (
-                    <span key={j} className={cell} data-hangul-cell="">
-                      <span className={glyph} data-hangul-glyph="">
-                        {char}
-                      </span>
-                      {pieces.map((piece, k) => (
-                        <span key={k} className={jamo} data-hangul-jamo="">
-                          {piece}
+          {text
+            .normalize('NFC')
+            .split(/(\s+)/)
+            .map((segment, i) =>
+              i % 2 === 1 ? (
+                segment
+              ) : segment ? (
+                <span key={i} className={word} data-hangul-word="">
+                  {graphemes(segment).map((char, j) => {
+                    // 결합 부호가 붙은 칸은 한글 음절 하나가 아니라 통째로 한 그림이다.
+                    const parts =
+                      [...char].length === 1 ? decomposeHangul(char) : null;
+                    const pieces = parts
+                      ? [parts.initial, parts.medial, parts.final].filter(
+                          (piece): piece is string => piece !== undefined
+                        )
+                      : [];
+                    return (
+                      <span key={j} className={cell} data-hangul-cell="">
+                        <span className={glyph} data-hangul-glyph="">
+                          {char}
                         </span>
-                      ))}
-                    </span>
-                  );
-                })}
-              </span>
-            ) : null
-          )}
+                        {pieces.map((piece, k) => (
+                          <span key={k} className={jamo} data-hangul-jamo="">
+                            {piece}
+                          </span>
+                        ))}
+                      </span>
+                    );
+                  })}
+                </span>
+              ) : null
+            )}
         </span>
       </Tag>
     );
