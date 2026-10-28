@@ -195,6 +195,12 @@ export const rulerHead = style({
   color: MUTED,
 });
 
+// 모션 머리: UI 계열 아래에서 모션 분류 묶음 전체를 여는 큰 머리
+export const rulerPart = style([
+  rulerHead,
+  { marginTop: spacing[2], fontSize: '0.875rem', color: INK },
+]);
+
 export const rulerItem = style({
   position: 'relative',
   display: 'flex',

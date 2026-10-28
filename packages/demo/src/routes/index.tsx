@@ -127,6 +127,13 @@ const CardPage = lazy(() =>
   import('../pages/Components/Card').then((m) => ({ default: m.CardPage }))
 );
 
+// Motion
+const HangulAssemblePage = lazy(() =>
+  import('../pages/Motion/HangulAssemble').then((m) => ({
+    default: m.HangulAssemblePage,
+  }))
+);
+
 // 회귀 e2e 전용 시험 페이지(내비·검색에 없다)
 const E2ELivePage = lazy(() =>
   import('../pages/E2E/LivePage').then((m) => ({ default: m.LivePage }))
@@ -404,6 +411,24 @@ const router = createBrowserRouter([
             element: (
               <LazyPage>
                 <CardPage />
+              </LazyPage>
+            ),
+          },
+        ],
+      },
+      {
+        path: 'motion',
+        children: [
+          // T3가 전체 보기 페이지를 만들면 이 이동을 바꾼다
+          {
+            index: true,
+            element: <Navigate to="hangul-assemble" replace />,
+          },
+          {
+            path: 'hangul-assemble',
+            element: (
+              <LazyPage>
+                <HangulAssemblePage />
               </LazyPage>
             ),
           },

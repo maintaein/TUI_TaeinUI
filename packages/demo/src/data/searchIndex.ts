@@ -454,4 +454,34 @@ export const searchIndex: SearchEntry[] = [
       { title: 'Elevation', content: 'elevation prop으로 그림자 수준 설정' },
     ],
   },
+
+  // ─── 모션 ───
+  {
+    id: 'hangul-assemble',
+    pageTitle: '한글 조립',
+    path: '/motion/hangul-assemble',
+    category: '모션',
+    description:
+      'HangulAssemble. 흩어진 자모가 날아와 모이며 한글 글자가 됩니다.',
+    sections: [
+      {
+        title: '텍스트 애니메이션',
+        content:
+          'text에 문장을 주면 화면에 들어올 때 한 번 자모가 모여 글자가 됩니다',
+      },
+      {
+        title: '다시 재생',
+        content:
+          'text가 바뀌어도 다시 재생하지 않습니다. key를 바꾸면 다시 조립합니다',
+      },
+      {
+        title: 'as',
+        content: 'h1, h2, p 등 루트 요소를 고릅니다',
+      },
+      {
+        title: '움직임 줄이기',
+        content: '움직임 줄이기에서는 완성 문장을 바로 보여 줍니다',
+      },
+    ],
+  },
 ];

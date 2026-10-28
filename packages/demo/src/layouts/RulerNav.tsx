@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom';
-import { numberedGroups } from '../data/components';
+import { numberedGroups, numberedMotionGroups } from '../data/components';
 import * as styles from './RootLayout.css';
 
 export function RulerNav() {
@@ -30,6 +30,23 @@ export function RulerNav() {
               >
                 <span className={styles.rulerNo}>{c.no}</span>
                 {c.name}
+              </NavLink>
+            ))}
+          </div>
+        ))}
+        {numberedMotionGroups.map((g, i) => (
+          <div key={g.label} className={styles.rulerGroup}>
+            {i === 0 && <span className={styles.rulerPart}>모션</span>}
+            <span className={styles.rulerHead}>{g.label}</span>
+            {g.items.map((m) => (
+              <NavLink
+                key={m.path}
+                to={m.path}
+                end
+                className={styles.rulerItem}
+              >
+                <span className={styles.rulerNo}>{m.no}</span>
+                {m.title}
               </NavLink>
             ))}
           </div>

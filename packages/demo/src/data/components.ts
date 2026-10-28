@@ -7,6 +7,7 @@ import {
   Columns3,
   Hash,
   Info,
+  Languages,
   LayoutPanelTop,
   List,
   Loader,
@@ -292,3 +293,55 @@ export const cardHeight: Record<string, number> = {
   Card: 312,
   BoardRow: 366,
 };
+
+// ─── 모션 ───────────────────────────────────────────────────────
+// UI 컴포넌트는 목적으로 찾고 모션 컴포넌트는 효과로 찾는다. 위 UI 쪽과 나란히 두고 번호도 따로 센다.
+
+export interface MotionInfo {
+  /** core의 컴포넌트 이름 */
+  name: string;
+  /** 효과 이름. 사이드바와 검색이 이것을 보인다 */
+  title: string;
+  path: string;
+  description: string;
+  /** 어디에 쓰는지 한 줄 */
+  usage: string;
+  category: 'text' | 'animation' | 'component' | 'micro' | 'background';
+  icon: LucideIcon;
+}
+
+export const motionData: MotionInfo[] = [
+  // Text Animation (1개)
+  {
+    name: 'HangulAssemble',
+    title: '한글 조립',
+    path: '/motion/hangul-assemble',
+    description: '흩어진 자모가 날아와 모이며 한글 글자가 됩니다.',
+    usage: '첫 화면 소개 문장, 섹션 제목',
+    category: 'text',
+    icon: Languages,
+  },
+];
+
+export const motionCategoryLabels: Record<MotionInfo['category'], string> = {
+  text: '텍스트 애니메이션',
+  animation: '애니메이션',
+  component: '컴포넌트',
+  micro: '마이크로 인터랙션',
+  background: '배경',
+};
+
+/** 모션 번호(01부터)를 붙여 분류별로 묶은 목록. 항목이 없는 분류는 어디에도 보이지 않도록 뺀다 */
+export function groupMotion(items: MotionInfo[]) {
+  let no = 0;
+  return Object.entries(motionCategoryLabels)
+    .map(([key, label]) => ({
+      label,
+      items: items
+        .filter((m) => m.category === key)
+        .map((m) => ({ ...m, no: String(++no).padStart(2, '0') })),
+    }))
+    .filter((g) => g.items.length > 0);
+}
+
+export const numberedMotionGroups = groupMotion(motionData);

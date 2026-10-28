@@ -1,0 +1,1 @@
+export { HangulAssemblePage } from './HangulAssemblePage';

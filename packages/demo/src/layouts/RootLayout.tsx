@@ -6,14 +6,15 @@ import clsx from 'clsx';
 import { PillHeader, GITHUB_URL } from './PillHeader';
 import { RulerNav } from './RulerNav';
 import { ScrollToTop } from '../components/ScrollToTop';
-import { componentsData } from '../data/components';
+import { componentsData, motionData } from '../data/components';
 import { useMediaQuery, breakpoints } from '../hooks/useMediaQuery';
 import * as styles from './RootLayout.css';
 
-// 붙박이 사이드바가 붙는 문서 쪽: 시작하기와 컴포넌트 상세(개요 제외)
+// 붙박이 사이드바가 붙는 문서 쪽: 시작하기와 컴포넌트·모션 상세(개요 제외)
 const docsPaths = new Set([
   '/getting-started',
   ...componentsData.map((c) => c.path),
+  ...motionData.map((m) => m.path),
 ]);
 
 // 넓은 화면의 문서 쪽에서는 붙박이 판을 접고 펴고, 그 밖(소개·개요·404, 좁은 화면)에서는 덮는 서랍을 연다.
