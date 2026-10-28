@@ -1,0 +1,1 @@
+export { WingButtonPage } from './WingButtonPage';

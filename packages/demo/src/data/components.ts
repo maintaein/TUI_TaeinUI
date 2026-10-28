@@ -30,6 +30,7 @@ import {
   ToggleLeft,
   Stamp,
   Fan,
+  Send,
   Gauge,
   KeyRound,
   Trash2,
@@ -352,7 +353,7 @@ export const motionData: MotionInfo[] = [
     category: 'component',
     icon: Search,
   },
-  // Micro Interaction (7개)
+  // Micro Interaction (8개)
   {
     name: 'CopyButton',
     title: '복사됨',
@@ -419,6 +420,15 @@ export const motionData: MotionInfo[] = [
     usage: '빠른 작업, 공유 메뉴',
     category: 'micro',
     icon: Fan,
+  },
+  {
+    name: 'WingButton',
+    title: '날개 전송',
+    path: '/motion/wing-button',
+    description: '누르면 단추에 날개가 돋아 오른쪽 위로 날아갑니다.',
+    usage: '메일 보내기, 제출, 전송',
+    category: 'micro',
+    icon: Send,
   },
 ];
 

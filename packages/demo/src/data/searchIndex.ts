@@ -749,4 +749,39 @@ export const searchIndex: SearchEntry[] = [
       },
     ],
   },
+  {
+    id: 'wing-button',
+    pageTitle: '날개 전송',
+    path: '/motion/wing-button',
+    category: '모션',
+    description:
+      'WingButton. 누르면 단추에 날개가 돋아 오른쪽 위로 날아갑니다. 날개, 전송, 보내기, 메일, 제출, 비행, send, wing, fly.',
+    sections: [
+      {
+        title: '마이크로 인터랙션',
+        content:
+          '누르는 순간 단추가 왼쪽 아래로 살짝 웅크리고, 손을 떼면 단추 양 끝에서 깃털 날개가 펴져 세 번 퍼덕인 뒤 오른쪽 위로 가속하며 기울고 작아지면서 화면 밖으로 날아갑니다. 날아간 자리에는 보냈어요 표지가 남습니다',
+      },
+      {
+        title: '날 자리는 container로',
+        content:
+          '날개 단 단추는 화면 전체 위로 떠올라 날아가 조상의 overflow hidden에 잘리지 않습니다. container를 주면 그 상자 안에서만 날고 상자 밖으로 나가며 사라집니다. 그 상자는 position의 기준이어야 합니다',
+      },
+      {
+        title: '다시 보내기는 key로',
+        content:
+          '날아간 단추는 돌아오지 않고 되돌리는 prop도 없습니다. key를 바꿔 새로 그리면 처음 상태입니다',
+      },
+      {
+        title: '접근성',
+        content:
+          'onClick은 네이티브 click, 손을 뗄 때 실행되고 누르는 순간에는 실행되지 않습니다. 포커스가 있었다면 표지로 옮기고 이때 표지에는 role status를 두지 않으며 포커스가 없었다면 표지가 role status로 읽힙니다. 복제본과 날개는 aria-hidden, inert 장식입니다',
+      },
+      {
+        title: '움직임 줄이기',
+        content:
+          '움직임 줄이기에서는 날개와 비행 없이 단추가 보냈어요로 바뀝니다',
+      },
+    ],
+  },
 ];

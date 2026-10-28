@@ -178,6 +178,11 @@ const FanMenuPage = lazy(() =>
     default: m.FanMenuPage,
   }))
 );
+const WingButtonPage = lazy(() =>
+  import('../pages/Motion/WingButton').then((m) => ({
+    default: m.WingButtonPage,
+  }))
+);
 const JellyTextPage = lazy(() =>
   import('../pages/Motion/JellyText').then((m) => ({
     default: m.JellyTextPage,
@@ -567,6 +572,14 @@ const router = createBrowserRouter([
             element: (
               <LazyPage>
                 <FanMenuPage />
+              </LazyPage>
+            ),
+          },
+          {
+            path: 'wing-button',
+            element: (
+              <LazyPage>
+                <WingButtonPage />
               </LazyPage>
             ),
           },
