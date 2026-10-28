@@ -5,6 +5,7 @@ import {
   useImperativeHandle,
   useLayoutEffect,
   useRef,
+  useState,
   type ElementType,
   type ForwardedRef,
   type ReactElement,
@@ -72,6 +73,7 @@ const lookOf = (el: HTMLElement, inFlight: boolean): MorphLook => {
     ),
     background: style.backgroundColor,
     focused: el.contains(document.activeElement),
+    inFlight,
   };
 };
 
@@ -82,15 +84,51 @@ const moveFocusInto = (el: HTMLElement) => {
   target.focus();
 };
 
-/** 이어받으며 건 인라인 값을 걷어 소비자 스타일과 CSS가 다시 이긴다. */
-const rest = (el: HTMLElement) => {
-  gsap.set([el, ...Array.from(el.children)], { clearProps: 'transition' });
-  // GSAP은 둥글기를 네 모서리 값으로 쓴다. 숏핸드 이름만 걷으면 jsdom에는 모서리 값이 남는다.
-  gsap.set(el, {
-    clearProps:
-      'transform,backgroundColor,borderTopLeftRadius,borderTopRightRadius,borderBottomRightRadius,borderBottomLeftRadius',
-  });
-  gsap.set(Array.from(el.children), { clearProps: 'opacity' });
+// 이어받는 동안 GSAP과 이 파일이 건드리는 인라인 값. GSAP은 둥글기를 네 모서리 값으로 쓴다.
+const WRAPPER_PROPS = [
+  'transform',
+  'background-color',
+  'border-top-left-radius',
+  'border-top-right-radius',
+  'border-bottom-right-radius',
+  'border-bottom-left-radius',
+  'transition',
+  'outline',
+];
+const CONTENT_PROPS = ['opacity', 'transition'];
+
+/**
+ * 건드리기 전의 인라인 값과 내용의 inert를 기억했다가, 부르면 그대로 되돌리는 함수를 돌려준다.
+ * 소비자가 자식에 건 `opacity`나 `transition`이 있으면 그 값으로, 없었으면 걷는다.
+ */
+const holdStyles = (el: HTMLElement) => {
+  const content = Array.from(el.children) as HTMLElement[];
+  const nodes: [HTMLElement, string[]][] = [
+    [el, WRAPPER_PROPS],
+    ...content.map((c): [HTMLElement, string[]] => [c, CONTENT_PROPS]),
+  ];
+  const saved = nodes.map(([node, props]) => ({
+    node,
+    props,
+    values: props.map((p) => node.style.getPropertyValue(p)),
+  }));
+  const wasInert = content.map((c) => c.hasAttribute('inert'));
+  return () => {
+    for (const { node, props, values } of saved) {
+      // clearProps로 GSAP의 변환 캐시까지 비운 뒤, 원래 있던 값만 다시 쓴다
+      gsap.set(node, {
+        clearProps: props
+          .join(',')
+          .replace(/-([a-z])/g, (_m, c: string) => c.toUpperCase()),
+      });
+      props.forEach((p, i) => {
+        if (values[i]) node.style.setProperty(p, values[i]);
+      });
+    }
+    content.forEach((c, i) => {
+      if (!wasInert[i]) c.removeAttribute('inert');
+    });
+  };
 };
 
 interface BodyProps extends Omit<MorphProps, 'children'> {
@@ -115,37 +153,58 @@ const MorphBody = ({
 
   useImperativeHandle(forwardedRef, () => elRef.current as HTMLElement);
 
+  // 이 인스턴스의 표지. 자기가 남긴 쉬는 모습을 StrictMode 재실행에서 다시 집지 않게 기록에 담는다.
+  const [owner] = useState(() => ({}));
+
   // 언마운트 직전, DOM이 아직 있을 때 겉모양을 맡긴다. 아래 효과의 정리(트윈 끄기)보다 먼저 선언해
   // 정리가 중간 모습을 지우기 전에 읽는다(같은 컴포넌트의 정리는 선언 순서로 돈다).
   useLayoutEffect(() => {
     const el = elRef.current;
     return () => {
-      if (el) rememberMorph(morphId, lookOf(el, timelineRef.current !== null));
+      if (el)
+        rememberMorph(morphId, lookOf(el, timelineRef.current !== null), owner);
     };
-  }, [morphId]);
+  }, [morphId, owner]);
 
   useLayoutEffect(() => {
     const el = elRef.current as MorphHost | null;
-    const from = el ? takeMorph(morphId) : undefined;
+    const from = el ? takeMorph(morphId, owner) : undefined;
     if (!el || !from) return;
 
-    // 이전 요소에 있던 포커스는 body로 떨어지지 않게 움직임과 상관없이 옮긴다
-    if (from.focused) moveFocusInto(el);
-
     const to = el.getBoundingClientRect();
-    if (!from.width || !from.height || !to.width || !to.height) return;
+    if (!from.width || !from.height || !to.width || !to.height) {
+      // 모양을 못 읽으면 움직임 없이 서되, 이전 요소의 포커스는 body로 떨어지지 않게 옮긴다
+      if (from.focused) moveFocusInto(el);
+      return;
+    }
 
-    const content = Array.from(el.children);
-    // 안쪽 요소가 opacity 같은 값에 CSS transition을 갖고 있으면(Card 등) 인라인 값이 한 박자 늦게 따라와 내용이 비쳐 보인다.
-    // 움직이는 동안에는 래퍼와 내용의 transition을 끈다. 위 사각형 읽기가 이미 스타일을 계산했으므로 값을 바꾸기 전에 건다.
-    gsap.set([el, ...content], { transition: 'none' });
+    const content = Array.from(el.children) as HTMLElement[];
     const look = getComputedStyle(el.firstElementChild ?? el);
+    // 내용이 쉴 때의 불투명도(비활성 카드 0.5 등). 페이드는 이 값에서 끝나야 끝 정리 때 튀지 않는다
+    const restOpacity = content.map((c) => {
+      const o = Number.parseFloat(getComputedStyle(c).opacity);
+      // 읽을 수 없으면(jsdom은 빈 값을 준다) 불투명
+      return Number.isNaN(o) ? 1 : o;
+    });
+    const restore = holdStyles(el);
+    // 안쪽 요소가 opacity 같은 값에 CSS transition을 갖고 있으면(Card 등) 인라인 값이 한 박자 늦게 따라와 내용이 비쳐 보인다.
+    // 움직이는 동안에는 래퍼와 내용의 transition을 끈다. 위 사각형과 스타일 읽기가 이미 계산을 마쳤으므로 값을 바꾸기 전에 건다.
+    gsap.set([el, ...content], { transition: 'none' });
+    // 투명한 내용 안의 단추가 포커스를 받지 않게 형태가 바뀌는 동안 내용을 inert로 둔다. 래퍼는 포커스 링을 그리지 않는다
+    gsap.set(el, { outline: 'none' });
+    content.forEach((c) => c.setAttribute('inert', ''));
     const scaleX = from.width / to.width;
     const scaleY = from.height / to.height;
 
-    // 모서리가 확대에 늘어나지 않게, 확대 전 둥글기를 배율로 나눠 시작한다. 가로세로 비율이 크게 다르면 모서리가 살짝 타원이 된다.
+    // ponytail: 가로세로 비율이 크게 다르면 모서리가 살짝 타원이 된다(확대 전 둥글기를 평균 배율로 나눔), 문제가 되면 가로 세로 반지름으로 나눠 보간한다.
+    // ponytail: 새 요소 배경이 투명이면 중간 색이 어두워질 수 있다, 필요하면 알파만 보간한다.
     const timeline = gateMotion(reduced, () => {
-      const tl = gsap.timeline({ onComplete: () => finish() });
+      const tl = gsap.timeline({
+        onComplete: () => {
+          finish();
+          settleFocus();
+        },
+      });
       tl.fromTo(
         el,
         {
@@ -172,7 +231,11 @@ const MorphBody = ({
       tl.fromTo(
         content,
         { opacity: 0 },
-        { opacity: 1, duration: gsapDuration.slow, ease: gsapEasing.settle },
+        {
+          opacity: (i: number) => restOpacity[i],
+          duration: gsapDuration.slow,
+          ease: gsapEasing.settle,
+        },
         SHAPE_DURATION
       );
       return tl;
@@ -181,16 +244,31 @@ const MorphBody = ({
 
     function finish() {
       timelineRef.current = null;
-      rest(el as HTMLElement);
+      restore();
     }
-    if (reduced) finish();
-    else timelineRef.current = timeline;
+    // 내용이 inert인 동안은 래퍼가 포커스를 맡고, 끝나면 첫 포커스 가능 자손으로 넘긴다(그 사이 사용자가 옮겼으면 뺏지 않는다)
+    function settleFocus() {
+      const host = el as HTMLElement;
+      const target =
+        document.activeElement === host && getFirstFocusableElement(host);
+      if (target) target.focus();
+    }
+    if (reduced) {
+      finish();
+      if (from.focused) moveFocusInto(el);
+    } else {
+      timelineRef.current = timeline;
+      if (from.focused) {
+        el.setAttribute('tabindex', '-1');
+        el.focus();
+      }
+    }
 
     return () => {
       timeline.kill();
       finish();
     };
-  }, [morphId, reduced]);
+  }, [morphId, reduced, owner]);
 
   return (
     <Tag ref={setEl} className={className} data-morph-id={morphId}>

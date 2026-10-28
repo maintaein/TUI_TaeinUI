@@ -1449,7 +1449,7 @@ Other native button attributes are passed to the `<button>`, except `children`. 
 
 Wrapper that lets a new element take over the look of one that just disappeared (a shared element transition): a list card becomes a detail panel that starts in the card's spot, shape and colour and grows into its own. The reverse direction is the same.
 
-Elements with the same `morphId` are paired. A `Morph` that unmounts (or whose child's type or `key` changes) leaves its rectangle, rounding and background colour in a module-wide registry just before its DOM goes. The `Morph` that mounts with the same `morphId` picks the record up and removes it. If two share an id the later mount wins, and a record with no partner within 100ms is discarded.
+Elements with the same `morphId` are paired. A `Morph` that unmounts (or whose child's type or `key` changes) leaves its rectangle, rounding and background colour in a module-wide registry (shared by every `Morph` on the page, not per React root) just before its DOM goes. The `Morph` that mounts with the same `morphId` picks the record up and removes it. If two share an id the later mount wins, and a record with no partner within 100ms is discarded.
 
 The new wrapper starts at the old rectangle and moves to its own (a FLIP using `x`, `y`, `scaleX` and `scaleY` only; width, height, top and left are never animated). The rounding and background colour are tweened directly. The shape change takes `slower` x 1.2 (0.72s) with `drift` (the less abrupt of `drift` and `settle`). The content of the new element is transparent during it, then fades in (`slow`, `settle`). When it ends the inline transform, rounding, background and opacity are removed, so consumer styles win again. There is no clone of the old element.
 
@@ -1482,7 +1482,8 @@ The wrapper carries `data-morph-id`. Its rectangle is what moves and what is rec
 Swapping back while it is moving continues from the rectangle, rounding and colour on screen at that moment, without a jump. Unmounting mid-flight kills the timeline and leaves no inline style.
 
 ### Accessibility
-- Focus: if the old element contained the focus, it moves to the first focusable descendant of the new wrapper, or to the wrapper itself (`tabindex="-1"`, not in the tab order) if there is none. It never falls to `body`, with or without motion.
+- Focus: if the old element contained the focus, the new wrapper holds it while the shape changes (the content is `inert` meanwhile, so a transparent button never takes focus) and passes it to its first focusable descendant at the end, or keeps it itself (`tabindex="-1"`, not in the tab order) if there is none. It never falls to `body`, with or without motion (under reduced motion it goes straight to the descendant).
+- Inline `opacity` and `transition` the consumer put on the child are restored when it ends.
 - No clone of the old element is drawn, so there is no `aria-hidden` or `inert` copy.
 - Reduced motion: it changes at once, with no shape change or fade. The focus rule is the same.
 

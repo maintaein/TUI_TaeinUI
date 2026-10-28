@@ -1,4 +1,4 @@
-import { createRef, type ReactNode } from 'react';
+import { createRef, StrictMode, type ReactNode } from 'react';
 import {
   afterAll,
   afterEach,
@@ -307,8 +307,40 @@ describe('Morph', () => {
       const { container, rerender } = render(<Scene open={false} />);
       (container.querySelector('button') as HTMLButtonElement).focus();
       rerender(<Scene open />);
+      // 내용이 inert인 형태 변화 동안은 래퍼가 포커스를 맡아 body로 떨어지지 않는다
+      expect(document.activeElement).toBe(wrapper(container));
+      timelineOf(container).progress(1);
       expect(document.activeElement).toBe(container.querySelector('button'));
       expect(document.activeElement?.textContent).toBe('닫기');
+    });
+
+    it('형태가 바뀌는 동안 내용은 inert라 단추가 포커스를 받지 못하고 끝나면 원래대로다', () => {
+      installLayout();
+      const { container, rerender } = render(<Scene open={false} />);
+      rerender(<Scene open />);
+      const content = wrapper(container).firstElementChild as HTMLElement;
+      expect(content).toHaveAttribute('inert');
+      expect(wrapper(container)).not.toHaveAttribute('inert');
+      timelineOf(container).progress(1);
+      expect(content).not.toHaveAttribute('inert');
+    });
+
+    it('원래 inert였던 내용은 끝나도 inert로 남는다', () => {
+      installLayout();
+      const { container, rerender } = render(
+        <Morph morphId="m">
+          <Card />
+        </Morph>
+      );
+      rerender(
+        <Morph morphId="m">
+          <div data-box="panel" inert>
+            <button type="button">닫기</button>
+          </div>
+        </Morph>
+      );
+      timelineOf(container).progress(1);
+      expect(wrapper(container).firstElementChild).toHaveAttribute('inert');
     });
 
     it('포커스 가능 자손이 없으면 래퍼 자신이 포커스를 받고 탭 순서에는 들지 않는다', () => {
@@ -412,6 +444,129 @@ describe('Morph', () => {
       (container.querySelector('button') as HTMLButtonElement).focus();
       rerender(<Scene open />);
       expect(document.activeElement?.textContent).toBe('닫기');
+    });
+  });
+
+  describe('소비자 스타일', () => {
+    const StyledPanel = () => (
+      <div
+        data-box="panel"
+        style={{ ...panelStyle, opacity: 0.5, transition: 'color 1s' }}
+      >
+        <button type="button">닫기</button>
+      </div>
+    );
+
+    it('자식에 건 인라인 opacity와 transition은 이어받은 뒤 같은 값으로 돌아온다', () => {
+      installLayout();
+      const { container, rerender } = render(<Scene open={false} />);
+      rerender(
+        <Morph morphId="m">
+          <StyledPanel />
+        </Morph>
+      );
+      const content = wrapper(container).firstElementChild as HTMLElement;
+      expect(content.style.transition).toBe('none');
+      timelineOf(container).progress(1);
+      expect(content.style.opacity).toBe('0.5');
+      expect(content.style.transition).toBe('color 1s');
+    });
+
+    it('쉬는 opacity가 1이 아닌 자식은 페이드가 그 값에서 끝나 끝 정리 때 튀지 않는다', () => {
+      installLayout();
+      const { container, rerender } = render(<Scene open={false} />);
+      rerender(
+        <Morph morphId="m">
+          <StyledPanel />
+        </Morph>
+      );
+      const tl = timelineOf(container);
+      const content = wrapper(container).firstElementChild as HTMLElement;
+      tl.time(tl.duration() - 0.001);
+      expect(Number(content.style.opacity)).toBeCloseTo(0.5, 2);
+    });
+
+    it('이어받는 동안 래퍼의 포커스 링을 끄고 끝나면 되돌린다', () => {
+      installLayout();
+      const { container, rerender } = render(<Scene open={false} />);
+      rerender(<Scene open />);
+      const el = wrapper(container);
+      expect(el.style.outline).toBe('none');
+      timelineOf(container).progress(1);
+      expect(el.style.outline).toBe('');
+    });
+  });
+
+  describe('StrictMode', () => {
+    it('짝 없는 첫 마운트는 제 기록을 이어받지 않는다(타임라인 없음, 내용 불투명)', () => {
+      installLayout();
+      const { container } = render(
+        <StrictMode>
+          <Morph morphId="solo">
+            <Card />
+          </Morph>
+        </StrictMode>
+      );
+      const el = wrapper(container);
+      expect(el.__morphTimeline).toBeUndefined();
+      expect((el.firstElementChild as HTMLElement).style.opacity).toBe('');
+      expect(el.style.transform).toBe('');
+    });
+
+    it('A가 사라지고 B가 나타나면 StrictMode 안에서도 A의 사각형에서 이어받는다', () => {
+      installLayout();
+      const { container, rerender } = render(
+        <StrictMode>
+          <Scene open={false} />
+        </StrictMode>
+      );
+      rerender(
+        <StrictMode>
+          <Scene open />
+        </StrictMode>
+      );
+      const { sx, x } = transformOf(wrapper(container));
+      expect(sx).toBeCloseTo(0.2, 3);
+      expect(x).toBeCloseTo(-360, 3);
+      expect(timelineOf(container).progress()).toBeLessThan(1);
+    });
+  });
+
+  describe('같은 id가 둘일 때', () => {
+    it('나중에 마운트된 것의 모양을 이어받는다', () => {
+      installLayout();
+      const { container, rerender } = render(
+        <div key="old">
+          <Morph morphId="m">
+            <Card />
+          </Morph>
+        </div>
+      );
+      // 카드 뒤에 같은 id의 패널이 나중에 마운트된다
+      rerender(
+        <div key="old">
+          <Morph morphId="m">
+            <Card />
+          </Morph>
+          <Morph morphId="m">
+            <Panel />
+          </Morph>
+        </div>
+      );
+      // 둘 다 사라지고 카드 크기의 새 요소가 나타난다: 나중 것(패널) 사각형에서 출발하니 배율이 5배다
+      rerender(
+        <div key="new">
+          <Morph morphId="m" className="next">
+            <div data-box="card">
+              <button type="button">카드</button>
+            </div>
+          </Morph>
+        </div>
+      );
+      const sx = transformOf(
+        container.querySelector('.next') as HTMLElement
+      ).sx;
+      expect(sx).toBeCloseTo(400 / 80, 3);
     });
   });
 
