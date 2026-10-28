@@ -472,6 +472,27 @@ describe('Morph', () => {
       expect(content.style.transition).toBe('color 1s');
     });
 
+    it('끝난 뒤 morphId가 바뀌어 정리가 한 번 더 돌아도 소비자가 바꾼 opacity가 유지된다', () => {
+      installLayout();
+      const { container, rerender } = render(<Scene open={false} />);
+      rerender(
+        <Morph morphId="m">
+          <StyledPanel />
+        </Morph>
+      );
+      const content = wrapper(container).firstElementChild as HTMLElement;
+      timelineOf(container).progress(1);
+      expect(content.style.opacity).toBe('0.5');
+      // 끝난 뒤 소비자가 직접 바꾼 값
+      content.style.opacity = '0.8';
+      rerender(
+        <Morph morphId="n">
+          <StyledPanel />
+        </Morph>
+      );
+      expect(content.style.opacity).toBe('0.8');
+    });
+
     it('쉬는 opacity가 1이 아닌 자식은 페이드가 그 값에서 끝나 끝 정리 때 튀지 않는다', () => {
       installLayout();
       const { container, rerender } = render(<Scene open={false} />);
@@ -533,7 +554,7 @@ describe('Morph', () => {
   });
 
   describe('같은 id가 둘일 때', () => {
-    it('나중에 마운트된 것의 모양을 이어받는다', () => {
+    it('같은 id로 사라지는 것이 둘이면 정리 순서에서 나중 것의 모양을 이어받는다', () => {
       installLayout();
       const { container, rerender } = render(
         <div key="old">
@@ -542,7 +563,7 @@ describe('Morph', () => {
           </Morph>
         </div>
       );
-      // 카드 뒤에 같은 id의 패널이 나중에 마운트된다
+      // 카드 뒤(트리 순서로 나중)에 같은 id의 패널이 마운트된다
       rerender(
         <div key="old">
           <Morph morphId="m">
@@ -567,6 +588,31 @@ describe('Morph', () => {
         container.querySelector('.next') as HTMLElement
       ).sx;
       expect(sx).toBeCloseTo(400 / 80, 3);
+    });
+
+    it('같은 id로 나타나는 것이 둘이면 트리 앞쪽이 이어받고 뒤쪽은 이어받지 않는다', () => {
+      installLayout();
+      const { container, rerender } = render(
+        <div key="old">
+          <Morph morphId="m">
+            <Card />
+          </Morph>
+        </div>
+      );
+      rerender(
+        <div key="new">
+          <Morph morphId="m" className="first">
+            <Panel />
+          </Morph>
+          <Morph morphId="m" className="second">
+            <Panel />
+          </Morph>
+        </div>
+      );
+      const first = container.querySelector('.first') as MorphHost;
+      const second = container.querySelector('.second') as MorphHost;
+      expect(first.__morphTimeline).toBeDefined();
+      expect(second.__morphTimeline).toBeUndefined();
     });
   });
 

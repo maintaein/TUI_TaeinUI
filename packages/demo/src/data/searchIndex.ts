@@ -800,7 +800,7 @@ export const searchIndex: SearchEntry[] = [
       {
         title: '짝은 morphId로',
         content:
-          '사라지는 Morph가 모양을 morphId로 남기고 같은 morphId로 나타나는 Morph가 집어 갑니다. 같은 id가 둘이면 나중에 마운트된 것이 이어받고 100ms 안에 짝이 없으면 버립니다. 같은 Morph 안에서 children의 종류나 key가 바뀌어도 이어받습니다',
+          '사라지는 Morph가 모양을 morphId로 남기고 같은 morphId로 나타나는 Morph가 집어 갑니다. 같은 id로 사라지는 것이 둘이면 정리 순서(트리 순서)에서 나중 것의 모양이 남고 나타나는 것이 둘이면 트리 앞쪽이 이어받습니다. 100ms 안에 짝이 없으면 버립니다. 같은 Morph 안에서 children의 종류나 key가 바뀌어도 이어받습니다',
       },
       {
         title: '접근성',

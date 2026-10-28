@@ -187,6 +187,8 @@ const MorphBody = ({
       return Number.isNaN(o) ? 1 : o;
     });
     const restore = holdStyles(el);
+    // 끝 정리는 한 번만 돈다. 끝난 뒤 효과 정리가 다시 부르면 그 사이 소비자가 바꾼 값을 낡은 값으로 덮어쓴다
+    let finished = false;
     // 안쪽 요소가 opacity 같은 값에 CSS transition을 갖고 있으면(Card 등) 인라인 값이 한 박자 늦게 따라와 내용이 비쳐 보인다.
     // 움직이는 동안에는 래퍼와 내용의 transition을 끈다. 위 사각형과 스타일 읽기가 이미 계산을 마쳤으므로 값을 바꾸기 전에 건다.
     gsap.set([el, ...content], { transition: 'none' });
@@ -243,6 +245,8 @@ const MorphBody = ({
     el.__morphTimeline = timeline;
 
     function finish() {
+      if (finished) return;
+      finished = true;
       timelineRef.current = null;
       restore();
     }
