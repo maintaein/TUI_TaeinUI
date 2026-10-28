@@ -25,3 +25,4 @@ export * from './Chip';
 export * from './Card';
 export * from './HangulAssemble';
 export * from './JellyText';
+export * from './GooeySearch';

@@ -21,6 +21,8 @@
 
 ### Added
 
+- `GooeySearch` 컴포넌트를 더했습니다(`open`, `onOpenChange`, `triggerRef`, `openLabel`, `closeLabel`, `inputLabel`, `placeholder`, `inputProps`, `children`, `className`, `ref`). 둥근 검색 단추를 누르면 물방울이 떨어져 나가듯 단추가 오른쪽으로 갈라지고 그 사이로 입력창이 늘어나며, 닫으면 두 덩어리가 끈적하게 합쳐집니다. 열림 상태는 소비자가 쥐고(`onOpenChange(next, event)`는 트리거 클릭·Esc·바깥 pointerdown을 일으킨 DOM 이벤트를 둘째 인자로 넘깁니다), 입력값과 결과 목록, combobox 연결은 `inputProps`와 `children`으로 넘깁니다. Esc로 닫으면 트리거로 포커스가 돌아오고, 움직임 줄이기에서는 갈라짐 없이 바로 열리고 닫힙니다. 할 일: 없음(새 컴포넌트).
+
 - `JellyText` 컴포넌트를 더했습니다(`text`, `as`, `className`, `ref`). 마우스 커서가 지나가는 글자가 가로로 늘었다 세로로 눌리며(부피 유지, 최대 1.3배) 출렁이고 스프링으로 돌아옵니다. 가운데 글자가 가장 크게, 한 칸 떨어지면 절반쯤 퍼지고, 커서가 있는 줄의 글자만 반응합니다. `IconButton`의 `hoverEffect="jelly"`와 같은 성격입니다. 호버가 되는 정밀 포인터(`(hover: hover) and (pointer: fine)`)에서만 움직이고, 터치와 축소 모션에서는 포인터 핸들러 없이 평범한 글자입니다. 스크린 리더는 완성 문장을 한 번 읽고 낱말은 줄 끝에서 갈리지 않습니다. 할 일: 없음(새 컴포넌트).
 
 - `HangulAssemble` 컴포넌트를 더했습니다(`text`, `as`, `className`, `ref`). 한글 글자를 초성·중성·종성으로 나눈 자모가 흩어진 자리에서 글자 칸 안의 제자리(초성은 왼쪽이나 위, 모음은 오른쪽이나 아래, 받침은 아래)로 작게 날아와 모인 뒤 완성 글자로 바뀌며, 화면에 들어올 때 한 번 재생합니다. 첫 렌더는 완성 문장이고, 축소 모션이거나 `IntersectionObserver`가 없으면 움직임 없이 완성 문장만 보입니다. 스크린 리더는 완성 문장을 한 번 읽습니다. 한글이 아닌 글자는 페이드만 합니다. `text`가 바뀌면 다시 재생하지 않습니다. 할 일: 없음(새 컴포넌트).

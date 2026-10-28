@@ -34,7 +34,7 @@ UI components follow consistent patterns:
 - `ref`: All components support forwardRef
 - Form components require `label` prop for accessibility
 
-Motion components (HangulAssemble, JellyText) take only `className` and `ref` (and `disabled` where it applies). They have no `size` or `variant`.
+Motion components (HangulAssemble, JellyText) take only `className` and `ref` (and `disabled` where it applies). They have no `size` or `variant`. GooeySearch is the exception: it is a controlled input with its own props.
 
 ---
 
@@ -1068,6 +1068,56 @@ import { JellyText } from '@taein-ui/core';
 - Screen readers read one visually hidden copy of `text`. The letter cells are in an `aria-hidden` layer, so letters are not read one by one.
 - Choose `as` to match the sentence's role in the document (a heading level for a title).
 
+
+---
+
+## GooeySearch
+
+Round search button that splits like a water drop: pressing it pulls a second blob off to the right and the input stretches out between the two, revealed along the growing pill with a `clip-path`. Closing merges the blobs back. The pill takes 600ms and the ball 750ms (`slower` x 1.2 and x 1.5) with `drift`; an SVG goo filter (blur plus alpha threshold) joins the shapes while they are close. When the reveal ends the input takes focus (immediately under reduced motion).
+
+Controlled: you hold `open`. `onOpenChange(next, event?)` is called for the trigger click, for Esc (keydown on the document) and for a pointerdown outside the component, and the DOM event that caused it is the second argument, so a consumer can ignore some of them (for example synthetic pointer events in a scripted demo). Esc also moves focus back to the trigger. The component holds no input value: pass `value`, `onChange` and the rest through `inputProps`, and put the result list in `children`. Under reduced motion it opens and closes without splitting.
+
+```tsx
+import { useRef, useState } from 'react';
+import { GooeySearch } from '@taein-ui/core';
+
+const [open, setOpen] = useState(false);
+const [query, setQuery] = useState('');
+
+<GooeySearch
+  open={open}
+  onOpenChange={(next) => {
+    setOpen(next);
+    if (!next) setQuery('');
+  }}
+  placeholder="Search components..."
+  inputProps={{ value: query, onChange: (e) => setQuery(e.target.value) }}
+>
+  {query && <ResultList query={query} />}
+</GooeySearch>
+```
+
+### Props
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| open | boolean | (required) | Whether the search is open |
+| onOpenChange | (next: boolean, event?: Event) => void | (required) | Called with the next state and the DOM event that caused it |
+| triggerRef | Ref<HTMLButtonElement> | - | Forwarded to the trigger button (for a keyboard shortcut to focus or click) |
+| openLabel | string | '검색 열기' | Accessible name of the trigger while closed |
+| closeLabel | string | '검색 닫기' | Accessible name of the trigger while open |
+| inputLabel | string | '검색' | Accessible name of the input |
+| placeholder | string | - | Placeholder of the input |
+| inputProps | InputHTMLAttributes (without id, type, className, aria-label, placeholder) | - | Native attributes for the input: value, onChange, onKeyDown, role, aria-* |
+| children | ReactNode | - | Result list, placed below the input |
+| className | string | - | Additional CSS class. Width and placement are yours to set |
+| ref | Ref<HTMLDivElement> | - | Forwarded to the root element |
+
+### Accessibility
+- The trigger is a button named by `openLabel` / `closeLabel` with `aria-expanded` and `aria-controls` pointing at the input. Put a shortcut hint in the name (for example 'Open search (Ctrl K)').
+- The input is `inert` while closed, so it is not reachable by keyboard or screen reader.
+- Esc closes and returns focus to the trigger. Selecting a result and where focus goes afterwards is yours to handle.
+- The combobox wiring is the consumer's: pass `role="combobox"`, `aria-expanded`, `aria-controls`, `aria-activedescendant` and the arrow/Enter keys through `inputProps`, and give the result list the matching roles.
+
 ---
 
 ## Design Tokens
@@ -1269,6 +1319,9 @@ prop은 클라이언트 파일에서 넘긴다.
 
 `JellyText`도 `'use client'`가 붙는다. 포인터 매체 질의를 구독하고 GSAP 트윈으로 그려서 브라우저에서만 돈다.
 첫 렌더(서버 포함)는 포인터 핸들러 없는 평범한 문장이다.
+
+`GooeySearch`도 `'use client'`가 붙는다. 바깥 pointerdown과 Esc를 문서에서 듣고 포커스를 옮기는 효과를 갖는다.
+열림 상태는 소비자가 쥐므로 그 상태를 가진 클라이언트 파일에서 렌더한다.
 
 `HeaderBar`도 `'use client'`가 붙는다. 좁은 화면 메뉴의 열림 상태와 GSAP 트윈,
 그리고 `navStyle="icon"`의 항목 확대가 브라우저에서만 돈다.
