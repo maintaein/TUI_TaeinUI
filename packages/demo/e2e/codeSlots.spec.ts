@@ -58,6 +58,17 @@ test.describe('인증번호 슬롯 상세 (1440px)', () => {
     // 합쳐짐 전이(slower)가 끝나면 모든 칸 사이 간격이 0이다
     await expect.poll(() => gapBetween(page, 0, 1)).toBeCloseTo(0, 0);
     await expect.poll(() => gapBetween(page, 4, 5)).toBeCloseTo(0, 0);
+    // 합쳐진 뒤에는 칸별 포커스 링이 없고 알약 전체가 링 하나를 가진다
+    const ring = await stage(page)
+      .locator('input + div')
+      .evaluate((el) => ({
+        pill: getComputedStyle(el).outlineStyle,
+        radius: parseFloat(getComputedStyle(el).borderTopLeftRadius),
+        cells: [...el.children].map((c) => getComputedStyle(c).outlineStyle),
+      }));
+    expect(ring.pill).toBe('solid');
+    expect(ring.radius).toBeGreaterThan(20);
+    expect(ring.cells).toEqual(Array(6).fill('none'));
     // 합쳐진 알약은 바깥 모서리만 둥글다
     const radii = await slots(page).evaluateAll((els) =>
       els.map((el) => {
@@ -156,6 +167,18 @@ test.describe('인증번호 슬롯 상세 (1440px)', () => {
     await context.grantPermissions(['clipboard-read', 'clipboard-write']);
     await open(page);
     await page.evaluate(() => navigator.clipboard.writeText('123456'));
+    await page.keyboard.press('Control+V');
+    await expect(input(page)).toHaveValue('123456');
+    await expect(stage(page).getByText('확인했습니다')).toBeVisible();
+  });
+
+  test('구분자가 낀 번호를 붙여넣어도 숫자만 남아 채워진다', async ({
+    page,
+    context,
+  }) => {
+    await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+    await open(page);
+    await page.evaluate(() => navigator.clipboard.writeText('123 456'));
     await page.keyboard.press('Control+V');
     await expect(input(page)).toHaveValue('123456');
     await expect(stage(page).getByText('확인했습니다')).toBeVisible();
