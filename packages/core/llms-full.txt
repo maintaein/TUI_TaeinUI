@@ -1016,7 +1016,7 @@ The items hide and a hamburger button (two lines that gather into an X, `aria-ex
 
 ## HangulAssemble
 
-Sentence whose Hangul syllables assemble from flying jamo when it scrolls into view. Each syllable is split into initial, medial and final (ㅎ+ㅏ+ㄴ → 한); the jamo, shrunk to 0.5 to 0.65 times, fly into their places inside the syllable cell (initial top-left, vowel right or below, final at the bottom) one cell after another (60ms apart), then cross-fade into the finished syllable. Characters that are not Hangul syllables (Latin, digits, punctuation, a lone jamo) only fade in, in the same order. Spaces are kept as they are.
+Sentence whose Hangul syllables assemble from flying jamo when it scrolls into view. Each syllable is split into initial, medial and final (ㅎ+ㅏ+ㄴ → 한); the jamo, shrunk to 0.5 to 0.65 times, fly into their places inside the syllable cell (initial left or top, vowel right or below, final at the bottom) one cell after another (60ms apart), then cross-fade into the finished syllable. Characters that are not Hangul syllables (Latin, digits, punctuation, a lone jamo) only fade in, in the same order. Spaces are kept as they are.
 
 ```tsx
 import { HangulAssemble } from '@taein-ui/core';

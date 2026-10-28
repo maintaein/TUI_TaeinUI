@@ -179,6 +179,15 @@ describe('HangulAssemble', () => {
       expect(q(container, 'jamo')).toHaveLength(0);
     });
 
+    it('음절 뒤에 결합 부호가 붙은 칸은 통째로 한 그림이고 자모 조각이 없다', () => {
+      const accented = '가\u0301';
+      const { container } = render(<HangulAssemble text={accented} />);
+
+      expect(q(container, 'cell')).toHaveLength(1);
+      expect(q(container, 'glyph')[0].textContent).toBe(accented);
+      expect(q(container, 'jamo')).toHaveLength(0);
+    });
+
     it('비한글 글자(라틴, 숫자, 문장부호, 홀로 쓴 자모)에는 자모 조각이 없다', () => {
       const { container } = render(<HangulAssemble text="A1.ㄱ" />);
 
