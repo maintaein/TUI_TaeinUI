@@ -54,8 +54,11 @@ export default defineConfig({
     // CSSOM으로 잠그는데, 그 규칙이 이제 이 파일에 있다.
     // CodeSlots도 같은 이유다. 숨은 input이 display:none이 아니라 투명하게 칸 위에 겹쳐
     // 있는지(자동 채움과 포커스를 받는 조건)를 CSSOM으로 잠근다.
+    // FanMenu도 같은 이유다. 축소 모드에서 항목·안내선·이름표의 전이가 꺼지는지, 빛나는 선이 pathLength 100에
+    // 맞춰 그려지는지를 CSSOM으로 잠근다.
     css: {
       include: [
+        /\/FanMenu\.css/,
         /\/CodeSlots\.css/,
         /Slider\.css/,
         /\/Button\.css/,
