@@ -23,10 +23,11 @@ import { fill, slot, text, ink, check } from './HoldButton.css';
 
 export interface HoldButtonProps extends Omit<
   ButtonHTMLAttributes<HTMLButtonElement>,
-  'children'
+  'children' | 'type'
 > {
   /** 단추 글자이자 평소 접근 가능한 이름 */
   children: ReactNode;
+  // type은 받지 않는다: submit이면 무장 click부터 폼이 제출된다. 제출은 onConfirm에서 form.requestSubmit()으로
   /**
    * 실행 콜백. 홀드를 다 채웠을 때와 "두 번 눌러 확정"의 두 번째 click이 모두 이것을 부른다.
    * 네이티브 `onClick`은 실행을 뜻하지 않는다(손을 떼면 언제나 click이 생긴다)
@@ -117,7 +118,8 @@ export const HoldButton = forwardRef<HTMLButtonElement, HoldButtonProps>(
     const targetRef = useRef(0);
     // 홀드를 끝까지 채운 누름의 표지. 그 누름을 떼며 생기는 click을 시간과 무관하게 무시한다(처음 상태로 돌아온 뒤에 떼도
     // 무장으로 새지 않게). 다음 누름이 시작될 때 내린다.
-    // ponytail: 포인터가 단추 밖에서 떼어져 click이 안 오면 표지가 남아, 다음 보조기기 click 하나가 무시된다, 문제가 되면 pointerup을 문서에서 듣는다
+    // 밖에서 떼어져 click이 안 오는 길은 pointercancel과 blur가 표지를 내린다. pointerleave는 안 된다(터치에서 click보다 먼저 와 누수가 되살아난다).
+    // ponytail: 포인터가 단추 밖에서 떼어지고 포커스가 남으면 표지가 남아, 다음 보조기기 click 하나가 무시된다, 문제가 되면 pointerup을 문서에서 듣는다
     const completedRef = useRef(false);
     // 트윈 콜백이 오래된 클로저를 쥐고 있어도 최신 값을 읽도록 효과에서 맞춘다
     const reducedRef = useRef(reduced);
@@ -262,6 +264,11 @@ export const HoldButton = forwardRef<HTMLButtonElement, HoldButtonProps>(
         endHold();
       };
 
+    const handlePointerCancel = (event: PointerEvent<HTMLButtonElement>) => {
+      completedRef.current = false;
+      handleRelease(onPointerCancel)(event);
+    };
+
     const handleKeyDown = (event: KeyboardEvent<HTMLButtonElement>) => {
       onKeyDown?.(event);
       if (event.repeat || (event.key !== ' ' && event.key !== 'Enter')) return;
@@ -277,6 +284,7 @@ export const HoldButton = forwardRef<HTMLButtonElement, HoldButtonProps>(
 
     const handleBlur = (event: FocusEvent<HTMLButtonElement>) => {
       onBlur?.(event);
+      completedRef.current = false;
       endHold();
       if (phase === 'armed') {
         setPhase('idle');
@@ -346,6 +354,7 @@ export const HoldButton = forwardRef<HTMLButtonElement, HoldButtonProps>(
       <>
         <Button
           {...props}
+          type="button"
           ref={ref}
           variant="light"
           className={className}
@@ -356,7 +365,7 @@ export const HoldButton = forwardRef<HTMLButtonElement, HoldButtonProps>(
           onPointerDown={handlePointerDown}
           onPointerUp={handleRelease(onPointerUp)}
           onPointerLeave={handleRelease(onPointerLeave)}
-          onPointerCancel={handleRelease(onPointerCancel)}
+          onPointerCancel={handlePointerCancel}
           onKeyDown={handleKeyDown}
           onKeyUp={handleKeyUp}
           onBlur={handleBlur}

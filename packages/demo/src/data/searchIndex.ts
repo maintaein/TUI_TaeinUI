@@ -621,7 +621,7 @@ export const searchIndex: SearchEntry[] = [
       {
         title: '접근성',
         content:
-          '두 번 눌러 확정. click 한 번은 무장이 되어 글자가 confirmLabel로 바뀌고 role status가 알립니다. 무장에는 타이머가 없고 포커스가 빠지면 풀립니다. 홀드 시간은 1.5초로 고정입니다',
+          '두 번 눌러 확정. click 한 번은 무장이 되어 글자가 confirmLabel로 바뀌고 role status가 알립니다. 무장에는 타이머가 없고 포커스가 빠지면 풀립니다. Safari와 macOS Firefox, iOS Safari는 마우스 click이나 탭에 포커스를 주지 않아 풀리지 않습니다. 홀드 시간은 1.5초로 고정입니다',
       },
       {
         title: '움직임 줄이기',

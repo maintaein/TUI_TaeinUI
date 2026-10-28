@@ -1,4 +1,4 @@
-import { createRef } from 'react';
+import { createRef, type FormEvent } from 'react';
 import { afterEach, describe, it, expect, vi } from 'vitest';
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import { HoldButton } from './HoldButton';
@@ -77,6 +77,31 @@ describe('HoldButton', () => {
       expect(button()).toHaveAttribute('type', 'button');
       expect(button()).toHaveAttribute('data-x', '1');
       expect(button()).toHaveClass('mine');
+    });
+
+    it('폼 안에서 click·click·Enter(반복 포함)에도 폼이 제출되지 않는다: type은 받지 않고 button으로 고정이다', () => {
+      const onSubmit = vi.fn((event: FormEvent) => event.preventDefault());
+      const onConfirm = vi.fn();
+      render(
+        <form onSubmit={onSubmit}>
+          {/* @ts-expect-error type은 받지 않는다. 폼 제출은 onConfirm에서 requestSubmit으로 */}
+          <HoldButton type="submit" onConfirm={onConfirm}>
+            삭제
+          </HoldButton>
+        </form>
+      );
+      expect(button()).toHaveAttribute('type', 'button');
+      fireEvent.click(button());
+      fireEvent.click(button(DEFAULT_ARMED));
+      expect(onConfirm).toHaveBeenCalledTimes(1);
+      // 실행 뒤 잠금 중의 click
+      fireEvent.click(button());
+      // Enter 유지: keydown과 반복 keydown마다 브라우저는 click을 낸다
+      fireEvent.keyDown(button(), { key: 'Enter' });
+      fireEvent.click(button());
+      fireEvent.keyDown(button(), { key: 'Enter', repeat: true });
+      fireEvent.click(button());
+      expect(onSubmit).not.toHaveBeenCalled();
     });
 
     it('평소 접근 가능한 이름은 children이고 채움은 aria-hidden이며 알림 영역은 비어 있다', () => {
@@ -638,6 +663,29 @@ describe('HoldButton', () => {
       expect(button()).toHaveAttribute('data-state', 'idle');
       expect(onConfirm).toHaveBeenCalledTimes(1);
     });
+
+    it.each([
+      ['pointercancel', () => fireEvent.pointerCancel(button())],
+      ['blur', () => fireEvent.blur(button())],
+    ])(
+      '%s가 오면 표지가 내려 click이 오지 않은 누름이 다음 보조기기 click을 삼키지 않는다',
+      (_name, leave) => {
+        vi.useFakeTimers();
+        const { container } = render(
+          <HoldButton onConfirm={() => {}}>삭제</HoldButton>
+        );
+        holdToEnd(container);
+        act(() => {
+          vi.advanceTimersByTime(gsapDuration.slower * 4 * 1000 + 50);
+        });
+        leave();
+        fireEvent.click(button());
+        expect(screen.getByRole('button')).toHaveAttribute(
+          'data-state',
+          'armed'
+        );
+      }
+    );
 
     it('다음 누름이 시작되면 표지가 내려 그 누름의 click은 다시 무장한다', () => {
       vi.useFakeTimers();
