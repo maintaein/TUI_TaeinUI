@@ -1,4 +1,4 @@
-import { createRef } from 'react';
+import { createRef, type FormEvent } from 'react';
 import {
   afterAll,
   afterEach,
@@ -46,6 +46,10 @@ const stubReducedMotion = () =>
 // jsdom에는 레이아웃이 없어 offsetParent가 늘 null이다. GSAP은 그런 요소의 transform을 읽을 때 요소를 잠깐
 // 문서 루트로 옮겼다 되돌리는데, 단추를 품은 상자가 옮겨지면 jsdom이 포커스를 잃는다. 브라우저에서는 일어나지 않는 일이라
 // 포커스 시험이 시간에 따라 흔들리지 않도록 레이아웃이 있는 것처럼 부모를 돌려준다.
+const originalOffsetParent = Object.getOwnPropertyDescriptor(
+  HTMLElement.prototype,
+  'offsetParent'
+);
 beforeAll(() => {
   Object.defineProperty(HTMLElement.prototype, 'offsetParent', {
     configurable: true,
@@ -55,7 +59,15 @@ beforeAll(() => {
   });
 });
 afterAll(() => {
-  Reflect.deleteProperty(HTMLElement.prototype, 'offsetParent');
+  if (originalOffsetParent) {
+    Object.defineProperty(
+      HTMLElement.prototype,
+      'offsetParent',
+      originalOffsetParent
+    );
+  } else {
+    Reflect.deleteProperty(HTMLElement.prototype, 'offsetParent');
+  }
 });
 
 afterEach(() => {
@@ -149,6 +161,21 @@ describe('StampButton', () => {
       expect(screen.getByRole('status').textContent).toBe(
         '승인 도장을 찍었습니다'
       );
+    });
+
+    it('폼 안의 submit 단추는 찍힌 뒤 다시 눌러도 onSubmit이 한 번만 불린다', async () => {
+      const onSubmit = vi.fn((event: FormEvent) => event.preventDefault());
+      const user = userEvent.setup();
+      render(
+        <form onSubmit={onSubmit}>
+          <StampButton type="submit">제출</StampButton>
+        </form>
+      );
+      await user.click(button());
+      await user.click(button());
+      await user.keyboard('{Enter}');
+      await user.keyboard(' ');
+      expect(onSubmit).toHaveBeenCalledTimes(1);
     });
 
     it('onClick이 기본 동작을 막으면 찍히지 않는다', () => {

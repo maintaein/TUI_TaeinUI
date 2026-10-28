@@ -50,6 +50,7 @@ export const face = style({
   padding: `${spacing[1]} ${spacing[3]}`,
   border: `2px solid ${color.primary.main}`,
   borderRadius: borderRadius.sm,
+  // 인주(16%) 위에서 글자 대비는 약 4.46:1이다. aria-hidden 장식이고 알림은 role=status가 맡아 받아들인다.
   backgroundColor: `color-mix(in srgb, ${color.background.default} 85%, transparent)`,
   color: color.primary.main,
   fontFamily: font.family.sans,

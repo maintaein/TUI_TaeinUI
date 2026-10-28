@@ -147,8 +147,12 @@ export const StampButton = forwardRef<HTMLButtonElement, StampButtonProps>(
     }, [stamped, reduced]);
 
     const handleClick = (event: MouseEvent<HTMLButtonElement>) => {
-      // 잠금: 찍힌 뒤에는 click이 와도(Enter와 Space도 click이 된다) 소비자에게 알리지 않는다
-      if (stamped) return;
+      // 잠금: 찍힌 뒤에는 click이 와도(Enter와 Space도 click이 된다) 소비자에게 알리지 않는다.
+      // type="submit"의 폼 제출도 click의 기본 동작이라 막는다(이중 제출 방지)
+      if (stamped) {
+        event.preventDefault();
+        return;
+      }
       onClick?.(event);
       if (event.defaultPrevented) return;
       setStamped(true);
