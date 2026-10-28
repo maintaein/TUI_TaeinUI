@@ -135,6 +135,8 @@ export const JellyText = forwardRef<HTMLElement, JellyTextProps>(
     };
 
     const handleMove = (event: PointerEvent<HTMLElement>) => {
+      // 호버 되는 기기여도 손가락 드래그는 마우스가 아니다
+      if (event.pointerType === 'touch') return;
       const slots = slotsRef.current ?? measure(event.currentTarget);
       const x = event.clientX + window.scrollX;
       const y = event.clientY + window.scrollY;

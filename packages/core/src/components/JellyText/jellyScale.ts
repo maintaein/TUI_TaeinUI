@@ -1,5 +1,5 @@
-/** 가로로 퍼지는 최대 배율. IconButton 호버 젤리의 JELLY_STRETCH(1.15)와 같은 값이다 */
-const STRETCH = 1.15;
+/** 가로로 퍼지는 최대 배율. IconButton 호버 젤리(1.15)와 같은 성격이고, 글자는 아이콘보다 작아 더 크게 잡았다 */
+export const JELLY_STRETCH = 1.3;
 
 /** 퍼짐이 닿는 거리(글자 폭 단위). 선형으로 줄어 한 칸이면 절반, 두 칸이면 0이다 */
 const REACH = 2;
@@ -12,6 +12,6 @@ export const jellyScale = (
   distance: number
 ): { scaleX: number; scaleY: number } => {
   const scaleX =
-    1 + (STRETCH - 1) * Math.max(0, 1 - Math.abs(distance) / REACH);
+    1 + (JELLY_STRETCH - 1) * Math.max(0, 1 - Math.abs(distance) / REACH);
   return { scaleX, scaleY: 1 / scaleX };
 };

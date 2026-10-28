@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { jellyScale } from './jellyScale';
+import { JELLY_STRETCH, jellyScale } from './jellyScale';
 
 describe('jellyScale', () => {
   it('가운데 글자가 가장 크게 퍼지고 멀수록 약해진다', () => {
@@ -9,8 +9,9 @@ describe('jellyScale', () => {
     expect(at(1)).toBeGreaterThan(at(1.5));
   });
 
-  it('IconButton 호버의 젤리와 같은 1.15배까지 퍼진다', () => {
-    expect(jellyScale(0).scaleX).toBeCloseTo(1.15, 10);
+  it('가운데 글자는 최대 배율까지 퍼지고 IconButton 호버(1.15배)보다 크다', () => {
+    expect(jellyScale(0).scaleX).toBe(JELLY_STRETCH);
+    expect(JELLY_STRETCH).toBeGreaterThan(1.15);
   });
 
   it('한 칸 떨어지면 퍼짐의 절반이다', () => {

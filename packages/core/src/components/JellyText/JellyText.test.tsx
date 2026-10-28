@@ -61,9 +61,17 @@ const layOut = (container: HTMLElement) => {
 
 // jsdom에는 PointerEvent가 없다. React는 이름이 맞으면 받으므로 MouseEvent를 쏜다.
 // 합성 이벤트(isTrusted false)라 데모 무대 대본과 같은 길이다.
-const fire = (el: Element, type: string, clientX = 0, clientY = 10) =>
+const fire = (
+  el: Element,
+  type: string,
+  clientX = 0,
+  clientY = 10,
+  pointerType = 'mouse'
+) =>
   act(() => {
-    el.dispatchEvent(new MouseEvent(type, { bubbles: true, clientX, clientY }));
+    const event = new MouseEvent(type, { bubbles: true, clientX, clientY });
+    Object.defineProperty(event, 'pointerType', { value: pointerType });
+    el.dispatchEvent(event);
   });
 const enter = (el: Element) => fire(el, 'pointerover');
 const move = (el: Element, x: number, y = 10) => fire(el, 'pointermove', x, y);
@@ -149,6 +157,17 @@ describe('JellyText', () => {
       const { root, container } = setup();
       enter(root);
       move(root, 50);
+      for (const c of cells(container)) {
+        expect(c.__jellyTimeline).toBeUndefined();
+        expect(c.style.transform).toBe('');
+      }
+    });
+
+    it('터치 포인터 이벤트(터치 노트북의 손가락 드래그)는 무시한다', () => {
+      installMedia();
+      const { root, container } = setup();
+      fire(root, 'pointerover', 0, 10, 'touch');
+      fire(root, 'pointermove', 50, 10, 'touch');
       for (const c of cells(container)) {
         expect(c.__jellyTimeline).toBeUndefined();
         expect(c.style.transform).toBe('');
