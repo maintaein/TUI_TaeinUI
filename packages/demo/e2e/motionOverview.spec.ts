@@ -8,6 +8,13 @@ const minGlyphOpacity = (page: Page) =>
       Math.min(...els.map((el) => Number(getComputedStyle(el).opacity)))
     );
 
+const maxJamoOpacity = (page: Page) =>
+  page
+    .locator('[data-stage-mini] [data-hangul-jamo]')
+    .evaluateAll((els) =>
+      Math.max(...els.map((el) => Number(getComputedStyle(el).opacity)))
+    );
+
 const nav = (page: Page) => page.getByRole('navigation', { name: '사이트' });
 
 test.describe('헤더 내비 모션 (1440px)', () => {
@@ -95,6 +102,8 @@ test.describe('모션 전체 보기', () => {
     expect(await minGlyphOpacity(page)).toBe(1);
     await page.waitForTimeout(300);
     expect(await minGlyphOpacity(page)).toBe(1);
+    // 흩어진 자모 조각은 멈춤 구간 내내 투명하다(완성 글자와 겹쳐 보이지 않는다)
+    expect(await maxJamoOpacity(page)).toBe(0);
 
     await pause.click();
     await expect(pause).toHaveAttribute('aria-pressed', 'false');
@@ -118,7 +127,7 @@ test.describe('모션 전체 보기 (390px)', () => {
         }).length
     );
 
-  test('카드 안 한글 조립이 정밀 포인터 없이도 재생되고 낱말이 갈리지 않는다', async ({
+  test('카드 안 한글 조립이 390px에서도 재생되고 낱말이 갈리지 않는다', async ({
     page,
   }) => {
     await page.goto('/motion');

@@ -2,7 +2,7 @@ import { themeContract } from '@taein-ui/core';
 import { style } from '@vanilla-extract/css';
 import { BLUE, FRAME, INK, MONO, MUTED } from '../DocText';
 
-const { color, spacing, borderRadius } = themeContract;
+const { color, spacing, borderRadius, font } = themeContract;
 
 const COMPACT = '(max-width: 1024px)';
 const MOBILE = '(max-width: 640px)';
@@ -47,6 +47,9 @@ export const frameTitle = style({
   color: INK,
   selectors: { '&:hover': { color: BLUE } },
 });
+
+// 모션 카드의 효과 이름은 컴포넌트 이름보다 크다. frameTitle 뒤에 있어 크기만 덮는다
+export const frameEffect = style({ fontSize: font.size.xl });
 
 // 모션 카드의 컴포넌트 이름과 쓰는 곳 줄. UI 카드에는 없다
 export const frameName = style({

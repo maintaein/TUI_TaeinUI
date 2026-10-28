@@ -29,6 +29,8 @@ pnpm preview
 | `/getting-started`     | 시작하기      | 설치, 기본 사용법, TypeScript 설정         |
 | `/components/overview` | 컴포넌트 개요 | 전체 컴포넌트 목록                         |
 | `/components/:name`    | 컴포넌트 상세 | Props 표, 라이브 프리뷰, 접근성, 코드 예제 |
+| `/motion`              | 모션 개요     | 전체 모션 목록                             |
+| `/motion/:name`        | 모션 상세     | Props 표, 라이브 프리뷰, 접근성, 코드 예제 |
 
 ## 구조
 

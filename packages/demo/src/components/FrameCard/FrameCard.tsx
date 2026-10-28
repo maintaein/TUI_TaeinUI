@@ -52,7 +52,10 @@ export function FrameCard({ item, className, inner, touch }: FrameCardProps) {
       )}
       <div className={styles.frameFoot}>
         <div>
-          <Link className={styles.frameTitle} to={item.path}>
+          <Link
+            className={cx(styles.frameTitle, item.title && styles.frameEffect)}
+            to={item.path}
+          >
             {item.title ?? item.name}
           </Link>
           {item.title && <p className={styles.frameName}>{item.name}</p>}
