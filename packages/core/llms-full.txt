@@ -1039,7 +1039,7 @@ There is no `size` or `variant`: the type size comes from the root element's own
 - The first render (SSR included) is the finished sentence. The scattered start state is applied only just before playback, in a client effect. Mounted already on screen: it plays at once, before the first paint. Mounted below the fold: it waits, hides when `IntersectionObserver` reports it is off screen, plays once when it scrolls in, then stops observing.
 - Reduced motion, or an environment without `IntersectionObserver`: nothing is hidden, the finished sentence is shown. Printing always shows the finished sentence.
 - Accessibility: the root holds one visually hidden copy of `text` (read as the sentence) and an `aria-hidden` visual layer. The root has no `aria-label`. Each word is `white-space: nowrap`, so a Korean word is never split at a line end.
-- Motion: jamo flight `slower` `settle`, cross-fade `base`, start of each cell shifted by `fast` * 0.4. The scattered positions are fixed by character index (no randomness), so they are the same on every render.
+- Motion: jamo flight `slower` `settle`, cross-fade `base`, start of each cell shifted by `fast` * 0.4 (60ms), narrowed for long sentences so the last cell starts within 1 second of the first. The scattered positions are fixed by character index (no randomness), so they are the same on every render.
 
 ---
 

@@ -16,6 +16,7 @@ import { segmentText } from '../../_internal/segmentText';
 import { word } from '../../_internal/word.css';
 import { decomposeHangul } from './decomposeHangul';
 import { jamoSlots, type JamoSlot } from './jamoSlots';
+import { staggerStep } from './staggerStep';
 import { root as rootClass, cell, glyph, jamo } from './HangulAssemble.css';
 
 export interface HangulAssembleProps {
@@ -26,9 +27,6 @@ export interface HangulAssembleProps {
   /** 추가 CSS 클래스 */
   className?: string;
 }
-
-/** 글자 칸마다 시작을 늦추는 간격. fast(150ms)의 0.4배 = 60ms, 열 글자가 0.5초 안에 이어지는 속도 */
-const STAGGER = gsapDuration.fast * 0.4;
 
 /** 이웃 글자가 같은 방향으로 흩어지지 않게 번호마다 돌리는 황금각(라디안) */
 const GOLDEN_ANGLE = Math.PI * (3 - Math.sqrt(5));
@@ -133,8 +131,9 @@ export const HangulAssemble = forwardRef<HTMLElement, HangulAssembleProps>(
         const em = Number.parseFloat(getComputedStyle(el).fontSize) || 16;
         timeline = gateMotion(reduced, () => {
           const tl = gsap.timeline({ onComplete: rest });
+          const step = staggerStep(parts.length);
           parts.forEach((p, i) => {
-            const at = i * STAGGER;
+            const at = i * step;
             if (p.pieces.length === 0) {
               tl.to(
                 p.glyph,
