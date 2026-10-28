@@ -1,7 +1,8 @@
 import { test, expect, type Page } from '@playwright/test';
 
 const SENTENCE = '흩어진 자모가 모여 글자가 됩니다';
-const EMPTY = ['애니메이션', '컴포넌트', '마이크로 인터랙션', '배경'];
+// '컴포넌트' 분류는 물방울 검색창이 들어오며 항목이 생겨 비어 있는 분류가 아니다
+const EMPTY = ['애니메이션', '마이크로 인터랙션', '배경'];
 
 test.describe('모션 계열 사이드바 (1280px)', () => {
   test.use({ viewport: { width: 1280, height: 800 } });
@@ -30,6 +31,19 @@ test.describe('모션 계열 사이드바 (1280px)', () => {
     await link.click();
     await expect(page).toHaveURL(/\/motion\/jelly-text$/);
     await expect(nav.locator('[aria-current="page"]')).toHaveText(/젤리 글자/);
+  });
+
+  test('컴포넌트 분류에 물방울 검색창 링크가 있다', async ({ page }) => {
+    await page.goto('/components/button');
+    const nav = page.getByRole('navigation', { name: '문서' });
+    await expect(nav.getByText('컴포넌트', { exact: true })).toBeVisible();
+    const link = nav.getByRole('link', { name: /물방울 검색창/ });
+    await expect(link).toHaveAttribute('href', '/motion/gooey-search');
+    await link.click();
+    await expect(page).toHaveURL(/\/motion\/gooey-search$/);
+    await expect(nav.locator('[aria-current="page"]')).toHaveText(
+      /물방울 검색창/
+    );
   });
 
   test('항목이 없는 분류는 사이드바에 없다', async ({ page }) => {
@@ -69,6 +83,8 @@ test.describe('모션 검색', () => {
   for (const term of ['한글 조립', '자모', 'HangulAssemble']) {
     test(`"${term}"로 찾아 이동한다`, async ({ page }) => {
       await page.goto('/');
+      // 앱이 그려지기 전의 키는 단축키 effect가 붙기 전이라 사라진다. 검색 단추가 보이면 붙은 뒤다.
+      await expect(page.getByRole('button', { name: /^검색/ })).toBeVisible();
       await page.keyboard.press('Control+k');
       const input = page.getByRole('combobox', { name: '검색' });
       await input.fill(term);
@@ -87,6 +103,8 @@ test.describe('젤리 글자 검색', () => {
   for (const term of ['젤리 글자', '말랑', '출렁', '젤리', 'JellyText']) {
     test(`"${term}"로 찾아 이동한다`, async ({ page }) => {
       await page.goto('/');
+      // 앱이 그려지기 전의 키는 단축키 effect가 붙기 전이라 사라진다. 검색 단추가 보이면 붙은 뒤다.
+      await expect(page.getByRole('button', { name: /^검색/ })).toBeVisible();
       await page.keyboard.press('Control+k');
       const input = page.getByRole('combobox', { name: '검색' });
       await input.fill(term);

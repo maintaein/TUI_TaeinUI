@@ -72,13 +72,14 @@ test.describe('모션 전체 보기', () => {
   }) => {
     await page.goto('/motion');
     await expect(
-      page.getByRole('heading', { level: 1, name: '모션 2개' })
+      page.getByRole('heading', { level: 1, name: '모션 3개' })
     ).toBeVisible();
     const sections = page.locator('main section');
-    await expect(sections).toHaveCount(1);
-    await expect(
-      sections.getByRole('heading', { level: 2, name: /텍스트 애니메이션/ })
-    ).toBeVisible();
+    await expect(sections).toHaveCount(2);
+    for (const name of [/텍스트 애니메이션/, /컴포넌트/])
+      await expect(
+        sections.getByRole('heading', { level: 2, name })
+      ).toBeVisible();
     for (const name of ['애니메이션', '마이크로 인터랙션', '배경'])
       await expect(page.getByText(name, { exact: true })).toHaveCount(0);
 
@@ -95,12 +96,43 @@ test.describe('모션 전체 보기', () => {
     page,
   }) => {
     await page.goto('/motion');
-    await expect(page.locator('main section')).toHaveCount(1);
+    await expect(page.locator('main section')).toHaveCount(2);
     const card = page.locator('main section > div > div').nth(1);
     await expect(card.getByText('JellyText', { exact: true })).toBeVisible();
     await expect(card.getByText('히어로 문구, 브랜드 슬로건')).toBeVisible();
     await card.getByRole('link', { name: '젤리 글자' }).click();
     await expect(page).toHaveURL(/\/motion\/jelly-text$/);
+  });
+
+  test('물방울 검색창 카드가 효과 이름과 쓰는 곳을 보이고 누르면 상세로 간다', async ({
+    page,
+  }) => {
+    await page.goto('/motion');
+    const card = page.locator('main section > div > div').nth(2);
+    await expect(card.getByText('GooeySearch', { exact: true })).toBeVisible();
+    await expect(card.getByText('헤더 검색, 도구 막대')).toBeVisible();
+    await card.getByRole('link', { name: '물방울 검색창' }).click();
+    await expect(page).toHaveURL(/\/motion\/gooey-search$/);
+  });
+
+  test('분류 칩을 누르면 그 분류 절만 보이고 다시 누르면 전체로 돌아온다', async ({
+    page,
+  }) => {
+    await page.goto('/motion');
+    const filters = page.getByRole('group', { name: '분류로 보기' });
+    const chip = filters.getByRole('button', { name: '컴포넌트', exact: true });
+    const sections = page.locator('main section');
+    await expect(sections).toHaveCount(2);
+    await chip.click();
+    await expect(chip).toHaveAttribute('aria-pressed', 'true');
+    await expect(sections).toHaveCount(1);
+    await expect(sections).toHaveAccessibleName(/컴포넌트/);
+    await expect(
+      sections.getByText('GooeySearch', { exact: true })
+    ).toBeVisible();
+    await chip.click();
+    await expect(chip).toHaveAttribute('aria-pressed', 'false');
+    await expect(sections).toHaveCount(2);
   });
 
   test('움직임 멈춤을 켜면 완성 글자가 서고 끄면 다시 재생한다', async ({
@@ -154,6 +186,50 @@ test.describe('모션 전체 보기 젤리 글자 미니 (1440px)', () => {
     await expect
       .poll(() => jellyMoving(page), { timeout: 15_000, intervals: [50] })
       .toBe(true);
+  });
+});
+
+// 물방울 검색창 미니: 열림 표시. 멈추면 열린 대표 장면으로 선다
+const gooeyOpen = (page: Page) =>
+  page
+    .locator('[data-stage-mini] [data-testid="gooey-search"]')
+    .getAttribute('data-open');
+
+test.describe('모션 전체 보기 물방울 검색창 미니 (1440px)', () => {
+  test.use({ viewport: { width: 1440, height: 900 } });
+
+  test('대본이 열고 닫기를 되풀이하고 움직임 멈춤이면 열린 채 선다', async ({
+    page,
+  }) => {
+    await page.goto('/motion');
+    // 미니는 절반 이상 보일 때만 돈다. 가장자리에 걸치지 않게 가운데로 가져온다
+    const centre = () =>
+      page
+        .locator('[data-stage-mini] [data-testid="gooey-search"]')
+        .evaluate((el) => el.scrollIntoView({ block: 'center' }));
+    await centre();
+    await expect
+      .poll(() => gooeyOpen(page), { timeout: 15_000, intervals: [100] })
+      .toBe('true');
+    await expect
+      .poll(() => gooeyOpen(page), { timeout: 15_000, intervals: [100] })
+      .toBe('false');
+
+    const pause = page.getByRole('button', { name: '움직임 멈춤' });
+    await pause.click();
+    await expect(pause).toHaveAttribute('aria-pressed', 'true');
+    // 화면 밖이어서 서 있는 것과 구분하려고 미니를 화면 안에 두고 잰다
+    await centre();
+    for (let i = 0; i < 60; i++) {
+      expect(await gooeyOpen(page)).toBe('true');
+      await page.waitForTimeout(100);
+    }
+    await pause.click();
+    // 단추를 누르러 위로 올라갔으니 다시 가운데로 가져와야 미니가 돈다
+    await centre();
+    await expect
+      .poll(() => gooeyOpen(page), { timeout: 15_000, intervals: [100] })
+      .toBe('false');
   });
 });
 

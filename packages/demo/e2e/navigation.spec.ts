@@ -24,8 +24,8 @@ test.describe('페이지 네비게이션', () => {
     const sidebar = page.getByRole('navigation', { name: '문서' });
     await expect(sidebar).toBeVisible();
     await expect(sidebar.locator('[aria-current="page"]')).toHaveText(/Button/);
-    // 시작 4개(소개, 시작하기, 전체 컴포넌트, 전체 모션) + UI 컴포넌트 25개 + 모션 2개(한글 조립, 젤리 글자). 모션이 늘면 이 수도 늘린다
-    await expect(sidebar.getByRole('link')).toHaveCount(31);
+    // 시작 4개(소개, 시작하기, 전체 컴포넌트, 전체 모션) + UI 컴포넌트 25개 + 모션 3개(한글 조립, 젤리 글자, 물방울 검색창). 모션이 늘면 이 수도 늘린다
+    await expect(sidebar.getByRole('link')).toHaveCount(32);
   });
 
   test('404 페이지가 표시된다', async ({ page }) => {
@@ -221,6 +221,28 @@ test.describe('물방울 검색', () => {
     await trigger.click();
     await expect(input).toBeFocused();
     await trigger.click();
+    await expect(input).toBeHidden();
+  });
+
+  test('쇼케이스의 합성 pointerdown은 열린 검색창을 닫지 않고 진짜 바깥 클릭은 닫는다', async ({
+    page,
+  }) => {
+    await page.goto('/getting-started');
+    const input = page.getByRole('combobox', { name: '검색' });
+    await page.getByRole('button', { name: /^검색/ }).click();
+    await expect(input).toBeFocused();
+    await page.locator('main').evaluate((main) => {
+      const synthetic = new PointerEvent('pointerdown', { bubbles: true });
+      main.dispatchEvent(synthetic);
+      if (synthetic.isTrusted) throw new Error('합성 이벤트여야 한다');
+    });
+    await page.waitForTimeout(300);
+    await expect(input).toBeVisible();
+    await expect(page.getByTestId('gooey-search')).toHaveAttribute(
+      'data-open',
+      'true'
+    );
+    await page.locator('main').click({ position: { x: 5, y: 300 } });
     await expect(input).toBeHidden();
   });
 

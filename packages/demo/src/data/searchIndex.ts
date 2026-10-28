@@ -513,4 +513,33 @@ export const searchIndex: SearchEntry[] = [
       },
     ],
   },
+  {
+    id: 'gooey-search',
+    pageTitle: '물방울 검색창',
+    path: '/motion/gooey-search',
+    category: '모션',
+    description:
+      'GooeySearch. 검색 단추가 물방울처럼 갈라지며 그 사이로 입력창이 늘어납니다.',
+    sections: [
+      {
+        title: '컴포넌트',
+        content:
+          '물방울 검색창. 둥근 검색 단추를 누르면 오른쪽으로 갈라지고 입력창이 늘어나며, 닫으면 두 덩어리가 끈적하게 합쳐집니다',
+      },
+      {
+        title: '부모가 쥐기',
+        content:
+          'open과 onOpenChange로 열림을 제어하고 입력값과 결과 목록은 inputProps와 children으로 넘깁니다',
+      },
+      {
+        title: '접근성',
+        content:
+          'Esc로 닫으면 트리거로 포커스가 돌아옵니다. combobox 연결은 부모가 합니다',
+      },
+      {
+        title: '움직임 줄이기',
+        content: '움직임 줄이기에서는 갈라짐 없이 바로 열리고 닫힙니다',
+      },
+    ],
+  },
 ];

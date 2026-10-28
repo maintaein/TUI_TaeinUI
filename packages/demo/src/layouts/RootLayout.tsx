@@ -36,10 +36,10 @@ export function RootLayout() {
     setDrawer(false);
   }
 
-  const closeSearch = useCallback(() => setSearchOpen(false), []);
-  const openSearch = useCallback(() => {
-    setDrawer(false);
-    setSearchOpen(true);
+  // 검색을 열면 덮는 서랍은 닫는다
+  const changeSearch = useCallback((next: boolean) => {
+    if (next) setDrawer(false);
+    setSearchOpen(next);
   }, []);
 
   // ⌘K / Ctrl+K
@@ -47,12 +47,12 @@ export function RootLayout() {
     const onKey = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
         e.preventDefault();
-        openSearch();
+        changeSearch(true);
       }
     };
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
-  }, [openSearch]);
+  }, [changeSearch]);
 
   // 서랍: 열리면 지금 페이지 링크로 포커스를 옮기고, Esc로 닫으면 햄버거로 돌려준다
   useEffect(() => {
@@ -83,9 +83,8 @@ export function RootLayout() {
         open={open}
         drawer={drawerOpen}
         onMenu={() => (dockMode ? setDocked((d) => !d) : setDrawer((d) => !d))}
-        onSearch={openSearch}
         searchOpen={searchOpen}
-        onSearchClose={closeSearch}
+        onSearchOpenChange={changeSearch}
         searchRef={searchRef}
       />
 

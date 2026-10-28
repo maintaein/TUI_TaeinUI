@@ -1,1 +1,0 @@
-export { GooeySearch } from './GooeySearch';

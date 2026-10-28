@@ -2,7 +2,7 @@ import { type RefObject } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { IconButton } from '@taein-ui/core';
 import { Menu, X } from 'lucide-react';
-import { GooeySearch } from '../components/GooeySearch';
+import { HeaderSearch } from '../components/HeaderSearch';
 import * as styles from './RootLayout.css';
 
 export const GITHUB_URL = 'https://github.com/maintaein/TUI_TaeinUI';
@@ -13,9 +13,8 @@ interface PillHeaderProps {
   /** 덮는 서랍이 열려 있으면 햄버거 대신 X를 그린다 */
   drawer: boolean;
   onMenu: () => void;
-  onSearch: () => void;
   searchOpen: boolean;
-  onSearchClose: () => void;
+  onSearchOpenChange: (next: boolean) => void;
   searchRef: RefObject<HTMLButtonElement | null>;
 }
 
@@ -23,9 +22,8 @@ export function PillHeader({
   open,
   drawer,
   onMenu,
-  onSearch,
   searchOpen,
-  onSearchClose,
+  onSearchOpenChange,
   searchRef,
 }: PillHeaderProps) {
   const { pathname } = useLocation();
@@ -74,10 +72,9 @@ export function PillHeader({
           GitHub
         </a>
       </nav>
-      <GooeySearch
+      <HeaderSearch
         open={searchOpen}
-        onOpen={onSearch}
-        onClose={onSearchClose}
+        onOpenChange={onSearchOpenChange}
         triggerRef={searchRef}
       />
     </header>

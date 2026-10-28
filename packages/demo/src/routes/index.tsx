@@ -138,6 +138,11 @@ const HangulAssemblePage = lazy(() =>
     default: m.HangulAssemblePage,
   }))
 );
+const GooeySearchPage = lazy(() =>
+  import('../pages/Motion/GooeySearch').then((m) => ({
+    default: m.GooeySearchPage,
+  }))
+);
 const JellyTextPage = lazy(() =>
   import('../pages/Motion/JellyText').then((m) => ({
     default: m.JellyTextPage,
@@ -450,6 +455,14 @@ const router = createBrowserRouter([
             element: (
               <LazyPage>
                 <JellyTextPage />
+              </LazyPage>
+            ),
+          },
+          {
+            path: 'gooey-search',
+            element: (
+              <LazyPage>
+                <GooeySearchPage />
               </LazyPage>
             ),
           },

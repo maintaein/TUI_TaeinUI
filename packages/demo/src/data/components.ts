@@ -18,6 +18,7 @@ import {
   PanelBottom,
   PanelRight,
   PanelTop,
+  Search,
   SlidersHorizontal,
   Square,
   SquareCheck,
@@ -330,6 +331,17 @@ export const motionData: MotionInfo[] = [
     usage: '히어로 문구, 브랜드 슬로건',
     category: 'text',
     icon: Waves,
+  },
+  // Component (1개)
+  {
+    name: 'GooeySearch',
+    title: '물방울 검색창',
+    path: '/motion/gooey-search',
+    description:
+      '검색 단추가 물방울처럼 갈라지며 그 사이로 입력창이 늘어납니다.',
+    usage: '헤더 검색, 도구 막대',
+    category: 'component',
+    icon: Search,
   },
 ];
 

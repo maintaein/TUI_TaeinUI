@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Pause, Play } from 'lucide-react';
-import { Button } from '@taein-ui/core';
+import { Button, Chip } from '@taein-ui/core';
 import * as t from '../../components/DocText';
 import { FrameCard } from '../../components/FrameCard';
 import * as wall from '../../components/FrameCard/FrameCard.css';
@@ -12,8 +12,10 @@ const total = numberedMotionGroups.reduce((n, g) => n + g.items.length, 0);
 
 // 한글 조립은 커서 효과가 아니라 화면에 들어올 때 재생되는 효과라, 터치와 좁은 화면에서도 같이 재생된다.
 export function MotionOverviewPage() {
+  const [group, setGroup] = useState<string | null>(null);
   // 카드 미니가 저절로 움직이므로 한꺼번에 멈출 길을 둔다(WCAG 2.2.2)
   const [frozen, setFrozen] = useState(false);
+  const shown = numberedMotionGroups.filter((g) => !group || g.label === group);
 
   return (
     <MiniFrozen.Provider value={frozen}>
@@ -32,10 +34,22 @@ export function MotionOverviewPage() {
           </Button>
         </div>
 
-        {/* 분류가 둘이 되면 UI 쪽 칩 줄과 시험을 함께 더한다 */}
-        {numberedMotionGroups.map((g) => (
+        <div className={styles.dock} role="group" aria-label="분류로 보기">
+          {numberedMotionGroups.map((g) => (
+            <Chip
+              key={g.label}
+              size="sm"
+              label={g.label}
+              color={group === g.label ? 'primary' : 'default'}
+              selected={group === g.label}
+              onClick={() => setGroup(group === g.label ? null : g.label)}
+            />
+          ))}
+        </div>
+
+        {shown.map((g) => (
           <section
-            key={g.label}
+            key={`${group ?? 'all'}-${g.label}`}
             className={styles.cardGroup}
             aria-labelledby={`motion-${g.label.replace(/\s/g, '-')}`}
           >
