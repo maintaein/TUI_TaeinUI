@@ -12,15 +12,11 @@ import { gateMotion, settleMotion } from '../../hooks/gateMotion';
 import { useReducedMotion } from '../../hooks/useReducedMotion';
 import { gsapDuration, gsapEasing } from '../../tokens/gsapEasing';
 import { visuallyHidden } from '../../_internal/visuallyHidden.css';
+import { segmentText } from '../../_internal/segmentText';
+import { word } from '../../_internal/word.css';
 import { decomposeHangul } from './decomposeHangul';
 import { jamoSlots, type JamoSlot } from './jamoSlots';
-import {
-  root as rootClass,
-  word,
-  cell,
-  glyph,
-  jamo,
-} from './HangulAssemble.css';
+import { root as rootClass, cell, glyph, jamo } from './HangulAssemble.css';
 
 export interface HangulAssembleProps {
   /** 조립해 보일 문장. 바뀌면 다시 재생하지 않고 새 문장을 완성 상태로 보인다 */
@@ -51,30 +47,6 @@ const isInView = (el: HTMLElement): boolean => {
   const rect = el.getBoundingClientRect();
   return rect.top < window.innerHeight && rect.bottom >= 0;
 };
-
-/**
- * 쪼개는 단위는 자소군(grapheme)이다. 코드포인트로 쪼개면 조합용 자모로 쓴 한글(NFD)과
- * ZWJ 이모지, 결합 부호가 칸마다 갈려 깨진다. 한글은 앞서 NFC로 합쳐 음절 하나가 된다.
- */
-// 저장소의 lib 대상(ES2020)에는 Intl.Segmenter 타입이 없어 필요한 모양만 적는다.
-// ponytail: Segmenter가 없는 환경(Firefox 124 이하)은 코드포인트로 쪼개 NFD·ZWJ가 갈린다, 지원 하한을 올릴 때 지운다.
-interface GraphemeSegmenter {
-  segment(input: string): Iterable<{ segment: string }>;
-}
-const Segmenter = (
-  Intl as unknown as {
-    Segmenter?: new (
-      locale?: string,
-      options?: { granularity: 'grapheme' }
-    ) => GraphemeSegmenter;
-  }
-).Segmenter;
-const segmenter =
-  Segmenter && new Segmenter(undefined, { granularity: 'grapheme' });
-const graphemes = (word: string): string[] =>
-  segmenter
-    ? Array.from(segmenter.segment(word), (part) => part.segment)
-    : [...word];
 
 /** 글자 칸 하나가 재생에 쓰는 두 층과 조각의 제자리 */
 interface CellParts {
@@ -240,39 +212,36 @@ export const HangulAssemble = forwardRef<HTMLElement, HangulAssembleProps>(
       <Tag ref={setRoot} className={clsx(rootClass, className)}>
         <span className={visuallyHidden}>{text}</span>
         <span aria-hidden="true" data-hangul-visual="">
-          {text
-            .normalize('NFC')
-            .split(/(\s+)/)
-            .map((segment, i) =>
-              i % 2 === 1 ? (
-                segment
-              ) : segment ? (
-                <span key={i} className={word} data-hangul-word="">
-                  {graphemes(segment).map((char, j) => {
-                    // 결합 부호가 붙은 칸은 한글 음절 하나가 아니라 통째로 한 그림이다.
-                    const parts =
-                      [...char].length === 1 ? decomposeHangul(char) : null;
-                    const pieces = parts
-                      ? [parts.initial, parts.medial, parts.final].filter(
-                          (piece): piece is string => piece !== undefined
-                        )
-                      : [];
-                    return (
-                      <span key={j} className={cell} data-hangul-cell="">
-                        <span className={glyph} data-hangul-glyph="">
-                          {char}
-                        </span>
-                        {pieces.map((piece, k) => (
-                          <span key={k} className={jamo} data-hangul-jamo="">
-                            {piece}
-                          </span>
-                        ))}
+          {segmentText(text).map((segment, i) =>
+            typeof segment === 'string' ? (
+              segment
+            ) : (
+              <span key={i} className={word} data-hangul-word="">
+                {segment.map((char, j) => {
+                  // 결합 부호가 붙은 칸은 한글 음절 하나가 아니라 통째로 한 그림이다.
+                  const parts =
+                    [...char].length === 1 ? decomposeHangul(char) : null;
+                  const pieces = parts
+                    ? [parts.initial, parts.medial, parts.final].filter(
+                        (piece): piece is string => piece !== undefined
+                      )
+                    : [];
+                  return (
+                    <span key={j} className={cell} data-hangul-cell="">
+                      <span className={glyph} data-hangul-glyph="">
+                        {char}
                       </span>
-                    );
-                  })}
-                </span>
-              ) : null
-            )}
+                      {pieces.map((piece, k) => (
+                        <span key={k} className={jamo} data-hangul-jamo="">
+                          {piece}
+                        </span>
+                      ))}
+                    </span>
+                  );
+                })}
+              </span>
+            )
+          )}
         </span>
       </Tag>
     );

@@ -34,7 +34,7 @@ UI components follow consistent patterns:
 - `ref`: All components support forwardRef
 - Form components require `label` prop for accessibility
 
-Motion components (HangulAssemble) take only `className` and `ref` (and `disabled` where it applies). They have no `size` or `variant`.
+Motion components (HangulAssemble, JellyText) take only `className` and `ref` (and `disabled` where it applies). They have no `size` or `variant`.
 
 ---
 
@@ -1043,6 +1043,33 @@ There is no `size` or `variant`: the type size comes from the root element's own
 
 ---
 
+## JellyText
+
+Sentence whose letters stretch like jelly when the mouse cursor passes over them. The letter closest to the cursor (distance measured between the pointer x and the letter cell's center x, in letter widths) stretches sideways up to 1.15 times and squashes vertically by 1 / that (volume kept), over `fast` with `settle`; letters one cell away get half the stretch and two cells away none. Then each wobbles back to 1 over `slower` with `spring`, the same feel as IconButton's `hoverEffect="jelly"`. Each letter cell scales around the bottom center of its cell. A letter already wobbling is stretched again from its current value when the cursor returns. Cell positions are measured once when the pointer enters (and again after a resize), never on every pointermove. Only letters on the line under the cursor react. Words never break across lines, and each letter is its own inline-block cell.
+
+Only for a hover-capable fine pointer (`(hover: hover) and (pointer: fine)`) and not under reduced motion. On touch and under reduced motion no pointer handler is attached and the text is plain. Synthetic pointer events (`isTrusted` false) are accepted, so a scripted demo can drive it.
+
+```tsx
+import { JellyText } from '@taein-ui/core';
+
+<JellyText text="말랑한 글자" as="h1" />
+<JellyText text="Jelly letters under the cursor" className="hero" ref={ref} />
+```
+
+### Props
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| text | string | (required) | Sentence to show |
+| as | 'h1' \| 'h2' \| 'h3' \| 'h4' \| 'h5' \| 'h6' \| 'p' \| 'span' \| 'div' | 'p' | Root element |
+| className | string | - | Additional CSS class |
+| ref | Ref<HTMLElement> | - | Forwarded to the root element |
+
+### Accessibility
+- Screen readers read one visually hidden copy of `text`. The letter cells are in an `aria-hidden` layer, so letters are not read one by one.
+- Choose `as` to match the sentence's role in the document (a heading level for a title).
+
+---
+
 ## Design Tokens
 
 TUI uses `themeContract` for type-safe, theme-aware styling. 테마는 라이트
@@ -1239,6 +1266,9 @@ prop은 클라이언트 파일에서 넘긴다.
 
 `HangulAssemble`도 `'use client'`가 붙는다. 화면에 들어올 때를 보는 관찰자와 GSAP 타임라인이 브라우저에서만 돈다.
 첫 렌더(서버 포함)는 완성 문장이라 하이드레이션 전에도 글자가 보인다.
+
+`JellyText`도 `'use client'`가 붙는다. 포인터 매체 질의를 구독하고 GSAP 트윈으로 그려서 브라우저에서만 돈다.
+첫 렌더(서버 포함)는 포인터 핸들러 없는 평범한 문장이다.
 
 `HeaderBar`도 `'use client'`가 붙는다. 좁은 화면 메뉴의 열림 상태와 GSAP 트윈,
 그리고 `navStyle="icon"`의 항목 확대가 브라우저에서만 돈다.

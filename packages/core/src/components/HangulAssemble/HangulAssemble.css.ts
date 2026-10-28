@@ -5,11 +5,6 @@ export const root = style({
   position: 'relative',
 });
 
-// 낱말 하나. 한국어 낱말이 줄 끝에서 갈리면 안 되어 한 덩어리로 묶는다.
-export const word = style({
-  whiteSpace: 'nowrap',
-});
-
 // 글자 칸. 완성 글자가 칸의 크기를 정하고 자모 조각은 그 위에 겹친다.
 export const cell = style({
   position: 'relative',
