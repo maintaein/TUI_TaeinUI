@@ -1,5 +1,5 @@
 import { Link, useNavigate } from 'react-router-dom';
-import { Button } from '@taein-ui/core';
+import { Button, HangulAssemble } from '@taein-ui/core';
 import { ComponentShowcase } from '../../components/ComponentShowcase';
 import * as t from '../../components/DocText';
 import { FrameCard } from '../../components/FrameCard';
@@ -31,11 +31,11 @@ export function IntroductionPage() {
           decoding="async"
         />
         <h1 className={cx(t.display, styles.title)}>TAEIN UI</h1>
-        <p className={cx(t.lead, t.muted, styles.desc)}>
-          재미있는 모션과 인터랙티브한 효과를 추구한 React UI 컴포넌트
-          라이브러리. 느낌있고 멋진 웹사이트를 만들어 보고 싶으신가요? TaeinUI가
-          무료로 해결해 드립니다.
-        </p>
+        <HangulAssemble
+          as="p"
+          text="재미있는 모션과 인터랙티브한 효과를 추구한 React UI 컴포넌트 라이브러리. 느낌있고 멋진 웹사이트를 만들어 보고 싶으신가요? TaeinUI가 무료로 해결해 드립니다."
+          className={cx(t.lead, t.muted, styles.desc)}
+        />
         <div className={styles.actions}>
           <InstallChip command="pnpm add @taein-ui/core" />
           <Button size="lg" onClick={() => navigate('/getting-started')}>
