@@ -813,4 +813,33 @@ export const searchIndex: SearchEntry[] = [
       },
     ],
   },
+  {
+    id: 'luminous-flow',
+    pageTitle: '빛 물줄기',
+    path: '/motion/luminous-flow',
+    category: '모션',
+    description:
+      'LuminousFlow. 굽이치는 물길 안을 빛줄기가 흐르고, 스크롤하면 흐름이 빨라집니다. 배경, 빛, 물줄기, 흐름, 어두운 섹션, 첫 화면, background, glow, flow.',
+    sections: [
+      {
+        title: '배경',
+        content:
+          '부모 상자를 채우는 어두운 배경에 빛줄기와 빛 알갱이가 굽이치는 물길을 따라 흐릅니다. 창을 스크롤하면 흐름이 빨라집니다. 바탕은 검정이고 색은 바꿀 수 없습니다',
+      },
+      {
+        title: '멈춤',
+        content:
+          'paused를 켜면 흐름을 멈추고 지금 장면을 남깁니다. 스스로 5초 넘게 흐르므로 멈출 수 있게 버튼이나 설정에 이어 줍니다',
+      },
+      {
+        title: '접근성',
+        content:
+          '장식이라 aria-hidden이고 포인터 입력을 받지 않습니다. 엄격한 CSP에서는 img-src blob:이 필요합니다. 탭이 숨겨지거나 화면 밖이면 그리기를 멈춥니다',
+      },
+      {
+        title: '움직임 줄이기',
+        content: '움직임 줄이기에서는 흐르지 않는 정지 장면으로 보입니다',
+      },
+    ],
+  },
 ];

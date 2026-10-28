@@ -188,6 +188,11 @@ const MorphPage = lazy(() =>
     default: m.MorphPage,
   }))
 );
+const LuminousFlowPage = lazy(() =>
+  import('../pages/Motion/LuminousFlow').then((m) => ({
+    default: m.LuminousFlowPage,
+  }))
+);
 const JellyTextPage = lazy(() =>
   import('../pages/Motion/JellyText').then((m) => ({
     default: m.JellyTextPage,
@@ -593,6 +598,14 @@ const router = createBrowserRouter([
             element: (
               <LazyPage>
                 <MorphPage />
+              </LazyPage>
+            ),
+          },
+          {
+            path: 'luminous-flow',
+            element: (
+              <LazyPage>
+                <LuminousFlowPage />
               </LazyPage>
             ),
           },

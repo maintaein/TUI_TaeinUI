@@ -72,10 +72,10 @@ test.describe('모션 전체 보기', () => {
   }) => {
     await page.goto('/motion');
     await expect(
-      page.getByRole('heading', { level: 1, name: '모션 12개' })
+      page.getByRole('heading', { level: 1, name: '모션 13개' })
     ).toBeVisible();
     const sections = page.locator('main section');
-    await expect(sections).toHaveCount(4);
+    await expect(sections).toHaveCount(5);
     for (const name of [/텍스트 애니메이션/, /컴포넌트/, /마이크로 인터랙션/])
       await expect(
         sections.getByRole('heading', { level: 2, name })
@@ -88,7 +88,9 @@ test.describe('모션 전체 보기', () => {
         exact: true,
       })
     ).toBeVisible();
-    await expect(page.getByText('배경', { exact: true })).toHaveCount(0);
+    await expect(
+      sections.getByRole('heading', { level: 2, name: '배경', exact: true })
+    ).toBeVisible();
 
     const card = page.locator('main section > div > div').first();
     await expect(
@@ -103,7 +105,7 @@ test.describe('모션 전체 보기', () => {
     page,
   }) => {
     await page.goto('/motion');
-    await expect(page.locator('main section')).toHaveCount(4);
+    await expect(page.locator('main section')).toHaveCount(5);
     const card = page.locator('main section > div > div').nth(1);
     await expect(card.getByText('JellyText', { exact: true })).toBeVisible();
     await expect(card.getByText('히어로 문구, 브랜드 슬로건')).toBeVisible();
@@ -122,6 +124,17 @@ test.describe('모션 전체 보기', () => {
     ).toBeVisible();
     await card.getByRole('link', { name: '부품 이어받기' }).click();
     await expect(page).toHaveURL(/\/motion\/morph$/);
+  });
+
+  test('빛 물줄기 카드가 효과 이름과 쓰는 곳을 보이고 누르면 상세로 간다', async ({
+    page,
+  }) => {
+    await page.goto('/motion');
+    const card = page.locator('main section > div > div').nth(12);
+    await expect(card.getByText('LuminousFlow', { exact: true })).toBeVisible();
+    await expect(card.getByText('첫 화면 배경, 어두운 섹션')).toBeVisible();
+    await card.getByRole('link', { name: '빛 물줄기' }).click();
+    await expect(page).toHaveURL(/\/motion\/luminous-flow$/);
   });
 
   test('물방울 검색창 카드가 효과 이름과 쓰는 곳을 보이고 누르면 상세로 간다', async ({
@@ -144,7 +157,7 @@ test.describe('모션 전체 보기', () => {
     const filters = page.getByRole('group', { name: '분류로 보기' });
     const chip = filters.getByRole('button', { name: '컴포넌트', exact: true });
     const sections = page.locator('main section');
-    await expect(sections).toHaveCount(4);
+    await expect(sections).toHaveCount(5);
     await chip.click();
     await expect(chip).toHaveAttribute('aria-pressed', 'true');
     await expect(sections).toHaveCount(1);
@@ -154,7 +167,7 @@ test.describe('모션 전체 보기', () => {
     ).toBeVisible();
     await chip.click();
     await expect(chip).toHaveAttribute('aria-pressed', 'false');
-    await expect(sections).toHaveCount(4);
+    await expect(sections).toHaveCount(5);
   });
 
   test('마이크로 인터랙션 칩이 있고 누르면 복사됨 절만 보인다', async ({
@@ -667,7 +680,7 @@ test.describe('모션 전체 보기 날개 전송 미니 (1440px)', () => {
     });
     await expect(wingMini(page).locator('[data-wing-mark]')).toHaveCount(1);
     // 미니는 연기를 끈다(문맥 스물다섯 개가 한 화면에 뜨지 않게). 비행 중에도 연기 canvas가 없다
-    await expect(page.locator('canvas')).toHaveCount(0);
+    await expect(wingMini(page).locator('canvas')).toHaveCount(0);
 
     const pause = page.getByRole('button', { name: '움직임 멈춤' });
     await pause.click();

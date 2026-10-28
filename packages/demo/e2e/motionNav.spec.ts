@@ -1,9 +1,6 @@
 import { test, expect, type Page } from '@playwright/test';
 
 const SENTENCE = '흩어진 자모가 모여 글자가 됩니다';
-// '애니메이션' 분류는 부품 이어받기가, '컴포넌트' 분류는 물방울 검색창이, '마이크로 인터랙션' 분류는 복사됨이 들어오며 항목이 생겨 비어 있는 분류가 아니다
-const EMPTY = ['배경'];
-
 test.describe('모션 계열 사이드바 (1280px)', () => {
   test.use({ viewport: { width: 1280, height: 800 } });
 
@@ -158,11 +155,16 @@ test.describe('모션 계열 사이드바 (1280px)', () => {
     );
   });
 
-  test('항목이 없는 분류는 사이드바에 없다', async ({ page }) => {
-    await page.goto('/motion/hangul-assemble');
+  // 다섯 분류가 모두 차서 비어 있는 분류가 사이드바에서 빠지는 규칙은 e2e로 볼 자료가 없다(groupMotion이 거른다)
+  test('배경 분류에 빛 물줄기 링크가 있다', async ({ page }) => {
+    await page.goto('/components/button');
     const nav = page.getByRole('navigation', { name: '문서' });
-    for (const name of EMPTY)
-      await expect(nav.getByText(name, { exact: true })).toHaveCount(0);
+    await expect(nav.getByText('배경', { exact: true })).toBeVisible();
+    const link = nav.getByRole('link', { name: /빛 물줄기/ });
+    await expect(link).toHaveAttribute('href', '/motion/luminous-flow');
+    await link.click();
+    await expect(page).toHaveURL(/\/motion\/luminous-flow$/);
+    await expect(nav.locator('[aria-current="page"]')).toHaveText(/빛 물줄기/);
   });
 
   test('모션 상세에도 붙박이 사이드바가 붙는다', async ({ page }) => {
@@ -182,8 +184,6 @@ test.describe('모션 계열 서랍 (390px)', () => {
     await page.getByRole('button', { name: '탐색 열기' }).click();
     const aside = page.locator('#site-nav');
     await expect(aside.getByText('모션', { exact: true })).toBeVisible();
-    for (const name of EMPTY)
-      await expect(aside.getByText(name, { exact: true })).toHaveCount(0);
     await aside.getByRole('link', { name: /한글 조립/ }).click();
     await expect(page).toHaveURL(/\/motion\/hangul-assemble$/);
   });

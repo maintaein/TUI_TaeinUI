@@ -32,6 +32,7 @@ import {
   Fan,
   Send,
   Expand,
+  Sparkles,
   Gauge,
   KeyRound,
   Trash2,
@@ -441,6 +442,17 @@ export const motionData: MotionInfo[] = [
     usage: '메일 보내기, 제출, 전송',
     category: 'micro',
     icon: Send,
+  },
+  // Background (1개)
+  {
+    name: 'LuminousFlow',
+    title: '빛 물줄기',
+    path: '/motion/luminous-flow',
+    description:
+      '굽이치는 물길 안을 빛줄기가 흐르고, 스크롤하면 흐름이 빨라집니다.',
+    usage: '첫 화면 배경, 어두운 섹션',
+    category: 'background',
+    icon: Sparkles,
   },
 ];
 

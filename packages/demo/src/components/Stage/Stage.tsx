@@ -96,6 +96,11 @@ export interface StageProps {
    * 트리거 단추만 두지 않고 열린 대표 장면을 보이는 데 쓴다. 상세 무대는 서 있어도 부르지 않는다(늘 false)
    */
   onStill?: (still: boolean) => void;
+  /**
+   * 일시정지 단추가 눌렸는지를 알린다. 있으면 대본이 없어도 단추를 둔다. CSS data-frozen으로는 멈추지 않는 스스로 흐르는
+   * 시연(rAF 루프)이 이 값을 자기 멈춤 prop에 잇는다. 카드 속 미니는 단추가 없고 `MiniFrozen`이 대신한다
+   */
+  onUserPause?: (paused: boolean) => void;
   className?: string;
 }
 
@@ -237,6 +242,7 @@ export function Stage({
   bar,
   mini,
   onStill,
+  onUserPause,
   className,
 }: StageProps) {
   const reduced = useReducedMotion();
@@ -247,6 +253,8 @@ export function Stage({
   onPauseRef.current = onPause;
   const onStillRef = useRef(onStill);
   onStillRef.current = onStill;
+  const onUserPauseRef = useRef(onUserPause);
+  onUserPauseRef.current = onUserPause;
   const cursor = useRef<SVGSVGElement>(null);
   const timeline = useRef<gsap.core.Timeline | null>(null);
   // 대본이 준 포커스는 넘겨받기로 보지 않는다
@@ -629,6 +637,7 @@ export function Stage({
   }, [playing, root, script, reduced]);
 
   useLayoutEffect(() => onStillRef.current?.(still), [still]);
+  useLayoutEffect(() => onUserPauseRef.current?.(flags.user), [flags.user]);
 
   // 화면 밖, 탭 숨김, 진짜 마우스. 합성 pointerover(isTrusted false)는 연출이라 무시한다
   useEffect(() => {
@@ -697,7 +706,7 @@ export function Stage({
           setFlag('focus', false);
       }}
     >
-      {demo && !mini && (
+      {!mini && !reduced && (script || onUserPause) && (
         <div className={styles.tools} data-stage-control>
           <IconButton
             size="sm"
