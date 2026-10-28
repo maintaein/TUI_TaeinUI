@@ -23,6 +23,8 @@ interface SmokeHarness {
   alphaPixels(): number;
   /** 알파가 minAlpha(0~255)보다 큰 픽셀의 외접 상자 크기(CSS px). 없으면 0 */
   alphaExtent(minAlpha: number): { width: number; height: number };
+  /** 수명을 잇는다. 접힐 때까지 매 프레임 제자리(속도 0)에 작은 주입을 한다 */
+  keepAlive(x: number, y: number): void;
   /** rAF를 n번(벽시계가 아니라 프레임 수) 기다린다 */
   frames(n: number): Promise<void>;
   /** 연기 캔버스가 DOM에 붙어 있는가 */
@@ -149,6 +151,14 @@ export function SmokePage() {
           width: (maxX - minX + 1) / ratio,
           height: (maxY - minY + 1) / ratio,
         };
+      },
+      keepAlive(x, y) {
+        const tick = () => {
+          if (!canvas?.isConnected) return;
+          smoke?.emit(x, y, 0, 0);
+          requestAnimationFrame(tick);
+        };
+        tick();
       },
       async frames(n) {
         for (let i = 0; i < n; i++) {

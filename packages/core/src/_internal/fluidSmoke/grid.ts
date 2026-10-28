@@ -9,7 +9,7 @@ export const FLUID_CONFIG = {
   /** 속도·압력 격자의 짧은 변(셀) */
   simShortSide: 128,
   /** 밀도 격자의 짧은 변(셀) */
-  dyeShortSide: 512,
+  densityShortSide: 512,
   /** 캔버스 픽셀 비율 상한. 4K에서도 필레이트가 3배로 불지 않게 한다 */
   dprMax: 1.5,
   /** 압력 Jacobi 반복 */
@@ -17,10 +17,10 @@ export const FLUID_CONFIG = {
   /** 속도 감쇠(1/s). 연기가 흩어지며 멈추는 속도 */
   velocityDecay: 0.4,
   /** 밀도 감쇠(1/s) */
-  dyeDecay: 0.9,
+  densityDecay: 0.9,
   /** 소용돌이 강화 세기(GPU Gems 38장의 e_c) */
   confinement: 22,
-  /** 속도 길이 상한(셀/초). 소용돌이 강화가 속도를 터뜨리지 않게 한다 */
+  /** 속도 길이 상한(셀/초). 터짐 주입 최고 속도(1500px/초 * 1.2, 1440폭에서 약 256셀/초)의 네 배쯤으로 두어 정상 흐름은 안 건드리고 강화의 폭주만 끊는다 */
   speedCap: 1000,
   /** 마지막 주입 뒤 이 시간이 지나면 밀도와 상관없이 접는다(ms) */
   maxLifeMs: 3000,

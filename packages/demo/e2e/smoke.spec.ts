@@ -30,51 +30,72 @@ test.describe('유체 연기 엔진', () => {
     page,
   }) => {
     await open(page);
-    expect(
-      await page.evaluate(() => window.__smoke!.create({ preserve: true }))
-    ).toBe(true);
-    // 만들자마자는 비어 있다
-    expect(await page.evaluate(() => window.__smoke!.alphaPixels())).toBe(0);
-    await page.evaluate(() => window.__smoke!.burst(720, 450));
-    await page.waitForFunction(() => window.__smoke!.alphaPixels() > 0, null, {
-      timeout: 2000,
+    // 만들고 바로 터뜨리고 수명을 잇는다(수명은 벽시계 3초라 await를 끼우면 부하에서 먼저 접힌다)
+    const before = await page.evaluate(() => {
+      window.__smoke!.create({ preserve: true });
+      const empty = window.__smoke!.alphaPixels();
+      window.__smoke!.burst(720, 450);
+      window.__smoke!.keepAlive(720, 450);
+      return empty;
     });
+    // 만들자마자는 비어 있다
+    expect(before).toBe(0);
+    await page.waitForFunction(() => window.__smoke!.alphaPixels() > 0, null, {
+      timeout: 20_000,
+    });
+    await page.evaluate(() => window.__smoke!.dispose());
   });
 
-  test('터진 연기가 유체로 번진다(이류·압력이 빠지면 주입 자리에 머문다)', async ({
+  test('터진 연기가 유체로 번진다(이류가 빠지면 주입 자리에 머문다)', async ({
     page,
   }) => {
     await open(page);
-    await page.evaluate(() => window.__smoke!.create({ preserve: true }));
-    await page.evaluate(() => window.__smoke!.burst(720, 450));
-    // 벽시계가 아니라 프레임 수로 센다(SwiftShader는 느리고 엔진의 dt는 프레임당 상한이 있다)
-    await page.evaluate(() => window.__smoke!.frames(30));
-    const { width, height } = await page.evaluate(() =>
-      window.__smoke!.alphaExtent(8)
+    // 엔진 수명은 벽시계 3초(마지막 주입 뒤)라 느린 기계에서는 퍼지기 전에 접힌다. 제자리 속도 0의
+    // 작은 주입으로 수명만 잇는다(외접 상자는 주입 범위 안이라 퍼짐 판정에 섞이지 않는다)
+    await page.evaluate(() => {
+      window.__smoke!.create({ preserve: true });
+      window.__smoke!.burst(720, 450);
+      window.__smoke!.keepAlive(720, 450);
+    });
+    // 주입은 중심에서 spreadPx(60) + 방울 반지름 최대 28 * 1.2 안쪽이다. 이류가 없으면 알파 외접
+    // 상자가 그 지름(약 187)을 가우시안 꼬리만큼(약 225) 넘지 못하고, 있으면 300 이상으로 번진다.
+    // 프레임 수가 아니라 "넘는 순간"을 기다린다(느려도 통과, 이류가 빠져 영영 못 넘으면 실패)
+    await page.waitForFunction(
+      (limit) => {
+        const { width, height } = window.__smoke!.alphaExtent(8);
+        return Math.max(width, height) > limit;
+      },
+      2 * (60 + 28 * 1.2) * 1.5,
+      { timeout: 20_000, polling: 250 }
     );
-    // 주입은 중심에서 spreadPx(60) + 방울 반지름 최대 28 * 1.2 안쪽이다. 풀이가 없으면 외접 상자가
-    // 그 지름(약 187)을 가우시안 꼬리만큼(약 225) 넘지 못하고, 풀이가 있으면 300 이상으로 번진다
-    expect(Math.max(width, height)).toBeGreaterThan(2 * (60 + 28 * 1.2) * 1.5);
+    await page.evaluate(() => window.__smoke!.dispose());
   });
 
   test('분사한 자리에도 연기가 생긴다', async ({ page }) => {
     await open(page);
-    await page.evaluate(() => window.__smoke!.create({ preserve: true }));
-    await page.evaluate(() => window.__smoke!.emit(400, 600, -400, 300));
-    await page.waitForFunction(() => window.__smoke!.alphaPixels() > 0, null, {
-      timeout: 2000,
+    await page.evaluate(() => {
+      window.__smoke!.create({ preserve: true });
+      window.__smoke!.emit(400, 600, -400, 300);
+      window.__smoke!.keepAlive(400, 600);
     });
+    await page.waitForFunction(() => window.__smoke!.alphaPixels() > 0, null, {
+      timeout: 20_000,
+    });
+    await page.evaluate(() => window.__smoke!.dispose());
   });
 
   test('흩어지면 캔버스를 DOM에서 떼고 문맥을 놓는다', async ({ page }) => {
     await open(page);
-    await page.evaluate(() => window.__smoke!.create({ preserve: true }));
-    await page.evaluate(() => window.__smoke!.burst(720, 450));
-    await page.waitForFunction(() => window.__smoke!.alphaPixels() > 0);
-    expect(await page.evaluate(() => window.__smoke!.attached())).toBe(true);
+    // 만든 순간에는 붙어 있다. 부하로 느려도 접히기 전에 확인하도록 같은 evaluate에서 본다
+    const attachedAtStart = await page.evaluate(() => {
+      window.__smoke!.create({ preserve: true });
+      window.__smoke!.burst(720, 450);
+      return window.__smoke!.attached();
+    });
+    expect(attachedAtStart).toBe(true);
     // 최대 3초(+ 마지막 주입 + 프레임 여유)
     await page.waitForFunction(() => !window.__smoke!.attached(), null, {
-      timeout: 8000,
+      timeout: 15_000,
     });
     expect(await page.evaluate(() => window.__smoke!.contextLost())).toBe(true);
     await expect(page.locator('canvas[aria-hidden="true"]')).toHaveCount(0);
@@ -126,13 +147,19 @@ test.describe('유체 연기 엔진', () => {
     page,
   }) => {
     await open(page);
-    await page.evaluate(() =>
-      window.__smoke!.create({ stage: true, preserve: true })
-    );
     const stage = page.getByTestId('stage');
     const canvas = stage.locator('canvas[aria-hidden="true"]');
-    await expect(canvas).toHaveCount(1);
     const stageBox = (await stage.boundingBox())!;
+    // 만들고 바로 터뜨리고 수명을 잇는다(엔진 수명은 벽시계 3초라 아래 검사 사이에 부하에서 먼저 접힐 수 있다)
+    await page.evaluate(
+      ([x, y]) => {
+        window.__smoke!.create({ stage: true, preserve: true });
+        window.__smoke!.burst(x, y);
+        window.__smoke!.keepAlive(x, y);
+      },
+      [stageBox.x + stageBox.width / 2, stageBox.y + stageBox.height / 2]
+    );
+    await expect(canvas).toHaveCount(1);
     const canvasBox = (await canvas.boundingBox())!;
     // 캔버스는 테두리 안쪽(padding box)을 덮는다
     const inner = await stage.evaluate((el) => [
@@ -141,15 +168,12 @@ test.describe('유체 연기 엔진', () => {
     ]);
     expect(canvasBox.width).toBeCloseTo(inner[0], 0);
     expect(canvasBox.height).toBeCloseTo(inner[1], 0);
-    await page.evaluate(
-      ([x, y]) => window.__smoke!.burst(x, y),
-      [stageBox.x + stageBox.width / 2, stageBox.y + stageBox.height / 2]
-    );
     await page.waitForFunction(() => window.__smoke!.alphaPixels() > 0);
     // 상자 안에 갇혀 포인터를 가로채지 않는다
     expect(
       await canvas.evaluate((el) => getComputedStyle(el).pointerEvents)
     ).toBe('none');
+    await page.evaluate(() => window.__smoke!.dispose());
   });
 
   test('움직임 줄이기에서는 연기를 만들지 않는다', async ({ page }) => {

@@ -27,9 +27,9 @@ const BURST = {
   radiusPx: 28,
   spreadPx: 60,
   speedPx: 1500,
-  dye: 0.22,
+  density: 0.22,
 } as const;
-const EMIT = { radiusPx: 20, dye: 0.22, swirl: 0.3 } as const;
+const EMIT = { radiusPx: 20, density: 0.22, swirl: 0.3 } as const;
 // 한 프레임에 쌓이는 주입 상한. 넘치면 버린다(연기가 이미 충분히 빽빽하다)
 const MAX_QUEUE = 96;
 const PROBE_SIZE = 16;
@@ -57,7 +57,7 @@ interface Splat {
   v: number;
   vx: number;
   vy: number;
-  dye: number;
+  density: number;
   radiusPx: number;
 }
 
@@ -220,10 +220,10 @@ export function createFluidSmoke(
     canvas.width = pixels.width;
     canvas.height = pixels.height;
     const sim = fitGrid(pixels.width, pixels.height, FLUID_CONFIG.simShortSide);
-    const dyeSize = fitGrid(
+    const densitySize = fitGrid(
       pixels.width,
       pixels.height,
-      FLUID_CONFIG.dyeShortSide
+      FLUID_CONFIG.densityShortSide
     );
 
     const splatP = makeProgram(gl, glsl.SPLAT);
@@ -238,9 +238,9 @@ export function createFluidSmoke(
 
     const velocity = makePair(gl, sim.width, sim.height);
     const pressure = makePair(gl, sim.width, sim.height);
-    const dye = makePair(gl, dyeSize.width, dyeSize.height);
+    const density = makePair(gl, densitySize.width, densitySize.height);
     const divergence = makeTarget(gl, sim.width, sim.height, true);
-    const curl = makeTarget(gl, sim.width, sim.height, true);
+    const vorticity = makeTarget(gl, sim.width, sim.height, true);
     const probe = makeTarget(gl, PROBE_SIZE, PROBE_SIZE, false);
 
     const color = readSmokeColor(host);
@@ -301,9 +301,9 @@ export function createFluidSmoke(
       bindTex(splatP, 'uBase', 0, velocity.read);
       gl.uniform3f(splatP.loc('uImpulse'), s.vx, s.vy, 0);
       pass(velocity);
-      bindTex(splatP, 'uBase', 0, dye.read);
-      gl.uniform3f(splatP.loc('uImpulse'), s.dye, 0, 0);
-      pass(dye);
+      bindTex(splatP, 'uBase', 0, density.read);
+      gl.uniform3f(splatP.loc('uImpulse'), s.density, 0, 0);
+      pass(density);
     };
 
     const step = (dt: number) => {
@@ -324,14 +324,14 @@ export function createFluidSmoke(
       gl.useProgram(vortP.program);
       setTexel(vortP);
       bindTex(vortP, 'uVelocity', 0, velocity.read);
-      passTo(curl);
+      passTo(vorticity);
       gl.useProgram(confineP.program);
       setTexel(confineP);
       gl.uniform1f(confineP.loc('uConfinement'), FLUID_CONFIG.confinement);
       gl.uniform1f(confineP.loc('uDt'), dt);
       gl.uniform1f(confineP.loc('uSpeedCap'), FLUID_CONFIG.speedCap);
       bindTex(confineP, 'uVelocity', 0, velocity.read);
-      bindTex(confineP, 'uVorticity', 1, curl);
+      bindTex(confineP, 'uVorticity', 1, vorticity);
       pass(velocity);
 
       // 발산 -> 압력 Jacobi -> 기울기 빼기
@@ -354,10 +354,10 @@ export function createFluidSmoke(
 
       // 밀도 이류 + 감쇠
       gl.useProgram(advectP.program);
-      gl.uniform1f(advectP.loc('uDecayRate'), FLUID_CONFIG.dyeDecay);
+      gl.uniform1f(advectP.loc('uDecayRate'), FLUID_CONFIG.densityDecay);
       bindTex(advectP, 'uVelocity', 0, velocity.read);
-      bindTex(advectP, 'uQuantity', 1, dye.read);
-      pass(dye);
+      bindTex(advectP, 'uQuantity', 1, density.read);
+      pass(density);
     };
 
     const render = (fade: number) => {
@@ -368,14 +368,14 @@ export function createFluidSmoke(
       gl.useProgram(displayP.program);
       gl.uniform3f(displayP.loc('uColor'), color[0], color[1], color[2]);
       gl.uniform1f(displayP.loc('uFade'), fade);
-      bindTex(displayP, 'uDensity', 0, dye.read);
+      bindTex(displayP, 'uDensity', 0, density.read);
       gl.drawArrays(gl.TRIANGLES, 0, 3);
     };
 
     // 화면의 최대 알파(0~1, 칸 단위 표본). 읽기 동기화가 파이프라인을 한 번 세우므로 주기적으로만 부른다
     const peakAlpha = () => {
       gl.useProgram(probeP.program);
-      bindTex(probeP, 'uDensity', 0, dye.read);
+      bindTex(probeP, 'uDensity', 0, density.read);
       passTo(probe);
       gl.readPixels(
         0,
@@ -432,7 +432,7 @@ export function createFluidSmoke(
             v: b.y + Math.sin(angle) * dist,
             vx: Math.cos(heading) * speed,
             vy: Math.sin(heading) * speed,
-            dye: BURST.dye * b.amount,
+            density: BURST.density * b.amount,
             radiusPx: BURST.radiusPx * rand(0.7, 1.2),
           });
         }
@@ -485,7 +485,7 @@ export function createFluidSmoke(
           v: y,
           vx: vx - vy * swirl,
           vy: vy + vx * swirl,
-          dye: EMIT.dye,
+          density: EMIT.density,
           radiusPx: EMIT.radiusPx,
         });
       },
