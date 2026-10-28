@@ -1193,7 +1193,7 @@ Other native button attributes are passed to the `<button>`, except `children` a
 
 ### Behavior
 - The burst happens only when this button's own click goes from off to on. A `selected` that is already true on mount, or that changes from outside without a click, does not burst.
-- The burst starts on the click, before your state update returns. If you refuse the change, the burst still plays once.
+- The burst plays in the render where `selected` actually becomes true after this button's click. If your `onClick` refuses the change (login needed, rejected), nothing bursts.
 - Pressing again while the burst runs turns it off and clears the remaining dots at once.
 - The dots are `aria-hidden` decoration. They exist only while the burst runs and leave the DOM when it ends. The button has `overflow: visible`, so they are not clipped, and they are absolutely placed, so they never push the layout.
 

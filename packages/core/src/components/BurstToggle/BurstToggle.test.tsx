@@ -14,6 +14,8 @@ type Step = {
     opacity?: number;
   };
   duration(): number;
+  startTime(): number;
+  endTime(): number;
 };
 type Handle = {
   getChildren(nested?: boolean): Step[];
@@ -223,28 +225,83 @@ describe('BurstToggle', () => {
       expect(timeline.parent).toBeFalsy();
     });
 
-    it('소비자가 꺼짐을 붙들어도 연달아 누르면 점은 한 고리(8개)만 있다', () => {
+    it('소비자가 onClick에서 상태를 안 바꾸면(거절) 점도 납작 트윈도 없다', () => {
+      const onClick = vi.fn();
       const { container } = render(
-        <BurstToggle aria-label="좋아요" selected={false} selectedIcon={<On />}>
+        <BurstToggle
+          aria-label="좋아요"
+          selected={false}
+          selectedIcon={<On />}
+          onClick={onClick}
+        >
           <Off />
         </BurstToggle>
       );
       fireEvent.click(button());
       fireEvent.click(button());
+      expect(onClick).toHaveBeenCalledTimes(2);
+      expect(dots(container)).toHaveLength(0);
+      expect(squash()).toBeUndefined();
+    });
+
+    it('소비자가 상태를 바꾸면 그 렌더에서 점 8개가 터진다', () => {
+      const { container } = render(<Controlled />);
+      expect(dots(container)).toHaveLength(0);
+      fireEvent.click(button());
       expect(dots(container)).toHaveLength(8);
     });
 
-    it('점은 settle로 바깥으로 퍼지고 linear로 작아지며 사라진다(slower)', () => {
+    it('표지는 한 번 쓰고 지운다: 터진 뒤 바깥에서 껐다 켜도 터지지 않는다', () => {
+      const { container, rerender } = render(
+        <BurstToggle
+          aria-label="좋아요"
+          selected={false}
+          selectedIcon={<On />}
+          onClick={() => {}}
+        >
+          <Off />
+        </BurstToggle>
+      );
+      // 클릭 뒤 소비자가 켠다(비동기 소비자와 같은 순서: click이 먼저, 켜짐은 나중)
+      fireEvent.click(button());
+      rerender(
+        <BurstToggle aria-label="좋아요" selected selectedIcon={<On />}>
+          <Off />
+        </BurstToggle>
+      );
+      expect(dots(container)).toHaveLength(8);
+      act(() => {
+        ringOf(container).__burstDots?.progress(1);
+      });
+      rerender(
+        <BurstToggle aria-label="좋아요" selected={false} selectedIcon={<On />}>
+          <Off />
+        </BurstToggle>
+      );
+      rerender(
+        <BurstToggle aria-label="좋아요" selected selectedIcon={<On />}>
+          <Off />
+        </BurstToggle>
+      );
+      expect(dots(container)).toHaveLength(0);
+    });
+
+    it('점은 settle로 바깥으로 퍼지고 linear로 작아지다 뒤늦게 사라진다(slower)', () => {
       const { container } = render(<Controlled />);
       fireEvent.click(button());
-      const [spread, fade] =
+      const [spread, shrink, fade] =
         ringOf(container).__burstDots?.getChildren(false) ?? [];
       expect(spread.vars.ease).toBe(gsapEasing.settle);
       expect(spread.duration()).toBe(gsapDuration.slower);
+      expect(shrink.vars.scale).toBeLessThan(1);
+      expect(shrink.vars.scale).toBeGreaterThanOrEqual(0.5);
+      expect(shrink.vars.ease).toBe(gsapEasing.linear);
+      expect(shrink.duration()).toBe(gsapDuration.slower);
       expect(fade.vars.opacity).toBe(0);
-      expect(fade.vars.scale).toBeLessThan(1);
       expect(fade.vars.ease).toBe(gsapEasing.linear);
-      expect(fade.duration()).toBe(gsapDuration.slower);
+      // 사라짐은 처음부터 돌지 않고 끝은 터짐과 같이 맞는다
+      expect(fade.startTime()).toBeGreaterThan(0);
+      expect(fade.endTime()).toBeCloseTo(gsapDuration.slower, 5);
     });
 
     it('언마운트하면 돌던 터짐 트윈을 죽인다', () => {
@@ -274,7 +331,11 @@ describe('BurstToggle', () => {
     it('끌 때는 작은 누름만 있고 납작·튕김이 없다', () => {
       render(<Controlled />);
       fireEvent.click(button());
+      const onTimeline = squash() as Handle;
       fireEvent.click(button());
+      // 켜는 중 끄면 켜기 타임라인은 죽고 새 타임라인이 선다
+      expect(onTimeline.parent).toBeFalsy();
+      expect(squash()).not.toBe(onTimeline);
       const steps = squash()?.getChildren(false) ?? [];
       expect(steps).toHaveLength(2);
       for (const step of steps) {

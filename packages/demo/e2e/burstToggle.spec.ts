@@ -49,7 +49,8 @@ test.describe('좋아요 터짐 상세 (1440px)', () => {
     await like(page).click();
     const box = await like(page).boundingBox();
     if (!box) throw new Error('단추가 없다');
-    // 점이 퍼지는 동안 단추 가장자리 근처까지 간 점이 한 번은 있다
+    // 점이 퍼지는 동안 아직 또렷한(불투명도 0.3 넘는) 점의 가운데가 단추 반지름보다 멀리 나간 때가 있다
+    const radius = Math.min(box.width, box.height) / 2;
     await expect
       .poll(
         () =>
@@ -58,18 +59,20 @@ test.describe('좋아요 터짐 상세 (1440px)', () => {
             const cy = b.y + b.height / 2;
             return Math.max(
               0,
-              ...els.map((el) => {
-                const r = el.getBoundingClientRect();
-                return Math.hypot(
-                  r.x + r.width / 2 - cx,
-                  r.y + r.height / 2 - cy
-                );
-              })
+              ...els
+                .filter((el) => Number(getComputedStyle(el).opacity) > 0.3)
+                .map((el) => {
+                  const r = el.getBoundingClientRect();
+                  return Math.hypot(
+                    r.x + r.width / 2 - cx,
+                    r.y + r.height / 2 - cy
+                  );
+                })
             );
           }, box),
         { intervals: [16] }
       )
-      .toBeGreaterThan(14);
+      .toBeGreaterThan(radius);
   });
 
   test('끄면 점 없이 조용히 꺼진다', async ({ page }) => {
