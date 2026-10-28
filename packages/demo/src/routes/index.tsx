@@ -163,6 +163,11 @@ const StampButtonPage = lazy(() =>
     default: m.StampButtonPage,
   }))
 );
+const SloshGaugePage = lazy(() =>
+  import('../pages/Motion/SloshGauge').then((m) => ({
+    default: m.SloshGaugePage,
+  }))
+);
 const JellyTextPage = lazy(() =>
   import('../pages/Motion/JellyText').then((m) => ({
     default: m.JellyTextPage,
@@ -515,6 +520,14 @@ const router = createBrowserRouter([
             element: (
               <LazyPage>
                 <StampButtonPage />
+              </LazyPage>
+            ),
+          },
+          {
+            path: 'slosh-gauge',
+            element: (
+              <LazyPage>
+                <SloshGaugePage />
               </LazyPage>
             ),
           },

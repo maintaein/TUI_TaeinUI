@@ -660,4 +660,33 @@ export const searchIndex: SearchEntry[] = [
       },
     ],
   },
+  {
+    id: 'slosh-gauge',
+    pageTitle: '출렁이는 게이지',
+    path: '/motion/slosh-gauge',
+    category: '모션',
+    description:
+      'SloshGauge. 값이 바뀌면 통 안의 물이 크게 출렁였다가 잔잔해집니다. 게이지, 물, 출렁, 수위, 저장 공간, meter.',
+    sections: [
+      {
+        title: '마이크로 인터랙션',
+        content:
+          '값을 통 안의 물높이로 보이는 게이지. 값이 바뀌면 수면이 새 높이로 가면서 크게 출렁였다가 잔잔해집니다. 출렁임은 값이 바뀔 때만 생기고 저절로 되풀이되지 않습니다',
+      },
+      {
+        title: '출렁임의 규칙',
+        content:
+          '바뀐 양에 비례해 커지되 통 높이의 8%에서 잘리고, 마지막 변경 뒤 1.5초 안에 수면이 평평해집니다. 값이 자주 바뀌어도 쌓여 커지지 않습니다',
+      },
+      {
+        title: '접근성',
+        content:
+          'role meter, aria-valuenow는 값이 바뀌는 즉시 새 값입니다. valueText가 없으면 백분율을 읽습니다. 통과 물은 aria-hidden 장식입니다',
+      },
+      {
+        title: '움직임 줄이기',
+        content: '움직임 줄이기에서는 물이 출렁이지 않고 높이만 바뀝니다',
+      },
+    ],
+  },
 ];

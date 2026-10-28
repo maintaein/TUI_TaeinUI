@@ -72,7 +72,7 @@ test.describe('모션 전체 보기', () => {
   }) => {
     await page.goto('/motion');
     await expect(
-      page.getByRole('heading', { level: 1, name: '모션 7개' })
+      page.getByRole('heading', { level: 1, name: '모션 8개' })
     ).toBeVisible();
     const sections = page.locator('main section');
     await expect(sections).toHaveCount(3);
@@ -198,6 +198,17 @@ test.describe('모션 전체 보기', () => {
     await expect(card.getByText('결재, 제출, 승인')).toBeVisible();
     await card.getByRole('link', { name: '도장 확정' }).click();
     await expect(page).toHaveURL(/\/motion\/stamp-button$/);
+  });
+
+  test('출렁이는 게이지 카드가 효과 이름과 쓰는 곳을 보이고 누르면 상세로 간다', async ({
+    page,
+  }) => {
+    await page.goto('/motion');
+    const card = page.locator('main section > div > div').nth(7);
+    await expect(card.getByText('SloshGauge', { exact: true })).toBeVisible();
+    await expect(card.getByText('저장 공간, 할당량, 진행률')).toBeVisible();
+    await card.getByRole('link', { name: '출렁이는 게이지' }).click();
+    await expect(page).toHaveURL(/\/motion\/slosh-gauge$/);
   });
 
   test('움직임 멈춤을 켜면 완성 글자가 서고 끄면 다시 재생한다', async ({
@@ -445,6 +456,47 @@ test.describe('모션 전체 보기 도장 확정 미니 (1440px)', () => {
     await expect(stampButton(page)).toHaveAttribute('aria-disabled', 'true', {
       timeout: 15_000,
     });
+  });
+});
+
+// 출렁이는 게이지 미니: 대본이 값 단추를 눌러 aria-valuenow를 90, 20, 60으로 바꾼다
+const sloshMeter = (page: Page) =>
+  page.locator('[data-stage-mini="SloshGauge 미리보기"] [role="meter"]');
+
+test.describe('모션 전체 보기 출렁이는 게이지 미니 (1440px)', () => {
+  test.use({ viewport: { width: 1440, height: 900 } });
+
+  test('대본이 값을 바꾸고 움직임 멈춤이면 서 있다', async ({ page }) => {
+    await page.goto('/motion');
+    const centre = () =>
+      sloshMeter(page).evaluate((el) =>
+        el.closest('[data-stage-mini]')?.scrollIntoView({ block: 'center' })
+      );
+    await centre();
+    await expect(sloshMeter(page)).toHaveAttribute('aria-valuenow', '90', {
+      timeout: 15_000,
+    });
+    await expect(sloshMeter(page)).toHaveAttribute('aria-valuenow', '20', {
+      timeout: 8_000,
+    });
+
+    const pause = page.getByRole('button', { name: '움직임 멈춤' });
+    await pause.click();
+    await expect(pause).toHaveAttribute('aria-pressed', 'true');
+    await centre();
+    const frozen = await sloshMeter(page).getAttribute('aria-valuenow');
+    // 대본 한 바퀴보다 길게 기다려도 값이 바뀌지 않는다
+    for (let i = 0; i < 80; i++) {
+      await expect(sloshMeter(page)).toHaveAttribute('aria-valuenow', frozen!);
+      await page.waitForTimeout(100);
+    }
+    await pause.click();
+    await centre();
+    await expect(sloshMeter(page)).not.toHaveAttribute(
+      'aria-valuenow',
+      frozen!,
+      { timeout: 15_000 }
+    );
   });
 });
 

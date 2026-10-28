@@ -95,6 +95,20 @@ test.describe('모션 계열 사이드바 (1280px)', () => {
     await expect(nav.locator('[aria-current="page"]')).toHaveText(/도장 확정/);
   });
 
+  test('마이크로 인터랙션 분류에 출렁이는 게이지 링크가 있다', async ({
+    page,
+  }) => {
+    await page.goto('/components/button');
+    const nav = page.getByRole('navigation', { name: '문서' });
+    const link = nav.getByRole('link', { name: /출렁이는 게이지/ });
+    await expect(link).toHaveAttribute('href', '/motion/slosh-gauge');
+    await link.click();
+    await expect(page).toHaveURL(/\/motion\/slosh-gauge$/);
+    await expect(nav.locator('[aria-current="page"]')).toHaveText(
+      /출렁이는 게이지/
+    );
+  });
+
   test('항목이 없는 분류는 사이드바에 없다', async ({ page }) => {
     await page.goto('/motion/hangul-assemble');
     const nav = page.getByRole('navigation', { name: '문서' });

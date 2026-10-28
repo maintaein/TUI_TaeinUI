@@ -29,6 +29,7 @@ import {
   TextCursorInput,
   ToggleLeft,
   Stamp,
+  Gauge,
   Trash2,
   Waves,
   type LucideIcon,
@@ -347,7 +348,7 @@ export const motionData: MotionInfo[] = [
     category: 'component',
     icon: Search,
   },
-  // Micro Interaction (4개)
+  // Micro Interaction (5개)
   {
     name: 'CopyButton',
     title: '복사됨',
@@ -385,6 +386,15 @@ export const motionData: MotionInfo[] = [
     usage: '결재, 제출, 승인',
     category: 'micro',
     icon: Stamp,
+  },
+  {
+    name: 'SloshGauge',
+    title: '출렁이는 게이지',
+    path: '/motion/slosh-gauge',
+    description: '값이 바뀌면 통 안의 물이 크게 출렁였다가 잔잔해집니다.',
+    usage: '저장 공간, 할당량, 진행률',
+    category: 'micro',
+    icon: Gauge,
   },
 ];
 
