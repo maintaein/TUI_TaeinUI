@@ -41,6 +41,22 @@ test.describe('유체 연기 엔진', () => {
     });
   });
 
+  test('터진 연기가 유체로 번진다(이류·압력이 빠지면 주입 자리에 머문다)', async ({
+    page,
+  }) => {
+    await open(page);
+    await page.evaluate(() => window.__smoke!.create({ preserve: true }));
+    await page.evaluate(() => window.__smoke!.burst(720, 450));
+    // 벽시계가 아니라 프레임 수로 센다(SwiftShader는 느리고 엔진의 dt는 프레임당 상한이 있다)
+    await page.evaluate(() => window.__smoke!.frames(30));
+    const { width, height } = await page.evaluate(() =>
+      window.__smoke!.alphaExtent(8)
+    );
+    // 주입은 중심에서 spreadPx(60) + 방울 반지름 최대 28 * 1.2 안쪽이다. 풀이가 없으면 외접 상자가
+    // 그 지름(약 187)을 가우시안 꼬리만큼(약 225) 넘지 못하고, 풀이가 있으면 300 이상으로 번진다
+    expect(Math.max(width, height)).toBeGreaterThan(2 * (60 + 28 * 1.2) * 1.5);
+  });
+
   test('분사한 자리에도 연기가 생긴다', async ({ page }) => {
     await open(page);
     await page.evaluate(() => window.__smoke!.create({ preserve: true }));
@@ -62,9 +78,21 @@ test.describe('유체 연기 엔진', () => {
     });
     expect(await page.evaluate(() => window.__smoke!.contextLost())).toBe(true);
     await expect(page.locator('canvas[aria-hidden="true"]')).toHaveCount(0);
-    // 그 뒤의 burst는 아무것도 하지 않는다(던지지도 되살리지도 않는다)
-    await page.evaluate(() => window.__smoke!.burst(720, 450));
-    await expect(page.locator('canvas[aria-hidden="true"]')).toHaveCount(0);
+  });
+
+  test('탭이 숨겨지면 접고 문맥을 놓는다', async ({ page }) => {
+    await open(page);
+    await page.evaluate(() => window.__smoke!.create({}));
+    await page.evaluate(() => {
+      // 헤드리스 탭은 실제로 숨길 수 없어 숨김 상태를 흉내 내 이벤트를 보낸다
+      Object.defineProperty(document, 'hidden', {
+        value: true,
+        configurable: true,
+      });
+      document.dispatchEvent(new Event('visibilitychange'));
+    });
+    expect(await page.evaluate(() => window.__smoke!.attached())).toBe(false);
+    expect(await page.evaluate(() => window.__smoke!.contextLost())).toBe(true);
   });
 
   test('dispose는 즉시 캔버스를 떼고 문맥을 놓는다', async ({ page }) => {

@@ -32,10 +32,14 @@ export default defineConfig({
           ) {
             return 'react-vendor';
           }
+          // core 소스(packages/core/src)는 제외한다. 시험 화면(/e2e/smoke)이 내부 엔진 소스를
+          // 직접 import하는데, 이것이 모든 페이지가 받는 tui-core로 실리면 안 된다.
+          const inCoreSource = /packages[\\/]core[\\/]src[\\/]/.test(id);
           if (
-            id.includes('@taein-ui') ||
-            id.includes('packages/core') ||
-            id.includes('packages\\core')
+            !inCoreSource &&
+            (id.includes('@taein-ui') ||
+              id.includes('packages/core') ||
+              id.includes('packages\\core'))
           ) {
             return 'tui-core';
           }

@@ -228,11 +228,11 @@ export function createFluidSmoke(
 
     const splatP = makeProgram(gl, glsl.SPLAT);
     const advectP = makeProgram(gl, glsl.ADVECT);
-    const curlP = makeProgram(gl, glsl.CURL);
-    const vorticityP = makeProgram(gl, glsl.VORTICITY);
+    const vortP = makeProgram(gl, glsl.VORTICITY);
+    const confineP = makeProgram(gl, glsl.CONFINEMENT);
     const divergenceP = makeProgram(gl, glsl.DIVERGENCE);
     const pressureP = makeProgram(gl, glsl.PRESSURE);
-    const gradientP = makeProgram(gl, glsl.GRADIENT);
+    const projectP = makeProgram(gl, glsl.PROJECT);
     const displayP = makeProgram(gl, glsl.DISPLAY);
     const probeP = makeProgram(gl, glsl.PROBE);
 
@@ -263,7 +263,7 @@ export function createFluidSmoke(
       gl.uniform1i(p.loc(name), unit);
     };
     const setTexel = (p: Program) =>
-      gl.uniform2f(p.loc('uTexel'), texel[0], texel[1]);
+      gl.uniform2f(p.loc('uCell'), texel[0], texel[1]);
     const draw = (target: Target | null, width: number, height: number) => {
       gl.bindFramebuffer(gl.FRAMEBUFFER, target?.fbo ?? null);
       gl.viewport(0, 0, width, height);
@@ -281,28 +281,28 @@ export function createFluidSmoke(
       if (disposed) return;
       disposed = true;
       cancelAnimationFrame(raf);
-      canvas.removeEventListener('webglcontextlost', onLost);
+      canvas.removeEventListener('webglcontextlost', dispose);
+      document.removeEventListener('visibilitychange', onVisibility);
       canvas.remove();
       // 문맥을 쥐고 있으면 동시 상한(약 16)에 걸려 새 연기가 막힌다. 늦은 회수를 기다리지 않는다
       loseContext();
     };
-    // 문맥이 밖에서 빼앗겨도(상한·GPU 리셋) 조용히 접는다
-    const onLost = (e: Event) => {
-      e.preventDefault();
-      dispose();
+    // 탭이 숨겨지면 rAF가 서서 문맥만 쥐고 있게 된다. 접어서 문맥을 놓는다
+    const onVisibility = () => {
+      if (document.hidden) dispose();
     };
 
     const applySplat = (s: Splat, w: number, h: number) => {
       const short = Math.min(w, h);
       gl.useProgram(splatP.program);
-      gl.uniform2f(splatP.loc('uPoint'), s.u, s.v);
-      gl.uniform2f(splatP.loc('uAspect'), w / short, h / short);
-      gl.uniform1f(splatP.loc('uRadius'), splatRadius(s.radiusPx, short));
-      bindTex(splatP, 'uTarget', 0, velocity.read);
-      gl.uniform3f(splatP.loc('uValue'), s.vx, s.vy, 0);
+      gl.uniform2f(splatP.loc('uCenter'), s.u, s.v);
+      gl.uniform2f(splatP.loc('uBoxRatio'), w / short, h / short);
+      gl.uniform1f(splatP.loc('uRadiusSq'), splatRadius(s.radiusPx, short));
+      bindTex(splatP, 'uBase', 0, velocity.read);
+      gl.uniform3f(splatP.loc('uImpulse'), s.vx, s.vy, 0);
       pass(velocity);
-      bindTex(splatP, 'uTarget', 0, dye.read);
-      gl.uniform3f(splatP.loc('uValue'), s.dye, 0, 0);
+      bindTex(splatP, 'uBase', 0, dye.read);
+      gl.uniform3f(splatP.loc('uImpulse'), s.dye, 0, 0);
       pass(dye);
     };
 
@@ -313,27 +313,25 @@ export function createFluidSmoke(
 
       // 속도 이류
       gl.useProgram(advectP.program);
-      gl.uniform2f(advectP.loc('uVelTexel'), texel[0], texel[1]);
+      setTexel(advectP);
       gl.uniform1f(advectP.loc('uDt'), dt);
-      gl.uniform1f(
-        advectP.loc('uDissipation'),
-        FLUID_CONFIG.velocityDissipation
-      );
+      gl.uniform1f(advectP.loc('uDecayRate'), FLUID_CONFIG.velocityDecay);
       bindTex(advectP, 'uVelocity', 0, velocity.read);
-      bindTex(advectP, 'uSource', 1, velocity.read);
+      bindTex(advectP, 'uQuantity', 1, velocity.read);
       pass(velocity);
 
-      // 소용돌이 강화
-      gl.useProgram(curlP.program);
-      setTexel(curlP);
-      bindTex(curlP, 'uVelocity', 0, velocity.read);
+      // 소용돌이도를 구하고, 그 소용돌이를 키우는 힘(vorticity confinement)을 속도에 더한다
+      gl.useProgram(vortP.program);
+      setTexel(vortP);
+      bindTex(vortP, 'uVelocity', 0, velocity.read);
       passTo(curl);
-      gl.useProgram(vorticityP.program);
-      setTexel(vorticityP);
-      gl.uniform1f(vorticityP.loc('uCurlStrength'), FLUID_CONFIG.curl);
-      gl.uniform1f(vorticityP.loc('uDt'), dt);
-      bindTex(vorticityP, 'uVelocity', 0, velocity.read);
-      bindTex(vorticityP, 'uCurl', 1, curl);
+      gl.useProgram(confineP.program);
+      setTexel(confineP);
+      gl.uniform1f(confineP.loc('uConfinement'), FLUID_CONFIG.confinement);
+      gl.uniform1f(confineP.loc('uDt'), dt);
+      gl.uniform1f(confineP.loc('uSpeedCap'), FLUID_CONFIG.speedCap);
+      bindTex(confineP, 'uVelocity', 0, velocity.read);
+      bindTex(confineP, 'uVorticity', 1, curl);
       pass(velocity);
 
       // 발산 -> 압력 Jacobi -> 기울기 빼기
@@ -348,17 +346,17 @@ export function createFluidSmoke(
         bindTex(pressureP, 'uPressure', 0, pressure.read);
         pass(pressure);
       }
-      gl.useProgram(gradientP.program);
-      setTexel(gradientP);
-      bindTex(gradientP, 'uPressure', 0, pressure.read);
-      bindTex(gradientP, 'uVelocity', 1, velocity.read);
+      gl.useProgram(projectP.program);
+      setTexel(projectP);
+      bindTex(projectP, 'uPressure', 0, pressure.read);
+      bindTex(projectP, 'uVelocity', 1, velocity.read);
       pass(velocity);
 
       // 밀도 이류 + 감쇠
       gl.useProgram(advectP.program);
-      gl.uniform1f(advectP.loc('uDissipation'), FLUID_CONFIG.dyeDissipation);
+      gl.uniform1f(advectP.loc('uDecayRate'), FLUID_CONFIG.dyeDecay);
       bindTex(advectP, 'uVelocity', 0, velocity.read);
-      bindTex(advectP, 'uSource', 1, dye.read);
+      bindTex(advectP, 'uQuantity', 1, dye.read);
       pass(dye);
     };
 
@@ -370,14 +368,14 @@ export function createFluidSmoke(
       gl.useProgram(displayP.program);
       gl.uniform3f(displayP.loc('uColor'), color[0], color[1], color[2]);
       gl.uniform1f(displayP.loc('uFade'), fade);
-      bindTex(displayP, 'uDye', 0, dye.read);
+      bindTex(displayP, 'uDensity', 0, dye.read);
       gl.drawArrays(gl.TRIANGLES, 0, 3);
     };
 
     // 화면의 최대 알파(0~1, 칸 단위 표본). 읽기 동기화가 파이프라인을 한 번 세우므로 주기적으로만 부른다
     const peakAlpha = () => {
       gl.useProgram(probeP.program);
-      bindTex(probeP, 'uDye', 0, dye.read);
+      bindTex(probeP, 'uDensity', 0, dye.read);
       passTo(probe);
       gl.readPixels(
         0,
@@ -395,12 +393,12 @@ export function createFluidSmoke(
       return peak / 255;
     };
 
-    // 탭이 숨겨지면 브라우저가 rAF를 멈춘다. 돌아오면 dt가 크게 튀므로 자르고, 수명은 시계로 센다.
+    // rAF가 멈췄다 돌아오면 dt가 크게 튀므로 자르고, 수명은 시계로 센다.
     const tick = (now: number) => {
       raf = 0;
       const age = now - lastInject;
       if (age > FLUID_CONFIG.maxLifeMs) return dispose();
-      const dt = Math.min((now - lastFrame) / 1000, 1 / 30);
+      const dt = Math.min(Math.max(0, now - lastFrame) / 1000, 1 / 30);
       lastFrame = now;
       feedBursts();
       step(dt);
@@ -467,7 +465,9 @@ export function createFluidSmoke(
       pointerEvents: 'none',
       zIndex: themeContract.zIndex.popover,
     });
-    canvas.addEventListener('webglcontextlost', onLost);
+    // 문맥이 밖에서 빼앗겨도(상한·GPU 리셋) 되살리지 않고 조용히 접는다
+    canvas.addEventListener('webglcontextlost', dispose);
+    document.addEventListener('visibilitychange', onVisibility);
     host.append(canvas);
     raf = requestAnimationFrame(tick);
 

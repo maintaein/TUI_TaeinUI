@@ -21,6 +21,10 @@ interface SmokeHarness {
   ): Promise<number[]>;
   /** 알파가 0이 아닌 픽셀 수(preserve로 만든 연기만 읽힌다) */
   alphaPixels(): number;
+  /** 알파가 minAlpha(0~255)보다 큰 픽셀의 외접 상자 크기(CSS px). 없으면 0 */
+  alphaExtent(minAlpha: number): { width: number; height: number };
+  /** rAF를 n번(벽시계가 아니라 프레임 수) 기다린다 */
+  frames(n: number): Promise<void>;
   /** 연기 캔버스가 DOM에 붙어 있는가 */
   attached(): boolean;
   /** 현재 연기를 즉시 정리한다 */
@@ -114,6 +118,42 @@ export function SmokePage() {
         let count = 0;
         for (let i = 3; i < data.length; i += 4) if (data[i] > 0) count += 1;
         return count;
+      },
+      alphaExtent(minAlpha) {
+        const none = { width: 0, height: 0 };
+        if (!canvas) return none;
+        const copy = document.createElement('canvas');
+        copy.width = canvas.width;
+        copy.height = canvas.height;
+        const ctx = copy.getContext('2d');
+        if (!ctx) return none;
+        ctx.drawImage(canvas, 0, 0);
+        const { data } = ctx.getImageData(0, 0, copy.width, copy.height);
+        let minX = copy.width;
+        let maxX = -1;
+        let minY = copy.height;
+        let maxY = -1;
+        for (let y = 0; y < copy.height; y++) {
+          for (let x = 0; x < copy.width; x++) {
+            if (data[(y * copy.width + x) * 4 + 3] > minAlpha) {
+              minX = Math.min(minX, x);
+              maxX = Math.max(maxX, x);
+              minY = Math.min(minY, y);
+              maxY = Math.max(maxY, y);
+            }
+          }
+        }
+        if (maxX < 0) return none;
+        const ratio = copy.width / canvas.clientWidth;
+        return {
+          width: (maxX - minX + 1) / ratio,
+          height: (maxY - minY + 1) / ratio,
+        };
+      },
+      async frames(n) {
+        for (let i = 0; i < n; i++) {
+          await new Promise((resolve) => requestAnimationFrame(resolve));
+        }
       },
       attached() {
         return !!canvas && canvas.isConnected;

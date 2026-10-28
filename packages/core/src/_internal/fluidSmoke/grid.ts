@@ -15,11 +15,13 @@ export const FLUID_CONFIG = {
   /** 압력 Jacobi 반복 */
   pressureIterations: 20,
   /** 속도 감쇠(1/s). 연기가 흩어지며 멈추는 속도 */
-  velocityDissipation: 0.4,
+  velocityDecay: 0.4,
   /** 밀도 감쇠(1/s) */
-  dyeDissipation: 0.9,
-  /** 소용돌이 강화 세기 */
-  curl: 22,
+  dyeDecay: 0.9,
+  /** 소용돌이 강화 세기(GPU Gems 38장의 e_c) */
+  confinement: 22,
+  /** 속도 길이 상한(셀/초). 소용돌이 강화가 속도를 터뜨리지 않게 한다 */
+  speedCap: 1000,
   /** 마지막 주입 뒤 이 시간이 지나면 밀도와 상관없이 접는다(ms) */
   maxLifeMs: 3000,
   /** 접기 직전 이 시간 동안 알파를 0으로 내린다(ms). 잔연이 툭 끊기지 않게 한다 */
