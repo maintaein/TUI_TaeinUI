@@ -635,12 +635,14 @@ export function Stage({
       holds.current.forEach((drop) => drop());
       onPauseRef.current?.();
     }
+    // 시험용: 멈추거나 이어 간 순간의 타임라인 시간. 스크롤로 멈췄다 와도 처음으로 돌아가지 않는지 e2e가 읽는다
+    if (mini) root?.setAttribute('data-stage-time', tl.time().toFixed(3));
     gsap.to(cur, {
       autoAlpha: playing ? 1 : 0,
       duration: dur.fast,
       ease: ease.settle,
     });
-  }, [playing, root, script, reduced]);
+  }, [playing, root, script, reduced, mini]);
 
   useLayoutEffect(() => onStillRef.current?.(still), [still]);
   useLayoutEffect(() => onUserPauseRef.current?.(flags.user), [flags.user]);
