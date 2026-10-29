@@ -16,6 +16,11 @@ import * as styles from './Stage.css';
 
 /** 대본이 타임라인에 얹는 동작. 대상은 `data-stage-target="이름"`이 붙은 요소다 */
 export interface Act {
+  /**
+   * 미니 무대에서는 `mini`, 아니면 `full`을 돌려준다. 카드 속 미니는 연출 커서를 그리지 않아 오가는 시간과 읽을 시간이 헛도는 쉼이라,
+   * 그 쉼만 줄이려고 대본이 고른다. 움직임 자체의 시간(누름, 훑기, 입력)에는 쓰지 않는다
+   */
+  pace: (full: number, mini: number) => number;
   /** 연출 커서를 대상으로 옮긴다 */
   move: (target: string, seconds?: number) => void;
   /** 합성 pointerover와 mouseover(마우스가 올라옴, React의 onMouseEnter도 켠다). 대상과 무대 안 조상에 data-stage-hover를 붙여 CSS :hover 쌍둥이 규칙을 켠다 */
@@ -88,7 +93,7 @@ export interface StageProps {
   bar?: boolean;
   /**
    * 카드 속 미니. 일시정지 단추와 넘겨받기가 없고 안쪽은 늘 `inert`라 만질 수 없다(대본이 쏘는 합성 이벤트는 그대로 먹는다).
-   * 화면에 절반 이상 보일 때만 돌고, `MiniFrozen`이 켜지면 선다
+   * 화면에 조금이라도 보이면 돌고(스크롤 중 카드가 반쯤 걸쳐도 서지 않는다), 완전히 벗어나면 서서 그 자리에서 이어 간다. `MiniFrozen`이 켜지면 선다
    */
   mini?: boolean;
   /**
@@ -346,6 +351,7 @@ export function Stage({
         );
     };
     const act: Act = {
+      pace: (full, short) => (mini ? short : full),
       move: (target, seconds = dur.slow * 2) => {
         tl.to(cur, {
           x: () => at(target).x,
@@ -588,7 +594,7 @@ export function Stage({
       grips.forEach((drop) => drop());
       clearMirror(root);
     };
-  }, [root, script, reduced]);
+  }, [root, script, reduced, mini]);
 
   // core 오버레이는 열리면서 포커스를 받는다. 시트가 아직 무대 밖(아래, 옆)에서 들어오는 중이면 브라우저가 거기가 보이도록
   // 페이지를 스크롤한다(body에 fixed로 그릴 때는 없던 일이다). 스크롤은 포커스 이벤트보다 먼저 일어나므로 지금까지 본 위치를 적어 두고,
@@ -649,7 +655,7 @@ export function Stage({
             ? f
             : { ...f, offscreen: !entry.isIntersecting }
         ),
-      { threshold: mini ? 0.5 : 0 }
+      { threshold: 0 }
     );
     io.observe(root);
     const onVisibility = () =>

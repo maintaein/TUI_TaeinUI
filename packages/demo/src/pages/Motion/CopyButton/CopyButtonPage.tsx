@@ -87,13 +87,14 @@ const PROPS: PropDefinition[] = [
 
 // 커서가 단추를 눌러 복사됨을 보이고 평소로 돌아올 때까지 기다린 뒤 쉬는 자리로 돌아간다
 // ponytail: 쉬는 시간 2.2초는 되돌아오는 시간(1.5초)과 읽을 시간을 합친 값이다, loop.base가 바뀌면 같이 고친다
+// 카드 속 미니는 커서가 그려지지 않으니 오가는 시간과 읽을 시간만 줄인다(act.pace). 누름과 효과가 끝나는 시간은 그대로다
 const SCRIPT = (act: Act) => {
-  act.move('copy');
-  act.wait(0.3);
+  act.move('copy', act.pace(0.6, 0.3));
+  act.wait(act.pace(0.3, 0.1));
   act.press('copy');
-  act.wait(2.2);
-  act.home();
-  act.wait(0.4);
+  act.wait(act.pace(2.2, 1.2));
+  act.home(act.pace(0.6, 0.3));
+  act.wait(act.pace(0.4, 0.1));
 };
 
 const LISTEN = `<CopyButton

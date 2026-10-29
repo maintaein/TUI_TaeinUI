@@ -105,16 +105,17 @@ const PROPS: PropDefinition[] = [
 
 // 커서가 검색 단추를 눌러 열고, 입력창이 펼쳐지는 것을 보인 뒤 바깥 영역을 눌러 닫는다
 // ponytail: 쉬는 시간 1.8초는 갈라짐(0.75초)과 읽을 시간을 합친 값이다, 모션이 길어지면 같이 늘린다
+// 카드 속 미니는 커서가 그려지지 않으니 오가는 시간과 읽을 시간만 줄인다(act.pace). 누름과 효과가 끝나는 시간은 그대로다
 const SCRIPT = (act: Act) => {
-  act.move('trigger');
-  act.wait(0.3);
+  act.move('trigger', act.pace(0.6, 0.3));
+  act.wait(act.pace(0.3, 0.1));
   act.press('trigger');
-  act.wait(1.8);
-  act.move('away');
+  act.wait(act.pace(1.8, 1.4));
+  act.move('away', act.pace(0.6, 0.3));
   act.press('away');
-  act.wait(1.2);
-  act.home();
-  act.wait(0.4);
+  act.wait(act.pace(1.2, 0.8));
+  act.home(act.pace(0.6, 0.3));
+  act.wait(act.pace(0.4, 0.1));
 };
 
 const CONTROLLED = `const [open, setOpen] = useState(false);

@@ -80,16 +80,17 @@ const PROPS: PropDefinition[] = [
 ];
 
 // 커서가 눌러 켜고 터지는 걸 보인 뒤 다시 눌러 끈다. 대본이 먼저 꺼 두어 사용자가 만졌다 놓은 뒤에도 순서가 맞는다
+// 카드 속 미니는 커서가 그려지지 않으니 오가는 시간과 읽을 시간만 줄인다(act.pace). 누름과 효과가 끝나는 시간은 그대로다
 const SCRIPT = (act: Act, setSelected: (selected: boolean) => void) => {
   act.call(() => setSelected(false));
-  act.move('like');
-  act.wait(0.3);
+  act.move('like', act.pace(0.6, 0.3));
+  act.wait(act.pace(0.3, 0.1));
   act.press('like');
-  act.wait(1.4);
+  act.wait(act.pace(1.4, 1));
   act.press('like');
-  act.wait(0.8);
-  act.home();
-  act.wait(0.4);
+  act.wait(act.pace(0.8, 0.5));
+  act.home(act.pace(0.6, 0.3));
+  act.wait(act.pace(0.4, 0.1));
 };
 
 /** 무대 조각. 대본의 커서가 켜고 끄고, 마우스를 올리면 직접 눌러 볼 수 있다 */

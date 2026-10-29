@@ -57,15 +57,16 @@ const storageText = (value: number) => `${value / 10}GB / 10GB`;
 const STEPS = [90, 20, 60];
 
 // 커서가 값 단추를 차례로 눌러 90, 20, 60으로 바꾼다. 누른 뒤 출렁임이 잔잔해지는 1.5초보다 길게 머문다
+// 카드 속 미니는 커서가 그려지지 않으니 오가는 시간과 읽을 시간만 줄인다(act.pace). 누름과 효과가 끝나는 시간은 그대로다
 const SCRIPT = (act: Act) => {
   for (const v of STEPS) {
-    act.move(`v${v}`);
-    act.wait(0.3);
+    act.move(`v${v}`, act.pace(0.6, 0.3));
+    act.wait(act.pace(0.3, 0.1));
     act.press(`v${v}`);
-    act.wait(2.2);
+    act.wait(act.pace(2.2, 1.2));
   }
-  act.home();
-  act.wait(0.4);
+  act.home(act.pace(0.6, 0.3));
+  act.wait(act.pace(0.4, 0.1));
 };
 
 interface SloshGaugeDemoProps extends DemoProps {

@@ -72,14 +72,15 @@ const PROPS: PropDefinition[] = [
 // 커서가 길게 눌러 채우고 떼는 것을 반복한다. 누른 채 있는 시간은 홀드(1.5초)보다 길게 잡아 실행까지 간다.
 // 시작에 단추를 새로 세워 사용자가 만져 무장해 둔 뒤에도 순서가 맞는다
 // ponytail: 누름 1.9초와 쉼 2.4초는 홀드 1.5초와 되돌아오는 시간 2초에서 온 값이다, core 상수가 바뀌면 같이 고친다
+// 카드 속 미니는 커서가 그려지지 않으니 오가는 시간과 읽을 시간만 줄인다(act.pace). 누름과 효과가 끝나는 시간은 그대로다
 const SCRIPT = (act: Act, reset: () => void) => {
   act.call(reset);
-  act.move('hold');
-  act.wait(0.3);
+  act.move('hold', act.pace(0.6, 0.3));
+  act.wait(act.pace(0.3, 0.1));
   act.press('hold', 1.9);
-  act.wait(2.4);
-  act.home();
-  act.wait(0.4);
+  act.wait(act.pace(2.4, 1.6));
+  act.home(act.pace(0.6, 0.3));
+  act.wait(act.pace(0.4, 0.1));
 };
 
 // 실행 결과를 보이는 시간. 단추가 처음으로 돌아오는 시간(2초)보다 조금 길다

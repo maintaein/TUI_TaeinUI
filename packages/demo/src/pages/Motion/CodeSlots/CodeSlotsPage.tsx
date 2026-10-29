@@ -106,19 +106,20 @@ const PROPS: PropDefinition[] = [
 const answerOf = (length: number) => '123456'.slice(0, length);
 
 // 대본: 틀린 번호를 넣어 칸이 물결치게 하고, 비운 뒤 맞는 번호를 넣어 칸이 합쳐지게 한다
+// 카드 속 미니는 커서가 그려지지 않으니 오가는 시간과 읽을 시간만 줄인다(act.pace). 누름과 효과가 끝나는 시간은 그대로다
 const SCRIPT = (act: Act) => {
   act.focus('code');
-  act.wait(0.4);
+  act.wait(act.pace(0.4, 0.2));
   act.type('code', '111111');
-  act.wait(1.8);
+  act.wait(act.pace(1.8, 1));
   act.clear('code');
-  act.wait(0.6);
+  act.wait(act.pace(0.6, 0.3));
   act.type('code', '123456');
-  act.wait(2.6);
+  act.wait(act.pace(2.6, 1.4));
   act.clear('code');
   act.blur('code');
-  act.home();
-  act.wait(0.6);
+  act.home(act.pace(0.6, 0.3));
+  act.wait(act.pace(0.6, 0.2));
 };
 
 /** 무대 조각. 대본이 틀린 번호와 맞는 번호를 차례로 넣고, 마우스를 올리면 직접 넣어 볼 수 있다 */

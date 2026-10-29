@@ -68,17 +68,18 @@ const DEFAULT_COUNT = 6;
 
 // 대본: 허브를 눌러 열고, 호 위쪽을 왼쪽에서 오른쪽으로 훑어 가리킴이 옮겨 가게 한 뒤, 다시 눌러 접는다.
 // 훑는 줄은 허브 가운데에서 40px 위, 좌우 끝은 호의 양 끝 가까이(약 17도)라 아이콘이 차례로 커진다
+// 카드 속 미니는 커서가 그려지지 않으니 오가는 시간과 읽을 시간만 줄인다(act.pace). 누름과 효과가 끝나는 시간은 그대로다
 const SCRIPT = (act: Act) => {
-  act.move('hub');
-  act.wait(0.3);
+  act.move('hub', act.pace(0.6, 0.3));
+  act.wait(act.pace(0.3, 0.1));
   act.press('hub');
-  act.wait(1.4);
+  act.wait(act.pace(1.4, 0.9));
   act.sweep('arc', 2.4);
-  act.wait(0.5);
+  act.wait(act.pace(0.5, 0.3));
   act.press('hub');
-  act.wait(1.2);
-  act.home();
-  act.wait(0.4);
+  act.wait(act.pace(1.2, 0.8));
+  act.home(act.pace(0.6, 0.3));
+  act.wait(act.pace(0.4, 0.1));
 };
 
 interface FanMenuDemoProps extends DemoProps {

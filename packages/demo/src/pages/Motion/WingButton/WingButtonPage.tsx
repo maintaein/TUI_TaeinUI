@@ -74,14 +74,15 @@ const PROPS: PropDefinition[] = [
 
 // 커서가 눌러 날려 보내고, 날아간 표지가 자리 잡을 때까지 보인 뒤 다시 시작한다. 단추를 새로 세우는 일을 맨 앞에 두어
 // 사용자가 만져 보낸 뒤에도 순서가 맞는다. 비행(약 1.4초)과 표지 떠오름(0.2초)이 끝난 뒤 연기가 흩어질 때까지 보인다
+// 카드 속 미니는 커서가 그려지지 않으니 오가는 시간과 읽을 시간만 줄인다(act.pace). 누름과 효과가 끝나는 시간은 그대로다
 const SCRIPT = (act: Act, reset: () => void) => {
   act.call(reset);
-  act.move('send');
-  act.wait(0.3);
+  act.move('send', act.pace(0.6, 0.3));
+  act.wait(act.pace(0.3, 0.1));
   act.press('send');
-  act.wait(3.6);
-  act.home();
-  act.wait(0.4);
+  act.wait(act.pace(3.6, 2.4));
+  act.home(act.pace(0.6, 0.3));
+  act.wait(act.pace(0.4, 0.1));
 };
 
 /** 무대 조각. 대본의 커서가 눌러 날려 보내고 새로 세우기를 반복하고, 마우스를 올리면 직접 보내 볼 수 있다 */
