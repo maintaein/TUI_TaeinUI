@@ -97,7 +97,10 @@ test.describe('빛 물줄기 모션 전체 보기 미니 (1440px)', () => {
 
   test('미니 배경이 카드 칸 안에 있다', async ({ page }) => {
     await page.goto('/motion');
-    const card = page.locator('main section > div > div').nth(12);
+    // 카드 순서가 바뀌어도 깨지지 않게 미니의 라벨로 카드를 고른다
+    const card = page.locator('main section > div > div').filter({
+      has: page.locator('[data-stage-mini="LuminousFlow 미리보기"]'),
+    });
     await expect(card.locator('canvas')).toBeVisible();
     await centre(page);
     const box = (await card.boundingBox())!;
