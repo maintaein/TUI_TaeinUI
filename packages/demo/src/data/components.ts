@@ -28,15 +28,12 @@ import {
   Tag,
   TextCursorInput,
   ToggleLeft,
-  Stamp,
   Fan,
   Send,
-  Expand,
   Sparkles,
   Gauge,
   KeyRound,
   Trash2,
-  Waves,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -325,7 +322,7 @@ export interface MotionInfo {
 }
 
 export const motionData: MotionInfo[] = [
-  // Text Animation (2개)
+  // Text Animation (1개)
   {
     name: 'HangulAssemble',
     title: '한글 조립',
@@ -334,26 +331,6 @@ export const motionData: MotionInfo[] = [
     usage: '첫 화면 소개 문장, 섹션 제목',
     category: 'text',
     icon: Languages,
-  },
-  {
-    name: 'JellyText',
-    title: '젤리 글자',
-    path: '/motion/jelly-text',
-    description: '커서가 지나가는 글자가 말랑하게 늘었다 출렁이며 돌아옵니다.',
-    usage: '히어로 문구, 브랜드 슬로건',
-    category: 'text',
-    icon: Waves,
-  },
-  // Animation (1개)
-  {
-    name: 'Morph',
-    title: '부품 이어받기',
-    path: '/motion/morph',
-    description:
-      '사라지는 요소의 모양을 새 요소가 이어받아 그 자리에서 자라납니다.',
-    usage: '카드에서 상세로, 썸네일에서 크게 보기로',
-    category: 'animation',
-    icon: Expand,
   },
   // Component (1개)
   {
@@ -366,7 +343,7 @@ export const motionData: MotionInfo[] = [
     category: 'component',
     icon: Search,
   },
-  // Micro Interaction (8개)
+  // Micro Interaction (7개)
   {
     name: 'CopyButton',
     title: '복사됨',
@@ -395,15 +372,6 @@ export const motionData: MotionInfo[] = [
     usage: '삭제, 결제, 초기화',
     category: 'micro',
     icon: Trash2,
-  },
-  {
-    name: 'StampButton',
-    title: '도장 확정',
-    path: '/motion/stamp-button',
-    description: '누르면 도장이 내려와 쾅 찍히고 파란 인주가 번집니다.',
-    usage: '결재, 제출, 승인',
-    category: 'micro',
-    icon: Stamp,
   },
   {
     name: 'SloshGauge',

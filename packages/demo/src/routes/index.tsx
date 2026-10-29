@@ -158,11 +158,6 @@ const HoldButtonPage = lazy(() =>
     default: m.HoldButtonPage,
   }))
 );
-const StampButtonPage = lazy(() =>
-  import('../pages/Motion/StampButton').then((m) => ({
-    default: m.StampButtonPage,
-  }))
-);
 const SloshGaugePage = lazy(() =>
   import('../pages/Motion/SloshGauge').then((m) => ({
     default: m.SloshGaugePage,
@@ -183,19 +178,9 @@ const WingButtonPage = lazy(() =>
     default: m.WingButtonPage,
   }))
 );
-const MorphPage = lazy(() =>
-  import('../pages/Motion/Morph').then((m) => ({
-    default: m.MorphPage,
-  }))
-);
 const LuminousFlowPage = lazy(() =>
   import('../pages/Motion/LuminousFlow').then((m) => ({
     default: m.LuminousFlowPage,
-  }))
-);
-const JellyTextPage = lazy(() =>
-  import('../pages/Motion/JellyText').then((m) => ({
-    default: m.JellyTextPage,
   }))
 );
 
@@ -514,14 +499,6 @@ const router = createBrowserRouter([
             ),
           },
           {
-            path: 'jelly-text',
-            element: (
-              <LazyPage>
-                <JellyTextPage />
-              </LazyPage>
-            ),
-          },
-          {
             path: 'gooey-search',
             element: (
               <LazyPage>
@@ -554,14 +531,6 @@ const router = createBrowserRouter([
             ),
           },
           {
-            path: 'stamp-button',
-            element: (
-              <LazyPage>
-                <StampButtonPage />
-              </LazyPage>
-            ),
-          },
-          {
             path: 'slosh-gauge',
             element: (
               <LazyPage>
@@ -590,14 +559,6 @@ const router = createBrowserRouter([
             element: (
               <LazyPage>
                 <WingButtonPage />
-              </LazyPage>
-            ),
-          },
-          {
-            path: 'morph',
-            element: (
-              <LazyPage>
-                <MorphPage />
               </LazyPage>
             ),
           },

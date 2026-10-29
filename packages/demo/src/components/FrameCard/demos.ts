@@ -17,15 +17,12 @@ import { HangulAssembleDemo } from '../../pages/Motion/HangulAssemble/HangulAsse
 import { CopyButtonDemo } from '../../pages/Motion/CopyButton/CopyButtonPage';
 import { BurstToggleDemo } from '../../pages/Motion/BurstToggle/BurstTogglePage';
 import { HoldButtonDemo } from '../../pages/Motion/HoldButton/HoldButtonPage';
-import { StampButtonDemo } from '../../pages/Motion/StampButton/StampButtonPage';
 import { SloshGaugeDemo } from '../../pages/Motion/SloshGauge/SloshGaugePage';
 import { CodeSlotsDemo } from '../../pages/Motion/CodeSlots/CodeSlotsPage';
 import { FanMenuDemo } from '../../pages/Motion/FanMenu/FanMenuPage';
 import { WingButtonDemo } from '../../pages/Motion/WingButton/WingButtonPage';
-import { MorphDemo } from '../../pages/Motion/Morph/MorphPage';
 import { LuminousFlowDemo } from '../../pages/Motion/LuminousFlow/LuminousFlowPage';
 import { GooeySearchDemo } from '../../pages/Motion/GooeySearch/GooeySearchPage';
-import { JellyTextDemo } from '../../pages/Motion/JellyText/JellyTextPage';
 import { LoaderDemo } from '../../pages/Components/Loader/LoaderPage';
 import { ModalDemo } from '../../pages/Components/Modal/ModalPage';
 import { NumericSpinnerDemo } from '../../pages/Components/NumericSpinner/NumericSpinnerPage';
@@ -67,16 +64,13 @@ export const DEMOS: Record<string, ComponentType<DemoProps>> = {
   Chip: ChipDemo,
   Card: CardDemo,
   HangulAssemble: HangulAssembleDemo,
-  JellyText: JellyTextDemo,
   GooeySearch: GooeySearchDemo,
   CopyButton: CopyButtonDemo,
   BurstToggle: BurstToggleDemo,
   HoldButton: HoldButtonDemo,
-  StampButton: StampButtonDemo,
   SloshGauge: SloshGaugeDemo,
   CodeSlots: CodeSlotsDemo,
   FanMenu: FanMenuDemo,
   WingButton: WingButtonDemo,
-  Morph: MorphDemo,
   LuminousFlow: LuminousFlowDemo,
 };

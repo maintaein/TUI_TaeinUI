@@ -35,7 +35,7 @@ export interface Act {
   /**
    * 커서를 대상의 왼쪽 끝으로 옮기고 오른쪽 끝까지 훑어 지나가며, 커서 자리마다 합성 pointermove를 쏜다
    * (시작에 pointerover, 끝에 pointerout). 대상은 포인터 핸들러가 달린 요소 하나이거나 그것 하나만 감싼 상자다.
-   * 커서 자리를 읽는 JellyText 같은 컴포넌트용이다
+   * 커서 자리를 읽는 FanMenu 같은 컴포넌트용이다
    */
   sweep: (target: string, seconds?: number) => void;
   /** 커서를 무대 안 쉬는 자리로 되돌린다 */

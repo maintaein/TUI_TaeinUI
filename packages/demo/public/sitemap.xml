@@ -33,16 +33,13 @@
   <!-- Motion -->
   <url><loc>https://tui-taein-ui.vercel.app/motion</loc><changefreq>monthly</changefreq><priority>0.9</priority></url>
   <url><loc>https://tui-taein-ui.vercel.app/motion/hangul-assemble</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
-  <url><loc>https://tui-taein-ui.vercel.app/motion/jelly-text</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
   <url><loc>https://tui-taein-ui.vercel.app/motion/gooey-search</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
   <url><loc>https://tui-taein-ui.vercel.app/motion/copy-button</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
   <url><loc>https://tui-taein-ui.vercel.app/motion/burst-toggle</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
   <url><loc>https://tui-taein-ui.vercel.app/motion/hold-button</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
-  <url><loc>https://tui-taein-ui.vercel.app/motion/stamp-button</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
   <url><loc>https://tui-taein-ui.vercel.app/motion/slosh-gauge</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
   <url><loc>https://tui-taein-ui.vercel.app/motion/code-slots</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
   <url><loc>https://tui-taein-ui.vercel.app/motion/fan-menu</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
   <url><loc>https://tui-taein-ui.vercel.app/motion/wing-button</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
-  <url><loc>https://tui-taein-ui.vercel.app/motion/morph</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
   <url><loc>https://tui-taein-ui.vercel.app/motion/luminous-flow</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
 </urlset>

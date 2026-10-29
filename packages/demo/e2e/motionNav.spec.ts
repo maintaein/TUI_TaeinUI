@@ -20,16 +20,6 @@ test.describe('모션 계열 사이드바 (1280px)', () => {
     await expect(nav.locator('[aria-current="page"]')).toHaveText(/한글 조립/);
   });
 
-  test('텍스트 애니메이션 묶음에 젤리 글자 링크도 있다', async ({ page }) => {
-    await page.goto('/components/button');
-    const nav = page.getByRole('navigation', { name: '문서' });
-    const link = nav.getByRole('link', { name: /젤리 글자/ });
-    await expect(link).toHaveAttribute('href', '/motion/jelly-text');
-    await link.click();
-    await expect(page).toHaveURL(/\/motion\/jelly-text$/);
-    await expect(nav.locator('[aria-current="page"]')).toHaveText(/젤리 글자/);
-  });
-
   test('컴포넌트 분류에 물방울 검색창 링크가 있다', async ({ page }) => {
     await page.goto('/components/button');
     const nav = page.getByRole('navigation', { name: '문서' });
@@ -82,16 +72,6 @@ test.describe('모션 계열 사이드바 (1280px)', () => {
     );
   });
 
-  test('마이크로 인터랙션 분류에 도장 확정 링크가 있다', async ({ page }) => {
-    await page.goto('/components/button');
-    const nav = page.getByRole('navigation', { name: '문서' });
-    const link = nav.getByRole('link', { name: /도장 확정/ });
-    await expect(link).toHaveAttribute('href', '/motion/stamp-button');
-    await link.click();
-    await expect(page).toHaveURL(/\/motion\/stamp-button$/);
-    await expect(nav.locator('[aria-current="page"]')).toHaveText(/도장 확정/);
-  });
-
   test('마이크로 인터랙션 분류에 출렁이는 게이지 링크가 있다', async ({
     page,
   }) => {
@@ -142,20 +122,16 @@ test.describe('모션 계열 사이드바 (1280px)', () => {
     await expect(nav.locator('[aria-current="page"]')).toHaveText(/날개 전송/);
   });
 
-  test('애니메이션 분류에 부품 이어받기 링크가 있다', async ({ page }) => {
+  // 애니메이션 분류는 항목이 없어 groupMotion이 거르므로 사이드바에 머리글이 없다
+  test('빈 애니메이션 분류는 사이드바에 나타나지 않는다', async ({ page }) => {
     await page.goto('/components/button');
     const nav = page.getByRole('navigation', { name: '문서' });
-    await expect(nav.getByText('애니메이션', { exact: true })).toBeVisible();
-    const link = nav.getByRole('link', { name: /부품 이어받기/ });
-    await expect(link).toHaveAttribute('href', '/motion/morph');
-    await link.click();
-    await expect(page).toHaveURL(/\/motion\/morph$/);
-    await expect(nav.locator('[aria-current="page"]')).toHaveText(
-      /부품 이어받기/
-    );
+    await expect(
+      nav.getByText('마이크로 인터랙션', { exact: true })
+    ).toBeVisible();
+    await expect(nav.getByText('애니메이션', { exact: true })).toHaveCount(0);
   });
 
-  // 다섯 분류가 모두 차서 비어 있는 분류가 사이드바에서 빠지는 규칙은 e2e로 볼 자료가 없다(groupMotion이 거른다)
   test('배경 분류에 빛 물줄기 링크가 있다', async ({ page }) => {
     await page.goto('/components/button');
     const nav = page.getByRole('navigation', { name: '문서' });
@@ -205,26 +181,6 @@ test.describe('모션 검색', () => {
       await expect(page.getByRole('listbox')).toContainText('모션');
       await option.click();
       await expect(page).toHaveURL(/\/motion\/hangul-assemble$/);
-    });
-  }
-});
-
-test.describe('젤리 글자 검색', () => {
-  test.use({ viewport: { width: 1280, height: 800 } });
-
-  for (const term of ['젤리 글자', '말랑', '출렁', '젤리', 'JellyText']) {
-    test(`"${term}"로 찾아 이동한다`, async ({ page }) => {
-      await page.goto('/');
-      // 앱이 그려지기 전의 키는 단축키 effect가 붙기 전이라 사라진다. 검색 단추가 보이면 붙은 뒤다.
-      await expect(page.getByRole('button', { name: /^검색/ })).toBeVisible();
-      await page.keyboard.press('Control+k');
-      const input = page.getByRole('combobox', { name: '검색' });
-      await input.fill(term);
-      const option = page.getByRole('option', { name: /젤리 글자/ });
-      await expect(option).toBeVisible();
-      await expect(page.getByRole('listbox')).toContainText('모션');
-      await option.click();
-      await expect(page).toHaveURL(/\/motion\/jelly-text$/);
     });
   }
 });

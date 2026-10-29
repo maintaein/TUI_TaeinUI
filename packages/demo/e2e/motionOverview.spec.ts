@@ -72,22 +72,23 @@ test.describe('모션 전체 보기', () => {
   }) => {
     await page.goto('/motion');
     await expect(
-      page.getByRole('heading', { level: 1, name: '모션 13개' })
+      page.getByRole('heading', { level: 1, name: '모션 10개' })
     ).toBeVisible();
     const sections = page.locator('main section');
-    await expect(sections).toHaveCount(5);
+    await expect(sections).toHaveCount(4);
+    await expect(page.locator('main section > div > div')).toHaveCount(10);
     for (const name of [/텍스트 애니메이션/, /컴포넌트/, /마이크로 인터랙션/])
       await expect(
         sections.getByRole('heading', { level: 2, name })
       ).toBeVisible();
-    // '애니메이션'은 '텍스트 애니메이션'의 부분 문자열이라 이름 전체로 맞춘다
+    // 항목이 없는 '애니메이션' 분류는 절이 없다. '텍스트 애니메이션'의 부분 문자열이라 이름 전체로 맞춘다
     await expect(
       sections.getByRole('heading', {
         level: 2,
         name: '애니메이션',
         exact: true,
       })
-    ).toBeVisible();
+    ).toHaveCount(0);
     await expect(
       sections.getByRole('heading', { level: 2, name: '배경', exact: true })
     ).toBeVisible();
@@ -101,36 +102,11 @@ test.describe('모션 전체 보기', () => {
     await expect(page).toHaveURL(/\/motion\/hangul-assemble$/);
   });
 
-  test('젤리 글자 카드가 효과 이름과 쓰는 곳을 보이고 누르면 상세로 간다', async ({
-    page,
-  }) => {
-    await page.goto('/motion');
-    await expect(page.locator('main section')).toHaveCount(5);
-    const card = page.locator('main section > div > div').nth(1);
-    await expect(card.getByText('JellyText', { exact: true })).toBeVisible();
-    await expect(card.getByText('히어로 문구, 브랜드 슬로건')).toBeVisible();
-    await card.getByRole('link', { name: '젤리 글자' }).click();
-    await expect(page).toHaveURL(/\/motion\/jelly-text$/);
-  });
-
-  test('부품 이어받기 카드가 효과 이름과 쓰는 곳을 보이고 누르면 상세로 간다', async ({
-    page,
-  }) => {
-    await page.goto('/motion');
-    const card = page.locator('main section > div > div').nth(2);
-    await expect(card.getByText('Morph', { exact: true })).toBeVisible();
-    await expect(
-      card.getByText('카드에서 상세로, 썸네일에서 크게 보기로')
-    ).toBeVisible();
-    await card.getByRole('link', { name: '부품 이어받기' }).click();
-    await expect(page).toHaveURL(/\/motion\/morph$/);
-  });
-
   test('빛 물줄기 카드가 효과 이름과 쓰는 곳을 보이고 누르면 상세로 간다', async ({
     page,
   }) => {
     await page.goto('/motion');
-    const card = page.locator('main section > div > div').nth(12);
+    const card = page.locator('main section > div > div').nth(9);
     await expect(card.getByText('LuminousFlow', { exact: true })).toBeVisible();
     await expect(card.getByText('첫 화면 배경, 어두운 섹션')).toBeVisible();
     await card.getByRole('link', { name: '빛 물줄기' }).click();
@@ -141,7 +117,7 @@ test.describe('모션 전체 보기', () => {
     page,
   }) => {
     await page.goto('/motion');
-    const card = page.locator('main section > div > div').nth(3);
+    const card = page.locator('main section > div > div').nth(1);
     await expect(card.getByText('GooeySearch', { exact: true })).toBeVisible();
     await expect(card.getByText('헤더 검색, 도구 막대')).toBeVisible();
     // 바깥 영역 표지는 상세 무대용이다. 카드 미니에는 글자를 그리지 않는다
@@ -157,7 +133,7 @@ test.describe('모션 전체 보기', () => {
     const filters = page.getByRole('group', { name: '분류로 보기' });
     const chip = filters.getByRole('button', { name: '컴포넌트', exact: true });
     const sections = page.locator('main section');
-    await expect(sections).toHaveCount(5);
+    await expect(sections).toHaveCount(4);
     await chip.click();
     await expect(chip).toHaveAttribute('aria-pressed', 'true');
     await expect(sections).toHaveCount(1);
@@ -167,7 +143,7 @@ test.describe('모션 전체 보기', () => {
     ).toBeVisible();
     await chip.click();
     await expect(chip).toHaveAttribute('aria-pressed', 'false');
-    await expect(sections).toHaveCount(5);
+    await expect(sections).toHaveCount(4);
   });
 
   test('마이크로 인터랙션 칩이 있고 누르면 복사됨 절만 보인다', async ({
@@ -193,7 +169,7 @@ test.describe('모션 전체 보기', () => {
     page,
   }) => {
     await page.goto('/motion');
-    const card = page.locator('main section > div > div').nth(4);
+    const card = page.locator('main section > div > div').nth(2);
     await expect(card.getByText('CopyButton', { exact: true })).toBeVisible();
     await expect(card.getByText('코드 블록, 공유 링크')).toBeVisible();
     await card.getByRole('link', { name: '복사됨' }).click();
@@ -204,7 +180,7 @@ test.describe('모션 전체 보기', () => {
     page,
   }) => {
     await page.goto('/motion');
-    const card = page.locator('main section > div > div').nth(5);
+    const card = page.locator('main section > div > div').nth(3);
     await expect(card.getByText('BurstToggle', { exact: true })).toBeVisible();
     await expect(card.getByText('좋아요, 저장, 즐겨찾기')).toBeVisible();
     await card.getByRole('link', { name: '좋아요 터짐' }).click();
@@ -215,29 +191,18 @@ test.describe('모션 전체 보기', () => {
     page,
   }) => {
     await page.goto('/motion');
-    const card = page.locator('main section > div > div').nth(6);
+    const card = page.locator('main section > div > div').nth(4);
     await expect(card.getByText('HoldButton', { exact: true })).toBeVisible();
     await expect(card.getByText('삭제, 결제, 초기화')).toBeVisible();
     await card.getByRole('link', { name: '꾹 눌러 확정' }).click();
     await expect(page).toHaveURL(/\/motion\/hold-button$/);
   });
 
-  test('도장 확정 카드가 효과 이름과 쓰는 곳을 보이고 누르면 상세로 간다', async ({
-    page,
-  }) => {
-    await page.goto('/motion');
-    const card = page.locator('main section > div > div').nth(7);
-    await expect(card.getByText('StampButton', { exact: true })).toBeVisible();
-    await expect(card.getByText('결재, 제출, 승인')).toBeVisible();
-    await card.getByRole('link', { name: '도장 확정' }).click();
-    await expect(page).toHaveURL(/\/motion\/stamp-button$/);
-  });
-
   test('출렁이는 게이지 카드가 효과 이름과 쓰는 곳을 보이고 누르면 상세로 간다', async ({
     page,
   }) => {
     await page.goto('/motion');
-    const card = page.locator('main section > div > div').nth(8);
+    const card = page.locator('main section > div > div').nth(5);
     await expect(card.getByText('SloshGauge', { exact: true })).toBeVisible();
     await expect(card.getByText('저장 공간, 할당량, 진행률')).toBeVisible();
     await card.getByRole('link', { name: '출렁이는 게이지' }).click();
@@ -248,7 +213,7 @@ test.describe('모션 전체 보기', () => {
     page,
   }) => {
     await page.goto('/motion');
-    const card = page.locator('main section > div > div').nth(9);
+    const card = page.locator('main section > div > div').nth(6);
     await expect(card.getByText('CodeSlots', { exact: true })).toBeVisible();
     await expect(card.getByText('인증번호, PIN 입력')).toBeVisible();
     await card.getByRole('link', { name: '인증번호 슬롯' }).click();
@@ -259,7 +224,7 @@ test.describe('모션 전체 보기', () => {
     page,
   }) => {
     await page.goto('/motion');
-    const card = page.locator('main section > div > div').nth(10);
+    const card = page.locator('main section > div > div').nth(7);
     await expect(card.getByText('FanMenu', { exact: true })).toBeVisible();
     await expect(card.getByText('빠른 작업, 공유 메뉴')).toBeVisible();
     await card.getByRole('link', { name: '부채꼴 메뉴' }).click();
@@ -270,7 +235,7 @@ test.describe('모션 전체 보기', () => {
     page,
   }) => {
     await page.goto('/motion');
-    const card = page.locator('main section > div > div').nth(11);
+    const card = page.locator('main section > div > div').nth(8);
     await expect(card.getByText('WingButton', { exact: true })).toBeVisible();
     await expect(card.getByText('메일 보내기, 제출, 전송')).toBeVisible();
     await card.getByRole('link', { name: '날개 전송' }).click();
@@ -295,39 +260,6 @@ test.describe('모션 전체 보기', () => {
     await expect(pause).toHaveAttribute('aria-pressed', 'false');
     await expect.poll(() => minGlyphOpacity(page)).toBeLessThan(1);
     await expect.poll(() => minGlyphOpacity(page)).toBe(1);
-  });
-});
-
-// 젤리 글자 미니: 글자 칸 중 하나라도 단위 행렬이 아니면 출렁이는 중이다
-const jellyMoving = (page: Page) =>
-  page
-    .locator('[data-stage-mini] [data-jelly-cell]')
-    .evaluateAll((els) =>
-      els.some(
-        (el) => !new DOMMatrix(getComputedStyle(el).transform).isIdentity
-      )
-    );
-
-test.describe('모션 전체 보기 젤리 글자 미니 (1440px)', () => {
-  test.use({ viewport: { width: 1440, height: 900 } });
-
-  test('움직임 멈춤이면 대본의 커서가 서서 글자가 출렁이지 않고 끄면 다시 출렁인다', async ({
-    page,
-  }) => {
-    await page.goto('/motion');
-    const pause = page.getByRole('button', { name: '움직임 멈춤' });
-    // 대본은 0.6초 뒤 시작해 약 1.2초부터 글자를 훑는다. 그 구간을 멈춘 채로 통과시킨다
-    await pause.click();
-    await expect(pause).toHaveAttribute('aria-pressed', 'true');
-    for (let i = 0; i < 30; i++) {
-      expect(await jellyMoving(page)).toBe(false);
-      await page.waitForTimeout(100);
-    }
-    await pause.click();
-    await expect(pause).toHaveAttribute('aria-pressed', 'false');
-    await expect
-      .poll(() => jellyMoving(page), { timeout: 15_000, intervals: [50] })
-      .toBe(true);
   });
 });
 
@@ -482,44 +414,6 @@ test.describe('모션 전체 보기 꾹 눌러 확정 미니 (1440px)', () => {
     await pause.click();
     await centre();
     await expect(holdButton(page)).toHaveAttribute('data-state', 'done', {
-      timeout: 15_000,
-    });
-  });
-});
-
-// 도장 확정 미니: 대본이 찍고(aria-disabled가 true) 잠시 뒤 key로 되살린다(false)
-const stampButton = (page: Page) =>
-  page.locator('[data-stage-mini="StampButton 미리보기"] button');
-
-test.describe('모션 전체 보기 도장 확정 미니 (1440px)', () => {
-  test.use({ viewport: { width: 1440, height: 900 } });
-
-  test('대본이 찍고 다시 세우며 움직임 멈춤이면 서 있다', async ({ page }) => {
-    await page.goto('/motion');
-    const centre = () =>
-      stampButton(page).evaluate((el) =>
-        el.closest('[data-stage-mini]')?.scrollIntoView({ block: 'center' })
-      );
-    await centre();
-    await expect(stampButton(page)).toHaveAttribute('aria-disabled', 'true', {
-      timeout: 15_000,
-    });
-    await expect(stampButton(page)).toHaveAttribute('aria-disabled', 'false', {
-      timeout: 8_000,
-    });
-
-    const pause = page.getByRole('button', { name: '움직임 멈춤' });
-    await pause.click();
-    await expect(pause).toHaveAttribute('aria-pressed', 'true');
-    await centre();
-    // 대본 한 바퀴보다 길게 기다려도 누르지 않는다
-    for (let i = 0; i < 80; i++) {
-      await expect(stampButton(page)).toHaveAttribute('aria-disabled', 'false');
-      await page.waitForTimeout(100);
-    }
-    await pause.click();
-    await centre();
-    await expect(stampButton(page)).toHaveAttribute('aria-disabled', 'true', {
       timeout: 15_000,
     });
   });
@@ -729,23 +623,6 @@ test.describe('모션 전체 보기 (390px)', () => {
     // 마지막 글자 칸은 시작이 늦어 한동안 투명하다
     await expect.poll(() => minGlyphOpacity(page)).toBeLessThan(1);
     expect(await brokenWords(page, '[data-stage-mini]')).toBe(0);
-  });
-
-  test('카드 안 젤리 글자도 낱말이 갈리지 않는다', async ({ page }) => {
-    await page.goto('/motion');
-    await expect(page.locator('[data-jelly-word]').first()).toBeVisible();
-    const broken = await page
-      .locator('[data-stage-mini] [data-jelly-word]')
-      .evaluateAll(
-        (words) =>
-          words.filter((w) => {
-            const tops = [...w.querySelectorAll('[data-jelly-cell]')].map((c) =>
-              Math.round(c.getBoundingClientRect().top)
-            );
-            return new Set(tops).size > 1;
-          }).length
-      );
-    expect(broken).toBe(0);
   });
 
   test('상세 무대에서도 낱말이 갈리지 않는다', async ({ page }) => {

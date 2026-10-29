@@ -1,1 +1,0 @@
-export { StampButtonPage } from './StampButtonPage';

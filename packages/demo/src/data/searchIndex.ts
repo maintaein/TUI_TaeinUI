@@ -30,7 +30,7 @@ export const searchIndex: SearchEntry[] = [
       {
         title: '빠른 미리보기',
         content:
-          '컴포넌트 패밀리 38개(UI 컴포넌트 25개, 모션 컴포넌트 13개, top-level export 46개), GSAP으로 움직이는 컴포넌트 24개, Zero-runtime CSS, Tree-shakable',
+          '컴포넌트 패밀리 35개(UI 컴포넌트 25개, 모션 컴포넌트 10개, top-level export 43개), GSAP으로 움직이는 컴포넌트 21개, Zero-runtime CSS, Tree-shakable',
       },
     ],
   },
@@ -485,35 +485,6 @@ export const searchIndex: SearchEntry[] = [
     ],
   },
   {
-    id: 'jelly-text',
-    pageTitle: '젤리 글자',
-    path: '/motion/jelly-text',
-    category: '모션',
-    description:
-      'JellyText. 커서가 지나가는 글자가 말랑하게 늘었다 출렁이며 돌아옵니다.',
-    sections: [
-      {
-        title: '텍스트 애니메이션',
-        content:
-          '말랑한 글자. 커서와 가까운 글자가 가로로 늘었다가 세로로 눌리며 출렁이고 스프링처럼 돌아옵니다',
-      },
-      {
-        title: '어떻게 움직이나',
-        content:
-          '젤리처럼 출렁입니다. 한 칸 떨어지면 절반쯤 늘고 커서가 있는 줄의 글자만 반응합니다',
-      },
-      {
-        title: 'as',
-        content: 'h1, h2, p 등 루트 요소를 고릅니다',
-      },
-      {
-        title: '움직임 줄이기',
-        content:
-          '움직임 줄이기와 터치 화면에서는 평범한 글자로 보이고 출렁이지 않습니다',
-      },
-    ],
-  },
-  {
     id: 'gooey-search',
     pageTitle: '물방울 검색창',
     path: '/motion/gooey-search',
@@ -627,36 +598,6 @@ export const searchIndex: SearchEntry[] = [
         title: '움직임 줄이기',
         content:
           '움직임 줄이기에서는 누르는 시간은 같고, 차오름이 네 단계로 끊어 보입니다. 떨림과 튕김은 없습니다',
-      },
-    ],
-  },
-  {
-    id: 'stamp-button',
-    pageTitle: '도장 확정',
-    path: '/motion/stamp-button',
-    category: '모션',
-    description:
-      'StampButton. 누르면 도장이 내려와 쾅 찍히고 파란 인주가 번집니다. 도장, 결재, 승인, 제출, 확정, 인주, stamp.',
-    sections: [
-      {
-        title: '마이크로 인터랙션',
-        content:
-          '결재와 제출 단추. 누르면 도장이 단추 위에서 1.6배로 기울어 내려와 쾅 찍히고(단추가 1px 눌립니다), 도장 둘레로 옅은 파란 인주 자국이 번집니다',
-      },
-      {
-        title: '다시 찍기는 key로',
-        content:
-          '한 번만 찍힙니다. 되돌리는 prop은 없고 key를 바꿔 단추를 새로 그리면 처음 상태로 돌아갑니다',
-      },
-      {
-        title: '접근성',
-        content:
-          '찍힌 뒤에는 aria-disabled로 잠겨 click, Enter, Space가 onClick을 부르지 않고 포커스는 남습니다. role status가 도장을 찍었다고 알립니다. 도장과 인주는 aria-hidden 장식입니다',
-      },
-      {
-        title: '움직임 줄이기',
-        content:
-          '움직임 줄이기에서는 도장과 인주 자국이 움직임 없이 바로 나타납니다',
       },
     ],
   },
@@ -781,35 +722,6 @@ export const searchIndex: SearchEntry[] = [
         title: '움직임 줄이기',
         content:
           '움직임 줄이기에서는 날개와 비행 없이 단추가 보냈어요로 바뀝니다',
-      },
-    ],
-  },
-  {
-    id: 'morph',
-    pageTitle: '부품 이어받기',
-    path: '/motion/morph',
-    category: '모션',
-    description:
-      'Morph. 사라지는 요소의 모양을 새 요소가 이어받아 그 자리에서 자라납니다. 이어받기, 모프, 전환, 카드, 상세, 썸네일, morph, shared element, transition.',
-    sections: [
-      {
-        title: '애니메이션',
-        content:
-          '같은 morphId로 사라진 요소의 자리, 크기, 둥글기, 배경색에서 새 요소가 출발해 제 모습으로 바뀝니다. 형태가 바뀌는 동안 새 요소의 내용은 투명하다가 끝난 뒤 떠오릅니다. 카드를 누르면 카드 자리에서 상세 패널이 커지고 닫으면 카드로 돌아갑니다',
-      },
-      {
-        title: '짝은 morphId로',
-        content:
-          '사라지는 Morph가 모양을 morphId로 남기고 같은 morphId로 나타나는 Morph가 집어 갑니다. 같은 id로 사라지는 것이 둘이면 정리 순서(트리 순서)에서 나중 것의 모양이 남고 나타나는 것이 둘이면 트리 앞쪽이 이어받습니다. 100ms 안에 짝이 없으면 버립니다. 같은 Morph 안에서 children의 종류나 key가 바뀌어도 이어받습니다',
-      },
-      {
-        title: '접근성',
-        content:
-          '이전 요소 안에 포커스가 있었다면 새 래퍼의 첫 포커스 가능 자손으로, 없으면 래퍼 자신으로 옮겨 body로 떨어지지 않습니다. 끝나면 인라인 transform, 둥글기, 배경, opacity를 걷습니다. 복제본은 그리지 않습니다',
-      },
-      {
-        title: '움직임 줄이기',
-        content: '움직임 줄이기에서는 모양이 이어지지 않고 바로 바뀝니다',
       },
     ],
   },
