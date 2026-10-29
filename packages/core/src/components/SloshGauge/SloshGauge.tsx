@@ -46,7 +46,7 @@ export interface SloshGaugeProps extends Omit<
   valueText?: string;
 }
 
-// 출렁임의 상태이자 트윈이 모는 대상. 테스트가 읽는 손잡이로 물 svg에도 얹는다(StampButton의 __stampTimeline과 같은 모양).
+// 출렁임의 상태이자 트윈이 모는 대상. 테스트가 읽는 손잡이로 물 svg에도 얹는다(BurstToggle의 타임라인 손잡이와 같은 모양).
 // level 0~1, amp 통 높이 비율, phi 기울기 위상, flow 물결 위상
 interface Slosh {
   level: number;

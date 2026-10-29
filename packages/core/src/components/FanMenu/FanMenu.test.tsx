@@ -7,7 +7,7 @@ import { FanMenu, type FanMenuItem } from './FanMenu';
 const FINE = '(hover: hover) and (pointer: fine)';
 const REDUCE = '(prefers-reduced-motion: reduce)';
 
-// matchMedia 보급품: 질의별로 맞음 여부를 정한다(JellyText 시험과 같은 방식)
+// matchMedia 보급품: 질의별로 맞음 여부를 정한다
 const installMedia = ({ fine = true, reduced = false } = {}) =>
   vi.stubGlobal(
     'matchMedia',

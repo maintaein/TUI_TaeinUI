@@ -5,7 +5,7 @@ import { SloshGauge } from './SloshGauge';
 import { MAX_AMP } from './sloshMath';
 import { loop } from '../../tokens/animation.css';
 
-// SloshGauge.tsx가 물 svg에 얹는 손잡이(StampButton의 __stampTimeline과 같은 모양).
+// SloshGauge.tsx가 물 svg에 얹는 손잡이(BurstToggle의 타임라인 손잡이와 같은 모양).
 type Slosh = {
   level: number;
   amp: number;

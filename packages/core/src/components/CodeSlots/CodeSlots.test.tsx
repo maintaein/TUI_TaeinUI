@@ -52,7 +52,7 @@ const stubReducedMotion = () =>
   );
 
 // jsdom에는 레이아웃이 없어 offsetParent가 늘 null이다. GSAP은 그런 요소의 transform을 읽을 때 요소를 잠깐
-// 문서 루트로 옮겼다 되돌리므로, 레이아웃이 있는 것처럼 부모를 돌려준다(StampButton 시험과 같은 처방).
+// 문서 루트로 옮겼다 되돌리므로, 레이아웃이 있는 것처럼 부모를 돌려준다(WingButton 시험과 같은 처방).
 const originalOffsetParent = Object.getOwnPropertyDescriptor(
   HTMLElement.prototype,
   'offsetParent'

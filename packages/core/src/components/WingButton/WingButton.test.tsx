@@ -13,7 +13,7 @@ import userEvent from '@testing-library/user-event';
 import { WingButton } from './WingButton';
 import { gsapDuration, gsapEasing } from '../../tokens/gsapEasing';
 
-// WingButton.tsx가 바깥 상자에 얹는 손잡이(StampButton의 __stampTimeline과 같은 모양).
+// WingButton.tsx가 바깥 상자에 얹는 손잡이(BurstToggle의 타임라인 손잡이와 같은 모양).
 type WingHost = HTMLElement & {
   __wingTimeline?: gsap.core.Timeline;
   __wingCrouch?: gsap.core.Tween;

@@ -54,7 +54,7 @@ export interface WingButtonProps extends Omit<
   disabled?: boolean;
 }
 
-// 테스트가 현재 타임라인과 웅크림을 읽는 손잡이(StampButton의 __stampTimeline과 같은 모양).
+// 테스트가 현재 타임라인과 웅크림을 읽는 손잡이(BurstToggle의 타임라인 손잡이와 같은 모양).
 type Host = HTMLElement & {
   __wingTimeline?: gsap.core.Timeline;
   __wingCrouch?: gsap.core.Tween;

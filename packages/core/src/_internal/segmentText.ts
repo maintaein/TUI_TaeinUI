@@ -23,7 +23,7 @@ const graphemes = (word: string): string[] =>
     : [...word];
 
 /**
- * 글자 효과 컴포넌트(HangulAssemble, JellyText)가 문장을 글자 칸으로 나누는 공통 규칙.
+ * 글자 효과 컴포넌트(HangulAssemble)가 문장을 글자 칸으로 나누는 공통 규칙.
  * 낱말(공백이 아닌 덩어리)은 자소군 배열, 공백은 문자열 그대로 돌려준다.
  */
 export const segmentText = (text: string): Array<string | string[]> =>
