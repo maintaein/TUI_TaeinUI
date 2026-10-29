@@ -72,8 +72,8 @@ const hasInlineMotion = (container: HTMLElement): boolean =>
       el.style.display !== ''
   );
 
-/** jsdom에는 document.fonts가 없다. load가 시험이 쥔 약속을 돌려주는 최소 객체를 끼운다. */
-const installFonts = () => {
+/** jsdom에는 document.fonts가 없다. load가 시험이 쥔 약속을 돌려주는 최소 객체를 끼운다. check는 폰트가 이미 있는지다. */
+const installFonts = (loaded = false) => {
   const loads: Array<{ font: string; text: string }> = [];
   let release: () => void = () => {};
   const pending = new Promise<void>((resolveLoad) => {
@@ -82,6 +82,7 @@ const installFonts = () => {
   Object.defineProperty(document, 'fonts', {
     configurable: true,
     value: {
+      check: () => loaded,
       load: (font: string, text: string) => {
         loads.push({ font, text });
         return pending;
@@ -89,6 +90,31 @@ const installFonts = () => {
     },
   });
   return { loads, release };
+};
+
+/** 재생 타임라인을 멈추고 시각을 직접 옮겨 인라인 값을 읽는다. 시험은 gsap을 직접 import하지 않으므로 gateMotion이 돌려주는 값을 받아 둔다. */
+interface SeekableTimeline {
+  pause(): unknown;
+  time(seconds: number): unknown;
+}
+const played = vi.hoisted(() => ({ timelines: [] as unknown[] }));
+vi.mock('../../hooks/gateMotion', async (importActual) => {
+  const actual = await importActual<typeof import('../../hooks/gateMotion')>();
+  return {
+    ...actual,
+    // 진짜 gateMotion을 그대로 부르고 돌려받은 타임라인만 기록한다
+    gateMotion: ((...args: Parameters<typeof actual.gateMotion>) => {
+      const animation = actual.gateMotion(...args);
+      played.timelines.push(animation);
+      return animation;
+    }) as typeof actual.gateMotion,
+  };
+});
+const seekPlayback = (): ((seconds: number) => void) => {
+  const timeline = played.timelines.at(-1) as SeekableTimeline | undefined;
+  if (!timeline) throw new Error('재생 타임라인이 없습니다');
+  timeline.pause();
+  return (seconds) => void timeline.time(seconds);
 };
 
 afterEach(() => {
@@ -414,6 +440,82 @@ describe('HangulAssemble', () => {
     });
   });
 
+  describe('박자 (타임라인을 멈추고 시각을 옮겨 읽는다)', () => {
+    // 조각 날아옴 500ms power3.out(GSAP의 power3는 4제곱): 진행 x일 때 값은 1 - (1 - x)^4
+    const settle = (x: number) => 1 - (1 - Math.min(Math.max(x, 0), 1)) ** 4;
+    const opacity = (el: HTMLElement) => Number.parseFloat(el.style.opacity);
+    /** "가한나": 칸0(가)은 조각 2개, 칸1(한)은 조각 3개, 칸2는 끝을 늦춰 칸1의 끝 시각이 타임라인 끝이 되지 않게 한다 */
+    const play = () => {
+      installObserver();
+      const { container } = render(<HangulAssemble text="가한나" />);
+      const [first, second] = q(container, 'cell').map((c) => ({
+        glyph: c.querySelector<HTMLElement>(
+          '[data-hangul-glyph]'
+        ) as HTMLElement,
+        pieces: [...c.querySelectorAll<HTMLElement>('[data-hangul-jamo]')],
+      }));
+      return { seek: seekPlayback(), first, second };
+    };
+
+    it('한 음절 안의 조각은 30ms씩 어긋나 시작한다', () => {
+      const { seek, first } = play();
+
+      seek(0.02);
+      expect(opacity(first.pieces[0])).toBeCloseTo(settle(0.02 / 0.5), 3);
+      expect(opacity(first.pieces[1])).toBe(0);
+
+      seek(0.13);
+      expect(opacity(first.pieces[1])).toBeCloseTo(settle(0.1 / 0.5), 3);
+    });
+
+    it('조각은 500ms에 닿고 그 전에는 닿지 않는다', () => {
+      const { seek, first } = play();
+
+      seek(0.4);
+      expect(opacity(first.pieces[0])).toBeLessThan(1);
+      seek(0.5);
+      expect(opacity(first.pieces[0])).toBe(1);
+    });
+
+    it('조각은 settle(power3.out) 곡선으로 날아온다', () => {
+      const { seek, first } = play();
+
+      seek(0.1);
+      expect(opacity(first.pieces[0])).toBeCloseTo(settle(0.1 / 0.5), 3);
+      seek(0.25);
+      expect(opacity(first.pieces[0])).toBeCloseTo(settle(0.25 / 0.5), 3);
+    });
+
+    it('다음 음절은 60ms 늦게 시작한다', () => {
+      const { seek, second } = play();
+
+      seek(0.05);
+      expect(opacity(second.pieces[0])).toBe(0);
+      seek(0.16);
+      expect(opacity(second.pieces[0])).toBeCloseTo(settle(0.1 / 0.5), 3);
+    });
+
+    it('칸의 조각 층은 그 칸의 마지막 조각이 닿는 순간에 걷히고 그제야 완성 글자가 보인다', () => {
+      const { seek, first, second } = play();
+      const layer = (c: typeof first) => c.pieces.map((p) => p.style.display);
+
+      // 칸0은 조각 2개라 0.5 + 0.03 = 0.53초에, 칸1은 조각 3개라 0.06 + 0.5 + 0.06 = 0.62초에 닿는다
+      seek(0.52);
+      expect(layer(first)).toEqual(['block', 'block']);
+      expect(first.glyph.style.opacity).toBe('0');
+      seek(0.53);
+      expect(layer(first)).toEqual(['none', 'none']);
+      expect(first.glyph.style.opacity).toBe('1');
+
+      seek(0.61);
+      expect(layer(second)).toEqual(['block', 'block', 'block']);
+      expect(second.glyph.style.opacity).toBe('0');
+      seek(0.62);
+      expect(layer(second)).toEqual(['none', 'none', 'none']);
+      expect(second.glyph.style.opacity).toBe('1');
+    });
+  });
+
   describe('폰트 기다리기', () => {
     it('폰트가 오는 동안은 흩지 않고 완성 문장 그대로이고, 오면 재생한다', async () => {
       installObserver();
@@ -448,6 +550,35 @@ describe('HangulAssemble', () => {
       expect(
         q(container, 'jamo').every((p) => p.style.display === 'block')
       ).toBe(true);
+    });
+
+    it('폰트가 이미 있으면(check) load를 부르지 않고 바로 재생한다', () => {
+      installObserver();
+      const fonts = installFonts(true);
+      const { container } = render(<HangulAssemble text="한글" />);
+
+      expect(fonts.loads).toHaveLength(0);
+      expect(
+        q(container, 'jamo').every((p) => p.style.display === 'block')
+      ).toBe(true);
+    });
+
+    it('폰트가 오면 3초 타이머를 걷고, 기다리다 언마운트해도 걷는다', async () => {
+      installObserver();
+      vi.useFakeTimers();
+      const fonts = installFonts();
+      const first = render(<HangulAssemble text="한글" />);
+      expect(vi.getTimerCount()).toBe(1);
+
+      await act(async () => fonts.release());
+      expect(vi.getTimerCount()).toBe(0);
+      first.unmount();
+
+      installFonts();
+      const second = render(<HangulAssemble text="한글" />);
+      expect(vi.getTimerCount()).toBe(1);
+      second.unmount();
+      expect(vi.getTimerCount()).toBe(0);
     });
 
     it('기다리는 동안 언마운트하면 폰트가 와도 아무것도 하지 않는다', async () => {

@@ -55,10 +55,13 @@ const scatterOffset = (cellIndex: number, pieceIndex: number) => {
 };
 
 /**
- * 폰트가 오는 중이면 기다릴 약속을, 이미 있거나 FontFaceSet이 없으면 null(바로 간다)을 돌려준다.
+ * 폰트가 오는 중이면 기다릴 약속과 타이머를 걷는 stop을, 이미 있거나 FontFaceSet이 없으면 null(바로 간다)을 돌려준다.
  * 조각은 렌더된 글자를 오리는 것이라 폰트가 바뀌면 영역이 어긋난다.
  */
-const waitForFont = (el: HTMLElement, text: string): Promise<void> | null => {
+const waitForFont = (
+  el: HTMLElement,
+  text: string
+): { ready: Promise<void>; stop: () => void } | null => {
   const fonts = document.fonts as FontFaceSet | undefined;
   if (!fonts) return null;
   const font = getComputedStyle(el).font;
@@ -68,13 +71,16 @@ const waitForFont = (el: HTMLElement, text: string): Promise<void> | null => {
     // ponytail: computed font가 빈 문자열인 브라우저(옛 Firefox)는 check가 던진다. 기다리지 않고 간다, 지원 하한을 올리면 지운다.
     return null;
   }
-  return new Promise<void>((resolve) => {
-    setTimeout(resolve, FONT_WAIT_MS);
-    fonts.load(font, text).then(
-      () => resolve(),
-      () => resolve()
-    );
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const ready = new Promise<void>((resolve) => {
+    const done = () => {
+      clearTimeout(timer);
+      resolve();
+    };
+    timer = setTimeout(done, FONT_WAIT_MS);
+    fonts.load(font, text).then(done, done);
   });
+  return { ready, stop: () => clearTimeout(timer) };
 };
 
 const isInView = (el: HTMLElement): boolean => {
@@ -225,7 +231,7 @@ export const HangulAssemble = forwardRef<HTMLElement, HangulAssembleProps>(
       // 폰트를 기다리는 동안 첫 렌더(완성 문장)가 그대로 보인다.
       const fontWait = waitForFont(el, text);
       if (fontWait) {
-        fontWait.then(() => {
+        fontWait.ready.then(() => {
           if (!cancelled) start();
         });
       } else {
@@ -234,6 +240,7 @@ export const HangulAssemble = forwardRef<HTMLElement, HangulAssembleProps>(
 
       return () => {
         cancelled = true;
+        fontWait?.stop();
         observer?.disconnect();
         if (timeline) settleMotion(timeline);
         if (armed) rest();
@@ -254,7 +261,8 @@ export const HangulAssemble = forwardRef<HTMLElement, HangulAssembleProps>(
                     <span className={glyph} data-hangul-glyph="">
                       {char}
                     </span>
-                    {/* 결합 부호가 붙은 칸은 한글 음절 하나가 아니라 통째로 한 그림이라 조각이 없다. */}
+                    {/* 결합 부호가 붙은 칸은 한글 음절 하나가 아니라 통째로 한 그림이라 조각이 없다.
+                        ponytail: 조각은 재생 뒤에도 display:none으로 남아 칸마다 글자가 2~4번 복제된다, 긴 문장에서 비용이 되면 재생 뒤 DOM에서 뺀다. */}
                     {jamoRegions(char)?.map(({ jamo, region }, k) => (
                       <span
                         key={k}

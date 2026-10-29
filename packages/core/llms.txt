@@ -134,7 +134,7 @@ GSAP 런타임(M3에서 시작해 M7까지)이 실제로 붙은 컴포넌트와 
 | Chip | 타임라인 상대 위치 · CSS가 못 보는 값 읽기(폭과 gap으로 자리 닫기) |
 | IconButton | 타임라인 상대 위치(젤리 호버, 기본으로 켜져 있고 `hoverEffect="none"`으로 끈다) |
 | Loader | 타임라인 상대 위치 · 다중 목표 중단 |
-| HangulAssemble | 타임라인 상대 위치 · CSS가 못 보는 값 읽기(글꼴 크기) |
+| HangulAssemble | 타임라인 상대 위치 · CSS가 못 보는 값 읽기(폰트 대기용 computed font) |
 | BurstToggle | 타임라인 상대 위치 · 다중 목표 중단 |
 | HoldButton | 다중 목표 중단 · CSS가 못 보는 값 읽기(홀드 진행값) |
 | SloshGauge | 타임라인 상대 위치 · 다중 목표 중단 · CSS가 못 보는 값 읽기(수위·진폭 값 자체) |
