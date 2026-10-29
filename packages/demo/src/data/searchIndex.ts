@@ -462,12 +462,12 @@ export const searchIndex: SearchEntry[] = [
     path: '/motion/hangul-assemble',
     category: '모션',
     description:
-      'HangulAssemble. 흩어진 자모가 날아와 모이며 한글 글자가 됩니다.',
+      'HangulAssemble. 자모 모양으로 오린 글자 조각이 날아와 맞물리며 한글 글자가 됩니다.',
     sections: [
       {
         title: '텍스트 애니메이션',
         content:
-          'text에 문장을 주면 화면에 들어올 때 한 번 자모가 모여 글자가 됩니다',
+          'text에 문장을 주면 화면에 들어올 때 한 번 글자 조각이 맞물려 글자가 됩니다',
       },
       {
         title: '다시 재생',

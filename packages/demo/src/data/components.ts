@@ -327,7 +327,8 @@ export const motionData: MotionInfo[] = [
     name: 'HangulAssemble',
     title: '한글 조립',
     path: '/motion/hangul-assemble',
-    description: '흩어진 자모가 날아와 모이며 한글 글자가 됩니다.',
+    description:
+      '자모 모양으로 오린 글자 조각이 날아와 맞물리며 한글 글자가 됩니다.',
     usage: '첫 화면 소개 문장, 섹션 제목',
     category: 'text',
     icon: Languages,

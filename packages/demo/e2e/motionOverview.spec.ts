@@ -8,11 +8,13 @@ const minGlyphOpacity = (page: Page) =>
       Math.min(...els.map((el) => Number(getComputedStyle(el).opacity)))
     );
 
-const maxJamoOpacity = (page: Page) =>
+// 보이는 오린 조각 수. 정지 상태와 재생이 끝난 뒤에는 0이다
+const shownPieces = (page: Page) =>
   page
     .locator('[data-stage-mini] [data-hangul-jamo]')
-    .evaluateAll((els) =>
-      Math.max(...els.map((el) => Number(getComputedStyle(el).opacity)))
+    .evaluateAll(
+      (els) =>
+        els.filter((el) => getComputedStyle(el).display !== 'none').length
     );
 
 const nav = (page: Page) => page.getByRole('navigation', { name: '사이트' });
@@ -253,8 +255,8 @@ test.describe('모션 전체 보기', () => {
     expect(await minGlyphOpacity(page)).toBe(1);
     await page.waitForTimeout(300);
     expect(await minGlyphOpacity(page)).toBe(1);
-    // 흩어진 자모 조각은 멈춤 구간 내내 투명하다(완성 글자와 겹쳐 보이지 않는다)
-    expect(await maxJamoOpacity(page)).toBe(0);
+    // 오린 조각은 멈춤 구간 내내 걷혀 있다(완성 글자와 겹쳐 보이지 않는다)
+    expect(await shownPieces(page)).toBe(0);
 
     await pause.click();
     await expect(pause).toHaveAttribute('aria-pressed', 'false');

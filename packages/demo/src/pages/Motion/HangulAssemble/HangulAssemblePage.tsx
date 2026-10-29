@@ -14,7 +14,7 @@ import { MiniFrozen, Stage, type DemoProps } from '../../../components/Stage';
 import * as styles from './HangulAssemblePage.css';
 
 const LEAD =
-  '한글 조립. 흩어진 자모가 글자 칸으로 날아와 모이며 한글 글자가 됩니다. 화면에 들어올 때 한 번 재생하고 끝나면 평범한 문장으로 남습니다.';
+  '한글 조립. 완성된 글자를 자모 모양대로 오린 조각이 흩어진 자리에서 날아와 맞물리며 글자가 됩니다. 화면에 들어올 때 한 번 재생하고 끝나면 평범한 문장으로 남습니다.';
 
 const CONTROLS: Control[] = [
   { prop: 'text', kind: 'text' },
@@ -22,7 +22,7 @@ const CONTROLS: Control[] = [
 ];
 
 const INITIAL: Values = {
-  text: '흩어진 자모가 모여 글자가 됩니다',
+  text: '흩어진 조각이 맞물려 글자가 됩니다',
   as: 'h2',
 };
 
@@ -56,7 +56,7 @@ const PROPS: PropDefinition[] = [
 
 const REPLAY = `const [run, setRun] = useState(0);
 
-<HangulAssemble key={run} text="흩어진 자모가 모여 글자가 됩니다" />
+<HangulAssemble key={run} text="흩어진 조각이 맞물려 글자가 됩니다" />
 <Button onClick={() => setRun((n) => n + 1)}>다시 재생</Button>`;
 
 function Usage() {
@@ -86,7 +86,7 @@ function A11y() {
     <ul className={`${t.list} ${t.body}`}>
       <li>
         완성 문장을 화면에서 가린 span에 넣어 보조 기술이 읽습니다. 흩어지고
-        모이는 시각 글자는 <code>aria-hidden</code>이라 자모가 따로 읽히지
+        맞물리는 시각 글자는 <code>aria-hidden</code>이라 조각이 따로 읽히지
         않습니다.
       </li>
       <li>

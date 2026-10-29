@@ -1,6 +1,6 @@
 import { test, expect, type Page } from '@playwright/test';
 
-const SENTENCE = '흩어진 자모가 모여 글자가 됩니다';
+const SENTENCE = '흩어진 조각이 맞물려 글자가 됩니다';
 test.describe('모션 계열 사이드바 (1280px)', () => {
   test.use({ viewport: { width: 1280, height: 800 } });
 

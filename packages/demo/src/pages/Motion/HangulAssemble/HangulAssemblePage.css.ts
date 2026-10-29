@@ -29,4 +29,4 @@ globalStyle(`${still} [data-hangul-glyph]`, {
   opacity: '1 !important',
   transform: 'none !important',
 });
-globalStyle(`${still} [data-hangul-jamo]`, { opacity: '0 !important' });
+globalStyle(`${still} [data-hangul-jamo]`, { display: 'none !important' });

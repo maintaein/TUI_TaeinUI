@@ -1,7 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { MAX_SPREAD, STAGGER, staggerStep } from './staggerStep';
+import { MAX_SPREAD, PIECE_STAGGER, STAGGER, staggerStep } from './staggerStep';
 
 describe('staggerStep', () => {
+  it('한 음절 안의 조각은 30ms씩 어긋나고 음절 간격의 절반이다', () => {
+    expect(PIECE_STAGGER).toBeCloseTo(0.03, 9);
+    expect(PIECE_STAGGER).toBeCloseTo(STAGGER / 2, 9);
+  });
+
   it('짧은 문장은 기본 간격 그대로다', () => {
     expect(staggerStep(5)).toBe(STAGGER);
   });

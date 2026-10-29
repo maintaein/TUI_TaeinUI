@@ -14,10 +14,9 @@ import { gsapDuration, gsapEasing } from '../../tokens/gsapEasing';
 import { visuallyHidden } from '../../_internal/visuallyHidden.css';
 import { segmentText } from '../../_internal/segmentText';
 import { word } from '../../_internal/word.css';
-import { decomposeHangul } from './decomposeHangul';
-import { jamoSlots, type JamoSlot } from './jamoSlots';
-import { staggerStep } from './staggerStep';
-import { root as rootClass, cell, glyph, jamo } from './HangulAssemble.css';
+import { jamoRegions, polygonCss } from '../../_internal/jamoRegions';
+import { PIECE_STAGGER, staggerStep } from './staggerStep';
+import { root as rootClass, cell, glyph, piece } from './HangulAssemble.css';
 
 export interface HangulAssembleProps {
   /** 조립해 보일 문장. 바뀌면 다시 재생하지 않고 새 문장을 완성 상태로 보인다 */
@@ -31,14 +30,51 @@ export interface HangulAssembleProps {
 /** 이웃 글자가 같은 방향으로 흩어지지 않게 번호마다 돌리는 황금각(라디안) */
 const GOLDEN_ANGLE = Math.PI * (3 - Math.sqrt(5));
 
+/** 흩어진 자리의 제자리에서 떨어진 거리(px). 글자 크기와 무관하게 60~120px */
+const SCATTER_PX = [60, 90, 120] as const;
+
+/** 흩어진 자리의 기울기(도). 살짝 기울어 날아온다 */
+const TILT_DEG = [-9, 6, -4, 8, -6, 5] as const;
+
+/** 폰트를 기다리는 상한. 넘으면 있는 폰트로 간다 */
+const FONT_WAIT_MS = 3000;
+
 /**
- * 흩어진 자리(글자 크기 em 단위). 글자 번호와 조각 번호로만 정한다.
- * Math.random을 쓰면 시험과 스크린샷이 흔들린다. 반지름은 1.5, 2.25, 3em을 돈다.
+ * 흩어진 자리. 글자 번호와 조각 번호로만 정한다.
+ * Math.random을 쓰면 시험과 스크린샷이 흔들린다.
  */
 const scatterOffset = (cellIndex: number, pieceIndex: number) => {
-  const angle = (cellIndex * 3 + pieceIndex) * GOLDEN_ANGLE;
-  const radius = 1.5 + ((cellIndex + pieceIndex * 2) % 3) * 0.75;
-  return { x: Math.cos(angle) * radius, y: Math.sin(angle) * radius };
+  const n = cellIndex * 3 + pieceIndex;
+  const angle = n * GOLDEN_ANGLE;
+  const radius = SCATTER_PX[(cellIndex + pieceIndex * 2) % 3];
+  return {
+    x: Math.cos(angle) * radius,
+    y: Math.sin(angle) * radius,
+    rotation: TILT_DEG[n % TILT_DEG.length],
+  };
+};
+
+/**
+ * 폰트가 오는 중이면 기다릴 약속을, 이미 있거나 FontFaceSet이 없으면 null(바로 간다)을 돌려준다.
+ * 조각은 렌더된 글자를 오리는 것이라 폰트가 바뀌면 영역이 어긋난다.
+ */
+const waitForFont = (el: HTMLElement, text: string): Promise<void> | null => {
+  const fonts = document.fonts as FontFaceSet | undefined;
+  if (!fonts) return null;
+  const font = getComputedStyle(el).font;
+  try {
+    if (fonts.check?.(font, text)) return null;
+  } catch {
+    // ponytail: computed font가 빈 문자열인 브라우저(옛 Firefox)는 check가 던진다. 기다리지 않고 간다, 지원 하한을 올리면 지운다.
+    return null;
+  }
+  return new Promise<void>((resolve) => {
+    setTimeout(resolve, FONT_WAIT_MS);
+    fonts.load(font, text).then(
+      () => resolve(),
+      () => resolve()
+    );
+  });
 };
 
 const isInView = (el: HTMLElement): boolean => {
@@ -46,15 +82,14 @@ const isInView = (el: HTMLElement): boolean => {
   return rect.top < window.innerHeight && rect.bottom >= 0;
 };
 
-/** 글자 칸 하나가 재생에 쓰는 두 층과 조각의 제자리 */
+/** 글자 칸 하나가 재생에 쓰는 두 층 */
 interface CellParts {
   glyph: HTMLElement;
   pieces: HTMLElement[];
-  slots: JamoSlot[];
 }
 
 /**
- * 흩어진 자모가 글자 칸 안의 제자리로 모여 완성 글자가 되는 문장.
+ * 완성 글자를 자모 영역별로 오린 조각이 흩어진 자리에서 날아와 맞물려 글자가 되는 문장.
  * 화면에 들어올 때 한 번 재생한다. 첫 렌더(SSR 포함)는 완성 문장이고,
  * 재생 전 숨김은 재생 직전에만 건다. 낭독은 시각적으로만 숨긴 완성 문장이 맡는다.
  */
@@ -84,123 +119,121 @@ export const HangulAssemble = forwardRef<HTMLElement, HangulAssembleProps>(
         return;
       }
 
-      const parts: CellParts[] = [
-        ...el.querySelectorAll<HTMLElement>('[data-hangul-cell]'),
-      ].map((c) => {
-        const glyphEl = c.querySelector<HTMLElement>(
-          '[data-hangul-glyph]'
-        ) as HTMLElement;
-        const jamo = decomposeHangul(glyphEl.textContent ?? '');
-        return {
-          glyph: glyphEl,
-          pieces: [...c.querySelectorAll<HTMLElement>('[data-hangul-jamo]')],
-          slots: jamo ? jamoSlots(jamo) : [],
-        };
-      });
-      if (parts.length === 0) return;
-
-      const targets = parts.flatMap((p) => [p.glyph, ...p.pieces]);
+      let cancelled = false;
+      let targets: HTMLElement[] = [];
       let armed = false;
       let timeline: gsap.core.Timeline | null = null;
       let observer: IntersectionObserver | null = null;
 
       // 인라인으로 건 값을 걷어 CSS의 쉬는 상태(완성 글자만 보임)로 돌아간다.
       const rest = () => {
-        gsap.set(targets, { clearProps: 'transform,opacity' });
+        gsap.set(targets, { clearProps: 'transform,opacity,display' });
       };
 
-      const arm = () => {
-        armed = true;
-        const em = Number.parseFloat(getComputedStyle(el).fontSize) || 16;
-        parts.forEach((p, i) => {
-          gsap.set(p.glyph, { opacity: 0 });
-          p.pieces.forEach((piece, k) => {
-            const { x, y } = scatterOffset(i, k);
-            gsap.set(piece, {
-              x: x * em,
-              y: y * em,
-              scale: p.slots[k].scale,
-              opacity: 0,
+      const start = () => {
+        const parts: CellParts[] = [
+          ...el.querySelectorAll<HTMLElement>('[data-hangul-cell]'),
+        ].map((c) => ({
+          glyph: c.querySelector<HTMLElement>(
+            '[data-hangul-glyph]'
+          ) as HTMLElement,
+          pieces: [...c.querySelectorAll<HTMLElement>('[data-hangul-jamo]')],
+        }));
+        if (parts.length === 0) return;
+        targets = parts.flatMap((p) => [p.glyph, ...p.pieces]);
+
+        const arm = () => {
+          armed = true;
+          parts.forEach((p, i) => {
+            gsap.set(p.glyph, { opacity: 0 });
+            p.pieces.forEach((piece, k) => {
+              gsap.set(piece, {
+                ...scatterOffset(i, k),
+                display: 'block',
+                opacity: 0,
+              });
             });
           });
-        });
-      };
+        };
 
-      const play = () => {
-        startedRef.current = text;
-        const em = Number.parseFloat(getComputedStyle(el).fontSize) || 16;
-        timeline = gateMotion(reduced, () => {
-          const tl = gsap.timeline({ onComplete: rest });
-          const step = staggerStep(parts.length);
-          parts.forEach((p, i) => {
-            const at = i * step;
-            if (p.pieces.length === 0) {
+        const play = () => {
+          startedRef.current = text;
+          timeline = gateMotion(reduced, () => {
+            const tl = gsap.timeline({ onComplete: rest });
+            const step = staggerStep(parts.length);
+            parts.forEach((p, i) => {
+              const at = i * step;
+              if (p.pieces.length === 0) {
+                tl.to(
+                  p.glyph,
+                  {
+                    opacity: 1,
+                    duration: gsapDuration.base,
+                    ease: gsapEasing.settle,
+                  },
+                  at
+                );
+                return;
+              }
               tl.to(
-                p.glyph,
+                p.pieces,
                 {
+                  x: 0,
+                  y: 0,
+                  rotation: 0,
                   opacity: 1,
-                  duration: gsapDuration.base,
+                  duration: gsapDuration.slower,
                   ease: gsapEasing.settle,
+                  stagger: PIECE_STAGGER,
                 },
                 at
               );
-              return;
-            }
-            const landed = at + gsapDuration.slower;
-            tl.to(
-              p.pieces,
-              {
-                // 글자 한가운데 한 점이 아니라 음절 구조 속 제자리로 모인다.
-                x: (k: number) => p.slots[k].x * em,
-                y: (k: number) => p.slots[k].y * em,
-                opacity: 1,
-                duration: gsapDuration.slower,
-                ease: gsapEasing.settle,
-              },
-              at
-            )
-              // 교차 페이드는 두 층의 합이 일정하도록 선형으로 맞바꾼다.
-              .to(
+              // 마지막 조각이 닿는 순간 조각 층을 걷고 완성 글자를 드러낸다.
+              // 둘이 같은 픽셀이라 교차 흐림이 필요 없다.
+              const landed =
+                at +
+                gsapDuration.slower +
+                (p.pieces.length - 1) * PIECE_STAGGER;
+              tl.set(p.pieces, { display: 'none' }, landed).set(
                 p.glyph,
-                {
-                  opacity: 1,
-                  duration: gsapDuration.base,
-                  ease: gsapEasing.linear,
-                },
-                landed
-              )
-              .to(
-                p.pieces,
-                {
-                  opacity: 0,
-                  duration: gsapDuration.base,
-                  ease: gsapEasing.linear,
-                },
+                { opacity: 1 },
                 landed
               );
+            });
+            return tl;
           });
-          return tl;
-        });
+        };
+
+        if (isInView(el)) {
+          arm();
+          play();
+        } else {
+          observer = new IntersectionObserver((entries, io) => {
+            const entry = entries[entries.length - 1];
+            // 처음부터 화면 안이라고 알려 오면 이미 완성 문장이 그려졌으니 건드리지 않는다.
+            if (!entry.isIntersecting && !armed) {
+              arm();
+            } else if (entry.isIntersecting && armed) {
+              io.disconnect();
+              play();
+            }
+          });
+          observer.observe(el);
+        }
       };
 
-      if (isInView(el)) {
-        arm();
-        play();
-      } else {
-        observer = new IntersectionObserver((entries, io) => {
-          const entry = entries[entries.length - 1];
-          // 처음부터 화면 안이라고 알려 오면 이미 완성 문장이 그려졌으니 건드리지 않는다.
-          if (!entry.isIntersecting && !armed) {
-            arm();
-          } else if (entry.isIntersecting && armed) {
-            io.disconnect();
-            play();
-          }
+      // 폰트를 기다리는 동안 첫 렌더(완성 문장)가 그대로 보인다.
+      const fontWait = waitForFont(el, text);
+      if (fontWait) {
+        fontWait.then(() => {
+          if (!cancelled) start();
         });
-        observer.observe(el);
+      } else {
+        start();
       }
 
       return () => {
+        cancelled = true;
         observer?.disconnect();
         if (timeline) settleMotion(timeline);
         if (armed) rest();
@@ -216,28 +249,24 @@ export const HangulAssemble = forwardRef<HTMLElement, HangulAssembleProps>(
               segment
             ) : (
               <span key={i} className={word} data-hangul-word="">
-                {segment.map((char, j) => {
-                  // 결합 부호가 붙은 칸은 한글 음절 하나가 아니라 통째로 한 그림이다.
-                  const parts =
-                    [...char].length === 1 ? decomposeHangul(char) : null;
-                  const pieces = parts
-                    ? [parts.initial, parts.medial, parts.final].filter(
-                        (piece): piece is string => piece !== undefined
-                      )
-                    : [];
-                  return (
-                    <span key={j} className={cell} data-hangul-cell="">
-                      <span className={glyph} data-hangul-glyph="">
+                {segment.map((char, j) => (
+                  <span key={j} className={cell} data-hangul-cell="">
+                    <span className={glyph} data-hangul-glyph="">
+                      {char}
+                    </span>
+                    {/* 결합 부호가 붙은 칸은 한글 음절 하나가 아니라 통째로 한 그림이라 조각이 없다. */}
+                    {jamoRegions(char)?.map(({ jamo, region }, k) => (
+                      <span
+                        key={k}
+                        className={piece}
+                        data-hangul-jamo={jamo}
+                        style={{ clipPath: polygonCss(region) }}
+                      >
                         {char}
                       </span>
-                      {pieces.map((piece, k) => (
-                        <span key={k} className={jamo} data-hangul-jamo="">
-                          {piece}
-                        </span>
-                      ))}
-                    </span>
-                  );
-                })}
+                    ))}
+                  </span>
+                ))}
               </span>
             )
           )}

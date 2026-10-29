@@ -39,7 +39,7 @@ export const Mixed: Story = {
 // 좁은 폭의 긴 문장. 낱말은 줄 끝에서 갈리지 않는다
 export const LongNarrow: Story = {
   args: {
-    text: '흩어진 자모가 글자 칸 안의 제자리로 모여 완성된 글자가 됩니다 그리고 낱말은 줄 끝에서 갈리지 않습니다',
+    text: '흩어진 조각이 글자 칸 안의 제자리로 맞물려 완성된 글자가 됩니다 그리고 낱말은 줄 끝에서 갈리지 않습니다',
     as: 'p',
   },
   render: (args) => (

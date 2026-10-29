@@ -66,12 +66,37 @@ const q = (container: HTMLElement, name: string): HTMLElement[] => [
 /** 재생이 인라인으로 건 값이 하나라도 남았는가 */
 const hasInlineMotion = (container: HTMLElement): boolean =>
   [...q(container, 'glyph'), ...q(container, 'jamo')].some(
-    (el) => el.style.opacity !== '' || el.style.transform !== ''
+    (el) =>
+      el.style.opacity !== '' ||
+      el.style.transform !== '' ||
+      el.style.display !== ''
   );
+
+/** jsdom에는 document.fonts가 없다. load가 시험이 쥔 약속을 돌려주는 최소 객체를 끼운다. */
+const installFonts = () => {
+  const loads: Array<{ font: string; text: string }> = [];
+  let release: () => void = () => {};
+  const pending = new Promise<void>((resolveLoad) => {
+    release = resolveLoad;
+  });
+  Object.defineProperty(document, 'fonts', {
+    configurable: true,
+    value: {
+      load: (font: string, text: string) => {
+        loads.push({ font, text });
+        return pending;
+      },
+    },
+  });
+  return { loads, release };
+};
 
 afterEach(() => {
   vi.unstubAllGlobals();
   vi.restoreAllMocks();
+  vi.useRealTimers();
+  // 시험이 끼운 document.fonts를 걷어 jsdom 원래대로(없음) 돌린다
+  Reflect.deleteProperty(document, 'fonts');
 });
 
 describe('HangulAssemble', () => {
@@ -143,16 +168,29 @@ describe('HangulAssemble', () => {
       expect(visual?.childNodes[3].textContent).toBe('  ');
     });
 
-    it('한글 글자 칸에는 자모 조각이 2개 또는 3개 있다 (하 → ㅎㅏ, 한 → ㅎㅏㄴ)', () => {
+    it('한글 글자 칸에는 조각이 2개 또는 3개 있다 (하 → ㅎㅏ, 한 → ㅎㅏㄴ)', () => {
       const { container } = render(<HangulAssemble text="하한" />);
 
       const pieces = q(container, 'cell').map((c) =>
-        [...c.querySelectorAll('[data-hangul-jamo]')].map((j) => j.textContent)
+        [...c.querySelectorAll<HTMLElement>('[data-hangul-jamo]')].map(
+          (j) => j.dataset.hangulJamo
+        )
       );
       expect(pieces).toEqual([
         ['ㅎ', 'ㅏ'],
         ['ㅎ', 'ㅏ', 'ㄴ'],
       ]);
+    });
+
+    it('조각은 자모 글자가 아니라 완성 글자 그대로를 담고 자모 영역으로 오려져 있다', () => {
+      const { container } = render(<HangulAssemble text="한" />);
+
+      const pieces = q(container, 'jamo');
+      expect(pieces.map((p) => p.textContent)).toEqual(['한', '한', '한']);
+      // 영역마다 다르다: 모음 조각과 받침 조각이 같은 모양이면 안 된다
+      const clips = pieces.map((p) => p.style.clipPath);
+      expect(new Set(clips).size).toBe(3);
+      for (const clip of clips) expect(clip).toMatch(/^polygon\(/);
     });
 
     it('조합용 자모로 쓴 한글(NFD)도 글자 칸 하나와 자모 조각이 된다', () => {
@@ -162,7 +200,7 @@ describe('HangulAssemble', () => {
 
       expect(q(container, 'cell')).toHaveLength(1);
       expect(q(container, 'glyph')[0].textContent).toBe('한');
-      expect(q(container, 'jamo').map((j) => j.textContent)).toEqual([
+      expect(q(container, 'jamo').map((j) => j.dataset.hangulJamo)).toEqual([
         'ㅎ',
         'ㅏ',
         'ㄴ',
@@ -225,6 +263,7 @@ describe('HangulAssemble', () => {
       const pieces = q(container, 'jamo');
       expect(pieces).toHaveLength(6);
       for (const piece of pieces) {
+        expect(piece.style.display).toBe('block');
         expect(piece.style.opacity).toBe('0');
         expect(piece.style.transform).not.toBe('');
       }
@@ -246,6 +285,61 @@ describe('HangulAssemble', () => {
 
       expect(place(second.container)).toEqual(a);
       expect(new Set(a).size).toBe(a.length);
+    });
+
+    it('조각은 제자리에서 글자 크기와 무관하게 60~120px 떨어지고 살짝 기울어져 시작한다', () => {
+      installObserver();
+      const { container } = render(<HangulAssemble text="한글 조립합니다" />);
+
+      const pieces = q(container, 'jamo');
+      expect(pieces.length).toBeGreaterThan(10);
+      for (const piece of pieces) {
+        // gsap이 인라인으로 쓴 `translate(Xpx, Ypx) rotate(Ddeg)`를 읽는다
+        const [, x, y, deg] = (
+          /translate\((-?[\d.e-]+)px, (-?[\d.e-]+)px\) rotate\((-?[\d.e-]+)deg\)/.exec(
+            piece.style.transform
+          ) ?? []
+        ).map(Number);
+        const tilt = Math.abs(deg);
+        expect(Math.hypot(x, y)).toBeGreaterThanOrEqual(60 - 0.01);
+        expect(Math.hypot(x, y)).toBeLessThanOrEqual(120 + 0.01);
+        expect(tilt).toBeGreaterThan(0);
+        expect(tilt).toBeLessThanOrEqual(10);
+      }
+    });
+
+    it('재생 중 어떤 칸도 완성 글자와 조각이 함께 비치지 않는다 (교차 흐림이 없다)', async () => {
+      installObserver();
+      const { container } = render(<HangulAssemble text="한글 가나" />);
+      const cells = q(container, 'cell').map((c) => ({
+        glyph: c.querySelector<HTMLElement>(
+          '[data-hangul-glyph]'
+        ) as HTMLElement,
+        pieces: [...c.querySelectorAll<HTMLElement>('[data-hangul-jamo]')],
+      }));
+
+      let hiddenWhilePieces = 0;
+      const violations: string[] = [];
+      const sample = () => {
+        for (const { glyph, pieces } of cells) {
+          const op = glyph.style.opacity;
+          const piecesShown = pieces.some((p) => p.style.display === 'block');
+          // 완성 글자는 0이거나 1(또는 걷힘)일 뿐 중간 값을 지나지 않는다
+          if (!['0', '1', ''].includes(op)) violations.push(`glyph ${op}`);
+          // 완성 글자가 보이면 조각 층은 이미 걷혀 있다
+          if (op !== '0' && piecesShown) violations.push('both');
+          if (op === '0' && piecesShown) hiddenWhilePieces++;
+        }
+      };
+      const timer = setInterval(sample, 10);
+      await waitFor(() => expect(hasInlineMotion(container)).toBe(false), {
+        timeout: 4000,
+      });
+      clearInterval(timer);
+
+      expect(violations).toEqual([]);
+      // 관측이 헛돌지 않았다: 조각이 날아오는 동안 완성 글자는 숨어 있었다
+      expect(hiddenWhilePieces).toBeGreaterThan(10);
     });
 
     it('화면 밖이면 첫 렌더는 완성 문장이고, 관찰자가 화면 밖이라고 알리면 숨기고, 들어오면 한 번 재생한다', async () => {
@@ -320,6 +414,56 @@ describe('HangulAssemble', () => {
     });
   });
 
+  describe('폰트 기다리기', () => {
+    it('폰트가 오는 동안은 흩지 않고 완성 문장 그대로이고, 오면 재생한다', async () => {
+      installObserver();
+      const fonts = installFonts();
+      const { container } = render(<HangulAssemble text="한글" />);
+
+      // 기다리는 중: 조각을 흩어진 자리에 놓지도 글자를 숨기지도 않는다
+      expect(fonts.loads).toHaveLength(1);
+      expect(fonts.loads[0].text).toBe('한글');
+      expect(hasInlineMotion(container)).toBe(false);
+
+      await act(async () => fonts.release());
+
+      expect(
+        q(container, 'jamo').every((p) => p.style.display === 'block')
+      ).toBe(true);
+      await waitFor(() => expect(hasInlineMotion(container)).toBe(false), {
+        timeout: 4000,
+      });
+    });
+
+    it('3초가 지나도 안 오면 있는 폰트로 재생한다', async () => {
+      installObserver();
+      installFonts();
+      vi.useFakeTimers();
+      const { container } = render(<HangulAssemble text="한글" />);
+
+      await act(async () => vi.advanceTimersByTime(2999));
+      expect(hasInlineMotion(container)).toBe(false);
+
+      await act(async () => vi.advanceTimersByTime(1));
+      expect(
+        q(container, 'jamo').every((p) => p.style.display === 'block')
+      ).toBe(true);
+    });
+
+    it('기다리는 동안 언마운트하면 폰트가 와도 아무것도 하지 않는다', async () => {
+      installObserver();
+      const fonts = installFonts();
+      const { container, unmount } = render(<HangulAssemble text="한글" />);
+      const pieces = q(container, 'jamo');
+
+      unmount();
+      await act(async () => fonts.release());
+
+      expect(FakeObserver.instances).toHaveLength(0);
+      for (const piece of pieces) expect(piece.style.display).toBe('');
+    });
+  });
+
   describe('인쇄', () => {
     it('인쇄에서는 인라인 값을 !important로 이겨 완성 글자만 보인다', () => {
       const css = readFileSync(
@@ -327,7 +471,7 @@ describe('HangulAssemble', () => {
         'utf-8'
       );
       expect(css).toMatch(/print:[^}]*opacity: '1 !important'/);
-      expect(css).toMatch(/print:[^}]*opacity: '0 !important'/);
+      expect(css).toMatch(/print:[^}]*display: 'none !important'/);
     });
   });
 });
