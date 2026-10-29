@@ -46,22 +46,45 @@ test('카드가 조금이라도 보이면 미니는 멈추지 않는다', async 
   expect(await opacity(cursor)).toBe(1);
 });
 
+const xy = (cursor: Locator) =>
+  move(cursor).then((t) => (t.match(/-?[\d.]+(?=px)/g) ?? []).map(Number));
+const gap = (a: number[], b: number[]) => Math.hypot(a[0] - b[0], a[1] - b[1]);
+
 test('완전히 벗어나면 서고, 돌아오면 서 있던 자리에서 이어 간다', async ({
   page,
 }) => {
   const cursor = cursorOf(page);
   await scrollToShow(page, 1);
   await page.evaluate(() => window.scrollBy(0, 150));
-  const rest = await move(cursor);
-  // 쉬는 자리를 떠나 움직이는 중에 벗어난다
-  await expect.poll(() => move(cursor)).not.toBe(rest);
+  const rest = await xy(cursor);
+  // 쉬는 자리로 돌아가는 중(쉬는 자리까지 20px 넘게 남고 가까워지는 중)에 벗어난다.
+  // 다시 시작했다면 커서는 이 자리에 남았다 단추로 가고, 이어 갔다면 곧 쉬는 자리에 닿는다
+  let before = rest;
+  await expect
+    .poll(
+      async () => {
+        const now = await xy(cursor);
+        const homing =
+          gap(now, rest) > 20 && gap(now, rest) < gap(before, rest) - 3;
+        before = now;
+        await page.waitForTimeout(30);
+        return homing;
+      },
+      { timeout: 15_000, intervals: [0] }
+    )
+    .toBe(true);
   await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
   await expect.poll(() => opacity(cursor)).toBe(0);
-  const stopped = await move(cursor);
+  const stopped = await xy(cursor);
   await page.waitForTimeout(600);
-  expect(await move(cursor)).toBe(stopped);
+  expect(await xy(cursor)).toEqual(stopped);
+  expect(gap(stopped, rest)).toBeGreaterThan(8);
   await scrollToShow(page, 1);
-  await expect.poll(() => opacity(cursor)).toBe(1);
-  // 처음(쉬는 자리)이 아니라 서 있던 자리에서 이어 간다
-  expect(await move(cursor)).not.toBe(rest);
+  // 남은 길을 마저 가 쉬는 자리에 닿는다. 다시 시작했다면 시작 지연(0.6초) 동안 이 자리에 서 있다 단추로 간다
+  let nearest = Infinity;
+  for (let i = 0; i < 30; i++) {
+    nearest = Math.min(nearest, gap(await xy(cursor), rest));
+    await page.waitForTimeout(30);
+  }
+  expect(nearest).toBeLessThan(3);
 });
