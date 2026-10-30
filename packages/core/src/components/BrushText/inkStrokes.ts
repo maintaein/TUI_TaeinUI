@@ -34,6 +34,8 @@ interface Blob {
   specks: number[];
   cx: number;
   cy: number;
+  /** 나눈 부분 덩이가 속한 자모 번호. 나누지 않은 덩이는 없고 무게중심으로 정한다 */
+  jamo?: number;
 }
 
 const NEIGHBORS: ReadonlyArray<
@@ -208,6 +210,135 @@ const geodesic = (
   return { start, dist };
 };
 
+/**
+ * 영역이 덩이 픽셀의 이 비율 이상이면 그 자모의 덩이가 거기 있다고 본다("주인 영역").
+ * 나눔붓글씨 96px(dpr 2)에서 잰 값(리포트 수정 3): 이어 쓴 덩이의 이웃 영역 비율은 독(ㄷ+ㅗ) 36%, 나(ㄴ+ㅏ) 37%, 니(ㄴ+ㅣ) 48%이고,
+ * 한 자모가 이웃 영역으로 넘친 덩이는 한의 ㅎ 15%, 구 15%, 획의 ㅎ 34%, 닭 26%다. 둘이 겹치는 글자가 있어(획의 ㅎ 34%와 독 36%)
+ * 비율만으로는 못 갈라 35%로 두고 아래 `CUT_MAX`를 더한다.
+ */
+export const SPLIT_SHARE = 0.35;
+
+/**
+ * 나눴을 때 부분 덩이의 경계 픽셀(다른 부분과 맞닿은 픽셀) 수를 그 부분 넓이로 나눈 값의 상한.
+ * 이어 쓴 두 자모를 가르는 선은 획의 굵기만큼 짧아서 0.005~0.08이고(독, 니, 나, 닭 0.083),
+ * 한 획을 길이 방향으로 가르는 선(ㅡ가 영역 경계에 걸친 씁 0.134, 각 0.181, 곽 0.152, 위 0.109)은 길어서 이 값을 넘는다. 넘으면 나누지 않는다.
+ */
+export const CUT_MAX = 0.1;
+
+/**
+ * 한 덩이에서 주인 영역이 둘 이상이면 주인 영역 픽셀을 씨앗으로 덩이 안쪽으로만 다중 출발 BFS를 돌려
+ * 나머지 픽셀을 가장 가까운 씨앗의 자모에 붙여 자모마다 부분 덩이로 나눈다. 부분 덩이가 여러 연결 조각이면 조각마다 덩이다.
+ * `labels`를 새 번호로 고쳐 쓴다. 주인 영역이 하나뿐이면 덩이를 그대로 돌려준다.
+ */
+const splitBlob = (
+  blob: Blob,
+  labels: Int32Array,
+  w: number,
+  h: number,
+  regionOf: (p: number) => number,
+  regionCount: number,
+  share: number,
+  nextId: () => number
+): Blob[] => {
+  const count = new Array<number>(regionCount).fill(0);
+  const jamoOf = new Map<number, number>();
+  for (const p of blob.pixels) {
+    const r = regionOf(p);
+    jamoOf.set(p, r);
+    count[r]++;
+  }
+  const owners = count.map((c) => c > 0 && c / blob.pixels.length >= share);
+  if (owners.filter(Boolean).length < 2) return [blob];
+
+  // 주인 영역의 픽셀이 씨앗. 거리 순으로 퍼뜨려 덩이 안의 나머지 픽셀이 가장 가까운 씨앗의 자모를 받는다
+  const group = new Map<number, number>();
+  let frontier: number[] = [];
+  for (const p of blob.pixels) {
+    const r = jamoOf.get(p) as number;
+    if (owners[r]) {
+      group.set(p, r);
+      frontier.push(p);
+    }
+  }
+  while (frontier.length > 0) {
+    const next: number[] = [];
+    for (const p of frontier) {
+      const x = p % w;
+      const y = (p - x) / w;
+      for (const [dx, dy] of NEIGHBORS) {
+        const nx = x + dx;
+        const ny = y + dy;
+        if (nx < 0 || ny < 0 || nx >= w || ny >= h) continue;
+        const n = ny * w + nx;
+        if (labels[n] !== blob.id || group.has(n)) continue;
+        group.set(n, group.get(p) as number);
+        next.push(n);
+      }
+    }
+    frontier = next;
+  }
+
+  // 가르는 선이 획을 길이 방향으로 지나면(경계 픽셀이 부분 넓이에 비해 많으면) 나누지 않는다
+  const area = new Map<number, number>();
+  const edge = new Map<number, number>();
+  for (const p of blob.pixels) {
+    const g = group.get(p) as number;
+    area.set(g, (area.get(g) ?? 0) + 1);
+    const x = p % w;
+    const y = (p - x) / w;
+    const touches = NEIGHBORS.slice(0, 4).some(([dx, dy]) => {
+      const nx = x + dx;
+      const ny = y + dy;
+      if (nx < 0 || ny < 0 || nx >= w || ny >= h) return false;
+      const n = ny * w + nx;
+      return labels[n] === blob.id && group.get(n) !== g;
+    });
+    if (touches) edge.set(g, (edge.get(g) ?? 0) + 1);
+  }
+  for (const [g, a] of area)
+    if ((edge.get(g) ?? 0) / a > CUT_MAX) return [blob];
+
+  // 자모마다 연결 조각을 새 덩이로 떼어 낸다(labels는 아직 옛 번호인 픽셀이 방문 전)
+  const parts: Blob[] = [];
+  const stack: number[] = [];
+  for (const seed of blob.pixels) {
+    if (labels[seed] !== blob.id) continue;
+    const g = group.get(seed) as number;
+    const id = nextId();
+    const pixels: number[] = [];
+    let sx = 0;
+    let sy = 0;
+    labels[seed] = id;
+    stack.push(seed);
+    while (stack.length > 0) {
+      const p = stack.pop() as number;
+      pixels.push(p);
+      const x = p % w;
+      const y = (p - x) / w;
+      sx += x;
+      sy += y;
+      for (const [dx, dy] of NEIGHBORS) {
+        const nx = x + dx;
+        const ny = y + dy;
+        if (nx < 0 || ny < 0 || nx >= w || ny >= h) continue;
+        const n = ny * w + nx;
+        if (labels[n] !== blob.id || group.get(n) !== g) continue;
+        labels[n] = id;
+        stack.push(n);
+      }
+    }
+    parts.push({
+      id,
+      pixels,
+      specks: [],
+      cx: sx / pixels.length,
+      cy: sy / pixels.length,
+      jamo: g,
+    });
+  }
+  return parts;
+};
+
 /** 점이 다각형 안인가(짝수 홀수 규칙) */
 const inside = (poly: Polygon, x: number, y: number): boolean => {
   let c = false;
@@ -225,23 +356,61 @@ export interface InkOptions {
   emPx: number;
   /** `jamoRegions(char)`의 영역들. 한글 음절이 아니면 null(칸 전체가 한 덩이) */
   regions: readonly Polygon[] | null;
+  /** 나누는 비율(`SPLIT_SHARE`). 시험이 0이나 1 넘는 값으로 나누기를 끄고 켠다 */
+  splitShare?: number;
 }
 
 /**
  * 칸의 잉크 비트맵(RGBA)에서 획을 찾아 쓰는 순서대로 돌려준다.
- * 1) 연결 성분이 획 덩이이고 부스러기는 가까운 획에 붙는다.
- * 2) 한글이면 무게중심이 든 자모 영역으로 어느 자모 것인지 정한다(어느 영역에도 안 들면 칸 안으로 모아 가장 가까운 쪽).
- * 3) 자모 순서(초성, 중성, 종성), 한 자모 안은 시작점 기준 위에서 아래(같은 높이면 왼쪽에서 오른쪽). 한글이 아니면 왼쪽에서 오른쪽.
- * ponytail: 붓 글꼴이 이웃 자모를 이어 쓴 덩이는 한 획으로 잡혀 무게중심의 자모 것이 된다, 글꼴을 가리지 않는 대신 생기는 한계다.
+ * 1) 연결 성분이 획 덩이이다.
+ * 2) 한글이면 덩이의 픽셀을 자모 영역에 넣어 주인 영역(`SPLIT_SHARE` 이상)이 둘 이상인 덩이를 자모마다 부분 덩이로 나눈다
+ *    (붓 글꼴이 ㄷ+ㅗ, ㄴ+ㅣ처럼 이어 쓴 덩이). 주인이 하나면 통째로 한 덩이고 무게중심이 든 영역이 그 자모다.
+ * 3) 작은 덩이(부스러기)는 가까운 덩이에 붙는다.
+ * 4) 자모 순서(초성, 중성, 종성), 한 자모 안은 시작점 기준 위에서 아래(같은 높이면 왼쪽에서 오른쪽). 한글이 아니면 왼쪽에서 오른쪽.
+ * ponytail: 한 획이 영역 경계를 `SPLIT_SHARE` 이상 넘으면서 가르는 선이 짧으면(획의 ㅎ이 34%라 아슬아슬하다) 이어 쓴 덩이와 구별되지 않아 나뉘고,
+ * 이어 쓴 덩이도 이웃 영역 비율이 아래거나 가르는 선이 길면 한 획으로 남는다. 글꼴 획 정보 없이 어느 글꼴에서나 되는 대신 생기는 한계라, 글꼴마다 맞추려면 두 값을 옵션으로 연다.
  */
 export const inkStrokes = (
   data: Uint8ClampedArray,
   w: number,
   h: number,
-  { emPx, regions }: InkOptions
+  { emPx, regions, splitShare = SPLIT_SHARE }: InkOptions
 ): Stroke[] => {
-  const { blobs, labels } = labelBlobs(data, w, h);
-  const big = attachSpecks(blobs, w, SPECK_AREA * w * h);
+  const { blobs: found, labels } = labelBlobs(data, w, h);
+  const minArea = SPECK_AREA * w * h;
+  // 칸 안 좌표(x는 칸 폭, y는 칸 가운데를 기준으로 1em)로 옮겨 영역에 넣는다
+  // 영역들은 단위 정사각형을 빈틈없이 나누므로 안으로 모은 점은 어딘가에 든다. 경계 오차로 못 찾으면 초성으로 둔다
+  const regionAt = (x: number, y: number): number =>
+    regions
+      ? Math.max(
+          0,
+          regions.findIndex((r) =>
+            inside(
+              r,
+              Math.min(Math.max(x / w, 0), 1),
+              Math.min(Math.max((y - (h - emPx) / 2) / emPx, 0), 1)
+            )
+          )
+        )
+      : 0;
+  let ids = found.length;
+  const blobs = regions
+    ? found.flatMap((blob) =>
+        blob.pixels.length < minArea
+          ? [blob]
+          : splitBlob(
+              blob,
+              labels,
+              w,
+              h,
+              (p) => regionAt((p % w) + 0.5, Math.floor(p / w) + 0.5),
+              regions.length,
+              splitShare,
+              () => ++ids
+            )
+      )
+    : found;
+  const big = attachSpecks(blobs, w, minArea);
   const strokes = big.map((blob) => {
     const { start, dist } = geodesic(blob, labels, w, h);
     let maxDist = 0;
@@ -258,16 +427,7 @@ export const inkStrokes = (
       pixels[own.length + i] = p;
       sorted[own.length + i] = maxDist;
     });
-    // 칸 안 좌표(x는 칸 폭, y는 칸 가운데를 기준으로 1em)로 옮겨 영역에 넣는다
-    const u = Math.min(Math.max(blob.cx / w, 0), 1);
-    const v = Math.min(Math.max((blob.cy - (h - emPx) / 2) / emPx, 0), 1);
-    // 영역들은 단위 정사각형을 빈틈없이 나누므로 안으로 모은 점은 어딘가에 든다. 경계 오차로 못 찾으면 초성으로 둔다
-    const jamo = regions
-      ? Math.max(
-          0,
-          regions.findIndex((r) => inside(r, u, v))
-        )
-      : 0;
+    const jamo = blob.jamo ?? regionAt(blob.cx, blob.cy);
     const sx = start % w;
     return {
       jamo,

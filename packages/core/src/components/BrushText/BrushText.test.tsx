@@ -75,8 +75,8 @@ interface InkLog {
 }
 
 /**
- * jsdom에는 캔버스 2D가 없다(`ImageData`도 없다). 같은 글자를 어느 폰트로 그려도 글자 칸 가운데에 가로 막대 하나(32 x 4)가
- * 나오는 최소 2D 컨텍스트를 끼운다. 글자 모양이 아니라 획 하나의 길이(0.8em)와 시각을 시험하려는 용도다.
+ * jsdom에는 캔버스 2D가 없다(`ImageData`도 없다). 같은 글자를 어느 폰트로 그려도 글자 칸 가운데에 가로 막대 하나(20 x 4, 초성 영역 안)가
+ * 나오는 최소 2D 컨텍스트를 끼운다. 글자 모양이 아니라 획 하나의 길이(0.5em)와 시각을 시험하려는 용도다.
  */
 const installCanvas = (): InkLog => {
   const log: InkLog = {
@@ -101,7 +101,7 @@ const installCanvas = (): InkLog => {
       }),
       fillText() {
         for (let y = 18; y < 22; y++)
-          for (let x = 4; x < 36; x++) pixels[(y * w + x) * 4 + 3] = 255;
+          for (let x = 2; x < 22; x++) pixels[(y * w + x) * 4 + 3] = 255;
       },
       getImageData: () => ({ data: pixels.slice(), width: w, height: h }),
       createImageData: () => ({
@@ -418,9 +418,9 @@ describe('BrushText', () => {
   });
 
   describe('박자와 그리기 (타임라인을 멈추고 시각을 옮겨 읽는다)', () => {
-    // 칸 하나는 가로 막대 하나(32px = 0.8em)이고 한글 '가'의 초성 영역에 든다. 획의 가장 먼 픽셀까지 측지 거리는 약 32.2px = 0.805em라 획 시간은 약 161ms
-    const STROKE = 0.161;
-    const BAR = 32 * 4;
+    // 칸 하나는 가로 막대 하나(20px = 0.5em)이고 한글 '가'의 초성 영역 안이라 나뉘지 않는다. 획의 가장 먼 픽셀까지 측지 거리는 약 20.2px = 0.505em라 획 시간은 약 101ms
+    const STROKE = 0.101;
+    const BAR = 20 * 4;
     const play = (text: string) => {
       installObserver();
       const log = installCanvas();

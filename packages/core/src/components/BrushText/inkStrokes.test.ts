@@ -205,6 +205,70 @@ describe('자모 배정과 순서', () => {
   });
 });
 
+describe('이어 쓴 덩이 나누기', () => {
+  // 가: 초성은 x < 0.6, 모음은 x >= 0.6인 칸. 60 x 40 칸, 1em = 40px
+  const opts = (splitShare?: number) => ({
+    emPx: 40,
+    regions: regionsOf('가'),
+    splitShare,
+  });
+
+  it('두 영역에 걸쳐 이어진 막대는 자모마다 한 획씩 두 획이 되고 초성이 먼저다', () => {
+    // x 16..56: 초성 영역(x < 36)에 20열, 모음 영역에 20열이 걸린다
+    const bar = bitmap(60, 40, [[16, 18, 56, 22]]);
+    const strokes = inkStrokes(bar, 60, 40, opts());
+
+    expect(strokes.map((s) => s.jamo)).toEqual([0, 1]);
+    expect(strokes[0].start[0]).toBeLessThan(strokes[1].start[0]);
+    // 나뉜 획은 각자 자기 픽셀만 그린다(겹치지 않고 합이 막대 전체)
+    const all = new Set([...strokes[0].pixels, ...strokes[1].pixels]);
+    expect(strokes[0].pixels.length + strokes[1].pixels.length).toBe(all.size);
+    expect(all.size).toBe(40 * 4);
+  });
+
+  it('나뉜 획의 거리는 자기 부분 안에서 0부터 잰다 (둘째 획도 자기 시작점에서)', () => {
+    const bar = bitmap(60, 40, [[16, 18, 56, 22]]);
+    const [first, second] = inkStrokes(bar, 60, 40, opts());
+
+    expect(first.dist[0]).toBe(0);
+    expect(second.dist[0]).toBe(0);
+    expect(second.start[0]).toBeGreaterThanOrEqual(36);
+    expect(first.maxDist).toBeLessThan(25);
+  });
+
+  it('한 영역에 대부분 있고 이웃 영역으로 조금(비율 아래) 넘친 덩이는 한 획이다', () => {
+    // x 4..50: 모음 영역(x >= 36)에 14열(30%)이 걸려 35% 아래
+    const bar = bitmap(60, 40, [[4, 18, 50, 22]]);
+
+    expect(inkStrokes(bar, 60, 40, opts())).toHaveLength(1);
+  });
+
+  it('비율을 0으로 하면 같은 덩이가 둘로 나뉜다 (비율이 한 획으로 남기는 것임을 보인다)', () => {
+    const bar = bitmap(60, 40, [[4, 18, 50, 22]]);
+
+    expect(inkStrokes(bar, 60, 40, opts(0))).toHaveLength(2);
+  });
+
+  it('획을 길이 방향으로 가르는 경계(영역 경계에 걸친 가로 막대)는 나누지 않는다', () => {
+    // 구: 초성은 y < 0.54. 막대가 y 16..28로 경계(21.6)에 걸려 반반이어도 가르는 선이 막대만큼 길다
+    const bar = bitmap(40, 40, [[6, 16, 34, 28]]);
+    const strokes = inkStrokes(bar, 40, 40, {
+      emPx: 40,
+      regions: regionsOf('구'),
+    });
+
+    expect(strokes).toHaveLength(1);
+  });
+
+  it('한글이 아니면(영역 없음) 나누지 않는다', () => {
+    const bar = bitmap(60, 40, [[16, 18, 56, 22]]);
+
+    expect(inkStrokes(bar, 60, 40, { emPx: 40, regions: null })).toHaveLength(
+      1
+    );
+  });
+});
+
 describe('paintFront', () => {
   const W = 40;
   const src = bitmap(W, 10, [[2, 4, 38, 6]]);
