@@ -20,7 +20,7 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-// 기본 예시: 화면에 들어올 때 한 번 붓으로 쓰듯 나타난다. 폰트는 들고 있지 않고 부모의 font-family를 쓴다(붓 글꼴을 주려면 소비자가 @font-face로 불러 부모에 준다)
+// 기본 예시: 화면에 들어올 때 한 번 붓으로 쓰듯 나타난다. 잉크를 재서 자모마다 따로 쓴다. 폰트는 들고 있지 않고 부모의 font-family를 쓴다(붓 글꼴을 주려면 소비자가 @font-face로 불러 부모에 준다)
 export const Default: Story = {
   args: {
     text: '붓으로 쓰듯 나타납니다',
@@ -28,7 +28,7 @@ export const Default: Story = {
   },
 };
 
-// 한글과 라틴, 숫자, 문장부호가 섞인 문장. 한글이 아닌 글자는 칸 하나를 왼쪽에서 오른쪽으로 한 번 쓴다
+// 한글과 라틴, 숫자, 문장부호가 섞인 문장. 한글은 자모마다 따로 획의 길을 따라 쓰고, 한글이 아닌 글자는 칸 하나를 한 덩이로 왼쪽부터 쓴다
 export const Mixed: Story = {
   args: {
     text: 'TaeinUI로 쓴 2026년 한글 문장, 닭과 값어치.',

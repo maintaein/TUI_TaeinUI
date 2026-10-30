@@ -4,7 +4,6 @@ import {
   useImperativeHandle,
   useLayoutEffect,
   useRef,
-  type CSSProperties,
   type ElementType,
 } from 'react';
 import clsx from 'clsx';
@@ -15,17 +14,17 @@ import { gsapEasing } from '../../tokens/gsapEasing';
 import { visuallyHidden } from '../../_internal/visuallyHidden.css';
 import { segmentText } from '../../_internal/segmentText';
 import { word } from '../../_internal/word.css';
-import { jamoRegions, polygonCss } from '../../_internal/jamoRegions';
 import { isInView } from '../../_internal/isInView';
 import { waitForFont } from '../../_internal/waitForFont';
 import { brushSchedule } from './brushSchedule';
+import { measureCell, type InkCell } from './inkCanvas';
+import { paintFront, type Stroke } from './inkStrokes';
 import {
-  SWEEP_GRADIENT,
-  strokeDirection,
-  sweepSpan,
-  type Sweep,
-} from './strokeSweep';
-import { root as rootClass, cell, glyph, stroke } from './BrushText.css';
+  root as rootClass,
+  cell,
+  glyph,
+  canvas as canvasClass,
+} from './BrushText.css';
 
 export interface BrushTextProps {
   /** 붓으로 쓸 문장. 바뀌면 다시 쓰지 않고 새 문장을 완성 상태로 보인다 */
@@ -36,53 +35,27 @@ export interface BrushTextProps {
   className?: string;
 }
 
-/** 획 하나(자모 하나, 또는 한글이 아닌 글자 하나)를 드러내는 조각 */
-interface StrokePiece {
-  jamo?: string;
-  style: CSSProperties;
-}
-
-const strokePieces = (char: string): StrokePiece[] => {
-  const regions = jamoRegions(char);
-  if (!regions) {
-    // 한글 음절이 아닌 글자는 칸 전체를 왼→오로 한 번 쓴다. 영역을 자르지 않고 마스크 상자도 칸 높이 전체다.
-    return [
-      {
-        style: {
-          '--brush-dir': SWEEP_GRADIENT.right,
-          '--brush-from': 0,
-          '--brush-to': 1,
-          '--brush-h': '100%',
-        } as CSSProperties,
-      },
-    ];
-  }
-  return regions.map(({ jamo, region }) => {
-    const sweep: Sweep = strokeDirection(jamo);
-    const [from, to] = sweepSpan(region, sweep);
-    return {
-      jamo,
-      style: {
-        clipPath: polygonCss(region),
-        '--brush-dir': SWEEP_GRADIENT[sweep],
-        '--brush-from': from,
-        '--brush-to': to,
-      } as CSSProperties,
-    };
-  });
-};
-
-/** 글자 칸 하나가 재생에 쓰는 두 층 */
+/** 글자 칸 하나가 재생에 쓰는 것: 진짜 글자 span과 잰 잉크 */
 interface CellParts {
   glyph: HTMLElement;
-  pieces: HTMLElement[];
+  ink: InkCell;
 }
 
+/** 쓰는 순서로 정렬된 획을 자모마다 묶어 획 길이(em) 목록으로 돌려준다 */
+const lengthsByJamo = (strokes: Stroke[]): number[][] =>
+  strokes.reduce<number[][]>((groups, stroke, i) => {
+    if (i > 0 && strokes[i - 1].jamo === stroke.jamo)
+      groups[groups.length - 1].push(stroke.lengthEm);
+    else groups.push([stroke.lengthEm]);
+    return groups;
+  }, []);
+
 /**
- * 붓으로 한 글자씩 쓰이듯 나타나는 문장. 완성 글자를 자모 영역별로 오린 조각 위로 단단한 앞머리의 마스크가
- * 획 방향으로 일정한 속도로 쓸고 지나가며 드러나고, 획 사이에 붓을 드는 쉼이 있다. 화면에 들어올 때 한 번 재생한다.
- * 첫 렌더(SSR 포함)는 완성 문장이고, 재생 전 숨김은 재생 직전에만 건다. 낭독은 시각적으로만 숨긴 완성 문장이 맡는다.
- * 글꼴은 들고 있지 않고 부모의 font-family를 쓴다. 마스크 쓸기는 페인트가 드는 속성이라 긴 문단에는 쓰지 않는다.
+ * 붓으로 한 글자씩 쓰이듯 나타나는 문장. 재생 때 칸마다 완성 글자를 캔버스에 그려 잉크를 재고, 연결된 덩이를 획으로 찾아
+ * 자모마다 따로(초성, 중성, 종성) 획의 길을 따라 단단한 앞머리로 그려 나간다. 획 사이에는 붓을 드는 쉼이 있다.
+ * 화면에 들어올 때 한 번 재생한다. 첫 렌더(SSR 포함)는 완성 문장이고, 재생 전 숨김은 재생 직전에만 건다.
+ * 낭독은 시각적으로만 숨긴 완성 문장이 맡는다. 글꼴은 들고 있지 않고 부모의 font-family를 쓴다.
+ * 재생 때 칸마다 캔버스를 그려 재고 그리는 동안 픽셀을 다시 쓰므로 긴 문단에는 쓰지 않는다.
  */
 export const BrushText = forwardRef<HTMLElement, BrushTextProps>(
   ({ text, as = 'p', className }, ref) => {
@@ -111,38 +84,37 @@ export const BrushText = forwardRef<HTMLElement, BrushTextProps>(
       }
 
       let cancelled = false;
-      let targets: HTMLElement[] = [];
+      let parts: CellParts[] = [];
       let armed = false;
       let timeline: gsap.core.Timeline | null = null;
       let observer: IntersectionObserver | null = null;
 
-      // 인라인으로 건 값을 걷어 CSS의 쉬는 상태(완성 글자만 보임)로 돌아간다.
+      // 캔버스를 걷고 진짜 글자의 인라인 값을 걷어 CSS의 쉬는 상태(완성 글자만 보임)로 돌아간다.
       const rest = () => {
-        gsap.set(targets, {
-          clearProps: 'opacity,display,--brush-p',
-        });
+        for (const p of parts) p.ink.canvas.remove();
+        gsap.set(
+          parts.map((p) => p.glyph),
+          { clearProps: 'opacity' }
+        );
       };
 
       const start = () => {
-        const parts: CellParts[] = [
-          ...el.querySelectorAll<HTMLElement>('[data-brush-cell]'),
-        ].map((c) => ({
-          glyph: c.querySelector<HTMLElement>(
-            '[data-brush-glyph]'
-          ) as HTMLElement,
-          pieces: [...c.querySelectorAll<HTMLElement>('[data-brush-stroke]')],
-        }));
+        const cells = [
+          ...el.querySelectorAll<HTMLElement>('[data-brush-glyph]'),
+        ].map((g) => ({ glyph: g, ink: measureCell(g) }));
+        // 캔버스를 쓸 수 없거나 칸을 못 재면 아무것도 숨기지 않고 완성 문장으로 끝난다.
+        if (cells.length === 0 || cells.some((c) => c.ink === null)) return;
+        // 잉크가 없는 칸(공백 글리프 등)은 쓸 것이 없어 그대로 둔다.
+        parts = (cells as CellParts[]).filter((c) => c.ink.strokes.length > 0);
         if (parts.length === 0) return;
-        targets = parts.flatMap((p) => [p.glyph, ...p.pieces]);
 
         const arm = () => {
           armed = true;
           for (const p of parts) {
+            p.ink.canvas.className = canvasClass;
+            p.ink.canvas.setAttribute('data-brush-canvas', '');
+            p.glyph.parentElement?.appendChild(p.ink.canvas);
             gsap.set(p.glyph, { opacity: 0 });
-            gsap.set(p.pieces, {
-              display: 'block',
-              '--brush-p': 0,
-            });
           }
         };
 
@@ -151,23 +123,47 @@ export const BrushText = forwardRef<HTMLElement, BrushTextProps>(
           timeline = gateMotion(reduced, () => {
             const tl = gsap.timeline({ onComplete: rest });
             const { strokes } = brushSchedule(
-              parts.map((p) => p.pieces.length)
+              parts.map((p) => lengthsByJamo(p.ink.strokes))
             );
             parts.forEach((p, i) => {
-              p.pieces.forEach((piece, k) => {
-                const { start: at, duration } = strokes[i][k];
+              const { ink } = p;
+              const flat = strokes[i].flat();
+              ink.strokes.forEach((stroke, k) => {
+                const { start: at, duration } = flat[k];
+                // 앞머리는 가장 먼 픽셀이 완전히 보이는 거리(maxDist + feather)까지 간다
+                const reach = stroke.maxDist + ink.feather;
+                const brush = { p: 0 };
+                let prev = 0;
                 // 참고 영상에서 잉크 면적이 프레임마다 거의 일정하게 늘어나 linear다.
                 tl.fromTo(
-                  piece,
-                  { '--brush-p': 0 },
-                  { '--brush-p': 1, duration, ease: gsapEasing.linear },
+                  brush,
+                  { p: 0 },
+                  {
+                    p: 1,
+                    duration,
+                    ease: gsapEasing.linear,
+                    immediateRender: false,
+                    onUpdate: () => {
+                      const to = brush.p * reach;
+                      paintFront(
+                        ink.src,
+                        ink.img.data,
+                        stroke,
+                        prev,
+                        to,
+                        ink.feather
+                      );
+                      prev = to;
+                      ink.ctx.putImageData(ink.img, 0, 0);
+                    },
+                  },
                   at
                 );
               });
-              // 칸의 마지막 획이 끝나는 순간 조각 층을 걷고 완성 글자를 드러낸다. 마스크가 다 열려 같은 픽셀이다.
-              const last = strokes[i][strokes[i].length - 1];
+              // 칸의 마지막 획이 끝나는 순간 캔버스를 숨기고 진짜 글자를 드러낸다. 다 그려진 캔버스와 같은 픽셀이다.
+              const last = flat[flat.length - 1];
               const done = last.start + last.duration;
-              tl.set(p.pieces, { display: 'none' }, done).set(
+              tl.set(ink.canvas, { display: 'none' }, done).set(
                 p.glyph,
                 { opacity: 1 },
                 done
@@ -228,18 +224,6 @@ export const BrushText = forwardRef<HTMLElement, BrushTextProps>(
                     <span className={glyph} data-brush-glyph="">
                       {char}
                     </span>
-                    {/* ponytail: 조각은 쓰고 난 뒤에도 display:none으로 남아 칸마다 글자가 2~4번 복제된다, 긴 문장에서 비용이 되면 다 쓴 뒤 DOM에서 뺀다. */}
-                    {strokePieces(char).map(({ jamo, style }, k) => (
-                      <span
-                        key={k}
-                        className={stroke}
-                        data-brush-stroke=""
-                        data-brush-jamo={jamo}
-                        style={style}
-                      >
-                        {char}
-                      </span>
-                    ))}
                   </span>
                 ))}
               </span>
