@@ -39,4 +39,4 @@ export const still = style({});
 globalStyle(`${still} [data-brush-glyph]`, {
   opacity: '1 !important',
 });
-globalStyle(`${still} [data-brush-stroke]`, { display: 'none !important' });
+globalStyle(`${still} [data-brush-canvas]`, { display: 'none !important' });
