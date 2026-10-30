@@ -56,6 +56,24 @@ describe('획 찾기', () => {
     expect(strokes[0].pixels).toHaveLength(50 * 6 + 4);
   });
 
+  it('큰 덩이가 둘이면 부스러기는 가까운 쪽에 붙는다 (첫 덩이가 아니다)', () => {
+    // 100 x 100 칸의 0.2%는 20픽셀. 2 x 2 점(4픽셀)은 오른쪽 막대에 가깝다
+    const strokes = inkStrokes(
+      bitmap(100, 100, [
+        [5, 10, 35, 16],
+        [60, 10, 95, 16],
+        [88, 20, 90, 22],
+      ]),
+      100,
+      100,
+      { emPx: 100, regions: null }
+    );
+    expect(strokes).toHaveLength(2);
+    const [left, right] = strokes;
+    expect(left.pixels).toHaveLength(30 * 6);
+    expect(right.pixels).toHaveLength(35 * 6 + 4);
+  });
+
   it('작은 성분뿐이어도(마침표) 가장 큰 것이 획으로 남는다', () => {
     const strokes = inkStrokes(bitmap(100, 100, [[48, 80, 51, 83]]), 100, 100, {
       emPx: 100,
@@ -189,6 +207,22 @@ describe('자모 배정과 순서', () => {
     expect(strokes.map((s) => s.start[0])).toEqual([6, 40]);
   });
 
+  it('비트맵이 1em보다 높아도(줄 높이) 칸 가운데를 기준으로 배정한다', () => {
+    // 구: 초성은 y < 0.54em. 비트맵 높이 60, 1em = 40이라 가운데 기준 위 10px는 em 밖이다
+    // 위 막대(y 26..30)는 em 좌표로 0.4~0.5라 초성, 아래 막대(y 36..40)는 0.65~0.75라 모음이다
+    // 보정이 없으면 위 막대가 26/40 = 0.65로 읽혀 모음이 된다
+    const strokes = inkStrokes(
+      bitmap(40, 60, [
+        [8, 26, 32, 30],
+        [8, 36, 32, 40],
+      ]),
+      40,
+      60,
+      { emPx: 40, regions: regionsOf('구') }
+    );
+    expect(strokes.map((s) => s.jamo)).toEqual([0, 1]);
+  });
+
   it('자모 배정을 무시하면 순서가 달라진다 (같은 가의 배치)', () => {
     const data = bitmap(40, 40, [
       [4, 12, 20, 16],
@@ -258,6 +292,24 @@ describe('이어 쓴 덩이 나누기', () => {
     });
 
     expect(strokes).toHaveLength(1);
+  });
+
+  it('주인이 아닌 셋째 영역의 꼬리는 가까운 씨앗의 자모를 받는다', () => {
+    // 가로 막대는 초성(x < 36)과 모음에 반반, 오른쪽 끝에서 아래로 내린 꼬리는 받침 영역(y >= 26)까지 간다
+    // 받침 영역의 꼬리 픽셀(16개)은 주인이 아니고, 가까운 씨앗인 모음 쪽 막대에 붙어 모음 획이 된다
+    const kick = bitmap(60, 40, [
+      [16, 10, 56, 14],
+      [50, 14, 54, 30],
+    ]);
+    const strokes = inkStrokes(kick, 60, 40, {
+      emPx: 40,
+      regions: regionsOf('각'),
+      splitShare: 0.2,
+    });
+
+    expect(strokes.map((s) => s.jamo)).toEqual([0, 1]);
+    expect(strokes[1].pixels).toContain(28 * 60 + 52);
+    expect(strokes[0].pixels).not.toContain(28 * 60 + 52);
   });
 
   it('한글이 아니면(영역 없음) 나누지 않는다', () => {
