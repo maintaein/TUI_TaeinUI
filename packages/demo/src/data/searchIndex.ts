@@ -490,7 +490,7 @@ export const searchIndex: SearchEntry[] = [
     path: '/motion/brush-text',
     category: '모션',
     description:
-      'BrushText. 단단한 붓 앞머리가 자모마다 획 방향으로 쓸고 지나가며 문장이 한 글자씩 쓰이듯 나타납니다.',
+      'BrushText. 잉크를 재서 획을 찾고 자모마다 따로 획의 길을 따라 붓이 지나가며 문장이 한 글자씩 쓰이듯 나타납니다.',
     sections: [
       {
         title: '텍스트 애니메이션',
@@ -508,7 +508,8 @@ export const searchIndex: SearchEntry[] = [
       },
       {
         title: '긴 글',
-        content: '마스크 쓸기는 페인트 비용이 있어 긴 문단에는 쓰지 않습니다',
+        content:
+          '재생 때 칸마다 캔버스를 그려 잉크를 재므로 긴 문단에는 쓰지 않습니다',
       },
       {
         title: 'as',

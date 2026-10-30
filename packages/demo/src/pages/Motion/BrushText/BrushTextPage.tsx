@@ -14,7 +14,7 @@ import { MiniFrozen, Stage, type DemoProps } from '../../../components/Stage';
 import * as styles from './BrushTextPage.css';
 
 const LEAD =
-  '붓글씨 글자. 문장이 붓으로 한 글자씩 쓰이듯 나타납니다. 단단한 붓 앞머리가 자모마다 획 방향으로 일정한 속도로 쓸고 지나가며 글자를 드러내고, 획 사이에는 붓을 드는 쉼이 있습니다. 화면에 들어올 때 한 번 쓰고 끝나면 평범한 문장으로 남습니다.';
+  '붓글씨 글자. 문장이 붓으로 한 글자씩 쓰이듯 나타납니다. 잉크를 재서 획을 찾고, 자모마다 따로, 획의 길을 따라 붓이 지나가며 씁니다. 꺾인 획은 꺾인 길대로 그려지고 획 사이에는 붓을 드는 쉼이 있습니다. 화면에 들어올 때 한 번 쓰고 끝나면 평범한 문장으로 남습니다.';
 
 const CONTROLS: Control[] = [
   { prop: 'text', kind: 'text' },
@@ -22,7 +22,7 @@ const CONTROLS: Control[] = [
 ];
 
 const INITIAL: Values = {
-  text: '한 획 한 획',
+  text: '한 획 한 획 씁니다',
   as: 'h2',
 };
 
@@ -69,7 +69,7 @@ const FONT = `/* 붓 글꼴은 컴포넌트가 들고 있지 않습니다. 부�
 
 const REPLAY = `const [run, setRun] = useState(0);
 
-<BrushText key={run} className="hero" text="한 획 한 획" />
+<BrushText key={run} className="hero" text="한 획 한 획 씁니다" />
 <Button onClick={() => setRun((n) => n + 1)}>다시 쓰기</Button>`;
 
 function Usage() {
@@ -78,10 +78,11 @@ function Usage() {
       <Topic title="언제 쓰나">
         <p className={t.body}>
           첫 화면 소개 문장이나 섹션 제목처럼 한 번 눈길을 끌 짧은 문장 한두
-          줄에 씁니다. 마스크가 쓸고 지나가는 동안 화면이 계속 다시 그려지므로
-          긴 문단에는 쓰지 않습니다. 획 하나는 150ms이고 전체 길이가 3초를
-          넘으면 획과 쉼이 같은 비율로 빨라지며, 화면 밖에서는 쓰기를 시작하지
-          않아 비용을 묶습니다.
+          줄에 씁니다. 재생할 때 칸마다 글자를 캔버스에 그려 잉크를 재고, 쓰는
+          동안 픽셀을 다시 쓰므로 긴 문단에는 쓰지 않습니다. 화면 밖에서는
+          쓰기를 시작하지 않아 비용을 묶습니다. 획은 길이에 비례해 1em에 200ms가
+          걸리고, 같은 자모 안 획 사이에 60ms, 자모 사이에 100ms, 음절 사이에
+          150ms 붓을 듭니다. 전체 길이에 상한은 없습니다.
         </p>
       </Topic>
       <Topic title="붓 글꼴">
@@ -110,8 +111,7 @@ function A11y() {
     <ul className={`${t.list} ${t.body}`}>
       <li>
         완성 문장을 화면에서 가린 span에 넣어 보조 기술이 읽습니다. 붓으로
-        쓰이는 시각 글자는 <code>aria-hidden</code>이라 조각이 따로 읽히지
-        않습니다.
+        쓰이는 시각 글자는 <code>aria-hidden</code>이라 따로 읽히지 않습니다.
       </li>
       <li>다 쓰고 나면 진짜 글자만 남아 선택, 복사, 확대가 평소처럼 됩니다.</li>
       <li>
