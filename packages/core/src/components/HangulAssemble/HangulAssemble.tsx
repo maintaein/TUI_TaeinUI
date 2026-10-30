@@ -15,6 +15,8 @@ import { visuallyHidden } from '../../_internal/visuallyHidden.css';
 import { segmentText } from '../../_internal/segmentText';
 import { word } from '../../_internal/word.css';
 import { jamoRegions, polygonCss } from '../../_internal/jamoRegions';
+import { isInView } from '../../_internal/isInView';
+import { waitForFont } from '../../_internal/waitForFont';
 import { PIECE_STAGGER, staggerStep } from './staggerStep';
 import { root as rootClass, cell, glyph, piece } from './HangulAssemble.css';
 
@@ -36,9 +38,6 @@ const SCATTER_PX = [60, 90, 120] as const;
 /** 흩어진 자리의 기울기(도). 살짝 기울어 날아온다 */
 const TILT_DEG = [-9, 6, -4, 8, -6, 5] as const;
 
-/** 폰트를 기다리는 상한. 넘으면 있는 폰트로 간다 */
-const FONT_WAIT_MS = 3000;
-
 /**
  * 흩어진 자리. 글자 번호와 조각 번호로만 정한다.
  * Math.random을 쓰면 시험과 스크린샷이 흔들린다.
@@ -52,40 +51,6 @@ const scatterOffset = (cellIndex: number, pieceIndex: number) => {
     y: Math.sin(angle) * radius,
     rotation: TILT_DEG[n % TILT_DEG.length],
   };
-};
-
-/**
- * 폰트가 오는 중이면 기다릴 약속과 타이머를 걷는 stop을, 이미 있거나 FontFaceSet이 없으면 null(바로 간다)을 돌려준다.
- * 조각은 렌더된 글자를 오리는 것이라 폰트가 바뀌면 영역이 어긋난다.
- */
-const waitForFont = (
-  el: HTMLElement,
-  text: string
-): { ready: Promise<void>; stop: () => void } | null => {
-  const fonts = document.fonts as FontFaceSet | undefined;
-  if (!fonts) return null;
-  const font = getComputedStyle(el).font;
-  try {
-    if (fonts.check?.(font, text)) return null;
-  } catch {
-    // ponytail: computed font가 빈 문자열인 브라우저(옛 Firefox)는 check가 던진다. 기다리지 않고 간다, 지원 하한을 올리면 지운다.
-    return null;
-  }
-  let timer: ReturnType<typeof setTimeout> | undefined;
-  const ready = new Promise<void>((resolve) => {
-    const done = () => {
-      clearTimeout(timer);
-      resolve();
-    };
-    timer = setTimeout(done, FONT_WAIT_MS);
-    fonts.load(font, text).then(done, done);
-  });
-  return { ready, stop: () => clearTimeout(timer) };
-};
-
-const isInView = (el: HTMLElement): boolean => {
-  const rect = el.getBoundingClientRect();
-  return rect.top < window.innerHeight && rect.bottom >= 0;
 };
 
 /** 글자 칸 하나가 재생에 쓰는 두 층 */

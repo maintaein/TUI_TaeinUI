@@ -72,8 +72,8 @@ const SHAPES = {
   },
 } as const satisfies Record<string, Record<string, readonly Polygon[]>>;
 
-const VERTICAL = 'ㅏㅐㅑㅒㅓㅔㅕㅖㅣ';
-const HORIZONTAL = 'ㅗㅛㅜㅠㅡ';
+export const VERTICAL = 'ㅏㅐㅑㅒㅓㅔㅕㅖㅣ';
+export const HORIZONTAL = 'ㅗㅛㅜㅠㅡ';
 
 /**
  * 한글 음절 한 글자를 자모별 영역으로 나눈다. 음절이 아니거나

@@ -24,6 +24,7 @@ export * from './Popover';
 export * from './Chip';
 export * from './Card';
 export * from './HangulAssemble';
+export * from './BrushText';
 export * from './GooeySearch';
 export * from './CopyButton';
 export * from './BurstToggle';
