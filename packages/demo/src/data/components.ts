@@ -339,7 +339,7 @@ export const motionData: MotionInfo[] = [
     title: '붓글씨 글자',
     path: '/motion/brush-text',
     description:
-      '붓 끝 마스크가 자모마다 획 방향으로 쓸고 지나가며 문장이 한 글자씩 쓰이듯 나타납니다.',
+      '단단한 붓 앞머리가 자모마다 획 방향으로 쓸고 지나가며 문장이 한 글자씩 쓰이듯 나타납니다.',
     usage: '첫 화면 소개 문장, 섹션 제목',
     category: 'text',
     icon: Brush,

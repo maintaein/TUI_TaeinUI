@@ -37,7 +37,7 @@ test.describe('붓글씨 글자 상세', () => {
     await expect.poll(() => shownStrokes(page), { timeout: 5000 }).toBe(0);
     expect(await minGlyphOpacity(page)).toBe(1);
     await expect(
-      stage(page).getByRole('heading', { level: 2, name: '한 획 한 획 씁니다' })
+      stage(page).getByRole('heading', { level: 2, name: '한 획 한 획' })
     ).toBeVisible();
     // 인라인 값이 남지 않는다
     expect(

@@ -490,12 +490,12 @@ export const searchIndex: SearchEntry[] = [
     path: '/motion/brush-text',
     category: '모션',
     description:
-      'BrushText. 붓 끝 마스크가 자모마다 획 방향으로 쓸고 지나가며 문장이 한 글자씩 쓰이듯 나타납니다.',
+      'BrushText. 단단한 붓 앞머리가 자모마다 획 방향으로 쓸고 지나가며 문장이 한 글자씩 쓰이듯 나타납니다.',
     sections: [
       {
         title: '텍스트 애니메이션',
         content:
-          'text에 문장을 주면 화면에 들어올 때 한 번 붓으로 쓰듯 나타나고 획이 시작될 때 먹이 살짝 번집니다',
+          'text에 문장을 주면 화면에 들어올 때 한 번 붓으로 쓰듯 나타나고 획 사이에 붓을 드는 쉼이 있습니다',
       },
       {
         title: '붓 글꼴',

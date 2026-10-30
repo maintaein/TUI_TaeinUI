@@ -14,7 +14,7 @@ import { MiniFrozen, Stage, type DemoProps } from '../../../components/Stage';
 import * as styles from './BrushTextPage.css';
 
 const LEAD =
-  '붓글씨 글자. 문장이 붓으로 한 글자씩 쓰이듯 나타납니다. 부드러운 붓 끝이 자모마다 획 방향으로 쓸고 지나가며 글자를 드러내고, 획이 시작될 때 먹이 살짝 번졌다 걷힙니다. 화면에 들어올 때 한 번 쓰고 끝나면 평범한 문장으로 남습니다.';
+  '붓글씨 글자. 문장이 붓으로 한 글자씩 쓰이듯 나타납니다. 단단한 붓 앞머리가 자모마다 획 방향으로 일정한 속도로 쓸고 지나가며 글자를 드러내고, 획 사이에는 붓을 드는 쉼이 있습니다. 화면에 들어올 때 한 번 쓰고 끝나면 평범한 문장으로 남습니다.';
 
 const CONTROLS: Control[] = [
   { prop: 'text', kind: 'text' },
@@ -22,7 +22,7 @@ const CONTROLS: Control[] = [
 ];
 
 const INITIAL: Values = {
-  text: '한 획 한 획 씁니다',
+  text: '한 획 한 획',
   as: 'h2',
 };
 
@@ -69,7 +69,7 @@ const FONT = `/* 붓 글꼴은 컴포넌트가 들고 있지 않습니다. 부�
 
 const REPLAY = `const [run, setRun] = useState(0);
 
-<BrushText key={run} className="hero" text="한 획 한 획 씁니다" />
+<BrushText key={run} className="hero" text="한 획 한 획" />
 <Button onClick={() => setRun((n) => n + 1)}>다시 쓰기</Button>`;
 
 function Usage() {
@@ -79,8 +79,9 @@ function Usage() {
         <p className={t.body}>
           첫 화면 소개 문장이나 섹션 제목처럼 한 번 눈길을 끌 짧은 문장 한두
           줄에 씁니다. 마스크가 쓸고 지나가는 동안 화면이 계속 다시 그려지므로
-          긴 문단에는 쓰지 않습니다. 전체 길이가 3초를 넘으면 같은 비율로
-          빨라지고, 화면 밖에서는 쓰기를 시작하지 않아 비용을 묶습니다.
+          긴 문단에는 쓰지 않습니다. 획 하나는 150ms이고 전체 길이가 3초를
+          넘으면 획과 쉼이 같은 비율로 빨라지며, 화면 밖에서는 쓰기를 시작하지
+          않아 비용을 묶습니다.
         </p>
       </Topic>
       <Topic title="붓 글꼴">
