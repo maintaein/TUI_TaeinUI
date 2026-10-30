@@ -36,9 +36,6 @@ export interface BrushTextProps {
   className?: string;
 }
 
-/** 획이 시작되는 순간 먹이 번진 정도(currentColor의 비율). 그 획의 시간 안에 0으로 걷힌다 */
-const BLEED_PEAK = 0.35;
-
 /** 획 하나(자모 하나, 또는 한글이 아닌 글자 하나)를 드러내는 조각 */
 interface StrokePiece {
   jamo?: string;
@@ -82,8 +79,8 @@ interface CellParts {
 }
 
 /**
- * 붓으로 한 글자씩 쓰이듯 나타나는 문장. 완성 글자를 자모 영역별로 오린 조각 위로 붓 끝 모양의 마스크가
- * 쓸고 지나가며 드러나고, 획이 시작될 때 먹이 살짝 번졌다 걷힌다. 화면에 들어올 때 한 번 재생한다.
+ * 붓으로 한 글자씩 쓰이듯 나타나는 문장. 완성 글자를 자모 영역별로 오린 조각 위로 단단한 앞머리의 마스크가
+ * 획 방향으로 일정한 속도로 쓸고 지나가며 드러나고, 획 사이에 붓을 드는 쉼이 있다. 화면에 들어올 때 한 번 재생한다.
  * 첫 렌더(SSR 포함)는 완성 문장이고, 재생 전 숨김은 재생 직전에만 건다. 낭독은 시각적으로만 숨긴 완성 문장이 맡는다.
  * 글꼴은 들고 있지 않고 부모의 font-family를 쓴다. 마스크 쓸기는 페인트가 드는 속성이라 긴 문단에는 쓰지 않는다.
  */
@@ -122,7 +119,7 @@ export const BrushText = forwardRef<HTMLElement, BrushTextProps>(
       // 인라인으로 건 값을 걷어 CSS의 쉬는 상태(완성 글자만 보임)로 돌아간다.
       const rest = () => {
         gsap.set(targets, {
-          clearProps: 'opacity,display,--brush-p,--brush-bleed',
+          clearProps: 'opacity,display,--brush-p',
         });
       };
 
@@ -145,7 +142,6 @@ export const BrushText = forwardRef<HTMLElement, BrushTextProps>(
             gsap.set(p.pieces, {
               display: 'block',
               '--brush-p': 0,
-              '--brush-bleed': 0,
             });
           }
         };
@@ -160,16 +156,11 @@ export const BrushText = forwardRef<HTMLElement, BrushTextProps>(
             parts.forEach((p, i) => {
               p.pieces.forEach((piece, k) => {
                 const { start: at, duration } = strokes[i][k];
-                // 번짐은 획이 시작되는 순간 가장 짙고 그 획의 시간 안에 걷힌다. 쓸기와 한 트윈이다.
+                // 참고 영상에서 잉크 면적이 프레임마다 거의 일정하게 늘어나 linear다.
                 tl.fromTo(
                   piece,
-                  { '--brush-p': 0, '--brush-bleed': BLEED_PEAK },
-                  {
-                    '--brush-p': 1,
-                    '--brush-bleed': 0,
-                    duration,
-                    ease: gsapEasing.settle,
-                  },
+                  { '--brush-p': 0 },
+                  { '--brush-p': 1, duration, ease: gsapEasing.linear },
                   at
                 );
               });

@@ -69,8 +69,7 @@ const hasInlineMotion = (container: HTMLElement): boolean =>
     (el) =>
       el.style.opacity !== '' ||
       el.style.display !== '' ||
-      el.style.getPropertyValue('--brush-p') !== '' ||
-      el.style.getPropertyValue('--brush-bleed') !== ''
+      el.style.getPropertyValue('--brush-p') !== ''
   );
 
 /** jsdom에는 document.fonts가 없다. load가 시험이 쥔 약속을 돌려주는 최소 객체를 끼운다. check는 폰트가 이미 있는지다. */
@@ -401,11 +400,11 @@ describe('BrushText', () => {
   });
 
   describe('박자와 순서 (타임라인을 멈추고 시각을 옮겨 읽는다)', () => {
-    // 쓸기 200ms power3.out(GSAP의 power3는 4제곱): 진행 x일 때 값은 1 - (1 - x)^4
-    const settle = (x: number) => 1 - (1 - Math.min(Math.max(x, 0), 1)) ** 4;
+    // 획 150ms는 linear: 진행 x일 때 값은 x(참고 영상에서 잉크가 일정하게 늘어난다)
     const num = (el: HTMLElement, name: string) =>
       Number.parseFloat(el.style.getPropertyValue(name));
-    /** "각나다": 칸0(각)은 조각 3개, 칸1(나)은 조각 2개, 칸2는 끝을 늦춰 칸1의 끝 시각이 타임라인 끝이 되지 않게 한다 */
+    const p = (el: HTMLElement) => num(el, '--brush-p');
+    /** "각나다": 칸0(각)은 조각 3개(0, 0.25, 0.5에 시작), 칸1(나)은 조각 2개(0.8, 1.05), 칸2는 끝을 늦춰 칸1의 끝 시각이 타임라인 끝이 되지 않게 한다 */
     const play = (text = '각나다') => {
       installObserver();
       const { container } = render(<BrushText text={text} />);
@@ -418,111 +417,119 @@ describe('BrushText', () => {
       return { seek: seekPlayback(), cells };
     };
 
-    it('초성 → 중성 → 종성 순서로 이어 쓴다 (겹침 없음)', () => {
+    it('초성 → 중성 → 종성 순서로 쓴다 (겹침 없음)', () => {
       const {
         seek,
         cells: [first],
       } = play();
       const [initial, medial, final] = first.pieces;
-      const p = (el: HTMLElement) => num(el, '--brush-p');
 
-      seek(0.1);
-      expect(p(initial)).toBeCloseTo(settle(0.1 / 0.2), 3);
+      seek(0.075);
+      expect(p(initial)).toBeCloseTo(0.5, 3);
       expect(p(medial)).toBe(0);
       expect(p(final)).toBe(0);
 
-      seek(0.3);
+      seek(0.325);
       expect(p(initial)).toBe(1);
-      expect(p(medial)).toBeCloseTo(settle(0.1 / 0.2), 3);
+      expect(p(medial)).toBeCloseTo(0.5, 3);
       expect(p(final)).toBe(0);
 
-      seek(0.5);
+      seek(0.575);
       expect(p(medial)).toBe(1);
-      expect(p(final)).toBeCloseTo(settle(0.1 / 0.2), 3);
+      expect(p(final)).toBeCloseTo(0.5, 3);
     });
 
-    it('자모 하나는 200ms에 다 열리고 그 전에는 다 열리지 않는다', () => {
+    it('획은 150ms에 다 열리고 그 전에는 다 열리지 않는다', () => {
       const {
         seek,
         cells: [first],
       } = play();
 
-      seek(0.19);
-      expect(num(first.pieces[0], '--brush-p')).toBeLessThan(1);
-      seek(0.2);
-      expect(num(first.pieces[0], '--brush-p')).toBe(1);
+      seek(0.14);
+      expect(p(first.pieces[0])).toBeLessThan(1);
+      seek(0.15);
+      expect(p(first.pieces[0])).toBe(1);
     });
 
-    it('다음 음절은 음절 사이 숨 고르기 60ms 뒤에 시작한다', () => {
+    it('획 안에서는 일정한 속도로 자란다 (linear)', () => {
+      const {
+        seek,
+        cells: [first],
+      } = play();
+
+      for (const x of [0.25, 0.5, 0.75]) {
+        seek(0.15 * x);
+        expect(p(first.pieces[0])).toBeCloseTo(x, 3);
+      }
+    });
+
+    it('한 음절 안에서는 획 사이에 100ms 붓을 드는 쉼이 있다 (그동안 아무것도 안 바뀐다)', () => {
+      const {
+        seek,
+        cells: [first],
+      } = play();
+      const [initial, medial] = first.pieces;
+
+      // 초성은 0.15에 끝나고 중성은 0.25에 시작한다
+      seek(0.16);
+      const during = [p(initial), p(medial)];
+      seek(0.24);
+      expect([p(initial), p(medial)]).toEqual(during);
+      expect(during).toEqual([1, 0]);
+      seek(0.2501);
+      expect(p(medial)).toBeGreaterThan(0);
+    });
+
+    it('다음 음절은 음절 사이 쉼 150ms 뒤에 시작한다', () => {
       const {
         seek,
         cells: [, second],
       } = play();
 
-      // 각은 0.6초에 끝나고 나는 0.66초에 시작한다
-      seek(0.65);
-      expect(num(second.pieces[0], '--brush-p')).toBe(0);
-      seek(0.76);
-      expect(num(second.pieces[0], '--brush-p')).toBeCloseTo(
-        settle(0.1 / 0.2),
-        3
-      );
+      // 각은 0.65초에 끝나고 나는 0.8초에 시작한다
+      seek(0.79);
+      expect(p(second.pieces[0])).toBe(0);
+      seek(0.875);
+      expect(p(second.pieces[0])).toBeCloseTo(0.5, 3);
     });
 
-    it('먹 번짐은 획이 시작될 때 가장 짙고 그 획의 200ms 안에 걷힌다', () => {
-      const {
-        seek,
-        cells: [first],
-      } = play();
-      const bleed = (el: HTMLElement) => num(el, '--brush-bleed');
-
-      seek(0);
-      expect(bleed(first.pieces[0])).toBeCloseTo(0.35, 3);
-      seek(0.05);
-      expect(bleed(first.pieces[0])).toBeGreaterThan(0);
-      expect(bleed(first.pieces[0])).toBeLessThan(0.35);
-      seek(0.2);
-      expect(bleed(first.pieces[0])).toBe(0);
-      // 다음 획은 아직 시작 전이라 번짐이 꺼져 있고(마스크로도 숨음), 시작하면 다시 짙어진다
-      seek(0.2);
-      expect(bleed(first.pieces[1])).toBeCloseTo(0.35, 3);
-    });
-
-    it('칸의 조각 층은 그 칸의 마지막 획이 끝나는 순간에 걷히고 그제야 완성 글자가 보인다', () => {
+    it('칸의 조각 층은 그 칸의 마지막 획이 끝나는 순간에 숨고 그제야 완성 글자가 보인다', () => {
       const {
         seek,
         cells: [first, second],
       } = play();
-      const layer = (c: typeof first) => c.pieces.map((p) => p.style.display);
+      const layer = (c: typeof first) => c.pieces.map((q) => q.style.display);
 
-      seek(0.59);
+      seek(0.64);
       expect(layer(first)).toEqual(['block', 'block', 'block']);
       expect(first.glyph.style.opacity).toBe('0');
-      seek(0.6);
+      seek(0.65);
       expect(layer(first)).toEqual(['none', 'none', 'none']);
       expect(first.glyph.style.opacity).toBe('1');
 
-      // 나는 0.66 + 0.4 = 1.06초에 끝난다
-      seek(1.05);
+      // 나는 1.05 + 0.15 = 1.2초에 끝난다
+      seek(1.19);
       expect(layer(second)).toEqual(['block', 'block']);
       expect(second.glyph.style.opacity).toBe('0');
-      seek(1.06);
+      seek(1.2);
       expect(layer(second)).toEqual(['none', 'none']);
       expect(second.glyph.style.opacity).toBe('1');
     });
 
-    it('한글이 아닌 글자도 칸 하나가 200ms 한 번이다 (공백은 시간이 없다)', () => {
+    it('한글이 아닌 글자도 칸 하나가 150ms 한 번이다 (공백은 시간이 없다)', () => {
       installObserver();
       const { container } = render(<BrushText text="A B" />);
       const [a, b] = q(container, 'stroke');
       const seek = seekPlayback();
 
-      seek(0.1);
-      expect(num(a, '--brush-p')).toBeCloseTo(settle(0.5), 3);
-      expect(num(b, '--brush-p')).toBe(0);
-      // B는 숨 고르기 60ms 뒤 0.26초에 시작한다. 공백 칸이 없으니 그 사이에 더 늦지 않는다
-      seek(0.27);
-      expect(num(b, '--brush-p')).toBeGreaterThan(0);
+      seek(0.075);
+      expect(p(a)).toBeCloseTo(0.5, 3);
+      expect(p(b)).toBe(0);
+      // B는 A가 0.15에 끝나고 음절 사이 쉼 0.15 뒤인 0.3초에 시작한다. 공백 칸이 없으니 그 사이에 더 늦지 않는다
+      seek(0.29);
+      expect(p(b)).toBe(0);
+      seek(0.375);
+      expect(p(b)).toBeCloseTo(0.5, 3);
     });
 
     it('긴 문장은 전체가 정확히 3초에 끝난다', () => {
@@ -532,11 +539,29 @@ describe('BrushText', () => {
       expect(timeline.duration()).toBeCloseTo(3, 6);
     });
 
+    it('줄어든 문장은 획 길이와 쉼이 같은 비율로 줄어 그 비율대로 쓴다', () => {
+      // 가 x 20: 3초를 넘어 줄어든다. 획 150ms와 음절 쉼 150ms가 같은 비율이라 둘째 음절은 정확히 한 획 + 한 쉼 = 2 획 길이 뒤에 시작한다
+      const { seek, cells } = play('가'.repeat(20));
+      const first = cells[0].pieces[0];
+      const second = cells[1].pieces[0];
+      const raw = 20 * 2 * 0.15 + 20 * 0.1 + 19 * 0.15;
+      const scale = 3 / raw;
+      const strokeLen = 0.15 * scale;
+      // 첫 음절은 초성, 쉼, 모음 뒤 쉼을 지나 둘째 음절이 시작한다
+      const secondStart = 2 * strokeLen + 0.1 * scale + 0.15 * scale;
+
+      seek(secondStart - 0.001);
+      expect(p(second)).toBe(0);
+      seek(secondStart + strokeLen / 2);
+      expect(p(second)).toBeCloseTo(0.5, 2);
+      expect(p(first)).toBe(1);
+    });
+
     it('짧은 문장은 줄이지 않는다', () => {
       play('가나');
       const timeline = played.timelines.at(-1) as SeekableTimeline;
 
-      expect(timeline.duration()).toBeCloseTo(0.86, 6);
+      expect(timeline.duration()).toBeCloseTo(0.95, 6);
     });
   });
 
