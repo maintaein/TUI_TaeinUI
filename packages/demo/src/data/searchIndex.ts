@@ -485,6 +485,42 @@ export const searchIndex: SearchEntry[] = [
     ],
   },
   {
+    id: 'brush-text',
+    pageTitle: '붓글씨 글자',
+    path: '/motion/brush-text',
+    category: '모션',
+    description:
+      'BrushText. 붓 끝 마스크가 자모마다 획 방향으로 쓸고 지나가며 문장이 한 글자씩 쓰이듯 나타납니다.',
+    sections: [
+      {
+        title: '텍스트 애니메이션',
+        content:
+          'text에 문장을 주면 화면에 들어올 때 한 번 붓으로 쓰듯 나타나고 획이 시작될 때 먹이 살짝 번집니다',
+      },
+      {
+        title: '붓 글꼴',
+        content:
+          '글꼴은 들고 있지 않고 부모의 font-family를 씁니다. 나눔붓글씨를 추천합니다',
+      },
+      {
+        title: '다시 쓰기',
+        content: 'text가 바뀌어도 다시 쓰지 않습니다. key를 바꾸면 다시 씁니다',
+      },
+      {
+        title: '긴 글',
+        content: '마스크 쓸기는 페인트 비용이 있어 긴 문단에는 쓰지 않습니다',
+      },
+      {
+        title: 'as',
+        content: 'h1, h2, p 등 루트 요소를 고릅니다',
+      },
+      {
+        title: '움직임 줄이기',
+        content: '움직임 줄이기에서는 완성 문장을 바로 보여 줍니다',
+      },
+    ],
+  },
+  {
     id: 'gooey-search',
     pageTitle: '물방울 검색창',
     path: '/motion/gooey-search',

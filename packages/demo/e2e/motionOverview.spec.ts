@@ -66,6 +66,12 @@ test.describe('헤더 내비 모션 (1440px)', () => {
   });
 });
 
+/** 카드를 순서가 아니라 안의 미니 이름표(data-stage-mini)로 고른다. 모션이 늘어도 번호가 밀리지 않는다 */
+const cardOf = (page: Page, name: string) =>
+  page.locator('main section > div > div').filter({
+    has: page.locator(`[data-stage-mini="${name} 미리보기"]`),
+  });
+
 test.describe('모션 전체 보기', () => {
   test.use({ viewport: { width: 1440, height: 900 } });
 
@@ -74,11 +80,11 @@ test.describe('모션 전체 보기', () => {
   }) => {
     await page.goto('/motion');
     await expect(
-      page.getByRole('heading', { level: 1, name: '모션 10개' })
+      page.getByRole('heading', { level: 1, name: '모션 11개' })
     ).toBeVisible();
     const sections = page.locator('main section');
     await expect(sections).toHaveCount(4);
-    await expect(page.locator('main section > div > div')).toHaveCount(10);
+    await expect(page.locator('main section > div > div')).toHaveCount(11);
     for (const name of [/텍스트 애니메이션/, /컴포넌트/, /마이크로 인터랙션/])
       await expect(
         sections.getByRole('heading', { level: 2, name })
@@ -108,7 +114,7 @@ test.describe('모션 전체 보기', () => {
     page,
   }) => {
     await page.goto('/motion');
-    const card = page.locator('main section > div > div').nth(9);
+    const card = cardOf(page, 'LuminousFlow');
     await expect(card.getByText('LuminousFlow', { exact: true })).toBeVisible();
     await expect(card.getByText('첫 화면 배경, 어두운 섹션')).toBeVisible();
     await card.getByRole('link', { name: '빛 물줄기' }).click();
@@ -119,7 +125,7 @@ test.describe('모션 전체 보기', () => {
     page,
   }) => {
     await page.goto('/motion');
-    const card = page.locator('main section > div > div').nth(1);
+    const card = cardOf(page, 'GooeySearch');
     await expect(card.getByText('GooeySearch', { exact: true })).toBeVisible();
     await expect(card.getByText('헤더 검색, 도구 막대')).toBeVisible();
     // 바깥 영역 표지는 상세 무대용이다. 카드 미니에는 글자를 그리지 않는다
@@ -171,7 +177,7 @@ test.describe('모션 전체 보기', () => {
     page,
   }) => {
     await page.goto('/motion');
-    const card = page.locator('main section > div > div').nth(2);
+    const card = cardOf(page, 'CopyButton');
     await expect(card.getByText('CopyButton', { exact: true })).toBeVisible();
     await expect(card.getByText('코드 블록, 공유 링크')).toBeVisible();
     await card.getByRole('link', { name: '복사됨' }).click();
@@ -182,7 +188,7 @@ test.describe('모션 전체 보기', () => {
     page,
   }) => {
     await page.goto('/motion');
-    const card = page.locator('main section > div > div').nth(3);
+    const card = cardOf(page, 'BurstToggle');
     await expect(card.getByText('BurstToggle', { exact: true })).toBeVisible();
     await expect(card.getByText('좋아요, 저장, 즐겨찾기')).toBeVisible();
     await card.getByRole('link', { name: '좋아요 터짐' }).click();
@@ -193,7 +199,7 @@ test.describe('모션 전체 보기', () => {
     page,
   }) => {
     await page.goto('/motion');
-    const card = page.locator('main section > div > div').nth(4);
+    const card = cardOf(page, 'HoldButton');
     await expect(card.getByText('HoldButton', { exact: true })).toBeVisible();
     await expect(card.getByText('삭제, 결제, 초기화')).toBeVisible();
     await card.getByRole('link', { name: '꾹 눌러 확정' }).click();
@@ -204,7 +210,7 @@ test.describe('모션 전체 보기', () => {
     page,
   }) => {
     await page.goto('/motion');
-    const card = page.locator('main section > div > div').nth(5);
+    const card = cardOf(page, 'SloshGauge');
     await expect(card.getByText('SloshGauge', { exact: true })).toBeVisible();
     await expect(card.getByText('저장 공간, 할당량, 진행률')).toBeVisible();
     await card.getByRole('link', { name: '출렁이는 게이지' }).click();
@@ -215,7 +221,7 @@ test.describe('모션 전체 보기', () => {
     page,
   }) => {
     await page.goto('/motion');
-    const card = page.locator('main section > div > div').nth(6);
+    const card = cardOf(page, 'CodeSlots');
     await expect(card.getByText('CodeSlots', { exact: true })).toBeVisible();
     await expect(card.getByText('인증번호, PIN 입력')).toBeVisible();
     await card.getByRole('link', { name: '인증번호 슬롯' }).click();
@@ -226,7 +232,7 @@ test.describe('모션 전체 보기', () => {
     page,
   }) => {
     await page.goto('/motion');
-    const card = page.locator('main section > div > div').nth(7);
+    const card = cardOf(page, 'FanMenu');
     await expect(card.getByText('FanMenu', { exact: true })).toBeVisible();
     await expect(card.getByText('빠른 작업, 공유 메뉴')).toBeVisible();
     await card.getByRole('link', { name: '부채꼴 메뉴' }).click();
@@ -237,7 +243,7 @@ test.describe('모션 전체 보기', () => {
     page,
   }) => {
     await page.goto('/motion');
-    const card = page.locator('main section > div > div').nth(8);
+    const card = cardOf(page, 'WingButton');
     await expect(card.getByText('WingButton', { exact: true })).toBeVisible();
     await expect(card.getByText('메일 보내기, 제출, 전송')).toBeVisible();
     await card.getByRole('link', { name: '날개 전송' }).click();

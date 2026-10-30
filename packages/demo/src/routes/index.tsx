@@ -133,6 +133,11 @@ const MotionOverviewPage = lazy(() =>
     default: m.MotionOverviewPage,
   }))
 );
+const BrushTextPage = lazy(() =>
+  import('../pages/Motion/BrushText').then((m) => ({
+    default: m.BrushTextPage,
+  }))
+);
 const HangulAssemblePage = lazy(() =>
   import('../pages/Motion/HangulAssemble').then((m) => ({
     default: m.HangulAssemblePage,
@@ -495,6 +500,14 @@ const router = createBrowserRouter([
             element: (
               <LazyPage>
                 <HangulAssemblePage />
+              </LazyPage>
+            ),
+          },
+          {
+            path: 'brush-text',
+            element: (
+              <LazyPage>
+                <BrushTextPage />
               </LazyPage>
             ),
           },

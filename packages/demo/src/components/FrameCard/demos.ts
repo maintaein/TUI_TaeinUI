@@ -14,6 +14,7 @@ import { HeaderBarDemo } from '../../pages/Components/HeaderBar/HeaderBarPage';
 import { IconButtonDemo } from '../../pages/Components/IconButton/IconButtonPage';
 import { ListDemo } from '../../pages/Components/List/ListPage';
 import { HangulAssembleDemo } from '../../pages/Motion/HangulAssemble/HangulAssemblePage';
+import { BrushTextDemo } from '../../pages/Motion/BrushText/BrushTextPage';
 import { CopyButtonDemo } from '../../pages/Motion/CopyButton/CopyButtonPage';
 import { BurstToggleDemo } from '../../pages/Motion/BurstToggle/BurstTogglePage';
 import { HoldButtonDemo } from '../../pages/Motion/HoldButton/HoldButtonPage';
@@ -64,6 +65,7 @@ export const DEMOS: Record<string, ComponentType<DemoProps>> = {
   Chip: ChipDemo,
   Card: CardDemo,
   HangulAssemble: HangulAssembleDemo,
+  BrushText: BrushTextDemo,
   GooeySearch: GooeySearchDemo,
   CopyButton: CopyButtonDemo,
   BurstToggle: BurstToggleDemo,

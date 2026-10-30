@@ -1,6 +1,7 @@
 import {
   Badge,
   Bone,
+  Brush,
   ChevronsUpDown,
   CirclePlus,
   CircleUser,
@@ -322,7 +323,7 @@ export interface MotionInfo {
 }
 
 export const motionData: MotionInfo[] = [
-  // Text Animation (1개)
+  // Text Animation (2개)
   {
     name: 'HangulAssemble',
     title: '한글 조립',
@@ -332,6 +333,16 @@ export const motionData: MotionInfo[] = [
     usage: '첫 화면 소개 문장, 섹션 제목',
     category: 'text',
     icon: Languages,
+  },
+  {
+    name: 'BrushText',
+    title: '붓글씨 글자',
+    path: '/motion/brush-text',
+    description:
+      '붓 끝 마스크가 자모마다 획 방향으로 쓸고 지나가며 문장이 한 글자씩 쓰이듯 나타납니다.',
+    usage: '첫 화면 소개 문장, 섹션 제목',
+    category: 'text',
+    icon: Brush,
   },
   // Component (1개)
   {
