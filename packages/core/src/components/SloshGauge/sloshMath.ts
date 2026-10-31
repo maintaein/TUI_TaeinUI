@@ -1,7 +1,7 @@
 // 물 장면의 순수 계산. 좌표계는 물방울 그릇의 viewBox(가로 100, 세로 160)이고 y는 아래로 커진다.
 // 참고 영상(water.mp4)의 실측은 water-spec-notes.md의 것이고, 아래 상수마다 그 근거를 적는다.
 
-export const BOWL_W = 100;
+const BOWL_W = 100;
 export const BOWL_H = 160;
 
 // 물방울 윤곽: 위(50, 0)가 뾰족하고 아래가 반지름 50의 원. 꼭짓점에서 원에 접선을 그었다.
@@ -36,8 +36,8 @@ export const levelForFill = (fill: number): number => {
 };
 
 // 수위 용수철. 영상 실측: stiffness 약 120, damping 약 10이면 목표를 약 20% 넘고 1.0~1.5초에 잔잔하다
-export const LEVEL_STIFFNESS = 120;
-export const LEVEL_DAMPING = 10;
+const LEVEL_STIFFNESS = 120;
+const LEVEL_DAMPING = 10;
 // 기울기 용수철. 영상은 0.3~0.5초마다 반대로 흔들리며 감쇠한다: sqrt(90) rad/s는 반주기 0.33초
 const TILT_STIFFNESS = 90;
 const TILT_DAMPING = 7;
@@ -45,11 +45,12 @@ const TILT_DAMPING = 7;
 const TILT_PER_SPEED = 0.1;
 const MAX_SLOPE = 0.36;
 // 프레임 간격 상한(초). 탭 복귀나 부하로 간격이 커져도 용수철이 터지지 않게 묶는다
+// ponytail: 0.05초 자르기라 20fps 아래의 느린 화면에서는 물이 실제보다 느리게 돈다, 그런 화면이 문제가 되면 자르기를 키우고 조각 수를 늘린다
 export const MAX_DT = 0.05;
 const SUBSTEP = 1 / 240;
 
 // 쉴 때 늘 남는 잔물결의 높이(viewBox 단위). 영상의 8~12px(그릇 높이의 1.5%대)는 크다고 해서 그릇 높이의 1.25%로 줄였다
-export const REST_AMP = 2;
+const REST_AMP = 2;
 // 흔들릴 때 더해지는 물결 높이. 그릇 높이의 4.4%
 const ACTIVE_AMP = 7;
 // 물결 위상이 흐르는 속도(rad/s). 쉴 때는 느리게(주기 약 4초), 흔들릴 때는 빠르게
@@ -110,6 +111,7 @@ export const springStep = (
   stiffness: number,
   damping: number
 ): void => {
+  // ponytail: stepSlosh도 같은 자르기를 해 중복이다, springStep을 단독으로 쓰지 않게 되면 한 곳만 남긴다
   const total = Math.min(MAX_DT, Math.max(0, dt));
   const steps = Math.max(1, Math.ceil(total / SUBSTEP));
   const h = total / steps;
@@ -167,6 +169,7 @@ export const stepSlosh = (
     random() < excess * BUBBLE_RATE * total
   ) {
     // 반지름 2.5~6: 120px 폭 그릇에서 3~8px 느낌
+    // ponytail: 거품이 좌우로 흔들리지 않고 곧게만 오른다, 영상만큼의 사실감이 필요해지면 x에 사인 흔들림을 더한다
     const r = 2.5 + random() * 3.5;
     sim.bubbles.push({
       x: 30 + random() * 40,

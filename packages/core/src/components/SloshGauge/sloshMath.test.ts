@@ -210,7 +210,7 @@ describe('거품', () => {
 });
 
 describe('값이 계속 바뀔 때', () => {
-  // 되돌리면 빨개지는 것: 진폭을 상태에 더해 쌓게 바꾸면 수위가 범위를 크게 벗어나 빨개진다
+  // 되돌리면 빨개지는 것: 감쇠를 줄여(LEVEL_DAMPING 10을 3으로) 흔들림이 남아 쌓이면 한 걸음 넘침(25%) 밖으로 나가거나 1.5초 뒤에도 안 잔잔해져 빨개진다(변이로 확인)
   it('100ms마다 목표를 갈아도 흔들림이 쌓여 커지지 않고 마지막 변경 1.5초 뒤 잔잔하다', () => {
     const sim = createSim(0);
     let lowest = 0;
@@ -223,8 +223,8 @@ describe('값이 계속 바뀔 때', () => {
         top = Math.max(top, agitation(s));
       });
     }
-    expect(lowest).toBeGreaterThan(-0.3);
-    expect(highest).toBeLessThan(1.3);
+    expect(lowest).toBeGreaterThan(-0.25);
+    expect(highest).toBeLessThan(1.25);
     expect(top).toBeLessThanOrEqual(1);
     run(sim, 0, 1.5);
     expect(sim.level).toBeCloseTo(0, 2);

@@ -104,15 +104,16 @@ export const SloshGauge = forwardRef<HTMLDivElement, SloshGaugeProps>(
     const syncRef = useRef<() => void>(() => {});
     const settleRef = useRef<() => void>(() => {});
 
-    useEffect(() => {
-      targetRef.current = target;
-      settleRef.current();
-    }, [target]);
-
+    // paused 효과가 먼저 돌아야 한다: 같은 렌더에서 값도 바뀌면 settle이 새 paused를 보고 수위를 바로 둔다
     useEffect(() => {
       pausedRef.current = paused;
       syncRef.current();
     }, [paused]);
+
+    useEffect(() => {
+      targetRef.current = target;
+      settleRef.current();
+    }, [target]);
 
     useEffect(() => {
       const group = bowlRef.current;

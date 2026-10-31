@@ -221,6 +221,27 @@ describe('SloshGauge', () => {
       frame();
       expect(pending()).toBe(0);
     });
+
+    // 되돌리면 빨개지는 것: [paused] 효과를 [target] 효과 뒤로 두면 멈춘 그림이 옛 수위에 서서 빨개진다
+    it('paused가 켜지는 렌더에서 값도 바뀌면 멈춘 그림이 새 수위에 선다', () => {
+      const { container, rerender } = render(
+        <SloshGauge value={20} label="a" />
+      );
+      frame(3);
+      rerender(<SloshGauge value={90} label="a" paused />);
+      frame(3);
+      expect(pending()).toBe(0);
+      const fresh = render(<SloshGauge value={90} label="a" paused />);
+      frame();
+      const mean = (c: HTMLElement) => {
+        const ys = rimYs(c);
+        return ys.reduce((a, b) => a + b, 0) / ys.length;
+      };
+      // 잔물결은 시계가 달라 다르니 수위만 본다(옛 수위와는 80 넘게 다르다)
+      expect(Math.abs(mean(container) - mean(fresh.container))).toBeLessThan(
+        2.5
+      );
+    });
   });
 
   describe('움직임 줄이기', () => {
