@@ -29,6 +29,20 @@ const gapBetween = async (page: Page, a: number, b: number) => {
   return second!.x - (first!.x + first!.width);
 };
 
+// 칸 테두리 색을 rgb 정수로 읽는다(color-mix의 computed 값은 `color(srgb r g b)`나 oklab으로 온다)
+const rgbOf = (c: string) => {
+  const m = /^color\(srgb ([\d.]+) ([\d.]+) ([\d.]+)\)$/.exec(c);
+  return m ? m.slice(1, 4).map((v) => Math.round(Number(v) * 255)) : [c];
+};
+const borders = (page: Page) =>
+  slots(page)
+    .evaluateAll((els) => els.map((el) => getComputedStyle(el).borderTopColor))
+    .then((all) => all.map(rgbOf));
+// 기본 text.secondary(#717171), primary.main(#1976D2), error.main
+const GRAY = [113, 113, 113];
+const PRIMARY = [25, 118, 210];
+const ERROR = [211, 47, 47];
+
 // 색 문자열의 투명도. 불투명이면 알파가 적히지 않는다
 const alphaOf = (color: string) => {
   const m =
@@ -134,17 +148,17 @@ test.describe('인증번호 슬롯 상세 (1440px)', () => {
     // 합쳐짐 전이(slower)가 끝나면 모든 칸 사이 간격이 0이다
     await expect.poll(() => gapBetween(page, 0, 1)).toBeCloseTo(0, 0);
     await expect.poll(() => gapBetween(page, 4, 5)).toBeCloseTo(0, 0);
-    // 합쳐진 뒤에는 칸별 포커스 링이 없고 알약 전체가 링 하나를 가진다
+    // 바깥 포커스 링은 없다(칸 줄도 칸도 outline이 없다). 합쳐진 뒤 칸은 투명해 포커스여도 테두리 색이 보이지 않는다
     const ring = await stage(page)
       .locator('input + div')
       .evaluate((el) => ({
-        pill: getComputedStyle(el).outlineStyle,
+        row: getComputedStyle(el).outlineStyle,
         radius: parseFloat(getComputedStyle(el).borderTopLeftRadius),
         cells: [...el.querySelectorAll(':scope > span')].map(
           (c) => getComputedStyle(c).outlineStyle
         ),
       }));
-    expect(ring.pill).toBe('solid');
+    expect(ring.row).toBe('none');
     expect(ring.radius).toBeGreaterThan(20);
     expect(ring.cells).toEqual(Array(6).fill('none'));
     // 합쳐진 알약: 칸의 테두리와 바탕은 투명하고 칸 뒤 묶음이 success 테두리와 알약 모서리를 가진다
@@ -362,17 +376,38 @@ test.describe('인증번호 슬롯 상세 (1440px)', () => {
     await expect(stage(page).getByText('확인했습니다')).toBeVisible();
   });
 
-  test('숫자가 아닌 글자는 버리고 지금 칸에 포커스 링이 있다', async ({
+  test('숫자가 아닌 글자는 버리고 지금 칸의 테두리 색이 포커스를 알린다(바깥 링 없음)', async ({
     page,
   }) => {
     await open(page);
     await page.keyboard.type('1a2-');
     await expect(input(page)).toHaveValue('12');
-    // 지금 입력할 칸은 셋째 칸이고 그 칸만 포커스 링(outline)을 가진다
+    // 지금 입력할 칸은 셋째 칸이다. 그 칸만 테두리가 primary 색이고 어느 칸도 outline이 없다
+    await expect
+      .poll(() => borders(page))
+      .toEqual([GRAY, GRAY, PRIMARY, GRAY, GRAY, GRAY]);
     const outlines = await slots(page).evaluateAll((els) =>
       els.map((el) => getComputedStyle(el).outlineStyle)
     );
-    expect(outlines).toEqual(['none', 'none', 'solid', 'none', 'none', 'none']);
+    expect(outlines).toEqual(Array(6).fill('none'));
+  });
+
+  test('오류면 포커스 중에도 활성 칸의 테두리가 error 색이다', async ({
+    page,
+  }) => {
+    await open(page);
+    await page.keyboard.type('111111');
+    await expect(input(page)).toHaveAttribute('aria-invalid', 'true');
+    await expect(input(page)).toBeFocused();
+    // 다 찼으면 마지막 칸이 지금 칸이다
+    await expect
+      .poll(() => borders(page))
+      .toEqual([ERROR, ERROR, ERROR, ERROR, ERROR, ERROR]);
+    // 오류를 풀면 포커스 색으로 돌아온다
+    await page.keyboard.press('Backspace');
+    await expect
+      .poll(() => borders(page))
+      .toEqual([GRAY, GRAY, GRAY, GRAY, GRAY, PRIMARY]);
   });
 
   test('다시 단추가 칸을 비운다', async ({ page }) => {
