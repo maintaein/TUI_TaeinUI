@@ -63,6 +63,13 @@ export const bundle = style({
   borderRadius: RADIUS,
   backgroundColor: color.background.paper,
   opacity: `calc(1 - ${fade})`,
+  // 포커스: 합쳐진 뒤엔 칸이 투명해 칸 색으로는 포커스를 못 보이므로 묶음 테두리가 색 그대로 굵어진다(링을 더하지 않는다).
+  // border-width: 묶음은 inset 0 + border-box에 내용이 없어 굵기가 바뀌어도 레이아웃이 안 밀린다(그래서 레이아웃 속성이지만 전이한다). 합쳐지기 전엔 opacity 0이라 안 보인다.
+  transition: `border-width ${animation.duration.fast} ${animation.easing.settle}`,
+  '@media': { '(prefers-reduced-motion: reduce)': { transition: 'none' } },
+  selectors: {
+    [`${group}:focus-within &`]: { borderWidth: '2px' },
+  },
 });
 
 // 실제 입력. display:none이면 포커스와 자동 채움을 못 받으므로 투명하게 칸 위에 겹친다.
@@ -102,7 +109,7 @@ export const cell = style({
   selectors: {
     [`${merged} &`]: { transition: 'none' },
     // 포커스: 묶음 안에 포커스가 있으면 지금 입력할 칸(2.4.7)의 테두리 색이 바뀐다(TextField 포커스와 같은 방식, 바깥 링은 쓰지 않는다).
-    // 마우스 클릭도 같은 모양이라 :focus-visible이 아니라 포커스 안에서 본다. 합쳐진 동안은 칸이 투명해 fade가 이 색도 지운다(포커스 위치는 캐럿이 맡는다).
+    // 마우스 클릭도 같은 모양이라 :focus-visible이 아니라 포커스 안에서 본다. 합쳐진 동안은 칸이 투명해 fade가 이 색도 지운다(그때는 묶음 테두리가 굵어진다, bundle).
     [`${group}:focus-within &[data-active="true"]`]: {
       borderColor: faded(color.primary.main),
     },
@@ -119,9 +126,15 @@ export const cellError = style({
     },
   },
 });
+// 포커스된 채 disabled가 되어도 비활성 색이 이긴다(포커스 규칙과 같은 특정도, 뒤에 놓는다)
 export const cellDisabled = style({
   backgroundColor: faded(color.surface.default),
   borderColor: faded(color.border.default),
+  selectors: {
+    [`${group}:focus-within &[data-active="true"]`]: {
+      borderColor: faded(color.border.default),
+    },
+  },
 });
 
 const digitBase = {

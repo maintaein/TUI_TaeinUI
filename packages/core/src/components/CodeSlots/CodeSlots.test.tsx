@@ -918,6 +918,34 @@ describe('CodeSlots', () => {
       expect(all.indexOf(error)).toBeGreaterThan(all.indexOf(cell));
     });
 
+    it('합쳐진 뒤 포커스면 묶음 테두리가 색은 그대로 1px에서 2px로 굵어지고 축소 모션이면 전이가 없다', () => {
+      const base = byClass('bundle')!.style;
+      expect(base.getPropertyValue('border')).toContain('1px solid');
+      const focus = rules().find(
+        (r) =>
+          /:focus-within/.test(r.selectorText) &&
+          /\.CodeSlots_bundle__\w+$/.test(r.selectorText)
+      )!;
+      expect(focus.style.getPropertyValue('border-width')).toBe('2px');
+      // 색은 성공을 나타내므로 바꾸지 않고 링도 더하지 않는다
+      expect(focus.style.getPropertyValue('border-color')).toBe('');
+      expect(focus.style.length).toBe(1);
+      const transition = base.getPropertyValue('transition');
+      expect(transition).toContain('border-width');
+      expect(transition).toContain(duration.fast);
+      expect(transition).toContain(easing.settle);
+    });
+
+    it('비활성 칸은 포커스 규칙에서도 비활성 색이다: 포커스 규칙이 cell의 것보다 뒤에 있다', () => {
+      const all = rules();
+      const cell = focusRule('cell')!;
+      const disabled = focusRule('cellDisabled')!;
+      expect(disabled.style.getPropertyValue('border-color')).toContain(
+        themeContract.color.border.default
+      );
+      expect(all.indexOf(disabled)).toBeGreaterThan(all.indexOf(cell));
+    });
+
     it('바깥 포커스 링(outline)을 어디에도 쓰지 않고 합쳐진 모양은 윤곽 자르기만 가진다', () => {
       for (const rule of rules()) {
         expect(rule.style.getPropertyValue('outline')).toBe('');
@@ -931,7 +959,7 @@ describe('CodeSlots', () => {
       ).toHaveLength(1);
     });
 
-    it('움직임 줄이기 미디어 질의에서 칸의 색 전이가 꺼진다', () => {
+    it('움직임 줄이기 미디어 질의에서 칸의 색 전이와 묶음의 굵기 전이가 꺼진다', () => {
       const sheet = Array.from(document.styleSheets).find((c) =>
         Array.from(c.cssRules).some((r) => r.cssText.includes('CodeSlots_cell'))
       )!;
@@ -939,10 +967,11 @@ describe('CodeSlots', () => {
         .filter((r): r is CSSMediaRule => r instanceof CSSMediaRule)
         .filter((m) => /prefers-reduced-motion/.test(m.conditionText))
         .flatMap((m) => Array.from(m.cssRules) as CSSStyleRule[])
-        .filter((r) => /CodeSlots_cell__\w+$/.test(r.selectorText));
+        .filter((r) => /CodeSlots_(cell|bundle)__\w+$/.test(r.selectorText));
+      // 칸의 색 전이와 묶음의 굵기 전이
       expect(
         reduced.map((r) => r.style.getPropertyValue('transition'))
-      ).toEqual(['none']);
+      ).toEqual(['none', 'none']);
     });
   });
 });
