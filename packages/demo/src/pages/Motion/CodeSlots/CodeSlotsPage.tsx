@@ -12,7 +12,7 @@ import type { PropDefinition } from '../../../components/PropsTable';
 import { Stage, type Act, type DemoProps } from '../../../components/Stage';
 
 const LEAD =
-  '인증번호와 PIN을 넣는 칸. 숫자가 슬롯처럼 위에서 굴러 들어오고, 틀리면 칸이 왼쪽부터 물결치고, 맞으면 칸들이 하나의 알약으로 합쳐집니다.';
+  '인증번호와 PIN을 넣는 칸. 숫자가 슬롯처럼 위에서 굴러 들어오고, 틀리면 칸이 왼쪽부터 물결치고, 맞으면 두 박자로 칸들이 하나의 알약으로 합쳐집니다.';
 
 const CONTROLS: Control[] = [
   { prop: 'label', kind: 'text' },
@@ -76,7 +76,7 @@ const PROPS: PropDefinition[] = [
     type: 'boolean',
     default: 'false',
     description:
-      '성공 상태. 칸들이 하나의 알약으로 합쳐지고 테두리가 성공 색이 됩니다. error가 함께 켜지면 error가 이깁니다',
+      '성공 상태. 칸 테두리가 흐려진 뒤 칸이 모여 하나의 알약이 되고 그 테두리가 성공 색입니다. error가 함께 켜지면 error가 이깁니다',
   },
   {
     name: 'successMessage',
@@ -184,6 +184,17 @@ function Usage() {
           문자나 앱으로 받은 인증번호, 결제 비밀번호 같은 PIN처럼 짧은 숫자 열을
           한 칸에 한 자씩 보여 주며 받을 때 씁니다. 틀렸는지 맞았는지가 칸의
           움직임과 색으로 바로 보입니다.
+        </p>
+      </Topic>
+      <Topic title="성공은 두 박자로 합쳐집니다">
+        <p className={t.body}>
+          첫 박자(200ms)에는 칸마다의 테두리와 흰 바탕이 함께 흐려지고, 칸 뒤에
+          깔린 묶음 하나가 나타나 바탕과 성공 색 테두리를 넘겨받습니다. 칸별 흰
+          면이 따로 노는 순간이 없습니다. 둘째 박자(500ms)에는 칸이 가운데로
+          모이고 묶음의 폭이 같이 줄며 모서리가 알약만큼 둥글어집니다. 폭은
+          scale이 아니라 실제 폭이라 둥근 끝이 찌그러지지 않습니다. 값을 고쳐
+          성공이 풀리면 같은 길을 거꾸로 갑니다. 진행 중에 바뀌어도 지금
+          모양에서 돌아갑니다.
         </p>
       </Topic>
       <Topic title="입력은 숨은 input 하나">

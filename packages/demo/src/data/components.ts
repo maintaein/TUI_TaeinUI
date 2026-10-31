@@ -400,7 +400,7 @@ export const motionData: MotionInfo[] = [
     title: '인증번호 슬롯',
     path: '/motion/code-slots',
     description:
-      '숫자가 슬롯처럼 굴러 들어오고, 틀리면 칸이 물결치고 맞으면 하나로 합쳐집니다.',
+      '숫자가 슬롯처럼 굴러 들어오고, 틀리면 칸이 물결치고 맞으면 칸 테두리가 흐려진 뒤 칸이 모여 하나의 알약이 됩니다.',
     usage: '인증번호, PIN 입력',
     category: 'micro',
     icon: KeyRound,

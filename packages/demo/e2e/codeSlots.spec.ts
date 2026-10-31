@@ -29,6 +29,82 @@ const gapBetween = async (page: Page, a: number, b: number) => {
   return second!.x - (first!.x + first!.width);
 };
 
+// 색 문자열의 투명도. 불투명이면 알파가 적히지 않는다
+const alphaOf = (color: string) => {
+  const m =
+    /\/\s*([\d.]+)\s*\)$/.exec(color) ??
+    /^rgba\([^)]*,\s*([\d.]+)\)$/.exec(color);
+  return m ? Number(m[1]) : 1;
+};
+
+interface Frame {
+  t: number;
+  cellBorder: number;
+  cellBg: number;
+  bundle: number;
+  boxWidth: number;
+  computedWidth: number;
+  transform: string;
+  gap: number;
+  radius: number;
+  outside: number;
+}
+
+// 프레임마다 첫 칸의 테두리·바탕 투명도, 묶음 불투명도·폭·변형, 칸 간격, 윤곽 밖으로 나온 칸의 길이를 모은다
+const recordFrames = (page: Page) =>
+  page.evaluate(() => {
+    const w = window as unknown as { __frames: unknown[]; __stop: boolean };
+    w.__frames = [];
+    w.__stop = false;
+    const alpha = (c: string) => {
+      const m =
+        /\/\s*([\d.]+)\s*\)$/.exec(c) ?? /^rgba\([^)]*,\s*([\d.]+)\)$/.exec(c);
+      return m ? Number(m[1]) : 1;
+    };
+    const row = document.querySelector(
+      '[aria-label="CodeSlots 미리보기"] input + div'
+    ) as HTMLElement;
+    const bundle = row.querySelector(':scope > div') as HTMLElement;
+    const cells = [...row.querySelectorAll(':scope > span')] as HTMLElement[];
+    const tick = () => {
+      if (w.__stop) return;
+      const bs = getComputedStyle(bundle);
+      const box = bundle.getBoundingClientRect();
+      const c0 = getComputedStyle(cells[0]);
+      const gap =
+        cells[1].getBoundingClientRect().left -
+        cells[0].getBoundingClientRect().right;
+      // 칸이 묶음 윤곽 밖으로 나온 가장 긴 길이
+      const outside = Math.max(
+        ...cells.map((c) => {
+          const r = c.getBoundingClientRect();
+          return Math.max(box.left - r.left, r.right - box.right, 0);
+        })
+      );
+      w.__frames.push({
+        t: performance.now(),
+        cellBorder: alpha(c0.borderTopColor),
+        cellBg: alpha(c0.backgroundColor),
+        bundle: Number(bs.opacity) * alpha(bs.borderTopColor),
+        boxWidth: box.width,
+        computedWidth: parseFloat(bs.width),
+        transform: bs.transform,
+        gap,
+        radius: parseFloat(bs.borderTopLeftRadius),
+        outside,
+      });
+      requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+  });
+
+const takeFrames = (page: Page) =>
+  page.evaluate(() => {
+    const w = window as unknown as { __frames: unknown[]; __stop: boolean };
+    w.__stop = true;
+    return w.__frames;
+  }) as Promise<Frame[]>;
+
 test.describe('인증번호 슬롯 상세 (1440px)', () => {
   test.use({ viewport: { width: 1440, height: 900 } });
 
@@ -64,22 +140,120 @@ test.describe('인증번호 슬롯 상세 (1440px)', () => {
       .evaluate((el) => ({
         pill: getComputedStyle(el).outlineStyle,
         radius: parseFloat(getComputedStyle(el).borderTopLeftRadius),
-        cells: [...el.children].map((c) => getComputedStyle(c).outlineStyle),
+        cells: [...el.querySelectorAll(':scope > span')].map(
+          (c) => getComputedStyle(c).outlineStyle
+        ),
       }));
     expect(ring.pill).toBe('solid');
     expect(ring.radius).toBeGreaterThan(20);
     expect(ring.cells).toEqual(Array(6).fill('none'));
-    // 합쳐진 알약은 바깥 모서리만 둥글다
-    const radii = await slots(page).evaluateAll((els) =>
-      els.map((el) => {
-        const s = getComputedStyle(el);
-        return [s.borderTopLeftRadius, s.borderTopRightRadius];
-      })
-    );
-    expect(parseFloat(radii[0][0])).toBeGreaterThan(20);
-    expect(parseFloat(radii[0][1])).toBe(0);
-    expect(parseFloat(radii[5][0])).toBe(0);
-    expect(parseFloat(radii[5][1])).toBeGreaterThan(20);
+    // 합쳐진 알약: 칸의 테두리와 바탕은 투명하고 칸 뒤 묶음이 success 테두리와 알약 모서리를 가진다
+    const end = await stage(page)
+      .locator('input + div')
+      .evaluate((el) => {
+        const bundle = el.querySelector(':scope > div') as HTMLElement;
+        const b = getComputedStyle(bundle);
+        const cells = [...el.querySelectorAll(':scope > span')];
+        return {
+          cellBorders: cells.map((c) => getComputedStyle(c).borderTopColor),
+          cellBgs: cells.map((c) => getComputedStyle(c).backgroundColor),
+          bundleOpacity: b.opacity,
+          bundleRadius: parseFloat(b.borderTopLeftRadius),
+          bundleBorder: b.borderTopColor,
+          bundleWidth: bundle.getBoundingClientRect().width,
+          rowWidth: el.getBoundingClientRect().width,
+        };
+      });
+    expect(end.cellBorders.every((c) => alphaOf(c) === 0)).toBe(true);
+    expect(end.cellBgs.every((c) => alphaOf(c) === 0)).toBe(true);
+    expect(end.bundleOpacity).toBe('1');
+    expect(end.bundleRadius).toBeGreaterThan(20);
+    expect(alphaOf(end.bundleBorder)).toBe(1);
+    expect(end.bundleWidth).toBeCloseTo(6 * 48, 0);
+    expect(end.bundleWidth).toBeCloseTo(end.rowWidth, 0);
+  });
+
+  test('합쳐지는 전이 어느 프레임에도 칸별 테두리와 묶음 테두리가 함께 불투명하지 않고, 폭이 scale 없이 줄며, 칸이 윤곽 밖으로 나오지 않는다', async ({
+    page,
+  }) => {
+    await open(page);
+    await recordFrames(page);
+    await page.keyboard.type('123456');
+    await expect(stage(page).getByText('확인했습니다')).toBeVisible();
+    await page.waitForTimeout(1000);
+    const frames = await takeFrames(page);
+    // 칸 하나의 테두리·바탕 투명도 + 묶음 불투명도는 어느 프레임에서도 1을 넘지 않는다(둘이 겹쳐 짙어지는 프레임이 없다)
+    for (const f of frames) {
+      expect(f.cellBorder + f.bundle).toBeLessThanOrEqual(1.02);
+      expect(f.cellBg + f.bundle).toBeLessThanOrEqual(1.02);
+      expect(f.transform).toBe('none');
+      expect(f.outside).toBeLessThanOrEqual(0.5);
+      expect(f.computedWidth).toBeCloseTo(f.boxWidth, 0);
+    }
+    // 폭은 늘지 않고 줄기만 한다
+    for (let i = 1; i < frames.length; i++)
+      expect(frames[i].boxWidth).toBeLessThanOrEqual(
+        frames[i - 1].boxWidth + 0.5
+      );
+    // 시작은 칸 테두리가 흐려지기 시작하는 첫 프레임이다
+    const start = frames.find((f) => f.cellBorder < 0.99)!;
+    const near = (ms: number) =>
+      frames.reduce((best, f) =>
+        Math.abs(f.t - start.t - ms) < Math.abs(best.t - start.t - ms)
+          ? f
+          : best
+      );
+    // ① 중간: 칸 테두리가 흐려지는 중이고 묶음이 나타나는 중이며 간격과 폭은 아직 그대로다
+    const first = near(60);
+    expect(first.cellBorder).toBeGreaterThan(0.02);
+    expect(first.cellBorder).toBeLessThan(0.98);
+    expect(first.bundle).toBeGreaterThan(0.02);
+    expect(first.gap).toBeGreaterThan(7.5);
+    expect(first.boxWidth).toBeGreaterThan(6 * 48 + 5 * 8 - 1);
+    // ①과 ② 경계 근처: 칸 테두리는 거의 사라졌고 묶음은 거의 다 나타났으며 모임은 막 시작한다
+    const edge = near(205);
+    expect(edge.cellBorder).toBeLessThan(0.1);
+    expect(edge.bundle).toBeGreaterThan(0.9);
+    expect(edge.gap).toBeGreaterThan(3);
+    // ② 중간: 간격이 줄고 묶음의 실제 폭이 그만큼 줄며 알약으로 둥글어지는 중이다
+    const second = near(450);
+    expect(second.cellBorder).toBeLessThan(0.02);
+    expect(second.gap).toBeGreaterThan(0.05);
+    expect(second.gap).toBeLessThan(6);
+    expect(second.boxWidth).toBeLessThan(6 * 48 + 5 * 8 - 3);
+    expect(second.boxWidth).toBeGreaterThan(6 * 48);
+    expect(second.boxWidth).toBeCloseTo(6 * 48 + 5 * second.gap, 0);
+    expect(second.radius).toBeGreaterThan(9);
+    const last = frames[frames.length - 1];
+    expect(last.gap).toBeCloseTo(0, 0);
+    expect(last.boxWidth).toBeCloseTo(6 * 48, 0);
+    expect(last.radius).toBeGreaterThan(20);
+  });
+
+  test('성공이 풀리면 같은 길을 거꾸로 간다(② 뒤 ①)', async ({ page }) => {
+    await open(page);
+    await page.keyboard.type('123456');
+    await expect.poll(() => gapBetween(page, 0, 1)).toBeCloseTo(0, 0);
+    await recordFrames(page);
+    await page.keyboard.press('Backspace');
+    await expect(input(page)).toHaveValue('12345');
+    await page.waitForTimeout(1000);
+    const frames = await takeFrames(page);
+    for (const f of frames) {
+      expect(f.cellBorder + f.bundle).toBeLessThanOrEqual(1.02);
+      expect(f.transform).toBe('none');
+      expect(f.outside).toBeLessThanOrEqual(0.5);
+    }
+    // 칸 테두리가 돌아오기(①) 시작할 때 간격은 이미 다 벌어져 있다(② 먼저)
+    const returning = frames.find((f) => f.cellBorder > 0.05)!;
+    expect(returning.gap).toBeGreaterThan(7.5);
+    // 간격이 벌어지는 동안은 칸 테두리가 아직 투명하다
+    const opening = frames.find((f) => f.gap > 1 && f.gap < 6)!;
+    expect(opening.cellBorder).toBeLessThan(0.05);
+    const last = frames[frames.length - 1];
+    expect(last.gap).toBeCloseTo(8, 0);
+    expect(last.cellBorder).toBeCloseTo(1, 1);
+    expect(last.bundle).toBe(0);
   });
 
   test('틀린 번호는 오류 메시지와 aria-invalid로 알리고 칸이 물결친다', async ({
