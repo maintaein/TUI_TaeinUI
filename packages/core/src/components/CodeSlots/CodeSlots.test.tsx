@@ -659,7 +659,7 @@ describe('CodeSlots', () => {
       rerender(<CodeSlots label="인증번호" />);
       expect(tl.reversed()).toBe(true);
       expect(Number(tl.time())).toBeLessThan(base);
-      // 거꾸로 가는 동안은 합쳐진 모양(링·윤곽 자르기)을 쥐고, 0에 닿으면 놓는다
+      // 거꾸로 가는 동안은 합쳐진 모양(윤곽 자르기·색 전이 끔)을 쥐고, 0에 닿으면 놓는다
       expect(row(container).className).toMatch(/merged/);
       act(() => void tl.progress(0, false));
       expect([fade(container), merge(container)]).toEqual([1, 0]);
@@ -892,27 +892,43 @@ describe('CodeSlots', () => {
       expect(byClass('cellSuccess')).toBeUndefined();
     });
 
-    it('합쳐진 동안은 칸별 포커스 링이 꺼지고 묶음(알약) 전체가 링을 가진다', () => {
-      const merged = rules().filter((r) => /_merged__/.test(r.selectorText));
-      // 칸별 링을 끄는 규칙: 묶음 포커스 + merged 아래 지금 칸
-      const off = merged.find((r) => /data-active/.test(r.selectorText));
-      expect(off).toBeDefined();
-      expect(off!.selectorText).toMatch(/:focus-within/);
-      expect(off!.style.getPropertyValue('outline')).toBe('none');
-      // 알약 전체의 링: 묶음 포커스 아래 merged 자신. 둥글기는 칸 줄이 묶음과 같은 식으로 가져 링이 곡선을 따른다
-      const ring = merged.find(
+    // 포커스 규칙: 묶음 안에 포커스가 있을 때 지금 칸(data-active)
+    const focusRule = (name: string) =>
+      rules().find(
         (r) =>
           /:focus-within/.test(r.selectorText) &&
-          !/data-active/.test(r.selectorText) &&
-          / \.CodeSlots_merged__\w+$/.test(r.selectorText)
+          /data-active/.test(r.selectorText) &&
+          new RegExp(`\\.CodeSlots_${name}__\\w+\\[`).test(r.selectorText)
       );
-      expect(ring).toBeDefined();
-      expect(ring!.style.getPropertyValue('outline')).toContain('2px solid');
-      const radius = byClass('cells')!.style.getPropertyValue('border-radius');
-      expect(radius).toContain('/ 2');
-      expect(radius).toBe(
-        byClass('bundle')!.style.getPropertyValue('border-radius')
+
+    it('포커스면 지금 칸의 테두리 색이 primary로 바뀐다(fade를 따른다)', () => {
+      const focus = focusRule('cell')!.style.getPropertyValue('border-color');
+      expect(focus).toContain(themeContract.color.primary.main);
+      expect(focus).toContain(fadeName);
+    });
+
+    it('오류 색이 포커스 색을 이긴다: 같은 포커스 규칙이 error 색이고 cell의 것보다 뒤에 있다', () => {
+      const all = rules();
+      const cell = focusRule('cell')!;
+      const error = focusRule('cellError')!;
+      expect(error.style.getPropertyValue('border-color')).toContain(
+        themeContract.color.error.main
       );
+      // 특정도가 같으므로 뒤에 놓인 쪽이 이긴다
+      expect(all.indexOf(error)).toBeGreaterThan(all.indexOf(cell));
+    });
+
+    it('바깥 포커스 링(outline)을 어디에도 쓰지 않고 합쳐진 모양은 윤곽 자르기만 가진다', () => {
+      for (const rule of rules()) {
+        expect(rule.style.getPropertyValue('outline')).toBe('');
+        expect(rule.style.getPropertyValue('outline-offset')).toBe('');
+      }
+      const merged = byClass('merged')!.style;
+      expect(merged.getPropertyValue('overflow')).toBe('hidden');
+      expect(merged.length).toBe(1);
+      expect(
+        rules().filter((r) => /_merged__\w+$/.test(r.selectorText))
+      ).toHaveLength(1);
     });
 
     it('움직임 줄이기 미디어 질의에서 칸의 색 전이가 꺼진다', () => {
@@ -927,16 +943,6 @@ describe('CodeSlots', () => {
       expect(
         reduced.map((r) => r.style.getPropertyValue('transition'))
       ).toEqual(['none']);
-    });
-
-    it('지금 칸의 포커스 링은 묶음에 포커스가 있을 때만 켜진다', () => {
-      const ring = rules().find(
-        (r) =>
-          /:focus-within/.test(r.selectorText) &&
-          /data-active/.test(r.selectorText)
-      );
-      expect(ring).toBeDefined();
-      expect(ring!.style.getPropertyValue('outline')).toContain('2px solid');
     });
   });
 });

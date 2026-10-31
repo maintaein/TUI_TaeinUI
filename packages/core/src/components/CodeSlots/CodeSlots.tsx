@@ -176,7 +176,7 @@ const useMerge = (
   merged: boolean,
   reduced: boolean
 ): boolean => {
-  // 성공이 풀려도 거꾸로 가는 동안은 합쳐진 모양(포커스 링·윤곽 자르기)을 쥔다. 알약 링이 곧바로 마지막 칸 링으로 튀지 않게 한다.
+  // 성공이 풀려도 거꾸로 가는 동안은 합쳐진 모양(윤곽 자르기, 칸 색 전이 끔)을 쥔다. fade를 매 프레임 모는 동안 전이가 뒤처지거나 칸이 윤곽 밖으로 나오지 않게 한다.
   // 타임라인이 0에 닿아 거꾸로 끝나면 놓는다. 상태는 렌더 중에 맞춘다(effect 안 setState는 lint가 막는다).
   const [held, setHeld] = useState(merged && !reduced);
   if (merged && !reduced && !held) setHeld(true);

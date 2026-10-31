@@ -5,7 +5,6 @@ import {
   styleVariants,
 } from '@vanilla-extract/css';
 import { themeContract } from '../../tokens/theme.css';
-import { focusRing } from '../../tokens/focusRing.css';
 
 const { color, font, spacing, animation } = themeContract;
 
@@ -49,14 +48,9 @@ export const cells = style({
 // 성공 상태의 끝 모양을 숫자에서 바로 선다. 움직임 줄이기에서만 쓴다(움직임이 있을 때는 타임라인이 숫자를 몬다).
 export const settled = style({ vars: { [fade]: '0', [merge]: '1' } });
 
-// 성공: 포커스 링은 칸별이 아니라 묶음(알약) 전체에 하나만 준다. 칸 링은 칸의 네모 모서리를 따라 알약 밖으로 튀어나온다.
-// 둥근 모서리 밖은 잘라 내 어떤 칸도 알약 윤곽 밖으로 나오지 않는다. 오류 물결이 끝에서 잘리지 않게 성공일 때만 건다.
-export const merged = style({
-  overflow: 'hidden',
-  selectors: {
-    [`${group}:focus-within &`]: focusRing(),
-  },
-});
+// 성공: 둥근 모서리 밖은 잘라 내 어떤 칸도 알약 윤곽 밖으로 나오지 않는다. 오류 물결이 끝에서 잘리지 않게 성공일 때만 건다.
+// 합쳐지는 동안(되돌림 끝까지 쥔다)은 칸의 색 전이도 끈다(아래 cell).
+export const merged = style({ overflow: 'hidden' });
 
 // 칸 뒤에 깔린 묶음 하나. 칸의 흰 바탕과 테두리를 넘겨받아 그린다.
 // 칸 줄을 따라 실제 폭이 줄어든다(scale이 아니라 레이아웃이라 둥근 끝이 찌그러지지 않는다).
@@ -107,17 +101,24 @@ export const cell = style({
   '@media': { '(prefers-reduced-motion: reduce)': { transition: 'none' } },
   selectors: {
     [`${merged} &`]: { transition: 'none' },
-    // 지금 입력할 칸의 포커스 링(2.4.7). 묶음 안에 포커스가 있을 때만 보인다.
-    [`${group}:focus-within &[data-active="true"]`]: focusRing(),
-    // 합쳐진 동안은 칸별 링을 끈다(링은 merged 묶음이 가진다)
-    [`${group}:focus-within ${merged} &[data-active="true"]`]: {
-      outline: 'none',
+    // 포커스: 묶음 안에 포커스가 있으면 지금 입력할 칸(2.4.7)의 테두리 색이 바뀐다(TextField 포커스와 같은 방식, 바깥 링은 쓰지 않는다).
+    // 마우스 클릭도 같은 모양이라 :focus-visible이 아니라 포커스 안에서 본다. 합쳐진 동안은 칸이 투명해 fade가 이 색도 지운다(포커스 위치는 캐럿이 맡는다).
+    [`${group}:focus-within &[data-active="true"]`]: {
+      borderColor: faded(color.primary.main),
     },
   },
 });
 
 // 테두리 색. 칸은 fade에 따라 투명해지므로 색마다 faded로 건다. 성공 색은 칸이 아니라 묶음(bundle)의 테두리다.
-export const cellError = style({ borderColor: faded(color.error.main) });
+// 오류 색은 포커스 색을 이긴다(같은 특정도의 포커스 규칙 뒤에 놓는다).
+export const cellError = style({
+  borderColor: faded(color.error.main),
+  selectors: {
+    [`${group}:focus-within &[data-active="true"]`]: {
+      borderColor: faded(color.error.main),
+    },
+  },
+});
 export const cellDisabled = style({
   backgroundColor: faded(color.surface.default),
   borderColor: faded(color.border.default),
