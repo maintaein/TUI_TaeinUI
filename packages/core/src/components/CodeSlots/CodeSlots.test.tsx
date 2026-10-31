@@ -8,10 +8,45 @@ import {
   expect,
   vi,
 } from 'vitest';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { CodeSlots } from './CodeSlots';
 import { themeContract } from '../../tokens/theme.css';
+
+/** 재생된 GSAP 애니메이션을 멈추고 시각을 직접 옮겨 인라인 값을 읽는다. 시험은 gsap을 직접 import하지 않으므로 gateMotion이 돌려주는 값을 받아 둔다. */
+interface Seekable {
+  pause(): unknown;
+  time(seconds?: number): unknown;
+  duration(): number;
+  progress(value: number): unknown;
+  play(): unknown;
+  reverse(): unknown;
+  reversed(): boolean;
+}
+const played = vi.hoisted(() => ({ animations: [] as unknown[] }));
+vi.mock('../../hooks/gateMotion', async (importActual) => {
+  const actual = await importActual<typeof import('../../hooks/gateMotion')>();
+  return {
+    ...actual,
+    // 진짜 gateMotion을 그대로 부르고 돌려받은 애니메이션만 기록한다
+    gateMotion: ((...args: Parameters<typeof actual.gateMotion>) => {
+      const animation = actual.gateMotion(...args);
+      played.animations.push(animation);
+      return animation;
+    }) as typeof actual.gateMotion,
+  };
+});
+const lastPlayed = () => {
+  const animation = played.animations.at(-1) as Seekable | undefined;
+  if (!animation) throw new Error('재생된 애니메이션이 없습니다');
+  return animation;
+};
 
 const input = () => screen.getByLabelText('인증번호') as HTMLInputElement;
 // 칸 그림(aria-hidden)의 칸들
@@ -452,8 +487,13 @@ describe('CodeSlots', () => {
       const user = userEvent.setup();
       const { container } = render(<CodeSlots label="인증번호" />);
       await user.type(input(), '1');
+      // 실시간 시계에 기대지 않는다. 부하로 입력이 굴림(base)보다 오래 걸려도 같은 결과여야 해서 굴림을 세워 시각을 직접 옮긴다
+      const roll = lastPlayed();
+      roll.pause();
+      act(() => void roll.time(0.01));
       expect(rollOffset(digitEl(container, 0))).toBeLessThan(0);
-      await waitFor(() => expect(rollOffset(digitEl(container, 0))).toBe(0));
+      act(() => void roll.progress(1));
+      expect(rollOffset(digitEl(container, 0))).toBe(0);
       // 다른 칸은 비어 있다
       expect(digits(container).slice(1)).toEqual(['', '', '', '', '']);
     });
