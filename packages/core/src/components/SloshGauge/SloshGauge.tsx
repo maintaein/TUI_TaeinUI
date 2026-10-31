@@ -2,30 +2,35 @@ import {
   forwardRef,
   useEffect,
   useId,
-  useLayoutEffect,
   useRef,
   useState,
   type HTMLAttributes,
 } from 'react';
 import clsx from 'clsx';
-import { gsap } from 'gsap';
-import { gsapDuration, gsapEasing } from '../../tokens/gsapEasing';
-import { loop } from '../../tokens/animation.css';
-import { useReducedMotion } from '../../hooks/useReducedMotion';
-import { gateMotion } from '../../hooks/gateMotion';
 import {
-  FLOW_TURNS,
-  SWAY_TURNS,
-  VIEW_H,
-  VIEW_W,
-  addKick,
-  sloshKick,
-  surfacePath,
+  bindFlowListeners,
+  createFlowLoop,
+} from '../LuminousFlow/luminousFlowLoop';
+import {
+  DROP_PATH,
+  MAX_BUBBLES,
+  createSim,
+  levelForFill,
+  scenePaths,
+  settleSim,
+  stepSlosh,
 } from './sloshMath';
 import {
   root,
-  tank,
-  water,
+  bowl as bowlClass,
+  outline,
+  stopTop,
+  stopMid,
+  stopBottom,
+  backWave,
+  rim as rimClass,
+  gloss,
+  bubble as bubbleClass,
   label as labelClass,
   value as valueClass,
 } from './SloshGauge.css';
@@ -40,114 +45,158 @@ export interface SloshGaugeProps extends Omit<
   min?: number;
   /** 범위의 위 끝 @default 100 */
   max?: number;
-  /** 접근 가능한 이름이자 통 아래에 보이는 이름표 */
+  /** 접근 가능한 이름이자 그릇 아래에 보이는 이름표 */
   label: string;
   /** 보이는 값 글이자 aria-valuetext. 없으면 백분율("60%") */
   valueText?: string;
+  /**
+   * true면 물을 지금 모습에서 멈춘다(이어 그리는 루프 없음). 값이 바뀌면 출렁임 없이 수위만 바로 바뀐다.
+   * false로 돌아오면 지금 모습에서 이어 간다. 쉬는 동안의 잔물결이 5초를 넘게 이어지므로 WCAG 2.2.2의 멈춤 수단이다.
+   * @default false
+   */
+  paused?: boolean;
 }
 
-// 출렁임의 상태이자 트윈이 모는 대상. 테스트가 읽는 손잡이로 물 svg에도 얹는다(BurstToggle의 타임라인 손잡이와 같은 모양).
-// level 0~1, amp 통 높이 비율, phi 기울기 위상, flow 물결 위상
-interface Slosh {
-  level: number;
-  amp: number;
-  phi: number;
-  flow: number;
-  tl: gsap.core.Timeline | null;
-}
-type WaterHost = SVGSVGElement & { __slosh?: Slosh };
-
-// 마지막 변경 뒤 잔잔해지기까지의 시간. 자동 반복이 없는 대신 변경 하나가 loop.base 안에 끝난다.
-const SETTLE_S = Number.parseFloat(loop.base) / 1000;
-const TURN = Math.PI * 2;
+const REDUCE_QUERY = '(prefers-reduced-motion: reduce)';
 
 /**
- * 저장 공간·할당량·진행률 같은 값을 통 안의 물높이로 보이는 표시 요소(`role="meter"`). 값이 바뀌면 수면이 새
- * 높이로 가면서 크게 출렁였다가 잔잔해진다. 출렁임은 값이 바뀔 때만 생기는 반응이라 자동으로 되풀이되지 않고
- * (WCAG 2.2.2) 멈춤 prop도 없다. 진폭은 바뀐 양에 비례하되 통 높이의 8%로 잘리며, 값이 계속 바뀌어도 쌓여 커지지 않고
- * 마지막 변경에서 loop.base 안에 평평해진다. 움직임 줄이기에서는 출렁임 없이 수위만 바로 바뀐다.
+ * 저장 공간·할당량·진행률 같은 값을 물방울 그릇 안의 물높이로 보이는 표시 요소(`role="meter"`).
+ * 수위는 넓이 기준이고(50%면 그릇 넓이의 절반이 찬다) 값이 바뀌면 용수철처럼 목표를 넘었다 돌아오며 수면이 기울어
+ * 출렁인다. 쉬는 동안에도 아주 낮은 잔물결이 늘 남으므로 `paused`로 멈출 수 있다(WCAG 2.2.2).
+ * 흔들림은 수위 속도와 기울기에서 곧바로 읽으므로 값이 계속 바뀌어도 쌓여 커지지 않는다.
+ * 움직임 줄이기에서는 잔물결 없는 평평한 수면이고 값이 바뀌면 수위만 바로 바뀐다.
+ * 탭이 숨겨졌거나 화면 밖이면 그리기를 멈춘다.
  */
 export const SloshGauge = forwardRef<HTMLDivElement, SloshGaugeProps>(
   (
-    { value, min = 0, max = 100, label, valueText, className, ...props },
+    {
+      value,
+      min = 0,
+      max = 100,
+      label,
+      valueText,
+      paused = false,
+      className,
+      ...props
+    },
     ref
   ) => {
-    const reduced = useReducedMotion();
     const labelId = useId();
-    const waterRef = useRef<WaterHost>(null);
-    const pathRef = useRef<SVGPathElement>(null);
+    const gradientId = `${useId().replace(/:/g, '')}-water`;
+    const clipId = `${gradientId}-clip`;
 
     const clamped = Math.min(max, Math.max(min, value));
     const frac = max > min ? (clamped - min) / (max - min) : 0;
+    const target = levelForFill(frac);
 
-    const sloshRef = useRef<Slosh>({
-      level: frac,
-      amp: 0,
-      phi: 0,
-      flow: 0,
-      tl: null,
-    });
-    const prevRef = useRef(frac);
-    // 첫 그림은 렌더가 한 번 정한다. 이 뒤로 path의 d는 GSAP이 쓰고 React는 건드리지 않는다.
-    const [initialD] = useState(() => surfacePath(frac, 0, 0, 0));
+    const [sim] = useState(() => createSim(target));
+    // 첫 그림은 렌더가 정한다. 이 뒤로 path의 d는 루프가 쓰고 React는 건드리지 않는다
+    const [initial] = useState(() => scenePaths(sim));
 
-    // 수위가 바뀔 때마다 새 출렁임을 시작한다. 진행 중이던 것은 죽이고 상태(level, amp, phi, flow)에서 이어 간다.
-    // ponytail: 출렁이는 도중에 움직임 줄이기가 켜지면 그 출렁임은 끝까지 돈다(다음 변경부터 반영), 문제가 되면 settleMotion으로 확정한다
-    useLayoutEffect(() => {
-      const host = waterRef.current;
-      const path = pathRef.current;
-      if (!host || !path) return;
-      const s = sloshRef.current;
-      host.__slosh = s;
-      const draw = () =>
-        path.setAttribute('d', surfacePath(s.level, s.amp, s.phi, s.flow));
-      const prev = prevRef.current;
-      prevRef.current = frac;
-      if (prev === frac) return;
-
-      s.tl?.kill();
-      Object.assign(s, addKick(s, sloshKick(frac - prev)));
-      s.tl = gateMotion(reduced, () =>
-        gsap
-          .timeline({ onUpdate: draw })
-          .to(
-            s,
-            {
-              level: frac,
-              duration: gsapDuration.slower,
-              ease: gsapEasing.settle,
-            },
-            0
-          )
-          .to(s, { amp: 0, duration: SETTLE_S, ease: gsapEasing.drift }, 0)
-          .to(
-            s,
-            {
-              phi: s.phi + TURN * SWAY_TURNS,
-              duration: SETTLE_S,
-              ease: gsapEasing.linear,
-            },
-            0
-          )
-          .to(
-            s,
-            {
-              flow: s.flow + TURN * FLOW_TURNS,
-              duration: SETTLE_S,
-              ease: gsapEasing.linear,
-            },
-            0
-          )
-      );
-      draw();
-    }, [frac, reduced]);
+    const bowlRef = useRef<SVGGElement>(null);
+    const backRef = useRef<SVGPathElement>(null);
+    const frontRef = useRef<SVGPathElement>(null);
+    const rimRef = useRef<SVGPathElement>(null);
+    const bubblesRef = useRef<SVGGElement>(null);
+    // 값과 paused가 바뀌어도 효과를 다시 돌리면 장면이 처음으로 튀므로 ref로 읽고 sync만 부른다
+    const targetRef = useRef(target);
+    const pausedRef = useRef(paused);
+    const syncRef = useRef<() => void>(() => {});
+    const settleRef = useRef<() => void>(() => {});
 
     useEffect(() => {
-      const s = sloshRef.current;
-      return () => {
-        s.tl?.kill();
+      targetRef.current = target;
+      settleRef.current();
+    }, [target]);
+
+    useEffect(() => {
+      pausedRef.current = paused;
+      syncRef.current();
+    }, [paused]);
+
+    useEffect(() => {
+      const group = bowlRef.current;
+      const back = backRef.current;
+      const front = frontRef.current;
+      const rimPath = rimRef.current;
+      const bubbleGroup = bubblesRef.current;
+      if (!group || !back || !front || !rimPath || !bubbleGroup) return;
+      const circles = [...bubbleGroup.children] as SVGCircleElement[];
+      const media =
+        typeof globalThis.matchMedia === 'function'
+          ? globalThis.matchMedia(REDUCE_QUERY)
+          : null;
+      const reduced = () => media?.matches ?? false;
+      let visible = true;
+      let last = performance.now();
+
+      const paint = () => {
+        const scene = scenePaths(sim, reduced());
+        back.setAttribute('d', scene.back);
+        front.setAttribute('d', scene.front);
+        rimPath.setAttribute('d', scene.rim);
+        group.setAttribute('transform', scene.bowl);
+        circles.forEach((circle, i) => {
+          const b = scene.bubbles[i];
+          circle.setAttribute('r', b ? String(b.r) : '0');
+          if (b) {
+            circle.setAttribute('cx', b.x.toFixed(2));
+            circle.setAttribute('cy', b.y.toFixed(2));
+          }
+        });
       };
-    }, []);
+      const loop = createFlowLoop({
+        readState: () => ({
+          reduced: reduced(),
+          hidden: document.hidden,
+          visible,
+          paused: pausedRef.current,
+        }),
+        onFrame: (now, running) => {
+          const dt = Math.max(0, now - last) / 1000;
+          last = now;
+          if (running) stepSlosh(sim, targetRef.current, dt);
+          else if (reduced()) settleSim(sim, targetRef.current);
+          paint();
+        },
+        // 멈췄다 다시 이어 가는 첫 프레임이 멈춘 시간만큼 건너뛰지 않게 시계를 새로 잡는다
+        onSync: () => {
+          last = performance.now();
+        },
+      });
+      syncRef.current = loop.sync;
+      // 이어 그리지 않는 동안(멈춤·축소 모션·탭 숨김·화면 밖) 값이 바뀌면 출렁임 없이 수위만 바로 두고 한 장 다시 그린다
+      settleRef.current = () => {
+        if (loop.animating()) return;
+        settleSim(sim, targetRef.current);
+        loop.sync();
+      };
+      const observer =
+        typeof IntersectionObserver === 'function'
+          ? new IntersectionObserver((entries) => {
+              visible = entries[entries.length - 1].isIntersecting;
+              loop.sync();
+            })
+          : null;
+      observer?.observe(group.ownerSVGElement ?? group);
+      loop.sync();
+      const unbind = bindFlowListeners({
+        win: window,
+        doc: document,
+        media: media ?? new EventTarget(),
+        // 이 그림은 스크롤·휠을 보지 않는다
+        onScroll: () => {},
+        onWheel: () => {},
+        onSync: loop.sync,
+      });
+      return () => {
+        syncRef.current = () => {};
+        settleRef.current = () => {};
+        loop.stop();
+        observer?.disconnect();
+        unbind();
+      };
+    }, [sim]);
 
     const text = valueText ?? `${Math.round(frac * 100)}%`;
 
@@ -163,17 +212,42 @@ export const SloshGauge = forwardRef<HTMLDivElement, SloshGaugeProps>(
         aria-valuetext={text}
         aria-labelledby={labelId}
       >
-        <div className={tank} aria-hidden="true">
-          <svg
-            ref={waterRef}
-            data-slosh-water=""
-            className={water}
-            viewBox={`0 0 ${VIEW_W} ${VIEW_H}`}
-            preserveAspectRatio="none"
-          >
-            <path ref={pathRef} d={initialD} />
-          </svg>
-        </div>
+        <svg
+          className={bowlClass}
+          viewBox="-4 -4 108 168"
+          aria-hidden="true"
+          focusable="false"
+          data-slosh-water=""
+        >
+          <defs>
+            <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" className={stopTop} />
+              <stop offset="0.5" className={stopMid} />
+              <stop offset="1" className={stopBottom} />
+            </linearGradient>
+            <clipPath id={clipId}>
+              <path d={DROP_PATH} />
+            </clipPath>
+          </defs>
+          <g ref={bowlRef} transform={initial.bowl}>
+            <g clipPath={`url(#${clipId})`}>
+              <path ref={backRef} className={backWave} d={initial.back} />
+              <path
+                ref={frontRef}
+                fill={`url(#${gradientId})`}
+                d={initial.front}
+              />
+              <path ref={rimRef} className={rimClass} d={initial.rim} />
+              <g ref={bubblesRef}>
+                {Array.from({ length: MAX_BUBBLES }, (_, i) => (
+                  <circle key={i} className={bubbleClass} r="0" />
+                ))}
+              </g>
+              <path className={gloss} d="M12 96Q9 116 15 136" />
+            </g>
+            <path className={outline} d={DROP_PATH} />
+          </g>
+        </svg>
         <span id={labelId} className={labelClass}>
           {label}
         </span>

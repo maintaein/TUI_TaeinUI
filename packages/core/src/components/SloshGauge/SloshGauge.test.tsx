@@ -1,35 +1,66 @@
-import { createRef } from 'react';
-import { afterEach, describe, it, expect, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { createRef, StrictMode } from 'react';
+import { afterEach, beforeEach, describe, it, expect, vi } from 'vitest';
+import { act, render, screen } from '@testing-library/react';
 import { SloshGauge } from './SloshGauge';
-import { MAX_AMP } from './sloshMath';
-import { loop } from '../../tokens/animation.css';
 
-// SloshGauge.tsx가 물 svg에 얹는 손잡이(BurstToggle의 타임라인 손잡이와 같은 모양).
-type Slosh = {
-  level: number;
-  amp: number;
-  phi: number;
-  flow: number;
-  tl: gsap.core.Timeline | null;
+// 손으로 돌리는 rAF 대기열. 예약된 콜백만 쌓고 frame()이 한 번 비우며 16ms를 흘린다
+let queue = new Map<number, (now: number) => void>();
+let next = 1;
+let clock = 0;
+const frame = (count = 1) => {
+  for (let i = 0; i < count; i += 1) {
+    const callbacks = [...queue.values()];
+    queue.clear();
+    clock += 16;
+    act(() => callbacks.forEach((callback) => callback(clock)));
+  }
 };
-type WaterHost = SVGElement & { __slosh?: Slosh };
+const pending = () => queue.size;
 
-const LOOP_S = Number.parseFloat(loop.base) / 1000;
+beforeEach(() => {
+  queue = new Map();
+  next = 1;
+  clock = performance.now();
+  vi.stubGlobal('requestAnimationFrame', (callback: (now: number) => void) => {
+    queue.set(next, callback);
+    return next++;
+  });
+  vi.stubGlobal('cancelAnimationFrame', (handle: number) => {
+    queue.delete(handle);
+  });
+});
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+  Object.defineProperty(document, 'hidden', {
+    value: false,
+    configurable: true,
+  });
+});
 
 const meter = () => screen.getByRole('meter');
 const waterOf = (container: HTMLElement) =>
-  container.querySelector('[data-slosh-water]') as WaterHost;
-const slosh = (container: HTMLElement) => waterOf(container).__slosh as Slosh;
-const surfaceYs = (container: HTMLElement) => {
-  const d = waterOf(container).querySelector('path')?.getAttribute('d') ?? '';
-  const ys = [...d.matchAll(/[ML]([\d.-]+) ([\d.-]+)/g)].map((m) =>
-    Number(m[2])
-  );
-  return ys.slice(0, ys.length - 2); // 마지막 둘은 바닥 모서리
+  container.querySelector('[data-slosh-water]') as SVGElement;
+const attr = (container: HTMLElement, selector: string, name: string) =>
+  waterOf(container).querySelector(selector)?.getAttribute(name) ?? '';
+// 수면 테두리(rim)는 그릇 안 클립 그룹의 세 번째 path다. 클래스가 해시라 위치로 고른다
+const rimD = (container: HTMLElement) =>
+  waterOf(container)
+    .querySelectorAll('g[clip-path] > path')[2]
+    .getAttribute('d') ?? '';
+const frontD = (container: HTMLElement) =>
+  waterOf(container)
+    .querySelectorAll('g[clip-path] > path')[1]
+    .getAttribute('d') ?? '';
+const bowlTransform = (container: HTMLElement) =>
+  attr(container, 'g[transform]', 'transform');
+// 곡선의 꼭짓점 y만 뽑는다: M x y 다음 C마다 숫자 여섯(조절점 둘과 꼭짓점)
+const rimYs = (container: HTMLElement) => {
+  const nums = (rimD(container).match(/-?[\d.]+/g) ?? []).map(Number);
+  const ys = [nums[1]];
+  for (let k = 2; k + 5 < nums.length; k += 6) ys.push(nums[k + 5]);
+  return ys;
 };
-const isFlat = (container: HTMLElement) =>
-  new Set(surfaceYs(container)).size === 1;
 
 const stubReducedMotion = () =>
   vi.stubGlobal(
@@ -42,10 +73,6 @@ const stubReducedMotion = () =>
         removeEventListener: () => {},
       }) as unknown as MediaQueryList
   );
-
-afterEach(() => {
-  vi.unstubAllGlobals();
-});
 
 describe('SloshGauge', () => {
   describe('의미와 접근성', () => {
@@ -82,13 +109,13 @@ describe('SloshGauge', () => {
       expect(meter()).toHaveAttribute('aria-valuetext', '0%');
     });
 
-    it('값이 바뀌면 aria-valuenow는 애니메이션을 기다리지 않고 바로 새 값이다', () => {
+    it('값이 바뀌면 aria-valuenow는 물이 오르기를 기다리지 않고 바로 새 값이다', () => {
       const { rerender } = render(<SloshGauge value={20} label="a" />);
       rerender(<SloshGauge value={90} label="a" />);
       expect(meter()).toHaveAttribute('aria-valuenow', '90');
     });
 
-    it('통과 물은 aria-hidden이고 ref와 className은 루트로 간다', () => {
+    it('그릇과 물은 aria-hidden이고 ref와 className은 루트로 간다', () => {
       const ref = createRef<HTMLDivElement>();
       const { container } = render(
         <SloshGauge ref={ref} className="mine" value={50} label="a" />
@@ -99,120 +126,195 @@ describe('SloshGauge', () => {
     });
   });
 
-  describe('출렁임', () => {
-    it('처음 그릴 때는 출렁이지 않고 평평하다(자동 반복 없음)', () => {
+  describe('쉬는 동안의 잔물결과 출렁임', () => {
+    // 되돌리면 빨개지는 것: 쉬는 잔물결(위상 진행)을 빼면 값이 그대로여도 그림이 같아져 빨개진다
+    it('값이 그대로여도 프레임마다 다음 프레임을 예약하고 수면이 일렁인다', () => {
       const { container } = render(<SloshGauge value={60} label="a" />);
-      expect(slosh(container).tl).toBeNull();
-      expect(slosh(container).amp).toBe(0);
-      expect(isFlat(container)).toBe(true);
+      expect(pending()).toBe(1);
+      frame();
+      const first = rimD(container);
+      frame(10);
+      expect(pending()).toBe(1);
+      expect(rimD(container)).not.toBe(first);
+      expect(bowlTransform(container)).toContain('rotate(0.000');
     });
 
-    it('값이 바뀌면 수면이 출렁이고 첫 쏠림은 오르면 왼쪽이, 내리면 오른쪽이 높다', () => {
+    it('값이 크게 바뀌면 그릇이 살짝 기울고 시간이 지나면 다시 반듯하다', () => {
       const { container, rerender } = render(
         <SloshGauge value={20} label="a" />
       );
+      frame(3);
       rerender(<SloshGauge value={90} label="a" />);
-      slosh(container).tl?.time(0);
-      expect(slosh(container).amp).toBeCloseTo(MAX_AMP);
-      const up = surfaceYs(container);
-      expect(up[0]).toBeLessThan(up[up.length - 1]);
-      slosh(container).tl?.progress(1);
-      rerender(<SloshGauge value={0} label="a" />);
-      slosh(container).tl?.time(0);
-      const down = surfaceYs(container);
-      expect(down[0]).toBeGreaterThan(down[down.length - 1]);
+      frame(12);
+      const angle = Number(
+        /rotate\((-?[\d.]+)/.exec(bowlTransform(container))?.[1]
+      );
+      expect(Math.abs(angle)).toBeGreaterThan(0.3);
+      expect(Math.abs(angle)).toBeLessThanOrEqual(1.25);
+      frame(240);
+      expect(
+        Math.abs(
+          Number(/rotate\((-?[\d.]+)/.exec(bowlTransform(container))?.[1])
+        )
+      ).toBeLessThan(0.02);
     });
 
-    it('수위는 새 값으로 가고, 값이 같거나 잘려서 같으면 새 출렁임이 없다', () => {
-      const { container, rerender } = render(
-        <SloshGauge value={20} label="a" />
-      );
-      rerender(<SloshGauge value={90} label="a" />);
-      const first = slosh(container).tl;
-      first?.progress(1);
-      expect(slosh(container).level).toBeCloseTo(0.9);
-      rerender(<SloshGauge value={90} label="a" valueText="x" />);
-      expect(slosh(container).tl).toBe(first);
-      rerender(<SloshGauge value={150} label="a" />);
-      const clipped = slosh(container).tl;
-      rerender(<SloshGauge value={999} label="a" />);
-      expect(slosh(container).tl).toBe(clipped);
-    });
-
-    it('진행 중 값을 바꿔도 수위가 튀지 않는다(직전 수위에서 이어진다)', () => {
-      const { container, rerender } = render(
-        <SloshGauge value={20} label="a" />
-      );
-      rerender(<SloshGauge value={90} label="a" />);
-      slosh(container).tl?.time(0.2);
-      const before = slosh(container).level;
-      expect(before).toBeGreaterThan(0.2);
-      expect(before).toBeLessThan(0.9);
-      rerender(<SloshGauge value={30} label="a" />);
-      expect(slosh(container).level).toBeCloseTo(before, 6);
-      slosh(container).tl?.progress(1);
-      expect(slosh(container).level).toBeCloseTo(0.3);
-    });
-
-    it('마지막 변경 뒤 loop.base 안에 잔잔해진다(남는 반복·트윈이 없다)', () => {
-      const { container, rerender } = render(
-        <SloshGauge value={20} label="a" />
-      );
-      rerender(<SloshGauge value={90} label="a" />);
-      const tl = slosh(container).tl as gsap.core.Timeline;
-      expect(tl.repeat()).toBe(0);
-      expect(tl.totalDuration()).toBeLessThanOrEqual(LOOP_S);
-      tl.time(LOOP_S);
-      expect(slosh(container).amp).toBe(0);
-      expect(isFlat(container)).toBe(true);
-      expect(tl.progress()).toBe(1);
-    });
-
-    it('100ms마다 값을 열 번 바꿔도 진폭이 상한을 넘지 않고 마지막 변경에서 다시 loop.base 안에 끝난다', () => {
-      const { container, rerender } = render(
-        <SloshGauge value={0} label="a" />
-      );
-      let peak = 0;
-      for (let i = 1; i <= 10; i += 1) {
-        slosh(container).tl?.time(0.1);
-        rerender(<SloshGauge value={i % 2 === 0 ? 0 : 100} label="a" />);
-        peak = Math.max(peak, slosh(container).amp);
-        expect(slosh(container).amp).toBeLessThanOrEqual(MAX_AMP + 1e-9);
-      }
-      expect(peak).toBeCloseTo(MAX_AMP);
-      const tl = slosh(container).tl as gsap.core.Timeline;
-      expect(tl.totalDuration()).toBeLessThanOrEqual(LOOP_S);
-      tl.time(LOOP_S);
-      expect(slosh(container).amp).toBe(0);
-      expect(isFlat(container)).toBe(true);
-    });
-
-    it('언마운트하면 트윈이 죽는다', () => {
-      const { container, rerender, unmount } = render(
-        <SloshGauge value={20} label="a" />
-      );
-      rerender(<SloshGauge value={90} label="a" />);
-      const s = slosh(container);
-      expect(s.tl?.parent).toBeTruthy();
+    it('언마운트하면 예약된 프레임이 걷힌다', () => {
+      const { unmount } = render(<SloshGauge value={60} label="a" />);
+      expect(pending()).toBe(1);
       unmount();
-      expect(s.tl?.parent).toBeFalsy();
+      expect(pending()).toBe(0);
+    });
+
+    it('StrictMode의 이중 마운트에서도 예약이 하나다', () => {
+      render(
+        <StrictMode>
+          <SloshGauge value={60} label="a" />
+        </StrictMode>
+      );
+      expect(pending()).toBe(1);
+    });
+  });
+
+  describe('paused', () => {
+    // 되돌리면 빨개지는 것: shouldAnimate에서 paused를 빼거나 LuminousFlow 루프 대신 늘 예약하면 빨개진다
+    it('paused면 정지 장면 한 장만 그리고 다음 프레임을 예약하지 않는다', () => {
+      const { container } = render(<SloshGauge value={60} label="a" paused />);
+      expect(pending()).toBe(1);
+      frame();
+      expect(pending()).toBe(0);
+      const still = rimD(container);
+      frame(5);
+      expect(rimD(container)).toBe(still);
+    });
+
+    it('흐르다 paused가 되면 지금 모습에서 서고, 풀면 이어서 다시 일렁인다', () => {
+      const { container, rerender } = render(
+        <SloshGauge value={60} label="a" />
+      );
+      frame(8);
+      rerender(<SloshGauge value={60} label="a" paused />);
+      frame();
+      const stopped = rimD(container);
+      expect(pending()).toBe(0);
+      frame(5);
+      expect(rimD(container)).toBe(stopped);
+      rerender(<SloshGauge value={60} label="a" />);
+      expect(pending()).toBe(1);
+      frame(10);
+      expect(rimD(container)).not.toBe(stopped);
+    });
+
+    // 되돌리면 빨개지는 것: 멈춤 중에도 용수철을 적분하게 하면 새 값 그림과 달라져 빨개진다
+    it('paused에서 값이 바뀌면 출렁임 없이 수위가 바로 새 값이 된다', () => {
+      const { container, rerender } = render(
+        <SloshGauge value={20} label="a" paused />
+      );
+      frame();
+      rerender(<SloshGauge value={90} label="a" paused />);
+      frame();
+      const fresh = render(<SloshGauge value={90} label="a" paused />);
+      expect(frontD(container)).toBe(frontD(fresh.container));
+      expect(rimD(container)).toBe(rimD(fresh.container));
+      expect(bowlTransform(container)).toBe(bowlTransform(fresh.container));
+      expect(pending()).toBe(1);
+      frame();
+      expect(pending()).toBe(0);
     });
   });
 
   describe('움직임 줄이기', () => {
-    it('출렁임 없이 수위만 바로 바뀐다(진폭 0, 수면 평평, 트윈 없음)', () => {
+    it('이어 그리지 않고 수면이 평평하다', () => {
+      stubReducedMotion();
+      const { container } = render(<SloshGauge value={60} label="a" />);
+      frame();
+      expect(pending()).toBe(0);
+      expect(new Set(rimYs(container)).size).toBe(1);
+      expect(bowlTransform(container)).toContain('rotate(0.000');
+    });
+
+    // 되돌리면 빨개지는 것: 축소 모션에서도 용수철을 돌리면 값 변경 직후 그림이 새 값 그림과 달라져 빨개진다
+    it('값이 바뀌면 수위만 바로 바뀌고 aria 값도 즉시 새 값이다', () => {
       stubReducedMotion();
       const { container, rerender } = render(
         <SloshGauge value={20} label="a" />
       );
+      frame();
       rerender(<SloshGauge value={90} label="a" />);
-      const s = slosh(container);
-      expect(s.amp).toBe(0);
-      expect(s.level).toBeCloseTo(0.9);
-      expect(isFlat(container)).toBe(true);
-      expect(s.tl?.progress()).toBe(1);
-      expect(s.tl?.parent).toBeFalsy();
-      expect(meter()).toHaveAttribute('aria-valuenow', '90');
+      frame();
+      expect(pending()).toBe(0);
+      const fresh = render(<SloshGauge value={90} label="a" />);
+      frame();
+      expect(rimD(container)).toBe(rimD(fresh.container));
+      expect(screen.getAllByRole('meter')[0]).toHaveAttribute(
+        'aria-valuenow',
+        '90'
+      );
+    });
+  });
+
+  describe('화면 밖과 탭 숨김', () => {
+    let notify: ((entries: Array<{ isIntersecting: boolean }>) => void) | null =
+      null;
+    beforeEach(() => {
+      class FakeObserver {
+        constructor(
+          callback: (entries: Array<{ isIntersecting: boolean }>) => void
+        ) {
+          notify = callback;
+        }
+        observe() {}
+        disconnect() {}
+      }
+      vi.stubGlobal('IntersectionObserver', FakeObserver);
+    });
+
+    it('화면 밖으로 나가면 그리기를 멈추고 돌아오면 이어 간다', () => {
+      render(<SloshGauge value={60} label="a" />);
+      frame(3);
+      expect(pending()).toBe(1);
+      act(() => notify?.([{ isIntersecting: false }]));
+      expect(pending()).toBe(0);
+      act(() => notify?.([{ isIntersecting: true }]));
+      expect(pending()).toBe(1);
+    });
+
+    it('탭이 숨겨지면 그리기를 멈추고 다시 보이면 이어 간다', () => {
+      render(<SloshGauge value={60} label="a" />);
+      frame(3);
+      Object.defineProperty(document, 'hidden', {
+        value: true,
+        configurable: true,
+      });
+      act(() => {
+        document.dispatchEvent(new Event('visibilitychange'));
+      });
+      expect(pending()).toBe(0);
+      Object.defineProperty(document, 'hidden', {
+        value: false,
+        configurable: true,
+      });
+      act(() => {
+        document.dispatchEvent(new Event('visibilitychange'));
+      });
+      expect(pending()).toBe(1);
+    });
+
+    it('화면 밖에서 값이 바뀌면 돌아왔을 때 이미 새 수위다(출렁임을 기다리지 않는다)', () => {
+      const { container, rerender } = render(
+        <SloshGauge value={20} label="a" />
+      );
+      frame(3);
+      act(() => notify?.([{ isIntersecting: false }]));
+      rerender(<SloshGauge value={90} label="a" />);
+      act(() => notify?.([{ isIntersecting: true }]));
+      frame();
+      const fresh = render(<SloshGauge value={90} label="a" />);
+      frame();
+      // 수위만 같은지 본다: 기울기·잔물결은 시계가 달라 다르다
+      const y = (c: HTMLElement) =>
+        rimYs(c).reduce((a, b) => a + b, 0) / rimYs(c).length;
+      expect(Math.abs(y(container) - y(fresh.container))).toBeLessThan(2.5);
     });
   });
 });

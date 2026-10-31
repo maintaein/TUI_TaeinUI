@@ -18,7 +18,7 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-// 값이 바뀔 때만 출렁인다. 단추로 값을 바꿔 본다
+// 값이 바뀌면 출렁이고, 쉬는 동안에도 잔물결이 남는다. 단추로 값을 바꿔 본다
 const Demo = (args: ComponentProps<typeof SloshGauge>) => {
   const [value, setValue] = useState(args.value);
   return (
@@ -41,5 +41,11 @@ export const Default: Story = {
 
 export const WithValueText: Story = {
   args: { valueText: '6GB / 10GB' },
+  render: (args) => <Demo {...args} />,
+};
+
+// paused면 지금 모습에서 멈춘다. 값을 바꿔도 출렁임 없이 수위만 바로 바뀐다
+export const Paused: Story = {
+  args: { paused: true },
   render: (args) => <Demo {...args} />,
 };
