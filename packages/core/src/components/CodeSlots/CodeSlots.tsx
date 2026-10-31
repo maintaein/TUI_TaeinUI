@@ -230,7 +230,8 @@ const useMerge = (
     } else if (merged) {
       tl.play();
     } else if (tl.time() === 0) {
-      // 시간 0에서는 거꾸로 갈 구간이 없어 onReverseComplete가 안 불린다. 쥐고 있던 합쳐진 모양을 바로 놓는다.
+      // 시간 0에서는 거꾸로 갈 구간이 없어 onReverseComplete가 안 불린다. 앞 렌더의 play가 살아 있으니 0에 세워 멈추고, 쥐고 있던 합쳐진 모양을 바로 놓는다.
+      tl.pause(0);
       tl.eventCallback('onReverseComplete')?.();
     } else {
       tl.reverse();

@@ -1,4 +1,4 @@
-import { createRef, useState } from 'react';
+import { createRef, StrictMode, useState } from 'react';
 import {
   afterAll,
   afterEach,
@@ -682,28 +682,62 @@ describe('CodeSlots', () => {
       expect(row(container).className).toMatch(/merged/);
     });
 
-    it('성공을 켠 직후 한 틱도 돌기 전에 끄면 합쳐진 모양이 남지 않는다', () => {
-      const { container, rerender } = render(<CodeSlots label="인증번호" />);
-      rerender(<CodeSlots label="인증번호" success successMessage="맞음" />);
-      rerender(<CodeSlots label="인증번호" />);
-      expect(row(container).className).not.toMatch(/merged/);
-      expect([fade(container), merge(container)]).toEqual([1, 0]);
-    });
+    // 켠 직후(GSAP이 한 틱도 돌기 전)에 바뀌는 경로. 값이 실제 틱이 돈 뒤에도 처음 모양에 서 있어야 한다(앞 렌더의 play가 살아 있으면 fade 0, merge 1까지 재생된다)
+    const settleTicks = () => new Promise((r) => setTimeout(r, 1000));
+    const successOn = (
+      <CodeSlots label="인증번호" success successMessage="맞음" />
+    );
+    const errorOn = (
+      <CodeSlots
+        label="인증번호"
+        error
+        errorMessage="틀림"
+        success
+        successMessage="맞음"
+      />
+    );
+    const wrappers = [
+      ['일반', undefined],
+      ['StrictMode', StrictMode],
+    ] as const;
 
-    it('성공을 켠 직후 error를 켜도 합쳐진 모양이 남지 않는다', () => {
+    it.each(wrappers)(
+      '성공을 켠 직후 한 틱도 돌기 전에 끄면 틱이 돈 뒤에도 처음 모양이고 합쳐진 모양이 없다(%s)',
+      async (_name, wrapper) => {
+        const { container, rerender } = render(<CodeSlots label="인증번호" />, {
+          wrapper,
+        });
+        rerender(successOn);
+        rerender(<CodeSlots label="인증번호" />);
+        await settleTicks();
+        expect(row(container).className).not.toMatch(/merged/);
+        expect([fade(container), merge(container)]).toEqual([1, 0]);
+      }
+    );
+
+    it.each(wrappers)(
+      '성공을 켠 직후 error를 켜도 틱이 돈 뒤에 처음 모양이고 합쳐진 모양이 없다(%s)',
+      async (_name, wrapper) => {
+        const { container, rerender } = render(<CodeSlots label="인증번호" />, {
+          wrapper,
+        });
+        rerender(successOn);
+        rerender(errorOn);
+        await settleTicks();
+        expect(row(container).className).not.toMatch(/merged/);
+        expect([fade(container), merge(container)]).toEqual([1, 0]);
+        expect(cells(container)[0].className).toMatch(/cellError/);
+      }
+    );
+
+    it('켜고 끄고(즉시) 다시 켜면 정상으로 합쳐진다', async () => {
       const { container, rerender } = render(<CodeSlots label="인증번호" />);
-      rerender(<CodeSlots label="인증번호" success successMessage="맞음" />);
-      rerender(
-        <CodeSlots
-          label="인증번호"
-          error
-          errorMessage="틀림"
-          success
-          successMessage="맞음"
-        />
-      );
-      expect(row(container).className).not.toMatch(/merged/);
-      expect(cells(container)[0].className).toMatch(/cellError/);
+      rerender(successOn);
+      rerender(<CodeSlots label="인증번호" />);
+      rerender(successOn);
+      await settleTicks();
+      expect([fade(container), merge(container)]).toEqual([0, 1]);
+      expect(row(container).className).toMatch(/merged/);
     });
 
     it('처음부터 success면 전이 없이 합쳐진 끝 모양으로 서 있다', () => {
