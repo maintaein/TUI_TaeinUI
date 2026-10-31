@@ -17,7 +17,9 @@ import {
 } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { CodeSlots } from './CodeSlots';
+import { fadeName, mergeName } from './CodeSlots.css';
 import { themeContract } from '../../tokens/theme.css';
+import { gsapDuration } from '../../tokens/gsapEasing';
 
 /** 재생된 GSAP 애니메이션을 멈추고 시각을 직접 옮겨 인라인 값을 읽는다. 시험은 gsap을 직접 import하지 않으므로 gateMotion이 돌려주는 값을 받아 둔다. */
 interface Seekable {
@@ -551,12 +553,145 @@ describe('CodeSlots', () => {
       expect(wave(container)).not.toBe(first);
     });
 
-    it('success면 칸들이 합쳐진 상태 클래스가 붙고 error가 이긴다', () => {
+    it('success면 칸들이 합쳐진 상태 클래스가 붙고 error가 함께 켜져 있으면 붙지 않는다', () => {
       const { container, rerender } = render(<CodeSlots label="인증번호" />);
       const row = () => cells(container)[0].parentElement!;
       expect(row().className).not.toMatch(/merged/);
       rerender(<CodeSlots label="인증번호" success successMessage="맞음" />);
       expect(row().className).toMatch(/merged/);
+      const both = render(
+        <CodeSlots
+          label="인증번호"
+          error
+          errorMessage="틀림"
+          success
+          successMessage="맞음"
+        />
+      );
+      expect(cells(both.container)[0].parentElement!.className).not.toMatch(
+        /merged/
+      );
+    });
+  });
+
+  describe('성공 합쳐짐 두 박자', () => {
+    const { base, slower } = gsapDuration;
+    // settle(power3.out)의 진행도. 선형이면 0.5가 되는 자리에서 0.9375가 되어 이징이 settle인지 가른다
+    const settle = (t: number) => 1 - (1 - t) ** 4;
+    const row = (container: HTMLElement) =>
+      cells(container)[0].parentElement as HTMLElement;
+    const fade = (container: HTMLElement) =>
+      Number(row(container).style.getPropertyValue(fadeName));
+    const merge = (container: HTMLElement) =>
+      Number(row(container).style.getPropertyValue(mergeName));
+    // 합쳐짐 타임라인: 길이가 두 박자의 합인 것
+    const mergeTimeline = () => {
+      const found = (played.animations as Seekable[])
+        .filter((a) => Math.abs(a.duration() - (base + slower)) < 1e-6)
+        .at(-1);
+      if (!found) throw new Error('합쳐짐 타임라인이 없습니다');
+      return found;
+    };
+    // 성공을 켠 뒤 타임라인을 세운다(시각은 시험이 옮긴다)
+    const succeed = () => {
+      const view = render(<CodeSlots label="인증번호" />);
+      view.rerender(
+        <CodeSlots label="인증번호" success successMessage="맞음" />
+      );
+      const tl = mergeTimeline();
+      tl.pause();
+      return { ...view, tl };
+    };
+    const at = (tl: Seekable, seconds: number) =>
+      act(() => void tl.time(seconds));
+
+    it('① 칸 테두리와 바탕이 base 동안 settle로 흐려지고 그동안 칸은 모이지 않는다', () => {
+      const { container, tl } = succeed();
+      at(tl, 0);
+      expect([fade(container), merge(container)]).toEqual([1, 0]);
+      at(tl, base / 2);
+      expect(fade(container)).toBeCloseTo(1 - settle(0.5), 2);
+      expect(merge(container)).toBe(0);
+      at(tl, base);
+      expect([fade(container), merge(container)]).toEqual([0, 0]);
+    });
+
+    it('② 칸이 모이고 묶음이 알약이 되는 숫자가 slower 동안 settle로 가고 그동안 흐림은 끝나 있다', () => {
+      const { container, tl } = succeed();
+      at(tl, base + slower / 2);
+      expect(merge(container)).toBeCloseTo(settle(0.5), 2);
+      expect(fade(container)).toBe(0);
+      at(tl, base + slower);
+      expect([fade(container), merge(container)]).toEqual([0, 1]);
+      // 폭은 칸 줄을 따라 변하는 레이아웃이라 transform(scale)을 쓰지 않는다
+      for (const el of [row(container), row(container).firstElementChild!]) {
+        expect((el as HTMLElement).style.transform).toBe('');
+      }
+    });
+
+    it('묶음은 칸 뒤(첫 자식)에 깔린 aria-hidden 요소 하나이고 칸 목록에 끼지 않는다', () => {
+      const { container } = succeed();
+      const bundle = row(container).firstElementChild as HTMLElement;
+      expect(bundle.tagName).toBe('DIV');
+      expect(bundle.className).toMatch(/bundle/);
+      expect(bundle.closest('[aria-hidden="true"]')).toBe(row(container));
+      expect(cells(container)).toHaveLength(6);
+    });
+
+    it('성공을 끄면 같은 길을 거꾸로 간다(② 뒤 ①). 처음부터 다시 재생하지 않는다', () => {
+      const { container, rerender, tl } = succeed();
+      act(() => void tl.progress(1));
+      rerender(<CodeSlots label="인증번호" />);
+      expect(tl.reversed()).toBe(true);
+      // 끝에서 시작해 거꾸로 돈다(0으로 되돌아가 다시 시작하지 않는다)
+      expect(Number(tl.time())).toBeGreaterThan(base + slower - 0.1);
+      at(tl, base + slower / 2);
+      expect(merge(container)).toBeCloseTo(settle(0.5), 2);
+      expect(fade(container)).toBe(0);
+      at(tl, base / 2);
+      expect(merge(container)).toBe(0);
+      expect(fade(container)).toBeCloseTo(1 - settle(0.5), 2);
+    });
+
+    it('① 도중에 성공이 풀리면 지금 자리에서 거꾸로 가고 끝 모양은 성공이 아니다', () => {
+      const { container, rerender, tl } = succeed();
+      at(tl, base / 2);
+      rerender(<CodeSlots label="인증번호" />);
+      expect(tl.reversed()).toBe(true);
+      expect(Number(tl.time())).toBeLessThan(base);
+      // 거꾸로 가는 동안은 합쳐진 모양(링·윤곽 자르기)을 쥐고, 0에 닿으면 놓는다
+      expect(row(container).className).toMatch(/merged/);
+      act(() => void tl.progress(0, false));
+      expect([fade(container), merge(container)]).toEqual([1, 0]);
+      expect(row(container).className).not.toMatch(/merged/);
+    });
+
+    it('② 도중에 성공이 풀리면 지금 자리에서 거꾸로 가고, 다시 켜지면 지금 자리에서 앞으로 가 끝 모양이 성공이다', () => {
+      const { container, rerender, tl } = succeed();
+      at(tl, base + slower / 2);
+      rerender(<CodeSlots label="인증번호" />);
+      expect(tl.reversed()).toBe(true);
+      const time = Number(tl.time());
+      expect(time).toBeGreaterThan(base);
+      expect(time).toBeLessThan(base + slower);
+      rerender(<CodeSlots label="인증번호" success successMessage="맞음" />);
+      expect(tl.reversed()).toBe(false);
+      expect(Number(tl.time())).toBeGreaterThanOrEqual(time - 0.05);
+      act(() => void tl.progress(1));
+      expect([fade(container), merge(container)]).toEqual([0, 1]);
+      expect(row(container).className).toMatch(/merged/);
+    });
+
+    it('처음부터 success면 전이 없이 합쳐진 끝 모양으로 서 있다', () => {
+      const { container } = render(<CodeSlots label="인증번호" success />);
+      expect([fade(container), merge(container)]).toEqual([0, 1]);
+      expect(row(container).className).toMatch(/merged/);
+    });
+
+    it('error가 success를 이기면 합쳐지지 않고 error 모양이다', () => {
+      const { container, rerender } = render(
+        <CodeSlots label="인증번호" success />
+      );
       rerender(
         <CodeSlots
           label="인증번호"
@@ -566,7 +701,31 @@ describe('CodeSlots', () => {
           successMessage="맞음"
         />
       );
-      expect(row().className).not.toMatch(/merged/);
+      const tl = mergeTimeline();
+      expect(tl.reversed()).toBe(true);
+      act(() => void tl.progress(0, false));
+      // 묶음의 불투명도(1 - fade)가 0이라 보이지 않는다
+      expect([fade(container), merge(container)]).toEqual([1, 0]);
+      expect(row(container).className).not.toMatch(/merged/);
+      expect(cells(container)[0].className).toMatch(/cellError/);
+      expect(input()).toHaveAttribute('aria-invalid', 'true');
+    });
+
+    it('움직임 줄이기에서는 타임라인 없이 끝 모양이 바로 서고 풀리면 바로 돌아온다', () => {
+      stubReducedMotion();
+      const before = played.animations.length;
+      const { container, rerender } = render(<CodeSlots label="인증번호" />);
+      rerender(<CodeSlots label="인증번호" success successMessage="맞음" />);
+      expect(row(container).className).toMatch(/settled/);
+      expect(row(container).className).toMatch(/merged/);
+      expect(row(container).style.getPropertyValue(fadeName)).toBe('');
+      expect(
+        (played.animations as Seekable[])
+          .slice(before)
+          .some((a) => Math.abs(a.duration() - (base + slower)) < 1e-6)
+      ).toBe(false);
+      rerender(<CodeSlots label="인증번호" />);
+      expect(row(container).className).not.toMatch(/settled/);
     });
   });
 
@@ -610,20 +769,58 @@ describe('CodeSlots', () => {
       expect(a.split(' ')[0]).not.toBe(b.split(' ')[0]);
     });
 
-    it('합쳐짐은 간격이 0이 되고 전이는 slower와 settle이다', () => {
-      expect(byClass('merged')!.style.getPropertyValue('gap')).toBe('0');
-      const cells = byClass('cells')!.style.getPropertyValue('transition');
-      expect(cells).toContain(duration.slower);
-      expect(cells).toContain(easing.settle);
+    it('칸 줄의 간격과 둥글기는 merge에서, 묶음의 불투명도는 fade에서 유도되고 성공 끝 모양은 settled가 세운다', () => {
+      const cellsRule = byClass('cells')!;
+      // 처음 모양: fade 1, merge 0
+      expect(cellsRule.style.getPropertyValue(fadeName)).toBe('1');
+      expect(cellsRule.style.getPropertyValue(mergeName)).toBe('0');
+      expect(cellsRule.style.getPropertyValue('gap')).toContain(
+        `* (1 - var(${mergeName}))`
+      );
+      // 끝 모양(움직임 줄이기): fade 0, merge 1
+      const settled = byClass('settled')!;
+      expect(settled.style.getPropertyValue(fadeName)).toBe('0');
+      expect(settled.style.getPropertyValue(mergeName)).toBe('1');
+      // 묶음은 fade가 줄수록 나타난다
+      expect(byClass('bundle')!.style.getPropertyValue('opacity')).toBe(
+        `calc(1 - var(${fadeName}))`
+      );
     });
 
-    it('테두리 색은 error는 error.main, success는 success.dark다', () => {
-      expect(byClass('cellError')!.style.getPropertyValue('border-color')).toBe(
-        themeContract.color.error.main
+    it('묶음은 흰 면과 success.dark 테두리이고 scale 없이 칸 줄을 따라 폭이 변한다', () => {
+      const bundle = byClass('bundle')!.style;
+      expect(bundle.getPropertyValue('border')).toContain(
+        themeContract.color.success.dark
       );
+      expect(bundle.getPropertyValue('background-color')).toBe(
+        themeContract.color.background.paper
+      );
+      expect(bundle.getPropertyValue('position')).toBe('absolute');
+      expect(bundle.getPropertyValue('inset')).toBe('0');
+      // 폭을 따로 쥐지 않고 칸 줄(inset 0)을 따라가며 transform은 어디에도 없다
+      expect(bundle.getPropertyValue('width')).toBe('');
+      expect(bundle.getPropertyValue('transform')).toBe('');
+      expect(byClass('cells')!.style.getPropertyValue('transform')).toBe('');
+      // 모서리 밖은 칸 줄이 잘라 낸다
+      expect(byClass('merged')!.style.getPropertyValue('overflow')).toBe(
+        'hidden'
+      );
+    });
+
+    it('칸의 테두리와 바탕은 fade만큼만 남고 오류 색만 전이를 가진다', () => {
+      const border = (name: string) =>
+        byClass(name)!.style.getPropertyValue('border-color');
       expect(
-        byClass('cellSuccess')!.style.getPropertyValue('border-color')
-      ).toBe(themeContract.color.success.dark);
+        byClass('cell')!.style.getPropertyValue('background-color')
+      ).toContain(fadeName);
+      expect(byClass('cell')!.style.getPropertyValue('transition')).toBe('');
+      expect(border('cellError')).toContain(themeContract.color.error.main);
+      expect(border('cellError')).toContain(fadeName);
+      expect(
+        byClass('cellError')!.style.getPropertyValue('transition')
+      ).toContain(duration.fast);
+      // 성공 색은 칸이 아니라 묶음의 것이다
+      expect(byClass('cellSuccess')).toBeUndefined();
     });
 
     it('합쳐진 동안은 칸별 포커스 링이 꺼지고 묶음(알약) 전체가 링을 가진다', () => {
@@ -633,7 +830,7 @@ describe('CodeSlots', () => {
       expect(off).toBeDefined();
       expect(off!.selectorText).toMatch(/:focus-within/);
       expect(off!.style.getPropertyValue('outline')).toBe('none');
-      // 알약 전체의 링: 묶음 포커스 아래 merged 자신. 둥글기를 알약과 같게 가져 링이 곡선을 따른다
+      // 알약 전체의 링: 묶음 포커스 아래 merged 자신. 둥글기는 칸 줄이 묶음과 같은 식으로 가져 링이 곡선을 따른다
       const ring = merged.find(
         (r) =>
           /:focus-within/.test(r.selectorText) &&
@@ -642,12 +839,14 @@ describe('CodeSlots', () => {
       );
       expect(ring).toBeDefined();
       expect(ring!.style.getPropertyValue('outline')).toContain('2px solid');
-      expect(
-        byClass('merged')!.style.getPropertyValue('border-radius')
-      ).toContain('/ 2');
+      const radius = byClass('cells')!.style.getPropertyValue('border-radius');
+      expect(radius).toContain('/ 2');
+      expect(radius).toBe(
+        byClass('bundle')!.style.getPropertyValue('border-radius')
+      );
     });
 
-    it('움직임 줄이기 미디어 질의에서 합쳐짐 전이가 꺼진다', () => {
+    it('움직임 줄이기 미디어 질의에서 오류 색 전이가 꺼진다', () => {
       const sheet = Array.from(document.styleSheets).find((c) =>
         Array.from(c.cssRules).some((r) => r.cssText.includes('CodeSlots_cell'))
       )!;
@@ -655,11 +854,10 @@ describe('CodeSlots', () => {
         .filter((r): r is CSSMediaRule => r instanceof CSSMediaRule)
         .filter((m) => /prefers-reduced-motion/.test(m.conditionText))
         .flatMap((m) => Array.from(m.cssRules) as CSSStyleRule[])
-        .filter((r) => /CodeSlots_(cells|cell)__/.test(r.selectorText));
-      // 간격(cells)과 칸의 테두리·둥글기 전이 둘 다 꺼진다
+        .filter((r) => /CodeSlots_cell/.test(r.selectorText));
       expect(
         reduced.map((r) => r.style.getPropertyValue('transition'))
-      ).toEqual(['none', 'none']);
+      ).toEqual(['none']);
     });
 
     it('지금 칸의 포커스 링은 묶음에 포커스가 있을 때만 켜진다', () => {

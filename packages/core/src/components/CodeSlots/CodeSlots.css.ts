@@ -1,4 +1,9 @@
-import { keyframes, style, styleVariants } from '@vanilla-extract/css';
+import {
+  createVar,
+  keyframes,
+  style,
+  styleVariants,
+} from '@vanilla-extract/css';
 import { themeContract } from '../../tokens/theme.css';
 import { focusRing } from '../../tokens/focusRing.css';
 
@@ -9,6 +14,23 @@ const CELL_H = `calc(${spacing[12]} + ${spacing[2]})`;
 // 합쳐진 알약의 바깥 둥글기. 9999px(full)은 보간이 첫 프레임에 높이의 절반으로 잘려 전이가 안 보이므로 높이의 절반을 쓴다.
 const PILL_R = `calc(${CELL_H} / 2)`;
 
+// 성공으로 합쳐지는 두 박자의 진행도. GSAP는 calc 값을 못 보간하므로 타임라인(CodeSlots.tsx)이 칸 줄에 이 숫자 둘만 인라인으로 몬다.
+// 간격·둥글기·불투명도는 모두 이 숫자에서 CSS가 유도한다.
+// fade: 1에서 0으로(①). 칸의 테두리와 흰 바탕이 투명해지고 묶음이 나타난다
+// merge: 0에서 1로(②). 간격이 0으로 모이고 모서리가 알약이 된다
+const fade = createVar();
+const merge = createVar();
+// GSAP에 넘길 이름. createVar는 `var(--이름)`을 돌려준다
+export const fadeName = fade.slice(4, -1);
+export const mergeName = merge.slice(4, -1);
+
+// 테두리·바탕 색을 fade만큼만 남긴다. 칸마다 따로 쓰는 색이라 색마다 같은 식을 건다
+const faded = (c: string) =>
+  `color-mix(in srgb, ${c} calc(${fade} * 100%), transparent)`;
+
+// 칸 줄과 묶음이 같이 쓰는 둥글기: 칸 모서리에서 알약 반지름까지
+const RADIUS = `calc(${themeContract.borderRadius.base} + (${PILL_R} - ${themeContract.borderRadius.base}) * ${merge})`;
+
 // 칸 묶음. 숨은 input이 이 상자 전체를 덮는다.
 export const group = style({
   position: 'relative',
@@ -16,22 +38,37 @@ export const group = style({
 });
 
 export const cells = style({
+  vars: { [fade]: '1', [merge]: '0' },
+  position: 'relative',
   display: 'flex',
-  gap: spacing[2],
-  // gap: 합쳐질 때 간격이 0으로 줄어드는 전이다. gap은 레이아웃 속성이지만 칸이 고정 크기라 다른 요소를 밀지 않는다.
-  transition: `gap ${animation.duration.slower} ${animation.easing.settle}`,
-  // 움직임 줄이기: 합쳐짐은 전이 없이 끝 상태로 선다(전역 reduce 규칙과 같은 결과를 이 파일에서도 못박는다)
-  '@media': { '(prefers-reduced-motion: reduce)': { transition: 'none' } },
+  // gap: 합쳐질 때 간격이 0으로 줄어드는 레이아웃 속성이다. 칸이 고정 크기라 다른 요소를 밀지 않는다.
+  gap: `calc(${spacing[2]} * (1 - ${merge}))`,
+  borderRadius: RADIUS,
 });
 
-// 성공: 간격이 0으로 줄고 칸 테두리가 사이에서 사라지며 바깥 둥글기만 남는다(cell의 selectors가 짝이다).
-// 포커스 링은 칸별이 아니라 묶음(알약) 전체에 하나만 준다. 칸 링은 칸의 네모 모서리를 따라 알약 밖으로 튀어나온다.
+// 성공 상태의 끝 모양을 숫자에서 바로 선다. 움직임 줄이기에서만 쓴다(움직임이 있을 때는 타임라인이 숫자를 몬다).
+export const settled = style({ vars: { [fade]: '0', [merge]: '1' } });
+
+// 성공: 포커스 링은 칸별이 아니라 묶음(알약) 전체에 하나만 준다. 칸 링은 칸의 네모 모서리를 따라 알약 밖으로 튀어나온다.
+// 둥근 모서리 밖은 잘라 내 어떤 칸도 알약 윤곽 밖으로 나오지 않는다. 오류 물결이 끝에서 잘리지 않게 성공일 때만 건다.
 export const merged = style({
-  gap: 0,
-  borderRadius: PILL_R,
+  overflow: 'hidden',
   selectors: {
     [`${group}:focus-within &`]: focusRing(),
   },
+});
+
+// 칸 뒤에 깔린 묶음 하나. 칸의 흰 바탕과 테두리를 넘겨받아 그린다.
+// 칸 줄을 따라 실제 폭이 줄어든다(scale이 아니라 레이아웃이라 둥근 끝이 찌그러지지 않는다).
+export const bundle = style({
+  position: 'absolute',
+  inset: 0,
+  boxSizing: 'border-box',
+  pointerEvents: 'none',
+  border: `1px solid ${color.success.dark}`,
+  borderRadius: RADIUS,
+  backgroundColor: color.background.paper,
+  opacity: `calc(1 - ${fade})`,
 });
 
 // 실제 입력. display:none이면 포커스와 자동 채움을 못 받으므로 투명하게 칸 위에 겹친다.
@@ -62,12 +99,9 @@ export const cell = style({
   width: spacing[12],
   height: CELL_H,
   overflow: 'hidden',
-  border: `1px solid ${color.text.secondary}`,
+  border: `1px solid ${faded(color.text.secondary)}`,
   borderRadius: themeContract.borderRadius.base,
-  backgroundColor: color.background.paper,
-  // border-color는 오류·성공 색 전환, border-radius와 border-left-width, border-right-width는 합쳐질 때 바깥 둥글기만 남기고 칸 사이 테두리를 지우는 전이다.
-  transition: `border-color ${animation.duration.fast} ${animation.easing.settle}, border-radius ${animation.duration.slower} ${animation.easing.settle}, border-left-width ${animation.duration.slower} ${animation.easing.settle}, border-right-width ${animation.duration.slower} ${animation.easing.settle}`,
-  '@media': { '(prefers-reduced-motion: reduce)': { transition: 'none' } },
+  backgroundColor: faded(color.background.paper),
   selectors: {
     // 지금 입력할 칸의 포커스 링(2.4.7). 묶음 안에 포커스가 있을 때만 보인다.
     [`${group}:focus-within &[data-active="true"]`]: focusRing(),
@@ -75,26 +109,19 @@ export const cell = style({
     [`${group}:focus-within ${merged} &[data-active="true"]`]: {
       outline: 'none',
     },
-    [`${merged} &`]: { borderRadius: 0 },
-    [`${merged} &:first-child`]: {
-      borderTopLeftRadius: PILL_R,
-      borderBottomLeftRadius: PILL_R,
-    },
-    [`${merged} &:last-child`]: {
-      borderTopRightRadius: PILL_R,
-      borderBottomRightRadius: PILL_R,
-    },
-    [`${merged} &:not(:first-child)`]: { borderLeftWidth: 0 },
-    [`${merged} &:not(:last-child)`]: { borderRightWidth: 0 },
   },
 });
 
-// 테두리 색. success.main은 흰 바탕 대비 2.77:1이라 테두리 3:1에 못 미쳐 dark를 쓴다.
-export const cellError = style({ borderColor: color.error.main });
-export const cellSuccess = style({ borderColor: color.success.dark });
+// 테두리 색. 칸은 fade에 따라 투명해지므로 색마다 faded로 건다. 성공 색은 칸이 아니라 묶음(bundle)의 테두리다.
+// 오류 색 전환만 전이를 둔다: fade를 모는 성공 전환과 겹치면 매 프레임 전이가 새로 시작해 뒤처지므로 성공에는 전이를 걸지 않는다.
+export const cellError = style({
+  borderColor: faded(color.error.main),
+  transition: `border-color ${animation.duration.fast} ${animation.easing.settle}`,
+  '@media': { '(prefers-reduced-motion: reduce)': { transition: 'none' } },
+});
 export const cellDisabled = style({
-  backgroundColor: color.surface.default,
-  borderColor: color.border.default,
+  backgroundColor: faded(color.surface.default),
+  borderColor: faded(color.border.default),
 });
 
 const digitBase = {

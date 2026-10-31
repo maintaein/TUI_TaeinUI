@@ -6,6 +6,7 @@ import {
   type ChangeEvent,
   type ClipboardEvent,
   type InputHTMLAttributes,
+  type RefObject,
   type SyntheticEvent,
 } from 'react';
 import clsx from 'clsx';
@@ -163,9 +164,81 @@ const caretToEnd = (e: SyntheticEvent<HTMLInputElement>) => {
 };
 
 /**
+ * 성공으로 합쳐지는 두 박자를 칸 줄의 숫자 둘(fade, merge)로 몬다. 타임라인 하나를 `play`/`reverse`하므로
+ * 진행 중에 성공이 풀리거나 다시 켜져도 지금 상태에서 반대로 가고, 끝 모양은 늘 마지막 의도와 같다.
+ * ① `base`: fade 1에서 0으로(칸의 테두리와 흰 바탕이 투명해지고 묶음이 나타난다)
+ * ② `slower`: merge 0에서 1로(칸이 모이고 묶음의 폭이 줄며 알약으로 둥글어진다). 둘 다 `settle`.
+ * 움직임 줄이기에서는 타임라인 없이 CSS(`settled`)가 끝 모양을 바로 세운다.
+ */
+const useMerge = (
+  rowRef: RefObject<HTMLDivElement | null>,
+  merged: boolean,
+  reduced: boolean
+): boolean => {
+  // 성공이 풀려도 거꾸로 가는 동안은 합쳐진 모양(포커스 링·윤곽 자르기)을 쥔다. 알약 링이 곧바로 마지막 칸 링으로 튀지 않게 한다.
+  // 타임라인이 0에 닿아 거꾸로 끝나면 놓는다. 상태는 렌더 중에 맞춘다(effect 안 setState는 lint가 막는다).
+  const [held, setHeld] = useState(merged && !reduced);
+  if (merged && !reduced && !held) setHeld(true);
+  if (reduced && held) setHeld(false);
+  const timeline = useRef<ReturnType<typeof gsap.timeline> | null>(null);
+  // 새로 만든 타임라인은 처음 한 번 전이 없이 지금 의도의 끝에 세운다(처음부터 성공이면 이미 합쳐진 채로 선다)
+  const fresh = useRef(false);
+  useLayoutEffect(() => {
+    const row = rowRef.current;
+    if (!row || reduced) return;
+    const tl = gateMotion(reduced, () =>
+      gsap
+        .timeline({
+          paused: true,
+          onReverseComplete: () => setHeld(false),
+        })
+        .fromTo(
+          row,
+          { [styles.fadeName]: 1 },
+          {
+            [styles.fadeName]: 0,
+            duration: gsapDuration.base,
+            ease: gsapEasing.settle,
+          }
+        )
+        .fromTo(
+          row,
+          { [styles.mergeName]: 0 },
+          {
+            [styles.mergeName]: 1,
+            duration: gsapDuration.slower,
+            ease: gsapEasing.settle,
+          }
+        )
+    );
+    timeline.current = tl;
+    fresh.current = true;
+    return () => {
+      tl.kill();
+      timeline.current = null;
+      // 인라인 숫자를 걷어 CSS 값(처음 모양 또는 settled)이 다시 이기게 한다
+      gsap.set(row, { clearProps: `${styles.fadeName},${styles.mergeName}` });
+    };
+  }, [rowRef, reduced]);
+  useLayoutEffect(() => {
+    const tl = timeline.current;
+    if (!tl) return;
+    if (fresh.current) {
+      fresh.current = false;
+      tl.progress(merged ? 1 : 0);
+    } else if (merged) {
+      tl.play();
+    } else {
+      tl.reverse();
+    }
+  }, [merged, reduced]);
+  return merged || held;
+};
+
+/**
  * 인증번호·PIN 입력. 실제 입력은 칸 위에 투명하게 겹친 `<input>` 하나라 붙여넣기와 문자 자동 채움(one-time-code)이 된다.
  * 숫자가 들어오면 그 칸에서 슬롯처럼 굴러 들어오고(GSAP) 지우면 아래로 빠진다. `error`면 칸이 왼쪽부터 물결치고,
- * `success`면 칸들이 하나의 알약으로 합쳐진다. 움직임 줄이기에서는 숫자·색·간격만 바로 바뀐다.
+ * `success`면 칸 테두리와 바탕이 흐려지며 칸 뒤 묶음이 나타나고(①), 칸이 모이며 하나의 알약이 된다(②). 움직임 줄이기에서는 숫자·색·간격만 바로 바뀐다.
  * 레이블·메시지·`aria-describedby`는 폼 계열 `FormField`가 맡는다.
  */
 export const CodeSlots = forwardRef<HTMLInputElement, CodeSlotsProps>(
@@ -246,6 +319,10 @@ export const CodeSlots = forwardRef<HTMLInputElement, CodeSlotsProps>(
     };
 
     const active = Math.min(current.length, length - 1);
+    // FormField와 같은 규칙: error가 이긴다
+    const isMerged = success && !error;
+    const rowRef = useRef<HTMLDivElement>(null);
+    const mergedShape = useMerge(rowRef, isMerged, reduced);
 
     return (
       <FormField
@@ -258,7 +335,7 @@ export const CodeSlots = forwardRef<HTMLInputElement, CodeSlotsProps>(
         required={required}
         className={className}
       >
-        {({ inputId, helperId, hasHelper, isError, isSuccess }) => (
+        {({ inputId, helperId, hasHelper, isError }) => (
           <div className={styles.group}>
             <input
               ref={ref}
@@ -280,9 +357,15 @@ export const CodeSlots = forwardRef<HTMLInputElement, CodeSlotsProps>(
               {...rest}
             />
             <div
-              className={clsx(styles.cells, isSuccess && styles.merged)}
+              ref={rowRef}
+              className={clsx(
+                styles.cells,
+                mergedShape && styles.merged,
+                isMerged && reduced && styles.settled
+              )}
               aria-hidden="true"
             >
+              <div className={styles.bundle} />
               {Array.from({ length }, (_, i) => (
                 <span
                   key={i}
@@ -290,7 +373,6 @@ export const CodeSlots = forwardRef<HTMLInputElement, CodeSlotsProps>(
                   className={clsx(
                     styles.cell,
                     isError && styles.cellError,
-                    isSuccess && styles.cellSuccess,
                     disabled && styles.cellDisabled,
                     !reduced && wave
                   )}
