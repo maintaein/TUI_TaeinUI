@@ -453,6 +453,13 @@ test.describe('모션 전체 보기 출렁이는 게이지 미니 (1440px)', () 
     await expect(pause).toHaveAttribute('aria-pressed', 'true');
     await centre();
     const frozen = await sloshMeter(page).getAttribute('aria-valuenow');
+    // 움직임 멈춤은 물 그림도 세운다(paused 연결). 정지 장면이 그려진 뒤 수면 경로가 그대로다
+    const rim = () =>
+      sloshMeter(page).locator('g[clip-path] > path').nth(2).getAttribute('d');
+    await page.waitForTimeout(300);
+    const stillRim = await rim();
+    await page.waitForTimeout(500);
+    expect(await rim()).toBe(stillRim);
     // 대본 한 바퀴보다 길게 기다려도 값이 바뀌지 않는다
     for (let i = 0; i < 80; i++) {
       await expect(sloshMeter(page)).toHaveAttribute('aria-valuenow', frozen!);
@@ -460,6 +467,7 @@ test.describe('모션 전체 보기 출렁이는 게이지 미니 (1440px)', () 
     }
     await pause.click();
     await centre();
+    await expect.poll(rim).not.toBe(stillRim);
     await expect(sloshMeter(page)).not.toHaveAttribute(
       'aria-valuenow',
       frozen!,
