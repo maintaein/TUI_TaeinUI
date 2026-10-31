@@ -682,6 +682,30 @@ describe('CodeSlots', () => {
       expect(row(container).className).toMatch(/merged/);
     });
 
+    it('성공을 켠 직후 한 틱도 돌기 전에 끄면 합쳐진 모양이 남지 않는다', () => {
+      const { container, rerender } = render(<CodeSlots label="인증번호" />);
+      rerender(<CodeSlots label="인증번호" success successMessage="맞음" />);
+      rerender(<CodeSlots label="인증번호" />);
+      expect(row(container).className).not.toMatch(/merged/);
+      expect([fade(container), merge(container)]).toEqual([1, 0]);
+    });
+
+    it('성공을 켠 직후 error를 켜도 합쳐진 모양이 남지 않는다', () => {
+      const { container, rerender } = render(<CodeSlots label="인증번호" />);
+      rerender(<CodeSlots label="인증번호" success successMessage="맞음" />);
+      rerender(
+        <CodeSlots
+          label="인증번호"
+          error
+          errorMessage="틀림"
+          success
+          successMessage="맞음"
+        />
+      );
+      expect(row(container).className).not.toMatch(/merged/);
+      expect(cells(container)[0].className).toMatch(/cellError/);
+    });
+
     it('처음부터 success면 전이 없이 합쳐진 끝 모양으로 서 있다', () => {
       const { container } = render(<CodeSlots label="인증번호" success />);
       expect([fade(container), merge(container)]).toEqual([0, 1]);
@@ -807,18 +831,29 @@ describe('CodeSlots', () => {
       );
     });
 
-    it('칸의 테두리와 바탕은 fade만큼만 남고 오류 색만 전이를 가진다', () => {
+    it('칸의 테두리와 바탕은 fade만큼만 남고 색 전이는 칸 전체에 있되 합쳐진 동안만 꺼진다', () => {
       const border = (name: string) =>
         byClass(name)!.style.getPropertyValue('border-color');
       expect(
         byClass('cell')!.style.getPropertyValue('background-color')
       ).toContain(fadeName);
-      expect(byClass('cell')!.style.getPropertyValue('transition')).toBe('');
       expect(border('cellError')).toContain(themeContract.color.error.main);
       expect(border('cellError')).toContain(fadeName);
-      expect(
-        byClass('cellError')!.style.getPropertyValue('transition')
-      ).toContain(duration.fast);
+      const transition = byClass('cell')!.style.getPropertyValue('transition');
+      expect(transition).toContain('border-color');
+      expect(transition).toContain(duration.fast);
+      expect(transition).toContain(easing.settle);
+      expect(byClass('cellError')!.style.getPropertyValue('transition')).toBe(
+        ''
+      );
+      // 합쳐진 동안(fade를 모는 동안)은 전이가 뒤처지지 않게 끈다
+      const off = rules().find(
+        (r) =>
+          / \.CodeSlots_cell__\w+$/.test(r.selectorText) &&
+          /_merged__/.test(r.selectorText) &&
+          !/data-active/.test(r.selectorText)
+      );
+      expect(off!.style.getPropertyValue('transition')).toBe('none');
       // 성공 색은 칸이 아니라 묶음의 것이다
       expect(byClass('cellSuccess')).toBeUndefined();
     });
@@ -846,7 +881,7 @@ describe('CodeSlots', () => {
       );
     });
 
-    it('움직임 줄이기 미디어 질의에서 오류 색 전이가 꺼진다', () => {
+    it('움직임 줄이기 미디어 질의에서 칸의 색 전이가 꺼진다', () => {
       const sheet = Array.from(document.styleSheets).find((c) =>
         Array.from(c.cssRules).some((r) => r.cssText.includes('CodeSlots_cell'))
       )!;
@@ -854,7 +889,7 @@ describe('CodeSlots', () => {
         .filter((r): r is CSSMediaRule => r instanceof CSSMediaRule)
         .filter((m) => /prefers-reduced-motion/.test(m.conditionText))
         .flatMap((m) => Array.from(m.cssRules) as CSSStyleRule[])
-        .filter((r) => /CodeSlots_cell/.test(r.selectorText));
+        .filter((r) => /CodeSlots_cell__\w+$/.test(r.selectorText));
       expect(
         reduced.map((r) => r.style.getPropertyValue('transition'))
       ).toEqual(['none']);

@@ -102,7 +102,11 @@ export const cell = style({
   border: `1px solid ${faded(color.text.secondary)}`,
   borderRadius: themeContract.borderRadius.base,
   backgroundColor: faded(color.background.paper),
+  // border-color: 오류·비활성 색 전환. 합쳐짐이 fade를 매 프레임 모는 동안은 아래 selectors가 전이를 끈다(전이가 매 프레임 새로 시작해 뒤처진다)
+  transition: `border-color ${animation.duration.fast} ${animation.easing.settle}`,
+  '@media': { '(prefers-reduced-motion: reduce)': { transition: 'none' } },
   selectors: {
+    [`${merged} &`]: { transition: 'none' },
     // 지금 입력할 칸의 포커스 링(2.4.7). 묶음 안에 포커스가 있을 때만 보인다.
     [`${group}:focus-within &[data-active="true"]`]: focusRing(),
     // 합쳐진 동안은 칸별 링을 끈다(링은 merged 묶음이 가진다)
@@ -113,12 +117,7 @@ export const cell = style({
 });
 
 // 테두리 색. 칸은 fade에 따라 투명해지므로 색마다 faded로 건다. 성공 색은 칸이 아니라 묶음(bundle)의 테두리다.
-// 오류 색 전환만 전이를 둔다: fade를 모는 성공 전환과 겹치면 매 프레임 전이가 새로 시작해 뒤처지므로 성공에는 전이를 걸지 않는다.
-export const cellError = style({
-  borderColor: faded(color.error.main),
-  transition: `border-color ${animation.duration.fast} ${animation.easing.settle}`,
-  '@media': { '(prefers-reduced-motion: reduce)': { transition: 'none' } },
-});
+export const cellError = style({ borderColor: faded(color.error.main) });
 export const cellDisabled = style({
   backgroundColor: faded(color.surface.default),
   borderColor: faded(color.border.default),

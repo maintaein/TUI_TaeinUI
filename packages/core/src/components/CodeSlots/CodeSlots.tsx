@@ -169,6 +169,7 @@ const caretToEnd = (e: SyntheticEvent<HTMLInputElement>) => {
  * ① `base`: fade 1에서 0으로(칸의 테두리와 흰 바탕이 투명해지고 묶음이 나타난다)
  * ② `slower`: merge 0에서 1로(칸이 모이고 묶음의 폭이 줄며 알약으로 둥글어진다). 둘 다 `settle`.
  * 움직임 줄이기에서는 타임라인 없이 CSS(`settled`)가 끝 모양을 바로 세운다.
+ * ponytail: 처음부터 success인 서버 첫 그림은 합쳐지기 전 모양이고 하이드레이션 때 끝 모양으로 점프한다, SSR 첫 그림이 문제가 되면 끝 모양을 CSS로도 세운다
  */
 const useMerge = (
   rowRef: RefObject<HTMLDivElement | null>,
@@ -228,6 +229,9 @@ const useMerge = (
       tl.progress(merged ? 1 : 0);
     } else if (merged) {
       tl.play();
+    } else if (tl.time() === 0) {
+      // 시간 0에서는 거꾸로 갈 구간이 없어 onReverseComplete가 안 불린다. 쥐고 있던 합쳐진 모양을 바로 놓는다.
+      tl.eventCallback('onReverseComplete')?.();
     } else {
       tl.reverse();
     }
