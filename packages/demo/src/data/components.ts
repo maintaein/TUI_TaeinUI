@@ -389,7 +389,8 @@ export const motionData: MotionInfo[] = [
     name: 'SloshGauge',
     title: '출렁이는 게이지',
     path: '/motion/slosh-gauge',
-    description: '값이 바뀌면 통 안의 물이 크게 출렁였다가 잔잔해집니다.',
+    description:
+      '값이 바뀌면 물방울 그릇 안의 물이 목표를 넘었다 돌아오며 출렁이고, 쉴 때는 잔물결이 남습니다.',
     usage: '저장 공간, 할당량, 진행률',
     category: 'micro',
     icon: Gauge,
