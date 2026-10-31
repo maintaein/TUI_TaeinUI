@@ -302,38 +302,42 @@ test.describe('인증번호 슬롯 상세 (1440px)', () => {
   test('숫자는 위에서 내려와 살짝 넘친 뒤 칸에 앉고 지우면 아래로 빠진다', async ({
     page,
   }) => {
-    await open(page);
-    // 프레임마다 숫자와 복사본의 세로 이동량(px)을 모은다. 시연 멈춤이어도 굴러야 한다
-    await page.evaluate(() => {
-      const w = window as unknown as { __ys: number[] };
-      w.__ys = [];
-      const tick = () => {
-        const dy = (el: Element | null) =>
-          el ? new DOMMatrix(getComputedStyle(el).transform).m42 : null;
-        const d = dy(document.querySelector('input + div > span > span'));
-        if (d !== null) w.__ys.push(d);
-        requestAnimationFrame(tick);
-      };
-      requestAnimationFrame(tick);
-    });
+    // 가짜 시계로 16ms씩 정확히 보내 표집한다. 실시간 rAF는 부하에서 첫 프레임이 늦어 굴림의 앞부분을 놓친다
+    await page.clock.install();
+    await page.goto('/motion/code-slots');
+    // 시연이 번호를 넣기 전에(시계를 거의 안 보낸 채) 멈춘다
+    await expect(input(page)).toBeVisible();
+    await stage(page).getByRole('button', { name: '시연 멈춤' }).click();
+    await page.clock.runFor(100);
+    // install만으로는 시계가 실시간으로 흐른다. 여기서 멈춰 runFor로만 흐르게 한다
+    await page.clock.pauseAt((await page.evaluate(() => Date.now())) + 1000);
+    await input(page).focus();
+    // 칸 안 숫자(첫 칸의 첫 자식)의 세로 이동량(px). 없으면 null
+    const dy = () =>
+      page.evaluate(() => {
+        const el = document.querySelector('input + div > span > span');
+        return el ? new DOMMatrix(getComputedStyle(el).transform).m42 : null;
+      });
+    const sample = async (ms: number) => {
+      const ys: number[] = [];
+      for (let t = 0; t < ms; t += 16) {
+        await page.clock.runFor(16);
+        const d = await dy();
+        if (d !== null) ys.push(d);
+      }
+      return ys;
+    };
     await page.keyboard.type('1');
-    await page.waitForTimeout(500);
-    const ys = await page.evaluate(
-      () => (window as unknown as { __ys: number[] }).__ys
-    );
+    const ys = await sample(500);
     // 칸 높이 56px 가운데에 24px 글자: 위쪽에서 -24px 가까이 시작해 +로 넘쳤다가 0에 앉는다
     expect(Math.min(...ys)).toBeLessThan(-8);
     expect(Math.max(...ys)).toBeGreaterThan(0.5);
     expect(ys[ys.length - 1]).toBe(0);
 
     // 지우면 칸의 첫 자식이 아래로 빠지는 복사본이 된다(칸 높이 56px만큼 빠지고 끝나면 사라진다)
-    const before = ys.length;
     await page.keyboard.press('Backspace');
-    await page.waitForTimeout(500);
-    const after = await page.evaluate(
-      () => (window as unknown as { __ys: number[] }).__ys
-    );
-    expect(Math.max(...after.slice(before))).toBeGreaterThan(40);
+    const after = await sample(500);
+    expect(Math.max(...after)).toBeGreaterThan(40);
     await expect(slots(page).nth(0).locator('span')).toHaveCount(0);
   });
 
