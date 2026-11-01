@@ -346,8 +346,11 @@ test.describe('날개 전송 상세 유체 연기 (1440px)', () => {
       while (performance.now() - t0 < 12_000) {
         await frame();
         n += 1;
-        // 날개 canvas(data-wing-canvas)는 따로 본다: 여기서는 연기 canvas만
-        const canvas = region.querySelector('canvas:not([data-wing-canvas])');
+        // 날개 canvas(비행 층 안)는 따로 본다: 여기서는 연기 canvas만
+        const canvas =
+          [...region.querySelectorAll('canvas')].find(
+            (c) => !c.closest('[data-wing-layer]')
+          ) ?? null;
         const layer = document.querySelector('[data-wing-layer]');
         found.onBody ||= !!document.body.querySelector(':scope > canvas');
         if (layer) layerWasUp = true;
@@ -592,7 +595,7 @@ test.describe('날개 전송 상세 three 불러오기 (1440px)', () => {
 });
 
 // 3D 날개(three, Chromium 소프트웨어 WebGL). 날개 canvas는 비행 층 안의 단추 상자에 있다
-const wingCanvas = (page: Page) => page.locator('canvas[data-wing-canvas]');
+const wingCanvas = (page: Page) => page.locator('[data-wing-layer] canvas');
 // 가리켜 three를 받고 평가가 끝나도록 기다린다
 const warm = async (page: Page) => {
   const loaded = page.waitForResponse((r) => /three\.module/.test(r.url()));
@@ -628,7 +631,7 @@ test.describe('날개 전송 상세 3D 날개 (1440px)', () => {
       while (performance.now() - t0 < 6000) {
         await frame();
         const layer = document.querySelector('[data-wing-layer]');
-        const canvas = document.querySelector('canvas[data-wing-canvas]');
+        const canvas = document.querySelector('[data-wing-layer] canvas');
         if (layer) layerUp = true;
         if (canvas && layer) {
           const craft = layer.firstElementChild;
@@ -640,7 +643,7 @@ test.describe('날개 전송 상세 3D 날개 (1440px)', () => {
         }
         if (layerUp && !layer) {
           found.goneWithLayer = !document.querySelector(
-            'canvas[data-wing-canvas]'
+            '[data-wing-layer] canvas'
           );
           break;
         }
@@ -658,6 +661,47 @@ test.describe('날개 전송 상세 3D 날개 (1440px)', () => {
     await expect(wingCanvas(page)).toHaveCount(0);
   });
 
+  test('비행이 끝나면 날개의 WebGL 컨텍스트가 실제로 잃어진다(렌더러를 놓는다)', async ({
+    page,
+  }) => {
+    test.setTimeout(60_000);
+    await open(page);
+    await warm(page);
+    const r = await send(page).evaluate(async (button) => {
+      const frame = () =>
+        new Promise((r) => requestAnimationFrame(() => r(null)));
+      const t0 = performance.now();
+      (button as HTMLButtonElement).click();
+      let wing: HTMLCanvasElement | null = null;
+      let lostWhileFlying = true;
+      while (performance.now() - t0 < 6000) {
+        await frame();
+        const layer = document.querySelector('[data-wing-layer]');
+        const canvas = layer?.querySelector('canvas') ?? null;
+        if (canvas) {
+          wing = canvas;
+          // 같은 canvas에서 getContext는 이미 만든 컨텍스트를 돌려준다
+          const gl = canvas.getContext('webgl2');
+          lostWhileFlying = !gl || gl.isContextLost();
+        }
+        if (wing && !layer) break;
+      }
+      const gl = wing?.getContext('webgl2');
+      return {
+        sawWing: !!wing,
+        lostWhileFlying,
+        lostAfter: !!gl && gl.isContextLost(),
+        detached: !!wing && !wing.isConnected,
+      };
+    });
+    expect(r).toEqual({
+      sawWing: true,
+      lostWhileFlying: false,
+      lostAfter: true,
+      detached: true,
+    });
+  });
+
   test('가리켜 받아 둔 뒤 누르면 300ms 안에 날개 canvas가 선다', async ({
     page,
   }) => {
@@ -668,7 +712,7 @@ test.describe('날개 전송 상세 3D 날개 (1440px)', () => {
       (button as HTMLButtonElement).click();
       while (performance.now() - t0 < 2000) {
         await new Promise((r) => requestAnimationFrame(() => r(null)));
-        if (document.querySelector('canvas[data-wing-canvas]'))
+        if (document.querySelector('[data-wing-layer] canvas'))
           return performance.now() - t0;
       }
       return -1;
@@ -691,7 +735,7 @@ test.describe('날개 전송 상세 3D 날개 (1440px)', () => {
       while (performance.now() - t0 < 2300) {
         await new Promise((r) => requestAnimationFrame(() => r(null)));
         const canvas = document.querySelector<HTMLCanvasElement>(
-          'canvas[data-wing-canvas]'
+          '[data-wing-layer] canvas'
         );
         // 깃이 다 펴진 뒤(0.8초부터)의 프레임을 본다
         if (!canvas || performance.now() - t0 < 800) continue;
@@ -743,7 +787,7 @@ test.describe('날개 전송 상세 3D 날개 (1440px)', () => {
         [...region.querySelectorAll('button')].find(
           (b) => b.textContent?.trim() === name
         ) as HTMLButtonElement;
-      const wings = () => document.querySelectorAll('canvas[data-wing-canvas]');
+      const wings = () => document.querySelectorAll('[data-wing-layer] canvas');
       const sawWing: boolean[] = [];
       const left: number[] = [];
       for (let i = 0; i < 10; i++) {
@@ -791,7 +835,7 @@ test.describe('날개 전송 상세 3D 날개 (1440px)', () => {
           clone.getBoundingClientRect().width < width0 * 0.99
         )
           crouchAt = t;
-        if (wingAt < 0 && document.querySelector('canvas[data-wing-canvas]'))
+        if (wingAt < 0 && document.querySelector('[data-wing-layer] canvas'))
           wingAt = t;
         if (layerUp && !layer) return { crouchAt, wingAt, ended: t };
       }
