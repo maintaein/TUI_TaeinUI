@@ -18,8 +18,7 @@ import { visuallyHidden } from '../../_internal/visuallyHidden.css';
 import { gsapDuration, gsapEasing } from '../../tokens/gsapEasing';
 import { useReducedMotion } from '../../hooks/useReducedMotion';
 import { settleMotion } from '../../hooks/gateMotion';
-import { tailSpray, type Point } from './smokeTrail';
-import { BEAT, BEAT_END, CROUCH, WING_RATIO, wingBeat } from './wingBeat';
+import { BEAT, BEAT_END, CROUCH, TAIL_REACH, wingBeat } from './wingBeat';
 import { makeSmoke } from './smokeEngine';
 import { awaitWings, preloadThree, type WingsOutcome } from './loadThree';
 import { makeWingScene, type WingScene } from './wingScene';
@@ -43,12 +42,12 @@ export interface WingButtonProps extends Omit<
   sentLabel?: string;
   /**
    * 비행 레이어를 그릴 DOM 위치. 안 주거나 `null`이면 `document.body`(화면 전체)다.
-   * 주면 날개 달린 단추가 그 안에서 날고 상자 밖으로 나가며 잘린다. 그 상자가 `position`의
+   * 주면 로켓 단추가 그 안에서 날고 상자 밖으로 나가며 잘린다. 그 상자가 `position`의
    * 기준(`relative` 등)이어야 하고 스크롤되는 상자는 지원하지 않는다.
    */
   container?: HTMLElement | null;
   /**
-   * 날개가 아래로 칠 때마다 밀려 나가고, 이륙 때 터지며 꼬리를 따라 흩어지는 유체 연기(WebGL2). 끄면 연기 없이 날고,
+   * 분사구 끝에서 불꽃이 켜진 동안 아래로 내뿜어 바닥에서 옆으로 퍼지고, 발사 때는 진행 반대쪽으로 꼬리를 남기는 유체 연기(WebGL2). 끄면 연기 없이 날고,
    * WebGL2가 없거나 움직임 줄이기여도 연기만 빠진다. 캔버스와 셰이더뿐이라 엄격한 CSP와 무관하다 @default true
    */
   smoke?: boolean;
@@ -66,18 +65,17 @@ type Host = HTMLElement & {
 
 // 눌림 되감기용 제자리
 const REST = { x: 0, y: 0, scale: 1 } as const;
-// 누를 때 three가 아직 안 왔으면 웅크림과 봉오리 구간(300ms)까지만 기다린다. 그래도 없으면 날개 없이 연기만으로 난다
-const WAIT_FOR_WINGS = BEAT.unfurl;
-// 꼬리 연기가 밀려 나가는 속도(CSS px/초). 복제본의 실제 속도는 이륙 중 0에서 수천까지 변해 그대로 쓰면 연기가 들쭉날쭉하다.
-// 엔진을 처음 만들 때 꼬리 모양을 본 300~550의 위쪽으로 고정하고, 방향만 복제본 진행의 반대로 한다(꼬리를 더 길게 끈다)
-const SMOKE_SPEED = 520;
-// 아래로 칠 때 날개 밑에서 덩이를 내보내는 간격(ms). 매 프레임 내보내면(약 16ms) 무대가 연기로 덮였다.
-// 아래치기 200ms에 날개마다 네 덩이다
-const WING_PUFF_GAP = 60;
-// 날개 밑에서 아래로 밀어내는 속도(CSS px/초). 한 번 칠 때(200ms)마다 덩이 하나가 약 100px 아래까지 밀려 나간다
-const WING_PUSH = 500;
-// 이륙 터짐의 양(엔진 기본 1의 절반): 2는 무대를 덮고 표지와 글자를 가렸다. 흰 바탕에서 또렷하되 단추를 덮지 않는 선
-const BURST_AMOUNT = 0.5;
+// 누를 때 three가 아직 안 왔으면 웅크림과 꼬리날개가 펴지기 시작하는 구간(300ms)까지만 기다린다. 그래도 없으면 꼬리날개와 불꽃 없이 연기만으로 난다
+const WAIT_FOR_WINGS = 300;
+// 분사구 끝에서 연기를 내보내는 간격(ms). 매 프레임 내보내면(약 16ms) 무대가 연기로 덮였다. 발사 중에는 단추가 빨리 움직여
+// 간격이 벌어지면 점선이 되므로 매 프레임 내보낸다
+const PUFF_GAP = 100;
+// 분사구에서 몸체 아래 방향으로 밀어내는 속도(CSS px/초). 발사 중에는 몸체가 기울어 진행 반대(왼쪽 아래)로 꼬리가 남는다
+const JET_PUSH = 500;
+// 바닥(비행 층의 아래 가장자리)에서 옆으로 퍼지는 연기: 유체 엔진에는 벽이 없어 아래로 민 연기가 그냥 빠져나가므로
+// 바닥 가까이에서 분사구 바깥쪽으로 직접 내보내 영상의 바닥 띠를 만든다. 둥실이 끝나(발사 전) 불꽃이 켜진 동안만이다
+const FLOOR_LIFT = 12;
+const FLOOR_SPREAD = 320;
 
 interface Flight {
   clone: HTMLElement;
@@ -133,11 +131,11 @@ const measureFlight = (
   }
   const left = rect.left - originX;
   const top = rect.top - originY;
-  // 오른쪽 위 45도로 간다. 오른쪽과 위쪽 중 가까운 가장자리를 넘어 왼쪽 날개 끝까지 나가는 거리(그보다 멀리 가면 이미
-  // 안 보이는 구간이 길어 표지가 늦어 보인다). 이륙이 끝나는 순간 복제본과 날개는 레이어 밖이다.
+  // 오른쪽 위 45도로 간다. 오른쪽과 위쪽 중 가까운 가장자리를 넘어 꼬리날개와 불꽃(진행 반대쪽으로 늘어진다)까지 나가는 거리(그보다 멀리 가면 이미
+  // 안 보이는 구간이 길어 표지가 늦어 보인다). 발사가 끝나는 순간 복제본과 꼬리날개는 레이어 밖이다.
   const distance =
     Math.max(0, Math.min(width - left, top + rect.height)) +
-    rect.height * WING_RATIO;
+    rect.height * TAIL_REACH;
   return {
     clone,
     left,
@@ -156,14 +154,15 @@ const measureFlight = (
 
 /**
  * 메일 보내기·제출·전송 단추. 누르는 순간 왼쪽 아래로 살짝 웅크리고, click이 확정되면 단추 모양 복제본이
- * 날갯짓 박자(`wingBeat`) 하나를 따라 세 번 떠오르며(6, 10, 14px) 날개 밑으로 연기를 밀어낸 뒤 오른쪽 위로
- * 가속하며 기울고 작아지며 화면(또는 `container`) 밖으로 날아간다. 원래 단추는 그 순간 보이지 않게 두어 자리를
+ * 박자(`wingBeat`) 하나를 따라 꼬리날개가 펴지고 분사구가 내려오며 불꽃이 켜져 약 25px 떠올랐다 앉고(살짝 넘친다)
+ * 몇 px 둥실거린 뒤, 오른쪽 위로 가속하며 진행 방향으로 기울고 불꽃이 길어지며 화면(또는 `container`) 밖으로 날아간다.
+ * 불꽃이 켜진 동안 분사구 끝에서 연기가 나와 바닥에 띠가 쌓인다. 원래 단추는 그 순간 보이지 않게 두어 자리를
  * 지키고, 날아간 뒤 그 자리에 `sentLabel` 표지가 떠오른다. 돌아오지 않으며 소비자가 `key`를 바꿔 다시 그린다.
  * 포커스가 있었으면 표지로 옮기고, 없었으면 처음부터 있는 보이지 않는 알림 영역(`role="status"`)에 `sentLabel`을
  * 넣는다. 비행 중 다시 누르는 것은 무시한다.
- * 단추 양옆에는 3D로 그린 날개가 돋아 깃이 하나씩 펴지며 날갯짓에 맞춰 퍼덕인다. 3D 라이브러리는 따로 불러오며
- * (단추를 가리키거나 포커스가 가면 미리 받는다) 누를 때까지 못 받았거나 불러오기에 실패했거나 WebGL2가 없으면 날개 없이
- * 난다(연기는 WebGL2가 있어야 나온다). 움직임 줄이기에서는 비행 없이(그 라이브러리도 받지 않는다) 단추가 표지로 교차 페이드된다.
+ * 꼬리날개·분사구·불꽃은 3D로 그린다. 3D 라이브러리는 따로 불러오며(단추를 가리키거나 포커스가 가면 미리 받는다)
+ * 누를 때까지 못 받았거나 불러오기에 실패했거나 WebGL2가 없으면 꼬리날개와 불꽃 없이 난다(연기는 WebGL2가 있어야 나온다).
+ * 움직임 줄이기에서는 비행 없이(그 라이브러리도 받지 않는다) 단추가 표지로 교차 페이드된다.
  */
 export const WingButton = forwardRef<HTMLButtonElement, WingButtonProps>(
   (
@@ -228,7 +227,7 @@ export const WingButton = forwardRef<HTMLButtonElement, WingButtonProps>(
       });
     };
 
-    // 날개를 그릴 three를 미리 받아 둔다. 움직임 줄이기와 비활성, 이미 난 뒤에는 받지 않는다
+    // 꼬리날개와 불꽃을 그릴 three를 미리 받아 둔다. 움직임 줄이기와 비활성, 이미 난 뒤에는 받지 않는다
     const preload = () => {
       if (!disabled && !reduced && !launch) preloadThree();
     };
@@ -271,7 +270,7 @@ export const WingButton = forwardRef<HTMLButtonElement, WingButtonProps>(
       crouched.current = false;
       gsap.killTweensOf(el);
       gsap.set(el, { clearProps: 'transform' });
-      // 첫 생성이 동기로 최대 약 84ms 걸린다. 웅크림·날갯짓 박자(첫 연기는 0.75초) 앞에서 치른다.
+      // 첫 생성이 동기로 최대 약 84ms 걸린다. 웅크림·꼬리날개 박자(첫 연기는 0.45초 점화) 앞에서 치른다.
       // 엔진이 null(WebGL2 없음, 움직임 줄이기는 엔진이 스스로 거른다)이면 연기만 빠진다
       if (smoke) {
         smokeRef.current = makeSmoke({
@@ -296,7 +295,7 @@ export const WingButton = forwardRef<HTMLButtonElement, WingButtonProps>(
       gsap.set(label, { opacity: 0 });
       if (launch.focused) label.focus({ preventScroll: true });
 
-      // 날개 장면(3D)은 three가 제때 왔을 때만 생긴다. 비행이 끝나거나 걷히거나 언마운트되면 한 번만 놓는다
+      // 로켓 장면(3D)은 three가 제때 왔을 때만 생긴다. 비행이 끝나거나 걷히거나 언마운트되면 한 번만 놓는다
       let wings: WingScene | null = null;
       let ended = false;
       const endWings = () => {
@@ -304,7 +303,7 @@ export const WingButton = forwardRef<HTMLButtonElement, WingButtonProps>(
         wings?.dispose();
         wings = null;
       };
-      // 비행(레이어)은 이륙이 끝나는 순간 걷는다. 표지가 떠오르는 순간과 같다
+      // 비행(레이어)은 발사가 끝나는 순간 걷는다. 표지가 떠오르는 순간과 같다
       const done = () => {
         endWings();
         setFlying(false);
@@ -343,10 +342,8 @@ export const WingButton = forwardRef<HTMLButtonElement, WingButtonProps>(
           height: flight.height,
           distance: flight.dx,
         };
-        // 박자 하나(wingBeat)가 단추의 움직임, 날개 밑 연기, 표지를 모두 정한다. 시계는 0에서 끝까지 도는 숫자 하나다
+        // 박자 하나(wingBeat)가 단추의 움직임, 꼬리날개와 불꽃, 분사구 끝 연기, 표지를 모두 정한다. 시계는 0에서 끝까지 도는 숫자 하나다
         const clock = { t: 0 };
-        let last: Point | null = null;
-        let burst = false;
         let lastPuff = -Infinity;
         const tick = () => {
           const beat = wingBeat(clock.t, geometry);
@@ -360,8 +357,8 @@ export const WingButton = forwardRef<HTMLButtonElement, WingButtonProps>(
             scale: pose.scale,
           });
           gsap.set(label, { opacity: beat.mark });
-          // 같은 프레임에 날개도 그린다(별도 루프 없음)
-          // 던지면(컨텍스트 소실 등) 이 비행에서 날개를 걷고 연기와 비행은 계속한다
+          // 같은 프레임에 꼬리날개와 불꽃도 그린다(별도 루프 없음)
+          // 던지면(컨텍스트 소실 등) 이 비행에서 장면을 걷고 연기와 비행은 계속한다
           if (wings) {
             try {
               wings.update(beat);
@@ -372,43 +369,31 @@ export const WingButton = forwardRef<HTMLButtonElement, WingButtonProps>(
             }
           }
           const engine = smokeRef.current;
-          if (!engine || (!beat.smoke && beat.phase !== 'takeoff')) return;
+          // 불꽃이 켜진 동안만 분사구 끝에서 내보낸다. 발사 중에는 단추가 빨라 매 프레임, 그 밖에는 PUFF_GAP 간격이다
+          const gap = beat.phase === 'launch' ? 0 : PUFF_GAP;
+          if (!engine || !beat.smoke || clock.t - lastPuff < gap) return;
+          lastPuff = clock.t;
           const r = body.getBoundingClientRect();
           const cx = (r.left + r.right) / 2;
           const cy = (r.top + r.bottom) / 2;
-          // 날개 밑에서 아래로 칠 때만 밀어낸다. 자리는 단추 중심 기준이라 이동한 배율과 기울기를 걸어 창 좌표로 바꾼다
-          if (beat.smoke && clock.t - lastPuff >= WING_PUFF_GAP) {
-            lastPuff = clock.t;
-            const rad = (beat.rotation * Math.PI) / 180;
-            const cos = Math.cos(rad);
-            const sin = Math.sin(rad);
-            for (const p of beat.smokeAt) {
-              engine.emit(
-                cx + beat.scale * (p.x * cos - p.y * sin),
-                cy + beat.scale * (p.x * sin + p.y * cos),
-                0,
-                WING_PUSH
-              );
+          // 자리는 단추 중심 기준이라 이동한 배율과 기울기를 걸어 창 좌표로 바꾼다. 연기는 몸체의 아래 방향으로 나간다
+          const rad = (beat.rotation * Math.PI) / 180;
+          const cos = Math.cos(rad);
+          const sin = Math.sin(rad);
+          const floor = flight.bounds.bottom - FLOOR_LIFT;
+          for (const p of beat.smokeAt) {
+            const x = cx + beat.scale * (p.x * cos - p.y * sin);
+            const y = cy + beat.scale * (p.x * sin + p.y * cos);
+            engine.emit(x, y, -sin * JET_PUSH, cos * JET_PUSH);
+            // 바닥이 분사구보다 아래일 때만: 분사구 바깥쪽 옆으로 퍼지는 띠
+            if (beat.phase !== 'launch' && floor > y) {
+              engine.emit(x, floor, Math.sign(p.x) * FLOOR_SPREAD, 0);
             }
-          }
-          if (beat.phase !== 'takeoff') return;
-          // 이륙 터짐: 움직이기 시작하는 순간 복제본 아래 가운데(단추 아래 가장자리)에서 한 번
-          if (!burst) {
-            burst = true;
-            engine.burst(cx, r.bottom, BURST_AMOUNT);
-          }
-          // 꼬리 분사: 매 프레임 복제본의 꼬리(진행 반대쪽 끝, 오른쪽 위로 날면 왼쪽 아래 모서리)에서 진행 반대로 뿜는다.
-          // 진행 방향은 직전 프레임 중심과의 차로 구한다. 꼬리 점이 레이어 밖이면 뿜지 않는다
-          const trail = tailSpray(body, last, flight.bounds, SMOKE_SPEED);
-          last = trail.center;
-          if (trail.spray) {
-            const { x, y, vx, vy } = trail.spray;
-            engine.emit(x, y, vx, vy);
           }
         };
         tick();
-        // three를 기다린다. 누르는 순간은 멈칫하지 않고(웅크림과 봉오리가 먼저 돈다) 300ms 안에 오면 온 시점의 박자 값으로 바로
-        // 그리기 시작한다. 안 오거나 실패하거나 WebGL2가 없거나 렌더러 컨텍스트를 못 만들면 날개 없이 난다
+        // three를 기다린다. 누르는 순간은 멈칫하지 않고(웅크림과 꼬리날개 펴짐이 먼저 돈다) 300ms 안에 오면 온 시점의 박자 값으로 바로
+        // 그리기 시작한다. 안 오거나 실패하거나 WebGL2가 없거나 렌더러 컨텍스트를 못 만들면 꼬리날개와 불꽃 없이 난다
         host.__wingOutcome = undefined;
         awaitWings(WAIT_FOR_WINGS).then((outcome) => {
           if (ended) return;
@@ -421,7 +406,7 @@ export const WingButton = forwardRef<HTMLButtonElement, WingButtonProps>(
               width: flight.width,
               height: flight.height,
             });
-            // 단추 복제본 뒤에 깔려 날개 뿌리가 단추 옆면에 가려진다
+            // 단추 복제본 뒤에 깔려 꼬리날개 뿌리와 분사구 윗부분이 단추에 가려진다
             body.prepend(scene.canvas);
             const beat = wingBeat(clock.t, geometry);
             scene.update(beat);
@@ -444,7 +429,7 @@ export const WingButton = forwardRef<HTMLButtonElement, WingButtonProps>(
             },
             0
           )
-          // 비행(레이어)은 이륙이 끝나는 순간 걷는다. 표지가 떠오르기 시작하는 순간과 같다
+          // 비행(레이어)은 발사가 끝나는 순간 걷는다. 표지가 떠오르기 시작하는 순간과 같다
           .call(done, [], BEAT.sent / 1000);
       }
       timelineRef.current = timeline;

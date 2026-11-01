@@ -1,6 +1,6 @@
 import { createFluidSmoke } from '../../_internal/fluidSmoke';
 
-// 연기 엔진을 만드는 함수의 이음매. jsdom에는 WebGL이 없어 엔진이 늘 null이라, 날개 밑 연기를 내보내는 연결을
+// 연기 엔진을 만드는 함수의 이음매. jsdom에는 WebGL이 없어 엔진이 늘 null이라, 분사구 끝 연기를 내보내는 연결을
 // 목 없이 시험하려면 엔진 자리에 emit 호출을 세는 손을 끼울 수 있어야 한다(loadThree의 replaceThreeImporter와 같은 모양).
 let create = createFluidSmoke;
 

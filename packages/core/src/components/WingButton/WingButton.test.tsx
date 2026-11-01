@@ -257,9 +257,9 @@ describe('WingButton', () => {
       expect(names.filter((name) => name.startsWith('data-'))).toEqual([]);
     });
 
-    it('이륙 거리는 container의 가까운 가장자리를 넘어 왼쪽 날개 끝까지 나가는 거리다', () => {
-      // 단추는 레이어 안 (100, 200), 높이 44. 위쪽으로 나가려면 200 + 44, 오른쪽이면 폭 - 100. 날개 길이는 높이의 1.2배
-      const wing = 44 * 1.2;
+    it('발사 거리는 container의 가까운 가장자리를 넘어 꼬리날개와 불꽃이 나가는 높이의 2배만큼 더 나가는 거리다', () => {
+      // 단추는 레이어 안 (100, 200), 높이 44. 위쪽으로 나가려면 200 + 44, 오른쪽이면 폭 - 100. 더 나가는 거리는 높이의 2배(TAIL_REACH)
+      const reach = 44 * 2;
       const takeoffX = (width: number) => {
         const stage = document.createElement('div');
         Object.defineProperty(stage, 'clientWidth', { value: width });
@@ -269,17 +269,17 @@ describe('WingButton', () => {
         fireEvent.click(button());
         const tl = hostOf(view.container).__wingTimeline as gsap.core.Timeline;
         const craft = layerOf(stage)?.firstElementChild as HTMLElement;
-        // 이륙이 끝나는 순간(3.05초) 단추가 가 있는 곳이 그 거리다
+        // 발사가 끝나는 순간(3.05초) 단추가 가 있는 곳이 그 거리다
         act(() => void tl.time(BEAT.sent / 1000));
         const x = translateOf(craft).x;
         view.unmount();
         stage.remove();
         return x;
       };
-      // 위가 가깝다(상자 폭 1000): 244 + 날개
-      expect(takeoffX(1000)).toBeCloseTo(244 + wing, 5);
-      // 오른쪽이 가깝다(상자 폭 150): 50 + 날개
-      expect(takeoffX(150)).toBeCloseTo(50 + wing, 5);
+      // 위가 가깝다(상자 폭 1000): 244 + 더 나가는 거리
+      expect(takeoffX(1000)).toBeCloseTo(244 + reach, 5);
+      // 오른쪽이 가깝다(상자 폭 150): 50 + 더 나가는 거리
+      expect(takeoffX(150)).toBeCloseTo(50 + reach, 5);
     });
 
     it('비행이 끝나면 복제본 레이어를 치운다', () => {
@@ -426,7 +426,7 @@ describe('WingButton', () => {
       return { ...view, layer, craft, tl, at };
     };
 
-    it('시계 하나가 0에서 3250ms까지 돌며 단추를 박자대로 움직인다(웅크림, 세 번 들림)', () => {
+    it('시계 하나가 0에서 3250ms까지 돌며 단추를 박자대로 움직인다(웅크림, 떠오름, 둥실)', () => {
       const { craft, tl, at } = launch();
       expect(tl.duration()).toBeCloseTo(BEAT_END / 1000, 5);
       at(0);
@@ -436,16 +436,17 @@ describe('WingButton', () => {
       expect(craft.style.transform).toContain('scale(0.97');
       at(300);
       expect(translateOf(craft).y).toBeCloseTo(0, 5);
-      // 아래로 칠 때마다 6, 10, 14px 들린다
-      [950, 1450, 1950].forEach((ms, i) => {
-        at(ms);
-        expect(translateOf(craft).y).toBeCloseTo(-[6, 10, 14][i], 5);
-      });
+      // 떠오름이 약 25px 자리에 앉고, 둥실 한가운데 근처(1400ms)에서는 박자 함수와 같은 높이다
+      at(BEAT.hover);
+      expect(translateOf(craft).y).toBeCloseTo(-25, 5);
+      at(1400);
+      expect(translateOf(craft).y).toBeCloseTo(wingBeat(1400, GEOMETRY).y, 3);
+      expect(Math.abs(translateOf(craft).y + 25)).toBeGreaterThan(1);
     });
 
-    it('이륙은 오른쪽 위로 가며 -15deg로 기울고 0.6배가 된다', () => {
+    it('발사는 오른쪽 위로 가며 윗면이 진행 방향을 향해 30deg 기울고 0.6배가 된다', () => {
       const { craft, at } = launch();
-      at(BEAT.takeoff);
+      at(BEAT.launch);
       const hover = translateOf(craft);
       expect(hover.x).toBeCloseTo(0, 5);
       at(BEAT.sent);
@@ -453,7 +454,7 @@ describe('WingButton', () => {
       expect(end.x).toBeGreaterThan(0);
       // 45도: 오른쪽으로 간 만큼 위로 간다
       expect(end.y - hover.y).toBeCloseTo(-end.x, 5);
-      expect(craft.style.transform).toContain('rotate(-15deg)');
+      expect(craft.style.transform).toContain('rotate(30deg)');
       expect(craft.style.transform).toContain('scale(0.6');
     });
 
@@ -505,8 +506,8 @@ describe('WingButton', () => {
     });
   });
 
-  // 날개를 그릴 three는 가리킬 때 불러온다. jsdom에는 WebGL2가 없으니 있는 것으로 보이게 하고, 불러오는 함수를 손으로 갈아 끼운다.
-  describe('three 불러오기와 날개 없는 비행', () => {
+  // 장면을 그릴 three는 가리킬 때 불러온다. jsdom에는 WebGL2가 없으니 있는 것으로 보이게 하고, 불러오는 함수를 손으로 갈아 끼운다.
+  describe('three 불러오기와 꼬리날개 없는 비행', () => {
     const withWebGL2 = () => vi.stubGlobal('WebGL2RenderingContext', class {});
     const counting = () => {
       const calls = { n: 0 };
@@ -596,7 +597,7 @@ describe('WingButton', () => {
       expect(calls.n).toBe(0);
     });
 
-    it('WebGL2가 없으면 받지 않고 no-webgl2로 날개 없이 난다', async () => {
+    it('WebGL2가 없으면 받지 않고 no-webgl2로 꼬리날개 없이 난다', async () => {
       const calls = counting();
       const { container } = render(<WingButton>보내기</WingButton>);
       fireEvent.pointerEnter(button());
@@ -632,7 +633,7 @@ describe('WingButton', () => {
       expect(calls.n).toBe(1);
     });
 
-    it('불러오기가 실패하면 failed이고 날개 없이 날며 알림과 포커스 규칙은 같다', async () => {
+    it('불러오기가 실패하면 failed이고 꼬리날개 없이 날며 알림과 포커스 규칙은 같다', async () => {
       withWebGL2();
       failing();
       const { container } = render(<WingButton>보내기</WingButton>);
@@ -650,7 +651,7 @@ describe('WingButton', () => {
       expect(markOf(container)).toHaveStyle({ opacity: '1' });
     });
 
-    it('웅크림과 봉오리 300ms 안에 안 오면 timeout이고 나중에 와도 바뀌지 않는다', async () => {
+    it('300ms 안에 안 오면 timeout이고 나중에 와도 바뀌지 않는다', async () => {
       withWebGL2();
       let arrive: (three: ThreeModule) => void = () => {};
       replaceThreeImporter(
@@ -666,7 +667,7 @@ describe('WingButton', () => {
       arrive(await import('three'));
       await act(async () => {});
       expect(hostOf(container).__wingOutcome?.status).toBe('timeout');
-      // 날개 없이 연기만으로 날아 상태 알림 규칙은 같다
+      // 꼬리날개와 불꽃 없이 연기만으로 날아 상태 알림 규칙은 같다
       finish(hostOf(container).__wingTimeline as gsap.core.Timeline);
       expect(screen.getByRole('status')).toHaveTextContent('보냈어요');
     });
@@ -712,7 +713,7 @@ describe('WingButton', () => {
   });
 
   describe('움직임 줄이기', () => {
-    it('날개도 비행도 없이 단추가 표지로 교차 페이드한다', () => {
+    it('로켓도 비행도 없이 단추가 표지로 교차 페이드한다', () => {
       stubReducedMotion();
       const { container } = render(<WingButton>보내기</WingButton>);
       const host = hostOf(container);
@@ -775,9 +776,9 @@ describe('WingButton', () => {
     });
   });
 
-  // 날개 밑 연기를 내보내는 연결(박자 함수의 smoke를 엔진 emit으로 바꾸는 곳)을 시험한다. jsdom에는 엔진이 없어
+  // 분사구 끝 연기를 내보내는 연결(박자 함수의 smoke를 엔진 emit으로 바꾸는 곳)을 시험한다. jsdom에는 엔진이 없어
   // 엔진 자리에 emit 호출을 기록하는 손을 끼운다(replaceSmokeFactory).
-  describe('날개 밑 연기', () => {
+  describe('분사구 끝 연기', () => {
     type Call = {
       kind: 'emit' | 'burst';
       x: number;
@@ -801,44 +802,74 @@ describe('WingButton', () => {
     };
     afterEach(() => replaceSmokeFactory());
 
-    // 10ms씩 시계를 보내며 날개 밑 연기(수직 속도만 있는 emit)의 시각을 모은다
-    const fly = () => {
+    // 10ms씩 시계를 보내며 엔진 호출을 모은다. 바닥이 있는 상자(높이 600)에서 날린다(jsdom은 창 높이가 0이다)
+    const fly = (stageHeight = 600) => {
       const { calls, now } = record();
-      const view = render(<WingButton>보내기</WingButton>);
+      const stage = document.createElement('div');
+      Object.defineProperty(stage, 'clientWidth', { value: 1000 });
+      Object.defineProperty(stage, 'clientHeight', { value: stageHeight });
+      document.body.appendChild(stage);
+      const view = render(<WingButton container={stage}>보내기</WingButton>);
       fireEvent.click(button());
       const tl = hostOf(view.container).__wingTimeline as gsap.core.Timeline;
-      for (let ms = 0; ms <= BEAT.sent; ms += 10) {
+      for (let ms = 0; ms <= BEAT_END; ms += 10) {
         now.t = ms;
         act(() => void tl.time(ms / 1000));
       }
-      return calls.filter((c) => c.kind === 'emit' && c.vx === 0);
+      view.unmount();
+      stage.remove();
+      // 분사구 끝에서 몸체 아래로 나가는 것(vy > 0)과 바닥에서 옆으로 퍼지는 것(vy = 0)
+      return {
+        all: calls,
+        jets: calls.filter((c) => c.kind === 'emit' && c.vy > 0),
+        floor: calls.filter((c) => c.kind === 'emit' && c.vy === 0),
+      };
     };
 
-    it('아래로 칠 때만 양쪽 날개 밑에서 아래로 60ms 간격으로 내보내고 위로 올릴 때와 웅크림 구간에는 내보내지 않는다', () => {
-      const puffs = fly();
-      expect(puffs.length).toBeGreaterThan(0);
-      for (const c of puffs) expect(wingBeat(c.t, GEOMETRY).smoke).toBe(true);
-      expect(puffs.every((c) => c.vy > 0)).toBe(true);
-      // 첫 아래치기(750~950ms)에 60ms 간격으로 네 번, 날개마다 하나씩
-      const first = puffs.filter((c) => c.t >= 750 && c.t < 950);
-      expect(first.map((c) => c.t)).toEqual([
-        750, 750, 810, 810, 870, 870, 930, 930,
-      ]);
-      // 위치기(950~1250ms)와 웅크림, 봉오리, 깃 펼침(0~750ms)에는 없다
-      expect(puffs.filter((c) => c.t < 750)).toEqual([]);
-      expect(puffs.filter((c) => c.t >= 950 && c.t < 1250)).toEqual([]);
+    it('불꽃이 켜진 동안에만 내보내고 점화 전(0~450ms)과 보냈어요(3050ms 뒤)에는 내보내지 않는다', () => {
+      const { jets } = fly();
+      expect(jets.length).toBeGreaterThan(0);
+      for (const c of jets)
+        expect(wingBeat(c.t, GEOMETRY).flame).toBeGreaterThan(0);
+      expect(jets.filter((c) => c.t <= 450)).toEqual([]);
+      expect(jets.filter((c) => c.t >= BEAT.sent)).toEqual([]);
+      // 점화하는 첫 프레임(460ms)부터 나온다
+      expect(Math.min(...jets.map((c) => c.t))).toBe(460);
     });
 
-    it('내보내는 자리는 박자 함수의 날개 밑 자리에 이동과 기울기와 배율을 건 창 좌표다', () => {
-      const puffs = fly();
-      // jsdom에서 복제본 상자의 사각형은 0이라 중심은 (0, 0)이다. 750ms에는 이동·회전이 없다(들림 0, 배율 1)
-      const at750 = puffs.filter((c) => c.t === 750);
-      const [left, right] = wingBeat(750, GEOMETRY).smokeAt;
-      expect(at750.map((c) => [c.x, c.y])).toEqual([
+    it('두 분사구에서 같은 시각에 하나씩, 둥실 동안은 100ms 간격으로 아래로 내보낸다', () => {
+      const { jets } = fly();
+      const hover = jets.filter((c) => c.t >= 460 && c.t < BEAT.launch);
+      const times = [...new Set(hover.map((c) => c.t))];
+      expect(times.slice(0, 5)).toEqual([460, 560, 660, 760, 860]);
+      for (const t of times)
+        expect(hover.filter((c) => c.t === t)).toHaveLength(2);
+      // 몸체가 반듯하니 아래로 곧게(vx 0) 나가고 자리는 박자 함수의 분사구 끝이다
+      const [left, right] = wingBeat(460, GEOMETRY).smokeAt;
+      const first = hover.filter((c) => c.t === 460);
+      expect(first.every((c) => c.vx === 0 && c.vy > 0)).toBe(true);
+      expect(first.map((c) => [c.x, c.y])).toEqual([
         [left.x, left.y],
         [right.x, right.y],
       ]);
-      // 이륙 중(2600ms)에는 기울기와 배율이 걸린다
+    });
+
+    it('발사 중에는 매 프레임 내보내고 몸체의 아래 방향(진행 반대쪽)으로 나간다', () => {
+      const { jets } = fly();
+      const launch = jets.filter((c) => c.t >= BEAT.launch);
+      const times = [...new Set(launch.map((c) => c.t))];
+      // 2250ms는 불꽃 간격(100ms) 안이라 건너뛸 수 있다: 이후는 10ms마다 있다
+      for (let t = 2300; t < BEAT.sent; t += 10) expect(times).toContain(t);
+      // 시계 방향으로 기운 몸체의 아래는 왼쪽 아래다
+      for (const c of launch.filter((c) => c.t >= 2400)) {
+        expect(c.vx).toBeLessThan(0);
+        expect(Math.hypot(c.vx, c.vy)).toBeCloseTo(500, 3);
+      }
+    });
+
+    it('내보내는 자리는 박자 함수의 분사구 끝에 이동 없이 기울기와 배율을 건 창 좌표다', () => {
+      const { jets } = fly();
+      // jsdom에서 복제본 상자의 사각형은 0이라 중심은 (0, 0)이다
       const t = 2600;
       const beat = wingBeat(t, GEOMETRY);
       const rad = (beat.rotation * Math.PI) / 180;
@@ -846,18 +877,48 @@ describe('WingButton', () => {
         beat.scale * (p.x * Math.cos(rad) - p.y * Math.sin(rad)),
         beat.scale * (p.x * Math.sin(rad) + p.y * Math.cos(rad)),
       ]);
-      const near = puffs.filter((c) => c.t === 2600);
+      const near = jets.filter((c) => c.t === t);
       expect(near).toHaveLength(2);
       near.forEach((c, i) => {
         expect(c.x).toBeCloseTo(expected[i][0], 3);
         expect(c.y).toBeCloseTo(expected[i][1], 3);
       });
     });
+
+    it('바닥(상자 아래 가장자리) 근처에서 분사구 바깥쪽 옆으로 퍼지는 띠는 발사 전 불꽃이 켜진 동안만 쌓인다', () => {
+      const { floor } = fly();
+      expect(floor.length).toBeGreaterThan(0);
+      // 상자 높이 600 - 12px, 왼쪽 분사구는 왼쪽으로 오른쪽 분사구는 오른쪽으로
+      for (const c of floor) {
+        expect(c.y).toBe(600 - 12);
+        expect(Math.abs(c.vx)).toBe(320);
+        expect(c.t).toBeGreaterThanOrEqual(460);
+        expect(c.t).toBeLessThan(BEAT.launch);
+      }
+      const at460 = floor.filter((c) => c.t === 460);
+      expect(at460.map((c) => Math.sign(c.vx))).toEqual([-1, 1]);
+      // 바깥쪽 분사구 위치(x)에서 퍼진다
+      expect(at460.map((c) => c.x)).toEqual([
+        -GEOMETRY.width / 6,
+        GEOMETRY.width / 6,
+      ]);
+    });
+
+    it('바닥이 분사구보다 위이면 바닥 띠는 만들지 않는다', () => {
+      const { floor, jets } = fly(20);
+      expect(floor).toEqual([]);
+      expect(jets.length).toBeGreaterThan(0);
+    });
+
+    it('이륙 터짐은 없다: 연기는 분사구에서만 나온다', () => {
+      const { all } = fly();
+      expect(all.filter((c) => c.kind === 'burst')).toEqual([]);
+    });
   });
 
-  // 3D 날개를 만들고 갱신하고 놓는 연결. jsdom에는 WebGL이 없어 장면 자리에 호출을 기록하는 손을 끼운다(replaceWingSceneFactory).
+  // 로켓 장면(3D)을 만들고 갱신하고 놓는 연결. jsdom에는 WebGL이 없어 장면 자리에 호출을 기록하는 손을 끼운다(replaceWingSceneFactory).
   // 장면의 모양은 wingScene.test.ts(WebGL 없이 장면 그래프)와 e2e(Chromium의 소프트웨어 WebGL 픽셀)가 본다.
-  describe('3D 날개', () => {
+  describe('3D 로켓', () => {
     const withWebGL2 = () => vi.stubGlobal('WebGL2RenderingContext', class {});
     const record = (fail = false) => {
       const log = {
@@ -887,9 +948,8 @@ describe('WingButton', () => {
     const inputAt = (ms: number) => {
       const beat = wingBeat(ms, GEOMETRY);
       return {
-        wingAngle: beat.wingAngle,
-        bud: beat.bud,
-        feathers: beat.feathers,
+        fins: beat.fins,
+        flame: beat.flame,
       };
     };
     // 가리켜 three를 미리 받아 두고 누른다
@@ -921,7 +981,7 @@ describe('WingButton', () => {
       replaceThreeImporter();
     });
 
-    it('three가 와 있으면 날개 canvas가 비행 층의 단추 상자 맨 아래에 서고 같은 프레임의 박자 값으로 그린다', async () => {
+    it('three가 와 있으면 canvas가 비행 층의 단추 상자 맨 아래에 서고 같은 프레임의 박자 값으로 그린다', async () => {
       withWebGL2();
       const log = record();
       const ui = render(<WingButton>보내기</WingButton>);
@@ -982,7 +1042,7 @@ describe('WingButton', () => {
       expect(log.made).toBe(0);
       gate.arrive(await import('three'));
       await waitFor(() => expect(log.made).toBe(1));
-      expect(inputAt(200).bud).toBeGreaterThan(0.5);
+      expect(inputAt(200).fins).toBeGreaterThan(0.5);
       expect(log.updates[0]).toMatchObject(inputAt(200));
       expect(log.renders).toBe(1);
     });
@@ -999,7 +1059,7 @@ describe('WingButton', () => {
       expect(log.made).toBe(0);
     });
 
-    it('렌더러 컨텍스트를 못 만들면 failed로 보고 날개 없이 날며 알림과 포커스 규칙은 같다', async () => {
+    it('렌더러 컨텍스트를 못 만들면 failed로 보고 꼬리날개 없이 날며 알림과 포커스 규칙은 같다', async () => {
       withWebGL2();
       const log = record(true);
       const ui = render(<WingButton>보내기</WingButton>);
@@ -1024,7 +1084,7 @@ describe('WingButton', () => {
     });
 
     it.each(['update', 'render'] as const)(
-      '비행 도중 %s가 던지면 그 비행에서 날개를 걷고 비행과 알림과 연기는 계속된다',
+      '비행 도중 %s가 던지면 그 비행에서 장면을 걷고 비행과 알림과 연기는 계속된다',
       async (method) => {
         withWebGL2();
         const log = { made: 0, disposed: 0, calls: 0 };
@@ -1056,7 +1116,7 @@ describe('WingButton', () => {
         const ui = render(<WingButton>보내기</WingButton>);
         const { tl } = await pressWithThree(ui);
         expect(wingCanvas()).not.toBeNull();
-        // 날갯짓 구간(아래치기 중)으로 보내면 tick이 던진다
+        // 점화한 구간으로 보내면 tick이 던진다
         act(() => void tl.time(0.8));
         expect(log.disposed).toBe(1);
         expect(wingCanvas()).toBeNull();
@@ -1126,7 +1186,7 @@ describe('WingButton', () => {
       expect(wingCanvas()).toBeNull();
     });
 
-    it('smoke={false}여도 날개는 그린다(날개만)', async () => {
+    it('smoke={false}여도 로켓은 그린다(연기만 없다)', async () => {
       withWebGL2();
       const log = record();
       const ui = render(<WingButton smoke={false}>보내기</WingButton>);

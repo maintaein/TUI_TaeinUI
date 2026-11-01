@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { WING_DOWN, WING_RATIO, WING_UP, wingBeat } from './wingBeat';
+import {
+  FLAME_PEAK,
+  FLAME_RATIO,
+  NOZZLE_RATIO,
+  NOZZLE_X,
+  wingBeat,
+} from './wingBeat';
 import {
   buildWingRig,
   createWingScene,
@@ -12,147 +18,210 @@ import type { ThreeModule } from './loadThree';
 const three = (await import('three')) as ThreeModule;
 const GEOMETRY = { width: 120, height: 44, distance: 400 };
 const colors: WingColors = {
-  body: new three.Color(1, 1, 1),
-  tip: new three.Color(0.2, 0.5, 1),
+  fin: new three.Color(0.1, 0.4, 0.8),
+  nozzle: new three.Color(0.05, 0.25, 0.6),
+  flame: new three.Color(0.4, 0.7, 1),
 };
 const deg = (rad: number) => (rad * 180) / Math.PI;
-const OPEN = [1, 1, 1, 1] as const;
-const FOLDED = [0, 0, 0, 0] as const;
+const OPEN = { fins: 1, flame: 1 } as const;
+const FOLDED = { fins: 0, flame: 0 } as const;
 
-describe('wingPose: 박자 값 -> 날개 자세', () => {
-  it('날개각이 위 끝/아래 끝이면 어깨 회전이 그 각도이고 위 끝은 끝이 안쪽으로, 아래 끝은 앞으로 나온다', () => {
-    const up = wingPose({ wingAngle: WING_UP, bud: 1, feathers: OPEN });
-    const down = wingPose({ wingAngle: WING_DOWN, bud: 1, feathers: OPEN });
-    expect(deg(up.roll)).toBeCloseTo(WING_UP);
-    expect(deg(down.roll)).toBeCloseTo(WING_DOWN);
-    // yaw 양수 = 끝이 화면 안쪽: 원근이 박자에 따라 달라지는 축
-    expect(up.yaw).toBeGreaterThan(0);
-    expect(down.yaw).toBeLessThan(0);
+describe('wingPose: 박자 값 -> 로켓 자세', () => {
+  it('꼬리날개는 fins 0이면 단추 뒤로 90도 접혀 있고 1이면 펴지며 snap의 넘침은 조금 더 펴진 쪽이다', () => {
+    expect(deg(wingPose(FOLDED, 44).fold)).toBeCloseTo(90);
+    expect(wingPose(OPEN, 44).fold).toBeCloseTo(0);
+    expect(deg(wingPose({ fins: 0.5, flame: 0 }, 44).fold)).toBeCloseTo(45);
+    expect(wingPose({ fins: 1.1, flame: 0 }, 44).fold).toBeLessThan(0);
   });
 
-  it('봉오리 0이면 배율 0, 1이면 1이고 snap의 넘침을 그대로 따른다', () => {
-    const at = (bud: number) =>
-      wingPose({ wingAngle: 0, bud, feathers: FOLDED }).scale;
-    expect(at(0)).toBe(0);
-    expect(at(1)).toBe(1);
-    expect(at(1.09)).toBe(1.09);
+  it('분사구는 fins에 따라 단추 밑면에서 내려와 1이면 분사구 길이만큼 내려와 있다', () => {
+    expect(wingPose(FOLDED, 44).nozzleDrop).toBe(0);
+    expect(wingPose(OPEN, 44).nozzleDrop).toBeCloseTo(NOZZLE_RATIO * 44);
+    expect(wingPose({ fins: 0.5, flame: 0 }, 100).nozzleDrop).toBeCloseTo(
+      NOZZLE_RATIO * 50
+    );
   });
 
-  it('깃 i가 0이면 모두 같은 접힌 각도로 포개지고 1이면 위에서 아래로 처지며 갈라진다', () => {
-    const folded = wingPose({ wingAngle: 0, bud: 1, feathers: FOLDED });
-    const open = wingPose({ wingAngle: 0, bud: 1, feathers: OPEN });
-    expect(new Set(folded.feathers.map((f) => f.angle)).size).toBe(1);
-    const angles = open.feathers.map((f) => f.angle);
-    for (let i = 1; i < angles.length; i++)
-      expect(angles[i]).toBeLessThan(angles[i - 1]);
-    // 펼치면 접힌 각도보다 모두 아래다
-    for (const angle of angles)
-      expect(angle).toBeLessThan(folded.feathers[0].angle);
-    // 접힌 깃은 펼친 깃보다 작다
-    expect(folded.feathers[0].scale).toBeLessThan(open.feathers[0].scale);
-    expect(open.feathers.every((f) => f.scale === 1)).toBe(true);
+  it('불꽃 길이는 박자 값의 배수에 기본 길이(단추 높이의 FLAME_RATIO배)를 곱한 px이고 꺼지면 0이다', () => {
+    expect(wingPose({ fins: 1, flame: 0 }, 44).flameLength).toBe(0);
+    expect(wingPose({ fins: 1, flame: 1 }, 44).flameLength).toBeCloseTo(
+      FLAME_RATIO * 44
+    );
+    expect(wingPose({ fins: 1, flame: 2 }, 44).flameLength).toBeCloseTo(
+      2 * FLAME_RATIO * 44
+    );
+    expect(wingPose({ fins: 1, flame: -0.1 }, 44).flameLength).toBe(0);
   });
 
-  it('깃마다 따로 펼쳐진다: 안쪽 깃만 1이면 그 깃만 접힌 각도를 떠난다', () => {
-    const pose = wingPose({ wingAngle: 0, bud: 1, feathers: [1, 0, 0, 0] });
-    expect(pose.feathers[0].angle).not.toBe(pose.feathers[1].angle);
-    expect(pose.feathers[1].angle).toBe(pose.feathers[2].angle);
-    expect(pose.feathers[2].angle).toBe(pose.feathers[3].angle);
-  });
-
-  it('wingBeat의 출력을 그대로 받는다: 날갯짓이 박자표 구간 안에서 자세가 바뀐다', () => {
-    const early = wingPose(wingBeat(100, GEOMETRY));
-    const bottom = wingPose(wingBeat(950, GEOMETRY));
-    expect(early.scale).toBe(0);
-    expect(deg(bottom.roll)).toBeCloseTo(WING_DOWN);
-    expect(bottom.scale).toBe(1);
+  it('wingBeat의 출력을 그대로 받는다: 점화 전에는 꺼져 있고 발사 끝에는 가장 길다', () => {
+    const early = wingPose(wingBeat(100, GEOMETRY), GEOMETRY.height);
+    const hover = wingPose(wingBeat(1500, GEOMETRY), GEOMETRY.height);
+    const late = wingPose(wingBeat(3040, GEOMETRY), GEOMETRY.height);
+    expect(early.flameLength).toBe(0);
+    expect(hover.fold).toBeCloseTo(0);
+    expect(hover.flameLength).toBeGreaterThan(0);
+    expect(late.flameLength).toBeGreaterThan(hover.flameLength * 1.8);
   });
 });
 
 describe('buildWingRig: 장면', () => {
-  const pose = { wingAngle: 20, bud: 1, feathers: OPEN };
   const tipOf = (rig: ReturnType<typeof buildWingRig>, side: 0 | 1) => {
     rig.scene.updateMatrixWorld(true);
-    const feathers = rig.wings[side].children[0].children;
-    const outer = feathers[feathers.length - 1] as import('three').Mesh;
-    outer.geometry.computeBoundingBox();
-    const box = outer.geometry.boundingBox as import('three').Box3;
-    return outer.localToWorld(new three.Vector3(box.max.x, 0, 0));
+    const fin = rig.fins[side].children[0] as import('three').Mesh;
+    fin.geometry.computeBoundingBox();
+    const box = fin.geometry.boundingBox as import('three').Box3;
+    // 꼬리날개의 바깥 아래 꼭짓점(삼각형의 끝)
+    return fin.localToWorld(new three.Vector3(box.max.x, box.min.y, 0));
   };
 
-  it('날개 둘이 단추 양옆 가운데 높이에 서고 왼쪽은 오른쪽의 거울이다', () => {
+  it('꼬리날개 둘이 단추 양옆에 서고 왼쪽은 오른쪽의 거울이다', () => {
     const rig = buildWingRig(three, GEOMETRY, colors);
-    expect(rig.wings[0].position.x).toBe(-60);
-    expect(rig.wings[1].position.x).toBe(60);
-    expect(rig.wings[0].position.y).toBe(0);
-    rig.apply(pose);
-    const left = tipOf(rig, 0);
-    const right = tipOf(rig, 1);
-    expect(left.x).toBeCloseTo(-right.x, 4);
-    expect(left.y).toBeCloseTo(right.y, 4);
-    expect(left.z).toBeCloseTo(right.z, 4);
-    // 날개각을 올리면 끝이 올라간다
-    rig.apply({ ...pose, wingAngle: WING_UP });
-    expect(tipOf(rig, 1).y).toBeGreaterThan(right.y);
-    rig.dispose();
-  });
-
-  it('날개 길이는 단추 높이의 1.2배이고 바깥 깃이 가장 길다', () => {
-    const rig = buildWingRig(three, GEOMETRY, colors);
-    rig.apply({ wingAngle: 0, bud: 1, feathers: OPEN });
-    // 아래로 펼쳐진 깃 각도를 빼고 길이만 재려고 각 깃의 기하 상자를 본다
-    const lengths = rig.wings[1].children[0].children.map((feather) => {
-      const mesh = feather as import('three').Mesh;
-      mesh.geometry.computeBoundingBox();
-      return (mesh.geometry.boundingBox as import('three').Box3).max.x;
-    });
-    expect(Math.max(...lengths)).toBeGreaterThan(44 * WING_RATIO);
-    expect(Math.max(...lengths)).toBeLessThan(44 * WING_RATIO * 1.05);
-    expect(lengths).toEqual([...lengths].sort((a, b) => a - b));
-    rig.dispose();
-  });
-
-  it('깃이 층을 이룬다: 깊이가 서로 다르고 바깥 깃일수록 뒤이며 깃마다 두께가 있다(납작한 판이 아니다)', () => {
-    const rig = buildWingRig(three, GEOMETRY, colors);
-    const feathers = rig.wings[1].children[0]
-      .children as import('three').Mesh[];
-    const z = feathers.map((f) => f.position.z);
-    expect(new Set(z).size).toBe(4);
-    for (let i = 1; i < z.length; i++) expect(z[i]).toBeLessThan(z[i - 1]);
-    for (const feather of feathers) {
-      feather.geometry.computeBoundingBox();
-      const box = feather.geometry.boundingBox as import('three').Box3;
-      expect(box.max.z - box.min.z).toBeGreaterThan(1.5);
-    }
-    // 바깥 깃의 재질이 더 어둡다(뒤 깃은 그늘진다)
-    const shade = feathers.map(
-      (f) => (f.material as import('three').MeshStandardMaterial).color.r
+    const [leftHinge, rightHinge] = rig.fins;
+    // 단추 옆면(+-폭/2)에 닿게 조금 안쪽으로 박힌다
+    expect((rightHinge.parent as import('three').Group).position.x).toBeCloseTo(
+      60 - 0.04 * 44
     );
-    for (let i = 1; i < shade.length; i++)
-      expect(shade[i]).toBeLessThan(shade[i - 1]);
+    expect(-(leftHinge.parent as import('three').Group).position.x).toBeCloseTo(
+      (rightHinge.parent as import('three').Group).position.x
+    );
+    for (const input of [OPEN, { fins: 0.4, flame: 0 }]) {
+      rig.apply(input);
+      const left = tipOf(rig, 0);
+      const right = tipOf(rig, 1);
+      expect(left.x).toBeCloseTo(-right.x, 4);
+      expect(left.y).toBeCloseTo(right.y, 4);
+      expect(left.z).toBeCloseTo(right.z, 4);
+    }
+    // 다 펴지면 끝이 단추 바깥으로 뻗고 밑면보다 아래로 젖혀진다(뒤로 젖힌 삼각)
+    rig.apply(OPEN);
+    expect(tipOf(rig, 1).x).toBeGreaterThan(60 + 20);
+    expect(tipOf(rig, 1).y).toBeLessThan(-22);
     rig.dispose();
   });
 
-  it('재질은 무광 흰색 계열이고 금속성이 없으며 깃 끝만 파랗다(정점 색)', () => {
+  it('접히면 꼬리날개가 단추 뒤(깊이 쪽)로 들어가고 펴지면 z=0 둘레로 나온다', () => {
     const rig = buildWingRig(three, GEOMETRY, colors);
-    const feather = rig.wings[1].children[0]
-      .children[3] as import('three').Mesh;
-    const material = feather.material as import('three').MeshStandardMaterial;
-    expect(material.metalness).toBe(0);
-    expect(material.roughness).toBeGreaterThan(0.8);
-    const position = feather.geometry.getAttribute('position');
-    const color = feather.geometry.getAttribute('color');
-    feather.geometry.computeBoundingBox();
-    const length = (feather.geometry.boundingBox as import('three').Box3).max.x;
-    let root = -1;
-    let tip = -1;
-    for (let i = 0; i < position.count; i++) {
-      if (position.getX(i) < length * 0.1 && root < 0) root = i;
-      if (position.getX(i) > length * 0.98 && tip < 0) tip = i;
+    rig.apply({ fins: 0.2, flame: 0 });
+    const folded = tipOf(rig, 1);
+    rig.apply(OPEN);
+    const open = tipOf(rig, 1);
+    // 접힌 끝은 뒤(z가 음수)로 멀리 가 있고 x 폭이 줄어 단추 옆면에 모인다
+    expect(folded.z).toBeLessThan(open.z - 15);
+    expect(folded.x).toBeLessThan(open.x - 15);
+    // 펴진 끝은 단추 두께의 절반(깊이 한쪽)을 벗어나지 않는다
+    expect(Math.abs(open.z)).toBeLessThan(15);
+    rig.dispose();
+  });
+
+  it('fins가 0이면 꼬리날개와 분사구는 그려지지 않고 조금이라도 펴지면 보인다', () => {
+    const rig = buildWingRig(three, GEOMETRY, colors);
+    rig.apply(FOLDED);
+    expect(
+      rig.fins.map((h) => (h.parent as import('three').Group).visible)
+    ).toEqual([false, false]);
+    expect(rig.jets.map((j) => j.visible)).toEqual([false, false]);
+    rig.apply({ fins: 0.3, flame: 0 });
+    expect(
+      rig.fins.map((h) => (h.parent as import('three').Group).visible)
+    ).toEqual([true, true]);
+    expect(rig.jets.map((j) => j.visible)).toEqual([true, true]);
+    rig.dispose();
+  });
+
+  it('분사구 둘은 폭의 1/3, 2/3 자리에서 fins에 따라 단추 밑면 아래로 내려온다', () => {
+    const rig = buildWingRig(three, GEOMETRY, colors);
+    expect(rig.jets[0].position.x).toBeCloseTo(-GEOMETRY.width * NOZZLE_X);
+    expect(rig.jets[1].position.x).toBeCloseTo(GEOMETRY.width * NOZZLE_X);
+    expect(NOZZLE_X * GEOMETRY.width * 3).toBeCloseTo(GEOMETRY.width / 2);
+    rig.apply({ fins: 0.01, flame: 0 });
+    const hidden = rig.jets[1].position.y;
+    rig.apply(OPEN);
+    // 다 내려오면 분사구 끝이 단추 밑면(-높이/2)에서 분사구 길이만큼 아래다
+    expect(rig.jets[1].position.y).toBeCloseTo(
+      -GEOMETRY.height / 2 - NOZZLE_RATIO * GEOMETRY.height
+    );
+    expect(rig.jets[1].position.y).toBeLessThan(hidden);
+    // 내려오기 전에는 분사구가 밑면 위(단추 뒤)에 있다
+    expect(hidden).toBeGreaterThan(-GEOMETRY.height / 2 - 1);
+    rig.dispose();
+  });
+
+  it('불꽃은 분사구 끝에서 아래로 곧게 뻗고 길이는 박자 값을 따르며 꺼지면 숨는다', () => {
+    const rig = buildWingRig(three, GEOMETRY, colors);
+    rig.apply({ fins: 1, flame: 1 });
+    const [outer, core] = rig.flames[1];
+    expect(outer.visible).toBe(true);
+    expect(outer.scale.y).toBeCloseTo(FLAME_RATIO * GEOMETRY.height);
+    // 심지는 바깥보다 짧다
+    expect(core.scale.y).toBeLessThan(outer.scale.y);
+    // 밑면이 분사구 끝(원점)이고 꼭짓점이 아래(-y)다
+    outer.geometry.computeBoundingBox();
+    const box = outer.geometry.boundingBox as import('three').Box3;
+    expect(box.max.y).toBeCloseTo(0);
+    expect(box.min.y).toBeCloseTo(-1);
+    // 분사구 묶음 안에 있어 분사구가 내려오면 불꽃도 따라 내려온다
+    expect(outer.parent).toBe(rig.jets[1]);
+    rig.apply({ fins: 1, flame: 2 });
+    expect(outer.scale.y).toBeCloseTo(2 * FLAME_RATIO * GEOMETRY.height);
+    rig.apply({ fins: 1, flame: 0 });
+    expect(rig.flames.flat().map((m) => m.visible)).toEqual([
+      false,
+      false,
+      false,
+      false,
+    ]);
+    rig.dispose();
+  });
+
+  it('캔버스는 가장 긴 불꽃의 끝까지 덮는다', () => {
+    const rig = buildWingRig(three, GEOMETRY, colors);
+    const nozzleTip = GEOMETRY.height * (0.5 + NOZZLE_RATIO);
+    expect(rig.size.down).toBeGreaterThanOrEqual(
+      nozzleTip + FLAME_PEAK * FLAME_RATIO * GEOMETRY.height - 1e-9
+    );
+    expect(rig.size.height).toBeCloseTo(rig.size.up + rig.size.down);
+    rig.dispose();
+  });
+
+  it('꼬리날개와 분사구는 primary 무광이고 불꽃은 빛을 더하는 합성이며 끝으로 갈수록 투명해진다', () => {
+    const rig = buildWingRig(three, GEOMETRY, colors);
+    const fin = rig.fins[1].children[0] as import('three').Mesh;
+    const finMaterial = fin.material as import('three').MeshStandardMaterial;
+    expect(finMaterial.metalness).toBe(0);
+    expect(finMaterial.roughness).toBeGreaterThan(0.8);
+    expect(finMaterial.color.equals(colors.fin)).toBe(true);
+    // 분사구는 더 어두운 단계
+    const nozzle = rig.jets[1].children[0] as import('three').Mesh;
+    expect(
+      (nozzle.material as import('three').MeshStandardMaterial).color.equals(
+        colors.nozzle
+      )
+    ).toBe(true);
+    // 불꽃 바깥(밝은 단계)과 심지(흰색)가 둘 다 더하는 합성
+    const [outer, core] = rig.flames[1];
+    for (const flame of [outer, core]) {
+      const material = flame.material as import('three').MeshBasicMaterial;
+      expect(material.blending).toBe(three.AdditiveBlending);
+      expect(material.transparent).toBe(true);
+      expect(material.depthWrite).toBe(false);
+      const position = flame.geometry.getAttribute('position');
+      const color = flame.geometry.getAttribute('color');
+      expect(color.itemSize).toBe(4);
+      let tip = -1;
+      let base = -1;
+      for (let i = 0; i < position.count; i++) {
+        if (position.getY(i) < -0.99 && tip < 0) tip = i;
+        if (position.getY(i) > -0.01 && base < 0) base = i;
+      }
+      expect(color.getW(tip)).toBeCloseTo(0, 5);
+      expect(color.getW(base)).toBeGreaterThan(0.8);
     }
-    // 뿌리는 몸 색(흰색 그대로), 끝은 토큰 파랑(파랑 채널이 빨강보다 크다)
-    expect(color.getX(root)).toBeCloseTo(colors.body.r, 4);
-    expect(color.getZ(tip)).toBeGreaterThan(color.getX(tip) * 2);
+    const outerColor = outer.geometry.getAttribute('color');
+    expect(outerColor.getX(0)).toBeCloseTo(colors.flame.r, 5);
+    const coreColor = core.geometry.getAttribute('color');
+    expect([coreColor.getX(0), coreColor.getY(0), coreColor.getZ(0)]).toEqual([
+      1, 1, 1,
+    ]);
     rig.dispose();
   });
 
@@ -175,44 +244,34 @@ describe('buildWingRig: 장면', () => {
     rig.dispose();
   });
 
-  it('원근 카메라가 z=0 평면을 1 단위 = 1px로 본다', () => {
+  it('원근 카메라가 z=0 평면을 1 단위 = 1px로 보고 캔버스가 아래로 치우친 만큼 카메라도 내려가 있다', () => {
     const rig = buildWingRig(three, GEOMETRY, colors);
     expect(rig.camera.isPerspectiveCamera).toBe(true);
     const visibleHeight =
       2 * rig.camera.position.z * Math.tan((rig.camera.fov * Math.PI) / 360);
     expect(visibleHeight).toBeCloseTo(rig.size.height, 4);
-    rig.dispose();
-  });
-
-  it('날갯짓에 따라 깊이가 바뀐다: 위 끝에서는 날개 끝이 안쪽(뒤), 아래 끝에서는 앞으로 나온다', () => {
-    const rig = buildWingRig(three, GEOMETRY, colors);
-    rig.apply({ wingAngle: WING_UP, bud: 1, feathers: OPEN });
-    const up = tipOf(rig, 1).z;
-    rig.apply({ wingAngle: WING_DOWN, bud: 1, feathers: OPEN });
-    const down = tipOf(rig, 1).z;
-    // 깃 층의 깊이 차이(8px 안팎)보다 훨씬 크게 앞뒤로 흔들린다
-    expect(down - up).toBeGreaterThan(20);
-    rig.dispose();
-  });
-
-  it('봉오리 0이면 날개가 보이지 않고 아주 작게라도 돋으면 보인다', () => {
-    const rig = buildWingRig(three, GEOMETRY, colors);
-    rig.apply({ wingAngle: 0, bud: 0, feathers: FOLDED });
-    expect(rig.wings.map((w) => w.visible)).toEqual([false, false]);
-    rig.apply({ wingAngle: 0, bud: 0.3, feathers: FOLDED });
-    expect(rig.wings.map((w) => w.visible)).toEqual([true, true]);
+    expect(rig.camera.position.y).toBeCloseTo(
+      (rig.size.up - rig.size.down) / 2
+    );
+    expect(rig.camera.position.y).toBeLessThan(0);
     rig.dispose();
   });
 
   it('dispose는 지오메트리와 재질을 모두 놓는다', () => {
     const rig = buildWingRig(three, GEOMETRY, colors);
     const disposed = { geometry: 0, material: 0 };
-    const feathers = rig.wings[1].children[0]
-      .children as import('three').Mesh[];
-    for (const f of feathers) {
-      f.geometry.addEventListener('dispose', () => (disposed.geometry += 1));
-      f.material.addEventListener('dispose', () => (disposed.material += 1));
-    }
+    const meshes: import('three').Mesh[] = [];
+    rig.scene.traverse((o) => {
+      if ((o as import('three').Mesh).isMesh)
+        meshes.push(o as import('three').Mesh);
+    });
+    // 지오메트리와 재질은 꼬리날개 둘, 분사구 둘, 불꽃들이 나눠 쓴다: 한 번씩만 센다
+    for (const geometry of new Set(meshes.map((m) => m.geometry)))
+      geometry.addEventListener('dispose', () => (disposed.geometry += 1));
+    for (const material of new Set(
+      meshes.map((m) => m.material as import('three').Material)
+    ))
+      material.addEventListener('dispose', () => (disposed.material += 1));
     rig.dispose();
     expect(disposed).toEqual({ geometry: 4, material: 4 });
   });
@@ -257,10 +316,26 @@ describe('createWingScene: 렌더러 수명', () => {
   it('만들 때 첫 셰이더 컴파일을 한 번 미리 치르고 그린 것은 그 뒤다', () => {
     const { fake, calls } = standIn();
     const scene = createWingScene(fake, options());
-    scene.update({ wingAngle: 0, bud: 1, feathers: OPEN });
+    scene.update(OPEN);
     scene.render();
     expect(calls.filter((c) => c === 'compile')).toHaveLength(1);
     expect(calls.indexOf('compile')).toBeLessThan(calls.indexOf('render'));
+    scene.dispose();
+  });
+
+  it('canvas는 단추 복제본 상자 안에서 가로 가운데, 단추 위쪽보다 위로 조금, 아래로는 불꽃 길이만큼 놓인다', () => {
+    const { fake } = standIn();
+    const scene = createWingScene(fake, options());
+    const rig = buildWingRig(three, GEOMETRY, colors);
+    expect(scene.canvas.style.left).toBe(
+      `${(GEOMETRY.width - rig.size.width) / 2}px`
+    );
+    expect(scene.canvas.style.top).toBe(
+      `${GEOMETRY.height / 2 - rig.size.up}px`
+    );
+    expect(scene.canvas.style.pointerEvents).toBe('none');
+    expect(scene.canvas.getAttribute('aria-hidden')).toBe('true');
+    rig.dispose();
     scene.dispose();
   });
 
@@ -282,22 +357,30 @@ describe('createWingScene: 렌더러 수명', () => {
     '%s에서 던지면 이미 만든 렌더러(컨텍스트)와 지오메트리를 놓고 던진다',
     (failAt) => {
       const { fake, calls } = standIn(failAt);
-      const made: import('three').BufferGeometry[] = [];
-      const real = fake.ExtrudeGeometry;
+      // 장면이 만드는 지오메트리(꼬리날개, 분사구, 불꽃 둘)를 만든 대로 세고 놓은 대로 센다
+      let made = 0;
       let disposedGeometries = 0;
-      (fake as { ExtrudeGeometry: unknown }).ExtrudeGeometry = class extends (
-        real
-      ) {
-        constructor(...args: ConstructorParameters<typeof real>) {
-          super(...args);
-          made.push(this);
-          this.addEventListener('dispose', () => (disposedGeometries += 1));
-        }
-      };
+      const track = <
+        T extends new (...args: never[]) => import('three').BufferGeometry,
+      >(
+        Base: T
+      ) =>
+        class extends Base {
+          constructor(...args: ConstructorParameters<T>) {
+            super(...args);
+            made += 1;
+            this.addEventListener('dispose', () => (disposedGeometries += 1));
+          }
+        };
+      Object.assign(fake, {
+        ExtrudeGeometry: track(fake.ExtrudeGeometry),
+        CylinderGeometry: track(fake.CylinderGeometry),
+        ConeGeometry: track(fake.ConeGeometry),
+      });
       expect(() => createWingScene(fake, options())).toThrow(failAt);
       expect(calls).toContain('dispose');
       expect(calls).toContain('forceContextLoss');
-      expect(made).toHaveLength(4);
+      expect(made).toBe(4);
       expect(disposedGeometries).toBe(4);
     }
   );
