@@ -1,1 +1,1 @@
-export { WingButtonPage } from './WingButtonPage';
+export { RocketButtonPage } from './RocketButtonPage';

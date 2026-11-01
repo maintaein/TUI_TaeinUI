@@ -112,14 +112,14 @@ test.describe('모션 계열 사이드바 (1280px)', () => {
     );
   });
 
-  test('마이크로 인터랙션 분류에 날개 전송 링크가 있다', async ({ page }) => {
+  test('마이크로 인터랙션 분류에 로켓 전송 링크가 있다', async ({ page }) => {
     await page.goto('/components/button');
     const nav = page.getByRole('navigation', { name: '문서' });
-    const link = nav.getByRole('link', { name: /날개 전송/ });
-    await expect(link).toHaveAttribute('href', '/motion/wing-button');
+    const link = nav.getByRole('link', { name: /로켓 전송/ });
+    await expect(link).toHaveAttribute('href', '/motion/rocket-button');
     await link.click();
-    await expect(page).toHaveURL(/\/motion\/wing-button$/);
-    await expect(nav.locator('[aria-current="page"]')).toHaveText(/날개 전송/);
+    await expect(page).toHaveURL(/\/motion\/rocket-button$/);
+    await expect(nav.locator('[aria-current="page"]')).toHaveText(/로켓 전송/);
   });
 
   test('배경 분류에 빛 물줄기 링크가 있다', async ({ page }) => {

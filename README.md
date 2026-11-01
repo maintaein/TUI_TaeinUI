@@ -73,16 +73,16 @@ function LoginForm() {
 
 ## 컴포넌트 목록
 
-| 카테고리     | 컴포넌트                                                                                                                              |
-| ------------ | ------------------------------------------------------------------------------------------------------------------------------------- |
-| **버튼**     | Button, IconButton, SegmentedButtons                                                                                                  |
-| **입력**     | TextField, Checkbox, Switch, Slider, NumericSpinner                                                                                   |
-| **표시**     | Badge, Chip, Avatar                                                                                                                   |
-| **피드백**   | Loader, Skeleton, Snackbar, Tooltip                                                                                                   |
-| **오버레이** | Modal, BottomSheet, SideSheet, Popover                                                                                                |
-| **레이아웃** | Card, List, BoardRow, Divider, Border, HeaderBar                                                                                      |
-| **폼**       | FormField                                                                                                                             |
-| **모션**     | HangulAssemble, BrushText, CopyButton, BurstToggle, HoldButton, SloshGauge, FanMenu, WingButton, LuminousFlow, GooeySearch, CodeSlots |
+| 카테고리     | 컴포넌트                                                                                                                                |
+| ------------ | --------------------------------------------------------------------------------------------------------------------------------------- |
+| **버튼**     | Button, IconButton, SegmentedButtons                                                                                                    |
+| **입력**     | TextField, Checkbox, Switch, Slider, NumericSpinner                                                                                     |
+| **표시**     | Badge, Chip, Avatar                                                                                                                     |
+| **피드백**   | Loader, Skeleton, Snackbar, Tooltip                                                                                                     |
+| **오버레이** | Modal, BottomSheet, SideSheet, Popover                                                                                                  |
+| **레이아웃** | Card, List, BoardRow, Divider, Border, HeaderBar                                                                                        |
+| **폼**       | FormField                                                                                                                               |
+| **모션**     | HangulAssemble, BrushText, CopyButton, BurstToggle, HoldButton, SloshGauge, FanMenu, RocketButton, LuminousFlow, GooeySearch, CodeSlots |
 
 ## 모션
 

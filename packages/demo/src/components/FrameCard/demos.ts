@@ -21,7 +21,7 @@ import { HoldButtonDemo } from '../../pages/Motion/HoldButton/HoldButtonPage';
 import { SloshGaugeDemo } from '../../pages/Motion/SloshGauge/SloshGaugePage';
 import { CodeSlotsDemo } from '../../pages/Motion/CodeSlots/CodeSlotsPage';
 import { FanMenuDemo } from '../../pages/Motion/FanMenu/FanMenuPage';
-import { WingButtonDemo } from '../../pages/Motion/WingButton/WingButtonPage';
+import { RocketButtonDemo } from '../../pages/Motion/RocketButton/RocketButtonPage';
 import { LuminousFlowDemo } from '../../pages/Motion/LuminousFlow/LuminousFlowPage';
 import { GooeySearchDemo } from '../../pages/Motion/GooeySearch/GooeySearchPage';
 import { LoaderDemo } from '../../pages/Components/Loader/LoaderPage';
@@ -73,6 +73,6 @@ export const DEMOS: Record<string, ComponentType<DemoProps>> = {
   SloshGauge: SloshGaugeDemo,
   CodeSlots: CodeSlotsDemo,
   FanMenu: FanMenuDemo,
-  WingButton: WingButtonDemo,
+  RocketButton: RocketButtonDemo,
   LuminousFlow: LuminousFlowDemo,
 };

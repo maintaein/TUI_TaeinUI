@@ -239,15 +239,15 @@ test.describe('모션 전체 보기', () => {
     await expect(page).toHaveURL(/\/motion\/fan-menu$/);
   });
 
-  test('날개 전송 카드가 효과 이름과 쓰는 곳을 보이고 누르면 상세로 간다', async ({
+  test('로켓 전송 카드가 효과 이름과 쓰는 곳을 보이고 누르면 상세로 간다', async ({
     page,
   }) => {
     await page.goto('/motion');
-    const card = cardOf(page, 'WingButton');
-    await expect(card.getByText('WingButton', { exact: true })).toBeVisible();
+    const card = cardOf(page, 'RocketButton');
+    await expect(card.getByText('RocketButton', { exact: true })).toBeVisible();
     await expect(card.getByText('메일 보내기, 제출, 전송')).toBeVisible();
-    await card.getByRole('link', { name: '날개 전송' }).click();
-    await expect(page).toHaveURL(/\/motion\/wing-button$/);
+    await card.getByRole('link', { name: '로켓 전송' }).click();
+    await expect(page).toHaveURL(/\/motion\/rocket-button$/);
   });
 
   test('움직임 멈춤을 켜면 완성 글자가 서고 끄면 다시 재생한다', async ({
@@ -570,11 +570,11 @@ test.describe('모션 전체 보기 부채꼴 메뉴 미니 (1440px)', () => {
   });
 });
 
-// 날개 전송 미니: 대본이 눌러 날려 보내고 표지를 보인 뒤 새로 세운다
-const wingMini = (page: Page) =>
-  page.locator('[data-stage-mini="WingButton 미리보기"]');
+// 로켓 전송 미니: 대본이 눌러 날려 보내고 표지를 보인 뒤 새로 세운다
+const rocketMini = (page: Page) =>
+  page.locator('[data-stage-mini="RocketButton 미리보기"]');
 
-test.describe('모션 전체 보기 날개 전송 미니 (1440px)', () => {
+test.describe('모션 전체 보기 로켓 전송 미니 (1440px)', () => {
   test.use({ viewport: { width: 1440, height: 900 } });
 
   test('대본이 눌러 로켓 단추를 날리고 움직임 멈춤이면 서 있다', async ({
@@ -582,18 +582,18 @@ test.describe('모션 전체 보기 날개 전송 미니 (1440px)', () => {
   }) => {
     await page.goto('/motion');
     const centre = () =>
-      wingMini(page).evaluate((el) => el.scrollIntoView({ block: 'center' }));
+      rocketMini(page).evaluate((el) => el.scrollIntoView({ block: 'center' }));
     await centre();
     // 날아가는 동안 복제본 레이어가 서고, 다 날면 표지가 남는다
-    await expect(wingMini(page).locator('[data-wing-layer]')).toHaveCount(1, {
-      timeout: 15_000,
-    });
-    await expect(wingMini(page).locator('[data-wing-mark]')).toHaveCount(1);
-    // 미니는 연기를 끈다(문맥 스물다섯 개가 한 화면에 뜨지 않게). 비행 중에도 연기 canvas가 없다.
-    // 로켓 canvas는 비행 층 안에 있으니 거른다(안 거르면 이 단언이 비행이 끝나기를 기다리게 된다)
-    await expect(
-      wingMini(page).locator('canvas:not([data-wing-layer] canvas)')
-    ).toHaveCount(0);
+    await expect(rocketMini(page).locator('[data-rocket-layer]')).toHaveCount(
+      1,
+      {
+        timeout: 15_000,
+      }
+    );
+    await expect(rocketMini(page).locator('[data-rocket-mark]')).toHaveCount(1);
+    // 미니는 연기를 끈다(문맥 스물다섯 개가 한 화면에 뜨지 않게). 불꽃은 DOM이라 canvas가 아예 없다
+    await expect(rocketMini(page).locator('canvas')).toHaveCount(0);
 
     const pause = page.getByRole('button', { name: '움직임 멈춤' });
     await pause.click();
@@ -601,13 +601,16 @@ test.describe('모션 전체 보기 날개 전송 미니 (1440px)', () => {
     await centre();
     // 멈추기 직전에 시작한 비행은 끝까지 가고(일시정지는 대본만 멈춘다) 새 비행은 시작하지 않는다.
     // 시간을 재서 기다리지 않고 비행 층이 걷히는 것을 신호로 삼아, 멈춘 시점이 비행과 겹쳐도 같은 끝 자세에 선다
-    await expect(wingMini(page).locator('[data-wing-layer]')).toHaveCount(0, {
-      timeout: 8000,
-    });
+    await expect(rocketMini(page).locator('[data-rocket-layer]')).toHaveCount(
+      0,
+      {
+        timeout: 10_000,
+      }
+    );
     const snapshot = () =>
-      wingMini(page).evaluate((el) => ({
-        layer: el.querySelectorAll('[data-wing-layer]').length,
-        mark: el.querySelectorAll('[data-wing-mark]').length,
+      rocketMini(page).evaluate((el) => ({
+        layer: el.querySelectorAll('[data-rocket-layer]').length,
+        mark: el.querySelectorAll('[data-rocket-mark]').length,
       }));
     const frozen = await snapshot();
     expect(frozen.layer).toBe(0);

@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import { Button, WingButton, themeContract } from '@taein-ui/core';
+import { Button, RocketButton, themeContract } from '@taein-ui/core';
 import { CodeBlock } from '../../../components/CodeBlock';
 import {
   Customize,
@@ -12,7 +12,7 @@ import type { PropDefinition } from '../../../components/PropsTable';
 import { Stage, type Act, type DemoProps } from '../../../components/Stage';
 
 const LEAD =
-  '메일 보내기 같은 전송 단추. 누르면 단추가 웅크리고 아래 양 모서리에 꼬리날개가 펴지며 분사구에서 불꽃이 뿜어집니다. 약 25px 떠올라 둥실거리다가 오른쪽 위로 발사되고, 불꽃이 켜진 동안 분사구 끝에서 나온 연기가 바닥에 띠로 쌓입니다. 한 번만 날고, 다시 보내려면 새로 그립니다.';
+  '메일 보내기 같은 전송 단추. 누르면 단추가 웅크렸다가 분사구 둘에 불꽃이 켜져 떨며 약 24px 떠오르고, 둥실거리다가 추력이 커지며 점점 빨라져 오른쪽 위로 서서히 휘며 발사됩니다. 연기는 발사대에서 양옆으로 구르다가 발사 때는 불꽃 끝에서 꼬리를 남깁니다. 한 번만 날고, 다시 보내려면 새로 그립니다.';
 
 const CONTROLS: Control[] = [
   { prop: 'sentLabel', kind: 'text', label: '보낸 뒤 글자' },
@@ -45,7 +45,7 @@ const PROPS: PropDefinition[] = [
     type: 'boolean',
     default: 'true',
     description:
-      '불꽃이 켜진 동안 분사구 끝에서 아래로 나와 바닥에서 옆으로 퍼지고, 발사할 때는 진행 반대쪽에 꼬리를 남기는 유체 연기. false면 꼬리날개와 불꽃만 그려지고 연기는 없습니다. WebGL2가 없으면 꼬리날개와 불꽃도 연기도 없이 단추만 같은 박자로 납니다',
+      '점화부터 둥실까지는 발사대에서 양옆으로 구르고, 발사할 때는 불꽃 끝에서 진행 반대쪽에 꼬리를 남기는 유체 연기. false면 움직임과 불꽃은 그대로이고 연기만 없습니다. WebGL2가 없어도 연기만 빠집니다',
   },
   {
     name: 'onClick',
@@ -73,20 +73,20 @@ const PROPS: PropDefinition[] = [
 ];
 
 // 커서가 눌러 날려 보내고, 날아간 표지가 자리 잡을 때까지 보인 뒤 다시 시작한다. 단추를 새로 세우는 일을 맨 앞에 두어
-// 사용자가 만져 보낸 뒤에도 순서가 맞는다. 비행(3.05초)과 표지 떠오름(0.2초)이 끝난 뒤 연기가 흩어질 때까지 보인다
+// 사용자가 만져 보낸 뒤에도 순서가 맞는다. 비행(5초)과 표지 떠오름(0.2초)이 끝난 뒤 연기가 흩어질 때까지 보인다
 // 카드 속 미니는 커서가 그려지지 않으니 오가는 시간과 읽을 시간만 줄인다(act.pace). 누름과 효과가 끝나는 시간은 그대로다
 const SCRIPT = (act: Act, reset: () => void) => {
   act.call(reset);
   act.move('send', act.pace(0.6, 0.3));
   act.wait(act.pace(0.3, 0.1));
   act.press('send');
-  act.wait(act.pace(5, 3.6));
+  act.wait(act.pace(7, 5.6));
   act.home(act.pace(0.6, 0.3));
   act.wait(act.pace(0.4, 0.1));
 };
 
 /** 무대 조각. 대본의 커서가 눌러 날려 보내고 새로 세우기를 반복하고, 마우스를 올리면 직접 보내 볼 수 있다 */
-export function WingButtonDemo({ values = INITIAL, mini }: DemoProps) {
+export function RocketButtonDemo({ values = INITIAL, mini }: DemoProps) {
   // 단추를 새로 세우는 번호. 바꾸면 표지가 사라지고 처음 상태로 돌아간다
   const [round, setRound] = useState(0);
   const [sends, setSends] = useState(0);
@@ -97,10 +97,10 @@ export function WingButtonDemo({ values = INITIAL, mini }: DemoProps) {
   const script = useCallback((act: Act) => SCRIPT(act, reset), [reset]);
 
   return (
-    <Stage mini={mini} label="WingButton 미리보기" script={script}>
+    <Stage mini={mini} label="RocketButton 미리보기" script={script}>
       {(container) => (
         <div style={{ display: 'grid', gap: 12, justifyItems: 'center' }}>
-          <WingButton
+          <RocketButton
             key={round}
             data-stage-target="send"
             container={container}
@@ -109,7 +109,7 @@ export function WingButtonDemo({ values = INITIAL, mini }: DemoProps) {
             onClick={() => setSends((n) => n + 1)}
           >
             보내기
-          </WingButton>
+          </RocketButton>
           <span
             style={{
               fontSize: themeContract.font.size.sm,
@@ -130,13 +130,13 @@ export function WingButtonDemo({ values = INITIAL, mini }: DemoProps) {
 }
 
 const USE = `<div style={{ position: 'relative' }} ref={setStage}>
-  <WingButton container={stage} onClick={send}>
+  <RocketButton container={stage} onClick={send}>
     보내기
-  </WingButton>
+  </RocketButton>
 </div>
 
 // 다시 보내려면 key를 바꿔 새로 그립니다
-<WingButton key={round} onClick={send}>보내기</WingButton>`;
+<RocketButton key={round} onClick={send}>보내기</RocketButton>`;
 
 function Usage() {
   return (
@@ -148,15 +148,13 @@ function Usage() {
           피드백이 됩니다.
         </p>
       </Topic>
-      <Topic title="꼬리날개와 불꽃은 따로 불러옵니다">
+      <Topic title="무게감 있게 나는 방식">
         <p className={t.body}>
-          꼬리날개와 분사구, 불꽃은 3D 라이브러리(<code>three</code>)로
-          그립니다. 단추를 가리키거나 포커스가 가면 그때 따로 불러오므로 첫 화면
-          번들에는 실리지 않습니다. 누르는 순간 웅크림은 바로 시작하고, 아직
-          불러오는 중이면 0.3초까지 기다려 오는 대로 그립니다. 그때까지 오지
-          않거나 불러오기에 실패하거나 WebGL2가 없으면 꼬리날개와 불꽃 없이
-          날고, 연기는 WebGL2가 있을 때만 나옵니다. 이것을 그리는 캔버스는
-          비행하는 동안에만 만들어 끝나면 놓습니다.
+          이징 곡선을 따라 미끄러지지 않고 용수철과 추력으로 움직입니다. 점화
+          동안 불꽃이 발사대에 닿고 단추가 떨며, 용수철로 떠올라 둥실거린 뒤
+          추력이 커지면서 가속합니다. 기울기는 그 순간의 속도 방향을 따르고
+          불꽃은 속도와 함께 길어집니다. 분사구와 불꽃은 단추 복제본 안의 요소라
+          몸체와 함께 기울고, 불꽃 길이는 <code>scaleY</code>로만 바뀝니다.
         </p>
       </Topic>
       <Topic title="날 자리는 container로">
@@ -197,23 +195,21 @@ function A11y() {
         있어 영역을 처음부터 둡니다).
       </li>
       <li>
-        복제본은 <code>aria-hidden</code>이고 <code>inert</code>인 장식 입니다.
-        꼬리날개와 불꽃을 그리는 캔버스도 <code>aria-hidden</code>이고 포인터를
-        가로채지 않습니다. 원래 단추는 보이지 않을 뿐 자리를 지켜 레이아웃이
-        움직이지 않습니다.
+        복제본은 분사구와 불꽃을 품은 <code>aria-hidden</code>,{' '}
+        <code>inert</code> 장식입니다. 원래 단추는 보이지 않을 뿐 자리를 지켜
+        레이아웃이 움직이지 않습니다.
       </li>
       <li>
         되돌리기는 <code>key</code>로 합니다. 새로 그려진 단추는 처음
         상태입니다.
       </li>
       <li>
-        움직임 줄이기에서는 로켓과 비행 없이 단추가 &quot;보냈어요&quot;로
-        바뀝니다. 연기도 없습니다.
+        움직임 줄이기에서는 비행 없이 단추가 &quot;보냈어요&quot;로 바뀝니다.
+        연기도 없습니다.
       </li>
       <li>
         연기도 <code>aria-hidden</code>이고 포인터를 가로채지 않는 장식
-        캔버스입니다. 연기를 끄거나, 꼬리날개와 불꽃을 못 불러오거나, WebGL2가
-        없어도 알림과 포커스는 같습니다.
+        캔버스입니다. 연기를 끄거나 WebGL2가 없어도 알림과 포커스는 같습니다.
       </li>
       <li>
         개발자가 직접 해야 합니다. 날아간 것은 &quot;눌렀다&quot;는 피드백일 뿐
@@ -225,22 +221,22 @@ function A11y() {
   );
 }
 
-export function WingButtonPage() {
+export function RocketButtonPage() {
   const [values, setValues] = useState<Values>(INITIAL);
 
   return (
     <DetailLayout
-      name="WingButton"
+      name="RocketButton"
       lead={LEAD}
-      stage={<WingButtonDemo values={values} />}
+      stage={<RocketButtonDemo values={values} />}
       customize={
         <Customize controls={CONTROLS} values={values} onChange={setValues} />
       }
-      code={`import { WingButton } from '@taein-ui/core';
+      code={`import { RocketButton } from '@taein-ui/core';
 
-<WingButton sentLabel="${String(values.sentLabel)}" onClick={send}>
+<RocketButton sentLabel="${String(values.sentLabel)}" onClick={send}>
   보내기
-</WingButton>`}
+</RocketButton>`}
       props={PROPS}
       usage={<Usage />}
       a11y={<A11y />}

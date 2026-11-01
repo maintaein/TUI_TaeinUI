@@ -24,7 +24,7 @@ test.describe('페이지 네비게이션', () => {
     const sidebar = page.getByRole('navigation', { name: '문서' });
     await expect(sidebar).toBeVisible();
     await expect(sidebar.locator('[aria-current="page"]')).toHaveText(/Button/);
-    // 시작 4개(소개, 시작하기, 전체 컴포넌트, 전체 모션) + UI 컴포넌트 25개 + 모션 11개(한글 조립, 붓글씨 글자, 물방울 검색창, 복사됨, 좋아요 터짐, 꾹 눌러 확정, 출렁이는 게이지, 인증번호 슬롯, 부채꼴 메뉴, 날개 전송, 빛 물줄기). 모션이 늘면 이 수도 늘린다
+    // 시작 4개(소개, 시작하기, 전체 컴포넌트, 전체 모션) + UI 컴포넌트 25개 + 모션 11개(한글 조립, 붓글씨 글자, 물방울 검색창, 복사됨, 좋아요 터짐, 꾹 눌러 확정, 출렁이는 게이지, 인증번호 슬롯, 부채꼴 메뉴, 로켓 전송, 빛 물줄기). 모션이 늘면 이 수도 늘린다
     await expect(sidebar.getByRole('link')).toHaveCount(40);
   });
 

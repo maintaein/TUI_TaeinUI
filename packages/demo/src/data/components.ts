@@ -416,11 +416,11 @@ export const motionData: MotionInfo[] = [
     icon: Fan,
   },
   {
-    name: 'WingButton',
-    title: '날개 전송',
-    path: '/motion/wing-button',
+    name: 'RocketButton',
+    title: '로켓 전송',
+    path: '/motion/rocket-button',
     description:
-      '누르면 단추 아래 꼬리날개가 펴지고 분사구에서 불꽃이 뿜어져, 떠올라 둥실거리다가 오른쪽 위로 발사됩니다.',
+      '누르면 분사구에서 불꽃이 켜져 단추가 떨며 떠오르고, 둥실거리다가 점점 빨라지며 오른쪽 위로 발사됩니다.',
     usage: '메일 보내기, 제출, 전송',
     category: 'micro',
     icon: Send,

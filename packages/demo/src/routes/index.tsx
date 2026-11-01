@@ -178,9 +178,9 @@ const FanMenuPage = lazy(() =>
     default: m.FanMenuPage,
   }))
 );
-const WingButtonPage = lazy(() =>
-  import('../pages/Motion/WingButton').then((m) => ({
-    default: m.WingButtonPage,
+const RocketButtonPage = lazy(() =>
+  import('../pages/Motion/RocketButton').then((m) => ({
+    default: m.RocketButtonPage,
   }))
 );
 const LuminousFlowPage = lazy(() =>
@@ -568,10 +568,10 @@ const router = createBrowserRouter([
             ),
           },
           {
-            path: 'wing-button',
+            path: 'rocket-button',
             element: (
               <LazyPage>
-                <WingButtonPage />
+                <RocketButtonPage />
               </LazyPage>
             ),
           },
