@@ -207,10 +207,10 @@ describe('rocketBeat 박자 (설계서 8절 로켓 전송)', () => {
       expect(beat(100).smoke.gap).toBeGreaterThan(beat(2000).smoke.gap);
     });
 
-    it('발사 중에는 매 프레임 불꽃 끝에서 몸체 아래 방향(진행 반대쪽)으로 내보낸다', () => {
+    it('발사 중에는 50ms 간격으로 불꽃 끝에서 몸체 아래 방향(진행 반대쪽)으로 내보낸다', () => {
       [launchAt(0.3), launchAt(0.7), launchAt(0.95)].forEach((t) => {
         const b = beat(t);
-        expect(b.smoke.gap).toBe(0);
+        expect(b.smoke.gap).toBe(50);
         const rad = (b.rotation * Math.PI) / 180;
         const nozzleTip = GEOMETRY.height * (0.5 + NOZZLE_HEIGHT);
         b.smoke.puffs.forEach((p, i) => {

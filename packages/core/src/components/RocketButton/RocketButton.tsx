@@ -88,6 +88,8 @@ interface Flight {
   top: number;
   /** 단추 중심의 창 좌표. 박자가 주는 연기 자리는 이 중심 기준이다 */
   center: { x: number; y: number };
+  /** 비행 층의 위쪽 가장자리의 창 좌표(y). 연기 자리가 이 위로 나가면 내보내지 않는다 */
+  layerTop: number;
   /** 발사에서 위로 나가는 거리(px) */
   distance: number;
 }
@@ -141,6 +143,7 @@ const measureFlight = (
     width: rect.width,
     height: rect.height,
     center: { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 },
+    layerTop: originY,
     distance,
   };
 };
@@ -331,6 +334,8 @@ export const RocketButton = forwardRef<HTMLButtonElement, RocketButtonProps>(
           lastPuff = clock.t;
           // 자리는 원래 단추 중심 기준이라 창 좌표로 옮겨 내보낸다
           for (const p of puffs) {
+            // 비행 층 위로 나간 자리의 연기는 아래로 밀려 무대로 쏟아지므로 내보내지 않는다
+            if (flight.center.y + p.y < flight.layerTop) continue;
             engine.emit(
               flight.center.x + p.x,
               flight.center.y + p.y,

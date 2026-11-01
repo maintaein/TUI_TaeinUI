@@ -98,8 +98,10 @@ export const FLAME_MAX = Math.ceil(
 export const FLAME_REACH = FLAME_MAX;
 
 // 연기: 발사대에서는 두 분사구 아래에서 PAD_GAP(ms) 간격으로 양옆으로(바닥을 구르는 느낌), 발사 중에는 불꽃 끝에서
-// 매 프레임 몸체 아래 방향으로 JET_PUSH(CSS px/초)로 내보낸다. 매 프레임 내보내면 점화 때 무대가 연기로 덮였다(M7.1 T8 로켓)
+// TAIL_GAP 간격으로 몸체 아래 방향으로 JET_PUSH(CSS px/초)로 내보낸다. 매 프레임 내보내면 발사 첫머리(속도 0)에 한 자리로 몰려
+// 큰 덩이가 되고 무대가 연기로 덮였다. 가장 빠를 때도 TAIL_GAP 동안 움직이는 거리(약 40px)가 방울 반지름(30px)과 비슷해 점선이 안 된다
 const PAD_GAP = 100;
+const TAIL_GAP = 50;
 const PAD_ROLL = 320;
 const JET_PUSH = 500;
 
@@ -202,7 +204,7 @@ export const rocketBeat = (
     }));
   } else if (flame > 0) {
     // 불꽃 끝: 단추 중심 기준 자리에 기울기와 배율을 걸고 이동을 더한다. 연기는 몸체 아래 방향으로 나간다
-    gap = 0;
+    gap = TAIL_GAP;
     const rad = (rotation * Math.PI) / 180;
     const cos = Math.cos(rad);
     const sin = Math.sin(rad);

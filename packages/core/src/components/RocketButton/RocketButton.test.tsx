@@ -722,13 +722,18 @@ describe('RocketButton', () => {
       expect(times.length).toBeLessThan(BEAT.launch / 80);
     });
 
-    it('발사 중에는 매 프레임 불꽃 끝에서 몸체 아래 방향(진행 반대쪽)으로 내보낸다', () => {
+    it('발사 중에는 50ms 간격으로 불꽃 끝에서 몸체 아래 방향(진행 반대쪽)으로 내보낸다', () => {
       const launch = fly().filter((c) => c.t >= BEAT.launch);
       const times = [...new Set(launch.map((c) => c.t))];
-      for (let t = BEAT.launch + 10; t < BEAT.sent; t += 10)
-        expect(times).toContain(t);
-      const at = launch.filter((c) => c.t === 4000);
-      const beat = rocketBeat(4000, GEOMETRY_AT_CLICK);
+      times.forEach((t, i) => {
+        if (i > 0) {
+          expect(t - times[i - 1]).toBeGreaterThanOrEqual(50);
+          expect(t - times[i - 1]).toBeLessThan(70);
+        }
+      });
+      const t = times.find((time) => time >= 3900)!;
+      const at = launch.filter((c) => c.t === t);
+      const beat = rocketBeat(t, GEOMETRY_AT_CLICK);
       expect(at).toHaveLength(2);
       at.forEach((c, i) => {
         const puff = beat.smoke.puffs[i];
@@ -737,8 +742,15 @@ describe('RocketButton', () => {
         expect([c.vx, c.vy]).toEqual([puff.vx, puff.vy]);
       });
       // 시계 방향으로 기운 몸체의 아래는 왼쪽 아래다
-      for (const c of launch.filter((c) => c.t >= 4000))
+      for (const c of launch.filter((c) => c.t >= 3900))
         expect(c.vx).toBeLessThan(0);
+    });
+
+    it('불꽃 끝이 비행 층 위로 나가면 연기를 내보내지 않는다(아래로 밀려 무대로 쏟아진다)', () => {
+      const calls = fly();
+      expect(calls.every((c) => c.y >= 0)).toBe(true);
+      // 나가기 전에는 내보냈다
+      expect(calls.some((c) => c.t >= 4500)).toBe(true);
     });
   });
 
