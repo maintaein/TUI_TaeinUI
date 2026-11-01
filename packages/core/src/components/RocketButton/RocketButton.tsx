@@ -4,7 +4,6 @@ import {
   useRef,
   useState,
   type ButtonHTMLAttributes,
-  type FocusEvent,
   type MouseEvent,
   type PointerEvent,
   type ReactNode,
@@ -20,8 +19,6 @@ import { useReducedMotion } from '../../hooks/useReducedMotion';
 import { settleMotion } from '../../hooks/gateMotion';
 import { BEAT, BEAT_END, CROUCH, TAIL_REACH, rocketBeat } from './rocketBeat';
 import { makeSmoke } from './smokeEngine';
-import { awaitWings, preloadThree, type WingsOutcome } from './loadThree';
-import { makeWingScene, type WingScene } from './wingScene';
 import {
   root,
   crouch,
@@ -59,14 +56,10 @@ export interface RocketButtonProps extends Omit<
 type Host = HTMLElement & {
   __rocketTimeline?: gsap.core.Timeline;
   __rocketCrouch?: gsap.core.Tween;
-  // 누른 뒤 three를 기다린 결과. 정해지기 전에는 undefined(DOM 속성을 늘리지 않고 시험이 읽는 손잡이)
-  __rocketOutcome?: WingsOutcome;
 };
 
 // 눌림 되감기용 제자리
 const REST = { x: 0, y: 0, scale: 1 } as const;
-// 누를 때 three가 아직 안 왔으면 웅크림과 꼬리날개가 펴지기 시작하는 구간(300ms)까지만 기다린다. 그래도 없으면 꼬리날개와 불꽃 없이 연기만으로 난다
-const WAIT_FOR_WINGS = 300;
 // 분사구 끝에서 연기를 내보내는 간격(ms). 매 프레임 내보내면(약 16ms) 무대가 연기로 덮였다. 발사 중에는 단추가 빨리 움직여
 // 간격이 벌어지면 점선이 되므로 매 프레임 내보낸다
 const PUFF_GAP = 100;
@@ -174,10 +167,8 @@ export const RocketButton = forwardRef<HTMLButtonElement, RocketButtonProps>(
       disabled = false,
       onClick,
       onPointerDown,
-      onPointerEnter,
       onPointerLeave,
       onPointerCancel,
-      onFocus,
       ...props
     },
     ref
@@ -225,21 +216,6 @@ export const RocketButton = forwardRef<HTMLButtonElement, RocketButtonProps>(
         ease: gsapEasing.settle,
         overwrite: true,
       });
-    };
-
-    // 꼬리날개와 불꽃을 그릴 three를 미리 받아 둔다. 움직임 줄이기와 비활성, 이미 난 뒤에는 받지 않는다
-    const preload = () => {
-      if (!disabled && !reduced && !launch) preloadThree();
-    };
-
-    const handlePointerEnter = (event: PointerEvent<HTMLButtonElement>) => {
-      onPointerEnter?.(event);
-      preload();
-    };
-
-    const handleFocus = (event: FocusEvent<HTMLButtonElement>) => {
-      onFocus?.(event);
-      preload();
     };
 
     const handlePointerLeave = (event: PointerEvent<HTMLButtonElement>) => {
@@ -295,17 +271,8 @@ export const RocketButton = forwardRef<HTMLButtonElement, RocketButtonProps>(
       gsap.set(label, { opacity: 0 });
       if (launch.focused) label.focus({ preventScroll: true });
 
-      // 로켓 장면(3D)은 three가 제때 왔을 때만 생긴다. 비행이 끝나거나 걷히거나 언마운트되면 한 번만 놓는다
-      let wings: WingScene | null = null;
-      let ended = false;
-      const endWings = () => {
-        ended = true;
-        wings?.dispose();
-        wings = null;
-      };
       // 비행(레이어)은 발사가 끝나는 순간 걷는다. 표지가 떠오르는 순간과 같다
       const done = () => {
-        endWings();
         setFlying(false);
       };
       const { flight } = launch;
@@ -357,17 +324,6 @@ export const RocketButton = forwardRef<HTMLButtonElement, RocketButtonProps>(
             scale: pose.scale,
           });
           gsap.set(label, { opacity: beat.mark });
-          // 같은 프레임에 꼬리날개와 불꽃도 그린다(별도 루프 없음)
-          // 던지면(컨텍스트 소실 등) 이 비행에서 장면을 걷고 연기와 비행은 계속한다
-          if (wings) {
-            try {
-              wings.update(beat);
-              wings.render();
-            } catch {
-              endWings();
-              host.__rocketOutcome = { status: 'failed' };
-            }
-          }
           const engine = smokeRef.current;
           // 불꽃이 켜진 동안만 분사구 끝에서 내보낸다. 발사 중에는 단추가 빨라 매 프레임, 그 밖에는 PUFF_GAP 간격이다
           const gap = beat.phase === 'launch' ? 0 : PUFF_GAP;
@@ -392,31 +348,6 @@ export const RocketButton = forwardRef<HTMLButtonElement, RocketButtonProps>(
           }
         };
         tick();
-        // three를 기다린다. 누르는 순간은 멈칫하지 않고(웅크림과 꼬리날개 펴짐이 먼저 돈다) 300ms 안에 오면 온 시점의 박자 값으로 바로
-        // 그리기 시작한다. 안 오거나 실패하거나 WebGL2가 없거나 렌더러 컨텍스트를 못 만들면 꼬리날개와 불꽃 없이 난다
-        host.__rocketOutcome = undefined;
-        awaitWings(WAIT_FOR_WINGS).then((outcome) => {
-          if (ended) return;
-          host.__rocketOutcome = outcome;
-          if (outcome.status !== 'ready') return;
-          let scene: WingScene | undefined;
-          try {
-            scene = makeWingScene(outcome.three, {
-              host: body,
-              width: flight.width,
-              height: flight.height,
-            });
-            // 단추 복제본 뒤에 깔려 꼬리날개 뿌리와 분사구 윗부분이 단추에 가려진다
-            body.prepend(scene.canvas);
-            const beat = rocketBeat(clock.t, geometry);
-            scene.update(beat);
-            scene.render();
-            wings = scene;
-          } catch {
-            scene?.dispose();
-            host.__rocketOutcome = { status: 'failed' };
-          }
-        });
         timeline = gsap
           .timeline({ onComplete: done })
           .to(
@@ -435,7 +366,6 @@ export const RocketButton = forwardRef<HTMLButtonElement, RocketButtonProps>(
       timelineRef.current = timeline;
       host.__rocketTimeline = timeline;
       return () => {
-        endWings();
         timeline.kill();
         timelineRef.current = null;
       };
@@ -465,10 +395,8 @@ export const RocketButton = forwardRef<HTMLButtonElement, RocketButtonProps>(
             disabled={disabled}
             onClick={handleClick}
             onPointerDown={handlePointerDown}
-            onPointerEnter={handlePointerEnter}
             onPointerLeave={handlePointerLeave}
             onPointerCancel={handlePointerCancel}
-            onFocus={handleFocus}
           >
             {children}
           </Button>

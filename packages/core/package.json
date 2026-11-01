@@ -60,8 +60,7 @@
     "@vanilla-extract/css": "^1.14.0",
     "@vanilla-extract/recipes": "^0.5.7",
     "clsx": "^2.0.0",
-    "gsap": "^3.15.0",
-    "three": "^0.187.0"
+    "gsap": "^3.15.0"
   },
   "devDependencies": {
     "@testing-library/jest-dom": "^6.1.5",
@@ -69,7 +68,6 @@
     "@testing-library/user-event": "^14.5.1",
     "@types/react": "^19.2.5",
     "@types/react-dom": "^19.2.3",
-    "@types/three": "^0.187.0",
     "@vanilla-extract/vite-plugin": "^4.0.5",
     "@vitejs/plugin-react": "^4.2.1",
     "@vitest/coverage-v8": "~4.1.11",
