@@ -17,7 +17,19 @@ import { visuallyHidden } from '../../_internal/visuallyHidden.css';
 import { gsapDuration, gsapEasing } from '../../tokens/gsapEasing';
 import { useReducedMotion } from '../../hooks/useReducedMotion';
 import { settleMotion } from '../../hooks/gateMotion';
-import { BEAT, BEAT_END, CROUCH, TAIL_REACH, rocketBeat } from './rocketBeat';
+import {
+  BEAT,
+  BEAT_END,
+  CROUCH,
+  FLAME_MAX,
+  FLAME_REACH,
+  FLAME_WIDTH,
+  NOZZLE_BOTTOM,
+  NOZZLE_HEIGHT,
+  NOZZLE_X,
+  crouchWeight,
+  rocketBeat,
+} from './rocketBeat';
 import { makeSmoke } from './smokeEngine';
 import {
   root,
@@ -27,6 +39,9 @@ import {
   layer,
   craft,
   cloneHost,
+  nozzle,
+  flame,
+  flameCore,
 } from './RocketButton.css';
 
 export interface RocketButtonProps extends Omit<
@@ -44,8 +59,9 @@ export interface RocketButtonProps extends Omit<
    */
   container?: HTMLElement | null;
   /**
-   * 분사구 끝에서 불꽃이 켜진 동안 아래로 내뿜어 바닥에서 옆으로 퍼지고, 발사 때는 진행 반대쪽으로 꼬리를 남기는 유체 연기(WebGL2). 끄면 연기 없이 날고,
-   * WebGL2가 없거나 움직임 줄이기여도 연기만 빠진다. 캔버스와 셰이더뿐이라 엄격한 CSP와 무관하다 @default true
+   * 점화부터 둥실까지는 발사대에서 양옆으로 구르고, 발사 때는 불꽃 끝에서 진행 반대쪽으로 꼬리를 남기는 유체 연기(WebGL2).
+   * 끄면 연기 없이 날고(움직임과 불꽃은 그대로), WebGL2가 없거나 움직임 줄이기여도 연기만 빠진다.
+   * 캔버스와 셰이더뿐이라 엄격한 CSP와 무관하다 @default true
    */
   smoke?: boolean;
   /** 비활성화 상태. 비활성이면 웅크리지도 날지도 않는다 @default false */
@@ -60,25 +76,20 @@ type Host = HTMLElement & {
 
 // 눌림 되감기용 제자리
 const REST = { x: 0, y: 0, scale: 1 } as const;
-// 분사구 끝에서 연기를 내보내는 간격(ms). 매 프레임 내보내면(약 16ms) 무대가 연기로 덮였다. 발사 중에는 단추가 빨리 움직여
-// 간격이 벌어지면 점선이 되므로 매 프레임 내보낸다
-const PUFF_GAP = 100;
-// 분사구에서 몸체 아래 방향으로 밀어내는 속도(CSS px/초). 발사 중에는 몸체가 기울어 진행 반대(왼쪽 아래)로 꼬리가 남는다
-const JET_PUSH = 500;
-// 바닥(비행 층의 아래 가장자리)에서 옆으로 퍼지는 연기: 유체 엔진에는 벽이 없어 아래로 민 연기가 그냥 빠져나가므로
-// 바닥 가까이에서 분사구 바깥쪽으로 직접 내보내 영상의 바닥 띠를 만든다. 둥실이 끝나(발사 전) 불꽃이 켜진 동안만이다
-const FLOOR_LIFT = 12;
-const FLOOR_SPREAD = 320;
+// 분사구가 단추 밑면 위로 박히는 깊이(px). 단추 모서리와 틈이 안 생기게 한다
+const NOZZLE_OVERLAP = 2;
 
 interface Flight {
   clone: HTMLElement;
-  left: number;
-  top: number;
   width: number;
   height: number;
-  dx: number;
-  /** 레이어(창 또는 container 안쪽 상자)의 창 좌표 사각형. 이 밖에는 연기를 뿜지 않는다 */
-  bounds: { left: number; top: number; right: number; bottom: number };
+  /** 비행 층 안에서 단추 상자의 왼쪽 위(px) */
+  left: number;
+  top: number;
+  /** 단추 중심의 창 좌표. 박자가 주는 연기 자리는 이 중심 기준이다 */
+  center: { x: number; y: number };
+  /** 발사에서 위로 나가는 거리(px) */
+  distance: number;
 }
 
 interface Launch {
@@ -113,49 +124,37 @@ const measureFlight = (
   // 레이어 좌표: 화면 전체거나 container의 안쪽 상자
   let originX = 0;
   let originY = 0;
-  let width = document.documentElement.clientWidth;
-  let height = document.documentElement.clientHeight;
   if (container) {
     const box = container.getBoundingClientRect();
     originX = box.left + container.clientLeft;
     originY = box.top + container.clientTop;
-    width = container.clientWidth;
-    height = container.clientHeight;
   }
   const left = rect.left - originX;
   const top = rect.top - originY;
-  // 오른쪽 위 45도로 간다. 오른쪽과 위쪽 중 가까운 가장자리를 넘어 꼬리날개와 불꽃(진행 반대쪽으로 늘어진다)까지 나가는 거리(그보다 멀리 가면 이미
-  // 안 보이는 구간이 길어 표지가 늦어 보인다). 발사가 끝나는 순간 복제본과 꼬리날개는 레이어 밖이다.
-  const distance =
-    Math.max(0, Math.min(width - left, top + rect.height)) +
-    rect.height * TAIL_REACH;
+  // 위로 날아간다. 단추 윗면이 레이어 위 가장자리를 넘고 불꽃 끝까지 레이어 밖으로 나가는 거리(그보다 멀리 가면 이미
+  // 안 보이는 구간이 길어 표지가 늦어 보인다). 발사가 끝나는 순간 복제본과 불꽃은 레이어 밖이다.
+  const distance = top + rect.height + FLAME_REACH;
   return {
     clone,
     left,
     top,
     width: rect.width,
     height: rect.height,
-    dx: distance,
-    bounds: {
-      left: originX,
-      top: originY,
-      right: originX + width,
-      bottom: originY + height,
-    },
+    center: { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 },
+    distance,
   };
 };
 
 /**
  * 메일 보내기·제출·전송 단추. 누르는 순간 왼쪽 아래로 살짝 웅크리고, click이 확정되면 단추 모양 복제본이
- * 박자(`rocketBeat`) 하나를 따라 꼬리날개가 펴지고 분사구가 내려오며 불꽃이 켜져 약 25px 떠올랐다 앉고(살짝 넘친다)
- * 몇 px 둥실거린 뒤, 오른쪽 위로 가속하며 진행 방향으로 기울고 불꽃이 길어지며 화면(또는 `container`) 밖으로 날아간다.
- * 불꽃이 켜진 동안 분사구 끝에서 연기가 나와 바닥에 띠가 쌓인다. 원래 단추는 그 순간 보이지 않게 두어 자리를
- * 지키고, 날아간 뒤 그 자리에 `sentLabel` 표지가 떠오른다. 돌아오지 않으며 소비자가 `key`를 바꿔 다시 그린다.
- * 포커스가 있었으면 표지로 옮기고, 없었으면 처음부터 있는 보이지 않는 알림 영역(`role="status"`)에 `sentLabel`을
- * 넣는다. 비행 중 다시 누르는 것은 무시한다.
- * 꼬리날개·분사구·불꽃은 3D로 그린다. 3D 라이브러리는 따로 불러오며(단추를 가리키거나 포커스가 가면 미리 받는다)
- * 누를 때까지 못 받았거나 불러오기에 실패했거나 WebGL2가 없으면 꼬리날개와 불꽃 없이 난다(연기는 WebGL2가 있어야 나온다).
- * 움직임 줄이기에서는 비행 없이(그 라이브러리도 받지 않는다) 단추가 표지로 교차 페이드된다.
+ * 박자(`rocketBeat`) 하나를 따라 로켓처럼 난다. 분사구 둘에 불꽃이 켜져 단추가 떨다가(점화), 약 24px 떠올라 3px쯤
+ * 넘쳤다 서고(용수철), 몇 px 둥실거리다가, 추력이 커지며 처음엔 곧게 위로 가속해 오른쪽으로 서서히 휘며 화면(또는
+ * `container`) 밖으로 날아간다. 기울기는 그 순간의 속도 방향을 따른다. 불꽃은 몸체 밑에 붙어 같이 기울고 속도와 함께
+ * 길어지며, 연기는 점화부터 둥실까지 발사대에서 양옆으로 구르고 발사 동안 불꽃 끝에서 꼬리를 남긴다.
+ * 원래 단추는 그 순간 보이지 않게 두어 자리를 지키고, 날아간 뒤 그 자리에 `sentLabel` 표지가 떠오른다.
+ * 돌아오지 않으며 소비자가 `key`를 바꿔 다시 그린다. 포커스가 있었으면 표지로 옮기고, 없었으면 처음부터 있는
+ * 보이지 않는 알림 영역(`role="status"`)에 `sentLabel`을 넣는다. 비행 중 다시 누르는 것은 무시한다.
+ * 움직임 줄이기에서는 비행 없이 단추가 표지로 교차 페이드된다.
  */
 export const RocketButton = forwardRef<HTMLButtonElement, RocketButtonProps>(
   (
@@ -307,44 +306,37 @@ export const RocketButton = forwardRef<HTMLButtonElement, RocketButtonProps>(
         const geometry = {
           width: flight.width,
           height: flight.height,
-          distance: flight.dx,
+          distance: flight.distance,
         };
-        // 박자 하나(rocketBeat)가 단추의 움직임, 꼬리날개와 불꽃, 분사구 끝 연기, 표지를 모두 정한다. 시계는 0에서 끝까지 도는 숫자 하나다
+        const flames = body.querySelectorAll('[data-rocket-flame]');
+        // 박자 하나(rocketBeat)가 단추의 움직임, 불꽃 길이, 연기 내뿜기, 표지를 모두 정한다. 시계는 0에서 끝까지 도는 숫자 하나다
         const clock = { t: 0 };
         let lastPuff = -Infinity;
         const tick = () => {
           const beat = rocketBeat(clock.t, geometry);
-          // 눌렀다 뗀 click이면 웅크림 구간은 이미 웅크린 자세를 이어받는다
-          const pose =
-            launch.crouched && beat.phase === 'crouch' ? CROUCH : beat;
+          // 눌렀다 뗀 click이면 웅크림이 풀리는 만큼을 얹어 웅크린 자세를 이어받는다
+          const held = launch.crouched ? crouchWeight(clock.t) : 0;
           gsap.set(body, {
-            x: pose.x,
-            y: pose.y,
+            x: beat.x + CROUCH.x * held,
+            y: beat.y + CROUCH.y * held,
             rotation: beat.rotation,
-            scale: pose.scale,
+            scale: beat.scale * (1 + (CROUCH.scale - 1) * held),
           });
+          // 불꽃 길이는 scaleY(원점 위)로만 바꾼다
+          gsap.set(flames, { scaleY: beat.flame / FLAME_MAX });
           gsap.set(label, { opacity: beat.mark });
           const engine = smokeRef.current;
-          // 불꽃이 켜진 동안만 분사구 끝에서 내보낸다. 발사 중에는 단추가 빨라 매 프레임, 그 밖에는 PUFF_GAP 간격이다
-          const gap = beat.phase === 'launch' ? 0 : PUFF_GAP;
-          if (!engine || !beat.smoke || clock.t - lastPuff < gap) return;
+          const { gap, puffs } = beat.smoke;
+          if (!engine || puffs.length === 0 || clock.t - lastPuff < gap) return;
           lastPuff = clock.t;
-          const r = body.getBoundingClientRect();
-          const cx = (r.left + r.right) / 2;
-          const cy = (r.top + r.bottom) / 2;
-          // 자리는 단추 중심 기준이라 이동한 배율과 기울기를 걸어 창 좌표로 바꾼다. 연기는 몸체의 아래 방향으로 나간다
-          const rad = (beat.rotation * Math.PI) / 180;
-          const cos = Math.cos(rad);
-          const sin = Math.sin(rad);
-          const floor = flight.bounds.bottom - FLOOR_LIFT;
-          for (const p of beat.smokeAt) {
-            const x = cx + beat.scale * (p.x * cos - p.y * sin);
-            const y = cy + beat.scale * (p.x * sin + p.y * cos);
-            engine.emit(x, y, -sin * JET_PUSH, cos * JET_PUSH);
-            // 바닥이 분사구보다 아래일 때만: 분사구 바깥쪽 옆으로 퍼지는 띠
-            if (beat.phase !== 'launch' && floor > y) {
-              engine.emit(x, floor, Math.sign(p.x) * FLOOR_SPREAD, 0);
-            }
+          // 자리는 원래 단추 중심 기준이라 창 좌표로 옮겨 내보낸다
+          for (const p of puffs) {
+            engine.emit(
+              flight.center.x + p.x,
+              flight.center.y + p.y,
+              p.vx,
+              p.vy
+            );
           }
         };
         tick();
@@ -386,6 +378,16 @@ export const RocketButton = forwardRef<HTMLButtonElement, RocketButtonProps>(
     }, []);
 
     const flight = launch?.flight;
+    // 분사구 둘과 불꽃 둘의 자리(단추 상자 안 px): 밑면 폭의 1/3, 2/3
+    const rig = flight
+      ? [-1, 1].map((side) => ({
+          key: side,
+          left: flight.width / 2 + side * flight.width * NOZZLE_X,
+        }))
+      : [];
+    const flightFlameWidth = flight ? flight.width * FLAME_WIDTH : 0;
+    const nozzleWidth = flight ? flight.width * NOZZLE_BOTTOM : 0;
+    const nozzleTip = flight ? flight.height * (1 + NOZZLE_HEIGHT) : 0;
     return (
       <span ref={hostRef} className={root} data-sent={launch ? '' : undefined}>
         <span ref={crouchRef} className={crouch}>
@@ -437,6 +439,35 @@ export const RocketButton = forwardRef<HTMLButtonElement, RocketButtonProps>(
                   height: flight.height,
                 }}
               >
+                {/* 불꽃은 분사구 뒤, 분사구는 단추 뒤에 깔려 윗부분이 단추에 가려진다. 둘 다 몸체와 함께 기울어진다 */}
+                {rig.map(({ key, left }) => (
+                  <span
+                    key={`flame-${key}`}
+                    className={flame}
+                    data-rocket-flame=""
+                    style={{
+                      left: left - flightFlameWidth / 2,
+                      top: nozzleTip,
+                      width: flightFlameWidth,
+                      height: FLAME_MAX,
+                    }}
+                  >
+                    <span className={flameCore} />
+                  </span>
+                ))}
+                {rig.map(({ key, left }) => (
+                  <span
+                    key={`nozzle-${key}`}
+                    className={nozzle}
+                    data-rocket-nozzle=""
+                    style={{
+                      left: left - nozzleWidth / 2,
+                      top: flight.height - NOZZLE_OVERLAP,
+                      width: nozzleWidth,
+                      height: nozzleTip - flight.height + NOZZLE_OVERLAP,
+                    }}
+                  />
+                ))}
                 <span ref={cloneHostRef} className={cloneHost} />
               </div>
             </div>,

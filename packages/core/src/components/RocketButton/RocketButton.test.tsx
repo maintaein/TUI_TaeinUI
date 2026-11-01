@@ -12,7 +12,13 @@ import { act, fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { RocketButton } from './RocketButton';
 import { gsapDuration, gsapEasing } from '../../tokens/gsapEasing';
-import { BEAT, BEAT_END, rocketBeat } from './rocketBeat';
+import {
+  BEAT,
+  BEAT_END,
+  FLAME_MAX,
+  FLAME_REACH,
+  rocketBeat,
+} from './rocketBeat';
 import { replaceSmokeFactory } from './smokeEngine';
 
 // RocketButton.tsx가 바깥 상자에 얹는 손잡이(BurstToggle의 타임라인 손잡이와 같은 모양).
@@ -21,7 +27,12 @@ type WingHost = HTMLElement & {
   __rocketCrouch?: gsap.core.Tween;
 };
 
-const GEOMETRY = { width: 120, height: 44, distance: 0 };
+// 시험의 단추: 폭 120, 높이 44, 레이어 위에서 200px 아래라 발사 거리는 200 + 44 + FLAME_REACH다
+const GEOMETRY_AT_CLICK = {
+  width: 120,
+  height: 44,
+  distance: 200 + 44 + FLAME_REACH,
+};
 const button = (name: string | RegExp = '보내기') =>
   screen.getByRole('button', { name });
 const hostOf = (container: HTMLElement) =>
@@ -248,14 +259,16 @@ describe('RocketButton', () => {
       expect(names.filter((name) => name.startsWith('data-'))).toEqual([]);
     });
 
-    it('발사 거리는 container의 가까운 가장자리를 넘어 꼬리날개와 불꽃이 나가는 높이의 2배만큼 더 나가는 거리다', () => {
-      // 단추는 레이어 안 (100, 200), 높이 44. 위쪽으로 나가려면 200 + 44, 오른쪽이면 폭 - 100. 더 나가는 거리는 높이의 2배(TAIL_REACH)
-      const reach = 44 * 2;
-      const launchX = (width: number) => {
+    it('발사 거리는 단추 윗면이 레이어 위 가장자리를 넘고 불꽃 끝까지 나가는 거리다', () => {
+      // 레이어 안에서 단추 위쪽까지 200px(화면 전체), 단추 높이 44. 떠오른 24px는 그 위에 더해진다
+      const climbed = (boxTop: number | null) => {
         const stage = document.createElement('div');
-        Object.defineProperty(stage, 'clientWidth', { value: width });
-        Object.defineProperty(stage, 'clientHeight', { value: 600 });
-        document.body.appendChild(stage);
+        if (boxTop !== null) {
+          Object.defineProperty(stage, 'getBoundingClientRect', {
+            value: () => ({ ...scaledRect(1), top: boxTop }),
+          });
+          document.body.appendChild(stage);
+        }
         const view = render(
           <RocketButton container={stage}>보내기</RocketButton>
         );
@@ -263,17 +276,16 @@ describe('RocketButton', () => {
         const tl = hostOf(view.container)
           .__rocketTimeline as gsap.core.Timeline;
         const craft = layerOf(stage)?.firstElementChild as HTMLElement;
-        // 발사가 끝나는 순간(3.05초) 단추가 가 있는 곳이 그 거리다
         act(() => void tl.time(BEAT.sent / 1000));
-        const x = translateOf(craft).x;
+        const y = translateOf(craft).y;
         view.unmount();
         stage.remove();
-        return x;
+        return -y;
       };
-      // 위가 가깝다(상자 폭 1000): 244 + 더 나가는 거리
-      expect(launchX(1000)).toBeCloseTo(244 + reach, 5);
-      // 오른쪽이 가깝다(상자 폭 150): 50 + 더 나가는 거리
-      expect(launchX(150)).toBeCloseTo(50 + reach, 5);
+      // 상자 위가 창 위와 같다(0): 단추까지 200, 단추 높이 44, 불꽃 FLAME_REACH
+      expect(climbed(0)).toBeCloseTo(24 + 200 + 44 + FLAME_REACH, 0);
+      // 상자가 100 아래에 있다: 단추까지 100이라 그만큼 짧다
+      expect(climbed(100)).toBeCloseTo(24 + 100 + 44 + FLAME_REACH, 0);
     });
 
     it('비행이 끝나면 복제본 레이어를 치운다', () => {
@@ -420,36 +432,67 @@ describe('RocketButton', () => {
       return { ...view, layer, craft, tl, at };
     };
 
-    it('시계 하나가 0에서 3250ms까지 돌며 단추를 박자대로 움직인다(웅크림, 떠오름, 둥실)', () => {
+    it('시계 하나가 0에서 5200ms까지 돌며 단추를 박자 함수대로 움직인다(점화, 떠오름, 둥실, 발사)', () => {
       const { craft, tl, at } = launch();
       expect(tl.duration()).toBeCloseTo(BEAT_END / 1000, 5);
-      at(0);
-      expect(translateOf(craft)).toEqual({ x: 0, y: 0 });
-      at(150);
-      expect(craft.style.transform).toContain('translate(-2px, 2px)');
-      expect(craft.style.transform).toContain('scale(0.97');
-      at(300);
-      expect(translateOf(craft).y).toBeCloseTo(0, 5);
-      // 떠오름이 약 25px 자리에 앉고, 둥실 한가운데 근처(1400ms)에서는 박자 함수와 같은 높이다
+      [0, 300, 900, BEAT.hover, 1400, 2400, 4000, 4900].forEach((t) => {
+        at(t);
+        const want = rocketBeat(t, GEOMETRY_AT_CLICK);
+        expect(translateOf(craft).x).toBeCloseTo(want.x, 2);
+        expect(translateOf(craft).y).toBeCloseTo(want.y, 2);
+      });
+      // 떠오름이 24px 근처에 앉는다
       at(BEAT.hover);
-      expect(translateOf(craft).y).toBeCloseTo(-25, 5);
-      at(1400);
-      expect(translateOf(craft).y).toBeCloseTo(rocketBeat(1400, GEOMETRY).y, 3);
-      expect(Math.abs(translateOf(craft).y + 25)).toBeGreaterThan(1);
+      expect(translateOf(craft).y).toBeCloseTo(-24, -1);
     });
 
-    it('발사는 오른쪽 위로 가며 윗면이 진행 방향을 향해 30deg 기울고 0.6배가 된다', () => {
+    it('발사는 처음엔 곧게 위로 가다 오른쪽으로 휘며 윗면이 속도 방향을 따라 최대 20deg 기울고 작아진다', () => {
       const { craft, at } = launch();
+      const rotation = () =>
+        Number(/rotate\((-?[\d.]+)deg\)/.exec(craft.style.transform)?.[1] ?? 0);
       at(BEAT.launch);
-      const hover = translateOf(craft);
-      expect(hover.x).toBeCloseTo(0, 5);
+      expect(translateOf(craft).x).toBeCloseTo(0, 5);
+      expect(rotation()).toBe(0);
+      at(3300);
+      const early = rotation();
+      expect(early).toBeLessThan(2);
+      at(4500);
+      expect(rotation()).toBeGreaterThan(early);
       at(BEAT.sent);
-      const end = translateOf(craft);
-      expect(end.x).toBeGreaterThan(0);
-      // 45도: 오른쪽으로 간 만큼 위로 간다
-      expect(end.y - hover.y).toBeCloseTo(-end.x, 5);
-      expect(craft.style.transform).toContain('rotate(30deg)');
-      expect(craft.style.transform).toContain('scale(0.6');
+      expect(translateOf(craft).x).toBeGreaterThan(0);
+      expect(rotation()).toBeCloseTo(20, 5);
+      expect(craft.style.transform).toContain('scale(0.85');
+    });
+
+    it('분사구 둘과 불꽃 둘이 복제본 안에 있고 불꽃은 scaleY로만 길이가 바뀐다', () => {
+      const { craft, at } = launch();
+      const flames = [
+        ...craft.querySelectorAll<HTMLElement>('[data-rocket-flame]'),
+      ];
+      expect(flames).toHaveLength(2);
+      expect(craft.querySelectorAll('[data-rocket-nozzle]')).toHaveLength(2);
+      // 불꽃은 분사구 뒤, 분사구는 단추 뒤에 깔린다(문서 순서)
+      const order = [...craft.children].map((node) =>
+        node.hasAttribute('data-rocket-flame')
+          ? 'flame'
+          : node.hasAttribute('data-rocket-nozzle')
+            ? 'nozzle'
+            : 'clone'
+      );
+      expect(order).toEqual(['flame', 'flame', 'nozzle', 'nozzle', 'clone']);
+      const scaleY = (el: HTMLElement) =>
+        Number(/scale\(1, ?([\d.]+)\)/.exec(el.style.transform)?.[1] ?? NaN);
+      at(0);
+      expect(scaleY(flames[0])).toBe(0);
+      at(2000);
+      const hover = scaleY(flames[0]);
+      expect(hover).toBeGreaterThan(0.3);
+      at(4800);
+      expect(scaleY(flames[0])).toBeGreaterThan(hover);
+      expect(scaleY(flames[0])).toBeLessThanOrEqual(1);
+      expect(scaleY(flames[1])).toBe(scaleY(flames[0]));
+      // 레이아웃 속성(높이)은 건드리지 않는다
+      expect(flames[0].style.height).toBe(`${FLAME_MAX}px`);
     });
 
     it('눌렀다 뗀 click이면 복제본은 웅크린 자세로 이어받는다', () => {
@@ -461,7 +504,7 @@ describe('RocketButton', () => {
       expect(craft.style.transform).toContain('scale(0.97');
     });
 
-    it('표지는 비행이 끝나는 3050ms에야 떠오르기 시작하고 그 순간 레이어를 걷는다', () => {
+    it('표지는 비행이 끝나는 5000ms에야 떠오르기 시작하고 그 순간 레이어를 걷는다', () => {
       const { container, at } = launch();
       const label = markOf(container) as HTMLElement;
       at(BEAT.sent - 10);
@@ -549,7 +592,8 @@ describe('RocketButton', () => {
       const wrap = button().parentElement as HTMLElement;
       fireEvent.click(button());
       expect(layerOf()).toBeNull();
-      expect(container.querySelector('[data-rocket]')).toBeNull();
+      expect(document.querySelector('[data-rocket-flame]')).toBeNull();
+      expect(document.querySelector('[data-rocket-nozzle]')).toBeNull();
       const label = markOf(container) as HTMLElement;
       const tl = host.__rocketTimeline as gsap.core.Timeline;
       const out = tweensOf(tl, wrap)[0];
@@ -605,42 +649,29 @@ describe('RocketButton', () => {
     });
   });
 
-  // 분사구 끝 연기를 내보내는 연결(박자 함수의 smoke를 엔진 emit으로 바꾸는 곳)을 시험한다. jsdom에는 엔진이 없어
+  // 박자 함수가 주는 연기(발사대, 불꽃 끝)를 엔진 emit으로 바꾸는 연결을 시험한다. jsdom에는 엔진이 없어
   // 엔진 자리에 emit 호출을 기록하는 손을 끼운다(replaceSmokeFactory).
-  describe('분사구 끝 연기', () => {
-    type Call = {
-      kind: 'emit' | 'burst';
-      x: number;
-      y: number;
-      vx: number;
-      vy: number;
-      t: number;
-    };
+  describe('연기 내뿜기', () => {
+    type Call = { x: number; y: number; vx: number; vy: number; t: number };
     const record = () => {
       const calls: Call[] = [];
       const now = { t: 0 };
       replaceSmokeFactory(() => ({
         canvas: document.createElement('canvas'),
-        emit: (x, y, vx, vy) =>
-          calls.push({ kind: 'emit', x, y, vx, vy, t: now.t }),
-        burst: (x, y) =>
-          calls.push({ kind: 'burst', x, y, vx: 0, vy: 0, t: now.t }),
+        emit: (x, y, vx, vy) => calls.push({ x, y, vx, vy, t: now.t }),
+        burst: () => {
+          throw new Error('이륙 터짐은 없다');
+        },
         dispose: () => {},
       }));
       return { calls, now };
     };
     afterEach(() => replaceSmokeFactory());
 
-    // 10ms씩 시계를 보내며 엔진 호출을 모은다. 바닥이 있는 상자(높이 600)에서 날린다(jsdom은 창 높이가 0이다)
-    const fly = (stageHeight = 600) => {
+    // 10ms씩 시계를 보내며 엔진 호출을 모은다
+    const fly = () => {
       const { calls, now } = record();
-      const stage = document.createElement('div');
-      Object.defineProperty(stage, 'clientWidth', { value: 1000 });
-      Object.defineProperty(stage, 'clientHeight', { value: stageHeight });
-      document.body.appendChild(stage);
-      const view = render(
-        <RocketButton container={stage}>보내기</RocketButton>
-      );
+      const view = render(<RocketButton>보내기</RocketButton>);
       fireEvent.click(button());
       const tl = hostOf(view.container).__rocketTimeline as gsap.core.Timeline;
       for (let ms = 0; ms <= BEAT_END; ms += 10) {
@@ -648,102 +679,66 @@ describe('RocketButton', () => {
         act(() => void tl.time(ms / 1000));
       }
       view.unmount();
-      stage.remove();
-      // 분사구 끝에서 몸체 아래로 나가는 것(vy > 0)과 바닥에서 옆으로 퍼지는 것(vy = 0)
-      return {
-        all: calls,
-        jets: calls.filter((c) => c.kind === 'emit' && c.vy > 0),
-        floor: calls.filter((c) => c.kind === 'emit' && c.vy === 0),
-      };
+      return calls;
+    };
+    // 단추 상자의 중심(jsdom에서 BUTTON_RECT). 박자가 주는 자리는 이 중심 기준이다
+    const center = {
+      x: BUTTON_RECT.left + BUTTON_RECT.width / 2,
+      y: BUTTON_RECT.top + BUTTON_RECT.height / 2,
     };
 
-    it('불꽃이 켜진 동안에만 내보내고 점화 전(0~450ms)과 보냈어요(3050ms 뒤)에는 내보내지 않는다', () => {
-      const { jets } = fly();
-      expect(jets.length).toBeGreaterThan(0);
-      for (const c of jets)
-        expect(rocketBeat(c.t, GEOMETRY).flame).toBeGreaterThan(0);
-      expect(jets.filter((c) => c.t <= 450)).toEqual([]);
-      expect(jets.filter((c) => c.t >= BEAT.sent)).toEqual([]);
-      // 점화하는 첫 프레임(460ms)부터 나온다
-      expect(Math.min(...jets.map((c) => c.t))).toBe(460);
+    it('불꽃이 켜진 동안에만 내보내고 보냈어요(5000ms 뒤)에는 내보내지 않는다', () => {
+      const calls = fly();
+      expect(calls.length).toBeGreaterThan(0);
+      for (const c of calls)
+        expect(rocketBeat(c.t, GEOMETRY_AT_CLICK).flame).toBeGreaterThan(0);
+      expect(calls.filter((c) => c.t >= BEAT.sent)).toEqual([]);
+      // 점화하는 첫 프레임부터 나온다
+      expect(Math.min(...calls.map((c) => c.t))).toBe(10);
     });
 
-    it('두 분사구에서 같은 시각에 하나씩, 둥실 동안은 100ms 간격으로 아래로 내보낸다', () => {
-      const { jets } = fly();
-      const hover = jets.filter((c) => c.t >= 460 && c.t < BEAT.launch);
-      const times = [...new Set(hover.map((c) => c.t))];
-      expect(times.slice(0, 5)).toEqual([460, 560, 660, 760, 860]);
-      for (const t of times)
-        expect(hover.filter((c) => c.t === t)).toHaveLength(2);
-      // 몸체가 반듯하니 아래로 곧게(vx 0) 나가고 자리는 박자 함수의 분사구 끝이다
-      const [left, right] = rocketBeat(460, GEOMETRY).smokeAt;
-      const first = hover.filter((c) => c.t === 460);
-      expect(first.every((c) => c.vx === 0 && c.vy > 0)).toBe(true);
-      expect(first.map((c) => [c.x, c.y])).toEqual([
-        [left.x, left.y],
-        [right.x, right.y],
-      ]);
-    });
-
-    it('발사 중에는 매 프레임 내보내고 몸체의 아래 방향(진행 반대쪽)으로 나간다', () => {
-      const { jets } = fly();
-      const launch = jets.filter((c) => c.t >= BEAT.launch);
-      const times = [...new Set(launch.map((c) => c.t))];
-      // 2250ms는 불꽃 간격(100ms) 안이라 건너뛸 수 있다: 이후는 10ms마다 있다
-      for (let t = 2300; t < BEAT.sent; t += 10) expect(times).toContain(t);
-      // 시계 방향으로 기운 몸체의 아래는 왼쪽 아래다
-      for (const c of launch.filter((c) => c.t >= 2400)) {
-        expect(c.vx).toBeLessThan(0);
-        expect(Math.hypot(c.vx, c.vy)).toBeCloseTo(500, 3);
-      }
-    });
-
-    it('내보내는 자리는 박자 함수의 분사구 끝에 이동 없이 기울기와 배율을 건 창 좌표다', () => {
-      const { jets } = fly();
-      // jsdom에서 복제본 상자의 사각형은 0이라 중심은 (0, 0)이다
-      const t = 2600;
-      const beat = rocketBeat(t, GEOMETRY);
-      const rad = (beat.rotation * Math.PI) / 180;
-      const expected = beat.smokeAt.map((p) => [
-        beat.scale * (p.x * Math.cos(rad) - p.y * Math.sin(rad)),
-        beat.scale * (p.x * Math.sin(rad) + p.y * Math.cos(rad)),
-      ]);
-      const near = jets.filter((c) => c.t === t);
-      expect(near).toHaveLength(2);
-      near.forEach((c, i) => {
-        expect(c.x).toBeCloseTo(expected[i][0], 3);
-        expect(c.y).toBeCloseTo(expected[i][1], 3);
+    it('점화부터 둥실까지는 두 분사구 아래 발사대에서 양옆으로 박자 함수의 간격마다 내보낸다', () => {
+      const pad = fly().filter((c) => c.t < BEAT.launch);
+      const times = [...new Set(pad.map((c) => c.t))];
+      times.forEach((t, i) => {
+        expect(pad.filter((c) => c.t === t)).toHaveLength(2);
+        const beat = rocketBeat(t, GEOMETRY_AT_CLICK);
+        const [left, right] = pad.filter((c) => c.t === t);
+        expect(left.x).toBeCloseTo(center.x + beat.smoke.puffs[0].x, 3);
+        expect(right.x).toBeCloseTo(center.x + beat.smoke.puffs[1].x, 3);
+        expect(left.y).toBeCloseTo(center.y + beat.smoke.puffs[0].y, 3);
+        expect([left.vx, left.vy, right.vx, right.vy]).toEqual([
+          -320, 0, 320, 0,
+        ]);
+        // 간격은 그 시각의 박자 함수가 정한 최소 간격 이상이다
+        if (i > 0)
+          expect(t - times[i - 1]).toBeGreaterThanOrEqual(beat.smoke.gap);
       });
+      // 발사대는 제자리다: 단추가 떠올라도 연기 자리 y가 같다
+      expect(new Set(pad.filter((c) => c.t >= 700).map((c) => c.y)).size).toBe(
+        1
+      );
+      // 100ms 안팎으로 자주 내보낸다(매 프레임 내보내면 무대가 덮인다)
+      expect(times.length).toBeLessThan(BEAT.launch / 80);
     });
 
-    it('바닥(상자 아래 가장자리) 근처에서 분사구 바깥쪽 옆으로 퍼지는 띠는 발사 전 불꽃이 켜진 동안만 쌓인다', () => {
-      const { floor } = fly();
-      expect(floor.length).toBeGreaterThan(0);
-      // 상자 높이 600 - 12px, 왼쪽 분사구는 왼쪽으로 오른쪽 분사구는 오른쪽으로
-      for (const c of floor) {
-        expect(c.y).toBe(600 - 12);
-        expect(Math.abs(c.vx)).toBe(320);
-        expect(c.t).toBeGreaterThanOrEqual(460);
-        expect(c.t).toBeLessThan(BEAT.launch);
-      }
-      const at460 = floor.filter((c) => c.t === 460);
-      expect(at460.map((c) => Math.sign(c.vx))).toEqual([-1, 1]);
-      // 바깥쪽 분사구 위치(x)에서 퍼진다
-      expect(at460.map((c) => c.x)).toEqual([
-        -GEOMETRY.width / 6,
-        GEOMETRY.width / 6,
-      ]);
-    });
-
-    it('바닥이 분사구보다 위이면 바닥 띠는 만들지 않는다', () => {
-      const { floor, jets } = fly(20);
-      expect(floor).toEqual([]);
-      expect(jets.length).toBeGreaterThan(0);
-    });
-
-    it('이륙 터짐은 없다: 연기는 분사구에서만 나온다', () => {
-      const { all } = fly();
-      expect(all.filter((c) => c.kind === 'burst')).toEqual([]);
+    it('발사 중에는 매 프레임 불꽃 끝에서 몸체 아래 방향(진행 반대쪽)으로 내보낸다', () => {
+      const launch = fly().filter((c) => c.t >= BEAT.launch);
+      const times = [...new Set(launch.map((c) => c.t))];
+      for (let t = BEAT.launch + 10; t < BEAT.sent; t += 10)
+        expect(times).toContain(t);
+      const at = launch.filter((c) => c.t === 4000);
+      const beat = rocketBeat(4000, GEOMETRY_AT_CLICK);
+      expect(at).toHaveLength(2);
+      at.forEach((c, i) => {
+        const puff = beat.smoke.puffs[i];
+        expect(c.x).toBeCloseTo(center.x + puff.x, 3);
+        expect(c.y).toBeCloseTo(center.y + puff.y, 3);
+        expect([c.vx, c.vy]).toEqual([puff.vx, puff.vy]);
+      });
+      // 시계 방향으로 기운 몸체의 아래는 왼쪽 아래다
+      for (const c of launch.filter((c) => c.t >= 4000))
+        expect(c.vx).toBeLessThan(0);
     });
   });
 
@@ -774,12 +769,21 @@ describe('RocketButton', () => {
       expect(markOf(container)).toHaveStyle({ opacity: '1' });
     });
 
-    it('smoke={false}면 엔진을 만들려 하지 않고 비행은 그대로다', () => {
+    it('smoke={false}면 엔진을 만들려 하지 않고 움직임과 불꽃은 그대로다', () => {
       const attempts = contextAttempts();
-      render(<RocketButton smoke={false}>보내기</RocketButton>);
+      const { container } = render(
+        <RocketButton smoke={false}>보내기</RocketButton>
+      );
       fireEvent.click(button());
       expect(attempts).not.toHaveBeenCalled();
       expect(layerOf()).not.toBeNull();
+      const tl = hostOf(container).__rocketTimeline as gsap.core.Timeline;
+      act(() => void tl.time(2000 / 1000));
+      const craft = layerOf()?.firstElementChild as HTMLElement;
+      expect(translateOf(craft).y).toBeLessThan(-20);
+      expect(layerOf()?.querySelectorAll('[data-rocket-flame]')).toHaveLength(
+        2
+      );
     });
 
     it('소비자 onClick이 막으면 엔진을 만들지 않는다', () => {

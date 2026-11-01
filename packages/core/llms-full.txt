@@ -3,7 +3,7 @@
 > A React + TypeScript UI component library where each component carries its own motion.
 > GSAP is the motion runtime (21 components today); visibility, legibility and readability
 > are never traded for it. Zero-runtime CSS via Vanilla Extract, tree-shakable, WCAG 2.2 AA.
-> Runtime dependencies: @vanilla-extract/css, @vanilla-extract/recipes, clsx, gsap, three.
+> Runtime dependencies: @vanilla-extract/css, @vanilla-extract/recipes, clsx, gsap.
 
 ## Installation
 
@@ -1389,11 +1389,18 @@ Other native button attributes are passed to the hub, except `children`, `type` 
 
 ## RocketButton
 
-Send or submit button that launches like a rocket (a mail "Send" button). Pressing it crouches the button slightly down-left (`translate(-2px, 2px) scale(0.97)`, `fast`; it rewinds on `pointerleave` or `pointercancel`). When the native click is confirmed, a decorative copy of the button is lifted onto a fixed layer at the same screen rectangle and follows one beat table (the fin unfolding, the flame length, the button position and tilt and the smoke are all taken from this one beat): crouch (0ms, `fast`, `settle`), tail fins unfold and nozzles come down (from 150ms, `slow`, `snap`), ignition (450ms, `fast`, `settle`: the flames light and the smoke starts) together with a rise of about 25px that overshoots and settles (450ms, `slower`, `spring`), a hover (from 950ms, 1300ms, `drift`: a few px up and down while the flames flicker), then a launch to the upper right at 45 degrees (from 2250ms, 0.8s, `exit`) while the top face tilts 30deg toward the direction of travel and the button shrinks to 0.6x and the flames lengthen with the speed, until it is out of the screen (or out of the `container`). The mark fades in at 3050ms (`base`). The flicker is a function of the time (no random numbers), so the same beat gives the same picture.
+Send or submit button that launches like a rocket (a mail "Send" button). Pressing it crouches the button slightly down-left (`translate(-2px, 2px) scale(0.97)`, `fast`; it rewinds on `pointerleave` or `pointercancel`). When the native click is confirmed, a decorative copy of the button is lifted onto a fixed layer at the same screen rectangle and follows one beat function of the time (the button position and tilt, the flame length and the smoke are all taken from this one beat):
+1. Ignition (0-600ms): the button stays in place and trembles slightly; two flames light under the nozzles and grow until they reach the launch pad (the place where the button stood); smoke rolls sideways from the pad.
+2. Rise (600-1100ms): a spring lifts it about 24px; it overshoots by about 3px and settles.
+3. Hover (1100-3000ms): a slow sine of +-1.5px; the flames lengthen to the pad's distance and flicker.
+4. Launch (3000-5000ms): thrust grows, so it climbs straight at first and accelerates, then curves slowly to the right. The tilt follows the direction of its velocity (at most 20deg). The flames lengthen with the speed and smoke trails from the flame tips. It leaves the screen (or the `container`).
+5. End (5000ms): the mark fades in (`base`, `settle`).
 
-The tail fins, nozzles and flames are drawn in real 3D with three.js: two swept-back triangular tail fins at the lower corners of the button (the left is the mirror of the right, matte primary color with thickness, folded behind the button until they unfold), two small nozzles on the underside of the button at a third and two thirds of its width, and two thin cone flames pointing straight down from the nozzle tips (the primary light step with a white core, drawn with additive blending so they add light and fade out toward the tip). Token colors are read from computed style at run time and the light comes from the upper left, so the fins show a lit face and a shaded one. The canvas is `aria-hidden` with `pointer-events: none`, sits behind the copy inside the flight layer, uses its own WebGL context (not the smoke's), is made only for the flight and is released (`dispose`, context loss) when the flight ends, is cancelled or the component unmounts. Its pixel ratio is capped at 2. three is a `dependency` of the package, loaded with `import('three')` when the button is pointed at (`pointerenter`) or gets focus, so it is not in the first-screen bundle and not in `dist`. If it has not arrived when the button is pressed, it is awaited until 300ms (the crouch and the start of the fin unfolding), and if it arrives in time the scene starts drawing at once with the beat value of that moment; if it is still missing, failed to load or the renderer context cannot be created, the copy flies without fins and flames and only the smoke remains; without WebGL2 there is neither rocket nor smoke and the copy alone follows the same beat. The press never stalls: the crouch starts at once. Pressing again during the flight is ignored. Under reduced motion three is not loaded.
+The motion is a physical model (a spring and a growing thrust), not an easing curve, taken as a deterministic function of the time (the tremble and the flicker are sines, no random numbers), so the same time gives the same picture.
 
-A WebGL2 fluid smoke in pale grey-white (`gray[400]`) comes out of the nozzle tips downward, in the direction of the button's underside, only while the flames burn: every 100ms while it rises and hovers, and every frame during the launch so that it trails behind. Before the launch a band also spreads sideways, outward from each nozzle, near the bottom edge of the box (the `container` or the screen) and piles up while the button hovers, and it clears slowly after the button is gone. It is a decorative `aria-hidden` canvas drawn behind the copy (inside the `container` when one is given), and it is not tied to the flight: it keeps dispersing after the layer is gone and the mark has appeared, then removes itself and releases its GL context (about 3 seconds after the last emission). It is also disposed when the component unmounts. It uses no Blob or worker, so a strict CSP does not matter. Without WebGL2 (or the float render extension) or under reduced motion the flight and the mark are the same, just without smoke. Turn it off with `smoke={false}`.
+The two nozzles (small trapezoids at a third and two thirds of the button's underside) and the two flames are plain DOM inside the copy, so they tilt and shrink with the body. Each flame is a thin white core inside a light primary step that fades out toward the tip (CSS gradients, token colors only); its length changes only through `transform: scaleY` from the top, so no layout property is touched per frame. There is no WebGL canvas for the rocket.
+
+A WebGL2 fluid smoke in pale grey-white (`gray[400]`) rolls sideways from the launch pad under the nozzles (about every 100ms) from ignition to the hover, and trails from the flame tips every frame during the launch, in the direction of the button's underside. It is a decorative `aria-hidden` canvas drawn behind the copy (inside the `container` when one is given), and it is not tied to the flight: it keeps dispersing after the layer is gone and the mark has appeared, then removes itself and releases its GL context (about 3 seconds after the last emission). It is also disposed when the component unmounts. It uses no Blob or worker, so a strict CSP does not matter. Without WebGL2 (or the float render extension) or under reduced motion the flight and the mark are the same, just without smoke. Turn it off with `smoke={false}`; the motion and the flames stay. Pressing again during the flight is ignored.
 
 The original button stays in place but invisible, so the layout does not move. A `sentLabel` mark fades in on its spot (`settle`). It does **not** come back: change the `key` to render it again. There is no undo API.
 
@@ -1411,7 +1418,7 @@ import { RocketButton } from '@taein-ui/core';
 | children | ReactNode | (required) | Button text and the accessible name |
 | sentLabel | string | '보냈어요' | Text of the mark that appears where the button was |
 | container | HTMLElement \| null | document.body | Where the flight layer is drawn. Given an element, the flight stays inside it and is clipped by it. It must be a `position` reference (`relative` and so on) and must not scroll |
-| smoke | boolean | true | Fluid smoke from the nozzle tips while the flames burn, a band along the bottom edge before the launch and a trail behind during it. `false` flies with the tail fins and flames only |
+| smoke | boolean | true | Fluid smoke that rolls sideways from the launch pad until the hover and trails from the flame tips during the launch. `false` flies with the motion and flames only |
 | onClick | MouseEventHandler | - | Native click (on release). Called before the flight; `preventDefault()` there skips the flight. Never called on pointerdown (WCAG 2.5.2) |
 | disabled | boolean | false | Disabled state; it does not crouch or fly |
 | className | string | - | Additional CSS class (on the `<button>`) |
@@ -1422,9 +1429,8 @@ Other native button attributes are passed to the `<button>`, except `children`. 
 ### Accessibility
 - The copy is `aria-hidden` and `inert` decoration (it loses its `id` and every `data-*` attribute).
 - Focus: if the button had focus, it moves to the mark (`tabIndex=-1`) and the status region stays empty, because the text of a focused element is read and a status text would read it twice. If it had no focus, nothing moves and, once the flight is over, `sentLabel` is put into a visually hidden `role="status"` region that exists from the start (a region inserted together with its text may not be read).
-- The rocket canvas and the smoke are `aria-hidden` and ignore the pointer. Turning the smoke off or lacking WebGL2 changes neither the announcement nor the focus.
-- Without the tail fins and flames (three missing, late or failed, the renderer context cannot be created, no WebGL2) the focus and status rules are the same.
-- Reduced motion: no crouch, rocket, flight or smoke, and three is not loaded. The button cross-fades to the mark (`base`). The focus rule is the same.
+- The nozzles and flames are inside the `aria-hidden`, `inert` copy, and the smoke canvas is `aria-hidden` and ignores the pointer. Turning the smoke off or lacking WebGL2 changes neither the announcement nor the focus.
+- Reduced motion: no crouch, flight or smoke. The button cross-fades to the mark (`base`). The focus rule is the same.
 
 ---
 
@@ -1629,7 +1635,7 @@ GSAP 런타임(M3 Tier-B에서 시작해 M7까지)에서 실제로 GSAP이 붙�
 | BurstToggle | 타임라인 상대 위치 · 다중 목표 중단 | 켜면 점들이 사방으로 `slower` `settle`로 퍼지는 타임라인과, 아이콘 칸이 납작했다 튕기는 타임라인(`fast` `settle`로 시작)이 따로 돈다. 새 터짐이 서면 이전 아이콘 칸 타임라인을 죽이고 새로 만든다. 켜짐 상태는 소비자가 쥔다 |
 | HoldButton | 다중 목표 중단 · CSS가 못 보는 값 읽기(홀드 진행값) | 진행값 `p`(0~1) 하나를 `gsap.to`로 트윈하고(홀드 시계, 선형), `onUpdate`가 채움을 그린다. 이 시계는 `gateMotion`을 거치지 않는다(축소 모드에서 즉시 실행되면 안 되므로 `GATE_ENFORCEMENT_EXCEPTIONS` 항목, 축소 모드는 그림만 단계로 끊는다). 놓으면 시계를 죽이고 지금 `p`에서 0으로 `base` `settle`로 되감는다. 끝 무렵의 떨림은 시계와 분리된 장식 타임라인(게이트를 거친다)이다 |
 | CodeSlots | 단일 트윈(숫자가 굴러 들어옴, 지우면 빠짐) + 성공 합쳐짐 타임라인 하나 | 숫자가 들어오면 `yPercent -100 → 0`(`base` `snap`)으로 굴러 들어오고, 지우면 `0 → 100`(`base` `exit`)으로 빠진 뒤 `onComplete`가 빠짐을 확정한다. 슬롯 하나가 트윈 하나씩 갖고 정리 때 죽인다. 성공 합쳐짐은 칸 줄의 CSS 숫자 둘(`fade` 1 → 0 `base` `settle`, 이어서 `merge` 0 → 1 `slower` `settle`)을 모는 타임라인 하나이고, 성공이 켜지면 `play`, 풀리면 `reverse`한다. 정리 때 죽이고 인라인 숫자를 걷는다. 움직임 줄이기에서는 타임라인 없이 CSS가 끝 모양을 세운다 |
-| RocketButton | 타임라인 상대 위치 · 다중 목표 중단 · CSS가 못 보는 값 읽기(단추·container 좌표) | 누르는 순간 웅크림을 `fast` `settle`로 트윈하고(`overwrite: true`) 떼거나 나가면 `base` `settle`로 되돌려, 웅크리는 도중에 풀려도 지금 값에서 이어진다. 발사하면 단추 좌표와 `container` 좌표(`getBoundingClientRect()`)를 읽어 비행 경로를 만들고 `document.body`의 비행 레이어에서 타임라인 하나가 시계 숫자를 0에서 3250ms까지 돌리며 `onUpdate`마다 로켓 박자 함수(웅크림·떠오름·둥실·발사·표지)를 평가해 단추와 꼬리날개·불꽃을 놓고 분사구 끝의 연기 궤적을 낸다. 축소 선호에서는 단추와 표지가 교차 페이드한다 |
+| RocketButton | 타임라인 상대 위치 · 다중 목표 중단 · CSS가 못 보는 값 읽기(단추·container 좌표) | 누르는 순간 웅크림을 `fast` `settle`로 트윈하고(`overwrite: true`) 떼거나 나가면 `base` `settle`로 되돌려, 웅크리는 도중에 풀려도 지금 값에서 이어진다. 발사하면 단추 좌표와 `container` 좌표(`getBoundingClientRect()`)를 읽어 발사 거리를 만들고 `document.body`의 비행 레이어에서 타임라인 하나가 시계 숫자를 0에서 5200ms까지 돌리며 `onUpdate`마다 로켓 박자 함수(점화·떠오름·둥실·발사·표지)를 평가해 단추의 움직임과 불꽃 길이(`scaleY`)를 놓고 발사대와 불꽃 끝의 연기 궤적을 낸다. 축소 선호에서는 단추와 표지가 교차 페이드한다 |
 
 **Flip은 이 목록 어디에도 없다.** 유일한 후보였던 `Card`는 레이아웃 변화를
 CSS 전환으로 충분히 표현할 수 있다고 판단해 채택하지 않았다.
@@ -1688,7 +1694,7 @@ prop은 클라이언트 파일에서 넘긴다.
 
 `FanMenu`도 `'use client'`가 붙는다. 열림·가리킴·포커스 상태를 갖고 포인터와 키보드 이벤트에서 돈다. `items`의 `onSelect` 같은 함수 prop은 클라이언트 파일에서 넘긴다.
 
-`RocketButton`도 `'use client'`가 붙는다. 날아갔는지의 상태를 갖고 포인터·포커스·클릭 이벤트에서 three를 불러오고 GSAP 타임라인을 돌리며 `document.body`에 비행 레이어를 그린다. `onClick` 같은 함수 prop과 `container`(DOM 요소)는 클라이언트 파일에서 넘긴다.
+`RocketButton`도 `'use client'`가 붙는다. 날아갔는지의 상태를 갖고 포인터·클릭 이벤트에서 GSAP 타임라인을 돌리며 `document.body`에 비행 레이어를 그린다. `onClick` 같은 함수 prop과 `container`(DOM 요소)는 클라이언트 파일에서 넘긴다.
 
 `LuminousFlow`도 `'use client'`가 붙는다. canvas 그리기·스크롤 구독·관찰자를 브라우저에서만 돌린다. 첫 렌더(서버 포함)는 대기층 SVG와 어두운 바탕이다. `paused` 같은 prop은 직렬화되는 값이라 서버 컴포넌트에서 넘겨도 된다.
 
