@@ -42,6 +42,8 @@ const borders = (page: Page) =>
 const GRAY = [113, 113, 113];
 const PRIMARY = [25, 118, 210];
 const ERROR = [211, 47, 47];
+// success.dark(#2E7D32)
+const SUCCESS_DARK = 'rgb(46, 125, 50)';
 
 // 색 문자열의 투명도. 불투명이면 알파가 적히지 않는다
 const alphaOf = (color: string) => {
@@ -185,6 +187,37 @@ test.describe('인증번호 슬롯 상세 (1440px)', () => {
     expect(alphaOf(end.bundleBorder)).toBe(1);
     expect(end.bundleWidth).toBeCloseTo(6 * 48, 0);
     expect(end.bundleWidth).toBeCloseTo(end.rowWidth, 0);
+  });
+
+  test('합쳐진 뒤 포커스면 묶음 테두리가 success.dark 색 그대로 1px에서 2px로 굵어지고 링은 없다', async ({
+    page,
+  }) => {
+    await open(page);
+    await page.keyboard.type('123456');
+    await expect.poll(() => gapBetween(page, 4, 5)).toBeCloseTo(0, 0);
+    const bundle = stage(page).locator('input + div > div');
+    const read = () =>
+      bundle.evaluate((el) => {
+        const s = getComputedStyle(el);
+        return {
+          width: s.borderTopWidth,
+          color: s.borderTopColor,
+          outline: s.outlineStyle,
+          box: el.getBoundingClientRect().width,
+        };
+      });
+    // 굵기 전이(fast)가 끝나길 기다린다
+    await expect.poll(async () => (await read()).width).toBe('2px');
+    const focused = await read();
+    expect(focused.color).toBe(SUCCESS_DARK);
+    expect(focused.outline).toBe('none');
+    await input(page).blur();
+    await expect.poll(async () => (await read()).width).toBe('1px');
+    const blurred = await read();
+    expect(blurred.color).toBe(SUCCESS_DARK);
+    expect(blurred.outline).toBe('none');
+    // 굵기가 바뀌어도 레이아웃은 밀리지 않는다
+    expect(blurred.box).toBe(focused.box);
   });
 
   test('합쳐지는 전이 어느 프레임에도 칸별 테두리와 묶음 테두리가 함께 불투명하지 않고, 폭이 scale 없이 줄며, 칸이 윤곽 밖으로 나오지 않는다', async ({
