@@ -589,15 +589,21 @@ test.describe('모션 전체 보기 날개 전송 미니 (1440px)', () => {
       timeout: 15_000,
     });
     await expect(wingMini(page).locator('[data-wing-mark]')).toHaveCount(1);
-    // 미니는 연기를 끈다(문맥 스물다섯 개가 한 화면에 뜨지 않게). 비행 중에도 연기 canvas가 없다
-    await expect(wingMini(page).locator('canvas')).toHaveCount(0);
+    // 미니는 연기를 끈다(문맥 스물다섯 개가 한 화면에 뜨지 않게). 비행 중에도 연기 canvas가 없다.
+    // 로켓 canvas는 비행 층 안에 있으니 거른다(안 거르면 이 단언이 비행이 끝나기를 기다리게 된다)
+    await expect(
+      wingMini(page).locator('canvas:not([data-wing-layer] canvas)')
+    ).toHaveCount(0);
 
     const pause = page.getByRole('button', { name: '움직임 멈춤' });
     await pause.click();
     await expect(pause).toHaveAttribute('aria-pressed', 'true');
     await centre();
-    // 멈추기 직전에 시작한 비행은 끝까지 가므로 끝난 뒤의 자세가 그대로 서 있다
-    await page.waitForTimeout(2000);
+    // 멈추기 직전에 시작한 비행은 끝까지 가고(일시정지는 대본만 멈춘다) 새 비행은 시작하지 않는다.
+    // 시간을 재서 기다리지 않고 비행 층이 걷히는 것을 신호로 삼아, 멈춘 시점이 비행과 겹쳐도 같은 끝 자세에 선다
+    await expect(wingMini(page).locator('[data-wing-layer]')).toHaveCount(0, {
+      timeout: 8000,
+    });
     const snapshot = () =>
       wingMini(page).evaluate((el) => ({
         layer: el.querySelectorAll('[data-wing-layer]').length,
