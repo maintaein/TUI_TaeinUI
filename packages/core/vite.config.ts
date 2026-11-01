@@ -40,7 +40,7 @@ export default defineConfig({
         // exports가 "./*" 와일드카드를 갖고 있어 서브패스도 소비자 쪽에서
         // 정상 resolve된다(확인함).
         id.startsWith('gsap/') ||
-        // three는 WingButton이 가리킬 때 import('three')로 따로 불러오는 dependencies다. 서브패스
+        // three는 RocketButton이 가리킬 때 import('three')로 따로 불러오는 dependencies다. 서브패스
         // (three/addons/... 등)도 위 정확 일치를 통과하지 못해, 외부로 두지 않으면 수 MB가 dist로 새고
         // 첫 화면 번들에 three가 실린다. 소비자 번들러가 이 동적 import를 따로 떼어 낸 덩이로 만든다.
         id === 'three' ||

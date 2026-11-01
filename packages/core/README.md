@@ -47,7 +47,7 @@ function LoginForm() {
 
 ## 컴포넌트 목록
 
-아래는 UI 컴포넌트 25개이고, 모션 컴포넌트 11개(HangulAssemble, BrushText, GooeySearch, CopyButton, BurstToggle, HoldButton, SloshGauge, CodeSlots, FanMenu, WingButton, LuminousFlow)를 포함한 전체 목록과 Props는 `llms.txt`에 있습니다.
+아래는 UI 컴포넌트 25개이고, 모션 컴포넌트 11개(HangulAssemble, BrushText, GooeySearch, CopyButton, BurstToggle, HoldButton, SloshGauge, CodeSlots, FanMenu, RocketButton, LuminousFlow)를 포함한 전체 목록과 Props는 `llms.txt`에 있습니다.
 
 ### 버튼
 

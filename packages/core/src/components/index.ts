@@ -32,5 +32,5 @@ export * from './HoldButton';
 export * from './SloshGauge';
 export * from './CodeSlots';
 export * from './FanMenu';
-export * from './WingButton';
+export * from './RocketButton';
 export * from './LuminousFlow';

@@ -1,10 +1,10 @@
 import { useState, type ComponentProps } from 'react';
 import type { Meta, StoryObj } from '@storybook/react';
-import { Button, WingButton } from '@taein-ui/core';
+import { Button, RocketButton } from '@taein-ui/core';
 
 const meta = {
-  title: 'Motion/WingButton',
-  component: WingButton,
+  title: 'Motion/RocketButton',
+  component: RocketButton,
   parameters: {
     layout: 'centered',
   },
@@ -13,13 +13,13 @@ const meta = {
     children: '보내기',
     sentLabel: '보냈어요',
   },
-} satisfies Meta<typeof WingButton>;
+} satisfies Meta<typeof RocketButton>;
 
 export default meta;
 type Story = StoryObj<typeof meta>;
 
 // 한 번만 난다. 다시 보내 보려면 key를 바꿔 새로 그린다. 무대(position: relative)에 가두면 그 안에서 날아간다
-const Demo = (args: ComponentProps<typeof WingButton>) => {
+const Demo = (args: ComponentProps<typeof RocketButton>) => {
   const [round, setRound] = useState(0);
   const [stage, setStage] = useState<HTMLElement | null>(null);
   return (
@@ -36,7 +36,7 @@ const Demo = (args: ComponentProps<typeof WingButton>) => {
           overflow: 'hidden',
         }}
       >
-        <WingButton key={round} container={stage} {...args} />
+        <RocketButton key={round} container={stage} {...args} />
       </div>
       <Button variant="light" onClick={() => setRound((n) => n + 1)}>
         다시

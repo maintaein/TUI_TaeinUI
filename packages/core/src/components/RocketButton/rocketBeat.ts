@@ -21,7 +21,7 @@ export const easeAt = (
   p: number
 ) => gsap.parseEase(token)(p);
 
-export type WingPhase =
+export type RocketPhase =
   | 'crouch'
   | 'fins'
   | 'ignite'
@@ -86,7 +86,7 @@ const slope = (p: number) => {
 };
 const MAX_SLOPE = slope(1);
 
-export interface WingGeometry {
+export interface RocketGeometry {
   /** 단추 크기(px) */
   width: number;
   height: number;
@@ -94,8 +94,8 @@ export interface WingGeometry {
   distance: number;
 }
 
-export interface WingBeat {
-  phase: WingPhase;
+export interface RocketBeat {
+  phase: RocketPhase;
   /** 꼬리날개가 펴진 정도이자 분사구가 내려온 정도. 0에서 1(snap이라 끝 직전에 조금 넘친다) */
   fins: number;
   /** 불꽃 길이(기본 길이의 배수). 0이면 꺼졌다. 점화 뒤 깜빡이고 발사 중 속도에 따라 `FLAME_PEAK`까지 길어진다 */
@@ -115,7 +115,7 @@ export interface WingBeat {
 
 const clamp01 = (value: number) => Math.min(1, Math.max(0, value));
 
-const phaseAt = (t: number): WingPhase => {
+const phaseAt = (t: number): RocketPhase => {
   if (t >= BEAT.sent) return 'sent';
   if (t >= BEAT.launch) return 'launch';
   if (t >= BEAT.hover) return 'hover';
@@ -137,7 +137,10 @@ const bobAt = (t: number) => {
   return 0;
 };
 
-export const wingBeat = (tMs: number, geometry: WingGeometry): WingBeat => {
+export const rocketBeat = (
+  tMs: number,
+  geometry: RocketGeometry
+): RocketBeat => {
   const phase = phaseAt(tMs);
   // 보냈어요 단계에서도 자세는 발사 끝에 머문다
   const t = Math.min(Math.max(tMs, 0), BEAT.sent);

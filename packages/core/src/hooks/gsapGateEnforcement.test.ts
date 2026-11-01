@@ -38,7 +38,7 @@ interface GateEnforcementException {
 
 /**
  * 게이트 없이 gsap을 쓰는 게 정당한 파일의 목록. 첫 입주자는 M3 T3
- * `Snackbar`, 둘째는 M7 T9 `HoldButton`, 셋째는 M7.1 T7 `wingBeat`(이징 평가만 하는 순수 함수)이다. 아래 "정확히 이 항목들" 검사가 목록이 몰래 늘지 않는지 잠근다.
+ * `Snackbar`, 둘째는 M7 T9 `HoldButton`, 셋째는 M7.1 T7 `rocketBeat`(이징 평가만 하는 순수 함수)이다. 아래 "정확히 이 항목들" 검사가 목록이 몰래 늘지 않는지 잠근다.
  */
 const GATE_ENFORCEMENT_EXCEPTIONS: GateEnforcementException[] = [
   {
@@ -63,11 +63,11 @@ const GATE_ENFORCEMENT_EXCEPTIONS: GateEnforcementException[] = [
       '떨림, 실행 뒤 체크의 spring 튕김, 되감기와 무장 이동.',
   },
   {
-    path: 'components/WingButton/wingBeat.ts',
+    path: 'components/RocketButton/rocketBeat.ts',
     reason:
       '로켓 박자를 시각 t의 순수 함수로 계산하는 파일이다. gsap.parseEase로 토큰 이징 곡선을 ' +
       '평가할 뿐 트윈도 타임라인도 시계도 만들지 않아 게이트가 확정하거나 죽일 애니메이션이 없다. ' +
-      '이 함수를 시계에 얹어 돌리는 WingButton.tsx가 gateMotion/settleMotion을 거친다(M7.1 T7).',
+      '이 함수를 시계에 얹어 돌리는 RocketButton.tsx가 gateMotion/settleMotion을 거친다(M7.1 T7).',
   },
 ];
 
@@ -98,7 +98,7 @@ describe('GSAP 진입점은 게이트를 거친다 (T2 강제)', () => {
     expect(GATE_ENFORCEMENT_EXCEPTIONS.map((e) => e.path)).toEqual([
       'components/Snackbar/Snackbar.tsx',
       'components/HoldButton/HoldButton.tsx',
-      'components/WingButton/wingBeat.ts',
+      'components/RocketButton/rocketBeat.ts',
     ]);
     expect(
       GATE_ENFORCEMENT_EXCEPTIONS.every((e) => e.reason.trim().length > 0)

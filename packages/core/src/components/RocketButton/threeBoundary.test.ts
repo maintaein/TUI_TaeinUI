@@ -80,8 +80,8 @@ describe('three 번들 경계', () => {
     const exported = [
       readFileSync(resolve(SRC, 'index.ts'), 'utf-8'),
       readFileSync(resolve(SRC, 'components/index.ts'), 'utf-8'),
-      readFileSync(resolve(SRC, 'components/WingButton/index.ts'), 'utf-8'),
+      readFileSync(resolve(SRC, 'components/RocketButton/index.ts'), 'utf-8'),
     ].join('\n');
-    expect(exported).not.toMatch(/loadThree|wingBeat/);
+    expect(exported).not.toMatch(/loadThree|rocketBeat/);
   });
 });

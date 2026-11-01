@@ -6,11 +6,11 @@ import {
   FLAME_PEAK,
   NOZZLE_RATIO,
   easeAt,
-  wingBeat,
-} from './wingBeat';
+  rocketBeat,
+} from './rocketBeat';
 
 const GEOMETRY = { width: 120, height: 44, distance: 400 };
-const beat = (t: number) => wingBeat(t, GEOMETRY);
+const beat = (t: number) => rocketBeat(t, GEOMETRY);
 // 이징은 토큰 이름을 직접 적어 기대값을 만든다(구현이 단계마다 무엇을 골랐는지에서 기대값을 끌어오지 않는다)
 const settle = (p: number) => easeAt(gsapEasing.settle, p);
 const snap = (p: number) => easeAt(gsapEasing.snap, p);
@@ -18,7 +18,7 @@ const spring = (p: number) => easeAt(gsapEasing.spring, p);
 const drift = (p: number) => easeAt(gsapEasing.drift, p);
 const exit = (p: number) => easeAt(gsapEasing.exit, p);
 
-describe('wingBeat 박자표 (설계서 8절 로켓)', () => {
+describe('rocketBeat 박자표 (설계서 8절 로켓)', () => {
   it('단계는 0, 150, 450, 950, 2250, 3050ms에서 바뀐다', () => {
     const at = (t: number) => beat(t).phase;
     expect(at(0)).toBe('crouch');
@@ -189,7 +189,7 @@ describe('wingBeat 박자표 (설계서 8절 로켓)', () => {
 
 // 박자표의 이징 열. 구간마다 중간 한 점에서 토큰 이름으로 만든 곡선과 맞댄다.
 // 끝점만 보면 어떤 곡선이어도 통과하므로 곡선이 엉뚱한 것으로 바뀌면 여기서 빨개진다
-describe('wingBeat 이징 열 (설계서 8절 로켓)', () => {
+describe('rocketBeat 이징 열 (설계서 8절 로켓)', () => {
   // 시험의 전제: 곡선들이 중간 점에서 서로 달라야 이징을 바꿔 끼운 것이 보인다
   it('다섯 곡선은 중간 점에서 서로 다르다', () => {
     const mids = [settle, snap, spring, drift, exit].map((fn) => fn(0.5));

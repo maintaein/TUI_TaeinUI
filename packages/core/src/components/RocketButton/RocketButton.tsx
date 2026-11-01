@@ -18,7 +18,7 @@ import { visuallyHidden } from '../../_internal/visuallyHidden.css';
 import { gsapDuration, gsapEasing } from '../../tokens/gsapEasing';
 import { useReducedMotion } from '../../hooks/useReducedMotion';
 import { settleMotion } from '../../hooks/gateMotion';
-import { BEAT, BEAT_END, CROUCH, TAIL_REACH, wingBeat } from './wingBeat';
+import { BEAT, BEAT_END, CROUCH, TAIL_REACH, rocketBeat } from './rocketBeat';
 import { makeSmoke } from './smokeEngine';
 import { awaitWings, preloadThree, type WingsOutcome } from './loadThree';
 import { makeWingScene, type WingScene } from './wingScene';
@@ -30,9 +30,9 @@ import {
   layer,
   craft,
   cloneHost,
-} from './WingButton.css';
+} from './RocketButton.css';
 
-export interface WingButtonProps extends Omit<
+export interface RocketButtonProps extends Omit<
   ButtonHTMLAttributes<HTMLButtonElement>,
   'children'
 > {
@@ -57,10 +57,10 @@ export interface WingButtonProps extends Omit<
 
 // 테스트가 현재 타임라인과 웅크림을 읽는 손잡이(BurstToggle의 타임라인 손잡이와 같은 모양).
 type Host = HTMLElement & {
-  __wingTimeline?: gsap.core.Timeline;
-  __wingCrouch?: gsap.core.Tween;
+  __rocketTimeline?: gsap.core.Timeline;
+  __rocketCrouch?: gsap.core.Tween;
   // 누른 뒤 three를 기다린 결과. 정해지기 전에는 undefined(DOM 속성을 늘리지 않고 시험이 읽는 손잡이)
-  __wingOutcome?: WingsOutcome;
+  __rocketOutcome?: WingsOutcome;
 };
 
 // 눌림 되감기용 제자리
@@ -154,7 +154,7 @@ const measureFlight = (
 
 /**
  * 메일 보내기·제출·전송 단추. 누르는 순간 왼쪽 아래로 살짝 웅크리고, click이 확정되면 단추 모양 복제본이
- * 박자(`wingBeat`) 하나를 따라 꼬리날개가 펴지고 분사구가 내려오며 불꽃이 켜져 약 25px 떠올랐다 앉고(살짝 넘친다)
+ * 박자(`rocketBeat`) 하나를 따라 꼬리날개가 펴지고 분사구가 내려오며 불꽃이 켜져 약 25px 떠올랐다 앉고(살짝 넘친다)
  * 몇 px 둥실거린 뒤, 오른쪽 위로 가속하며 진행 방향으로 기울고 불꽃이 길어지며 화면(또는 `container`) 밖으로 날아간다.
  * 불꽃이 켜진 동안 분사구 끝에서 연기가 나와 바닥에 띠가 쌓인다. 원래 단추는 그 순간 보이지 않게 두어 자리를
  * 지키고, 날아간 뒤 그 자리에 `sentLabel` 표지가 떠오른다. 돌아오지 않으며 소비자가 `key`를 바꿔 다시 그린다.
@@ -164,7 +164,7 @@ const measureFlight = (
  * 누를 때까지 못 받았거나 불러오기에 실패했거나 WebGL2가 없으면 꼬리날개와 불꽃 없이 난다(연기는 WebGL2가 있어야 나온다).
  * 움직임 줄이기에서는 비행 없이(그 라이브러리도 받지 않는다) 단추가 표지로 교차 페이드된다.
  */
-export const WingButton = forwardRef<HTMLButtonElement, WingButtonProps>(
+export const RocketButton = forwardRef<HTMLButtonElement, RocketButtonProps>(
   (
     {
       children,
@@ -201,7 +201,7 @@ export const WingButton = forwardRef<HTMLButtonElement, WingButtonProps>(
       const host = hostRef.current;
       if (!el || !host || !crouched.current) return;
       crouched.current = false;
-      host.__wingCrouch = gsap.to(el, {
+      host.__rocketCrouch = gsap.to(el, {
         ...REST,
         duration: gsapDuration.base,
         ease: gsapEasing.settle,
@@ -219,7 +219,7 @@ export const WingButton = forwardRef<HTMLButtonElement, WingButtonProps>(
       }
       if (event.button > 0) return;
       crouched.current = true;
-      host.__wingCrouch = gsap.to(el, {
+      host.__rocketCrouch = gsap.to(el, {
         ...CROUCH,
         duration: gsapDuration.fast,
         ease: gsapEasing.settle,
@@ -342,11 +342,11 @@ export const WingButton = forwardRef<HTMLButtonElement, WingButtonProps>(
           height: flight.height,
           distance: flight.dx,
         };
-        // 박자 하나(wingBeat)가 단추의 움직임, 꼬리날개와 불꽃, 분사구 끝 연기, 표지를 모두 정한다. 시계는 0에서 끝까지 도는 숫자 하나다
+        // 박자 하나(rocketBeat)가 단추의 움직임, 꼬리날개와 불꽃, 분사구 끝 연기, 표지를 모두 정한다. 시계는 0에서 끝까지 도는 숫자 하나다
         const clock = { t: 0 };
         let lastPuff = -Infinity;
         const tick = () => {
-          const beat = wingBeat(clock.t, geometry);
+          const beat = rocketBeat(clock.t, geometry);
           // 눌렀다 뗀 click이면 웅크림 구간은 이미 웅크린 자세를 이어받는다
           const pose =
             launch.crouched && beat.phase === 'crouch' ? CROUCH : beat;
@@ -365,7 +365,7 @@ export const WingButton = forwardRef<HTMLButtonElement, WingButtonProps>(
               wings.render();
             } catch {
               endWings();
-              host.__wingOutcome = { status: 'failed' };
+              host.__rocketOutcome = { status: 'failed' };
             }
           }
           const engine = smokeRef.current;
@@ -394,10 +394,10 @@ export const WingButton = forwardRef<HTMLButtonElement, WingButtonProps>(
         tick();
         // three를 기다린다. 누르는 순간은 멈칫하지 않고(웅크림과 꼬리날개 펴짐이 먼저 돈다) 300ms 안에 오면 온 시점의 박자 값으로 바로
         // 그리기 시작한다. 안 오거나 실패하거나 WebGL2가 없거나 렌더러 컨텍스트를 못 만들면 꼬리날개와 불꽃 없이 난다
-        host.__wingOutcome = undefined;
+        host.__rocketOutcome = undefined;
         awaitWings(WAIT_FOR_WINGS).then((outcome) => {
           if (ended) return;
-          host.__wingOutcome = outcome;
+          host.__rocketOutcome = outcome;
           if (outcome.status !== 'ready') return;
           let scene: WingScene | undefined;
           try {
@@ -408,13 +408,13 @@ export const WingButton = forwardRef<HTMLButtonElement, WingButtonProps>(
             });
             // 단추 복제본 뒤에 깔려 꼬리날개 뿌리와 분사구 윗부분이 단추에 가려진다
             body.prepend(scene.canvas);
-            const beat = wingBeat(clock.t, geometry);
+            const beat = rocketBeat(clock.t, geometry);
             scene.update(beat);
             scene.render();
             wings = scene;
           } catch {
             scene?.dispose();
-            host.__wingOutcome = { status: 'failed' };
+            host.__rocketOutcome = { status: 'failed' };
           }
         });
         timeline = gsap
@@ -433,7 +433,7 @@ export const WingButton = forwardRef<HTMLButtonElement, WingButtonProps>(
           .call(done, [], BEAT.sent / 1000);
       }
       timelineRef.current = timeline;
-      host.__wingTimeline = timeline;
+      host.__rocketTimeline = timeline;
       return () => {
         endWings();
         timeline.kill();
@@ -474,7 +474,12 @@ export const WingButton = forwardRef<HTMLButtonElement, WingButtonProps>(
           </Button>
         </span>
         {launch && (
-          <span ref={markRef} tabIndex={-1} className={mark} data-wing-mark="">
+          <span
+            ref={markRef}
+            tabIndex={-1}
+            className={mark}
+            data-rocket-mark=""
+          >
             <Glyph name="check" size="sm" />
             <span className={markText}>{sentLabel}</span>
           </span>
@@ -489,7 +494,7 @@ export const WingButton = forwardRef<HTMLButtonElement, WingButtonProps>(
           createPortal(
             <div
               className={layer}
-              data-wing-layer=""
+              data-rocket-layer=""
               data-contained={container ? '' : undefined}
               aria-hidden="true"
               inert
@@ -514,4 +519,4 @@ export const WingButton = forwardRef<HTMLButtonElement, WingButtonProps>(
   }
 );
 
-WingButton.displayName = 'WingButton';
+RocketButton.displayName = 'RocketButton';

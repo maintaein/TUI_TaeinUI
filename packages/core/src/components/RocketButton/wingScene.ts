@@ -5,19 +5,19 @@ import {
   FLAME_RATIO,
   NOZZLE_RATIO,
   NOZZLE_X,
-  type WingBeat,
-  type WingGeometry,
-} from './wingBeat';
+  type RocketBeat,
+  type RocketGeometry,
+} from './rocketBeat';
 
 // 로켓 장면(M7.1 T8). 꼬리날개 둘, 분사구 둘, 불꽃 둘을 three로 그린다. three 모듈은 인자로 받는다
 // (값 import 금지: 첫 화면 번들에 three가 실리지 않게 loadThree가 따로 불러온다).
-// 박자 함수(wingBeat)의 결과를 자세로 바꾸는 순수 함수(wingPose), 그 자세를 걸 장면(buildWingRig, WebGL 없이 만들어진다),
+// 박자 함수(rocketBeat)의 결과를 자세로 바꾸는 순수 함수(wingPose), 그 자세를 걸 장면(buildWingRig, WebGL 없이 만들어진다),
 // 렌더러까지 묶은 createWingScene으로 나뉜다. 렌더러만 WebGL이 있어야 한다.
 
 type ThreeModule = typeof Three;
 
 /** 로켓이 박자 하나에서 받는 입력 */
-export type WingInput = Pick<WingBeat, 'fins' | 'flame'>;
+export type WingInput = Pick<RocketBeat, 'fins' | 'flame'>;
 
 // 꼬리날개(오른쪽 기준): 단추 옆면에 박힌 뿌리가 높이 방향으로 길고 끝이 바깥 아래로 젖혀진 삼각형. 단추 높이(H)에 대한 비
 const FIN_ROOT_TOP = 0.45;
@@ -152,7 +152,7 @@ const flameGeometry = (
  */
 export const buildWingRig = (
   three: ThreeModule,
-  { width, height }: Pick<WingGeometry, 'width' | 'height'>,
+  { width, height }: Pick<RocketGeometry, 'width' | 'height'>,
   colors: WingColors
 ): WingRig => {
   // 위로는 꼬리날개 위까지, 아래로는 불꽃이 가장 길 때(꼬리날개 끝보다 더 아래다) 끝까지 덮는다
@@ -288,7 +288,7 @@ export interface WingScene {
 }
 
 export interface WingSceneOptions extends Pick<
-  WingGeometry,
+  RocketGeometry,
   'width' | 'height'
 > {
   /** 토큰 색을 읽을 DOM(테마가 걸린 곳). 비행 레이어 안의 단추 상자다 */

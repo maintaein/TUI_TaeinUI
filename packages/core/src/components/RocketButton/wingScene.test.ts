@@ -4,8 +4,8 @@ import {
   FLAME_RATIO,
   NOZZLE_RATIO,
   NOZZLE_X,
-  wingBeat,
-} from './wingBeat';
+  rocketBeat,
+} from './rocketBeat';
 import {
   buildWingRig,
   createWingScene,
@@ -54,10 +54,10 @@ describe('wingPose: 박자 값 -> 로켓 자세', () => {
     expect(wingPose({ fins: 1, flame: -0.1 }, 44).flameLength).toBe(0);
   });
 
-  it('wingBeat의 출력을 그대로 받는다: 점화 전에는 꺼져 있고 발사 끝에는 가장 길다', () => {
-    const early = wingPose(wingBeat(100, GEOMETRY), GEOMETRY.height);
-    const hover = wingPose(wingBeat(1500, GEOMETRY), GEOMETRY.height);
-    const late = wingPose(wingBeat(3040, GEOMETRY), GEOMETRY.height);
+  it('rocketBeat의 출력을 그대로 받는다: 점화 전에는 꺼져 있고 발사 끝에는 가장 길다', () => {
+    const early = wingPose(rocketBeat(100, GEOMETRY), GEOMETRY.height);
+    const hover = wingPose(rocketBeat(1500, GEOMETRY), GEOMETRY.height);
+    const late = wingPose(rocketBeat(3040, GEOMETRY), GEOMETRY.height);
     expect(early.flameLength).toBe(0);
     expect(hover.fold).toBeCloseTo(0);
     expect(hover.flameLength).toBeGreaterThan(0);
