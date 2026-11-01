@@ -49,7 +49,7 @@ export const preloadThree = () => {
 
 /**
  * 누른 순간부터 `waitMs`까지 three를 기다린 결과. 그때까지 안 왔으면 `timeout`, 불러오기가 실패했으면
- * `failed`, WebGL2가 없으면 `no-webgl2`다. 어느 쪽이든 날개 없이 연기만으로 난다. `timeout`은 확정이다:
+ * `failed`, WebGL2가 없으면 `no-webgl2`다. 어느 쪽이든 날개는 그리지 않는다(WebGL2가 없으면 연기 엔진도 없어 단추만 난다). `timeout`은 확정이다:
  * 나중에 도착해도 이번 비행에는 쓰지 않는다.
  */
 export const awaitWings = (waitMs: number): Promise<WingsOutcome> => {

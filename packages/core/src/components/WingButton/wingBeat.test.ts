@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { BEAT, BEAT_END, WING_DOWN, WING_UP, wingBeat } from './wingBeat';
+import {
+  BEAT,
+  BEAT_EASE,
+  BEAT_END,
+  WING_DOWN,
+  WING_UP,
+  wingBeat,
+} from './wingBeat';
 
 const GEOMETRY = { width: 120, height: 44, distance: 400 };
 const beat = (t: number) => wingBeat(t, GEOMETRY);
@@ -156,5 +163,56 @@ describe('wingBeat 박자표 (설계서 8절)', () => {
 
   it('음수 시각은 0과 같다', () => {
     expect(beat(-50)).toEqual(beat(0));
+  });
+});
+
+// 박자표의 이징 열. 구간마다 중간 한 점에서 해당 토큰 곡선(같은 parseEase)으로 기대값을 계산해 맞댄다.
+// 끝점만 보면 어떤 곡선이어도 통과하므로 토큰이 바뀌거나 곡선이 엉뚱한 것으로 바뀌면 여기서 빨개진다
+describe('wingBeat 이징 열 (설계서 8절)', () => {
+  const { settle, snap, drift, exit } = BEAT_EASE;
+  // 시험의 전제: 곡선들이 중간 점에서 서로 달라야 이징을 바꿔 끼운 것이 보인다
+  it('네 곡선은 중간 점에서 서로 다르다', () => {
+    const mids = [settle, snap, drift, exit].map((fn) => fn(0.5));
+    expect(new Set(mids.map((v) => v.toFixed(4))).size).toBe(4);
+  });
+
+  it('웅크림은 settle이다(0~150ms)', () => {
+    const b = beat(75);
+    expect(b.x).toBeCloseTo(-2 * settle(0.5), 6);
+    expect(b.scale).toBeCloseTo(1 - 0.03 * settle(0.5), 6);
+  });
+
+  it('봉오리와 웅크림 풀림은 snap이다(150~300ms)', () => {
+    const b = beat(225);
+    expect(b.bud).toBeCloseTo(snap(0.5), 6);
+    expect(b.x).toBeCloseTo(-2 * (1 - snap(0.5)), 6);
+    expect(b.scale).toBeCloseTo(0.97 + 0.03 * snap(0.5), 6);
+  });
+
+  it('깃 펼침은 snap이다(깃마다 300ms)', () => {
+    // 깃 0은 300ms에 시작: 450ms가 절반, 깃 1은 345ms에 시작: 495ms가 절반
+    expect(beat(450).feathers[0]).toBeCloseTo(snap(0.5), 6);
+    expect(beat(495).feathers[1]).toBeCloseTo(snap(0.5), 6);
+  });
+
+  it('아래치기는 settle, 위치기는 drift다(각도와 들림)', () => {
+    const down = beat(750 + 100);
+    expect(down.wingAngle).toBeCloseTo(35 + (-30 - 35) * settle(0.5), 6);
+    expect(down.y).toBeCloseTo(-6 * settle(0.5), 6);
+    const up = beat(750 + 200 + 150);
+    expect(up.wingAngle).toBeCloseTo(-30 + (35 + 30) * drift(0.5), 6);
+    // 둘째 아래치기의 들림은 첫째 높이에서 이어 오른다
+    expect(beat(1250 + 100).y).toBeCloseTo(-(6 + (10 - 6) * settle(0.5)), 6);
+  });
+
+  it('이륙의 이동은 exit, 기울기는 settle이다', () => {
+    const b = wingBeat(2650, GEOMETRY);
+    expect(b.x).toBeCloseTo(GEOMETRY.distance * exit(0.5), 6);
+    expect(b.rotation).toBeCloseTo(-15 * settle(0.5), 6);
+    expect(b.scale).toBeCloseTo(1 - 0.4 * 0.5, 6);
+  });
+
+  it('표지는 settle로 떠오른다(3050~3250ms)', () => {
+    expect(beat(3150).mark).toBeCloseTo(settle(0.5), 6);
   });
 });

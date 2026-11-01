@@ -18,15 +18,18 @@ import {
 import userEvent from '@testing-library/user-event';
 import { WingButton } from './WingButton';
 import { gsapDuration, gsapEasing } from '../../tokens/gsapEasing';
-import { BEAT, BEAT_END } from './wingBeat';
+import { BEAT, BEAT_END, wingBeat } from './wingBeat';
+import { replaceSmokeFactory } from './smokeEngine';
 import { replaceThreeImporter, type ThreeModule } from './loadThree';
 
 // WingButton.tsx가 바깥 상자에 얹는 손잡이(BurstToggle의 타임라인 손잡이와 같은 모양).
 type WingHost = HTMLElement & {
   __wingTimeline?: gsap.core.Timeline;
   __wingCrouch?: gsap.core.Tween;
+  __wingOutcome?: { status: string };
 };
 
+const GEOMETRY = { width: 120, height: 44, distance: 0 };
 const button = (name: string | RegExp = '보내기') =>
   screen.getByRole('button', { name });
 const hostOf = (container: HTMLElement) =>
@@ -596,9 +599,9 @@ describe('WingButton', () => {
       fireEvent.click(button());
       // 누른 순간 멈칫 없이 비행이 선다
       expect(layerOf()).not.toBeNull();
-      expect(hostOf(container)).toHaveAttribute('data-wings', 'pending');
+      expect(hostOf(container).__wingOutcome).toBeUndefined();
       await waitFor(() =>
-        expect(hostOf(container)).toHaveAttribute('data-wings', 'no-webgl2')
+        expect(hostOf(container).__wingOutcome?.status).toBe('no-webgl2')
       );
       expect(calls.n).toBe(0);
     });
@@ -613,7 +616,7 @@ describe('WingButton', () => {
       });
       fireEvent.click(button());
       await waitFor(() =>
-        expect(hostOf(container)).toHaveAttribute('data-wings', 'ready')
+        expect(hostOf(container).__wingOutcome?.status).toBe('ready')
       );
       expect(calls.n).toBe(1);
     });
@@ -626,7 +629,7 @@ describe('WingButton', () => {
       fireEvent.click(button());
       expect(layerOf()).not.toBeNull();
       await waitFor(() =>
-        expect(hostOf(container)).toHaveAttribute('data-wings', 'failed')
+        expect(hostOf(container).__wingOutcome?.status).toBe('failed')
       );
       expect(markOf(container)).toHaveFocus();
       expect(screen.getByRole('status')).toHaveTextContent('');
@@ -644,15 +647,14 @@ describe('WingButton', () => {
       );
       const { container } = render(<WingButton>보내기</WingButton>);
       fireEvent.click(button());
-      expect(hostOf(container)).toHaveAttribute('data-wings', 'pending');
+      expect(hostOf(container).__wingOutcome).toBeUndefined();
       await waitFor(
-        () =>
-          expect(hostOf(container)).toHaveAttribute('data-wings', 'timeout'),
+        () => expect(hostOf(container).__wingOutcome?.status).toBe('timeout'),
         { timeout: 2000 }
       );
       arrive(await import('three'));
       await act(async () => {});
-      expect(hostOf(container)).toHaveAttribute('data-wings', 'timeout');
+      expect(hostOf(container).__wingOutcome?.status).toBe('timeout');
       // 날개 없이 연기만으로 날아 상태 알림 규칙은 같다
       finish(hostOf(container).__wingTimeline as gsap.core.Timeline);
       expect(screen.getByRole('status')).toHaveTextContent('보냈어요');
@@ -759,6 +761,86 @@ describe('WingButton', () => {
       act(() => notify());
       expect(layerOf()).toBeNull();
       expect(markOf(container)).toHaveStyle({ opacity: '1' });
+    });
+  });
+
+  // 날개 밑 연기를 내보내는 연결(박자 함수의 smoke를 엔진 emit으로 바꾸는 곳)을 시험한다. jsdom에는 엔진이 없어
+  // 엔진 자리에 emit 호출을 기록하는 손을 끼운다(replaceSmokeFactory).
+  describe('날개 밑 연기', () => {
+    type Call = {
+      kind: 'emit' | 'burst';
+      x: number;
+      y: number;
+      vx: number;
+      vy: number;
+      t: number;
+    };
+    const record = () => {
+      const calls: Call[] = [];
+      const now = { t: 0 };
+      replaceSmokeFactory(() => ({
+        canvas: document.createElement('canvas'),
+        emit: (x, y, vx, vy) =>
+          calls.push({ kind: 'emit', x, y, vx, vy, t: now.t }),
+        burst: (x, y) =>
+          calls.push({ kind: 'burst', x, y, vx: 0, vy: 0, t: now.t }),
+        dispose: () => {},
+      }));
+      return { calls, now };
+    };
+    afterEach(() => replaceSmokeFactory());
+
+    // 10ms씩 시계를 보내며 날개 밑 연기(수직 속도만 있는 emit)의 시각을 모은다
+    const fly = () => {
+      const { calls, now } = record();
+      const view = render(<WingButton>보내기</WingButton>);
+      fireEvent.click(button());
+      const tl = hostOf(view.container).__wingTimeline as gsap.core.Timeline;
+      for (let ms = 0; ms <= BEAT.sent; ms += 10) {
+        now.t = ms;
+        act(() => void tl.time(ms / 1000));
+      }
+      return calls.filter((c) => c.kind === 'emit' && c.vx === 0);
+    };
+
+    it('아래로 칠 때만 양쪽 날개 밑에서 아래로 60ms 간격으로 내보내고 위로 올릴 때와 웅크림 구간에는 내보내지 않는다', () => {
+      const puffs = fly();
+      expect(puffs.length).toBeGreaterThan(0);
+      for (const c of puffs) expect(wingBeat(c.t, GEOMETRY).smoke).toBe(true);
+      expect(puffs.every((c) => c.vy > 0)).toBe(true);
+      // 첫 아래치기(750~950ms)에 60ms 간격으로 네 번, 날개마다 하나씩
+      const first = puffs.filter((c) => c.t >= 750 && c.t < 950);
+      expect(first.map((c) => c.t)).toEqual([
+        750, 750, 810, 810, 870, 870, 930, 930,
+      ]);
+      // 위치기(950~1250ms)와 웅크림, 봉오리, 깃 펼침(0~750ms)에는 없다
+      expect(puffs.filter((c) => c.t < 750)).toEqual([]);
+      expect(puffs.filter((c) => c.t >= 950 && c.t < 1250)).toEqual([]);
+    });
+
+    it('내보내는 자리는 박자 함수의 날개 밑 자리에 이동과 기울기와 배율을 건 창 좌표다', () => {
+      const puffs = fly();
+      // jsdom에서 복제본 상자의 사각형은 0이라 중심은 (0, 0)이다. 750ms에는 이동·회전이 없다(들림 0, 배율 1)
+      const at750 = puffs.filter((c) => c.t === 750);
+      const [left, right] = wingBeat(750, GEOMETRY).smokeAt;
+      expect(at750.map((c) => [c.x, c.y])).toEqual([
+        [left.x, left.y],
+        [right.x, right.y],
+      ]);
+      // 이륙 중(2600ms)에는 기울기와 배율이 걸린다
+      const t = 2600;
+      const beat = wingBeat(t, GEOMETRY);
+      const rad = (beat.rotation * Math.PI) / 180;
+      const expected = beat.smokeAt.map((p) => [
+        beat.scale * (p.x * Math.cos(rad) - p.y * Math.sin(rad)),
+        beat.scale * (p.x * Math.sin(rad) + p.y * Math.cos(rad)),
+      ]);
+      const near = puffs.filter((c) => c.t === 2600);
+      expect(near).toHaveLength(2);
+      near.forEach((c, i) => {
+        expect(c.x).toBeCloseTo(expected[i][0], 3);
+        expect(c.y).toBeCloseTo(expected[i][1], 3);
+      });
     });
   });
 

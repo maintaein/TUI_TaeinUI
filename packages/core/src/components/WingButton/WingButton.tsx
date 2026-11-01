@@ -13,13 +13,14 @@ import { createPortal } from 'react-dom';
 import { gsap } from 'gsap';
 import { Button } from '../Button';
 import { Glyph } from '../../_internal/glyph';
-import { createFluidSmoke, type FluidSmoke } from '../../_internal/fluidSmoke';
+import { type FluidSmoke } from '../../_internal/fluidSmoke';
 import { visuallyHidden } from '../../_internal/visuallyHidden.css';
 import { gsapDuration, gsapEasing } from '../../tokens/gsapEasing';
 import { useReducedMotion } from '../../hooks/useReducedMotion';
 import { settleMotion } from '../../hooks/gateMotion';
 import { tailSpray, type Point } from './smokeTrail';
 import { BEAT, BEAT_END, CROUCH, WING_RATIO, wingBeat } from './wingBeat';
+import { makeSmoke } from './smokeEngine';
 import { awaitWings, preloadThree, type WingsOutcome } from './loadThree';
 import {
   root,
@@ -58,6 +59,8 @@ export interface WingButtonProps extends Omit<
 type Host = HTMLElement & {
   __wingTimeline?: gsap.core.Timeline;
   __wingCrouch?: gsap.core.Tween;
+  // 누른 뒤 three를 기다린 결과. 정해지기 전에는 undefined(DOM 속성을 늘리지 않고 시험이 읽는 손잡이)
+  __wingOutcome?: WingsOutcome;
 };
 
 // 눌림 되감기용 제자리
@@ -82,7 +85,6 @@ interface Flight {
   width: number;
   height: number;
   dx: number;
-  dy: number;
   /** 레이어(창 또는 container 안쪽 상자)의 창 좌표 사각형. 이 밖에는 연기를 뿜지 않는다 */
   bounds: { left: number; top: number; right: number; bottom: number };
 }
@@ -142,7 +144,6 @@ const measureFlight = (
     width: rect.width,
     height: rect.height,
     dx: distance,
-    dy: -distance,
     bounds: {
       left: originX,
       top: originY,
@@ -274,7 +275,7 @@ export const WingButton = forwardRef<HTMLButtonElement, WingButtonProps>(
       // 첫 생성이 동기로 최대 약 84ms 걸린다. 웅크림·날갯짓 박자(첫 연기는 0.75초) 앞에서 치른다.
       // 엔진이 null(WebGL2 없음, 움직임 줄이기는 엔진이 스스로 거른다)이면 연기만 빠진다
       if (smoke) {
-        smokeRef.current = createFluidSmoke({
+        smokeRef.current = makeSmoke({
           container: container ?? undefined,
         });
       }
@@ -282,10 +283,10 @@ export const WingButton = forwardRef<HTMLButtonElement, WingButtonProps>(
       const host = hostRef.current;
       if (!reduced && host) {
         wingsRef.current = null;
-        host.dataset.wings = 'pending';
+        host.__wingOutcome = undefined;
         awaitWings(WAIT_FOR_WINGS).then((outcome) => {
           wingsRef.current = outcome;
-          host.dataset.wings = outcome.status;
+          host.__wingOutcome = outcome;
         });
       }
       setLaunch({

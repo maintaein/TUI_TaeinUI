@@ -13,6 +13,8 @@ const settle = gsap.parseEase(gsapEasing.settle);
 const snap = gsap.parseEase(gsapEasing.snap);
 const drift = gsap.parseEase(gsapEasing.drift);
 const exit = gsap.parseEase(gsapEasing.exit);
+// 시험이 구간마다 같은 곡선으로 기대값을 계산한다(시험 파일은 gsap을 직접 import하지 않는다)
+export const BEAT_EASE = { settle, snap, drift, exit } as const;
 
 export type WingPhase =
   | 'crouch'
