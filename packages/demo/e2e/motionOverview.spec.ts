@@ -577,7 +577,7 @@ const wingMini = (page: Page) =>
 test.describe('모션 전체 보기 날개 전송 미니 (1440px)', () => {
   test.use({ viewport: { width: 1440, height: 900 } });
 
-  test('대본이 눌러 날개 단 단추를 날리고 움직임 멈춤이면 서 있다', async ({
+  test('대본이 눌러 로켓 단추를 날리고 움직임 멈춤이면 서 있다', async ({
     page,
   }) => {
     await page.goto('/motion');

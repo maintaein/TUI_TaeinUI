@@ -81,7 +81,7 @@ test.describe('날개 전송 상세 (1440px)', () => {
     ).toBeVisible();
     await expect(send(page)).toBeVisible();
     await expect(page.getByText('움직임 줄이기에서는').first()).toContainText(
-      '날개와 비행 없이 단추가 "보냈어요"로 바뀝니다.'
+      '로켓과 비행 없이 단추가 "보냈어요"로 바뀝니다.'
     );
     await expect(page.getByText('sentLabel').first()).toBeVisible();
     await expect(page.getByText('container').first()).toBeVisible();
@@ -100,8 +100,8 @@ test.describe('날개 전송 상세 (1440px)', () => {
     // 오른쪽 위로 간다: x는 늘고 y는 준다
     expect(last.x).toBeGreaterThan(first.x + 100);
     expect(last.y).toBeLessThan(first.y - 100);
-    // 첫 날갯짓이 끝난 뒤(0.95초 이후)에는 x는 줄지 않고 y는 늘지 않으며 점점 작아진다
-    const flight = samples.filter((s) => s.t > 1000);
+    // 발사(2.25초)가 시작된 뒤에는 x는 줄지 않고 y는 늘지 않으며 점점 작아진다(떠오름의 넘침과 둥실은 위아래로 오간다)
+    const flight = samples.filter((s) => s.t > 2400);
     for (let i = 1; i < flight.length; i++) {
       expect(flight[i].x).toBeGreaterThanOrEqual(flight[i - 1].x - 0.5);
       expect(flight[i].y).toBeLessThanOrEqual(flight[i - 1].y + 0.5);
@@ -346,7 +346,7 @@ test.describe('날개 전송 상세 유체 연기 (1440px)', () => {
       while (performance.now() - t0 < 12_000) {
         await frame();
         n += 1;
-        // 날개 canvas(비행 층 안)는 따로 본다: 여기서는 연기 canvas만
+        // 로켓 canvas(비행 층 안)는 따로 본다: 여기서는 연기 canvas만
         const canvas =
           [...region.querySelectorAll('canvas')].find(
             (c) => !c.closest('[data-wing-layer]')
@@ -424,7 +424,7 @@ test.describe('날개 전송 상세 유체 연기 (1440px)', () => {
       const counts: number[] = [];
       for (let i = 0; i < 10; i++) {
         buttons('보내기').click();
-        // 첫 날갯짓의 연기가 나온 뒤(0.9초) 되돌린다
+        // 점화(0.45초)로 연기가 나온 뒤(0.9초) 되돌린다
         await wait(900);
         buttons('다시').click();
         await wait(100);
@@ -442,7 +442,7 @@ test.describe('날개 전송 상세 유체 연기 (1440px)', () => {
 test.describe('날개 전송 상세 움직임 줄이기 (1440px)', () => {
   test.use({ viewport: { width: 1440, height: 900 } });
 
-  test('날개와 비행 없이 단추가 표지로 바뀐다', async ({ page }) => {
+  test('로켓과 비행 없이 단추가 표지로 바뀐다', async ({ page }) => {
     await page.emulateMedia({ reducedMotion: 'reduce' });
     await page.goto('/motion/wing-button');
     await expect(send(page)).toBeVisible();
@@ -494,10 +494,20 @@ const clockTo = (page: Page) => {
   };
 };
 
-test.describe('날개 전송 상세 날갯짓 박자 (1440px)', () => {
+// 복제본 상자(craft)의 회전각(도, 시계 방향 +)
+const craftAngle = (page: Page) =>
+  page.evaluate(() => {
+    const craft =
+      document.querySelector('[data-wing-layer]')?.firstElementChild;
+    if (!craft) return null;
+    const m = new DOMMatrixReadOnly(getComputedStyle(craft).transform);
+    return (Math.atan2(m.b, m.a) * 180) / Math.PI;
+  });
+
+test.describe('날개 전송 상세 로켓 박자 (1440px)', () => {
   test.use({ viewport: { width: 1440, height: 900 } });
 
-  test('아래로 칠 때마다 6, 10, 14px 떠오르고 오른쪽 위로 이륙해 보냈어요가 남는다', async ({
+  test('약 25px 떠올라 넘쳤다 앉고 둥실거리다 오른쪽 위로 발사해 진행 방향으로 기울며 보냈어요가 남는다', async ({
     page,
   }) => {
     test.setTimeout(60_000);
@@ -505,28 +515,44 @@ test.describe('날개 전송 상세 날갯짓 박자 (1440px)', () => {
     const rest = (await send(page).boundingBox())!;
     await send(page).evaluate((b) => (b as HTMLButtonElement).click());
     const to = clockTo(page);
-    // 깃이 다 펴지고 첫 날갯짓 전: 아직 뜨지 않았다
-    const before = (await to(700))!;
+    // 웅크림이 풀리고 점화(450ms) 전: 아직 뜨지 않았다
+    const before = (await to(400))!;
     expect(Math.abs(before.y - rest.y)).toBeLessThan(0.75);
-    // 위로 올리는 동안 높이는 머문다: 첫 내려치기(950ms) 뒤 6px, 둘째(1450ms) 뒤 10px, 셋째(1950ms) 뒤 14px
-    const lifts: number[] = [];
-    for (const ms of [1100, 1600, 2100]) {
-      lifts.push(rest.y - (await to(ms))!.y);
+    // 떠오름(450~950ms): 25px을 넘쳤다가 25px 자리에 앉는다
+    const rise: number[] = [];
+    for (let ms = 450; ms <= 950; ms += 50) {
+      rise.push(rest.y - (await to(ms))!.y);
     }
-    expect(lifts[0]).toBeGreaterThan(5.25);
-    expect(lifts[0]).toBeLessThan(6.75);
-    expect(lifts[1]).toBeGreaterThan(9.25);
-    expect(lifts[1]).toBeLessThan(10.75);
-    expect(lifts[2]).toBeGreaterThan(13.25);
-    expect(lifts[2]).toBeLessThan(14.75);
-    // 이륙(2250ms부터): x는 늘고 y는 줄며 점점 작아진다
+    expect(Math.max(...rise)).toBeGreaterThan(28);
+    expect(Math.max(...rise)).toBeLessThan(33);
+    expect(rise.at(-1)!).toBeGreaterThan(24.25);
+    expect(rise.at(-1)!).toBeLessThan(25.75);
+    // 둥실(950~2250ms): 25px 둘레에서 몇 px 위아래로 오가고 옆으로는 가지 않으며 기울지 않는다
+    const hover: number[] = [];
+    for (let ms = 1000; ms <= 2200; ms += 100) {
+      const box = (await to(ms))!;
+      hover.push(rest.y - box.y);
+      expect(Math.abs(box.x - rest.x)).toBeLessThan(0.75);
+    }
+    expect(Math.max(...hover)).toBeGreaterThan(26.5);
+    expect(Math.min(...hover)).toBeLessThan(23.5);
+    expect(Math.max(...hover)).toBeLessThanOrEqual(29.5);
+    expect(Math.min(...hover)).toBeGreaterThanOrEqual(20.5);
+    expect(Math.abs((await craftAngle(page))!)).toBeLessThan(0.5);
+    // 발사(2250ms부터): x는 늘고 y는 줄며 점점 작아지고 윗면이 오른쪽 위를 향해(시계 방향) 기운다
+    await to(2250);
     const mid = (await to(2700))!;
+    const midAngle = (await craftAngle(page))!;
     const late = (await to(3000))!;
+    const lateAngle = (await craftAngle(page))!;
     expect(late.x).toBeGreaterThan(mid.x);
     expect(late.y).toBeLessThan(mid.y);
     expect(late.x - rest.x).toBeGreaterThan(100);
     expect(late.y - rest.y).toBeLessThan(-100);
     expect(late.w).toBeLessThan(rest.width);
+    expect(midAngle).toBeGreaterThan(15);
+    expect(lateAngle).toBeGreaterThan(midAngle);
+    expect(lateAngle).toBeLessThan(31);
     // 3050ms에 비행이 끝나고 표지가 남는다
     await to(3500);
     await expect(page.locator('[data-wing-layer]')).toHaveCount(0);
@@ -559,7 +585,7 @@ test.describe('날개 전송 상세 날갯짓 박자 (1440px)', () => {
 test.describe('날개 전송 상세 three 불러오기 (1440px)', () => {
   test.use({ viewport: { width: 1440, height: 900 } });
 
-  // 3D 날개 라이브러리 덩이(three.module-해시.js). 가리킬 때 따로 불려야 한다
+  // 3D 로켓 라이브러리 덩이(three.module-해시.js). 가리킬 때 따로 불려야 한다
   const watchThree = (page: Page) => {
     const urls: string[] = [];
     page.on('request', (request) => {
@@ -594,7 +620,7 @@ test.describe('날개 전송 상세 three 불러오기 (1440px)', () => {
   });
 });
 
-// 3D 날개(three, Chromium 소프트웨어 WebGL). 날개 canvas는 비행 층 안의 단추 상자에 있다
+// 3D 로켓(three, Chromium 소프트웨어 WebGL). 꼬리날개와 불꽃을 그린 canvas는 비행 층 안의 단추 상자에 있다
 const wingCanvas = (page: Page) => page.locator('[data-wing-layer] canvas');
 // 가리켜 three를 받고 평가가 끝나도록 기다린다
 const warm = async (page: Page) => {
@@ -605,10 +631,10 @@ const warm = async (page: Page) => {
   await page.mouse.move(2, 2);
 };
 
-test.describe('날개 전송 상세 3D 날개 (1440px)', () => {
+test.describe('날개 전송 상세 3D 로켓 (1440px)', () => {
   test.use({ viewport: { width: 1440, height: 900 } });
 
-  test('비행 중에는 날개 canvas가 단추 복제본 뒤에 있고 끝나면 없다', async ({
+  test('비행 중에는 로켓 canvas가 단추 복제본 뒤에 있고 끝나면 없다', async ({
     page,
   }) => {
     test.setTimeout(60_000);
@@ -661,7 +687,7 @@ test.describe('날개 전송 상세 3D 날개 (1440px)', () => {
     await expect(wingCanvas(page)).toHaveCount(0);
   });
 
-  test('비행이 끝나면 날개의 WebGL 컨텍스트가 실제로 잃어진다(렌더러를 놓는다)', async ({
+  test('비행이 끝나면 로켓의 WebGL 컨텍스트가 실제로 잃어진다(렌더러를 놓는다)', async ({
     page,
   }) => {
     test.setTimeout(60_000);
@@ -702,7 +728,7 @@ test.describe('날개 전송 상세 3D 날개 (1440px)', () => {
     });
   });
 
-  test('가리켜 받아 둔 뒤 누르면 300ms 안에 날개 canvas가 선다', async ({
+  test('가리켜 받아 둔 뒤 누르면 300ms 안에 로켓 canvas가 선다', async ({
     page,
   }) => {
     await open(page);
@@ -721,7 +747,7 @@ test.describe('날개 전송 상세 3D 날개 (1440px)', () => {
     expect(at).toBeLessThan(300);
   });
 
-  test('날개 canvas에 흰색 계열과 파랑 계열 픽셀이 실제로 그려진다', async ({
+  test('로켓 canvas에 primary 계열 꼬리날개와 불꽃의 밝은 색이 둘 다 실제로 그려진다', async ({
     page,
   }) => {
     test.setTimeout(60_000);
@@ -731,40 +757,43 @@ test.describe('날개 전송 상세 3D 날개 (1440px)', () => {
       const copy = document.createElement('canvas');
       const t0 = performance.now();
       (button as HTMLButtonElement).click();
-      let best = { white: 0, blue: 0, drawn: 0 };
+      let best = { primary: 0, bright: 0, drawn: 0 };
       while (performance.now() - t0 < 2300) {
         await new Promise((r) => requestAnimationFrame(() => r(null)));
         const canvas = document.querySelector<HTMLCanvasElement>(
           '[data-wing-layer] canvas'
         );
-        // 깃이 다 펴진 뒤(0.8초부터)의 프레임을 본다
-        if (!canvas || performance.now() - t0 < 800) continue;
+        // 꼬리날개가 펴지고 불꽃이 켜진 뒤(1초부터)의 프레임을 본다
+        if (!canvas || performance.now() - t0 < 1000) continue;
         copy.width = canvas.width;
         copy.height = canvas.height;
         const ctx = copy.getContext('2d')!;
         ctx.drawImage(canvas, 0, 0);
         const { data } = ctx.getImageData(0, 0, copy.width, copy.height);
-        let white = 0;
-        let blue = 0;
+        let primary = 0;
+        let bright = 0;
         let drawn = 0;
         for (let i = 0; i < data.length; i += 4) {
           const [r, g, b, a] = [data[i], data[i + 1], data[i + 2], data[i + 3]];
-          if (a < 200) continue;
+          if (a < 40) continue;
           drawn += 1;
-          const spread = Math.max(r, g, b) - Math.min(r, g, b);
-          if (Math.min(r, g, b) > 170 && spread < 25) white += 1;
-          if (b - r > 40) blue += 1;
+          // 단추와 같은 primary 계열: 불투명하고 파랑이 빨강보다 훨씬 크며 어둡다(꼬리날개와 분사구)
+          if (a >= 200 && b - r > 90 && r < 90) primary += 1;
+          // 불꽃의 밝은 색: 흰 심지 또는 primary의 밝은 단계(세 채널이 모두 높거나 파랑이 높고 초록도 높다)
+          if (Math.min(r, g, b) > 200 || (b > 200 && g > 150 && r < 200))
+            bright += 1;
         }
-        if (drawn > best.drawn) best = { white, blue, drawn };
+        if (primary + bright > best.primary + best.bright)
+          best = { primary, bright, drawn };
       }
       return best;
     });
     expect(px.drawn).toBeGreaterThan(500);
-    expect(px.white).toBeGreaterThan(200);
-    expect(px.blue).toBeGreaterThan(50);
+    expect(px.primary).toBeGreaterThan(300);
+    expect(px.bright).toBeGreaterThan(60);
   });
 
-  test('열 번 되풀이 비행해도 WebGL 문맥 경고가 없고 날개 canvas가 남지 않는다', async ({
+  test('열 번 되풀이 비행해도 WebGL 문맥 경고가 없고 로켓 canvas가 남지 않는다', async ({
     page,
   }) => {
     test.setTimeout(120_000);
@@ -793,7 +822,7 @@ test.describe('날개 전송 상세 3D 날개 (1440px)', () => {
       for (let i = 0; i < 10; i++) {
         buttons('보내기').click();
         sawWing.push(await until(() => wings().length > 0, 1000));
-        // 비행이 끝나(3.05초) 레이어가 걷히면 날개가 놓인다
+        // 비행이 끝나(3.05초) 레이어가 걷히면 로켓 장면이 놓인다
         await until(() => !document.querySelector('[data-wing-layer]'), 5000);
         left.push(wings().length);
         buttons('다시').click();
@@ -814,7 +843,7 @@ test.describe('날개 전송 상세 3D 날개 (1440px)', () => {
       await route.continue();
     });
   };
-  // 누른 뒤 비행이 끝날 때까지 한 evaluate 안에서 본다: 웅크림 시작 시각, 날개 canvas가 처음 선 시각
+  // 누른 뒤 비행이 끝날 때까지 한 evaluate 안에서 본다: 웅크림 시작 시각, 로켓 canvas가 처음 선 시각
   const pressAndWatch = (page: Page) =>
     send(page).evaluate(async (button) => {
       const t0 = performance.now();
@@ -842,7 +871,7 @@ test.describe('날개 전송 상세 3D 날개 (1440px)', () => {
       return { crouchAt, wingAt, ended: -1 };
     });
 
-  test('아직 불러오는 중이어도 300ms 안에 오면 날개가 돋고, 웅크림은 누른 직후 시작한다', async ({
+  test('아직 불러오는 중이어도 300ms 안에 오면 로켓이 그려지고, 웅크림은 누른 직후 시작한다', async ({
     page,
   }) => {
     test.setTimeout(60_000);
@@ -856,7 +885,7 @@ test.describe('날개 전송 상세 3D 날개 (1440px)', () => {
     expect(r.ended).toBeGreaterThan(3000);
   });
 
-  test('300ms 넘게 붙잡히면 날개 없이 난다. 웅크림은 같고 표지는 선다', async ({
+  test('300ms 넘게 붙잡히면 꼬리날개와 불꽃 없이 난다. 웅크림은 같고 표지는 선다', async ({
     page,
   }) => {
     test.setTimeout(60_000);
@@ -865,7 +894,7 @@ test.describe('날개 전송 상세 3D 날개 (1440px)', () => {
     const r = await pressAndWatch(page);
     expect(r.crouchAt).toBeGreaterThanOrEqual(0);
     expect(r.crouchAt).toBeLessThan(150);
-    // 늦게 와도 이번 비행에는 날개가 서지 않는다
+    // 늦게 와도 이번 비행에는 로켓이 서지 않는다
     expect(r.wingAt).toBe(-1);
     expect(r.ended).toBeGreaterThan(3000);
     await expect(mark(page)).toHaveText('보냈어요');
