@@ -75,6 +75,8 @@ export interface WingColors {
   nozzle: Three.Color;
   /** 불꽃 바깥 (primary의 밝은 단계) */
   flame: Three.Color;
+  /** 불꽃 심지 (흰색 토큰) */
+  core: Three.Color;
 }
 
 export interface WingRig {
@@ -183,7 +185,7 @@ export const buildWingRig = (
     finGeometry(three, height),
     nozzleGeometry(three, height),
     flameGeometry(three, FLAME_RADIUS * height, colors.flame),
-    flameGeometry(three, CORE_RADIUS * height, white),
+    flameGeometry(three, CORE_RADIUS * height, colors.core),
   ];
   const matte = (color: Three.Color) =>
     new three.MeshStandardMaterial({ color, roughness: 0.9, metalness: 0 });
@@ -313,6 +315,7 @@ export const createWingScene = (
         fin: readToken(three, host, themeContract.color.primary.main),
         nozzle: readToken(three, host, themeContract.palette.primary[900]),
         flame: readToken(three, host, themeContract.palette.primary[300]),
+        core: readToken(three, host, themeContract.color.text.inverse),
       }
     );
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, MAX_DPR));

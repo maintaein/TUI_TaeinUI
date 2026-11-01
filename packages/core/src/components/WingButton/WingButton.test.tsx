@@ -260,7 +260,7 @@ describe('WingButton', () => {
     it('발사 거리는 container의 가까운 가장자리를 넘어 꼬리날개와 불꽃이 나가는 높이의 2배만큼 더 나가는 거리다', () => {
       // 단추는 레이어 안 (100, 200), 높이 44. 위쪽으로 나가려면 200 + 44, 오른쪽이면 폭 - 100. 더 나가는 거리는 높이의 2배(TAIL_REACH)
       const reach = 44 * 2;
-      const takeoffX = (width: number) => {
+      const launchX = (width: number) => {
         const stage = document.createElement('div');
         Object.defineProperty(stage, 'clientWidth', { value: width });
         Object.defineProperty(stage, 'clientHeight', { value: 600 });
@@ -277,9 +277,9 @@ describe('WingButton', () => {
         return x;
       };
       // 위가 가깝다(상자 폭 1000): 244 + 더 나가는 거리
-      expect(takeoffX(1000)).toBeCloseTo(244 + reach, 5);
+      expect(launchX(1000)).toBeCloseTo(244 + reach, 5);
       // 오른쪽이 가깝다(상자 폭 150): 50 + 더 나가는 거리
-      expect(takeoffX(150)).toBeCloseTo(50 + reach, 5);
+      expect(launchX(150)).toBeCloseTo(50 + reach, 5);
     });
 
     it('비행이 끝나면 복제본 레이어를 치운다', () => {

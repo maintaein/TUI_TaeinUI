@@ -21,6 +21,7 @@ const colors: WingColors = {
   fin: new three.Color(0.1, 0.4, 0.8),
   nozzle: new three.Color(0.05, 0.25, 0.6),
   flame: new three.Color(0.4, 0.7, 1),
+  core: new three.Color(0.9, 0.95, 1),
 };
 const deg = (rad: number) => (rad * 180) / Math.PI;
 const OPEN = { fins: 1, flame: 1 } as const;
@@ -219,9 +220,10 @@ describe('buildWingRig: 장면', () => {
     const outerColor = outer.geometry.getAttribute('color');
     expect(outerColor.getX(0)).toBeCloseTo(colors.flame.r, 5);
     const coreColor = core.geometry.getAttribute('color');
-    expect([coreColor.getX(0), coreColor.getY(0), coreColor.getZ(0)]).toEqual([
-      1, 1, 1,
-    ]);
+    // 심지 색은 호출자가 준 흰색 토큰이다(코드에 흰색을 박지 않는다)
+    expect(coreColor.getX(0)).toBeCloseTo(colors.core.r, 5);
+    expect(coreColor.getY(0)).toBeCloseTo(colors.core.g, 5);
+    expect(coreColor.getZ(0)).toBeCloseTo(colors.core.b, 5);
     rig.dispose();
   });
 

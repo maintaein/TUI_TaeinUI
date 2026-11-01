@@ -65,7 +65,7 @@ const GATE_ENFORCEMENT_EXCEPTIONS: GateEnforcementException[] = [
   {
     path: 'components/WingButton/wingBeat.ts',
     reason:
-      '날갯짓 박자를 시각 t의 순수 함수로 계산하는 파일이다. gsap.parseEase로 토큰 이징 곡선을 ' +
+      '로켓 박자를 시각 t의 순수 함수로 계산하는 파일이다. gsap.parseEase로 토큰 이징 곡선을 ' +
       '평가할 뿐 트윈도 타임라인도 시계도 만들지 않아 게이트가 확정하거나 죽일 애니메이션이 없다. ' +
       '이 함수를 시계에 얹어 돌리는 WingButton.tsx가 gateMotion/settleMotion을 거친다(M7.1 T7).',
   },

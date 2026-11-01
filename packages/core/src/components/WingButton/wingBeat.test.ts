@@ -213,11 +213,17 @@ describe('wingBeat 이징 열 (설계서 8절 로켓)', () => {
   });
 
   it('점화는 settle이다(450~600ms)', () => {
-    // 깜빡임을 나눠 내면 점화 곡선만 남는다: 깜빡임 값은 둥실 중 같은 시각의 불꽃과 맞댈 수 없어 범위로 본다
-    const lit = settle(0.5);
-    const flame = beat(525).flame;
-    expect(flame).toBeGreaterThan(lit * 0.9 - 1e-9);
-    expect(flame).toBeLessThan(lit * 1.1 + 1e-9);
+    // 깜빡임(최대 0.1)이 곡선 차이를 먹지 않게, 곡선들이 크게 갈리는 이른 점(p 0.1, 0.2)에서 범위로 맞댄다.
+    // 이 두 점에서 settle(0.27, 0.49)과 spring(0.85, 1.2) 범위는 겹치지 않아 곡선을 spring으로 바꾸면 빨개진다
+    for (const p of [0.1, 0.2, 0.5]) {
+      const lit = settle(p);
+      const flame = beat(450 + 150 * p).flame;
+      expect(flame).toBeGreaterThan(lit * 0.9 - 1e-9);
+      expect(flame).toBeLessThan(lit * 1.1 + 1e-9);
+    }
+    // 시험의 전제: 이른 점에서 settle의 깜빡임 범위와 spring의 깜빡임 범위가 갈린다
+    expect(settle(0.1) * 1.1).toBeLessThan(spring(0.1) * 0.9);
+    expect(settle(0.2) * 1.1).toBeLessThan(spring(0.2) * 0.9);
   });
 
   it('떠오름은 spring이다(450~950ms)', () => {
