@@ -12,7 +12,7 @@ import type { PropDefinition } from '../../../components/PropsTable';
 import { Stage, type Act, type DemoProps } from '../../../components/Stage';
 
 const LEAD =
-  '메일 보내기 같은 전송 단추. 누르면 단추에 날개가 돋아 퍼덕이다 오른쪽 위로 날아갑니다. 한 번만 날고, 다시 보내려면 새로 그립니다.';
+  '메일 보내기 같은 전송 단추. 누르면 단추가 웅크렸다 세 번 떠오르며 연기를 밀어내고 오른쪽 위로 날아갑니다. 한 번만 날고, 다시 보내려면 새로 그립니다.';
 
 const CONTROLS: Control[] = [
   { prop: 'sentLabel', kind: 'text', label: '보낸 뒤 글자' },
@@ -38,14 +38,14 @@ const PROPS: PropDefinition[] = [
     type: 'HTMLElement | null',
     default: 'document.body',
     description:
-      '날개 단 단추가 날 레이어를 그릴 자리. 주면 그 상자 안에서 날고 상자 밖으로 나가며 잘립니다. 그 상자가 position의 기준(relative 등)이어야 하고 스크롤되지 않는 상자여야 합니다',
+      '날아가는 단추를 그릴 레이어의 자리. 주면 그 상자 안에서 날고 상자 밖으로 나가며 잘립니다. 그 상자가 position의 기준(relative 등)이어야 하고 스크롤되지 않는 상자여야 합니다',
   },
   {
     name: 'smoke',
     type: 'boolean',
     default: 'true',
     description:
-      '이륙 때 터지고 꼬리를 따라 흩어지는 유체 연기. false면 연기 없이 납니다. WebGL2가 없거나 움직임 줄이기여도 연기만 빠지고 비행과 표지는 그대로입니다',
+      '날개 밑으로 밀려 나가고 이륙 때 터지며 꼬리를 따라 흩어지는 유체 연기. false면 연기 없이 납니다. WebGL2가 없거나 움직임 줄이기여도 연기만 빠지고 비행과 표지는 그대로입니다',
   },
   {
     name: 'onClick',
@@ -73,14 +73,14 @@ const PROPS: PropDefinition[] = [
 ];
 
 // 커서가 눌러 날려 보내고, 날아간 표지가 자리 잡을 때까지 보인 뒤 다시 시작한다. 단추를 새로 세우는 일을 맨 앞에 두어
-// 사용자가 만져 보낸 뒤에도 순서가 맞는다. 비행(약 1.4초)과 표지 떠오름(0.2초)이 끝난 뒤 연기가 흩어질 때까지 보인다
+// 사용자가 만져 보낸 뒤에도 순서가 맞는다. 비행(3.05초)과 표지 떠오름(0.2초)이 끝난 뒤 연기가 흩어질 때까지 보인다
 // 카드 속 미니는 커서가 그려지지 않으니 오가는 시간과 읽을 시간만 줄인다(act.pace). 누름과 효과가 끝나는 시간은 그대로다
 const SCRIPT = (act: Act, reset: () => void) => {
   act.call(reset);
   act.move('send', act.pace(0.6, 0.3));
   act.wait(act.pace(0.3, 0.1));
   act.press('send');
-  act.wait(act.pace(3.6, 2.4));
+  act.wait(act.pace(5, 3.6));
   act.home(act.pace(0.6, 0.3));
   act.wait(act.pace(0.4, 0.1));
 };
@@ -150,7 +150,7 @@ function Usage() {
       </Topic>
       <Topic title="날 자리는 container로">
         <p className={t.body} style={{ marginBottom: 12 }}>
-          날개 단 단추는 단추 자리에서 화면 전체 위로 떠올라 날아갑니다. 조상의{' '}
+          날아가는 단추는 단추 자리에서 화면 전체 위로 떠올라 날아갑니다. 조상의{' '}
           <code>overflow: hidden</code>에 잘리지 않습니다. 특정 상자 안에서만
           날게 하려면 그 상자를 <code>container</code>로 넘깁니다. 그 상자는{' '}
           <code>position: relative</code>처럼 위치의 기준이어야 하고, 단추는 그
@@ -173,7 +173,7 @@ function A11y() {
     <ul className={`${t.list} ${t.body}`}>
       <li>
         <code>onClick</code>은 네이티브 click, 곧 손을 뗄 때 실행됩니다. 눌러서
-        웅크리는 것과 날개는 그 뒤의 피드백일 뿐이고, 누르는 순간(pointerdown)
+        웅크리는 것과 비행은 그 뒤의 피드백일 뿐이고, 누르는 순간(pointerdown)
         되돌릴 수 없는 일을 실행하지 않습니다. 누르다 포인터가 밖으로 빠지거나
         취소되면 웅크림이 되감기고 날지 않습니다.
       </li>
@@ -186,9 +186,8 @@ function A11y() {
         있어 영역을 처음부터 둡니다).
       </li>
       <li>
-        복제본과 날개는 <code>aria-hidden</code>이고 <code>inert</code>인 장식
-        입니다. 원래 단추는 보이지 않을 뿐 자리를 지켜 레이아웃이 움직이지
-        않습니다.
+        복제본은 <code>aria-hidden</code>이고 <code>inert</code>인 장식 입니다.
+        원래 단추는 보이지 않을 뿐 자리를 지켜 레이아웃이 움직이지 않습니다.
       </li>
       <li>
         되돌리기는 <code>key</code>로 합니다. 새로 그려진 단추는 처음

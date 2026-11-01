@@ -45,7 +45,7 @@ const fly = (page: Page) =>
     let statusDuring = '';
     const t0 = performance.now();
     (button as HTMLButtonElement).click();
-    while (performance.now() - t0 < 3000) {
+    while (performance.now() - t0 < 4500) {
       await new Promise((r) => requestAnimationFrame(() => r(null)));
       const layer = document.querySelector('[data-wing-layer]');
       const clone = layer?.querySelector('button');
@@ -66,7 +66,7 @@ const fly = (page: Page) =>
       }
     }
     // 표지가 다 떠오를 때까지 기다린 뒤 알림 영역을 읽는다
-    while (markOpacity() < 1 && performance.now() - t0 < 4000)
+    while (markOpacity() < 1 && performance.now() - t0 < 6000)
       await new Promise((r) => requestAnimationFrame(() => r(null)));
     return { samples, box, statusDuring, statusAfter: statusText() };
   });
@@ -100,8 +100,8 @@ test.describe('날개 전송 상세 (1440px)', () => {
     // 오른쪽 위로 간다: x는 늘고 y는 준다
     expect(last.x).toBeGreaterThan(first.x + 100);
     expect(last.y).toBeLessThan(first.y - 100);
-    // 이륙 구간(0.6초 이후)에서 x는 줄지 않고 y는 늘지 않으며 점점 작아진다
-    const flight = samples.filter((s) => s.t > 700);
+    // 첫 날갯짓이 끝난 뒤(0.95초 이후)에는 x는 줄지 않고 y는 늘지 않으며 점점 작아진다
+    const flight = samples.filter((s) => s.t > 1000);
     for (let i = 1; i < flight.length; i++) {
       expect(flight[i].x).toBeGreaterThanOrEqual(flight[i - 1].x - 0.5);
       expect(flight[i].y).toBeLessThanOrEqual(flight[i - 1].y + 0.5);
@@ -420,7 +420,7 @@ test.describe('날개 전송 상세 유체 연기 (1440px)', () => {
       const counts: number[] = [];
       for (let i = 0; i < 10; i++) {
         buttons('보내기').click();
-        // 이륙 때 연기가 터진 뒤(0.6초) 되돌린다
+        // 첫 날갯짓의 연기가 나온 뒤(0.9초) 되돌린다
         await wait(900);
         buttons('다시').click();
         await wait(100);
@@ -456,5 +456,136 @@ test.describe('날개 전송 상세 움직임 줄이기 (1440px)', () => {
     await expect(mark(page)).toHaveText('보냈어요');
     await expect(mark(page)).toHaveCSS('opacity', '1');
     await expect(original(page)).toHaveCSS('visibility', 'hidden');
+  });
+});
+
+// 가짜 시계로 시각을 보내 단추 위치를 표집한다. 실시간 rAF는 부하에서 프레임이 늘어져 박자를 놓친다
+const freeze = async (page: Page) => {
+  await page.clock.install();
+  await page.goto('/motion/wing-button');
+  await expect(send(page)).toBeVisible();
+  await stage(page).getByRole('button', { name: '시연 멈춤' }).click();
+  await page.clock.runFor(100);
+  // install만으로는 시계가 실시간으로 흐른다. 여기서 멈춰 runFor로만 흐르게 한다
+  await page.clock.pauseAt((await page.evaluate(() => Date.now())) + 1000);
+  await page.mouse.move(2, 2);
+};
+const cloneBox = (page: Page) =>
+  page.evaluate(() => {
+    const clone = document.querySelector('[data-wing-layer] button');
+    if (!clone) return null;
+    const r = clone.getBoundingClientRect();
+    return { x: r.left, y: r.top, w: r.width, h: r.height };
+  });
+// 누른 시각을 0으로 두고 ms까지 50ms씩 보낸다(GSAP이 긴 틈을 줄여 버리지 않게)
+const clockTo = (page: Page) => {
+  let elapsed = 0;
+  return async (ms: number) => {
+    while (elapsed < ms) {
+      const step = Math.min(50, ms - elapsed);
+      await page.clock.runFor(step);
+      elapsed += step;
+    }
+    return cloneBox(page);
+  };
+};
+
+test.describe('날개 전송 상세 날갯짓 박자 (1440px)', () => {
+  test.use({ viewport: { width: 1440, height: 900 } });
+
+  test('아래로 칠 때마다 6, 10, 14px 떠오르고 오른쪽 위로 이륙해 보냈어요가 남는다', async ({
+    page,
+  }) => {
+    test.setTimeout(60_000);
+    await freeze(page);
+    const rest = (await send(page).boundingBox())!;
+    await send(page).evaluate((b) => (b as HTMLButtonElement).click());
+    const to = clockTo(page);
+    // 깃이 다 펴지고 첫 날갯짓 전: 아직 뜨지 않았다
+    const before = (await to(700))!;
+    expect(Math.abs(before.y - rest.y)).toBeLessThan(0.75);
+    // 위로 올리는 동안 높이는 머문다: 첫 내려치기(950ms) 뒤 6px, 둘째(1450ms) 뒤 10px, 셋째(1950ms) 뒤 14px
+    const lifts: number[] = [];
+    for (const ms of [1100, 1600, 2100]) {
+      lifts.push(rest.y - (await to(ms))!.y);
+    }
+    expect(lifts[0]).toBeGreaterThan(5.25);
+    expect(lifts[0]).toBeLessThan(6.75);
+    expect(lifts[1]).toBeGreaterThan(9.25);
+    expect(lifts[1]).toBeLessThan(10.75);
+    expect(lifts[2]).toBeGreaterThan(13.25);
+    expect(lifts[2]).toBeLessThan(14.75);
+    // 이륙(2250ms부터): x는 늘고 y는 줄며 점점 작아진다
+    const mid = (await to(2700))!;
+    const late = (await to(3000))!;
+    expect(late.x).toBeGreaterThan(mid.x);
+    expect(late.y).toBeLessThan(mid.y);
+    expect(late.x - rest.x).toBeGreaterThan(100);
+    expect(late.y - rest.y).toBeLessThan(-100);
+    expect(late.w).toBeLessThan(rest.width);
+    // 3050ms에 비행이 끝나고 표지가 남는다
+    await to(3500);
+    await expect(page.locator('[data-wing-layer]')).toHaveCount(0);
+    await expect(mark(page)).toHaveText('보냈어요');
+    await expect(mark(page)).toHaveCSS('opacity', '1');
+    await expect(count(page, 1)).toBeVisible();
+  });
+
+  test('비행 중 다시 눌러도 두 번째 비행은 없고 끝 모양이 같다', async ({
+    page,
+  }) => {
+    test.setTimeout(60_000);
+    await freeze(page);
+    await send(page).evaluate((b) => (b as HTMLButtonElement).click());
+    const to = clockTo(page);
+    await to(1100);
+    // 날아가는 중 보이지 않는 원래 단추에 click이 와도(Enter 암묵 제출 등) 무시한다
+    await original(page).evaluate((b) => (b as HTMLButtonElement).click());
+    await to(1200);
+    await expect(page.locator('[data-wing-layer]')).toHaveCount(1);
+    await expect(page.locator('[data-wing-layer] button')).toHaveCount(1);
+    await to(3500);
+    await expect(page.locator('[data-wing-layer]')).toHaveCount(0);
+    await expect(mark(page)).toHaveCount(1);
+    await expect(mark(page)).toHaveText('보냈어요');
+    await expect(count(page, 1)).toBeVisible();
+  });
+});
+
+test.describe('날개 전송 상세 three 불러오기 (1440px)', () => {
+  test.use({ viewport: { width: 1440, height: 900 } });
+
+  // 3D 날개 라이브러리 덩이(three.module-해시.js). 가리킬 때 따로 불려야 한다
+  const watchThree = (page: Page) => {
+    const urls: string[] = [];
+    page.on('request', (request) => {
+      if (/three\.module/.test(request.url())) urls.push(request.url());
+    });
+    return urls;
+  };
+
+  test('처음 열 때는 three를 받지 않고 단추를 가리키면 덩이 요청이 나간다', async ({
+    page,
+  }) => {
+    const urls = watchThree(page);
+    await open(page);
+    expect(urls).toEqual([]);
+    await send(page).hover();
+    await expect.poll(() => urls.length).toBeGreaterThan(0);
+  });
+
+  test('움직임 줄이기에서는 가리켜도 포커스가 가도 눌러도 three 요청이 나가지 않는다', async ({
+    page,
+  }) => {
+    const urls = watchThree(page);
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await page.goto('/motion/wing-button');
+    await expect(send(page)).toBeVisible();
+    await send(page).hover();
+    await send(page).focus();
+    await send(page).click();
+    await expect(mark(page)).toHaveCSS('opacity', '1');
+    await page.waitForTimeout(500);
+    expect(urls).toEqual([]);
   });
 });
