@@ -21,6 +21,7 @@ import { gsapDuration, gsapEasing } from '../../tokens/gsapEasing';
 import { BEAT, BEAT_END, wingBeat } from './wingBeat';
 import { replaceSmokeFactory } from './smokeEngine';
 import { replaceThreeImporter, type ThreeModule } from './loadThree';
+import { replaceWingSceneFactory, type WingInput } from './wingScene';
 
 // WingButton.tsx가 바깥 상자에 얹는 손잡이(BurstToggle의 타임라인 손잡이와 같은 모양).
 type WingHost = HTMLElement & {
@@ -523,7 +524,10 @@ describe('WingButton', () => {
       });
       return calls;
     };
-    afterEach(() => replaceThreeImporter());
+    afterEach(() => {
+      replaceThreeImporter();
+      replaceWingSceneFactory();
+    });
 
     it('가리키면(pointerenter) 불러오고 이미 불렀으면 포커스가 가도 다시 부르지 않는다', () => {
       withWebGL2();
@@ -608,6 +612,13 @@ describe('WingButton', () => {
 
     it('누르기 전에 받아 두었으면 ready이고 누른 뒤에 다시 받지 않는다', async () => {
       withWebGL2();
+      // jsdom에는 WebGL이 없어 진짜 장면은 컨텍스트를 못 만들고 failed가 된다: ready 자체만 보려고 빈 장면을 끼운다
+      replaceWingSceneFactory(() => ({
+        canvas: document.createElement('canvas'),
+        update: () => {},
+        render: () => {},
+        dispose: () => {},
+      }));
       const calls = counting();
       const { container } = render(<WingButton>보내기</WingButton>);
       fireEvent.pointerEnter(button());
@@ -841,6 +852,237 @@ describe('WingButton', () => {
         expect(c.x).toBeCloseTo(expected[i][0], 3);
         expect(c.y).toBeCloseTo(expected[i][1], 3);
       });
+    });
+  });
+
+  // 3D 날개를 만들고 갱신하고 놓는 연결. jsdom에는 WebGL이 없어 장면 자리에 호출을 기록하는 손을 끼운다(replaceWingSceneFactory).
+  // 장면의 모양은 wingScene.test.ts(WebGL 없이 장면 그래프)와 e2e(Chromium의 소프트웨어 WebGL 픽셀)가 본다.
+  describe('3D 날개', () => {
+    const withWebGL2 = () => vi.stubGlobal('WebGL2RenderingContext', class {});
+    const record = (fail = false) => {
+      const log = {
+        made: 0,
+        updates: [] as WingInput[],
+        renders: 0,
+        disposed: 0,
+      };
+      replaceWingSceneFactory(() => {
+        log.made += 1;
+        if (fail) throw new Error('컨텍스트 생성 실패');
+        const canvas = document.createElement('canvas');
+        return {
+          canvas,
+          update: (input) => log.updates.push(input),
+          render: () => (log.renders += 1),
+          dispose: () => {
+            log.disposed += 1;
+            canvas.remove();
+          },
+        };
+      });
+      return log;
+    };
+    const wingCanvas = () =>
+      document.querySelector<HTMLCanvasElement>('canvas[data-wing-canvas]');
+    const inputAt = (ms: number) => {
+      const beat = wingBeat(ms, GEOMETRY);
+      return {
+        wingAngle: beat.wingAngle,
+        bud: beat.bud,
+        feathers: beat.feathers,
+      };
+    };
+    // 가리켜 three를 미리 받아 두고 누른다
+    const pressWithThree = async (ui: ReturnType<typeof render>) => {
+      fireEvent.pointerEnter(button());
+      await act(async () => {
+        await import('three');
+      });
+      fireEvent.click(button());
+      // 시계를 세워 시험이 박자 시각을 정한다
+      const tl = hostOf(ui.container).__wingTimeline as gsap.core.Timeline;
+      tl.pause();
+      await waitFor(() =>
+        expect(hostOf(ui.container).__wingOutcome?.status).toBe('ready')
+      );
+      // GSAP 타임라인은 then을 가져 async 함수가 그대로 돌려주면 끝날 때까지 기다린다: 상자에 담아 돌려준다
+      return { tl };
+    };
+    // three가 우리가 정한 때에 도착하게 한다
+    const lateThree = () => {
+      const gate = { arrive: (_three: ThreeModule) => {} };
+      replaceThreeImporter(
+        () => new Promise<ThreeModule>((resolve) => (gate.arrive = resolve))
+      );
+      return gate;
+    };
+    afterEach(() => {
+      replaceWingSceneFactory();
+      replaceThreeImporter();
+    });
+
+    it('three가 와 있으면 날개 canvas가 비행 층의 단추 상자 맨 아래에 서고 같은 프레임의 박자 값으로 그린다', async () => {
+      withWebGL2();
+      const log = record();
+      const ui = render(<WingButton>보내기</WingButton>);
+      const { tl } = await pressWithThree(ui);
+      expect(log.made).toBe(1);
+      const canvas = wingCanvas() as HTMLCanvasElement;
+      const craft = layerOf()?.firstElementChild as HTMLElement;
+      // 단추 복제본 뒤에 깔린다
+      expect(craft.firstElementChild).toBe(canvas);
+      act(() => void tl.time(0.95));
+      expect(log.updates.at(-1)).toMatchObject(inputAt(950));
+      // 갱신마다 같은 프레임에 그린다(별도 루프 없음)
+      expect(log.renders).toBe(log.updates.length);
+    });
+
+    it('비행이 끝나면 한 번 놓고 canvas가 사라진다', async () => {
+      withWebGL2();
+      const log = record();
+      const ui = render(<WingButton>보내기</WingButton>);
+      const { tl } = await pressWithThree(ui);
+      expect(log.disposed).toBe(0);
+      finish(tl);
+      expect(log.disposed).toBe(1);
+      expect(wingCanvas()).toBeNull();
+      expect(layerOf()).toBeNull();
+    });
+
+    it('비행 중간에 언마운트해도 한 번 놓는다', async () => {
+      withWebGL2();
+      const log = record();
+      const ui = render(<WingButton>보내기</WingButton>);
+      await pressWithThree(ui);
+      ui.unmount();
+      expect(log.disposed).toBe(1);
+      expect(wingCanvas()).toBeNull();
+    });
+
+    it('끝난 뒤 언마운트해도 두 번 놓지 않는다', async () => {
+      withWebGL2();
+      const log = record();
+      const ui = render(<WingButton>보내기</WingButton>);
+      const { tl } = await pressWithThree(ui);
+      finish(tl);
+      ui.unmount();
+      expect(log.disposed).toBe(1);
+    });
+
+    it('300ms 안에 늦게 오면 온 시점의 박자 값으로 바로 그리기 시작한다', async () => {
+      withWebGL2();
+      const log = record();
+      const gate = lateThree();
+      const ui = render(<WingButton>보내기</WingButton>);
+      fireEvent.click(button());
+      const tl = hostOf(ui.container).__wingTimeline as gsap.core.Timeline;
+      // 웅크림은 이미 돈다: 200ms 시점에 three가 도착한다
+      tl.pause();
+      act(() => void tl.time(0.2));
+      expect(log.made).toBe(0);
+      gate.arrive(await import('three'));
+      await waitFor(() => expect(log.made).toBe(1));
+      expect(inputAt(200).bud).toBeGreaterThan(0.5);
+      expect(log.updates[0]).toMatchObject(inputAt(200));
+      expect(log.renders).toBe(1);
+    });
+
+    it('언마운트한 뒤에 온 three로는 만들지 않는다', async () => {
+      withWebGL2();
+      const log = record();
+      const gate = lateThree();
+      const ui = render(<WingButton>보내기</WingButton>);
+      fireEvent.click(button());
+      ui.unmount();
+      gate.arrive(await import('three'));
+      await act(async () => {});
+      expect(log.made).toBe(0);
+    });
+
+    it('렌더러 컨텍스트를 못 만들면 failed로 보고 날개 없이 날며 알림과 포커스 규칙은 같다', async () => {
+      withWebGL2();
+      const log = record(true);
+      const ui = render(<WingButton>보내기</WingButton>);
+      button().focus();
+      fireEvent.pointerEnter(button());
+      await act(async () => {
+        await import('three');
+      });
+      fireEvent.click(button());
+      await waitFor(() =>
+        expect(hostOf(ui.container).__wingOutcome?.status).toBe('failed')
+      );
+      expect(log.made).toBe(1);
+      expect(wingCanvas()).toBeNull();
+      expect(layerOf()).not.toBeNull();
+      expect(markOf(ui.container)).toHaveFocus();
+      expect(screen.getByRole('status')).toHaveTextContent('');
+      finish(hostOf(ui.container).__wingTimeline as gsap.core.Timeline);
+      expect(layerOf()).toBeNull();
+      expect(markOf(ui.container)).toHaveFocus();
+      expect(log.disposed).toBe(0);
+    });
+
+    it('three 불러오기가 실패하면 장면을 만들지 않는다', async () => {
+      withWebGL2();
+      const log = record();
+      replaceThreeImporter(() => Promise.reject<ThreeModule>(new Error('x')));
+      const ui = render(<WingButton>보내기</WingButton>);
+      fireEvent.click(button());
+      await waitFor(() =>
+        expect(hostOf(ui.container).__wingOutcome?.status).toBe('failed')
+      );
+      expect(log.made).toBe(0);
+      expect(wingCanvas()).toBeNull();
+    });
+
+    it('WebGL2가 없으면 장면을 만들지 않는다', async () => {
+      const log = record();
+      const ui = render(<WingButton>보내기</WingButton>);
+      fireEvent.click(button());
+      await waitFor(() =>
+        expect(hostOf(ui.container).__wingOutcome?.status).toBe('no-webgl2')
+      );
+      expect(log.made).toBe(0);
+      expect(wingCanvas()).toBeNull();
+    });
+
+    it('300ms가 지나서 온 three로는 만들지 않는다(timeout은 확정)', async () => {
+      withWebGL2();
+      const log = record();
+      const gate = lateThree();
+      const ui = render(<WingButton>보내기</WingButton>);
+      fireEvent.click(button());
+      await waitFor(
+        () =>
+          expect(hostOf(ui.container).__wingOutcome?.status).toBe('timeout'),
+        { timeout: 2000 }
+      );
+      gate.arrive(await import('three'));
+      await act(async () => {});
+      expect(log.made).toBe(0);
+      expect(wingCanvas()).toBeNull();
+    });
+
+    it('움직임 줄이기에서는 three를 받지도 장면을 만들지도 않는다', async () => {
+      stubReducedMotion();
+      withWebGL2();
+      const log = record();
+      render(<WingButton>보내기</WingButton>);
+      fireEvent.pointerEnter(button());
+      fireEvent.click(button());
+      await act(async () => {});
+      expect(log.made).toBe(0);
+      expect(wingCanvas()).toBeNull();
+    });
+
+    it('smoke={false}여도 날개는 그린다(날개만)', async () => {
+      withWebGL2();
+      const log = record();
+      const ui = render(<WingButton smoke={false}>보내기</WingButton>);
+      await pressWithThree(ui);
+      expect(log.made).toBe(1);
+      expect(wingCanvas()).not.toBeNull();
     });
   });
 

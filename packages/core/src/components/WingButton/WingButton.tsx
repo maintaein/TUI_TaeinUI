@@ -22,6 +22,7 @@ import { tailSpray, type Point } from './smokeTrail';
 import { BEAT, BEAT_END, CROUCH, WING_RATIO, wingBeat } from './wingBeat';
 import { makeSmoke } from './smokeEngine';
 import { awaitWings, preloadThree, type WingsOutcome } from './loadThree';
+import { makeWingScene, type WingScene } from './wingScene';
 import {
   root,
   crouch,
@@ -160,9 +161,9 @@ const measureFlight = (
  * 지키고, 날아간 뒤 그 자리에 `sentLabel` 표지가 떠오른다. 돌아오지 않으며 소비자가 `key`를 바꿔 다시 그린다.
  * 포커스가 있었으면 표지로 옮기고, 없었으면 처음부터 있는 보이지 않는 알림 영역(`role="status"`)에 `sentLabel`을
  * 넣는다. 비행 중 다시 누르는 것은 무시한다.
- * 날개는 3D 라이브러리를 따로 불러와 그리고(단추를 가리키거나 포커스가 가면 미리 받는다) 아직 그림이 없어
- * 날개 자리는 비어 있다. 지금은 박자와 연기만 돈다.
- * 움직임 줄이기에서는 비행 없이(그 라이브러리도 받지 않는다) 단추가 표지로 교차 페이드된다.
+ * 단추 양옆에는 3D로 그린 날개가 돋아 깃이 하나씩 펴지며 날갯짓에 맞춰 퍼덕인다. 3D 라이브러리는 따로 불러오며
+ * (단추를 가리키거나 포커스가 가면 미리 받는다) 누를 때까지 못 받았거나 불러오기에 실패했거나 WebGL2가 없으면 날개 없이
+ * 난다(연기는 WebGL2가 있어야 나온다). 움직임 줄이기에서는 비행 없이(그 라이브러리도 받지 않는다) 단추가 표지로 교차 페이드된다.
  */
 export const WingButton = forwardRef<HTMLButtonElement, WingButtonProps>(
   (
@@ -194,8 +195,6 @@ export const WingButton = forwardRef<HTMLButtonElement, WingButtonProps>(
     // 연기는 비행(flying)에 묶지 않는다. 레이어가 걷힌 뒤에도 엔진 수명대로 흩어지고 언마운트에서만 끊는다
     const smokeRef = useRef<FluidSmoke | null>(null);
     const crouched = useRef(false);
-    // 날개를 그릴 수 있는지의 결과. 누른 뒤 300ms 안에 정해져 다음 과제(날개 그림)가 읽는다. 정해지기 전에는 null이다
-    const wingsRef = useRef<WingsOutcome | null>(null);
 
     // 웅크림을 되감는다. 눌림이 없었으면 아무 일도 없다
     const release = () => {
@@ -280,15 +279,6 @@ export const WingButton = forwardRef<HTMLButtonElement, WingButtonProps>(
         });
       }
       const button = event.currentTarget;
-      const host = hostRef.current;
-      if (!reduced && host) {
-        wingsRef.current = null;
-        host.__wingOutcome = undefined;
-        awaitWings(WAIT_FOR_WINGS).then((outcome) => {
-          wingsRef.current = outcome;
-          host.__wingOutcome = outcome;
-        });
-      }
       setLaunch({
         focused: button.ownerDocument.activeElement === button,
         crouched: wasCrouched,
@@ -306,8 +296,19 @@ export const WingButton = forwardRef<HTMLButtonElement, WingButtonProps>(
       gsap.set(label, { opacity: 0 });
       if (launch.focused) label.focus({ preventScroll: true });
 
+      // 날개 장면(3D)은 three가 제때 왔을 때만 생긴다. 비행이 끝나거나 걷히거나 언마운트되면 한 번만 놓는다
+      let wings: WingScene | null = null;
+      let ended = false;
+      const endWings = () => {
+        ended = true;
+        wings?.dispose();
+        wings = null;
+      };
       // 비행(레이어)은 이륙이 끝나는 순간 걷는다. 표지가 떠오르는 순간과 같다
-      const done = () => setFlying(false);
+      const done = () => {
+        endWings();
+        setFlying(false);
+      };
       const { flight } = launch;
       const body = craftRef.current;
       const clones = cloneHostRef.current;
@@ -359,6 +360,11 @@ export const WingButton = forwardRef<HTMLButtonElement, WingButtonProps>(
             scale: pose.scale,
           });
           gsap.set(label, { opacity: beat.mark });
+          // 같은 프레임에 날개도 그린다(별도 루프 없음)
+          if (wings) {
+            wings.update(beat);
+            wings.render();
+          }
           const engine = smokeRef.current;
           if (!engine || (!beat.smoke && beat.phase !== 'takeoff')) return;
           const r = body.getBoundingClientRect();
@@ -395,6 +401,32 @@ export const WingButton = forwardRef<HTMLButtonElement, WingButtonProps>(
           }
         };
         tick();
+        // three를 기다린다. 누르는 순간은 멈칫하지 않고(웅크림과 봉오리가 먼저 돈다) 300ms 안에 오면 온 시점의 박자 값으로 바로
+        // 그리기 시작한다. 안 오거나 실패하거나 WebGL2가 없거나 렌더러 컨텍스트를 못 만들면 날개 없이 난다
+        host.__wingOutcome = undefined;
+        awaitWings(WAIT_FOR_WINGS).then((outcome) => {
+          if (ended) return;
+          host.__wingOutcome = outcome;
+          if (outcome.status !== 'ready') return;
+          let scene: WingScene | undefined;
+          try {
+            scene = makeWingScene(outcome.three, {
+              host: body,
+              width: flight.width,
+              height: flight.height,
+            });
+            // 단추 복제본 뒤에 깔려 날개 뿌리가 단추 옆면에 가려진다
+            scene.canvas.setAttribute('data-wing-canvas', '');
+            body.prepend(scene.canvas);
+            const beat = wingBeat(clock.t, geometry);
+            scene.update(beat);
+            scene.render();
+            wings = scene;
+          } catch {
+            scene?.dispose();
+            host.__wingOutcome = { status: 'failed' };
+          }
+        });
         timeline = gsap
           .timeline({ onComplete: done })
           .to(
@@ -413,6 +445,7 @@ export const WingButton = forwardRef<HTMLButtonElement, WingButtonProps>(
       timelineRef.current = timeline;
       host.__wingTimeline = timeline;
       return () => {
+        endWings();
         timeline.kill();
         timelineRef.current = null;
       };

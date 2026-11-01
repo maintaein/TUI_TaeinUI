@@ -57,7 +57,7 @@ export const layer = style({
   },
 });
 
-// 날아가는 단추 복제본 상자(날개는 다음 과제가 이 안에 그린다). GSAP이 이 상자에 이동·기울기·배율을 건다.
+// 날아가는 단추 복제본 상자(3D 날개 canvas도 이 안에 있다). GSAP이 이 상자에 이동·기울기·배율을 건다.
 export const craft = style({
   position: 'absolute',
 });
