@@ -38,7 +38,7 @@ interface GateEnforcementException {
 
 /**
  * 게이트 없이 gsap을 쓰는 게 정당한 파일의 목록. 첫 입주자는 M3 T3
- * `Snackbar`, 둘째는 M7 T9 `HoldButton`이다. 아래 "정확히 이 항목들" 검사가 목록이 몰래 늘지 않는지 잠근다.
+ * `Snackbar`, 둘째는 M7 T9 `HoldButton`, 셋째는 M7.1 T7 `wingBeat`(이징 평가만 하는 순수 함수)이다. 아래 "정확히 이 항목들" 검사가 목록이 몰래 늘지 않는지 잠근다.
  */
 const GATE_ENFORCEMENT_EXCEPTIONS: GateEnforcementException[] = [
   {
@@ -61,6 +61,13 @@ const GATE_ENFORCEMENT_EXCEPTIONS: GateEnforcementException[] = [
       '축소 모드도 시간은 그대로 둔다(M7 T9, 사용자 확정). 축소 모드가 바꾸는 건 차오름의 그림(연속→' +
       '네 단계)뿐이다. 시계와 분리된 장식 트윈은 이 파일이 gateMotion으로 직접 거친다: 마지막 30% ' +
       '떨림, 실행 뒤 체크의 spring 튕김, 되감기와 무장 이동.',
+  },
+  {
+    path: 'components/WingButton/wingBeat.ts',
+    reason:
+      '날갯짓 박자를 시각 t의 순수 함수로 계산하는 파일이다. gsap.parseEase로 토큰 이징 곡선을 ' +
+      '평가할 뿐 트윈도 타임라인도 시계도 만들지 않아 게이트가 확정하거나 죽일 애니메이션이 없다. ' +
+      '이 함수를 시계에 얹어 돌리는 WingButton.tsx가 gateMotion/settleMotion을 거친다(M7.1 T7).',
   },
 ];
 
@@ -87,10 +94,11 @@ describe('GSAP 진입점은 게이트를 거친다 (T2 강제)', () => {
   it('예외 목록은 정확히 이 항목들이고, 이 개수다', () => {
     // 목록이 저절로 늘어나지 않게 길이와 내용을 같이 잠근다. 새 예외가
     // 필요해지면 여기부터 고쳐야 하고, 그 순간 이유를 적어야 한다.
-    expect(GATE_ENFORCEMENT_EXCEPTIONS).toHaveLength(2);
+    expect(GATE_ENFORCEMENT_EXCEPTIONS).toHaveLength(3);
     expect(GATE_ENFORCEMENT_EXCEPTIONS.map((e) => e.path)).toEqual([
       'components/Snackbar/Snackbar.tsx',
       'components/HoldButton/HoldButton.tsx',
+      'components/WingButton/wingBeat.ts',
     ]);
     expect(
       GATE_ENFORCEMENT_EXCEPTIONS.every((e) => e.reason.trim().length > 0)

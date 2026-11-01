@@ -33,17 +33,17 @@ export interface FluidSmokeOptions {
 const BURST = {
   rounds: 6,
   puffsPerRound: 6,
-  radiusPx: 28,
+  radiusPx: 36,
   spreadPx: 60,
   speedPx: 1500,
-  density: 0.22,
+  density: 0.3,
 } as const;
-const EMIT = { radiusPx: 20, density: 0.22, swirl: 0.3 } as const;
+const EMIT = { radiusPx: 30, density: 0.34, swirl: 0.3 } as const;
 // 한 프레임에 쌓이는 주입 상한. 넘치면 버린다(연기가 이미 충분히 빽빽하다)
 const MAX_QUEUE = 96;
 const PROBE_SIZE = 16;
-// 연기색 토큰. 흰 바탕에서 보이는 중간 회색이다
-const SMOKE_TOKEN = themeContract.palette.gray[600];
+// 연기색 토큰. 흰색과 회색의 중간인 밝은 회백색이다(gray[600]은 흰 바탕에서 너무 짙은 회색이었다)
+const SMOKE_TOKEN = themeContract.palette.gray[400];
 
 interface Target {
   texture: WebGLTexture;

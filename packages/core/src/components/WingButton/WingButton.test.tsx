@@ -8,10 +8,18 @@ import {
   expect,
   vi,
 } from 'vitest';
-import { act, fireEvent, render, screen } from '@testing-library/react';
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { WingButton } from './WingButton';
 import { gsapDuration, gsapEasing } from '../../tokens/gsapEasing';
+import { BEAT, BEAT_END } from './wingBeat';
+import { replaceThreeImporter, type ThreeModule } from './loadThree';
 
 // WingButton.tsx가 바깥 상자에 얹는 손잡이(BurstToggle의 타임라인 손잡이와 같은 모양).
 type WingHost = HTMLElement & {
@@ -35,6 +43,14 @@ const tweensOf = (tl: gsap.core.Timeline, target: Element | null) =>
     ) as gsap.core.Tween[];
 // 타임라인을 끝까지 돌린다. 끝나면 컴포넌트가 상태를 바꾸므로 act로 감싼다
 const finish = (tl: gsap.core.Timeline) => act(() => void tl.progress(1));
+
+// 단추 복제본 상자의 이동(px). GSAP이 translate(x, y)로 쓴다
+const translateOf = (el: HTMLElement) => {
+  const m = /translate\((-?[\d.e-]+)px(?:, (-?[\d.e-]+)px)?\)/.exec(
+    el.style.transform
+  );
+  return { x: Number(m?.[1] ?? 0), y: Number(m?.[2] ?? 0) };
+};
 
 const stubReducedMotion = () =>
   vi.stubGlobal(
@@ -249,12 +265,12 @@ describe('WingButton', () => {
         fireEvent.click(button());
         const tl = hostOf(view.container).__wingTimeline as gsap.core.Timeline;
         const craft = layerOf(stage)?.firstElementChild as HTMLElement;
-        const fly = tweensOf(tl, craft).find(
-          (t) => t.vars.y !== undefined && t.vars.y !== 0
-        );
+        // 이륙이 끝나는 순간(3.05초) 단추가 가 있는 곳이 그 거리다
+        act(() => void tl.time(BEAT.sent / 1000));
+        const x = translateOf(craft).x;
         view.unmount();
         stage.remove();
-        return fly?.vars.x as number;
+        return x;
       };
       // 위가 가깝다(상자 폭 1000): 244 + 날개
       expect(takeoffX(1000)).toBeCloseTo(244 + wing, 5);
@@ -395,102 +411,251 @@ describe('WingButton', () => {
     });
   });
 
-  describe('날개와 비행', () => {
+  describe('박자와 비행', () => {
     const launch = () => {
       const view = render(<WingButton>보내기</WingButton>);
       fireEvent.click(button());
       const layer = layerOf() as HTMLElement;
       const craft = layer.firstElementChild as HTMLElement;
       const tl = hostOf(view.container).__wingTimeline as gsap.core.Timeline;
-      return { ...view, layer, craft, tl };
+      const at = (ms: number) => act(() => void tl.time(ms / 1000));
+      return { ...view, layer, craft, tl, at };
     };
 
-    it('날개는 양 끝에 둘이고 깃털이 네 장씩이다', () => {
-      const { layer } = launch();
-      const wings = layer.querySelectorAll('[data-wing]');
-      expect(Array.from(wings).map((w) => w.getAttribute('data-side'))).toEqual(
-        ['left', 'right']
-      );
-      wings.forEach((w) =>
-        expect(w.querySelectorAll('svg [data-feather]')).toHaveLength(4)
-      );
-    });
-
-    it('깃털은 snap으로 접힌 자세에서 부채로 펴진다', () => {
-      const { layer, tl } = launch();
-      const feathers = Array.from(layer.querySelectorAll('[data-feather]'));
-      const unfurl = tweensOf(tl, feathers[0]).find(
-        (t) => t.vars.rotation !== undefined
-      ) as gsap.core.Tween;
-      expect(unfurl.vars.ease).toBe(gsapEasing.snap);
-      // 접힌 자세(처음)와 펴진 자세(끝)가 다르다
-      tl.progress(0);
-      const pose = () => feathers.map((f) => (f as SVGElement).style.transform);
-      const folded = pose();
-      tl.progress(1);
-      const spread = pose();
-      expect(new Set(folded.slice(0, 4)).size).toBe(1);
-      expect(new Set(spread.slice(0, 4)).size).toBe(4);
-      expect(spread[0]).toContain('rotate(-68deg)');
-    });
-
-    it('웅크린 자세로 시작해 snap으로 풀린 뒤 이륙한다(exit, 0.8초, 기울기 -15deg, 0.6배)', () => {
-      const { craft, tl } = launch();
-      const tweens = tweensOf(tl, craft);
-      const release = tweens.find((t) => t.vars.scale === 1);
-      expect(release?.vars.ease).toBe(gsapEasing.snap);
-      expect(release?.startTime()).toBe(0);
-
-      const fly = tweens.find((t) => t.vars.y !== undefined && t.vars.y !== 0);
-      expect(fly?.vars.ease).toBe(gsapEasing.exit);
-      expect(fly?.duration()).toBeCloseTo(gsapDuration.base * 4, 5);
-      expect(fly?.startTime()).toBeCloseTo(gsapDuration.base * 3, 5);
-      // 오른쪽 위: x는 늘고 y는 준다. 45도
-      expect(fly?.vars.x as number).toBeGreaterThan(0);
-      expect(fly?.vars.y as number).toBe(-(fly?.vars.x as number));
-
-      const tilt = tweens.find((t) => t.vars.rotation !== undefined);
-      expect(tilt?.vars.rotation).toBe(-15);
-      const shrink = tweens.find((t) => t.vars.scale === 0.6);
-      expect(shrink?.duration()).toBeCloseTo(gsapDuration.base * 4, 5);
-      expect(shrink?.startTime()).toBeCloseTo(gsapDuration.base * 3, 5);
-
-      tl.progress(0);
+    it('시계 하나가 0에서 3250ms까지 돌며 단추를 박자대로 움직인다(웅크림, 세 번 들림)', () => {
+      const { craft, tl, at } = launch();
+      expect(tl.duration()).toBeCloseTo(BEAT_END / 1000, 5);
+      at(0);
+      expect(translateOf(craft)).toEqual({ x: 0, y: 0 });
+      at(150);
       expect(craft.style.transform).toContain('translate(-2px, 2px)');
-      tl.progress(1);
+      expect(craft.style.transform).toContain('scale(0.97');
+      at(300);
+      expect(translateOf(craft).y).toBeCloseTo(0, 5);
+      // 아래로 칠 때마다 6, 10, 14px 들린다
+      [950, 1450, 1950].forEach((ms, i) => {
+        at(ms);
+        expect(translateOf(craft).y).toBeCloseTo(-[6, 10, 14][i], 5);
+      });
+    });
+
+    it('이륙은 오른쪽 위로 가며 -15deg로 기울고 0.6배가 된다', () => {
+      const { craft, at } = launch();
+      at(BEAT.takeoff);
+      const hover = translateOf(craft);
+      expect(hover.x).toBeCloseTo(0, 5);
+      at(BEAT.sent);
+      const end = translateOf(craft);
+      expect(end.x).toBeGreaterThan(0);
+      // 45도: 오른쪽으로 간 만큼 위로 간다
+      expect(end.y - hover.y).toBeCloseTo(-end.x, 5);
       expect(craft.style.transform).toContain('rotate(-15deg)');
       expect(craft.style.transform).toContain('scale(0.6');
     });
 
-    it('날개는 ±20deg로 한 번에 base씩 퍼덕이고 이륙 중에도 이어진다', () => {
-      const { layer, tl } = launch();
-      const [left, right] = Array.from(layer.querySelectorAll('[data-wing]'));
-      const flapR = tweensOf(tl, right)[1];
-      const flapL = tweensOf(tl, left)[1];
-      expect(flapR.vars.rotation).toBe(20);
-      expect(flapL.vars.rotation).toBe(-20);
-      expect(flapR.vars.yoyo).toBe(true);
-      expect(flapR.vars.ease).toBe(gsapEasing.drift);
-      // 한 번(왕복)이 base
-      expect(flapR.duration() * 2).toBeCloseTo(gsapDuration.base, 5);
-      // 웅크림 뒤 세 번(0.6초)에 이륙 중까지 이어져 전체 길이를 덮는다
-      expect(flapR.totalDuration()).toBeCloseTo(gsapDuration.base * 7, 5);
+    it('눌렀다 뗀 click이면 복제본은 웅크린 자세로 이어받는다', () => {
+      render(<WingButton>보내기</WingButton>);
+      fireEvent.pointerDown(button());
+      fireEvent.click(button());
+      const craft = layerOf()?.firstElementChild as HTMLElement;
+      expect(craft.style.transform).toContain('translate(-2px, 2px)');
+      expect(craft.style.transform).toContain('scale(0.97');
     });
 
-    it('표지는 비행이 끝난 뒤에야 settle로 떠오르고 그 전에는 보이지 않으며 그 순간 레이어를 걷는다', () => {
-      const { container, tl } = launch();
+    it('표지는 비행이 끝나는 3050ms에야 떠오르기 시작하고 그 순간 레이어를 걷는다', () => {
+      const { container, at } = launch();
       const label = markOf(container) as HTMLElement;
-      const fade = tweensOf(tl, label)[0];
-      const landing = gsapDuration.base * 7;
-      expect(fade.vars.ease).toBe(gsapEasing.settle);
-      expect(fade.startTime()).toBeCloseTo(landing, 5);
-      expect(fade.endTime()).toBeCloseTo(tl.duration(), 5);
-      // 비행이 끝나기 직전까지 표지는 투명하고 복제본이 날고 있다
-      act(() => void tl.time(landing - 0.01));
+      at(BEAT.sent - 10);
       expect(label.style.opacity).toBe('0');
       expect(layerOf()).not.toBeNull();
-      act(() => void tl.time(landing));
+      at(BEAT.sent);
       expect(layerOf()).toBeNull();
+      at(BEAT.sent + 100);
+      expect(Number(label.style.opacity)).toBeGreaterThan(0.5);
+      expect(Number(label.style.opacity)).toBeLessThan(1);
+      at(BEAT_END);
+      expect(label.style.opacity).toBe('1');
+    });
+
+    it('비행 중 다시 누르면 무시한다: 두 번째 비행도 두 번째 onClick도 없고 끝 모양이 같다', () => {
+      const onClick = vi.fn();
+      const view = render(<WingButton onClick={onClick}>보내기</WingButton>);
+      const original = button();
+      fireEvent.click(original);
+      const tl = hostOf(view.container).__wingTimeline as gsap.core.Timeline;
+      act(() => void tl.time(1));
+      fireEvent.click(original);
+      fireEvent.click(original);
+      expect(onClick).toHaveBeenCalledTimes(1);
+      expect(hostOf(view.container).__wingTimeline).toBe(tl);
+      expect(document.querySelectorAll('[data-wing-layer]')).toHaveLength(1);
+      finish(tl);
+      fireEvent.click(original);
+      expect(onClick).toHaveBeenCalledTimes(1);
+      expect(view.container.querySelectorAll('[data-wing-mark]')).toHaveLength(
+        1
+      );
+      expect(markOf(view.container)).toHaveTextContent('보냈어요');
+      expect(markOf(view.container)).toHaveStyle({ opacity: '1' });
+      expect(screen.getByRole('status')).toHaveTextContent('보냈어요');
+    });
+  });
+
+  // 날개를 그릴 three는 가리킬 때 불러온다. jsdom에는 WebGL2가 없으니 있는 것으로 보이게 하고, 불러오는 함수를 손으로 갈아 끼운다.
+  describe('three 불러오기와 날개 없는 비행', () => {
+    const withWebGL2 = () => vi.stubGlobal('WebGL2RenderingContext', class {});
+    const counting = () => {
+      const calls = { n: 0 };
+      replaceThreeImporter(() => {
+        calls.n += 1;
+        return import('three');
+      });
+      return calls;
+    };
+    const failing = () => {
+      const calls = { n: 0 };
+      replaceThreeImporter(() => {
+        calls.n += 1;
+        return Promise.reject<ThreeModule>(new Error('network'));
+      });
+      return calls;
+    };
+    afterEach(() => replaceThreeImporter());
+
+    it('가리키면(pointerenter) 불러오고 이미 불렀으면 포커스가 가도 다시 부르지 않는다', () => {
+      withWebGL2();
+      const calls = counting();
+      render(<WingButton>보내기</WingButton>);
+      expect(calls.n).toBe(0);
+      fireEvent.pointerEnter(button());
+      expect(calls.n).toBe(1);
+      fireEvent.pointerEnter(button());
+      fireEvent.focus(button());
+      expect(calls.n).toBe(1);
+    });
+
+    it('포커스만으로도 불러온다', () => {
+      withWebGL2();
+      const calls = counting();
+      render(<WingButton>보내기</WingButton>);
+      fireEvent.focus(button());
+      expect(calls.n).toBe(1);
+    });
+
+    it('소비자의 onPointerEnter와 onFocus도 불린다', () => {
+      withWebGL2();
+      counting();
+      const onPointerEnter = vi.fn();
+      const onFocus = vi.fn();
+      render(
+        <WingButton onPointerEnter={onPointerEnter} onFocus={onFocus}>
+          보내기
+        </WingButton>
+      );
+      fireEvent.pointerEnter(button());
+      fireEvent.focus(button());
+      expect(onPointerEnter).toHaveBeenCalledTimes(1);
+      expect(onFocus).toHaveBeenCalledTimes(1);
+    });
+
+    it('실패한 뒤 다시 가리키면 다시 시도한다', async () => {
+      withWebGL2();
+      const calls = failing();
+      render(<WingButton>보내기</WingButton>);
+      fireEvent.pointerEnter(button());
+      expect(calls.n).toBe(1);
+      await act(async () => {});
+      fireEvent.pointerEnter(button());
+      expect(calls.n).toBe(2);
+    });
+
+    it('움직임 줄이기에서는 가리켜도 포커스가 가도 눌러도 부르지 않는다', () => {
+      stubReducedMotion();
+      withWebGL2();
+      const calls = counting();
+      render(<WingButton>보내기</WingButton>);
+      fireEvent.pointerEnter(button());
+      fireEvent.focus(button());
+      fireEvent.click(button());
+      expect(calls.n).toBe(0);
+    });
+
+    it('비활성이면 부르지 않는다', () => {
+      withWebGL2();
+      const calls = counting();
+      render(<WingButton disabled>보내기</WingButton>);
+      fireEvent.pointerEnter(button());
+      fireEvent.focus(button());
+      expect(calls.n).toBe(0);
+    });
+
+    it('WebGL2가 없으면 받지 않고 no-webgl2로 날개 없이 난다', async () => {
+      const calls = counting();
+      const { container } = render(<WingButton>보내기</WingButton>);
+      fireEvent.pointerEnter(button());
+      fireEvent.click(button());
+      // 누른 순간 멈칫 없이 비행이 선다
+      expect(layerOf()).not.toBeNull();
+      expect(hostOf(container)).toHaveAttribute('data-wings', 'pending');
+      await waitFor(() =>
+        expect(hostOf(container)).toHaveAttribute('data-wings', 'no-webgl2')
+      );
+      expect(calls.n).toBe(0);
+    });
+
+    it('누르기 전에 받아 두었으면 ready이고 누른 뒤에 다시 받지 않는다', async () => {
+      withWebGL2();
+      const calls = counting();
+      const { container } = render(<WingButton>보내기</WingButton>);
+      fireEvent.pointerEnter(button());
+      await act(async () => {
+        await import('three');
+      });
+      fireEvent.click(button());
+      await waitFor(() =>
+        expect(hostOf(container)).toHaveAttribute('data-wings', 'ready')
+      );
+      expect(calls.n).toBe(1);
+    });
+
+    it('불러오기가 실패하면 failed이고 날개 없이 날며 알림과 포커스 규칙은 같다', async () => {
+      withWebGL2();
+      failing();
+      const { container } = render(<WingButton>보내기</WingButton>);
+      button().focus();
+      fireEvent.click(button());
+      expect(layerOf()).not.toBeNull();
+      await waitFor(() =>
+        expect(hostOf(container)).toHaveAttribute('data-wings', 'failed')
+      );
+      expect(markOf(container)).toHaveFocus();
+      expect(screen.getByRole('status')).toHaveTextContent('');
+      finish(hostOf(container).__wingTimeline as gsap.core.Timeline);
+      expect(layerOf()).toBeNull();
+      expect(markOf(container)).toHaveFocus();
+      expect(markOf(container)).toHaveStyle({ opacity: '1' });
+    });
+
+    it('웅크림과 봉오리 300ms 안에 안 오면 timeout이고 나중에 와도 바뀌지 않는다', async () => {
+      withWebGL2();
+      let arrive: (three: ThreeModule) => void = () => {};
+      replaceThreeImporter(
+        () => new Promise<ThreeModule>((resolve) => (arrive = resolve))
+      );
+      const { container } = render(<WingButton>보내기</WingButton>);
+      fireEvent.click(button());
+      expect(hostOf(container)).toHaveAttribute('data-wings', 'pending');
+      await waitFor(
+        () =>
+          expect(hostOf(container)).toHaveAttribute('data-wings', 'timeout'),
+        { timeout: 2000 }
+      );
+      arrive(await import('three'));
+      await act(async () => {});
+      expect(hostOf(container)).toHaveAttribute('data-wings', 'timeout');
+      // 날개 없이 연기만으로 날아 상태 알림 규칙은 같다
+      finish(hostOf(container).__wingTimeline as gsap.core.Timeline);
+      expect(screen.getByRole('status')).toHaveTextContent('보냈어요');
     });
   });
 

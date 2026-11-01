@@ -2,7 +2,7 @@ import { globalStyle, style } from '@vanilla-extract/css';
 import { themeContract } from '../../tokens/theme.css';
 import { focusRing } from '../../tokens/focusRing.css';
 
-const { color, palette, font, spacing, borderRadius, zIndex } = themeContract;
+const { palette, font, spacing, borderRadius, zIndex } = themeContract;
 
 // 단추 자리를 잡는 상자. 단추는 날아간 뒤에도 이 안에 보이지 않게 남아 자리를 지키고, 표지는 그 위에 겹친다.
 export const root = style({
@@ -57,7 +57,7 @@ export const layer = style({
   },
 });
 
-// 날아가는 한 벌(단추 복제본과 날개 둘). GSAP이 이 상자에 이동·기울기·배율을 건다.
+// 날아가는 단추 복제본 상자(날개는 다음 과제가 이 안에 그린다). GSAP이 이 상자에 이동·기울기·배율을 건다.
 export const craft = style({
   position: 'absolute',
 });
@@ -72,42 +72,4 @@ globalStyle(`${cloneHost} > *`, {
   width: '100%',
   height: '100%',
   flex: 'none',
-});
-
-// 날개 한 쪽. 뿌리가 단추 옆면 가운데 높이에 오고(단추 아래로 4px 겹쳐 들어간다), 그 점을 중심으로 퍼덕인다.
-export const wing = style({
-  position: 'absolute',
-  bottom: '50%',
-  height: '120%',
-  aspectRatio: '1',
-  selectors: {
-    '&[data-side="right"]': {
-      left: '100%',
-      marginLeft: `calc(${spacing[1]} * -1)`,
-      transformOrigin: '0% 100%',
-    },
-    '&[data-side="left"]': {
-      right: '100%',
-      marginRight: `calc(${spacing[1]} * -1)`,
-      transformOrigin: '100% 100%',
-    },
-  },
-});
-
-export const wingSvg = style({
-  display: 'block',
-  width: '100%',
-  height: '100%',
-  overflow: 'visible',
-  selectors: {
-    [`${wing}[data-side="left"] &`]: { transform: 'scaleX(-1)' },
-  },
-});
-
-// 깃털. primary 계열의 옅은 면에 한 단계 진한 선을 둘러 흰 바탕에서도 윤곽이 읽힌다.
-export const feather = style({
-  fill: palette.primary[200],
-  stroke: color.primary.light,
-  strokeWidth: 1.5,
-  vectorEffect: 'non-scaling-stroke',
 });

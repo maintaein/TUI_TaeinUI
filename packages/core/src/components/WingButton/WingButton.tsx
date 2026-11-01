@@ -4,6 +4,7 @@ import {
   useRef,
   useState,
   type ButtonHTMLAttributes,
+  type FocusEvent,
   type MouseEvent,
   type PointerEvent,
   type ReactNode,
@@ -18,6 +19,8 @@ import { gsapDuration, gsapEasing } from '../../tokens/gsapEasing';
 import { useReducedMotion } from '../../hooks/useReducedMotion';
 import { settleMotion } from '../../hooks/gateMotion';
 import { tailSpray, type Point } from './smokeTrail';
+import { BEAT, BEAT_END, CROUCH, WING_RATIO, wingBeat } from './wingBeat';
+import { awaitWings, preloadThree, type WingsOutcome } from './loadThree';
 import {
   root,
   crouch,
@@ -26,9 +29,6 @@ import {
   layer,
   craft,
   cloneHost,
-  wing,
-  wingSvg,
-  feather,
 } from './WingButton.css';
 
 export interface WingButtonProps extends Omit<
@@ -46,8 +46,8 @@ export interface WingButtonProps extends Omit<
    */
   container?: HTMLElement | null;
   /**
-   * 이륙 때 터지고 꼬리를 따라 흩어지는 유체 연기(WebGL2). 끄면 연기 없이 날고, WebGL2가 없거나 움직임 줄이기여도
-   * 연기만 빠진다. 캔버스와 셰이더뿐이라 엄격한 CSP와 무관하다 @default true
+   * 날개가 아래로 칠 때마다 밀려 나가고, 이륙 때 터지며 꼬리를 따라 흩어지는 유체 연기(WebGL2). 끄면 연기 없이 날고,
+   * WebGL2가 없거나 움직임 줄이기여도 연기만 빠진다. 캔버스와 셰이더뿐이라 엄격한 CSP와 무관하다 @default true
    */
   smoke?: boolean;
   /** 비활성화 상태. 비활성이면 웅크리지도 날지도 않는다 @default false */
@@ -60,44 +60,20 @@ type Host = HTMLElement & {
   __wingCrouch?: gsap.core.Tween;
 };
 
-// 웅크림: 왼쪽 아래로 살짝 눌린다
-const CROUCH = { x: -2, y: 2, scale: 0.97 } as const;
+// 눌림 되감기용 제자리
 const REST = { x: 0, y: 0, scale: 1 } as const;
-// 날개 길이는 단추 높이의 1.2배(CSS와 같은 값)
-const WING_RATIO = 1.2;
-// 퍼덕임: 날개 회전 ±20deg, 한 번(내렸다 올림)에 base. 그 절반이 한 방향 휘두름이다.
-const FLAP = 20;
-const HALF_FLAP = gsapDuration.base / 2;
-// 날개를 펴고 세 번 퍼덕이는 구간(0.6초), 그다음 이륙(0.8초). 퍼덕임은 이륙 중에도 이어진다.
-const PREP = gsapDuration.base * 3;
-const TAKEOFF = gsapDuration.base * 4;
-const FLAP_HALVES = Math.round((PREP + TAKEOFF) / HALF_FLAP);
-// 이륙: 진행 방향으로 -15deg 기울고 0.6배까지 작아진다
-const TILT = -15;
-const FAR_SCALE = 0.6;
-// 날개 펴짐: 깃털이 단추 옆면을 따라 위로 접혀 있다가 부채로 펴진다. 깃털마다 base의 10%씩 늦게 시작한다.
-const FOLD = -92;
-const FEATHERS = [
-  { angle: -68, length: 70 },
-  { angle: -48, length: 84 },
-  { angle: -30, length: 96 },
-  { angle: -12, length: 100 },
-] as const;
-const UNFURL_STAGGER = gsapDuration.base * 0.1;
-const UNFURL = gsapDuration.base - UNFURL_STAGGER * (FEATHERS.length - 1);
-// 날개 svg 좌표계(100x100)에서 뿌리는 왼쪽 아래 모서리다
-const ROOT = '0 100';
-// 표지는 날아간 뒤(이륙이 끝나는 순간)에 떠오른다. 그 순간 복제본 레이어도 걷고 알림 글도 넣는다.
-const MARK_AT = PREP + TAKEOFF;
+// 누를 때 three가 아직 안 왔으면 웅크림과 봉오리 구간(300ms)까지만 기다린다. 그래도 없으면 날개 없이 연기만으로 난다
+const WAIT_FOR_WINGS = BEAT.unfurl;
 // 꼬리 연기가 밀려 나가는 속도(CSS px/초). 복제본의 실제 속도는 이륙 중 0에서 수천까지 변해 그대로 쓰면 연기가 들쭉날쭉하다.
-// 엔진을 처음 만들 때 꼬리 모양을 본 300~550의 가운데로 고정하고, 방향만 복제본 진행의 반대로 한다
-const SMOKE_SPEED = 400;
+// 엔진을 처음 만들 때 꼬리 모양을 본 300~550의 위쪽으로 고정하고, 방향만 복제본 진행의 반대로 한다(꼬리를 더 길게 끈다)
+const SMOKE_SPEED = 520;
+// 아래로 칠 때 날개 밑에서 덩이를 내보내는 간격(ms). 매 프레임 내보내면(약 16ms) 무대가 연기로 덮였다.
+// 아래치기 200ms에 날개마다 네 덩이다
+const WING_PUFF_GAP = 60;
+// 날개 밑에서 아래로 밀어내는 속도(CSS px/초). 한 번 칠 때(200ms)마다 덩이 하나가 약 100px 아래까지 밀려 나간다
+const WING_PUSH = 500;
 // 이륙 터짐의 양(엔진 기본 1의 절반): 2는 무대를 덮고 표지와 글자를 가렸다. 흰 바탕에서 또렷하되 단추를 덮지 않는 선
 const BURST_AMOUNT = 0.5;
-
-// 깃털 하나: 뿌리(0,100)에서 오른쪽으로 length만큼 뻗는 잎 모양
-const featherPath = (length: number) =>
-  `M0 100C${length * 0.2} 87 ${length * 0.7} 85 ${length} 100C${length * 0.7} 115 ${length * 0.2} 113 0 100Z`;
 
 interface Flight {
   clone: HTMLElement;
@@ -114,6 +90,8 @@ interface Flight {
 interface Launch {
   /** 누를 때 단추에 포커스가 있었는지 */
   focused: boolean;
+  /** 누를 때 이미 웅크려 있었는지(눌렀다 뗀 click). 복제본이 그 자세로 이어받는다 */
+  crouched: boolean;
   /** 움직임 줄이기에서는 비행이 없다 */
   flight: Flight | null;
 }
@@ -175,12 +153,15 @@ const measureFlight = (
 };
 
 /**
- * 메일 보내기·제출·전송 단추. 누르는 순간 왼쪽 아래로 살짝 웅크리고, click이 확정되면 단추 양 끝에서
- * 날개가 펴져 세 번 퍼덕인 뒤 단추 모양 복제본이 오른쪽 위로 가속하며 기울고 작아지며 화면(또는 `container`)
- * 밖으로 날아간다. 원래 단추는 그 순간 보이지 않게 두어 자리를 지키고, 날아간 뒤 그 자리에 `sentLabel`
- * 표지가 떠오른다. 돌아오지 않으며 소비자가 `key`를 바꿔 다시 그린다. 포커스가 있었으면 표지로 옮기고, 없었으면
- * 처음부터 있는 보이지 않는 알림 영역(`role="status"`)에 `sentLabel`을 넣는다.
- * 움직임 줄이기에서는 날개와 비행 없이 단추가 표지로 교차 페이드된다.
+ * 메일 보내기·제출·전송 단추. 누르는 순간 왼쪽 아래로 살짝 웅크리고, click이 확정되면 단추 모양 복제본이
+ * 날갯짓 박자(`wingBeat`) 하나를 따라 세 번 떠오르며(6, 10, 14px) 날개 밑으로 연기를 밀어낸 뒤 오른쪽 위로
+ * 가속하며 기울고 작아지며 화면(또는 `container`) 밖으로 날아간다. 원래 단추는 그 순간 보이지 않게 두어 자리를
+ * 지키고, 날아간 뒤 그 자리에 `sentLabel` 표지가 떠오른다. 돌아오지 않으며 소비자가 `key`를 바꿔 다시 그린다.
+ * 포커스가 있었으면 표지로 옮기고, 없었으면 처음부터 있는 보이지 않는 알림 영역(`role="status"`)에 `sentLabel`을
+ * 넣는다. 비행 중 다시 누르는 것은 무시한다.
+ * 날개는 3D 라이브러리를 따로 불러와 그리고(단추를 가리키거나 포커스가 가면 미리 받는다) 아직 그림이 없어
+ * 날개 자리는 비어 있다. 지금은 박자와 연기만 돈다.
+ * 움직임 줄이기에서는 비행 없이(그 라이브러리도 받지 않는다) 단추가 표지로 교차 페이드된다.
  */
 export const WingButton = forwardRef<HTMLButtonElement, WingButtonProps>(
   (
@@ -192,8 +173,10 @@ export const WingButton = forwardRef<HTMLButtonElement, WingButtonProps>(
       disabled = false,
       onClick,
       onPointerDown,
+      onPointerEnter,
       onPointerLeave,
       onPointerCancel,
+      onFocus,
       ...props
     },
     ref
@@ -206,12 +189,12 @@ export const WingButton = forwardRef<HTMLButtonElement, WingButtonProps>(
     const markRef = useRef<HTMLSpanElement>(null);
     const craftRef = useRef<HTMLDivElement>(null);
     const cloneHostRef = useRef<HTMLSpanElement>(null);
-    const wingLeftRef = useRef<HTMLSpanElement>(null);
-    const wingRightRef = useRef<HTMLSpanElement>(null);
     const timelineRef = useRef<gsap.core.Timeline>(null);
     // 연기는 비행(flying)에 묶지 않는다. 레이어가 걷힌 뒤에도 엔진 수명대로 흩어지고 언마운트에서만 끊는다
     const smokeRef = useRef<FluidSmoke | null>(null);
     const crouched = useRef(false);
+    // 날개를 그릴 수 있는지의 결과. 누른 뒤 300ms 안에 정해져 다음 과제(날개 그림)가 읽는다. 정해지기 전에는 null이다
+    const wingsRef = useRef<WingsOutcome | null>(null);
 
     // 웅크림을 되감는다. 눌림이 없었으면 아무 일도 없다
     const release = () => {
@@ -245,6 +228,21 @@ export const WingButton = forwardRef<HTMLButtonElement, WingButtonProps>(
       });
     };
 
+    // 날개를 그릴 three를 미리 받아 둔다. 움직임 줄이기와 비활성, 이미 난 뒤에는 받지 않는다
+    const preload = () => {
+      if (!disabled && !reduced && !launch) preloadThree();
+    };
+
+    const handlePointerEnter = (event: PointerEvent<HTMLButtonElement>) => {
+      onPointerEnter?.(event);
+      preload();
+    };
+
+    const handleFocus = (event: FocusEvent<HTMLButtonElement>) => {
+      onFocus?.(event);
+      preload();
+    };
+
     const handlePointerLeave = (event: PointerEvent<HTMLButtonElement>) => {
       onPointerLeave?.(event);
       release();
@@ -269,10 +267,11 @@ export const WingButton = forwardRef<HTMLButtonElement, WingButtonProps>(
       const el = crouchRef.current;
       if (!el) return;
       // 웅크림을 걷어 낸 원래 자리를 잰다. 복제본이 웅크린 자세로 이어받는다
+      const wasCrouched = crouched.current;
       crouched.current = false;
       gsap.killTweensOf(el);
       gsap.set(el, { clearProps: 'transform' });
-      // 첫 생성이 동기로 최대 약 84ms 걸린다. 웅크림·날개 박자(이륙까지 0.6초) 앞에서 치러 첫 연기는 이륙 때 쓴다.
+      // 첫 생성이 동기로 최대 약 84ms 걸린다. 웅크림·날갯짓 박자(첫 연기는 0.75초) 앞에서 치른다.
       // 엔진이 null(WebGL2 없음, 움직임 줄이기는 엔진이 스스로 거른다)이면 연기만 빠진다
       if (smoke) {
         smokeRef.current = createFluidSmoke({
@@ -280,8 +279,18 @@ export const WingButton = forwardRef<HTMLButtonElement, WingButtonProps>(
         });
       }
       const button = event.currentTarget;
+      const host = hostRef.current;
+      if (!reduced && host) {
+        wingsRef.current = null;
+        host.dataset.wings = 'pending';
+        awaitWings(WAIT_FOR_WINGS).then((outcome) => {
+          wingsRef.current = outcome;
+          host.dataset.wings = outcome.status;
+        });
+      }
       setLaunch({
         focused: button.ownerDocument.activeElement === button,
+        crouched: wasCrouched,
         flight: reduced ? null : measureFlight(button, el, container),
       });
       setFlying(!reduced);
@@ -301,10 +310,8 @@ export const WingButton = forwardRef<HTMLButtonElement, WingButtonProps>(
       const { flight } = launch;
       const body = craftRef.current;
       const clones = cloneHostRef.current;
-      const left = wingLeftRef.current;
-      const right = wingRightRef.current;
       let timeline: gsap.core.Timeline;
-      if (!flight || !body || !clones || !left || !right) {
+      if (!flight || !body || !clones) {
         // 움직임 줄이기: 단추와 표지가 교차 페이드한다(opacity는 이동이 아니라 남긴다)
         timeline = gsap
           .timeline({ onComplete: done })
@@ -329,125 +336,78 @@ export const WingButton = forwardRef<HTMLButtonElement, WingButtonProps>(
       } else {
         clones.replaceChildren(flight.clone);
         gsap.set(wrap, { autoAlpha: 0 });
-        gsap.set(body, CROUCH);
-        const feathers = body.querySelectorAll('[data-feather]');
-        // 꼬리 분사: 이륙 중 매 프레임 복제본의 꼬리(진행 반대쪽 끝, 오른쪽 위로 날면 왼쪽 아래 모서리)에서 진행 반대로 뿜는다.
-        // 진행 방향은 직전 프레임 중심과의 차로 구한다. 꼬리 점이 레이어 밖이면 뿜지 않는다
-        let last: Point | null = null;
-        const trail = () => {
-          const smokeNow = smokeRef.current;
-          if (!smokeNow || timeline.time() < PREP) return;
-          const { center, spray } = tailSpray(
-            body,
-            last,
-            flight.bounds,
-            SMOKE_SPEED
-          );
-          last = center;
-          if (spray) smokeNow.emit(spray.x, spray.y, spray.vx, spray.vy);
+        const geometry = {
+          width: flight.width,
+          height: flight.height,
+          distance: flight.dx,
         };
-        timeline = gsap
-          .timeline({ onComplete: done, onUpdate: trail })
-          // 웅크림을 풀며 날개가 돋는다
-          .to(
-            body,
-            { ...REST, duration: gsapDuration.fast, ease: gsapEasing.snap },
-            0
-          )
-          .fromTo(
-            [left, right],
-            { opacity: 0 },
-            {
-              opacity: 1,
-              duration: gsapDuration.fast,
-              ease: gsapEasing.linear,
-            },
-            0
-          )
-          // 안쪽 깃털부터 한 장씩 편다(왼쪽 날개 넷, 오른쪽 날개 넷의 순서라 index % 4가 깃털 번호다)
-          .fromTo(
-            feathers,
-            { rotation: FOLD, svgOrigin: ROOT },
-            {
-              rotation: (index: number) =>
-                FEATHERS[index % FEATHERS.length].angle,
-              svgOrigin: ROOT,
-              delay: (index: number) =>
-                (index % FEATHERS.length) * UNFURL_STAGGER,
-              duration: UNFURL,
-              ease: gsapEasing.snap,
-            },
-            0
-          )
-          // 퍼덕임: 오른쪽 날개가 위에서 아래로 휘두를 때 왼쪽은 거울이라 부호가 반대다
-          .fromTo(
-            right,
-            { rotation: -FLAP },
-            {
-              rotation: FLAP,
-              duration: HALF_FLAP,
-              ease: gsapEasing.drift,
-              yoyo: true,
-              repeat: FLAP_HALVES - 1,
-            },
-            0
-          )
-          .fromTo(
-            left,
-            { rotation: FLAP },
-            {
-              rotation: -FLAP,
-              duration: HALF_FLAP,
-              ease: gsapEasing.drift,
-              yoyo: true,
-              repeat: FLAP_HALVES - 1,
-            },
-            0
-          )
-          // 이륙
-          .to(
-            body,
-            {
-              x: flight.dx,
-              y: flight.dy,
-              duration: TAKEOFF,
-              ease: gsapEasing.exit,
-            },
-            PREP
-          )
-          .to(
-            body,
-            { rotation: TILT, duration: TAKEOFF, ease: gsapEasing.settle },
-            PREP
-          )
-          .to(
-            body,
-            { scale: FAR_SCALE, duration: TAKEOFF, ease: gsapEasing.linear },
-            PREP
-          )
-          // 이륙 터짐: 움직이기 시작하는 순간 복제본 아래 가운데(단추 아래 가장자리)에서 한 번
-          .call(
-            () => {
-              const r = body.getBoundingClientRect();
-              smokeRef.current?.burst(
-                (r.left + r.right) / 2,
-                r.bottom,
-                BURST_AMOUNT
+        // 박자 하나(wingBeat)가 단추의 움직임, 날개 밑 연기, 표지를 모두 정한다. 시계는 0에서 끝까지 도는 숫자 하나다
+        const clock = { t: 0 };
+        let last: Point | null = null;
+        let burst = false;
+        let lastPuff = -Infinity;
+        const tick = () => {
+          const beat = wingBeat(clock.t, geometry);
+          // 눌렀다 뗀 click이면 웅크림 구간은 이미 웅크린 자세를 이어받는다
+          const pose =
+            launch.crouched && beat.phase === 'crouch' ? CROUCH : beat;
+          gsap.set(body, {
+            x: pose.x,
+            y: pose.y,
+            rotation: beat.rotation,
+            scale: pose.scale,
+          });
+          gsap.set(label, { opacity: beat.mark });
+          const engine = smokeRef.current;
+          if (!engine || (!beat.smoke && beat.phase !== 'takeoff')) return;
+          const r = body.getBoundingClientRect();
+          const cx = (r.left + r.right) / 2;
+          const cy = (r.top + r.bottom) / 2;
+          // 날개 밑에서 아래로 칠 때만 밀어낸다. 자리는 단추 중심 기준이라 이동한 배율과 기울기를 걸어 창 좌표로 바꾼다
+          if (beat.smoke && clock.t - lastPuff >= WING_PUFF_GAP) {
+            lastPuff = clock.t;
+            const rad = (beat.rotation * Math.PI) / 180;
+            const cos = Math.cos(rad);
+            const sin = Math.sin(rad);
+            for (const p of beat.smokeAt) {
+              engine.emit(
+                cx + beat.scale * (p.x * cos - p.y * sin),
+                cy + beat.scale * (p.x * sin + p.y * cos),
+                0,
+                WING_PUSH
               );
-            },
-            [],
-            PREP
-          )
-          .call(done, [], MARK_AT)
+            }
+          }
+          if (beat.phase !== 'takeoff') return;
+          // 이륙 터짐: 움직이기 시작하는 순간 복제본 아래 가운데(단추 아래 가장자리)에서 한 번
+          if (!burst) {
+            burst = true;
+            engine.burst(cx, r.bottom, BURST_AMOUNT);
+          }
+          // 꼬리 분사: 매 프레임 복제본의 꼬리(진행 반대쪽 끝, 오른쪽 위로 날면 왼쪽 아래 모서리)에서 진행 반대로 뿜는다.
+          // 진행 방향은 직전 프레임 중심과의 차로 구한다. 꼬리 점이 레이어 밖이면 뿜지 않는다
+          const trail = tailSpray(body, last, flight.bounds, SMOKE_SPEED);
+          last = trail.center;
+          if (trail.spray) {
+            const { x, y, vx, vy } = trail.spray;
+            engine.emit(x, y, vx, vy);
+          }
+        };
+        tick();
+        timeline = gsap
+          .timeline({ onComplete: done })
           .to(
-            label,
+            clock,
             {
-              opacity: 1,
-              duration: gsapDuration.base,
-              ease: gsapEasing.settle,
+              t: BEAT_END,
+              duration: BEAT_END / 1000,
+              ease: gsapEasing.linear,
+              onUpdate: tick,
             },
-            MARK_AT
-          );
+            0
+          )
+          // 비행(레이어)은 이륙이 끝나는 순간 걷는다. 표지가 떠오르기 시작하는 순간과 같다
+          .call(done, [], BEAT.sent / 1000);
       }
       timelineRef.current = timeline;
       host.__wingTimeline = timeline;
@@ -481,8 +441,10 @@ export const WingButton = forwardRef<HTMLButtonElement, WingButtonProps>(
             disabled={disabled}
             onClick={handleClick}
             onPointerDown={handlePointerDown}
+            onPointerEnter={handlePointerEnter}
             onPointerLeave={handlePointerLeave}
             onPointerCancel={handlePointerCancel}
+            onFocus={handleFocus}
           >
             {children}
           </Button>
@@ -518,26 +480,6 @@ export const WingButton = forwardRef<HTMLButtonElement, WingButtonProps>(
                   height: flight.height,
                 }}
               >
-                {(['left', 'right'] as const).map((side) => (
-                  <span
-                    key={side}
-                    ref={side === 'left' ? wingLeftRef : wingRightRef}
-                    className={wing}
-                    data-side={side}
-                    data-wing=""
-                  >
-                    <svg className={wingSvg} viewBox="0 0 100 100">
-                      {FEATHERS.map(({ length }) => (
-                        <path
-                          key={length}
-                          data-feather=""
-                          className={feather}
-                          d={featherPath(length)}
-                        />
-                      ))}
-                    </svg>
-                  </span>
-                ))}
                 <span ref={cloneHostRef} className={cloneHost} />
               </div>
             </div>,
