@@ -883,7 +883,7 @@ describe('WingButton', () => {
       return log;
     };
     const wingCanvas = () =>
-      document.querySelector<HTMLCanvasElement>('canvas[data-wing-canvas]');
+      document.querySelector<HTMLCanvasElement>('[data-wing-layer] canvas');
     const inputAt = (ms: number) => {
       const beat = wingBeat(ms, GEOMETRY);
       return {
@@ -1022,6 +1022,56 @@ describe('WingButton', () => {
       expect(markOf(ui.container)).toHaveFocus();
       expect(log.disposed).toBe(0);
     });
+
+    it.each(['update', 'render'] as const)(
+      '비행 도중 %s가 던지면 그 비행에서 날개를 걷고 비행과 알림과 연기는 계속된다',
+      async (method) => {
+        withWebGL2();
+        const log = { made: 0, disposed: 0, calls: 0 };
+        replaceWingSceneFactory(() => {
+          log.made += 1;
+          const canvas = document.createElement('canvas');
+          const boom = () => {
+            log.calls += 1;
+            // 만든 직후 첫 그리기는 지나고 비행 중 프레임에서 컨텍스트가 소실된 것처럼 던진다
+            if (log.calls > 1) throw new Error('context lost');
+          };
+          return {
+            canvas,
+            update: () => (method === 'update' ? boom() : undefined),
+            render: () => (method === 'render' ? boom() : undefined),
+            dispose: () => {
+              log.disposed += 1;
+              canvas.remove();
+            },
+          };
+        });
+        const emits: number[] = [];
+        replaceSmokeFactory(() => ({
+          canvas: document.createElement('canvas'),
+          emit: () => emits.push(1),
+          burst: () => {},
+          dispose: () => {},
+        }));
+        const ui = render(<WingButton>보내기</WingButton>);
+        const { tl } = await pressWithThree(ui);
+        expect(wingCanvas()).not.toBeNull();
+        // 날갯짓 구간(아래치기 중)으로 보내면 tick이 던진다
+        act(() => void tl.time(0.8));
+        expect(log.disposed).toBe(1);
+        expect(wingCanvas()).toBeNull();
+        expect(hostOf(ui.container).__wingOutcome?.status).toBe('failed');
+        // 비행과 연기는 이어진다
+        expect(layerOf()).not.toBeNull();
+        expect(emits.length).toBeGreaterThan(0);
+        // 끝까지 가도 두 번 놓지 않고 알림은 같다
+        finish(tl);
+        expect(log.disposed).toBe(1);
+        expect(layerOf()).toBeNull();
+        expect(screen.getByRole('status')).toHaveTextContent('보냈어요');
+        replaceSmokeFactory();
+      }
+    );
 
     it('three 불러오기가 실패하면 장면을 만들지 않는다', async () => {
       withWebGL2();

@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import { WING_DOWN, WING_RATIO, WING_UP, wingBeat } from './wingBeat';
-import { buildWingRig, wingPose, type WingColors } from './wingScene';
+import {
+  buildWingRig,
+  createWingScene,
+  wingPose,
+  type WingColors,
+} from './wingScene';
 import type { ThreeModule } from './loadThree';
 
 // WebGL 없이 장면 그래프만 만든다(렌더러는 e2e가 Chromium에서 본다). 진짜 three를 쓴다
@@ -211,4 +216,89 @@ describe('buildWingRig: 장면', () => {
     rig.dispose();
     expect(disposed).toEqual({ geometry: 4, material: 4 });
   });
+});
+
+// jsdom에는 WebGL이 없어 진짜 WebGLRenderer는 컨텍스트를 못 만들고 던진다. 렌더러 자리에만 호출을 기록하는 손을 끼우고
+// 나머지(장면, 지오메트리, 재질)는 진짜 three를 쓴다. 컨텍스트를 놓는 두 호출(dispose, forceContextLoss)이 이어지는지 본다.
+describe('createWingScene: 렌더러 수명', () => {
+  const standIn = (failAt?: 'setSize' | 'compile') => {
+    const calls: string[] = [];
+    class Renderer {
+      domElement = document.createElement('canvas');
+      setPixelRatio() {
+        calls.push('setPixelRatio');
+      }
+      setSize() {
+        calls.push('setSize');
+        if (failAt === 'setSize') throw new Error('setSize');
+      }
+      compile() {
+        calls.push('compile');
+        if (failAt === 'compile') throw new Error('compile');
+      }
+      render() {
+        calls.push('render');
+      }
+      dispose() {
+        calls.push('dispose');
+      }
+      forceContextLoss() {
+        calls.push('forceContextLoss');
+      }
+    }
+    const fake = {
+      ...three,
+      WebGLRenderer: Renderer,
+    } as unknown as ThreeModule;
+    return { fake, calls };
+  };
+  const options = () => ({ host: document.body, ...GEOMETRY });
+
+  it('만들 때 첫 셰이더 컴파일을 한 번 미리 치르고 그린 것은 그 뒤다', () => {
+    const { fake, calls } = standIn();
+    const scene = createWingScene(fake, options());
+    scene.update({ wingAngle: 0, bud: 1, feathers: OPEN });
+    scene.render();
+    expect(calls.filter((c) => c === 'compile')).toHaveLength(1);
+    expect(calls.indexOf('compile')).toBeLessThan(calls.indexOf('render'));
+    scene.dispose();
+  });
+
+  it('dispose는 렌더러 dispose와 컨텍스트 강제 해제를 한 번씩만 부르고 canvas를 뗀다', () => {
+    const { fake, calls } = standIn();
+    const scene = createWingScene(fake, options());
+    document.body.append(scene.canvas);
+    scene.dispose();
+    scene.dispose();
+    expect(calls.filter((c) => c === 'dispose')).toHaveLength(1);
+    expect(calls.filter((c) => c === 'forceContextLoss')).toHaveLength(1);
+    expect(scene.canvas.isConnected).toBe(false);
+    // 놓은 뒤에는 그리지 않는다
+    scene.render();
+    expect(calls).not.toContain('render');
+  });
+
+  it.each(['setSize', 'compile'] as const)(
+    '%s에서 던지면 이미 만든 렌더러(컨텍스트)와 지오메트리를 놓고 던진다',
+    (failAt) => {
+      const { fake, calls } = standIn(failAt);
+      const made: import('three').BufferGeometry[] = [];
+      const real = fake.ExtrudeGeometry;
+      let disposedGeometries = 0;
+      (fake as { ExtrudeGeometry: unknown }).ExtrudeGeometry = class extends (
+        real
+      ) {
+        constructor(...args: ConstructorParameters<typeof real>) {
+          super(...args);
+          made.push(this);
+          this.addEventListener('dispose', () => (disposedGeometries += 1));
+        }
+      };
+      expect(() => createWingScene(fake, options())).toThrow(failAt);
+      expect(calls).toContain('dispose');
+      expect(calls).toContain('forceContextLoss');
+      expect(made).toHaveLength(4);
+      expect(disposedGeometries).toBe(4);
+    }
+  );
 });

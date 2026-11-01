@@ -361,9 +361,15 @@ export const WingButton = forwardRef<HTMLButtonElement, WingButtonProps>(
           });
           gsap.set(label, { opacity: beat.mark });
           // 같은 프레임에 날개도 그린다(별도 루프 없음)
+          // 던지면(컨텍스트 소실 등) 이 비행에서 날개를 걷고 연기와 비행은 계속한다
           if (wings) {
-            wings.update(beat);
-            wings.render();
+            try {
+              wings.update(beat);
+              wings.render();
+            } catch {
+              endWings();
+              host.__wingOutcome = { status: 'failed' };
+            }
           }
           const engine = smokeRef.current;
           if (!engine || (!beat.smoke && beat.phase !== 'takeoff')) return;
@@ -416,7 +422,6 @@ export const WingButton = forwardRef<HTMLButtonElement, WingButtonProps>(
               height: flight.height,
             });
             // 단추 복제본 뒤에 깔려 날개 뿌리가 단추 옆면에 가려진다
-            scene.canvas.setAttribute('data-wing-canvas', '');
             body.prepend(scene.canvas);
             const beat = wingBeat(clock.t, geometry);
             scene.update(beat);

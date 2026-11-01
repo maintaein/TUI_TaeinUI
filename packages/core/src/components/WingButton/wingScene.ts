@@ -258,7 +258,9 @@ export const createWingScene = (
   { host, width, height }: WingSceneOptions
 ): WingScene => {
   const renderer = new three.WebGLRenderer({ alpha: true, antialias: true });
-  let rig: WingRig;
+  let rig: WingRig | undefined;
+  let canvas: HTMLCanvasElement;
+  // 중간에 하나라도 던지면 이미 만든 자원(컨텍스트 포함)을 놓고 던진다. 부르는 쪽이 날개 없이 난다
   try {
     rig = buildWingRig(
       three,
@@ -268,32 +270,37 @@ export const createWingScene = (
         tip: readToken(three, host, themeContract.palette.primary[200]),
       }
     );
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, MAX_DPR));
+    renderer.setSize(rig.size.width, rig.size.height);
+    // 첫 셰이더 컴파일을 미리 치른다. 안 그러면 봉오리가 처음 보이는 프레임(약 150ms)에 컴파일이 몰려 끊긴다.
+    // 장면을 만든 직후에는 날개가 모두 보이는 상태라 재질이 컴파일 대상에 든다(숨김은 첫 update가 건다)
+    renderer.compile(rig.scene, rig.camera);
+    canvas = renderer.domElement;
+    canvas.setAttribute('aria-hidden', 'true');
+    Object.assign(canvas.style, {
+      position: 'absolute',
+      left: `${(width - rig.size.width) / 2}px`,
+      top: `${(height - rig.size.height) / 2}px`,
+      pointerEvents: 'none',
+    });
   } catch (error) {
+    rig?.dispose();
     renderer.dispose();
     renderer.forceContextLoss();
     throw error;
   }
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, MAX_DPR));
-  renderer.setSize(rig.size.width, rig.size.height);
-  const canvas = renderer.domElement;
-  canvas.setAttribute('aria-hidden', 'true');
-  Object.assign(canvas.style, {
-    position: 'absolute',
-    left: `${(width - rig.size.width) / 2}px`,
-    top: `${(height - rig.size.height) / 2}px`,
-    pointerEvents: 'none',
-  });
+  const live = rig;
   let disposed = false;
   return {
     canvas,
-    update: (input) => rig.apply(input),
+    update: (input) => live.apply(input),
     render: () => {
-      if (!disposed) renderer.render(rig.scene, rig.camera);
+      if (!disposed) renderer.render(live.scene, live.camera);
     },
     dispose() {
       if (disposed) return;
       disposed = true;
-      rig.dispose();
+      live.dispose();
       renderer.dispose();
       renderer.forceContextLoss();
       canvas.remove();
