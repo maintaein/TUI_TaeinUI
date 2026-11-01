@@ -346,7 +346,8 @@ test.describe('날개 전송 상세 유체 연기 (1440px)', () => {
       while (performance.now() - t0 < 12_000) {
         await frame();
         n += 1;
-        const canvas = region.querySelector('canvas');
+        // 날개 canvas(data-wing-canvas)는 따로 본다: 여기서는 연기 canvas만
+        const canvas = region.querySelector('canvas:not([data-wing-canvas])');
         const layer = document.querySelector('[data-wing-layer]');
         found.onBody ||= !!document.body.querySelector(':scope > canvas');
         if (layer) layerWasUp = true;
@@ -396,7 +397,7 @@ test.describe('날개 전송 상세 유체 연기 (1440px)', () => {
     await expect(stage(page).locator('canvas')).toHaveCount(0);
   });
 
-  test('다시 단추로 열 번 되풀이해도 문맥이 쌓이지 않는다', async ({
+  test('다시 단추로 열 번 되풀이해도 연기 문맥이 쌓이지 않는다', async ({
     page,
   }) => {
     test.setTimeout(90_000);
@@ -587,5 +588,244 @@ test.describe('날개 전송 상세 three 불러오기 (1440px)', () => {
     await expect(mark(page)).toHaveCSS('opacity', '1');
     await page.waitForTimeout(500);
     expect(urls).toEqual([]);
+  });
+});
+
+// 3D 날개(three, Chromium 소프트웨어 WebGL). 날개 canvas는 비행 층 안의 단추 상자에 있다
+const wingCanvas = (page: Page) => page.locator('canvas[data-wing-canvas]');
+// 가리켜 three를 받고 평가가 끝나도록 기다린다
+const warm = async (page: Page) => {
+  const loaded = page.waitForResponse((r) => /three\.module/.test(r.url()));
+  await send(page).hover();
+  await loaded;
+  await page.waitForTimeout(500);
+  await page.mouse.move(2, 2);
+};
+
+test.describe('날개 전송 상세 3D 날개 (1440px)', () => {
+  test.use({ viewport: { width: 1440, height: 900 } });
+
+  test('비행 중에는 날개 canvas가 단추 복제본 뒤에 있고 끝나면 없다', async ({
+    page,
+  }) => {
+    test.setTimeout(60_000);
+    await open(page);
+    await warm(page);
+    const seen = await send(page).evaluate(async (button) => {
+      const frame = () =>
+        new Promise((r) => requestAnimationFrame(() => r(null)));
+      const t0 = performance.now();
+      (button as HTMLButtonElement).click();
+      const found = {
+        insideCraft: false,
+        behindClone: false,
+        ariaHidden: false,
+        noPointer: false,
+        sameLayerAsClone: false,
+        goneWithLayer: false,
+      };
+      let layerUp = false;
+      while (performance.now() - t0 < 6000) {
+        await frame();
+        const layer = document.querySelector('[data-wing-layer]');
+        const canvas = document.querySelector('canvas[data-wing-canvas]');
+        if (layer) layerUp = true;
+        if (canvas && layer) {
+          const craft = layer.firstElementChild;
+          found.insideCraft ||= canvas.parentElement === craft;
+          found.behindClone ||= craft?.firstElementChild === canvas;
+          found.ariaHidden ||= canvas.getAttribute('aria-hidden') === 'true';
+          found.noPointer ||= getComputedStyle(canvas).pointerEvents === 'none';
+          found.sameLayerAsClone ||= !!layer.querySelector('button');
+        }
+        if (layerUp && !layer) {
+          found.goneWithLayer = !document.querySelector(
+            'canvas[data-wing-canvas]'
+          );
+          break;
+        }
+      }
+      return found;
+    });
+    expect(seen).toEqual({
+      insideCraft: true,
+      behindClone: true,
+      ariaHidden: true,
+      noPointer: true,
+      sameLayerAsClone: true,
+      goneWithLayer: true,
+    });
+    await expect(wingCanvas(page)).toHaveCount(0);
+  });
+
+  test('가리켜 받아 둔 뒤 누르면 300ms 안에 날개 canvas가 선다', async ({
+    page,
+  }) => {
+    await open(page);
+    await warm(page);
+    const at = await send(page).evaluate(async (button) => {
+      const t0 = performance.now();
+      (button as HTMLButtonElement).click();
+      while (performance.now() - t0 < 2000) {
+        await new Promise((r) => requestAnimationFrame(() => r(null)));
+        if (document.querySelector('canvas[data-wing-canvas]'))
+          return performance.now() - t0;
+      }
+      return -1;
+    });
+    expect(at).toBeGreaterThanOrEqual(0);
+    expect(at).toBeLessThan(300);
+  });
+
+  test('날개 canvas에 흰색 계열과 파랑 계열 픽셀이 실제로 그려진다', async ({
+    page,
+  }) => {
+    test.setTimeout(60_000);
+    await open(page);
+    await warm(page);
+    const px = await send(page).evaluate(async (button) => {
+      const copy = document.createElement('canvas');
+      const t0 = performance.now();
+      (button as HTMLButtonElement).click();
+      let best = { white: 0, blue: 0, drawn: 0 };
+      while (performance.now() - t0 < 2300) {
+        await new Promise((r) => requestAnimationFrame(() => r(null)));
+        const canvas = document.querySelector<HTMLCanvasElement>(
+          'canvas[data-wing-canvas]'
+        );
+        // 깃이 다 펴진 뒤(0.8초부터)의 프레임을 본다
+        if (!canvas || performance.now() - t0 < 800) continue;
+        copy.width = canvas.width;
+        copy.height = canvas.height;
+        const ctx = copy.getContext('2d')!;
+        ctx.drawImage(canvas, 0, 0);
+        const { data } = ctx.getImageData(0, 0, copy.width, copy.height);
+        let white = 0;
+        let blue = 0;
+        let drawn = 0;
+        for (let i = 0; i < data.length; i += 4) {
+          const [r, g, b, a] = [data[i], data[i + 1], data[i + 2], data[i + 3]];
+          if (a < 200) continue;
+          drawn += 1;
+          const spread = Math.max(r, g, b) - Math.min(r, g, b);
+          if (Math.min(r, g, b) > 170 && spread < 25) white += 1;
+          if (b - r > 40) blue += 1;
+        }
+        if (drawn > best.drawn) best = { white, blue, drawn };
+      }
+      return best;
+    });
+    expect(px.drawn).toBeGreaterThan(500);
+    expect(px.white).toBeGreaterThan(200);
+    expect(px.blue).toBeGreaterThan(50);
+  });
+
+  test('열 번 되풀이 비행해도 WebGL 문맥 경고가 없고 날개 canvas가 남지 않는다', async ({
+    page,
+  }) => {
+    test.setTimeout(120_000);
+    const warnings: string[] = [];
+    page.on('console', (m) => {
+      if (m.text().includes('Too many active WebGL contexts'))
+        warnings.push(m.text());
+    });
+    await open(page);
+    await warm(page);
+    const result = await stage(page).evaluate(async (region) => {
+      const frame = () =>
+        new Promise((r) => requestAnimationFrame(() => r(null)));
+      const until = async (done: () => boolean, ms: number) => {
+        const t = performance.now();
+        while (!done() && performance.now() - t < ms) await frame();
+        return done();
+      };
+      const buttons = (name: string) =>
+        [...region.querySelectorAll('button')].find(
+          (b) => b.textContent?.trim() === name
+        ) as HTMLButtonElement;
+      const wings = () => document.querySelectorAll('canvas[data-wing-canvas]');
+      const sawWing: boolean[] = [];
+      const left: number[] = [];
+      for (let i = 0; i < 10; i++) {
+        buttons('보내기').click();
+        sawWing.push(await until(() => wings().length > 0, 1000));
+        // 비행이 끝나(3.05초) 레이어가 걷히면 날개가 놓인다
+        await until(() => !document.querySelector('[data-wing-layer]'), 5000);
+        left.push(wings().length);
+        buttons('다시').click();
+        await frame();
+      }
+      return { sawWing, left };
+    });
+    expect(result.sawWing).toEqual(Array(10).fill(true));
+    expect(result.left).toEqual(Array(10).fill(0));
+    await page.waitForTimeout(1000);
+    expect(warnings).toEqual([]);
+  });
+
+  // three 덩이 요청을 붙잡아 누르는 순간 아직 불러오는 중인 상황을 만든다(가리키지 않고 바로 누른다)
+  const holdThree = async (page: Page, delayMs: number) => {
+    await page.route(/three\.module/, async (route) => {
+      await new Promise((r) => setTimeout(r, delayMs));
+      await route.continue();
+    });
+  };
+  // 누른 뒤 비행이 끝날 때까지 한 evaluate 안에서 본다: 웅크림 시작 시각, 날개 canvas가 처음 선 시각
+  const pressAndWatch = (page: Page) =>
+    send(page).evaluate(async (button) => {
+      const t0 = performance.now();
+      const width0 = button.getBoundingClientRect().width;
+      (button as HTMLButtonElement).click();
+      let crouchAt = -1;
+      let wingAt = -1;
+      let layerUp = false;
+      while (performance.now() - t0 < 6000) {
+        await new Promise((r) => requestAnimationFrame(() => r(null)));
+        const t = performance.now() - t0;
+        const clone = document.querySelector('[data-wing-layer] button');
+        const layer = document.querySelector('[data-wing-layer]');
+        if (layer) layerUp = true;
+        if (
+          clone &&
+          crouchAt < 0 &&
+          clone.getBoundingClientRect().width < width0 * 0.99
+        )
+          crouchAt = t;
+        if (wingAt < 0 && document.querySelector('canvas[data-wing-canvas]'))
+          wingAt = t;
+        if (layerUp && !layer) return { crouchAt, wingAt, ended: t };
+      }
+      return { crouchAt, wingAt, ended: -1 };
+    });
+
+  test('아직 불러오는 중이어도 300ms 안에 오면 날개가 돋고, 웅크림은 누른 직후 시작한다', async ({
+    page,
+  }) => {
+    test.setTimeout(60_000);
+    await holdThree(page, 60);
+    await open(page);
+    const r = await pressAndWatch(page);
+    expect(r.crouchAt).toBeGreaterThanOrEqual(0);
+    expect(r.crouchAt).toBeLessThan(150);
+    expect(r.wingAt).toBeGreaterThan(0);
+    expect(r.wingAt).toBeLessThan(900);
+    expect(r.ended).toBeGreaterThan(3000);
+  });
+
+  test('300ms 넘게 붙잡히면 날개 없이 난다. 웅크림은 같고 표지는 선다', async ({
+    page,
+  }) => {
+    test.setTimeout(60_000);
+    await holdThree(page, 1200);
+    await open(page);
+    const r = await pressAndWatch(page);
+    expect(r.crouchAt).toBeGreaterThanOrEqual(0);
+    expect(r.crouchAt).toBeLessThan(150);
+    // 늦게 와도 이번 비행에는 날개가 서지 않는다
+    expect(r.wingAt).toBe(-1);
+    expect(r.ended).toBeGreaterThan(3000);
+    await expect(mark(page)).toHaveText('보냈어요');
+    await expect(mark(page)).toHaveCSS('opacity', '1');
+    await expect(count(page, 1)).toBeVisible();
   });
 });

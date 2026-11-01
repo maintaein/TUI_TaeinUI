@@ -12,7 +12,7 @@ import type { PropDefinition } from '../../../components/PropsTable';
 import { Stage, type Act, type DemoProps } from '../../../components/Stage';
 
 const LEAD =
-  '메일 보내기 같은 전송 단추. 누르면 단추가 웅크렸다 세 번 떠오르며 연기를 밀어내고 오른쪽 위로 날아갑니다. 한 번만 날고, 다시 보내려면 새로 그립니다.';
+  '메일 보내기 같은 전송 단추. 누르면 단추가 웅크리고 양옆에 3D 날개가 돋아 깃이 하나씩 펴집니다. 날개가 세 번 퍼덕일 때마다 단추가 떠오르고 날개 밑으로 연기를 밀어낸 뒤 오른쪽 위로 날아갑니다. 한 번만 날고, 다시 보내려면 새로 그립니다.';
 
 const CONTROLS: Control[] = [
   { prop: 'sentLabel', kind: 'text', label: '보낸 뒤 글자' },
@@ -45,7 +45,7 @@ const PROPS: PropDefinition[] = [
     type: 'boolean',
     default: 'true',
     description:
-      '날개 밑으로 밀려 나가고 이륙 때 터지며 꼬리를 따라 흩어지는 유체 연기. false면 연기 없이 납니다. WebGL2가 없거나 움직임 줄이기여도 연기만 빠지고 비행과 표지는 그대로입니다',
+      '날개 밑으로 밀려 나가고 이륙 때 터지며 꼬리를 따라 흩어지는 유체 연기. false면 날개만 그려지고 연기는 없습니다. WebGL2가 없으면 날개도 연기도 없이 단추만 같은 박자로 납니다',
   },
   {
     name: 'onClick',
@@ -148,6 +148,17 @@ function Usage() {
           피드백이 됩니다.
         </p>
       </Topic>
+      <Topic title="날개는 따로 불러옵니다">
+        <p className={t.body}>
+          날개는 3D 라이브러리(<code>three</code>)로 그립니다. 단추를 가리키거나
+          포커스가 가면 그때 따로 불러오므로 첫 화면 번들에는 실리지 않습니다.
+          누르는 순간 웅크림은 바로 시작하고, 아직 불러오는 중이면 0.3초까지
+          기다려 오는 대로 날개를 그립니다. 그때까지 오지 않거나 불러오기에
+          실패하거나 WebGL2가 없으면 날개 없이 날고, 연기는 WebGL2가 있을 때만
+          나옵니다. 날개를 그리는 캔버스는 비행하는 동안에만 만들어 끝나면
+          놓습니다.
+        </p>
+      </Topic>
       <Topic title="날 자리는 container로">
         <p className={t.body} style={{ marginBottom: 12 }}>
           날아가는 단추는 단추 자리에서 화면 전체 위로 떠올라 날아갑니다. 조상의{' '}
@@ -187,6 +198,7 @@ function A11y() {
       </li>
       <li>
         복제본은 <code>aria-hidden</code>이고 <code>inert</code>인 장식 입니다.
+        날개 캔버스도 <code>aria-hidden</code>이고 포인터를 가로채지 않습니다.
         원래 단추는 보이지 않을 뿐 자리를 지켜 레이아웃이 움직이지 않습니다.
       </li>
       <li>
@@ -198,8 +210,9 @@ function A11y() {
         바뀝니다. 연기도 없습니다.
       </li>
       <li>
-        연기는 <code>aria-hidden</code>이고 포인터를 가로채지 않는 장식
-        캔버스입니다. 연기를 끄거나 WebGL2가 없어도 알림과 포커스는 같습니다.
+        연기도 <code>aria-hidden</code>이고 포인터를 가로채지 않는 장식
+        캔버스입니다. 연기를 끄거나, 날개를 못 불러오거나, WebGL2가 없어도
+        알림과 포커스는 같습니다.
       </li>
       <li>
         개발자가 직접 해야 합니다. 날아간 것은 &quot;눌렀다&quot;는 피드백일 뿐

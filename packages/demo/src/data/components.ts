@@ -420,7 +420,7 @@ export const motionData: MotionInfo[] = [
     title: '날개 전송',
     path: '/motion/wing-button',
     description:
-      '누르면 단추가 세 번 떠오르며 연기를 밀어내고 오른쪽 위로 날아갑니다.',
+      '누르면 단추 양옆에 3D 날개가 돋아 펴지고, 세 번 퍼덕이며 연기를 밀어낸 뒤 오른쪽 위로 날아갑니다.',
     usage: '메일 보내기, 제출, 전송',
     category: 'micro',
     icon: Send,
