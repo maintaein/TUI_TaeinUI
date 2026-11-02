@@ -279,10 +279,11 @@ test.describe('빛 물줄기 상세 (1440px)', () => {
     await page.mouse.move(2, 2);
     // 구간의 평균 흐름 속도(흐름 시간 증가 / 벽시계 증가)
     const rate = (
-      scrolling: boolean
+      scrolling: boolean,
+      ms = 2500
     ): Promise<{ rate: number; windowMoved: number }> =>
       page.evaluate(
-        ({ scrolling, scrollerName }) =>
+        ({ scrolling, scrollerName, ms }) =>
           new Promise((resolve) => {
             const view = document.querySelector<HTMLElement>(
               `[aria-label="${scrollerName}"]`
@@ -294,7 +295,7 @@ test.describe('빛 물줄기 상세 (1440px)', () => {
             const began = performance.now();
             const tick = () => {
               if (scrolling) view.scrollTop += 150;
-              if (performance.now() - began < 2500) {
+              if (performance.now() - began < ms) {
                 requestAnimationFrame(tick);
                 return;
               }
@@ -320,8 +321,14 @@ test.describe('빛 물줄기 상세 (1440px)', () => {
             };
             requestAnimationFrame(tick);
           }),
-        { scrolling, scrollerName: '물줄기 스크롤 상자' }
+        { scrolling, scrollerName: '물줄기 스크롤 상자', ms }
       );
+    // 앞선 스크롤(단추를 누르려 창이 움직인 것 포함)이 남긴 속도 꼬리가 쉬는 속도에 섞이지 않게, 쉬는 속도가 가라앉을 때까지
+    // 짧은 구간으로 표집하며 기다린다(연속 두 표본이 문턱 아래, 상한 12표본). 고정 대기가 아니라 상태를 보고 기다린다
+    let calm = 0;
+    for (let attempt = 0; attempt < 12 && calm < 2; attempt++)
+      calm = (await rate(false, 600)).rate < 0.6 ? calm + 1 : 0;
+    expect(calm).toBe(2);
     const idle = await rate(false);
     await scroller(page).evaluate((el) => (el.scrollTop = 0));
     await page.waitForTimeout(800);
