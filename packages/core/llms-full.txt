@@ -1474,6 +1474,42 @@ There is no `size`, `variant` or `disabled`. A narrow tall box (600px or less wi
 
 ---
 
+## ManuscriptFlip
+
+Two-faced box whose cells flip one by one in writing order (left to right, top row to bottom row), revealing the back face. Flipping back runs the reverse order. A thin plain paper tile turns over each cell (`rotationY` 0 to 180, with perspective) and the cell's mask changes when its tile is halfway. `front` and `back` are free ReactNodes rendered once each, stacked in the same place and revealed by a `clip-path` mask on the two faces, so nothing is duplicated (no duplicate ids, no second copy of a focusable element). The consumer decides whether hover or press flips it: the component handles no events and only follows `flipped`.
+
+```tsx
+import { ManuscriptFlip } from '@taein-ui/core';
+
+<ManuscriptFlip
+  flipped={flipped}
+  front={<img src="/shoe.jpg" alt="신발" />}
+  back={<p>가볍고 오래 신는 러닝화입니다.</p>}
+/>
+```
+
+### Props
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| front | ReactNode | (required) | Front face. Rendered once |
+| back | ReactNode | (required) | Back face. Rendered once |
+| flipped | boolean | (required) | true shows the back face (controlled). A change flips the cells in writing order; if it changes mid-flip, the flip goes back from where it is |
+| className | string | - | Additional CSS class on the box. The box fills its parent's width, its height comes from the taller face or the consumer's class |
+| ref | Ref<HTMLDivElement> | - | Forwarded to the root element |
+
+It also takes the native div attributes except `children`. There is no `size` or `variant`. Do not give the box inner padding: the cell grid is laid over the box and would no longer match the faces (put padding inside the faces).
+
+### Behavior
+- Cells: the box is split from its measured size into whole columns and rows of about 48px per side, at most 48 cells (a bigger box gets bigger cells), and split again when the size changes (`ResizeObserver`). A box with no measurement yet (first render, SSR) has no tiles.
+- Timing: one cell takes `base` (200ms) with `settle`. The whole flip is fixed at 700ms whatever the cell count: the start gap between cells is 500ms / (cells - 1), and a single cell takes 200ms. The cell's mask changes when it is halfway (100ms after its start), a discrete change, not per-frame layout. Only `transform` and `opacity` are animated.
+- Mid-flip change: one timeline is played or reversed, so a change of `flipped` during a flip goes back from the current state in the opposite order, and the end is always the last intent.
+- Faces: the face that is not shown is `inert` and `visibility: hidden`, so it is out of the accessibility tree and focus. While a flip runs, both faces are `inert` (nothing is half-clickable through the mask; a focused element in the face being left loses focus when the flip starts) and the shown face comes alive when the flip ends. The box itself takes no focus. Focus rings inside a face are that content's own.
+- First render (SSR included): the end state of `flipped`, one face visible, no tiles.
+- Reduced motion: no cells or tiles. The two faces cross-fade (`base`, `settle`); the result (visible face, `inert`) is the same.
+- The tiles layer is `aria-hidden`, takes no pointer events and is hidden in print.
+
+---
+
 ## Design Tokens
 
 TUI uses `themeContract` for type-safe, theme-aware styling. 테마는 라이트
@@ -1635,6 +1671,7 @@ GSAP 런타임(M3 Tier-B에서 시작해 M7까지)에서 실제로 GSAP이 붙�
 | HoldButton | 다중 목표 중단 · CSS가 못 보는 값 읽기(홀드 진행값) | 진행값 `p`(0~1) 하나를 `gsap.to`로 트윈하고(홀드 시계, 선형), `onUpdate`가 채움을 그린다. 이 시계는 `gateMotion`을 거치지 않는다(축소 모드에서 즉시 실행되면 안 되므로 `GATE_ENFORCEMENT_EXCEPTIONS` 항목, 축소 모드는 그림만 단계로 끊는다). 놓으면 시계를 죽이고 지금 `p`에서 0으로 `base` `settle`로 되감는다. 끝 무렵의 떨림은 시계와 분리된 장식 타임라인(게이트를 거친다)이다 |
 | CodeSlots | 단일 트윈(숫자가 굴러 들어옴, 지우면 빠짐) + 성공 합쳐짐 타임라인 하나 | 숫자가 들어오면 `yPercent -100 → 0`(`base` `snap`)으로 굴러 들어오고, 지우면 `0 → 100`(`base` `exit`)으로 빠진 뒤 `onComplete`가 빠짐을 확정한다. 슬롯 하나가 트윈 하나씩 갖고 정리 때 죽인다. 성공 합쳐짐은 칸 줄의 CSS 숫자 둘(`fade` 1 → 0 `base` `settle`, 이어서 `merge` 0 → 1 `slower` `settle`)을 모는 타임라인 하나이고, 성공이 켜지면 `play`, 풀리면 `reverse`한다. 정리 때 죽이고 인라인 숫자를 걷는다. 움직임 줄이기에서는 타임라인 없이 CSS가 끝 모양을 세운다 |
 | RocketButton | 타임라인 상대 위치 · 다중 목표 중단 · CSS가 못 보는 값 읽기(단추·container 좌표) | 누르는 순간 웅크림을 `fast` `settle`로 트윈하고(`overwrite: true`) 떼거나 나가면 `base` `settle`로 되돌려, 웅크리는 도중에 풀려도 지금 값에서 이어진다. 발사하면 단추 좌표와 `container` 좌표(`getBoundingClientRect()`)를 읽어 발사 거리를 만들고 `document.body`의 비행 레이어에서 타임라인 하나가 시계 숫자를 0에서 5300ms까지 돌리며 `onUpdate`마다 로켓 박자 함수(분사구·분출·발사·표지)를 평가해 단추의 움직임과 분출 세기, 심지 길이(`scaleY`)를 놓고 가상의 땅과 분출구 아래의 연기 궤적을 낸다. 축소 선호에서는 단추와 표지가 교차 페이드한다 |
+| ManuscriptFlip | 타임라인 상대 위치 · play/reverse(도중 되넘김) · CSS가 못 보는 값 읽기(타임라인 시각으로 마스크 칸 수 계산) | 칸 타일마다 `rotationY` 0에서 180을 `base` `settle`로 도는 트윈(투명도는 앞뒤 `base`의 4분의 1씩 `linear`)을 칸 순서대로 시작 시각만 달리해 타임라인 하나에 놓는다(전체 700ms). `onUpdate`가 타임라인 시각에서 "반쯤 돈 칸 수"를 세어 그 수가 바뀔 때만 두 면의 `clip-path`를 쓴다. `flipped`가 바뀌면 같은 타임라인을 `play`/`reverse`한다(시간 0에서의 되넘김은 `pause(0)`로 마무리). 움직임 줄이기는 두 면의 `opacity` 교차 흐림 타임라인(`base` `settle`) |
 
 **Flip은 이 목록 어디에도 없다.** 유일한 후보였던 `Card`는 레이아웃 변화를
 CSS 전환으로 충분히 표현할 수 있다고 판단해 채택하지 않았다.
@@ -1679,6 +1716,8 @@ prop은 클라이언트 파일에서 넘긴다.
 
 `BrushText`도 `'use client'`가 붙는다. 화면에 들어올 때를 보는 관찰자와 GSAP 타임라인이 브라우저에서만 돈다.
 첫 렌더(서버 포함)는 완성 문장이라 하이드레이션 전에도 글자가 보인다.
+
+`ManuscriptFlip`도 `'use client'`가 붙는다. 상자 크기를 관찰하고 GSAP 타임라인을 돌려 브라우저에서만 돈다. 첫 렌더(서버 포함)는 `flipped` 값대로 한 면만 보이는 끝 모양이고 타일이 없다. `flipped`는 소비자가 쥐므로 그 상태를 가진 클라이언트 파일에서 렌더한다.
 
 `GooeySearch`도 `'use client'`가 붙는다. 바깥 pointerdown과 Esc를 문서에서 듣고 포커스를 옮기는 효과를 갖는다.
 열림 상태는 소비자가 쥐므로 그 상태를 가진 클라이언트 파일에서 렌더한다.

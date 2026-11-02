@@ -136,7 +136,7 @@ describe('발행 문서와 소스 일치 검사', () => {
     for (const alias of aliases) {
       expect(names, `${alias}가 아직 최상위로 export된다`).not.toContain(alias);
     }
-    expect(names).toHaveLength(44);
+    expect(names).toHaveLength(45);
 
     const modal: Record<string, unknown> = core.Modal;
     const card: Record<string, unknown> = core.Card;

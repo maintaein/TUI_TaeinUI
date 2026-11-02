@@ -1,7 +1,7 @@
 # @taein-ui/core
 
 컴포넌트마다 다른 움직임을 갖는 React UI 컴포넌트 라이브러리, TUI(TaeinUI)의 본체입니다.
-컴포넌트 패밀리 36개(top-level export 44개)를 제공하고, 모션은 GSAP이 주도합니다.
+컴포넌트 패밀리 37개(top-level export 45개)를 제공하고, 모션은 GSAP이 주도합니다.
 
 전 컴포넌트에 같은 전환 하나를 입히지 않는 대신, 시인성·가독성·가시성은 어디서도 낮추지
 않습니다. 모션이 이 셋 중 하나라도 깎으면 틀린 쪽은 모션입니다.
@@ -47,7 +47,7 @@ function LoginForm() {
 
 ## 컴포넌트 목록
 
-아래는 UI 컴포넌트 25개이고, 모션 컴포넌트 11개(HangulAssemble, BrushText, GooeySearch, CopyButton, BurstToggle, HoldButton, SloshGauge, CodeSlots, FanMenu, RocketButton, LuminousFlow)를 포함한 전체 목록과 Props는 `llms.txt`에 있습니다.
+아래는 UI 컴포넌트 25개이고, 모션 컴포넌트 12개(HangulAssemble, BrushText, GooeySearch, CopyButton, BurstToggle, HoldButton, SloshGauge, CodeSlots, FanMenu, RocketButton, LuminousFlow, ManuscriptFlip)를 포함한 전체 목록과 Props는 `llms.txt`에 있습니다.
 
 ### 버튼
 
@@ -94,7 +94,7 @@ function LoginForm() {
 
 ## 모션
 
-현재 GSAP 런타임이 붙어 있는 컴포넌트는 22개입니다(소스가 `gsap`을 직접 import하거나
+현재 GSAP 런타임이 붙어 있는 컴포넌트는 23개입니다(소스가 `gsap`을 직접 import하거나
 `useOverlayTransition`을 거치는 컴포넌트). 명단은 `llms.txt`의 "Motion (GSAP Runtime)"
 표에 있습니다. 명단에 없는 컴포넌트는 GSAP을 쓰지 않습니다(CSS 트랜지션·키프레임을 쓰고,
 LuminousFlow는 canvas 그리기 루프를 씁니다). GSAP은 "쓸 수 있으니

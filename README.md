@@ -73,20 +73,20 @@ function LoginForm() {
 
 ## 컴포넌트 목록
 
-| 카테고리     | 컴포넌트                                                                                                                                |
-| ------------ | --------------------------------------------------------------------------------------------------------------------------------------- |
-| **버튼**     | Button, IconButton, SegmentedButtons                                                                                                    |
-| **입력**     | TextField, Checkbox, Switch, Slider, NumericSpinner                                                                                     |
-| **표시**     | Badge, Chip, Avatar                                                                                                                     |
-| **피드백**   | Loader, Skeleton, Snackbar, Tooltip                                                                                                     |
-| **오버레이** | Modal, BottomSheet, SideSheet, Popover                                                                                                  |
-| **레이아웃** | Card, List, BoardRow, Divider, Border, HeaderBar                                                                                        |
-| **폼**       | FormField                                                                                                                               |
-| **모션**     | HangulAssemble, BrushText, CopyButton, BurstToggle, HoldButton, SloshGauge, FanMenu, RocketButton, LuminousFlow, GooeySearch, CodeSlots |
+| 카테고리     | 컴포넌트                                                                                                                                                |
+| ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **버튼**     | Button, IconButton, SegmentedButtons                                                                                                                    |
+| **입력**     | TextField, Checkbox, Switch, Slider, NumericSpinner                                                                                                     |
+| **표시**     | Badge, Chip, Avatar                                                                                                                                     |
+| **피드백**   | Loader, Skeleton, Snackbar, Tooltip                                                                                                                     |
+| **오버레이** | Modal, BottomSheet, SideSheet, Popover                                                                                                                  |
+| **레이아웃** | Card, List, BoardRow, Divider, Border, HeaderBar                                                                                                        |
+| **폼**       | FormField                                                                                                                                               |
+| **모션**     | HangulAssemble, BrushText, CopyButton, BurstToggle, HoldButton, SloshGauge, FanMenu, RocketButton, LuminousFlow, ManuscriptFlip, GooeySearch, CodeSlots |
 
 ## 모션
 
-GSAP 런타임이 붙어 있는 컴포넌트는 22개입니다. 아래 표는 그중 일부이고, 전체 명단과 각자 쓰는 능력은 `packages/core/llms.txt`의 "Motion (GSAP Runtime)" 절에 있습니다. 명단에 없는 컴포넌트는 GSAP을 쓰지 않습니다(CSS 트랜지션·키프레임, LuminousFlow는 canvas 루프).
+GSAP 런타임이 붙어 있는 컴포넌트는 23개입니다. 아래 표는 그중 일부이고, 전체 명단과 각자 쓰는 능력은 `packages/core/llms.txt`의 "Motion (GSAP Runtime)" 절에 있습니다. 명단에 없는 컴포넌트는 GSAP을 쓰지 않습니다(CSS 트랜지션·키프레임, LuminousFlow는 canvas 루프).
 
 | 컴포넌트                                           | GSAP이 맡는 일                                    |
 | -------------------------------------------------- | ------------------------------------------------- |

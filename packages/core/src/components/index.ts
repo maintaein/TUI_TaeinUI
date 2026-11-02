@@ -34,3 +34,4 @@ export * from './CodeSlots';
 export * from './FanMenu';
 export * from './RocketButton';
 export * from './LuminousFlow';
+export * from './ManuscriptFlip';
