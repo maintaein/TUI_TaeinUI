@@ -1,0 +1,1 @@
+export { MorphingIconPage } from './MorphingIconPage';

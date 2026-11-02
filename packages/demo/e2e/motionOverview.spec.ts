@@ -80,11 +80,11 @@ test.describe('모션 전체 보기', () => {
   }) => {
     await page.goto('/motion');
     await expect(
-      page.getByRole('heading', { level: 1, name: '모션 12개' })
+      page.getByRole('heading', { level: 1, name: '모션 13개' })
     ).toBeVisible();
     const sections = page.locator('main section');
     await expect(sections).toHaveCount(5);
-    await expect(page.locator('main section > div > div')).toHaveCount(12);
+    await expect(page.locator('main section > div > div')).toHaveCount(13);
     for (const name of [/텍스트 애니메이션/, /컴포넌트/, /마이크로 인터랙션/])
       await expect(
         sections.getByRole('heading', { level: 2, name })
@@ -263,6 +263,21 @@ test.describe('모션 전체 보기', () => {
     ).toBeVisible();
     await card.getByRole('link', { name: '원고지 넘김' }).click();
     await expect(page).toHaveURL(/\/motion\/manuscript-flip$/);
+  });
+
+  test('모양 바뀌는 아이콘 카드가 효과 이름과 쓰는 곳을 보이고 누르면 상세로 간다', async ({
+    page,
+  }) => {
+    await page.goto('/motion');
+    const card = cardOf(page, 'MorphingIcon');
+    await expect(card.getByText('MorphingIcon', { exact: true })).toBeVisible();
+    await expect(
+      card.getByText(
+        '메뉴와 닫기, 더하기와 체크, 재생과 일시정지, 검색과 닫기, 펼침과 접힘'
+      )
+    ).toBeVisible();
+    await card.getByRole('link', { name: '모양 바뀌는 아이콘' }).click();
+    await expect(page).toHaveURL(/\/motion\/morphing-icon$/);
   });
 
   test('움직임 멈춤을 켜면 완성 글자가 서고 끄면 다시 재생한다', async ({
@@ -707,6 +722,25 @@ test.describe('모션 전체 보기 원고지 넘김 미니 (1440px)', () => {
       expect(JSON.stringify(await flipFaces(page))).toBe(frozen);
       await page.waitForTimeout(100);
     }
+  });
+});
+
+// 모양 바뀌는 아이콘 미니: 대본이 메뉴 단추를 눌러 닫기로 바꾸고 되돌린다. 단추의 aria-pressed로 읽는다
+test.describe('모션 전체 보기 모양 바뀌는 아이콘 미니 (1440px)', () => {
+  test.use({ viewport: { width: 1440, height: 900 } });
+
+  test('대본이 메뉴 단추를 눌러 바꾸고 되돌린다', async ({ page }) => {
+    test.setTimeout(60_000);
+    await page.goto('/motion');
+    const mini = page.locator('[data-stage-mini="MorphingIcon 미리보기"]');
+    await mini.evaluate((el) => el.scrollIntoView({ block: 'center' }));
+    const menu = mini.locator('[data-stage-target="menu-close"]');
+    await expect(menu).toHaveAttribute('aria-pressed', 'true', {
+      timeout: 20_000,
+    });
+    await expect(menu).toHaveAttribute('aria-pressed', 'false', {
+      timeout: 20_000,
+    });
   });
 });
 

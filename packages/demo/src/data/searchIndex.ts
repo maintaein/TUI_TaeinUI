@@ -561,6 +561,40 @@ export const searchIndex: SearchEntry[] = [
     ],
   },
   {
+    id: 'morphing-icon',
+    pageTitle: '모양 바뀌는 아이콘',
+    path: '/motion/morphing-icon',
+    category: '모션',
+    description:
+      'MorphingIcon. 두 상태를 오가는 아이콘입니다. 선의 끝점만 옮겨 선이 늘어나고 접히며 다른 모양이 됩니다.',
+    sections: [
+      {
+        title: '언제 쓰나',
+        content:
+          '메뉴를 열면 닫기로, 목록에 담으면 체크로, 재생은 일시정지로, 검색은 닫기로, 펼침은 접힘으로 바뀌는 단추에 씁니다',
+      },
+      {
+        title: '짝과 움직임',
+        content:
+          '짝은 메뉴와 닫기, 더하기와 체크, 재생과 일시정지, 검색과 닫기, 펼침과 접힘 다섯 가지입니다. 선의 끝점만 300ms 동안 옮겨 가고, 가는 도중에 active가 바뀌면 지금 모양에서 새 목표로 갑니다',
+      },
+      {
+        title: '단추 안에서',
+        content:
+          '크기는 1em이고 색은 currentColor라 IconButton에 그대로 넣습니다. 단추의 size가 아이콘 크기를 정합니다. 눌림은 단추의 aria-pressed로 알립니다',
+      },
+      {
+        title: '접근성',
+        content:
+          '아이콘은 aria-hidden이고 포커스를 받지 않습니다. 상태는 담는 단추의 aria-pressed와 aria-label이 알립니다',
+      },
+      {
+        title: '움직임 줄이기',
+        content: '움직임 줄이기에서는 움직임 없이 바로 바뀝니다',
+      },
+    ],
+  },
+  {
     id: 'gooey-search',
     pageTitle: '물방울 검색창',
     path: '/motion/gooey-search',

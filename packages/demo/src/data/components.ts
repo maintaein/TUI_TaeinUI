@@ -17,6 +17,7 @@ import {
   Loader,
   MessageCircle,
   MessageSquare,
+  Menu,
   Minus,
   MousePointerClick,
   PanelBottom,
@@ -345,7 +346,7 @@ export const motionData: MotionInfo[] = [
     category: 'text',
     icon: Brush,
   },
-  // Animation (1개)
+  // Animation (2개)
   {
     name: 'ManuscriptFlip',
     title: '원고지 넘김',
@@ -355,6 +356,17 @@ export const motionData: MotionInfo[] = [
     usage: '상품 카드의 사진에서 설명으로, 전후 비교, 퀴즈 카드',
     category: 'animation',
     icon: FlipHorizontal2,
+  },
+  {
+    name: 'MorphingIcon',
+    title: '모양 바뀌는 아이콘',
+    path: '/motion/morphing-icon',
+    description:
+      '두 상태를 오가는 아이콘입니다. 선의 끝점만 옮겨 선이 늘어나고 접히며 다른 모양이 됩니다.',
+    usage:
+      '메뉴와 닫기, 더하기와 체크, 재생과 일시정지, 검색과 닫기, 펼침과 접힘',
+    category: 'animation',
+    icon: Menu,
   },
   // Component (1개)
   {

@@ -143,6 +143,11 @@ const ManuscriptFlipPage = lazy(() =>
     default: m.ManuscriptFlipPage,
   }))
 );
+const MorphingIconPage = lazy(() =>
+  import('../pages/Motion/MorphingIcon').then((m) => ({
+    default: m.MorphingIconPage,
+  }))
+);
 const HangulAssemblePage = lazy(() =>
   import('../pages/Motion/HangulAssemble').then((m) => ({
     default: m.HangulAssemblePage,
@@ -521,6 +526,14 @@ const router = createBrowserRouter([
             element: (
               <LazyPage>
                 <ManuscriptFlipPage />
+              </LazyPage>
+            ),
+          },
+          {
+            path: 'morphing-icon',
+            element: (
+              <LazyPage>
+                <MorphingIconPage />
               </LazyPage>
             ),
           },
