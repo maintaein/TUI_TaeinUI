@@ -420,7 +420,7 @@ export const motionData: MotionInfo[] = [
     title: '로켓 전송',
     path: '/motion/rocket-button',
     description:
-      '누르면 분사구에서 불꽃이 켜져 단추가 떨며 떠오르고, 둥실거리다가 점점 빨라지며 오른쪽 위로 발사됩니다.',
+      '누르면 분사구가 단추 아래 테두리에서 미끄러져 나오고, 불꽃은 가는 흔적만 남기며 연기가 땅에 점점 쌓이다가, 무겁게 떠올라 점점 빨라지며 오른쪽 위로 발사됩니다.',
     usage: '메일 보내기, 제출, 전송',
     category: 'micro',
     icon: Send,

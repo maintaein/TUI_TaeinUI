@@ -97,11 +97,11 @@ test.describe('로켓 전송 상세 (1440px)', () => {
     expect(box).not.toBeNull();
     const first = samples[0];
     const last = samples[samples.length - 1];
-    // 오른쪽 위로 간다: x는 늘고 y는 준다
-    expect(last.x).toBeGreaterThan(first.x + 100);
+    // 오른쪽 위로 간다: x는 늘고(위가 먼저라 휨은 비행 거리의 약 1/4) y는 준다
+    expect(last.x).toBeGreaterThan(first.x + 40);
     expect(last.y).toBeLessThan(first.y - 100);
-    // 발사(3초)가 시작된 뒤에는 x는 줄지 않고 y는 늘지 않으며 점점 작아진다(떠오름의 넘침과 둥실은 위아래로 오간다)
-    const flight = samples.filter((s) => s.t > 3200);
+    // 발사(2.6초)가 시작된 뒤에는 x는 줄지 않고 y는 늘지 않으며 점점 작아진다(떠오름의 넘침과 둥실은 위아래로 오간다)
+    const flight = samples.filter((s) => s.t > 2800);
     for (let i = 1; i < flight.length; i++) {
       expect(flight[i].x).toBeGreaterThanOrEqual(flight[i - 1].x - 0.5);
       expect(flight[i].y).toBeLessThanOrEqual(flight[i - 1].y + 0.5);
@@ -424,8 +424,8 @@ test.describe('로켓 전송 상세 유체 연기 (1440px)', () => {
       const counts: number[] = [];
       for (let i = 0; i < 10; i++) {
         buttons('보내기').click();
-        // 점화로 연기가 나온 뒤(0.9초) 되돌린다
-        await wait(900);
+        // 분출이 시작돼 연기가 나온 뒤(1.4초) 되돌린다
+        await wait(1400);
         buttons('다시').click();
         await wait(100);
         counts.push(region.querySelectorAll('canvas').length);
@@ -518,51 +518,96 @@ const flameHeights = (page: Page) =>
 test.describe('로켓 전송 상세 로켓 박자 (1440px)', () => {
   test.use({ viewport: { width: 1440, height: 900 } });
 
-  test('점화 동안은 제자리에서 떨고 약 24px 떠올라 넘쳤다 앉으며 1~2px 둥실거린다', async ({
+  // 분사구 하나의 보이는 높이: 잘림 상자(단추 아래 테두리에서 시작) 안에 든 부분만 센다
+  const nozzleView = (page: Page) =>
+    page.evaluate(() => {
+      const layer = document.querySelector('[data-rocket-layer]')!;
+      const clone = layer.querySelector('button')!.getBoundingClientRect();
+      const clip = layer.querySelector<HTMLElement>('[data-rocket-nozzle]')!;
+      const body = clip.firstElementChild!.getBoundingClientRect();
+      const box = clip.getBoundingClientRect();
+      const visible = Math.max(
+        0,
+        Math.min(body.bottom, box.bottom) - Math.max(body.top, box.top)
+      );
+      return {
+        visible,
+        clipTop: box.top - clone.bottom,
+        clipHeight: box.height,
+        overflow: getComputedStyle(clip).overflow,
+      };
+    });
+
+  test('분사구가 단추 아래 테두리에서 잘려 서서히 나오고 그동안 불꽃도 연기도 없고 단추는 제자리다', async ({
     page,
   }) => {
     await freeze(page);
     const rest = (await send(page).boundingBox())!;
     await send(page).evaluate((b) => (b as HTMLButtonElement).click());
     const to = clockTo(page);
-    // 점화(0~600ms): 뜨지 않고 1px 안으로만 떤다
-    for (let ms = 50; ms <= 550; ms += 100) {
+    const views = [];
+    for (const ms of [50, 150, 250, 350, 450, 550, 600]) {
       const box = (await to(ms))!;
-      expect(Math.abs(box.y - rest.y)).toBeLessThan(1.2);
-      expect(Math.abs(box.x - rest.x)).toBeLessThan(1.2);
-    }
-    // 떠오름(600~1100ms): 목표 24px를 3px쯤 넘쳤다가(약 900ms) 24px 자리에 앉는다
-    const rise: number[] = [];
-    for (let ms = 600; ms <= 1100; ms += 50) {
-      rise.push(rest.y - (await to(ms))!.y);
-    }
-    expect(Math.max(...rise)).toBeGreaterThan(26);
-    expect(Math.max(...rise)).toBeLessThan(28.5);
-    expect(rise.at(-1)!).toBeGreaterThan(23);
-    expect(rise.at(-1)!).toBeLessThan(25);
-    // 둥실(1100~3000ms): 24px 둘레에서 1~2px 오가고 옆으로 가지 않으며 기울지 않는다
-    const hover: number[] = [];
-    for (let ms = 1300; ms <= 2900; ms += 100) {
-      const box = (await to(ms))!;
-      hover.push(rest.y - box.y);
+      expect(Math.abs(box.y - rest.y)).toBeLessThan(0.75);
       expect(Math.abs(box.x - rest.x)).toBeLessThan(0.75);
+      // 불꽃은 아직 없다(scaleY 0)
+      expect(await flameHeights(page)).toEqual([0, 0]);
+      views.push(await nozzleView(page));
     }
-    expect(Math.max(...hover) - Math.min(...hover)).toBeGreaterThan(1.5);
-    expect(Math.max(...hover)).toBeLessThan(26);
-    expect(Math.min(...hover)).toBeGreaterThan(22);
-    expect(Math.abs((await craftAngle(page))!)).toBeLessThan(0.5);
+    for (const view of views) {
+      // 잘림 상자는 단추 밑면에서 시작하고 넘치는 것을 자른다(몸체 위로 보이지 않는다)
+      expect(Math.abs(view.clipTop)).toBeLessThan(1);
+      expect(view.overflow).toBe('hidden');
+      expect(view.visible).toBeLessThanOrEqual(view.clipHeight + 0.5);
+    }
+    // 처음엔 거의 안 보이고(아래 경계에서 막 나옴) 단조로 늘어 600ms에 다 나온다
+    expect(views[0].visible).toBeLessThan(views[0].clipHeight * 0.4);
+    for (let i = 1; i < views.length; i++)
+      expect(views[i].visible).toBeGreaterThanOrEqual(views[i - 1].visible);
+    expect(views.at(-1)!.visible).toBeGreaterThan(views[0].clipHeight * 0.95);
+    // 이 구간에는 연기 canvas도 아직 비어 있다는 것은 아래 땅 연기 시험이 본다
   });
 
-  test('발사는 곧게 위로 가속하며 서서히 오른쪽으로 휘고 기울기가 속도 방향을 따라 20도를 넘지 않으며 보냈어요가 남는다', async ({
+  test('분출이 서서히 올라 불꽃 흔적이 자라고 그동안에도 단추는 발사대에 머문다', async ({
     page,
   }) => {
     await freeze(page);
     const rest = (await send(page).boundingBox())!;
     await send(page).evaluate((b) => (b as HTMLButtonElement).click());
     const to = clockTo(page);
-    await to(3000);
+    const lengths: number[] = [];
+    for (const ms of [700, 1200, 1800, 2400]) {
+      const box = (await to(ms))!;
+      expect(Math.abs(box.y - rest.y)).toBeLessThan(0.75);
+      expect(Math.abs(box.x - rest.x)).toBeLessThan(0.75);
+      expect(Math.abs((await craftAngle(page))!)).toBeLessThan(0.5);
+      lengths.push((await flameHeights(page))[0]);
+    }
+    // 서서히: 처음엔 거의 0이고 계속 자라되 가는 흔적(단추 높이의 1.5배 안쪽)이다
+    expect(lengths[0]).toBeGreaterThan(0);
+    expect(lengths[0]).toBeLessThan(6);
+    for (let i = 1; i < lengths.length; i++)
+      expect(lengths[i]).toBeGreaterThan(lengths[i - 1]);
+    expect(lengths.at(-1)!).toBeLessThan(rest.height * 1.5);
+    // 불꽃이 켜진 동안 길이가 떨린다
+    const flicker: number[] = [];
+    for (let ms = 2450; ms <= 2600; ms += 50) {
+      await to(ms);
+      flicker.push((await flameHeights(page))[0]);
+    }
+    expect(Math.max(...flicker) - Math.min(...flicker)).toBeGreaterThan(0.5);
+  });
+
+  test('발사는 곧게 위로 무겁게 가속하며 서서히 오른쪽으로 휘고 기울기가 속도 방향을 따라 20도를 넘지 않으며 보냈어요가 남는다', async ({
+    page,
+  }) => {
+    await freeze(page);
+    const rest = (await send(page).boundingBox())!;
+    await send(page).evaluate((b) => (b as HTMLButtonElement).click());
+    const to = clockTo(page);
+    await to(2600);
     const samples: { x: number; y: number; angle: number }[] = [];
-    for (let ms = 3100; ms <= 4900; ms += 100) {
+    for (let ms = 2700; ms <= 5000; ms += 100) {
       const box = (await to(ms))!;
       samples.push({
         x: box.x + box.w / 2,
@@ -570,24 +615,23 @@ test.describe('로켓 전송 상세 로켓 박자 (1440px)', () => {
         angle: (await craftAngle(page))!,
       });
     }
-    // 위로 간다: y는 줄고 속도(100ms당 거리)는 계속 늘어난다
     const steps = samples.slice(1).map((s, i) => ({
       dx: s.x - samples[i].x,
       dy: samples[i].y - s.y,
     }));
-    // 가짜 시계의 프레임이 16ms 단위로 끊겨 100ms 한 걸음끼리는 오차가 속도 증가분보다 클 수 있다. 600ms씩 세 구간의 이동 거리로 본다
+    // 가짜 시계의 프레임이 16ms 단위로 끊겨 100ms 한 걸음끼리는 오차가 속도 증가분보다 클 수 있다. 일곱 걸음씩 세 구간의 이동 거리로 본다
     const travel = (from: number, to: number) =>
       steps
         .slice(from, to)
         .reduce((sum, step) => sum + Math.hypot(step.dx, step.dy), 0);
-    expect(travel(6, 12)).toBeGreaterThan(travel(0, 6));
-    expect(travel(12, 18)).toBeGreaterThan(travel(6, 12));
-    // 처음엔 곧게(x가 거의 안 변함) 가다 늦게 휜다: x는 줄지 않고 마지막 구간의 옆 이동이 처음 구간의 열 배를 넘는다
+    expect(travel(7, 14)).toBeGreaterThan(travel(0, 7));
+    expect(travel(14, 22)).toBeGreaterThan(travel(7, 14));
+    // 처음엔 곧게 가다 늦게 휜다: x는 줄지 않고 마지막 걸음의 옆 이동이 처음 걸음의 열 배를 넘는다
     for (const s of steps) expect(s.dx).toBeGreaterThanOrEqual(-0.5);
     expect(steps.at(-1)!.dx).toBeGreaterThan(Math.max(steps[0].dx, 0.3) * 10);
     expect(samples.at(-1)!.x - rest.x).toBeGreaterThan(20);
-    expect(rest.y - samples.at(-1)!.y).toBeGreaterThan(200);
-    // 기울기: 처음엔 곧고 휘면서 커지며 20도를 넘지 않는다. 속도가 곧을 때는 작고 많이 휘었을 때는 속도 방향과 가깝다
+    expect(rest.y - samples.at(-1)!.y).toBeGreaterThan(150);
+    // 기울기: 처음엔 곧고 휘면서 커지며 20도를 넘지 않는다
     expect(Math.abs(samples[1].angle)).toBeLessThan(3);
     for (const s of samples) {
       expect(s.angle).toBeGreaterThanOrEqual(-0.5);
@@ -596,28 +640,28 @@ test.describe('로켓 전송 상세 로켓 박자 (1440px)', () => {
     const mid = samples[Math.floor(samples.length / 2)].angle;
     expect(mid).toBeGreaterThan(samples[1].angle + 1);
     expect(samples.at(-1)!.angle).toBeGreaterThan(mid);
-    // 속도 방향(atan2): 마지막 구간의 방향과 20도로 묶인 기울기가 같은 쪽을 향한다
+    // 속도 방향(atan2): 마지막 걸음의 방향과 20도로 묶인 기울기가 같은 쪽을 향한다
     const last = steps.at(-1)!;
     const heading = (Math.atan2(last.dx, last.dy) * 180) / Math.PI;
     expect(heading).toBeGreaterThan(10);
     expect(
       Math.abs(samples.at(-1)!.angle - Math.min(20, heading))
     ).toBeLessThan(5);
-    // 5000ms에 비행이 끝나고 표지가 남는다
-    await to(5500);
+    // 5100ms에 비행이 끝나고 표지가 남는다
+    await to(5600);
     await expect(page.locator('[data-rocket-layer]')).toHaveCount(0);
     await expect(mark(page)).toHaveText('보냈어요');
     await expect(mark(page)).toHaveCSS('opacity', '1');
     await expect(count(page, 1)).toBeVisible();
   });
 
-  test('분사구 둘과 불꽃 둘이 보이고 불꽃은 점화에서 자라 떠오르면 길어지고 발사 속도와 함께 더 길어진다', async ({
+  test('분사구 둘과 불꽃 둘이 단추 아래 1/3, 2/3 자리에 있고 불꽃은 가는 흔적이며 발사 속도와 함께 조금 길어진다', async ({
     page,
   }) => {
     await freeze(page);
     await send(page).evaluate((b) => (b as HTMLButtonElement).click());
     const to = clockTo(page);
-    await to(50);
+    await to(650);
     const parts = await page.evaluate(() => {
       const layer = document.querySelector('[data-rocket-layer]')!;
       const clone = layer.querySelector('button')!.getBoundingClientRect();
@@ -628,73 +672,116 @@ test.describe('로켓 전송 상세 로켓 박자 (1440px)', () => {
         ...layer.querySelectorAll<HTMLElement>('[data-rocket-flame]'),
       ];
       const style = (el: HTMLElement) => getComputedStyle(el);
+      const centre = (el: Element) => {
+        const r = el.getBoundingClientRect();
+        return (r.left + r.right) / 2;
+      };
       return {
         nozzles: nozzles.length,
         flames: flames.length,
-        // 분사구는 단추 밑면 아래로 조금 나와 있고 폭의 1/3, 2/3 자리다
-        nozzleBelow: nozzles.map(
-          (n) => n.getBoundingClientRect().bottom - clone.bottom
-        ),
-        nozzleAt: nozzles.map(
-          (n) =>
-            ((n.getBoundingClientRect().left +
-              n.getBoundingClientRect().right) /
-              2 -
-              clone.left) /
-            clone.width
-        ),
-        // 불꽃은 분사구 끝에서 시작해 아래로 뻗고 흰 심지가 안에 있다
+        nozzleAt: nozzles.map((n) => (centre(n) - clone.left) / clone.width),
+        // 불꽃은 분사구 잘림 상자의 아래 끝에서 시작한다
         flameTopGap: flames.map(
           (f, i) =>
             f.getBoundingClientRect().top -
             nozzles[i].getBoundingClientRect().bottom
         ),
+        flameWidth: flames.map((f) => f.getBoundingClientRect().width),
         gradient: flames.map((f) => style(f).backgroundImage),
         core: flames.map((f) => !!f.firstElementChild),
-        layout: flames.map((f) => style(f).transformOrigin),
-        visible: flames.map(
-          (f) => style(f).visibility === 'visible' && style(f).opacity === '1'
-        ),
+        origin: flames.map((f) => style(f).transformOrigin),
+        cloneWidth: clone.width,
       };
     });
+    // 불꽃은 DOM이라 비행 층 안에 canvas가 없다
+    expect(await page.locator('[data-rocket-layer] canvas').count()).toBe(0);
     expect(parts.nozzles).toBe(2);
     expect(parts.flames).toBe(2);
-    parts.nozzleBelow.forEach((d) => {
-      expect(d).toBeGreaterThan(3);
-      expect(d).toBeLessThan(14);
-    });
     expect(parts.nozzleAt[0]).toBeCloseTo(1 / 3, 1);
     expect(parts.nozzleAt[1]).toBeCloseTo(2 / 3, 1);
     parts.flameTopGap.forEach((g) => expect(Math.abs(g)).toBeLessThan(1.5));
+    // 가는 흔적: 단추 폭의 10% 안쪽
+    parts.flameWidth.forEach((w) =>
+      expect(w).toBeLessThan(parts.cloneWidth * 0.1)
+    );
     parts.gradient.forEach((g) => expect(g).toContain('linear-gradient'));
     expect(parts.core).toEqual([true, true]);
-    parts.layout.forEach((origin) => expect(origin.split(' ')[1]).toBe('0px'));
-    expect(parts.visible).toEqual([true, true]);
+    parts.origin.forEach((origin) => expect(origin.split(' ')[1]).toBe('0px'));
 
-    // 길이: 점화에서 자라 발사대에 닿고, 떠 있으면 더 길고, 발사 속도와 함께 더 길어진다(기울기가 작은 구간만 높이로 잰다)
-    const ignite = (await to(200), (await flameHeights(page))[0]);
-    const seated = (await to(580), (await flameHeights(page))[0]);
-    const floating = (await to(2000), (await flameHeights(page))[0]);
-    const launching = (await to(3600), (await flameHeights(page))[0]);
-    const fast = (await to(4500), (await flameHeights(page))[0]);
-    expect(ignite).toBeGreaterThan(5);
-    expect(seated).toBeGreaterThan(ignite);
-    expect(floating).toBeGreaterThan(seated + 10);
-    expect(launching).toBeGreaterThan(floating - 6);
-    expect(fast).toBeGreaterThan(floating + 25);
+    // 길이: 발사 직전에 켜져 있고 발사 속도와 함께 조금 더 길어진다
+    const lit = (await to(2590), (await flameHeights(page))[0]);
+    await to(4000);
+    const fast = (await to(4800), (await flameHeights(page))[0]);
+    expect(lit).toBeGreaterThan(15);
+    expect(fast).toBeGreaterThan(lit);
   });
 
-  test('둥실 동안 불꽃 길이가 떨린다', async ({ page }) => {
-    await freeze(page);
-    await send(page).evaluate((b) => (b as HTMLButtonElement).click());
-    const to = clockTo(page);
-    await to(1500);
-    const heights: number[] = [];
-    for (let ms = 1550; ms <= 2100; ms += 50) {
-      await to(ms);
-      heights.push((await flameHeights(page))[0]);
-    }
-    expect(Math.max(...heights) - Math.min(...heights)).toBeGreaterThan(2);
+  test('땅 연기는 비행 전에 쌓이고 비행 중에도 같은 땅에서 줄지 않고 계속 생긴다', async ({
+    page,
+  }) => {
+    test.setTimeout(60_000);
+    await open(page);
+    const result = await send(page).evaluate(async (button) => {
+      const region = button.closest('[role="region"]') as HTMLElement;
+      const slot = (button as HTMLElement).getBoundingClientRect();
+      const copy = document.createElement('canvas');
+      // 땅 근처: 단추 아래 분사구와 불꽃 길이를 지나 땅(단추 밑면 아래 약 50px)을 감싸는 띠(폭은 단추 중심 좌우 150px)
+      const band = {
+        left: slot.left + slot.width / 2 - 150,
+        right: slot.left + slot.width / 2 + 150,
+        top: slot.bottom + 20,
+        bottom: slot.bottom + 130,
+      };
+      const alphaInBand = (canvas: HTMLCanvasElement) => {
+        const c = canvas.getBoundingClientRect();
+        const k = canvas.width / c.width;
+        const x0 = Math.max(0, Math.floor((band.left - c.left) * k));
+        const x1 = Math.min(canvas.width, Math.ceil((band.right - c.left) * k));
+        const y0 = Math.max(0, Math.floor((band.top - c.top) * k));
+        const y1 = Math.min(
+          canvas.height,
+          Math.ceil((band.bottom - c.top) * k)
+        );
+        copy.width = canvas.width;
+        copy.height = canvas.height;
+        const ctx = copy.getContext('2d')!;
+        ctx.drawImage(canvas, 0, 0);
+        const { data } = ctx.getImageData(x0, y0, x1 - x0, y1 - y0);
+        let sum = 0;
+        for (let i = 3; i < data.length; i += 4) sum += data[i];
+        return sum / 255;
+      };
+      const frame = () =>
+        new Promise((r) => requestAnimationFrame(() => r(null)));
+      const t0 = performance.now();
+      (button as HTMLButtonElement).click();
+      const peak = { early: 0, beforeLaunch: 0, flight: 0 };
+      let layerGone = false;
+      while (performance.now() - t0 < 7000 && !layerGone) {
+        await frame();
+        const t = performance.now() - t0;
+        const canvas = [...region.querySelectorAll('canvas')].find(
+          (c) => !c.closest('[data-rocket-layer]')
+        );
+        layerGone = t > 1000 && !document.querySelector('[data-rocket-layer]');
+        if (!canvas) continue;
+        const a = alphaInBand(canvas);
+        // 분출이 시작되기 전(분사구가 나오는 동안)
+        if (t < 550) peak.early = Math.max(peak.early, a);
+        // 분출이 한참 오른 발사 직전
+        else if (t > 1800 && t < 2600)
+          peak.beforeLaunch = Math.max(peak.beforeLaunch, a);
+        // 비행 중반 이후(로켓이 한참 올라간 때)
+        else if (t > 3400) peak.flight = Math.max(peak.flight, a);
+      }
+      return peak;
+    });
+    // 분출 전에는 땅에 연기가 없고
+    expect(result.early).toBe(0);
+    // 발사 직전에는 쌓여 있고
+    expect(result.beforeLaunch).toBeGreaterThan(50);
+    // 비행 중에도 줄지 않는다(땅이 사라지지 않는다)
+    expect(result.flight).toBeGreaterThanOrEqual(result.beforeLaunch * 0.9);
   });
 
   test('비행 중 다시 눌러도 두 번째 비행은 없고 끝 모양이 같다', async ({
@@ -709,33 +796,10 @@ test.describe('로켓 전송 상세 로켓 박자 (1440px)', () => {
     await to(1200);
     await expect(page.locator('[data-rocket-layer]')).toHaveCount(1);
     await expect(page.locator('[data-rocket-layer] button')).toHaveCount(1);
-    await to(5500);
+    await to(5600);
     await expect(page.locator('[data-rocket-layer]')).toHaveCount(0);
     await expect(mark(page)).toHaveCount(1);
     await expect(mark(page)).toHaveText('보냈어요');
     await expect(count(page, 1)).toBeVisible();
-  });
-});
-
-test.describe('로켓 전송 상세 three 없음 (1440px)', () => {
-  test.use({ viewport: { width: 1440, height: 900 } });
-
-  test('가리키고 포커스하고 눌러 끝까지 날아도 three 요청이 나가지 않고 로켓 canvas도 없다', async ({
-    page,
-  }) => {
-    test.setTimeout(60_000);
-    const requests: string[] = [];
-    page.on('request', (request) => requests.push(request.url()));
-    await open(page);
-    await send(page).hover();
-    await send(page).focus();
-    await send(page).click();
-    // 비행 중에 비행 층 안에는 canvas가 없다(불꽃은 DOM이다)
-    await expect(page.locator('[data-rocket-layer]')).toHaveCount(1);
-    expect(await page.locator('[data-rocket-layer] canvas').count()).toBe(0);
-    await expect(page.locator('[data-rocket-layer]')).toHaveCount(0, {
-      timeout: 12_000,
-    });
-    expect(requests.filter((url) => /three/i.test(url))).toEqual([]);
   });
 });
