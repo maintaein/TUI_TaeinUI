@@ -581,12 +581,12 @@ export const searchIndex: SearchEntry[] = [
       {
         title: '단추 안에서',
         content:
-          '크기는 1em이고 색은 currentColor라 IconButton에 그대로 넣습니다. 단추의 size가 아이콘 크기를 정합니다. 눌림은 단추의 aria-pressed로 알립니다',
+          '크기는 1em이고 색은 currentColor라 IconButton에 그대로 넣습니다. 단추의 size가 아이콘 크기를 정합니다. 단추 이름은 고정하고 상태는 aria-expanded(메뉴, 펼침)나 aria-pressed 하나로 알립니다',
       },
       {
         title: '접근성',
         content:
-          '아이콘은 aria-hidden이고 포커스를 받지 않습니다. 상태는 담는 단추의 aria-pressed와 aria-label이 알립니다',
+          '아이콘은 aria-hidden이고 포커스를 받지 않습니다. 상태는 담는 단추가 알립니다. 이름은 고정하고 aria-expanded(메뉴, 펼침)나 aria-pressed 하나만 씁니다',
       },
       {
         title: '움직임 줄이기',

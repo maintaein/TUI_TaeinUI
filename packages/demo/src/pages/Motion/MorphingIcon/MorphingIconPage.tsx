@@ -27,42 +27,42 @@ const CONTROLS: Control[] = [
 
 const INITIAL: Values = { buttonStyle: 'strong', size: 'lg' };
 
-// 짝마다 단추의 이름이 상태를 따라 바뀐다. aria-pressed가 눌림을, 이름이 지금 할 수 있는 일을 알린다
+// 단추 이름은 고정이고 상태 속성은 하나다. 메뉴와 펼침은 aria-expanded, 그 밖의 토글은 aria-pressed
 const ITEMS: {
   pair: MorphingPair;
   caption: string;
-  off: string;
-  on: string;
+  label: string;
+  state: 'expanded' | 'pressed';
 }[] = [
   {
     pair: 'menu-close',
     caption: '메뉴 / 닫기',
-    off: '메뉴 열기',
-    on: '메뉴 닫기',
+    label: '메뉴',
+    state: 'expanded',
   },
   {
     pair: 'plus-check',
     caption: '더하기 / 체크',
-    off: '목록에 담기',
-    on: '목록에서 빼기',
+    label: '목록에 담기',
+    state: 'pressed',
   },
   {
     pair: 'play-pause',
     caption: '재생 / 일시정지',
-    off: '재생',
-    on: '일시정지',
+    label: '재생',
+    state: 'pressed',
   },
   {
     pair: 'search-close',
     caption: '검색 / 닫기',
-    off: '검색 열기',
-    on: '검색 닫기',
+    label: '검색',
+    state: 'pressed',
   },
   {
     pair: 'expand-collapse',
     caption: '펼침 / 접힘',
-    off: '펼치기',
-    on: '접기',
+    label: '상세 보기',
+    state: 'expanded',
   },
 ];
 
@@ -136,14 +136,16 @@ export function MorphingIconDemo({ values = INITIAL, mini }: DemoProps) {
   return (
     <Stage mini={mini} label="MorphingIcon 미리보기" script={script}>
       <div className={styles.row}>
-        {ITEMS.map(({ pair, caption, off, on: onLabel }) => (
+        {ITEMS.map(({ pair, caption, label, state }) => (
           <div key={pair} className={styles.item}>
             <IconButton
               data-stage-target={pair}
               buttonStyle={buttonStyle}
               size={size}
-              aria-label={on[pair] ? onLabel : off}
-              aria-pressed={on[pair]}
+              aria-label={label}
+              {...(state === 'expanded'
+                ? { 'aria-expanded': on[pair] }
+                : { 'aria-pressed': on[pair] })}
               onClick={() =>
                 setOn((prev) => ({ ...prev, [pair]: !prev[pair] }))
               }
@@ -161,8 +163,8 @@ export function MorphingIconDemo({ values = INITIAL, mini }: DemoProps) {
 const USE = `const [open, setOpen] = useState(false);
 
 <IconButton
-  aria-label={open ? '메뉴 닫기' : '메뉴 열기'}
-  aria-pressed={open}
+  aria-label="메뉴"
+  aria-expanded={open}
   onClick={() => setOpen((v) => !v)}
 >
   <MorphingIcon pair="menu-close" active={open} />
@@ -181,11 +183,8 @@ function Usage() {
       </Topic>
       <Topic title="짝과 움직임">
         <p className={t.body}>
-          짝은 메뉴와 닫기, 더하기와 체크, 재생과 일시정지, 검색과 닫기, 펼침과
-          접힘 다섯 가지입니다. 짝마다 두 상태의 선 개수와 끝점 수를 맞춰 직접
-          그렸고, 아이콘 둘을 아무렇게나 섞는 것은 지원하지 않습니다. 움직이는
-          것은 선의 끝점뿐입니다. 300ms 동안 끝점이 옮겨 가며 선이 늘어나고
-          접히고, 사라지는 선은 한 점으로 줄면서 흐려집니다. 가는 도중에{' '}
+          움직이는 것은 선의 끝점뿐입니다. 300ms 동안 선이 늘어나고 접히며,
+          사라지는 선은 한 점으로 줄면서 흐려집니다. 가는 도중에{' '}
           <code>active</code>가 바뀌면 지금 모양에서 새 목표로 갑니다.
         </p>
       </Topic>
@@ -193,8 +192,9 @@ function Usage() {
         <p className={t.body} style={{ marginBottom: 12 }}>
           크기는 <code>1em</code>이고 색은 <code>currentColor</code>입니다.
           IconButton에 그대로 넣으면 단추의 <code>size</code>가 아이콘 크기를
-          정하고 단추의 글자색이 선 색이 됩니다. 눌림 상태는 쓰는 쪽이 쥐고,
-          단추의 <code>aria-pressed</code>와 <code>aria-label</code>로 알립니다.
+          정하고 단추의 글자색이 선 색이 됩니다. 상태는 쓰는 쪽이 쥐고, 단추
+          이름은 고정한 채 <code>aria-expanded</code>(메뉴, 펼침)나{' '}
+          <code>aria-pressed</code> 하나로 알립니다.
         </p>
         <CodeBlock code={USE} />
       </Topic>
@@ -211,9 +211,10 @@ function A11y() {
         라서 포커스를 받지 않습니다. 포커스 표시는 담는 단추의 몫입니다.
       </li>
       <li>
-        상태는 아이콘이 알리지 않습니다. 담는 단추에 <code>aria-pressed</code>를
-        주고, 이름(<code>aria-label</code>)도 상태에 맞춰 바꾸세요. 위 무대의
-        단추가 그 예입니다.
+        상태는 아이콘이 알리지 않습니다. 담는 단추의 이름은 고정하고,{' '}
+        <code>aria-expanded</code>(메뉴, 펼침)나 <code>aria-pressed</code>
+        (그 밖의 토글) 중 하나로 상태를 알리세요. 상태에 따라 바뀌는 이름과 섞지
+        마세요. 위 무대의 단추가 그 예입니다.
       </li>
       <li>
         선 굵기는 2이고 색은 단추의 글자색이라, 단추가 아이콘 대비 기준(3:1)을
@@ -233,8 +234,8 @@ export function MorphingIconPage() {
   const code = `import { IconButton, MorphingIcon } from '@taein-ui/core';
 
 <IconButton
-  aria-label={open ? '메뉴 닫기' : '메뉴 열기'}
-  aria-pressed={open}
+  aria-label="메뉴"
+  aria-expanded={open}
 ${attrs.map((a) => `  ${a}\n`).join('')}  onClick={() => setOpen((v) => !v)}
 >
   <MorphingIcon pair="menu-close" active={open} />

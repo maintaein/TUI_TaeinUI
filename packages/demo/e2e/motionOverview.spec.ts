@@ -725,7 +725,7 @@ test.describe('모션 전체 보기 원고지 넘김 미니 (1440px)', () => {
   });
 });
 
-// 모양 바뀌는 아이콘 미니: 대본이 메뉴 단추를 눌러 닫기로 바꾸고 되돌린다. 단추의 aria-pressed로 읽는다
+// 모양 바뀌는 아이콘 미니: 대본이 메뉴 단추를 눌러 닫기로 바꾸고 되돌린다. 단추의 aria-expanded로 읽는다
 test.describe('모션 전체 보기 모양 바뀌는 아이콘 미니 (1440px)', () => {
   test.use({ viewport: { width: 1440, height: 900 } });
 
@@ -735,10 +735,10 @@ test.describe('모션 전체 보기 모양 바뀌는 아이콘 미니 (1440px)',
     const mini = page.locator('[data-stage-mini="MorphingIcon 미리보기"]');
     await mini.evaluate((el) => el.scrollIntoView({ block: 'center' }));
     const menu = mini.locator('[data-stage-target="menu-close"]');
-    await expect(menu).toHaveAttribute('aria-pressed', 'true', {
+    await expect(menu).toHaveAttribute('aria-expanded', 'true', {
       timeout: 20_000,
     });
-    await expect(menu).toHaveAttribute('aria-pressed', 'false', {
+    await expect(menu).toHaveAttribute('aria-expanded', 'false', {
       timeout: 20_000,
     });
   });

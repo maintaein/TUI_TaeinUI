@@ -2,7 +2,8 @@ import { expect, test, type Page } from '@playwright/test';
 import { createRequire } from 'node:module';
 import type { MorphingPair } from '../../core/src/components/MorphingIcon/morphPairs';
 
-// core 소스는 CommonJS 패키지 안에 있어 import로 읽으면 Playwright 변환과 어긋난다. require로 읽는다
+// core 소스는 CommonJS 패키지 안에 있어 import로 읽으면 Playwright 변환과 어긋나 require로 읽는다.
+// 주의: 발행물(dist)이 아니라 소스에서 기대값을 만들고, morphPairs.ts가 다른 모듈을 import하게 되면 이 require가 깨진다
 const { MORPH_PAIRS, pointsAttr } = createRequire(import.meta.url)(
   '../../core/src/components/MorphingIcon/morphPairs.ts'
 ) as typeof import('../../core/src/components/MorphingIcon/morphPairs');
@@ -25,6 +26,14 @@ const drawn = (page: Page, pair: MorphingPair) =>
       }))
     );
 
+// 단추 이름은 고정이고 상태 속성은 하나다. 메뉴와 펼침은 aria-expanded, 그 밖의 토글은 aria-pressed
+const stateAttr = (pair: MorphingPair) =>
+  pair === 'menu-close' || pair === 'expand-collapse'
+    ? 'aria-expanded'
+    : 'aria-pressed';
+const isOn = async (page: Page, pair: MorphingPair) =>
+  (await button(page, pair).getAttribute(stateAttr(pair))) === 'true';
+
 /** 정의가 DOM에 그려지는 모양 */
 const expected = (pair: MorphingPair, active: boolean) =>
   MORPH_PAIRS[pair][active ? 1 : 0].map((l) => ({
@@ -43,7 +52,7 @@ const startFrozen = async (page: Page) => {
   await page.clock.pauseAt(new Date(Date.now() + 200));
   await button(page, 'menu-close').hover();
   for (const pair of pairs) {
-    if ((await button(page, pair).getAttribute('aria-pressed')) === 'true') {
+    if (await isOn(page, pair)) {
       await button(page, pair).click();
     }
   }
@@ -76,17 +85,28 @@ test.describe('모양 바뀌는 아이콘 상세', () => {
     });
   }
 
-  test('누르면 aria-pressed와 이름이 바뀐다', async ({ page }) => {
-    await startFrozen(page);
-    const menu = button(page, 'menu-close');
-    await expect(menu).toHaveAttribute('aria-pressed', 'false');
-    await expect(menu).toHaveAttribute('aria-label', '메뉴 열기');
-    await menu.click();
-    await expect(menu).toHaveAttribute('aria-pressed', 'true');
-    await expect(menu).toHaveAttribute('aria-label', '메뉴 닫기');
-    await expect(menu.locator('svg')).toHaveAttribute('aria-hidden', 'true');
-    await expect(menu.locator('svg')).toHaveAttribute('focusable', 'false');
-  });
+  for (const pair of pairs) {
+    test(`${pair}: 누르면 ${stateAttr(pair)}만 바뀌고 이름은 그대로다`, async ({
+      page,
+    }) => {
+      await startFrozen(page);
+      const target = button(page, pair);
+      const other =
+        stateAttr(pair) === 'aria-expanded' ? 'aria-pressed' : 'aria-expanded';
+      const name = await target.getAttribute('aria-label');
+      expect(name).toBeTruthy();
+      await expect(target).toHaveAttribute(stateAttr(pair), 'false');
+      await target.click();
+      await expect(target).toHaveAttribute(stateAttr(pair), 'true');
+      await expect(target).toHaveAttribute('aria-label', name!);
+      await expect(target).not.toHaveAttribute(other, /.*/);
+      await expect(target.locator('svg')).toHaveAttribute(
+        'aria-hidden',
+        'true'
+      );
+      await expect(target.locator('svg')).toHaveAttribute('focusable', 'false');
+    });
+  }
 
   test('도중에 다시 누르면 지금 모양에서 되돌아간다', async ({ page }) => {
     await startFrozen(page);
