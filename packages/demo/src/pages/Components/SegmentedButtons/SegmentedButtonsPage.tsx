@@ -213,8 +213,9 @@ function A11y() {
         활성 옵션과 끝 활성 옵션으로, Space와 Enter는 선택합니다.
       </li>
       <li>
-        키보드로 포커스가 오면 옵션에 포커스 링이 생기고 마우스로 눌렀을 때는
-        링이 켜지지 않습니다. <code>sm</code>도 누르는 영역은 44px입니다.
+        키보드로 포커스가 오면 트랙 가장자리에 <code>primary</code> 테두리가
+        생기고 마우스로 눌렀을 때는 생기지 않습니다. <code>sm</code>도 누르는
+        영역은 44px입니다.
       </li>
       <li>
         <code>disabled</code>인 옵션은 <code>aria-disabled</code>가{' '}

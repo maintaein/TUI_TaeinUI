@@ -250,8 +250,8 @@ function A11y() {
       </li>
       <li>
         키보드로 조절합니다. 화살표 키는 <code>step</code>만큼, Home과 End는
-        최소값과 최대값으로 옮깁니다. 키보드로 포커스가 오면 머리에 포커스 링이
-        생깁니다(<code>bar</code>는 트랙 둘레).
+        최소값과 최대값으로 옮깁니다. 키보드로 포커스가 오면 머리의 테두리가
+        굵어집니다(<code>bar</code>는 선의 테두리가 굵고 짙어집니다).
       </li>
       <li>
         <code>helperText</code>가 있으면 <code>aria-describedby</code>로 이어져

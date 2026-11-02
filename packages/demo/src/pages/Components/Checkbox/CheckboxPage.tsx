@@ -194,8 +194,9 @@ function A11y() {
     <ul className={`${t.list} ${t.body}`}>
       <li>
         네이티브 <code>input type=&quot;checkbox&quot;</code>를 그대로 쓰므로
-        Tab으로 들어가고 Space로 바꿉니다. 키보드로 포커스가 오면 상자에 포커스
-        링이 생깁니다.
+        Tab으로 들어가고 Space로 바꿉니다. 키보드로 포커스가 오면 상자 테두리
+        색이 바뀌고(체크되어 있으면 한 단계 짙은 색), 오류 색은 포커스 중에도
+        유지됩니다.
       </li>
       <li>
         <code>label</code>이 <code>label</code> 요소로 입력과 연결됩니다. 레이블
