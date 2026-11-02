@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { pointing } from './fanPointing';
 
 const stage = (page: Page) =>
   page.getByRole('region', { name: 'FanMenu 미리보기' });
@@ -46,6 +47,19 @@ test.describe('부채꼴 메뉴 상세 (1440px)', () => {
       '아이콘이 차례 없이 제자리에 바로 나타나고 사라집니다.'
     );
     await expect(page.getByText('onSelect').first()).toBeVisible();
+  });
+
+  test('대본이 열고 아이콘을 차례로 짚어 짚을 때마다 그 이름표가 보인다', async ({
+    page,
+  }) => {
+    await page.goto('/motion/fan-menu');
+    await expect(hub(page)).toBeVisible();
+    // 사진, 메시지, 음악 순서로 짚는다. 앞 아이콘이 지나야 다음이 오므로 차례대로 기다린다
+    for (const name of ['사진', '메시지', '음악']) {
+      await expect
+        .poll(() => pointing(stage(page), name), { timeout: 20_000 })
+        .toBe(true);
+    }
   });
 
   test('닫힌 항목은 inert라 포커스를 받지 않고 Tab도 지나친다', async ({

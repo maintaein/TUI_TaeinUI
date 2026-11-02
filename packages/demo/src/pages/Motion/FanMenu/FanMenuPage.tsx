@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { FanMenu, Slider } from '@taein-ui/core';
 import {
   Bookmark,
@@ -66,16 +66,26 @@ const ITEMS = [
 ];
 const DEFAULT_COUNT = 6;
 
-// 대본: 허브를 눌러 열고, 호 위쪽을 왼쪽에서 오른쪽으로 훑어 가리킴이 옮겨 가게 한 뒤, 다시 눌러 접는다.
-// 훑는 줄은 허브 가운데에서 40px 위, 좌우 끝은 호의 양 끝 가까이(약 17도)라 아이콘이 차례로 커진다
+// 가리킬 아이콘은 앞에서 네 개까지(항목이 그보다 적으면 있는 만큼)
+const PICKS = 4;
+// 허브 가운데에서 항목 가운데까지(core fanGeometry의 FAN_RADIUS와 같은 값)와 허브 반지름
+const RADIUS = 104;
+const HUB_HALF = 28;
+// i번째 항목이 허브 가운데에서 놓인 방향(도). 왼쪽 180도에서 오른쪽 0도로 균등하다(core fanAngle과 같은 식)
+const angleOf = (i: number, count: number) => 180 - i * (180 / (count - 1));
+
+// 대본: 허브를 눌러 열고, 아이콘을 왼쪽부터 하나씩 짚어 그 아이콘이 커지고 이름표가 뜨게 한 뒤, 다시 눌러 접는다.
 // 카드 속 미니는 커서가 그려지지 않으니 오가는 시간과 읽을 시간만 줄인다(act.pace). 누름과 효과가 끝나는 시간은 그대로다
-const SCRIPT = (act: Act) => {
+const scriptFor = (count: number) => (act: Act) => {
   act.move('hub', act.pace(0.6, 0.3));
   act.wait(act.pace(0.3, 0.1));
   act.press('hub');
   act.wait(act.pace(1.4, 0.9));
-  act.sweep('arc', 2.4);
-  act.wait(act.pace(0.5, 0.3));
+  for (let i = 0; i < Math.min(count, PICKS); i++) {
+    act.aim(`pick-${i}`, act.pace(0.7, 0.5));
+    act.wait(act.pace(0.9, 0.8));
+  }
+  act.wait(act.pace(0.3, 0.1));
   act.press('hub');
   act.wait(act.pace(1.2, 0.8));
   act.home(act.pace(0.6, 0.3));
@@ -87,12 +97,13 @@ interface FanMenuDemoProps extends DemoProps {
   count?: number;
 }
 
-/** 무대 조각. 대본의 커서가 허브를 눌러 열고 호를 훑고 접으며, 마우스를 올리면 직접 눌러 볼 수 있다 */
+/** 무대 조각. 대본의 커서가 허브를 눌러 열고 아이콘을 하나씩 짚고 접으며, 마우스를 올리면 직접 눌러 볼 수 있다 */
 export function FanMenuDemo({ mini, count = DEFAULT_COUNT }: FanMenuDemoProps) {
   const [picked, setPicked] = useState('');
+  const script = useMemo(() => scriptFor(count), [count]);
 
   return (
-    <Stage mini={mini} label="FanMenu 미리보기" script={SCRIPT}>
+    <Stage mini={mini} label="FanMenu 미리보기" script={script}>
       {/* 호는 허브 위로 펼쳐지므로 위쪽에 호가 들어갈 자리를 둔다(허브 가운데에서 약 130px) */}
       <div
         style={{
@@ -112,22 +123,26 @@ export function FanMenuDemo({ mini, count = DEFAULT_COUNT }: FanMenuDemoProps) {
               onSelect: () => setPicked(label),
             }))}
           />
-          {/* 대본이 훑는 줄. 허브 가운데 위 40px을 가로지른다. 클릭은 통과한다 */}
-          <div
-            data-stage-target="arc"
-            aria-hidden="true"
-            style={{
-              position: 'absolute',
-              left: '50%',
-              bottom: 28,
-              width: 280,
-              height: 80,
-              transform: 'translateX(-50%)',
-              pointerEvents: 'none',
-            }}
-          >
-            <span />
-          </div>
+          {/* 대본이 짚을 자리. 아이콘 가운데마다 놓인 보이지 않는 점이고 클릭은 통과한다 */}
+          {ITEMS.slice(0, Math.min(count, PICKS)).map(({ tag }, i) => {
+            const rad = (angleOf(i, count) * Math.PI) / 180;
+            return (
+              <span
+                key={tag}
+                data-stage-target={`pick-${i}`}
+                aria-hidden="true"
+                style={{
+                  position: 'absolute',
+                  left: `calc(50% + ${Math.cos(rad) * RADIUS}px)`,
+                  bottom: HUB_HALF + Math.sin(rad) * RADIUS,
+                  width: 44,
+                  height: 44,
+                  transform: 'translate(-50%, 50%)',
+                  pointerEvents: 'none',
+                }}
+              />
+            );
+          })}
         </div>
         {!mini && (
           <p className={t.body} aria-live="polite" style={{ minHeight: '1lh' }}>

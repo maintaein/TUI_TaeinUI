@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { pointing } from './fanPointing';
 
 // 시각 글자 중 가장 투명한 값. 정지 상태는 늘 1이다
 const minGlyphOpacity = (page: Page) =>
@@ -597,6 +598,20 @@ test.describe('모션 전체 보기 부채꼴 메뉴 미니 (1440px)', () => {
     await expect
       .poll(async () => JSON.stringify(await snapshot()), { timeout: 15_000 })
       .not.toBe(JSON.stringify(frozen));
+  });
+
+  test('대본이 열고 아이콘을 차례로 짚어 짚을 때마다 그 이름표가 보인다', async ({
+    page,
+  }) => {
+    await page.goto('/motion');
+    await fanMini(page).evaluate((el) =>
+      el.scrollIntoView({ block: 'center' })
+    );
+    for (const name of ['사진', '메시지', '음악']) {
+      await expect
+        .poll(() => pointing(fanMini(page), name), { timeout: 20_000 })
+        .toBe(true);
+    }
   });
 });
 
