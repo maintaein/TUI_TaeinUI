@@ -225,6 +225,69 @@ describe('상자 크기에서 굽이 수 고르기', () => {
 });
 
 describe('가닥의 누적 길이와 y 범위(보이는 구간만 그리는 데 쓴다)', () => {
+  // 되돌리면 빨개지는 것: poseLengths를 첫 포즈 것으로 두면 섞은 포즈와 20 단위 가까이 어긋나 아래 단언이 깨진다.
+  // 점선 위상이 보이는 첫 구간 앞의 길이를 이 값으로 읽으므로, 어긋남이 작아야 첫 구간이 바뀔 때 점선이 튀지 않는다
+  it('poseLengths를 섞은 값은 섞은 포즈의 실제 누적 길이와 가깝고, 첫 포즈 길이는 그렇지 않다', () => {
+    const cumulativeOf = (points: number[][]) => {
+      const total = [0];
+      for (let sample = 1; sample < points.length; sample++)
+        total.push(
+          total[sample - 1] +
+            Math.hypot(
+              points[sample][0] - points[sample - 1][0],
+              points[sample][1] - points[sample - 1][1]
+            )
+        );
+      return total;
+    };
+    let worstMixed = 0;
+    let worstFirst = 0;
+    for (const { poses, poseLengths } of createScene(9).strands) {
+      expect(poseLengths).toHaveLength(poses.length);
+      for (const [first, fraction] of [
+        [3, 0.5],
+        [8, 0.25],
+        [12, 0.9],
+      ]) {
+        const mixedPose = poses[first].map((point, sample) =>
+          point.map(
+            (value, axis) =>
+              value + (poses[first + 1][sample][axis] - value) * fraction
+          )
+        );
+        const actual = cumulativeOf(mixedPose);
+        for (let sample = 0; sample < actual.length; sample++) {
+          const mixed =
+            poseLengths[first][sample] +
+            (poseLengths[first + 1][sample] - poseLengths[first][sample]) *
+              fraction;
+          // 보이는 첫 구간이 한 칸 바뀔 때 점선 위상이 튀는 양은 한 칸 사이 어긋남의 변화다(누적 오차 전체가 아니다)
+          if (sample) {
+            const previous =
+              poseLengths[first][sample - 1] +
+              (poseLengths[first + 1][sample - 1] -
+                poseLengths[first][sample - 1]) *
+                fraction;
+            worstMixed = Math.max(
+              worstMixed,
+              Math.abs(mixed - previous - (actual[sample] - actual[sample - 1]))
+            );
+            worstFirst = Math.max(
+              worstFirst,
+              Math.abs(
+                poseLengths[0][sample] -
+                  poseLengths[0][sample - 1] -
+                  (actual[sample] - actual[sample - 1])
+              )
+            );
+          }
+        }
+      }
+    }
+    expect(worstMixed).toBeLessThan(1);
+    expect(worstFirst).toBeGreaterThan(5);
+  });
+
   const scene = createScene(9);
 
   // 되돌리면 빨개지는 것: 누적 길이를 첫 포즈가 아닌 값으로 만들거나 합산 식을 바꾸면 점 사이 거리 합과 어긋난다
@@ -243,7 +306,8 @@ describe('가닥의 누적 길이와 y 범위(보이는 구간만 그리는 데 
     }
   });
 
-  // 되돌리면 빨개지는 것: 단조가 깨지면 이진 탐색이 틀린 점을 가리키고, 포즈 하나라도 빠지면 아래 경계 단언이 깨진다
+  // 되돌리면 빨개지는 것: 단조가 깨지면 이진 탐색이 틀린 점을 가리키고, 포즈를 빠뜨리면 아래 경계 단언이 깨진다.
+  // 0번 포즈는 마지막 포즈와 같은 배열이라 0번만 빠뜨리는 변이는 값이 같아 잡히지 않는다(동치 변이). 그 밖의 포즈를 빠뜨리면 빨개진다
   it('preMaxY는 점 앞쪽의 모든 포즈 y 최댓값, sufMinY는 점 뒤쪽 최솟값이고 둘 다 단조다', () => {
     for (const { poses, preMaxY, sufMinY } of scene.strands) {
       const count = poses[0].length;

@@ -15,7 +15,12 @@ import {
   visibleSegments,
 } from './luminousFlowMotion';
 import { bindFlowListeners, createFlowLoop } from './luminousFlowLoop';
-import { canvasWindow, findScroller, readView } from './luminousFlowScroll';
+import {
+  canvasWindow,
+  findScroller,
+  pixelBudget,
+  readView,
+} from './luminousFlowScroll';
 import {
   MIN_BENDS,
   POSE_COUNT,
@@ -194,9 +199,7 @@ export const LuminousFlow = forwardRef<HTMLDivElement, LuminousFlowProps>(
         width = root.clientWidth;
         height = root.clientHeight;
         canvasHeight = geometry().height;
-        // 상자 전체를 덮는 캔버스는 지금 값(18e5). 긴 상자는 보이는 구간 두 배 높이만 덮는데, 그 면적이 이전 긴 상자에서 실제로 칠하던
-        // 면적(저해상도로 줄인 보이는 구간)보다 커지지 않게 4e5로 묶는다(창을 띄운 실측: 18e5에서는 프레임 중앙값이 33ms에서 50~67ms로 늘었다)
-        const budget = canvasHeight < height ? 4e5 : 18e5;
+        const budget = pixelBudget(canvasHeight, height);
         pixelRatio = Math.min(
           window.devicePixelRatio || 1,
           1,
@@ -253,91 +256,98 @@ export const LuminousFlow = forwardRef<HTMLDivElement, LuminousFlowProps>(
           context.drawImage(atmosphereTexture, 0, 0, SCENE_WIDTH, sceneHeight);
         }
 
-        strands.forEach(({ poses, lengths, preMaxY, sufMinY, index, blue }) => {
-          const pose = ((time / (8 + (index % 5) * 1.5)) % 1) * POSE_COUNT;
-          const first = Math.floor(pose),
-            fraction = pose - first;
-          mixes[index][0] = first;
-          mixes[index][1] = fraction;
-          const current = interpolated[index];
-          // 보이는 구간(빛번짐 반경 50 포함)에 닿을 수 있는 구간만 보간한다
-          const { first: firstSegment, last: lastSegment } = visibleSegments(
-            preMaxY,
-            sufMinY,
-            top,
-            bottom
-          );
-          const from = Math.max(firstSegment - 1, 0);
-          const to = Math.min(lastSegment + 2, current.length - 1);
-          if (firstSegment <= lastSegment)
-            for (let sample = from; sample <= to; sample++) {
-              for (let axis = 0; axis < 2; axis++)
-                current[sample][axis] =
-                  poses[first][sample][axis] +
-                  (poses[first + 1][sample][axis] -
-                    poses[first][sample][axis]) *
-                    fraction;
-            }
-          let skippedLength = 0;
-          const path = new Path2D();
-          // 보이는 영역과 빛번짐 반경 밖의 구간은 건너뛴다.
-          let connected = false;
-          for (let sample = firstSegment; sample <= lastSegment; sample++) {
-            const point = current[sample];
-            const before = current[Math.max(sample - 1, 0)];
-            const next = current[sample + 1];
-            const after = current[Math.min(sample + 2, current.length - 1)];
-            if (
-              Math.max(point[1], next[1]) < top - 50 ||
-              Math.min(point[1], next[1]) > bottom + 50
-            ) {
-              connected = false;
-              continue;
-            }
-            if (!connected) {
-              path.moveTo(point[0], point[1]);
-              skippedLength = lengths[sample];
-            }
-            path.bezierCurveTo(
-              point[0] + (next[0] - before[0]) / 6,
-              point[1] + (next[1] - before[1]) / 6,
-              next[0] - (after[0] - point[0]) / 6,
-              next[1] - (after[1] - point[1]) / 6,
-              next[0],
-              next[1]
+        strands.forEach(
+          ({ poses, poseLengths, preMaxY, sufMinY, index, blue }) => {
+            const pose = ((time / (8 + (index % 5) * 1.5)) % 1) * POSE_COUNT;
+            const first = Math.floor(pose),
+              fraction = pose - first;
+            mixes[index][0] = first;
+            mixes[index][1] = fraction;
+            const current = interpolated[index];
+            // 보이는 구간(빛번짐 반경 50 포함)에 닿을 수 있는 구간만 보간한다
+            const { first: firstSegment, last: lastSegment } = visibleSegments(
+              preMaxY,
+              sufMinY,
+              top,
+              bottom
             );
-            connected = true;
-          }
-          paths.push(path);
-          context.strokeStyle = strandPaints[index];
-          const strength = 0.8 + (index % 6) * 0.16;
-          const strokeBase = 0.17 + (index % 5) * 0.075;
-          context.setLineDash([]);
-          [
-            [13, 0.023 * strength],
-            [2 + strokeBase * 5, 0.13 * strength],
-            [strokeBase, 0.48 * strength],
-          ].forEach(([strokeWidth, opacity]) => {
-            context.lineWidth = strokeWidth;
-            context.globalAlpha = opacity;
+            const from = Math.max(firstSegment - 1, 0);
+            const to = Math.min(lastSegment + 2, current.length - 1);
+            if (firstSegment <= lastSegment)
+              for (let sample = from; sample <= to; sample++) {
+                for (let axis = 0; axis < 2; axis++)
+                  current[sample][axis] =
+                    poses[first][sample][axis] +
+                    (poses[first + 1][sample][axis] -
+                      poses[first][sample][axis]) *
+                      fraction;
+              }
+            let skippedLength = 0;
+            const path = new Path2D();
+            // 보이는 영역과 빛번짐 반경 밖의 구간은 건너뛴다.
+            let connected = false;
+            for (let sample = firstSegment; sample <= lastSegment; sample++) {
+              const point = current[sample];
+              const before = current[Math.max(sample - 1, 0)];
+              const next = current[sample + 1];
+              const after = current[Math.min(sample + 2, current.length - 1)];
+              if (
+                Math.max(point[1], next[1]) < top - 50 ||
+                Math.min(point[1], next[1]) > bottom + 50
+              ) {
+                connected = false;
+                continue;
+              }
+              if (!connected) {
+                path.moveTo(point[0], point[1]);
+                // 점선 위상은 섞은 포즈의 누적 길이에 맞춘다(보이는 첫 구간이 바뀔 때 점선이 튀지 않는다)
+                skippedLength =
+                  poseLengths[first][sample] +
+                  (poseLengths[first + 1][sample] -
+                    poseLengths[first][sample]) *
+                    fraction;
+              }
+              path.bezierCurveTo(
+                point[0] + (next[0] - before[0]) / 6,
+                point[1] + (next[1] - before[1]) / 6,
+                next[0] - (after[0] - point[0]) / 6,
+                next[1] - (after[1] - point[1]) / 6,
+                next[0],
+                next[1]
+              );
+              connected = true;
+            }
+            paths.push(path);
+            context.strokeStyle = strandPaints[index];
+            const strength = 0.8 + (index % 6) * 0.16;
+            const strokeBase = 0.17 + (index % 5) * 0.075;
+            context.setLineDash([]);
+            [
+              [13, 0.023 * strength],
+              [2 + strokeBase * 5, 0.13 * strength],
+              [strokeBase, 0.48 * strength],
+            ].forEach(([strokeWidth, opacity]) => {
+              context.lineWidth = strokeWidth;
+              context.globalAlpha = opacity;
+              context.stroke(path);
+            });
+            context.lineWidth = (index + 1) % 4 === 0 ? 0.75 : 0.48;
+            context.globalAlpha = (index + 1) % 3 === 0 ? 0.38 : 0.85;
+            context.setLineDash([34, 7, 9, 230]);
+            context.lineDashOffset =
+              skippedLength -
+              ((time + index * 0.137) * 280) /
+                ((index + 1) % 3 === 0 ? 1.65 : 2.2);
             context.stroke(path);
-          });
-          context.lineWidth = (index + 1) % 4 === 0 ? 0.75 : 0.48;
-          context.globalAlpha = (index + 1) % 3 === 0 ? 0.38 : 0.85;
-          context.setLineDash([34, 7, 9, 230]);
-          context.lineDashOffset =
-            skippedLength -
-            ((time + index * 0.137) * 280) /
-              ((index + 1) % 3 === 0 ? 1.65 : 2.2);
-          context.stroke(path);
-          context.strokeStyle = blue ? palette.cyan : palette.glow;
-          context.lineWidth = 0.65;
-          context.globalAlpha = media.matches ? 0.18 : 0.48;
-          context.setLineDash([0.6, 69.4]);
-          context.lineDashOffset =
-            skippedLength - ((time + index * 0.081) * 70) / 0.7;
-          context.stroke(path);
-        });
+            context.strokeStyle = blue ? palette.cyan : palette.glow;
+            context.lineWidth = 0.65;
+            context.globalAlpha = media.matches ? 0.18 : 0.48;
+            context.setLineDash([0.6, 69.4]);
+            context.lineDashOffset =
+              skippedLength - ((time + index * 0.081) * 70) / 0.7;
+            context.stroke(path);
+          }
+        );
 
         // 굽이마다 전체 장면 텍스처가 아니라 작은 국소 면을 따로 쓴다.
         const combinedPath = new Path2D();

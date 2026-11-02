@@ -171,6 +171,32 @@ describe('bindFlowListeners: 구독 등록과 해제', () => {
   });
 });
 
+describe('bindFlowListeners: 안 넘긴 핸들러는 구독하지 않는다', () => {
+  // 되돌리면 빨개지는 것: 핸들러가 없는데도 구독하면 구독한 종류에 scroll과 wheel이 보인다
+  it('onScroll과 onWheel이 없으면 창에 scroll·wheel을 걸지 않는다', () => {
+    const added: string[] = [];
+    class RecordingTarget extends EventTarget {
+      addEventListener(type: string, ...rest: [never?, never?]) {
+        added.push(type);
+        super.addEventListener(type, ...rest);
+      }
+    }
+    const win = new RecordingTarget();
+    let syncs = 0;
+    const unbind = bindFlowListeners({
+      win,
+      doc: new EventTarget(),
+      media: new EventTarget(),
+      onSync: () => syncs++,
+    });
+    expect(added).toEqual([]);
+    win.dispatchEvent(new Event('scroll'));
+    win.dispatchEvent(new Event('wheel'));
+    expect(syncs).toBe(0);
+    expect(() => unbind()).not.toThrow();
+  });
+});
+
 describe('bindFlowListeners: 스크롤 상자 안의 scroll', () => {
   // 무엇을 되돌리면 빨개지는가: scroll 구독의 capture를 빼면 스크롤 상자의 scroll(거품이 일지 않는다)이 창에 닿지 않는다
   it('창 안 스크롤 상자의 scroll도 받고, 해제하면 받지 않는다', () => {

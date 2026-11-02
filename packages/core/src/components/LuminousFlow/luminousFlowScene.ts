@@ -251,15 +251,20 @@ const buildScene = (units: number) => {
     );
     // 이음매에서 첫 포즈와 정확히 같게 맞춘다(반올림 포함).
     poses.push(poses[0]);
-    // 알갱이와 점선 위상이 쓰는 누적 길이는 첫 포즈 것으로 한 번만 잰다(포즈마다 길이는 조금 달라도 위치는 점 사이 보간이라 어긋나지 않는다)
-    const lengths = new Float64Array(poses[0].length);
-    for (let sample = 1; sample < lengths.length; sample++)
-      lengths[sample] =
-        lengths[sample - 1] +
-        Math.hypot(
-          poses[0][sample][0] - poses[0][sample - 1][0],
-          poses[0][sample][1] - poses[0][sample - 1][1]
-        );
+    // 포즈마다 점 사이 거리의 누적. 점선 위상은 보이는 첫 구간 앞의 길이(현재 포즈를 섞은 값)를 쓰므로 포즈별로 둔다.
+    // 알갱이는 첫 포즈 것(lengths)만 쓴다(위치는 점 사이 보간이라 길이가 포즈마다 조금 달라도 어긋나지 않는다)
+    const poseLengths = poses.map((pose) => {
+      const total = new Float64Array(pose.length);
+      for (let sample = 1; sample < total.length; sample++)
+        total[sample] =
+          total[sample - 1] +
+          Math.hypot(
+            pose[sample][0] - pose[sample - 1][0],
+            pose[sample][1] - pose[sample - 1][1]
+          );
+      return total;
+    });
+    const lengths = poseLengths[0];
     // 점마다 모든 포즈에 걸친 y 범위의 앞쪽 최댓값과 뒤쪽 최솟값. 둘 다 점 번호에 단조라서 보이는 구간의 점 범위를 이진 탐색으로 좁힌다
     const preMaxY = new Float64Array(lengths.length);
     const sufMinY = new Float64Array(lengths.length);
@@ -288,6 +293,7 @@ const buildScene = (units: number) => {
     return {
       poses,
       lengths,
+      poseLengths,
       preMaxY,
       sufMinY,
       blue,

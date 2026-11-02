@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from 'vitest';
-import { canvasWindow, findScroller } from './luminousFlowScroll';
+import { canvasWindow, findScroller, pixelBudget } from './luminousFlowScroll';
 
 afterEach(() => {
   document.body.innerHTML = '';
@@ -83,5 +83,19 @@ describe('canvasWindow (캔버스가 덮는 상자 안 구간)', () => {
       top: 2700,
       height: 1200,
     });
+  });
+});
+
+describe('pixelBudget (덮는 비율에 따른 픽셀 예산)', () => {
+  // 되돌리면 빨개지는 것: 경계에서 계단으로 되돌리면(비율 1 미만이면 4e5) 둘째 단언이 빨개진다
+  it('상자 전체를 덮으면 18e5, 비율이 0.5 이하면 4e5, 그 사이는 이어진다', () => {
+    expect(pixelBudget(1240, 1240)).toBe(18e5);
+    expect(pixelBudget(620, 1240)).toBe(4e5);
+    expect(pixelBudget(100, 20000)).toBe(4e5);
+    // 상자가 1px 길어졌다고 해상도가 크게 떨어지지 않는다
+    expect(pixelBudget(1240, 1241)).toBeGreaterThan(17.9e5);
+    const middle = pixelBudget(930, 1240);
+    expect(middle).toBeGreaterThan(4e5);
+    expect(middle).toBeLessThan(18e5);
   });
 });

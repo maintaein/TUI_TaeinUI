@@ -185,9 +185,7 @@ export const SloshGauge = forwardRef<HTMLDivElement, SloshGaugeProps>(
         win: window,
         doc: document,
         media: media ?? new EventTarget(),
-        // 이 그림은 스크롤·휠을 보지 않는다
-        onScroll: () => {},
-        onWheel: () => {},
+        // 이 그림은 스크롤·휠을 보지 않아 구독하지 않는다
         onSync: loop.sync,
       });
       return () => {

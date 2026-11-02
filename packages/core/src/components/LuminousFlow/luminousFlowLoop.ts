@@ -59,8 +59,10 @@ interface FlowListenerTargets {
   win: EventTarget;
   doc: EventTarget;
   media: EventTarget;
-  onScroll: () => void;
-  onWheel: (event: WheelEvent) => void;
+  /** 없으면 scroll을 구독하지 않는다 */
+  onScroll?: () => void;
+  /** 없으면 wheel을 구독하지 않는다 */
+  onWheel?: (event: WheelEvent) => void;
   onSync: () => void;
 }
 
@@ -73,15 +75,17 @@ export const bindFlowListeners = ({
   onWheel,
   onSync,
 }: FlowListenerTargets) => {
-  const wheel = onWheel as EventListener;
+  const wheel = onWheel as EventListener | undefined;
   // 캡처: 창 안 모든 스크롤 상자의 scroll도 받는다(scroll은 거품이 일지 않는다)
-  win.addEventListener('scroll', onScroll, { passive: true, capture: true });
-  win.addEventListener('wheel', wheel, { passive: true });
+  if (onScroll)
+    win.addEventListener('scroll', onScroll, { passive: true, capture: true });
+  if (wheel) win.addEventListener('wheel', wheel, { passive: true });
   media.addEventListener('change', onSync);
   doc.addEventListener('visibilitychange', onSync);
   return () => {
-    win.removeEventListener('scroll', onScroll, { capture: true });
-    win.removeEventListener('wheel', wheel);
+    if (onScroll)
+      win.removeEventListener('scroll', onScroll, { capture: true });
+    if (wheel) win.removeEventListener('wheel', wheel);
     media.removeEventListener('change', onSync);
     doc.removeEventListener('visibilitychange', onSync);
   };
