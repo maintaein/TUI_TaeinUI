@@ -592,8 +592,21 @@ test.describe('모션 전체 보기 로켓 전송 미니 (1440px)', () => {
       }
     );
     await expect(rocketMini(page).locator('[data-rocket-mark]')).toHaveCount(1);
-    // 미니는 연기를 끈다(문맥 스물다섯 개가 한 화면에 뜨지 않게). 불꽃은 DOM이라 canvas가 아예 없다
+    // 미니는 연기를 끈다(문맥 스물다섯 개가 한 화면에 뜨지 않게). 분출 빛은 DOM이라 canvas가 아예 없다
     await expect(rocketMini(page).locator('canvas')).toHaveCount(0);
+    // 엔진이 없어도 분출은 보인다: 입 아래 DOM 빛무리가 숨지 않고(data-engine 없음) 분출 세기만큼 켜진다
+    await expect
+      .poll(
+        () =>
+          rocketMini(page).evaluate((el) => {
+            const halo = el.querySelector<HTMLElement>('[data-rocket-halo]');
+            if (!halo) return null;
+            const style = getComputedStyle(halo);
+            return style.display === 'none' ? 0 : Number(style.opacity);
+          }),
+        { timeout: 15_000 }
+      )
+      .toBeGreaterThan(0.5);
 
     const pause = page.getByRole('button', { name: '움직임 멈춤' });
     await pause.click();

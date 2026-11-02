@@ -310,7 +310,14 @@ test.describe('로켓 전송 상세 유체 연기 (1440px)', () => {
   test('비행 중 무대 안 연기 canvas에 알파가 생기고 복제본 뒤에 깔리며, 표지가 뜬 뒤에도 남았다 사라진다', async ({
     page,
   }) => {
-    test.setTimeout(60_000);
+    // 소프트웨어 GL에서는 화면 그리기가 프레임당 100ms쯤이라 엔진 수명(시뮬레이션 시간 3초, 프레임당 최대 33ms)이 벽시계로 길어진다
+    test.setTimeout(90_000);
+    // 셰이더(연기 음영, 배기 기둥, 분출 광휘)가 컴파일되지 않으면 엔진이 조용히 null이 되므로 콘솔 오류를 따로 본다
+    const shaderErrors: string[] = [];
+    page.on('console', (m) => {
+      if (m.type() === 'error' && /shader|glsl|compile|link/i.test(m.text()))
+        shaderErrors.push(m.text());
+    });
     await open(page);
     // 관찰은 모두 한 evaluate 안에서 한다(병렬 부하에서 왕복이 수 초 걸린다).
     // 연기 canvas는 preserveDrawingBuffer 없이 만들어지므로 엔진이 그린 같은 프레임의 rAF에서 읽어야 한다
@@ -343,10 +350,10 @@ test.describe('로켓 전송 상세 유체 연기 (1440px)', () => {
       };
       let layerWasUp = false;
       let n = 0;
-      while (performance.now() - t0 < 12_000) {
+      while (performance.now() - t0 < 25_000) {
         await frame();
         n += 1;
-        // 연기 canvas만 본다(불꽃은 DOM이라 비행 층 안에 canvas가 없다)
+        // 연기 canvas만 본다(분출은 DOM이라 비행 층 안에 canvas가 없다)
         const canvas =
           [...region.querySelectorAll('canvas')].find(
             (c) => !c.closest('[data-rocket-layer]')
@@ -387,6 +394,7 @@ test.describe('로켓 전송 상세 유체 연기 (1440px)', () => {
       return found;
     });
     expect(result.canvasInRegion).toBe(true);
+    expect(shaderErrors).toEqual([]);
     // 창 전체(body)가 아니라 무대 안에 갇힌다
     expect(result.insideStage).toBe(true);
     expect(result.onBody).toBe(false);
@@ -505,40 +513,90 @@ const craftAngle = (page: Page) =>
     return (Math.atan2(m.b, m.a) * 180) / Math.PI;
   });
 
-// 불꽃 요소의 화면 높이(px). 길이는 scaleY로만 바뀌니 기울지 않는 구간(발사 전)에서는 높이가 곧 길이다
-const flameHeights = (page: Page) =>
+// 심지 요소의 길이(px). 엔진이 빛을 그리면 DOM 심지는 숨어(display none) 화면 높이가 0이고 계산된 transform도 none이라, 높이와 GSAP이 쓴 인라인 scaleY로 센다.
+// 길이는 scaleY로만 바뀌니 기울지 않는 구간(발사 전)에서는 이것이 곧 길이다
+const wickHeights = (page: Page) =>
   page.evaluate(() =>
     [
       ...document.querySelectorAll<HTMLElement>(
-        '[data-rocket-layer] [data-rocket-flame]'
+        '[data-rocket-layer] [data-rocket-wick]'
       ),
-    ].map((flame) => flame.getBoundingClientRect().height)
+    ].map(
+      (wick) =>
+        parseFloat(wick.style.height) * new DOMMatrix(wick.style.transform).d
+    )
   );
+
+// 화면의 한 상자(CSS px)를 찍어 픽셀을 읽는다. 가짜 시계가 서 있어 Playwright의 요소 스크린샷이 안정 대기에 걸리므로 clip을 쓴다.
+// 반환은 [r, g, b, a]를 한 줄로 편 배열과 폭
+const pixelsOf = async (
+  page: Page,
+  box: { x: number; y: number; width: number; height: number }
+) => {
+  const png = await page.screenshot({
+    clip: box,
+    animations: 'allow',
+    timeout: 60_000,
+  });
+  return page.evaluate(
+    async ([b64]) => {
+      const bytes = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
+      const image = await createImageBitmap(
+        new Blob([bytes], { type: 'image/png' })
+      );
+      const canvas = document.createElement('canvas');
+      canvas.width = image.width;
+      canvas.height = image.height;
+      const ctx = canvas.getContext('2d')!;
+      ctx.drawImage(image, 0, 0);
+      return {
+        data: Array.from(
+          ctx.getImageData(0, 0, canvas.width, canvas.height).data
+        ),
+        width: canvas.width,
+      };
+    },
+    [png.toString('base64')]
+  );
+};
+
+// 입 하나의 화면 상자(발사 전이라 기울기가 없다)
+const mouthBox = (page: Page, side: 0 | 1) =>
+  page.evaluate((i) => {
+    const mouths = document.querySelectorAll(
+      '[data-rocket-layer] [data-rocket-mouth]'
+    );
+    const r = mouths[i].getBoundingClientRect();
+    return { x: r.left, y: r.top, width: r.width, height: r.height };
+  }, side);
 
 test.describe('로켓 전송 상세 로켓 박자 (1440px)', () => {
   test.use({ viewport: { width: 1440, height: 900 } });
 
-  // 분사구 하나의 보이는 높이: 잘림 상자(단추 아래 테두리에서 시작) 안에 든 부분만 센다
+  // 분사구 하나가 단추 몸체 밑면 아래로 삐져나온 높이(px). 몸체 뒤에 깔려 있어 몸체에 가려진 만큼은 세지 않는다
   const nozzleView = (page: Page) =>
     page.evaluate(() => {
       const layer = document.querySelector('[data-rocket-layer]')!;
       const clone = layer.querySelector('button')!.getBoundingClientRect();
-      const clip = layer.querySelector<HTMLElement>('[data-rocket-nozzle]')!;
-      const body = clip.firstElementChild!.getBoundingClientRect();
-      const box = clip.getBoundingClientRect();
-      const visible = Math.max(
-        0,
-        Math.min(body.bottom, box.bottom) - Math.max(body.top, box.top)
-      );
+      const nozzle = layer.querySelector<HTMLElement>('[data-rocket-nozzle]')!;
+      const box = nozzle.getBoundingClientRect();
+      const body = layer.querySelector('button')!.parentElement!;
       return {
-        visible,
-        clipTop: box.top - clone.bottom,
-        clipHeight: box.height,
-        overflow: getComputedStyle(clip).overflow,
+        below: Math.max(0, box.bottom - clone.bottom),
+        height: box.height,
+        // 몸체(복제본)보다 문서 순서가 앞 = 쌓임 순서가 아래
+        behindBody: !!(
+          nozzle.compareDocumentPosition(body) &
+          Node.DOCUMENT_POSITION_FOLLOWING
+        ),
+        zIndex: getComputedStyle(nozzle).zIndex,
+        thrust: getComputedStyle(layer.firstElementChild!).getPropertyValue(
+          '--rocket-thrust'
+        ),
       };
     });
 
-  test('분사구가 단추 아래 테두리에서 잘려 서서히 나오고 그동안 불꽃도 연기도 없고 단추는 제자리다', async ({
+  test('분사구가 몸체 뒤에서 아래 테두리로 서서히 빠져나오고 그동안 분출도 연기도 없고 단추는 제자리다', async ({
     page,
   }) => {
     await freeze(page);
@@ -550,25 +608,27 @@ test.describe('로켓 전송 상세 로켓 박자 (1440px)', () => {
       const box = (await to(ms))!;
       expect(Math.abs(box.y - rest.y)).toBeLessThan(0.75);
       expect(Math.abs(box.x - rest.x)).toBeLessThan(0.75);
-      // 불꽃은 아직 없다(scaleY 0)
-      expect(await flameHeights(page)).toEqual([0, 0]);
+      // 분출은 아직 없다(심지 scaleY 0, 세기 0)
+      expect(await wickHeights(page)).toEqual([0, 0]);
       views.push(await nozzleView(page));
     }
     for (const view of views) {
-      // 잘림 상자는 단추 밑면에서 시작하고 넘치는 것을 자른다(몸체 위로 보이지 않는다)
-      expect(Math.abs(view.clipTop)).toBeLessThan(1);
-      expect(view.overflow).toBe('hidden');
-      expect(view.visible).toBeLessThanOrEqual(view.clipHeight + 0.5);
+      // 몸체 뒤(쌓임 순서가 아래, z-index를 올리지 않음)이고 아래로 삐져나온 만큼만 보인다
+      expect(view.behindBody).toBe(true);
+      expect(view.zIndex).toBe('auto');
+      expect(Number(view.thrust)).toBe(0);
+      expect(view.below).toBeLessThanOrEqual(view.height + 0.5);
     }
-    // 처음엔 거의 안 보이고(아래 경계에서 막 나옴) 단조로 늘어 600ms에 다 나온다
-    expect(views[0].visible).toBeLessThan(views[0].clipHeight * 0.4);
+    // 처음엔 아래로 거의 안 삐져나오고(몸체에 가려짐) 단조로 늘어 600ms에 덩이 높이 8px에서 가려진 3px를 뺀 5px 안팎이다
+    expect(views[0].below).toBeLessThan(1);
     for (let i = 1; i < views.length; i++)
-      expect(views[i].visible).toBeGreaterThanOrEqual(views[i - 1].visible);
-    expect(views.at(-1)!.visible).toBeGreaterThan(views[0].clipHeight * 0.95);
+      expect(views[i].below).toBeGreaterThanOrEqual(views[i - 1].below);
+    expect(views.at(-1)!.below).toBeGreaterThan(4);
+    expect(views.at(-1)!.below).toBeLessThan(6.5);
     // 이 구간에는 연기 canvas도 아직 비어 있다는 것은 아래 땅 연기 시험이 본다
   });
 
-  test('분출이 서서히 올라 불꽃 흔적이 자라고 그동안에도 단추는 발사대에 머문다', async ({
+  test('분출이 서서히 올라 짧은 심지가 자라고(단추 높이의 0.2~0.5배) 빠르게 깜빡이며 그동안에도 단추는 발사대에 머문다', async ({
     page,
   }) => {
     await freeze(page);
@@ -581,26 +641,28 @@ test.describe('로켓 전송 상세 로켓 박자 (1440px)', () => {
       expect(Math.abs(box.y - rest.y)).toBeLessThan(0.75);
       expect(Math.abs(box.x - rest.x)).toBeLessThan(0.75);
       expect(Math.abs((await craftAngle(page))!)).toBeLessThan(0.5);
-      lengths.push((await flameHeights(page))[0]);
+      lengths.push((await wickHeights(page))[0]);
     }
-    // 서서히: 처음엔 거의 0이고 계속 자라되 가는 흔적(단추 높이의 1.5배 안쪽)이다
+    // 서서히: 처음엔 거의 0이고 계속 자라되 짧은 심지다(단추 높이의 0.55배 안쪽, 깜빡임 +-10%를 넘지 않는다)
     expect(lengths[0]).toBeGreaterThan(0);
-    expect(lengths[0]).toBeLessThan(6);
+    expect(lengths[0]).toBeLessThan(rest.height * 0.3);
     for (let i = 1; i < lengths.length; i++)
-      expect(lengths[i]).toBeGreaterThan(lengths[i - 1]);
-    expect(lengths.at(-1)!).toBeLessThan(rest.height * 1.5);
-    // 불꽃이 켜진 동안 길이가 떨린다
+      expect(lengths[i]).toBeGreaterThan(lengths[i - 1] - 1);
+    expect(lengths.at(-1)!).toBeLessThanOrEqual(rest.height * 0.55 + 0.5);
+    expect(lengths.at(-1)!).toBeGreaterThan(rest.height * 0.35);
+    // 켜진 동안 길이가 빠르게 떨린다(약 50ms, 82ms 주기)
     const flicker: number[] = [];
-    for (let ms = 2450; ms <= 2600; ms += 50) {
+    for (let ms = 2450; ms <= 2600; ms += 17) {
       await to(ms);
-      flicker.push((await flameHeights(page))[0]);
+      flicker.push((await wickHeights(page))[0]);
     }
-    expect(Math.max(...flicker) - Math.min(...flicker)).toBeGreaterThan(0.5);
+    expect(Math.max(...flicker) - Math.min(...flicker)).toBeGreaterThan(0.8);
   });
 
   test('발사는 곧게 위로 무겁게 가속하며 서서히 오른쪽으로 휘고 기울기가 속도 방향을 따라 20도를 넘지 않으며 보냈어요가 남는다', async ({
     page,
   }) => {
+    test.setTimeout(90_000);
     await freeze(page);
     const rest = (await send(page).boundingBox())!;
     await send(page).evaluate((b) => (b as HTMLButtonElement).click());
@@ -655,65 +717,152 @@ test.describe('로켓 전송 상세 로켓 박자 (1440px)', () => {
     await expect(count(page, 1)).toBeVisible();
   });
 
-  test('분사구 둘과 불꽃 둘이 단추 아래 1/3, 2/3 자리에 있고 불꽃은 가는 흔적이며 발사 속도와 함께 조금 길어진다', async ({
+  test('분사구 둘이 단추 폭 중심에서 좌우 30% 자리에 있고 입 색, 번짐, 몸체 밑면 빛이 분출 세기 하나를 따른다', async ({
     page,
   }) => {
+    test.setTimeout(90_000);
+    await freeze(page);
+    const width = (await send(page).boundingBox())!.width;
+    await send(page).evaluate((b) => (b as HTMLButtonElement).click());
+    const to = clockTo(page);
+    const read = () =>
+      page.evaluate((cloneWidth) => {
+        const layer = document.querySelector('[data-rocket-layer]')!;
+        const clone = layer.querySelector('button')!.getBoundingClientRect();
+        const centre = (el: Element) => {
+          const r = el.getBoundingClientRect();
+          return (r.left + r.right) / 2;
+        };
+        const nozzles = [...layer.querySelectorAll('[data-rocket-nozzle]')];
+        const mouths = [
+          ...layer.querySelectorAll<HTMLElement>('[data-rocket-mouth]'),
+        ];
+        const glow = layer.querySelector<HTMLElement>(
+          '[data-rocket-underglow]'
+        )!;
+        const style = getComputedStyle(mouths[0]);
+        const n = nozzles[0].getBoundingClientRect();
+        const m = mouths[0].getBoundingClientRect();
+        return {
+          nozzles: nozzles.length,
+          mouths: mouths.length,
+          nozzleAt: nozzles.map((el) => (centre(el) - clone.left) / cloneWidth),
+          nozzleSize: [n.width, n.height],
+          mouthSize: [m.width, m.height],
+          mouthColor: style.backgroundColor,
+          mouthShadow: style.boxShadow,
+          glow: getComputedStyle(glow).backgroundImage,
+          glowAria: !!glow.closest('[aria-hidden="true"]'),
+          layerInert: layer.hasAttribute('inert'),
+        };
+      }, width);
+    await to(300);
+    const quiet = await read();
+    await to(2590);
+    const lit = await read();
+    expect(lit.nozzles).toBe(2);
+    expect(lit.mouths).toBe(2);
+    // 중심에서 좌우 30%: 단추 폭의 20%, 80%
+    expect(lit.nozzleAt[0]).toBeCloseTo(0.2, 1);
+    expect(lit.nozzleAt[1]).toBeCloseTo(0.8, 1);
+    // 약 14 x 8px 덩이와 7 x 2px 입(단추 높이 44px 기준)
+    expect(lit.nozzleSize[0]).toBeCloseTo(14, 0);
+    expect(lit.nozzleSize[1]).toBeCloseTo(8, 0);
+    expect(lit.mouthSize[0]).toBeCloseTo(7, 0);
+    expect(lit.mouthSize[1]).toBeCloseTo(2, 0);
+    // 분출 전: 입은 무채색 gray이고 번짐이 없다. 분출이 오르면 분출 색(primary 300, 파란 계열)으로 섞이고 번짐이 생긴다
+    // color-mix 결과는 `color(srgb 0.39 0.7 0.96)`처럼 0~1로 올 수 있어 0~255로 맞춘다
+    const channels = (color: string) =>
+      (color.match(/[\d.]+/g) ?? [])
+        .map(Number)
+        .slice(0, 3)
+        .map((v) => (color.startsWith('color(') ? v * 255 : v));
+    const [qr, , qb] = channels(quiet.mouthColor);
+    expect(Math.abs(qr - qb)).toBeLessThan(6);
+    // 번짐 반지름이 모두 0px이다
+    expect(quiet.mouthShadow).toMatch(/(^|\s)0px 0px 0px 0px/);
+    const [lr, , lb] = channels(lit.mouthColor);
+    expect(lb - lr).toBeGreaterThan(80);
+    expect(lit.mouthShadow).not.toBe('none');
+    expect(lit.mouthShadow).toMatch(/\d+px/);
+    // 몸체 밑면 빛은 장식(레이어가 aria-hidden, inert)이고 아래에서 위로 비추는 그라디언트다
+    expect(lit.glow).toContain('linear-gradient');
+    expect(lit.glowAria).toBe(true);
+    expect(lit.layerInert).toBe(true);
+    // 심지와 DOM 빛무리는 복제본 안에 있다
+    expect(await wickHeights(page)).toHaveLength(2);
+  });
+
+  test('분출 중 입 아래 픽셀이 분출 색 계열로 밝고(빛무리) 분출 전에는 그렇지 않다', async ({
+    page,
+  }) => {
+    test.setTimeout(90_000);
     await freeze(page);
     await send(page).evaluate((b) => (b as HTMLButtonElement).click());
     const to = clockTo(page);
-    await to(650);
-    const parts = await page.evaluate(() => {
-      const layer = document.querySelector('[data-rocket-layer]')!;
-      const clone = layer.querySelector('button')!.getBoundingClientRect();
-      const nozzles = [
-        ...layer.querySelectorAll<HTMLElement>('[data-rocket-nozzle]'),
-      ];
-      const flames = [
-        ...layer.querySelectorAll<HTMLElement>('[data-rocket-flame]'),
-      ];
-      const style = (el: HTMLElement) => getComputedStyle(el);
-      const centre = (el: Element) => {
-        const r = el.getBoundingClientRect();
-        return (r.left + r.right) / 2;
-      };
-      return {
-        nozzles: nozzles.length,
-        flames: flames.length,
-        nozzleAt: nozzles.map((n) => (centre(n) - clone.left) / clone.width),
-        // 불꽃은 분사구 잘림 상자의 아래 끝에서 시작한다
-        flameTopGap: flames.map(
-          (f, i) =>
-            f.getBoundingClientRect().top -
-            nozzles[i].getBoundingClientRect().bottom
-        ),
-        flameWidth: flames.map((f) => f.getBoundingClientRect().width),
-        gradient: flames.map((f) => style(f).backgroundImage),
-        core: flames.map((f) => !!f.firstElementChild),
-        origin: flames.map((f) => style(f).transformOrigin),
-        cloneWidth: clone.width,
-      };
-    });
-    // 불꽃은 DOM이라 비행 층 안에 canvas가 없다
-    expect(await page.locator('[data-rocket-layer] canvas').count()).toBe(0);
-    expect(parts.nozzles).toBe(2);
-    expect(parts.flames).toBe(2);
-    expect(parts.nozzleAt[0]).toBeCloseTo(1 / 3, 1);
-    expect(parts.nozzleAt[1]).toBeCloseTo(2 / 3, 1);
-    parts.flameTopGap.forEach((g) => expect(Math.abs(g)).toBeLessThan(1.5));
-    // 가는 흔적: 단추 폭의 10% 안쪽
-    parts.flameWidth.forEach((w) =>
-      expect(w).toBeLessThan(parts.cloneWidth * 0.1)
-    );
-    parts.gradient.forEach((g) => expect(g).toContain('linear-gradient'));
-    expect(parts.core).toEqual([true, true]);
-    parts.origin.forEach((origin) => expect(origin.split(' ')[1]).toBe('0px'));
+    // 입 아래 6~26px, 입 폭의 두 배 상자의 파란 기운(b - r)과 밝기
+    const glowBelow = async () => {
+      const m = await mouthBox(page, 0);
+      const px = await pixelsOf(page, {
+        x: m.x - m.width / 2,
+        y: m.y + m.height + 6,
+        width: m.width * 2,
+        height: 20,
+      });
+      let blue = 0;
+      let bright = 0;
+      const n = px.data.length / 4;
+      for (let i = 0; i < px.data.length; i += 4) {
+        blue += px.data[i + 2] - px.data[i];
+        bright += (px.data[i] + px.data[i + 1] + px.data[i + 2]) / 3;
+      }
+      return { blue: blue / n, bright: bright / n };
+    };
+    await to(580);
+    const before = await glowBelow();
+    await to(2590);
+    const during = await glowBelow();
+    // 분출 전은 흰 바탕이라 파란 기운이 없고, 분출이 다 오르면 둘레가 분출 색(파랑)으로 물든 채 밝다
+    expect(before.blue).toBeLessThan(5);
+    expect(during.blue).toBeGreaterThan(before.blue + 12);
+    expect(during.bright).toBeGreaterThan(150);
+  });
 
-    // 길이: 발사 직전에 켜져 있고 발사 속도와 함께 조금 더 길어진다
-    const lit = (await to(2590), (await flameHeights(page))[0]);
-    await to(4000);
-    const fast = (await to(4800), (await flameHeights(page))[0]);
-    expect(lit).toBeGreaterThan(15);
-    expect(fast).toBeGreaterThan(lit);
+  test('연기에 빛과 그늘이 있다: 쌓인 연기에 밝은 면과 그늘 면이 둘 다 뚜렷하다', async ({
+    page,
+  }) => {
+    test.setTimeout(90_000);
+    await freeze(page);
+    const slot = (await send(page).boundingBox())!;
+    await send(page).evaluate((b) => (b as HTMLButtonElement).click());
+    const to = clockTo(page);
+    await to(2590);
+    // 땅 연기가 구르는 띠(단추 중심 왼쪽 90~260px, 단추 밑면 -10~140px). 입 빛무리에서 멀어 연기 색이 그대로다
+    const px = await pixelsOf(page, {
+      x: slot.x + slot.width / 2 - 260,
+      y: slot.y + slot.height - 10,
+      width: 170,
+      height: 150,
+    });
+    const lum = (i: number) =>
+      0.2126 * px.data[i] + 0.7152 * px.data[i + 1] + 0.0722 * px.data[i + 2];
+    // 흰 바탕(255)에서 연기가 있는 픽셀(조금이라도 어두운 것)만 모은다
+    const ls: number[] = [];
+    for (let i = 0; i < px.data.length; i += 4) {
+      const l = lum(i);
+      if (l < 250) ls.push(l);
+    }
+    expect(ls.length).toBeGreaterThan(5000);
+    const mean = ls.reduce((a, b) => a + b) / ls.length;
+    const std = Math.sqrt(
+      ls.reduce((a, b) => a + (b - mean) ** 2, 0) / ls.length
+    );
+    // 그늘 면(회색 토큰 쪽)과 밝은 면(흰색 토큰 쪽)이 둘 다 뚜렷하다. 예전의 "테두리 gray, 속 흰" 방식은 같은 장면에서
+    // 가장 어두운 픽셀이 229, 밝기 표준편차가 4.5였고 그늘 면(215 미만)이 하나도 없었다
+    expect(ls.filter((l) => l < 215).length).toBeGreaterThan(ls.length * 0.02);
+    expect(ls.filter((l) => l >= 235).length).toBeGreaterThan(ls.length * 0.3);
+    expect(Math.min(...ls)).toBeLessThan(212);
+    expect(std).toBeGreaterThan(8);
   });
 
   test('땅 연기는 비행 전에 쌓이고 비행 중에도 같은 땅에서 줄지 않고 계속 생긴다', async ({
@@ -725,7 +874,7 @@ test.describe('로켓 전송 상세 로켓 박자 (1440px)', () => {
       const region = button.closest('[role="region"]') as HTMLElement;
       const slot = (button as HTMLElement).getBoundingClientRect();
       const copy = document.createElement('canvas');
-      // 땅 근처: 단추 아래 분사구와 불꽃 길이를 지나 땅(단추 밑면 아래 약 50px)을 감싸는 띠(폭은 단추 중심 좌우 150px)
+      // 땅 근처: 단추 아래 분사구와 심지를 지나 땅(단추 밑면 아래 약 50px)을 감싸는 띠(폭은 단추 중심 좌우 150px)
       const band = {
         left: slot.left + slot.width / 2 - 150,
         right: slot.left + slot.width / 2 + 150,
@@ -787,6 +936,7 @@ test.describe('로켓 전송 상세 로켓 박자 (1440px)', () => {
   test('비행 중 다시 눌러도 두 번째 비행은 없고 끝 모양이 같다', async ({
     page,
   }) => {
+    test.setTimeout(90_000);
     await freeze(page);
     await send(page).evaluate((b) => (b as HTMLButtonElement).click());
     const to = clockTo(page);
