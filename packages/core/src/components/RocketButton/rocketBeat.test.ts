@@ -3,9 +3,9 @@ import { gsapDuration, gsapEasing } from '../../tokens/gsapEasing';
 import {
   BEAT,
   BEAT_END,
-  FLAME_MAX,
   NOZZLE_HEIGHT,
-  NOZZLE_X,
+  NOZZLE_TUCK,
+  WICK_LONGEST,
   crouchWeight,
   easeAt,
   rocketBeat,
@@ -28,7 +28,10 @@ const velocity = (t: number, dt = 5) => {
   const b = beat(t + dt);
   return { vx: (b.x - a.x) / (2 * dt), vy: -(b.y - a.y) / (2 * dt) };
 };
-const NOZZLE_TIP = GEOMETRY.height * (0.5 + NOZZLE_HEIGHT);
+// 입(분사구 아랫면)의 y: 몸체 밑면에서 덩이 높이 - 가려진 만큼 아래
+// 분사구는 단추 폭 중심에서 좌우 30%(구현 상수를 끌어오지 않고 사용자 요구 값을 적는다)
+const SIDE = 0.3;
+const MOUTH_Y = GEOMETRY.height * (0.5 + NOZZLE_HEIGHT - NOZZLE_TUCK);
 
 describe('rocketBeat 박자 (설계서 8절 로켓 전송, 승인 정지 피드백 뒤)', () => {
   it('단계는 0, 600, 2600, 5100ms에서 바뀌고 끝은 표지가 다 뜨는 5300ms다', () => {
@@ -54,7 +57,7 @@ describe('rocketBeat 박자 (설계서 8절 로켓 전송, 승인 정지 피드�
   });
 
   describe('분사구 빠져나옴 (0~600ms)', () => {
-    it('테두리 아래로 나온 정도가 0에서 서서히 1까지 단조 증가하고 그동안 불꽃도 연기도 없다', () => {
+    it('테두리 아래로 나온 정도가 0에서 서서히 1까지 단조 증가하고 그동안 분출도 연기도 없다', () => {
       expect(beat(0).nozzle).toBe(0);
       expect(beat(BEAT.build).nozzle).toBeCloseTo(1, 5);
       const values = range(0, BEAT.build, 20).map((t) => beat(t).nozzle);
@@ -65,7 +68,8 @@ describe('rocketBeat 박자 (설계서 8절 로켓 전송, 승인 정지 피드�
       range(0, BEAT.build - 1, 20).forEach((t) => {
         const b = beat(t);
         expect(b.strength).toBe(0);
-        expect(b.flame).toBe(0);
+        expect(b.wick).toBe(0);
+        expect(b.column).toBe(0);
         expect(b.smoke.ground.puffs).toHaveLength(0);
         expect(b.smoke.tail.puffs).toHaveLength(0);
       });
@@ -106,17 +110,56 @@ describe('rocketBeat 박자 (설계서 8절 로켓 전송, 승인 정지 피드�
       });
     });
 
-    it('불꽃은 가는 흔적이다: 세기와 함께 0에서 자라고 FLAME_MAX를 넘지 않는다', () => {
-      expect(beat(BEAT.build).flame).toBe(0);
-      expect(beat(BEAT.build + 400).flame).toBeGreaterThan(0);
-      const means = [800, 1400, 2000, 2590].map((t) => beat(t).flame);
-      // 깜빡임이 있어도 큰 흐름은 자란다
-      expect(means[3]).toBeGreaterThan(means[0]);
-      range(0, BEAT_END, 3).forEach((t) =>
-        expect(beat(t).flame).toBeLessThanOrEqual(FLAME_MAX)
+    it('심지는 분출 세기에 따라 단추 높이의 0.2~0.5배이고 시각 t의 함수로 빠르게 +-10% 깜빡인다', () => {
+      expect(beat(BEAT.build).wick).toBe(0);
+      const H = GEOMETRY.height;
+      // 깜빡임을 걷어 낸 길이(세기로 0.2에서 0.5배)가 범위 안이다
+      range(BEAT.build + 3, BEAT.launch + 300, 3).forEach((t) => {
+        const b = beat(t);
+        const base = H * (0.2 + 0.3 * b.strength);
+        expect(b.wick).toBeGreaterThanOrEqual(base * 0.9 - 1e-9);
+        expect(b.wick).toBeLessThanOrEqual(base * 1.1 + 1e-9);
+        expect(b.wick).toBeLessThanOrEqual(H * WICK_LONGEST);
+      });
+      // 분출이 다 오르면 0.5배 둘레에서 +-10%를 실제로 오가고(깜빡임), 3ms 걸음(프레임보다 촘촘)에도 같은 시각이면 같은 값이다
+      const lit = range(BEAT.launch, BEAT.launch + 300, 3).map(
+        (t) => beat(t).wick
       );
-      // 분출이 다 오른 뒤에도 단추 높이(44px)보다 조금 길 뿐이다
-      expect(beat(BEAT.launch - 1).flame).toBeLessThan(GEOMETRY.height * 1.5);
+      expect(Math.max(...lit)).toBeGreaterThan(H * 0.5 * 1.07);
+      expect(Math.min(...lit)).toBeLessThan(H * 0.5 * 0.93);
+      expect(beat(BEAT.launch + 33).wick).toBe(beat(BEAT.launch + 33).wick);
+      // 한 프레임(16ms)에 길이가 눈에 띄게 바뀌는 빠른 깜빡임이다
+      const swing = lit.slice(1).map((v, i) => Math.abs(v - lit[i]));
+      expect(Math.max(...swing)).toBeGreaterThan(H * 0.01);
+    });
+
+    it('분출구 입 둘은 단추 폭 중심에서 좌우 30% 자리, 몸체 밑면 아래이고 기울기와 배율을 따라간다', () => {
+      const rest = beat(BEAT.build + 500);
+      const [l, r] = rest.mouths;
+      expect(l.x).toBeCloseTo(-GEOMETRY.width * SIDE, 5);
+      expect(r.x).toBeCloseTo(GEOMETRY.width * SIDE, 5);
+      expect(l.y).toBeCloseTo(MOUTH_Y, 5);
+      expect(MOUTH_Y).toBeGreaterThan(GEOMETRY.height / 2);
+      expect(l.dx).toBeCloseTo(0, 9);
+      expect(l.dy).toBe(1);
+      // 발사 중: 단추 중심에서 (입의 로컬 자리)를 기울기 -> 배율 -> 이동 순으로 옮긴 자리, 방향은 몸체 아래
+      const t = launchAt(0.8);
+      const b = beat(t);
+      const rad = (b.rotation * Math.PI) / 180;
+      b.mouths.forEach((m, i) => {
+        const lx = (i === 0 ? -1 : 1) * GEOMETRY.width * SIDE;
+        expect(m.x).toBeCloseTo(
+          b.x + b.scale * (lx * Math.cos(rad) - MOUTH_Y * Math.sin(rad)),
+          5
+        );
+        expect(m.y).toBeCloseTo(
+          b.y + b.scale * (lx * Math.sin(rad) + MOUTH_Y * Math.cos(rad)),
+          5
+        );
+        expect(m.dx).toBeCloseTo(-Math.sin(rad), 5);
+        expect(m.dy).toBeCloseTo(Math.cos(rad), 5);
+      });
+      expect(b.rotation).toBeGreaterThan(5);
     });
 
     it('땅 연기가 분사구 아래 땅에서 양옆으로 구르고 세기가 오를수록 자주 나온다', () => {
@@ -124,10 +167,10 @@ describe('rocketBeat 박자 (설계서 8절 로켓 전송, 승인 정지 피드�
       const late = beat(BEAT.launch - 1).smoke.ground;
       expect(late.puffs).toHaveLength(2);
       const [left, right] = late.puffs;
-      expect(left.x).toBeCloseTo(-GEOMETRY.width * NOZZLE_X, 5);
-      expect(right.x).toBeCloseTo(GEOMETRY.width * NOZZLE_X, 5);
+      expect(left.x).toBeCloseTo(-GEOMETRY.width * SIDE, 5);
+      expect(right.x).toBeCloseTo(GEOMETRY.width * SIDE, 5);
       expect(left.y).toBe(right.y);
-      expect(left.y).toBeGreaterThan(NOZZLE_TIP);
+      expect(left.y).toBeGreaterThan(MOUTH_Y);
       expect([left.vx, left.vy, right.vx, right.vy]).toEqual([-320, 0, 320, 0]);
       expect(early.gap).toBeGreaterThan(late.gap);
       // 세기가 낮아도 간격은 상한이 있다
@@ -182,19 +225,6 @@ describe('rocketBeat 박자 (설계서 8절 로켓 전송, 승인 정지 피드�
       );
       expect(beat(BEAT.sent).rotation).toBe(20);
     });
-
-    it('불꽃은 속도와 함께 조금 길어진다', () => {
-      const mean = (from: number, to: number) => {
-        const xs = range(from, to, 3).map((t) => beat(t).flame);
-        return xs.reduce((a, b) => a + b) / xs.length;
-      };
-      const before = mean(BEAT.launch - 200, BEAT.launch - 1);
-      expect(mean(launchAt(0.6), launchAt(0.65))).toBeGreaterThan(before);
-      expect(mean(launchAt(0.95), launchAt(0.99))).toBeGreaterThan(
-        mean(launchAt(0.6), launchAt(0.65)) + 5
-      );
-      expect(beat(BEAT.sent).flame).toBe(0);
-    });
   });
 
   describe('가상의 땅 (비행 내내)', () => {
@@ -203,7 +233,7 @@ describe('rocketBeat 박자 (설계서 8절 로켓 전송, 승인 정지 피드�
         beat(t).smoke.ground.puffs.map((p) => p.y)
       );
       expect(new Set(ys).size).toBe(1);
-      expect(ys[0]).toBeGreaterThan(NOZZLE_TIP);
+      expect(ys[0]).toBeGreaterThan(MOUTH_Y);
     });
 
     it('땅 연기는 로켓 바로 아래(x는 로켓을 따라감)에서 계속 나온다', () => {
@@ -211,8 +241,8 @@ describe('rocketBeat 박자 (설계서 8절 로켓 전송, 승인 정지 피드�
         const b = beat(t);
         expect(b.smoke.ground.puffs).toHaveLength(2);
         const [left, right] = b.smoke.ground.puffs;
-        expect(left.x).toBeCloseTo(b.x - GEOMETRY.width * NOZZLE_X, 5);
-        expect(right.x).toBeCloseTo(b.x + GEOMETRY.width * NOZZLE_X, 5);
+        expect(left.x).toBeCloseTo(b.x - GEOMETRY.width * SIDE, 5);
+        expect(right.x).toBeCloseTo(b.x + GEOMETRY.width * SIDE, 5);
       });
     });
 
@@ -227,7 +257,30 @@ describe('rocketBeat 박자 (설계서 8절 로켓 전송, 승인 정지 피드�
         expect(gaps[i]).toBeGreaterThan(gaps[i - 1]);
     });
 
-    it('꼬리 연기는 막 뜰 때는 없고 속도가 붙으면 불꽃 끝 한가운데에서 몸체 아래 방향으로 한 방울씩 나간다', () => {
+    it('배기 기둥은 입에서 땅까지 이어지고 땅은 그대로인 채 올라갈수록 옅어지다 비행이 끝나면 없다', () => {
+      const grounds = range(BEAT.build + 100, BEAT.sent - 10, 90).map(
+        (t) => beat(t).groundY
+      );
+      expect(new Set(grounds).size).toBe(1);
+      // 기둥은 입(올라가면 위로 간다)에서 고정된 땅까지다: 올라갈수록 길어진다
+      expect(grounds[0]).toBeGreaterThan(MOUTH_Y);
+      const length = (t: number) => beat(t).groundY - beat(t).mouths[0].y;
+      expect(length(launchAt(0.7))).toBeGreaterThan(length(launchAt(0.3)) + 50);
+      // 올라갈수록 짙기가 줄어든다
+      const columns = [
+        BEAT.launch - 1,
+        launchAt(0.3),
+        launchAt(0.6),
+        launchAt(0.9),
+      ].map((t) => beat(t).column);
+      for (let i = 1; i < columns.length; i++)
+        expect(columns[i]).toBeLessThan(columns[i - 1]);
+      expect(columns[0]).toBeGreaterThan(0.9);
+      // 서서히 분출하는 동안은 세기와 함께 자란다
+      expect(beat(BEAT.build + 1000).column).toBeCloseTo(0.5, 5);
+    });
+
+    it('꼬리 연기는 막 뜰 때는 없고 속도가 붙으면 심지 끝 한가운데에서 몸체 아래 방향으로 한 방울씩 나간다', () => {
       expect(beat(BEAT.launch + 5).smoke.tail.puffs).toHaveLength(0);
       [launchAt(0.5), launchAt(0.8), launchAt(0.97)].forEach((t) => {
         const b = beat(t);
@@ -235,7 +288,7 @@ describe('rocketBeat 박자 (설계서 8절 로켓 전송, 승인 정지 피드�
         expect(gap).toBe(70);
         expect(puffs).toHaveLength(1);
         const rad = (b.rotation * Math.PI) / 180;
-        const my = NOZZLE_TIP + b.flame;
+        const my = MOUTH_Y + b.wick;
         expect(puffs[0].x - b.x).toBeCloseTo(-b.scale * my * Math.sin(rad), 5);
         expect(puffs[0].y - b.y).toBeCloseTo(b.scale * my * Math.cos(rad), 5);
         expect(puffs[0].vx / puffs[0].vy).toBeCloseTo(-Math.tan(rad), 5);
@@ -243,9 +296,10 @@ describe('rocketBeat 박자 (설계서 8절 로켓 전송, 승인 정지 피드�
       });
     });
 
-    it('보냈어요에서는 연기도 불꽃도 내보내지 않는다', () => {
+    it('보냈어요에서는 연기도 분출도 내보내지 않는다', () => {
       const b = beat(BEAT.sent);
-      expect(b.flame).toBe(0);
+      expect(b.wick).toBe(0);
+      expect(b.column).toBe(0);
       expect(b.strength).toBe(0);
       expect(b.smoke.ground.puffs).toHaveLength(0);
       expect(b.smoke.tail.puffs).toHaveLength(0);

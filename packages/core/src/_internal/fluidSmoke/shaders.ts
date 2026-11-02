@@ -120,17 +120,106 @@ void main() {
 // 캔버스는 premultiplied alpha라 색에 알파를 곱해 낸다.
 const ALPHA = `float smokeAlpha(float density) { return 1.0 - exp(-2.4 * density); }`;
 
+// 화면 그리기. 세 가지를 한 번에 그린다(캔버스 CSS px 좌표, y 아래로).
+// 1) 연기의 빛과 그늘: 밀도(알파)를 높이로 보고 기울기로 표면 방향을 잡아 왼쪽 위 빛을 받는 면은 uCore(흰색 토큰),
+//    그늘진 면과 빛 쪽으로 밀도가 두꺼운 곳(빛 쪽으로 몇 걸음 밀도를 누적)과 안쪽 깊은 곳은 uColor(회색 토큰) 쪽이다.
+// 2) 배기 기둥: 입에서 땅까지 곧게 내려오며 아래로 갈수록 넓어지는 밀도를 시뮬레이션 밀도에 더해 같은 음영으로 그린다.
+// 3) 분출(광휘): 입 아래 짧은 심지(가운데 흰색, 바깥 분출 색, 아래로 가늘어지는 종 모양)와 반지름이 다른 빛무리 세 겹
+//    (약 5px 진하게, 18px 옅게, 70px 아주 옅게). 빛무리는 근처 연기도 분출 색으로 물들인다.
+// 분출 개수는 둘로 고정이다. 세기가 0이면 건너뛴다.
 export const DISPLAY = `${HEAD}
 ${ALPHA}
 uniform sampler2D uDensity;
 uniform vec3 uColor;
 uniform vec3 uCore;
+uniform vec3 uJetColor;
 uniform float uFade;
+uniform vec2 uSize;
+uniform float uTime;
+uniform vec4 uJetA[2];
+uniform vec4 uJetB[2];
+
+float columnDensity(vec2 p) {
+  float total = 0.0;
+  for (int i = 0; i < 2; i++) {
+    vec4 a = uJetA[i];
+    vec4 b = uJetB[i];
+    float t = (p.y - a.y) / max(b.z - a.y, 1.0);
+    if (b.x > 0.0 && t > 0.0 && t < 1.0 && abs(p.x - a.x) < 80.0) {
+      float spread = (4.0 + 26.0 * t * t) * (1.0 + 0.12 * sin(p.y * 0.12 - uTime * 9.0 + float(i) * 2.0));
+      float across = (p.x - a.x) / spread;
+      total += b.w * 0.7 * exp(-across * across) * smoothstep(0.0, 0.15, t) * (1.0 - smoothstep(0.7, 1.0, t));
+    }
+  }
+  return total;
+}
+
+float shapeAt(vec2 uv) {
+  float density = texture(uDensity, uv).x + columnDensity(vec2(uv.x, 1.0 - uv.y) * uSize);
+  return smokeAlpha(density);
+}
+
 void main() {
-  float shape = smokeAlpha(texture(uDensity, vTexCoord).x);
-  float alpha = shape * uFade;
-  // 옅은 가장자리는 uColor, 짙은 속은 uCore(흰색)라 흰 연기의 덩어리감이 테두리 음영으로 읽힌다
-  fragValue = vec4(mix(uColor, uCore, shape * shape) * alpha, alpha);
+  vec2 uv = vTexCoord;
+  vec2 px = vec2(uv.x, 1.0 - uv.y) * uSize;
+  float shape = shapeAt(uv);
+
+  // 분출: 빛무리 합(haloSum)과 심지(wickSum, 가운데 비중 wickCore)
+  // ponytail: 빛무리 반지름(5, 18, 70px)과 심지 폭은 px 고정이라 단추 높이가 44px에서 크게 다르면 어긋난다, 그런 사용처가 생기면 높이 비례 uniform으로
+  float haloSum = 0.0;
+  float wickSum = 0.0;
+  float wickCore = 0.0;
+  for (int i = 0; i < 2; i++) {
+    vec4 a = uJetA[i];
+    vec4 b = uJetB[i];
+    // 멀리(150px 밖)는 빛이 0에 가까워 건너뛴다
+    if (b.x > 0.0 && dot(px - a.xy, px - a.xy) < 22500.0) {
+      vec2 dir = a.zw;
+      vec2 d = px - a.xy;
+      float along = dot(d, dir);
+      float across = dot(d, vec2(-dir.y, dir.x));
+      vec2 nearest = d - dir * clamp(along, 0.0, b.y);
+      float r2 = dot(nearest, nearest);
+      haloSum += b.x * (0.55 * exp(-r2 / 25.0) + 0.22 * exp(-r2 / 324.0) + 0.10 * exp(-r2 / 4900.0));
+      if (along > 0.0 && along < b.y) {
+        float u = along / b.y;
+        float width = mix(3.5, 0.8, u);
+        float bell = exp(-(across * across) / (width * width));
+        float fall = (1.0 - u * u) * smoothstep(0.0, 1.5, along);
+        wickSum += b.x * bell * fall;
+        wickCore += b.x * bell * bell * fall;
+      }
+    }
+  }
+
+  // 연기 음영: 연기가 거의 없는 칸(대부분의 화면)은 건너뛴다. 알파가 0에 가까워 색이 보이지 않는다
+  vec3 smoke = uColor;
+  if (shape > 0.004) {
+    vec2 eps = vec2(3.0) / uSize;
+    vec2 slope = vec2(
+      shapeAt(uv + vec2(eps.x, 0.0)) - shapeAt(uv - vec2(eps.x, 0.0)),
+      shapeAt(uv + vec2(0.0, eps.y)) - shapeAt(uv - vec2(0.0, eps.y))
+    );
+    vec3 light = normalize(vec3(-0.55, 0.65, 0.5));
+    vec3 normal = normalize(vec3(-5.0 * slope, 1.0));
+    float facing = clamp(0.82 + 1.5 * (dot(normal, light) - light.z), 0.0, 1.0);
+    vec2 toLight = normalize(light.xy) * 7.0 / uSize;
+    float thick = 0.0;
+    for (int k = 1; k <= 4; k++) thick += shapeAt(uv + toLight * float(k));
+    float shade = 1.0 - 0.45 * clamp(thick * 0.5, 0.0, 1.0);
+    float deep = 1.0 - 0.15 * smoothstep(0.6, 1.0, shape);
+    smoke = mix(uColor, uCore, clamp(facing * shade * deep, 0.0, 1.0));
+  }
+
+  // 근처 연기를 분출 색으로 살짝 물들이고, 빛무리는 연기 뒤에, 심지는 맨 위에 얹는다(캔버스는 premultiplied alpha)
+  vec3 tinted = mix(smoke, uJetColor, clamp(0.8 * haloSum, 0.0, 0.5));
+  float cover = shape * uFade;
+  float glowAlpha = clamp(haloSum, 0.0, 0.85);
+  vec3 rgb = tinted * cover + uJetColor * glowAlpha * (1.0 - cover);
+  float alpha = cover + glowAlpha * (1.0 - cover);
+  float wickAlpha = clamp(wickSum, 0.0, 1.0);
+  vec3 wickRgb = mix(uJetColor, uCore, clamp(wickCore / max(wickSum, 0.001), 0.0, 1.0));
+  fragValue = vec4(wickRgb * wickAlpha + rgb * (1.0 - wickAlpha), wickAlpha + alpha * (1.0 - wickAlpha));
 }`;
 
 // 수명 판정용. 밀도 격자를 16x16으로 줄여(칸당 4x4 표본) 칸의 최대 알파를 CPU가 읽게 한다.

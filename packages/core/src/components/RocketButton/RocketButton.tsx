@@ -21,14 +21,17 @@ import {
   BEAT,
   BEAT_END,
   CROUCH,
-  FLAME_MAX,
-  FLAME_REACH,
-  FLAME_WIDTH,
-  NOZZLE_BOTTOM,
+  JET_REACH,
+  MOUTH_HEIGHT,
+  MOUTH_WIDTH,
   NOZZLE_HEIGHT,
+  NOZZLE_TUCK,
+  NOZZLE_WIDTH,
   NOZZLE_X,
+  WICK_LONGEST,
   crouchWeight,
   rocketBeat,
+  type Mouth,
 } from './rocketBeat';
 import { makeSmoke } from './smokeEngine';
 import {
@@ -39,10 +42,12 @@ import {
   layer,
   craft,
   cloneHost,
-  nozzleClip,
   nozzle,
-  flame,
-  flameCore,
+  mouth,
+  underglow,
+  halo,
+  wick,
+  THRUST,
 } from './RocketButton.css';
 
 export interface RocketButtonProps extends Omit<
@@ -60,8 +65,9 @@ export interface RocketButtonProps extends Omit<
    */
   container?: HTMLElement | null;
   /**
-   * 점화부터 둥실까지는 발사대에서 양옆으로 구르고, 발사 때는 불꽃 끝에서 진행 반대쪽으로 꼬리를 남기는 유체 연기(WebGL2).
-   * 끄면 연기 없이 날고(움직임과 불꽃은 그대로), WebGL2가 없거나 움직임 줄이기여도 연기만 빠진다.
+   * 분출하는 동안 가상의 땅에서 양옆으로 구르고 발사 때는 분출구 아래에서 진행 반대쪽으로 꼬리를 남기는 유체 연기(WebGL2).
+   * 분출의 빛무리와 분출구에서 땅까지 이어지는 배기 기둥도 이 엔진이 그린다.
+   * 끄면 연기와 기둥 없이 날고(움직임과 분출구 빛은 그대로), WebGL2가 없거나 움직임 줄이기여도 연기만 빠진다.
    * 캔버스와 셰이더뿐이라 엄격한 CSP와 무관하다 @default true
    */
   smoke?: boolean;
@@ -89,6 +95,8 @@ interface Flight {
   center: { x: number; y: number };
   /** 비행 층의 위쪽 가장자리의 창 좌표(y). 연기 자리가 이 위로 나가면 내보내지 않는다 */
   layerTop: number;
+  /** 단추의 둥근 모서리. 몸체 밑면 빛 층이 같은 모양으로 몸체를 덮는다 */
+  radius: string;
   /** 발사에서 위로 나가는 거리(px) */
   distance: number;
 }
@@ -132,9 +140,9 @@ const measureFlight = (
   }
   const left = rect.left - originX;
   const top = rect.top - originY;
-  // 위로 날아간다. 단추 윗면이 레이어 위 가장자리를 넘고 불꽃 끝까지 레이어 밖으로 나가는 거리(그보다 멀리 가면 이미
-  // 안 보이는 구간이 길어 표지가 늦어 보인다). 발사가 끝나는 순간 복제본과 불꽃은 레이어 밖이다.
-  const distance = top + rect.height + FLAME_REACH;
+  // 위로 날아간다. 단추 윗면이 레이어 위 가장자리를 넘고 빛무리까지 레이어 밖으로 나가는 거리(그보다 멀리 가면 이미
+  // 안 보이는 구간이 길어 표지가 늦어 보인다). 발사가 끝나는 순간 복제본과 분출은 레이어 밖이다.
+  const distance = top + rect.height + JET_REACH;
   return {
     clone,
     left,
@@ -143,16 +151,17 @@ const measureFlight = (
     height: rect.height,
     center: { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 },
     layerTop: originY,
+    radius: getComputedStyle(button).borderRadius,
     distance,
   };
 };
 
 /**
  * 메일 보내기·제출·전송 단추. 누르는 순간 왼쪽 아래로 살짝 웅크리고, click이 확정되면 단추 모양 복제본이
- * 박자(`rocketBeat`) 하나를 따라 로켓처럼 난다. 분사구 둘에 불꽃이 켜져 단추가 떨다가(점화), 약 24px 떠올라 3px쯤
- * 넘쳤다 서고(용수철), 몇 px 둥실거리다가, 추력이 커지며 처음엔 곧게 위로 가속해 오른쪽으로 서서히 휘며 화면(또는
- * `container`) 밖으로 날아간다. 기울기는 그 순간의 속도 방향을 따른다. 불꽃은 몸체 밑에 붙어 같이 기울고 속도와 함께
- * 길어지며, 연기는 점화부터 둥실까지 발사대에서 양옆으로 구르고 발사 동안 불꽃 끝에서 꼬리를 남긴다.
+ * 박자(`rocketBeat`) 하나를 따라 로켓처럼 난다. 분사구 둘이 몸체 뒤 아래 테두리에서 빠져나오고, 서서히 분출하며
+ * (짧은 심지와 둘레의 빛무리) 가상의 땅에 연기가 쌓이다가, 추력이 커지며 처음엔 곧게 위로 가속해 오른쪽으로 서서히 휘며
+ * 화면(또는 `container`) 밖으로 날아간다. 기울기는 그 순간의 속도 방향을 따른다. 분사구는 몸체와 같이 기울고, 연기는
+ * 비행 내내 가상의 땅에 쌓이며(높이 오를수록 약해지고 분출구에서 땅까지 배기 기둥이 이어진다) 발사 동안 분출구 아래에서 꼬리를 남긴다.
  * 원래 단추는 그 순간 보이지 않게 두어 자리를 지키고, 날아간 뒤 그 자리에 `sentLabel` 표지가 떠오른다.
  * 돌아오지 않으며 소비자가 `key`를 바꿔 다시 그린다. 포커스가 있었으면 표지로 옮기고, 없었으면 처음부터 있는
  * 보이지 않는 알림 영역(`role="status"`)에 `sentLabel`을 넣는다. 비행 중 다시 누르는 것은 무시한다.
@@ -310,12 +319,13 @@ export const RocketButton = forwardRef<HTMLButtonElement, RocketButtonProps>(
           height: flight.height,
           distance: flight.distance,
         };
-        const flames = body.querySelectorAll('[data-rocket-flame]');
+        const wicks = body.querySelectorAll('[data-rocket-wick]');
         const nozzles = body.querySelectorAll<HTMLElement>(
-          '[data-rocket-nozzle-body]'
+          '[data-rocket-nozzle]'
         );
-        // 분사구가 잘림 상자 높이만큼 위(단추 몸체 쪽)에 숨어 있다가 내려온다
+        // 분사구가 덩이 높이만큼 위(단추 몸체 속)에 숨어 있다가 내려온다
         const nozzleRun = flight.height * NOZZLE_HEIGHT;
+        const wickRun = flight.height * WICK_LONGEST;
         // 박자 하나(rocketBeat)가 단추의 움직임, 불꽃 길이, 연기 내뿜기, 표지를 모두 정한다. 시계는 0에서 끝까지 도는 숫자 하나다
         const clock = { t: 0 };
         const lastPuff = { ground: -Infinity, tail: -Infinity };
@@ -329,12 +339,29 @@ export const RocketButton = forwardRef<HTMLButtonElement, RocketButtonProps>(
             rotation: beat.rotation,
             scale: beat.scale * (1 + (CROUCH.scale - 1) * held),
           });
-          // 불꽃 길이는 scaleY(원점 위)로만 바꾼다
-          gsap.set(flames, { scaleY: beat.flame / FLAME_MAX });
+          // 분출 세기는 CSS 사용자 속성 하나로 넣고 입 색, 번짐, 몸체 밑면 빛, DOM 빛이 그것을 읽는다. 심지 길이는 scaleY(원점 위)로만 바꾼다
+          body.style.setProperty(THRUST, String(beat.strength));
+          gsap.set(wicks, { scaleY: beat.wick / wickRun });
           gsap.set(nozzles, { y: -(1 - beat.nozzle) * nozzleRun });
           gsap.set(label, { opacity: beat.mark });
           const engine = smokeRef.current;
+          // 엔진이 빛무리를 그리고 있으면 DOM 빛은 숨긴다(엔진이 접히면 DOM 빛이 이어받는다)
+          body.toggleAttribute('data-engine', !!engine?.canvas.isConnected);
           if (!engine) return;
+          // 분출 위치·세기는 단추 중심(창 좌표) 기준으로 옮겨 엔진이 심지, 빛무리, 배기 기둥을 그리게 한다
+          const place = ({ x, y, dx, dy }: Mouth) => ({
+            x: flight.center.x + x,
+            y: flight.center.y + y,
+            dx,
+            dy,
+          });
+          engine.setJets({
+            strength: beat.strength,
+            wick: beat.wick * beat.scale,
+            ground: flight.center.y + beat.groundY,
+            column: beat.column,
+            mouths: [place(beat.mouths[0]), place(beat.mouths[1])],
+          });
           for (const channel of ['ground', 'tail'] as const) {
             const { gap, puffs } = beat.smoke[channel];
             if (puffs.length === 0 || clock.t - lastPuff[channel] < gap)
@@ -391,17 +418,21 @@ export const RocketButton = forwardRef<HTMLButtonElement, RocketButtonProps>(
       };
     }, []);
 
+    // 분사구 둘의 자리(단추 상자 안 px): 단추 폭 중심에서 좌우 30%
     const flight = launch?.flight;
-    // 분사구 둘과 불꽃 둘의 자리(단추 상자 안 px): 밑면 폭의 1/3, 2/3
     const rig = flight
       ? [-1, 1].map((side) => ({
           key: side,
-          left: flight.width / 2 + side * flight.width * NOZZLE_X,
+          center: flight.width / 2 + side * flight.width * NOZZLE_X,
         }))
       : [];
-    const flightFlameWidth = flight ? flight.width * FLAME_WIDTH : 0;
-    const nozzleWidth = flight ? flight.width * NOZZLE_BOTTOM : 0;
-    const nozzleTip = flight ? flight.height * (1 + NOZZLE_HEIGHT) : 0;
+    const h = flight?.height ?? 0;
+    const nozzleW = h * NOZZLE_WIDTH;
+    const nozzleH = h * NOZZLE_HEIGHT;
+    // 분사구 아랫면(입)의 y. DOM 빛무리는 이 입 한가운데를 중심으로 앉는다
+    const mouthBottom = h * (1 + NOZZLE_HEIGHT - NOZZLE_TUCK);
+    const haloSize = h * 0.82;
+    const mouthW = nozzleW * MOUTH_WIDTH;
     return (
       <span ref={hostRef} className={root} data-sent={launch ? '' : undefined}>
         <span ref={crouchRef} className={crouch}>
@@ -453,38 +484,57 @@ export const RocketButton = forwardRef<HTMLButtonElement, RocketButtonProps>(
                   height: flight.height,
                 }}
               >
-                {/* 분사구는 단추 아래 테두리에서 잘린 상자 안에서 내려와 몸체 위로는 보이지 않는다. 불꽃은 그 끝에서 시작한다. 둘 다 몸체와 함께 기울어진다 */}
-                {rig.map(({ key, left }) => (
+                {/* 쌓임 순서(문서 순서)가 아래에서 위로: DOM 빛, 분사구, 단추 몸체, 몸체 밑면 빛. 분사구는 몸체 뒤에 깔려 위 몇 px가
+                    가려진 채 아래로 삐져나오므로 별도 잘림 없이도 몸체 위로는 보이지 않는다. 전부 몸체와 함께 기울어진다 */}
+                {rig.map(({ key, center }) => (
                   <span
-                    key={`flame-${key}`}
-                    className={flame}
-                    data-rocket-flame=""
+                    key={`halo-${key}`}
+                    className={halo}
+                    data-rocket-halo=""
                     style={{
-                      left: left - flightFlameWidth / 2,
-                      top: nozzleTip,
-                      width: flightFlameWidth,
-                      height: FLAME_MAX,
+                      left: center - haloSize / 2,
+                      top: mouthBottom - haloSize / 2,
+                      width: haloSize,
+                      height: haloSize,
                     }}
                   >
-                    <span className={flameCore} />
+                    <span
+                      className={wick}
+                      data-rocket-wick=""
+                      style={{
+                        left: (haloSize - mouthW) / 2,
+                        top: haloSize / 2,
+                        width: mouthW,
+                        height: h * WICK_LONGEST,
+                      }}
+                    />
                   </span>
                 ))}
-                {rig.map(({ key, left }) => (
+                {rig.map(({ key, center }) => (
                   <span
                     key={`nozzle-${key}`}
-                    className={nozzleClip}
+                    className={nozzle}
                     data-rocket-nozzle=""
                     style={{
-                      left: left - nozzleWidth / 2,
-                      top: flight.height,
-                      width: nozzleWidth,
-                      height: nozzleTip - flight.height,
+                      left: center - nozzleW / 2,
+                      top: h - h * NOZZLE_TUCK,
+                      width: nozzleW,
+                      height: nozzleH,
                     }}
                   >
-                    <span className={nozzle} data-rocket-nozzle-body="" />
+                    <span
+                      className={mouth}
+                      data-rocket-mouth=""
+                      style={{ width: mouthW, height: h * MOUTH_HEIGHT }}
+                    />
                   </span>
                 ))}
                 <span ref={cloneHostRef} className={cloneHost} />
+                <span
+                  className={underglow}
+                  data-rocket-underglow=""
+                  style={{ borderRadius: flight.radius }}
+                />
               </div>
             </div>,
             container ?? document.body

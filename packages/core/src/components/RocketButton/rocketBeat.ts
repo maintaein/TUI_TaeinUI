@@ -1,7 +1,7 @@
 import { gsap } from 'gsap';
 import { gsapDuration, gsapEasing } from '../../tokens/gsapEasing';
 
-// 로켓 박자 하나에서 단추의 움직임, 불꽃 길이, 연기 내뿜기, 표지를 함께 뽑는 순수 함수(설계서 8절 로켓 전송).
+// 로켓 박자 하나에서 단추의 움직임, 분출 심지 길이, 연기 내뿜기, 표지를 함께 뽑는 순수 함수(설계서 8절 로켓 전송).
 // 시각 t(ms, 누른 순간 0)만 받는다. 움직임은 이징 곡선이 아니라 물리 모형(용수철, 추력)이고 난수가 없어
 // 같은 t에는 늘 같은 값이다. 이징은 토큰 settle을 gsap.parseEase로 평가할 뿐 시계를 돌리지 않는다.
 
@@ -59,30 +59,32 @@ const sway = (p: number) => SWAY * p ** 4;
 const swaySpeed = (p: number) => 4 * SWAY * p ** 3;
 const END_SPEED = Math.hypot(liftSpeed(1), swaySpeed(1));
 
-// 분사구 둘: 단추 밑면 폭의 1/3, 2/3 자리(중심 기준 +-폭/6). 단추 아래 테두리에서 아래로 NOZZLE_HEIGHT(단추 높이의 비)만큼
-// 빠져나오고, 아래 폭은 NOZZLE_BOTTOM(단추 폭의 비)이다. 크기는 영상의 작은 분사구를 눈대중으로 옮긴 값이다
-export const NOZZLE_X = 1 / 6;
-export const NOZZLE_HEIGHT = 0.3;
-export const NOZZLE_BOTTOM = 0.17;
-// 불꽃은 연기가 어디서 나오는지 알려 주는 가는 흔적이다(사용자). 폭은 단추 폭의 6%, 길이는 FLAME_BASE(px, 분출 세기에 비례)에
-// 발사 속도에 따라 STRETCH(px)까지 아주 조금 더하고 FLICKER 비율로 떤다. 눈대중이며 영상의 줄기보다 훨씬 짧고 가늘다
-export const FLAME_WIDTH = 0.06;
-const FLAME_BASE = 30;
-const STRETCH = 30;
-const FLICKER = 0.1;
-/** 불꽃이 가질 수 있는 가장 긴 길이(px). 불꽃 요소의 높이이고 길이는 scaleY로 맞춘다 */
-export const FLAME_MAX = Math.ceil((FLAME_BASE + STRETCH) * (1 + FLICKER));
-/** 발사 거리에 더하는 여유(px): 불꽃이 끝까지 레이어 밖으로 나가는 데 필요한 길이 */
-export const FLAME_REACH = FLAME_MAX;
+// 분사구 둘: 단추 폭 중심에서 좌우 30% 자리의 작은 덩이(단추 몸체 뒤). 크기는 단추 높이의 비로, 높이 44px 기준 14 x 8px
+// (영상의 작은 분사구를 눈대중으로 옮긴 값)이고 위쪽 NOZZLE_TUCK만큼은 몸체 밑면에 가려진다. 입은 덩이 아랫면의 얇고 납작한 틈이다
+export const NOZZLE_X = 0.3;
+export const NOZZLE_WIDTH = 14 / 44;
+export const NOZZLE_HEIGHT = 8 / 44;
+export const NOZZLE_TUCK = 3 / 44;
+export const MOUTH_WIDTH = 0.5;
+export const MOUTH_HEIGHT = 2 / 44;
+// 분출은 불꽃 줄기가 아니라 입 바로 아래의 짧은 심지와 둘레의 빛무리다(사용자: 가늘고 길게 하는 게 아니라 광휘처럼).
+// 심지 길이는 분출 세기에 따라 단추 높이의 WICK_MIN~WICK_MAX배이고 WICK_FLICKER 비율로 빠르게 깜빡인다
+const WICK_MIN = 0.2;
+const WICK_MAX = 0.5;
+const WICK_FLICKER = 0.1;
+/** 심지가 가질 수 있는 가장 긴 길이(단추 높이의 배). DOM 심지 요소의 높이이고 길이는 scaleY로 맞춘다 */
+export const WICK_LONGEST = WICK_MAX * (1 + WICK_FLICKER);
+/** 발사 거리에 더하는 여유(px): 먼 빛무리(반지름 약 100px)까지 레이어 밖으로 나가는 데 필요한 길이 */
+export const JET_REACH = 100;
 
-// 가상의 땅: 분사구 끝에서 GROUND_DROP(px) 아래, 단추가 있던 자리 기준으로 고정이다(비행 내내 같은 높이).
-// 불꽃 기본 길이보다 조금 더 깊어 분출이 땅에 막 닿는 모양이다
-const GROUND_DROP = FLAME_BASE + 4;
+// 가상의 땅: 분사구 입에서 GROUND_DROP(px) 아래, 단추가 있던 자리 기준으로 고정이다(비행 내내 같은 높이).
+// 심지(최대 약 24px)보다 조금 더 깊어 분출이 땅에 막 닿는 모양이다
+const GROUND_DROP = 34;
 // 분출이 땅에 닿는 세기는 올라간 높이(px)에 따라 1 / (1 + 높이 / ALTITUDE_HALF)로 줄어든다. 150px에서 절반이다(눈대중)
 const ALTITUDE_HALF = 150;
 // 연기: 땅 연기는 두 분사구 아래 땅에서 양옆으로 PAD_ROLL(CSS px/초)로 구르며 PAD_GAP(ms) / 세기 간격으로 내보낸다
 // (세기가 낮아도 GAP_FLOOR 아래로는 떨어지지 않아 최대 PAD_GAP / GAP_FLOOR 간격이다). 간격이 짧으면 무대가 덮였다(M7.1 T8 로켓 60ms).
-// 꼬리 연기는 발사 중에만 불꽃 끝 한가운데에서 몸체 아래 방향으로 JET_PUSH로 TAIL_GAP 간격으로 한 방울씩 내보낸다(땅 연기보다 약하게:
+// 꼬리 연기는 발사 중에만 심지 끝 한가운데에서 몸체 아래 방향으로 JET_PUSH로 TAIL_GAP 간격으로 한 방울씩 내보낸다(땅 연기보다 약하게:
 // 방울 수가 절반이다). 가장 빠를 때도 TAIL_GAP 동안 움직이는 거리가 방울 반지름(30px)의 두 배 안쪽이라 점선이 안 된다
 const PAD_GAP = 100;
 const GAP_FLOOR = 0.2;
@@ -92,14 +94,14 @@ const TAIL_GAP = 70;
 // 발사 속도(0에서 1)가 이보다 느리면 꼬리 연기를 내지 않는다(막 뜰 때는 땅 연기가 맡는다)
 const TAIL_MIN_SPEED = 0.12;
 
-/** 시각 t의 결정적인 깜빡임 -1에서 1. 난수가 아니라 서로 다른 주기(약 107ms, 182ms)의 사인 둘이라 시험이 같은 값을 본다 */
-const wave = (t: number) => (Math.sin(t / 17) + Math.sin(t / 29 + 1)) / 2;
+/** 시각 t의 결정적인 깜빡임 -1에서 1. 난수가 아니라 서로 다른 주기(약 50ms, 82ms)의 사인 둘이라 빠르게 떨고 시험이 같은 값을 본다 */
+const wave = (t: number) => (Math.sin(t / 8) + Math.sin(t / 13 + 2)) / 2;
 
 export interface RocketGeometry {
   /** 단추 크기(px) */
   width: number;
   height: number;
-  /** 발사에서 위로 나가는 거리(px). 단추가 불꽃 끝까지 레이어 밖으로 나가는 거리다 */
+  /** 발사에서 위로 나가는 거리(px). 단추가 빛무리까지 레이어 밖으로 나가는 거리다 */
   distance: number;
 }
 
@@ -117,11 +119,19 @@ export interface SmokeChannel {
   puffs: readonly Puff[];
 }
 
+/** 분사구 입 한 곳: 원래 자리의 단추 중심 기준 위치(px)와 분출 방향(단위 벡터, 몸체 아래 방향) */
+export interface Mouth {
+  x: number;
+  y: number;
+  dx: number;
+  dy: number;
+}
+
 export interface RocketBeat {
   phase: RocketPhase;
   /** 분사구가 단추 아래 테두리에서 빠져나온 정도 0에서 1 */
   nozzle: number;
-  /** 서서히 오르는 분출 세기 0에서 1. 0이면 불꽃도 연기도 없다 */
+  /** 서서히 오르는 분출 세기 0에서 1. 0이면 분출도 연기도 없다 */
   strength: number;
   /** 단추 이동(px, 오른쪽과 아래가 +) */
   x: number;
@@ -129,12 +139,18 @@ export interface RocketBeat {
   /** 회전(도, 시계 방향 +). 발사 속도 방향을 따르고 `TILT_MAX`를 넘지 않는다 */
   rotation: number;
   scale: number;
-  /** 불꽃 길이(px). 0이면 꺼졌다 */
-  flame: number;
+  /** 입 아래 심지 길이(px, 단추 기준: 배율 전). 0이면 꺼졌다 */
+  wick: number;
+  /** 분사구 입 둘(왼쪽, 오른쪽). 기울기와 배율과 이동이 반영된 자리라 엔진의 분출 위치다 */
+  mouths: readonly [Mouth, Mouth];
+  /** 가상의 땅의 y(px, 단추 중심 기준). 비행 내내 같다 */
+  groundY: number;
+  /** 입에서 땅까지 이어지는 배기 기둥의 짙기 0에서 1. 올라갈수록 옅어지고 비행이 끝나면 0이다 */
+  column: number;
   smoke: {
     /** 가상의 땅에 닿는 분출이 양옆으로 구르는 연기. 올라간 높이에 따라 줄어든다 */
     ground: SmokeChannel;
-    /** 발사 중 불꽃 끝에서 몸체 아래 방향으로 남기는 꼬리. 땅 연기보다 약하다 */
+    /** 발사 중 심지 끝에서 몸체 아래 방향으로 남기는 꼬리. 땅 연기보다 약하다 */
     tail: SmokeChannel;
   };
   /** "보냈어요" 표지의 불투명도 0에서 1 */
@@ -160,7 +176,7 @@ export const rocketBeat = (
   // 보냈어요 단계에서도 자세는 발사 끝에 머문다
   const t = Math.min(Math.max(tMs, 0), BEAT.sent);
 
-  // 분사구: 테두리에서 빠져나옴(settle). 그동안 불꽃도 연기도 없다
+  // 분사구: 테두리에서 빠져나옴(settle). 그동안 분출도 연기도 없다
   const nozzle = settle(
     clamp01((t - BEAT.emerge) / (BEAT.build - BEAT.emerge))
   );
@@ -183,15 +199,36 @@ export const rocketBeat = (
   const rotation = Math.min(TILT_MAX, heading);
   const scale = 1 + (FAR_SCALE - 1) * p * p;
 
-  const flame =
+  const wick =
     strength === 0
       ? 0
-      : (strength * FLAME_BASE + STRETCH * speed) *
-        (1 + FLICKER * strength * wave(t));
+      : geometry.height *
+        (WICK_MIN + (WICK_MAX - WICK_MIN) * strength) *
+        (1 + WICK_FLICKER * wave(t));
+
+  // 입: 덩이가 끝까지 나왔을 때 아랫면(몸체 밑면에서 덩이 높이 - 가려진 만큼 아래)
+  const mouthY = geometry.height * (0.5 + NOZZLE_HEIGHT - NOZZLE_TUCK);
+  const groundY = mouthY + GROUND_DROP;
+  const rad = (rotation * Math.PI) / 180;
+  const cos = Math.cos(rad);
+  const sin = Math.sin(rad);
+  const mouth = (side: number): Mouth => {
+    const lx = side * geometry.width * NOZZLE_X;
+    return {
+      x: x + scale * (lx * cos - mouthY * sin),
+      y: y + scale * (lx * sin + mouthY * cos),
+      dx: -sin,
+      dy: cos,
+    };
+  };
+  const mouths: readonly [Mouth, Mouth] = [mouth(-1), mouth(1)];
+  const column =
+    strength === 0
+      ? 0
+      : (strength / (1 + Math.max(0, -y) / ALTITUDE_HALF)) * (1 - p * p);
 
   // 연기
-  const nozzleTip = geometry.height * (0.5 + NOZZLE_HEIGHT);
-  const mouths = [-1, 1].map((side) => side * geometry.width * NOZZLE_X);
+  const mouthXs = [-1, 1].map((side) => side * geometry.width * NOZZLE_X);
   const ground =
     strength === 0
       ? NONE
@@ -204,20 +241,17 @@ export const rocketBeat = (
               GAP_FLOOR
             ),
           // 땅은 단추가 있던 자리 기준으로 고정이고 로켓 바로 아래(x는 로켓을 따라간다)에서 양옆으로 구른다
-          puffs: mouths.map((mx) => ({
+          puffs: mouthXs.map((mx) => ({
             x: x + mx,
-            y: nozzleTip + GROUND_DROP,
+            y: groundY,
             vx: Math.sign(mx) * PAD_ROLL,
             vy: 0,
           })),
         };
   let tail = NONE;
   if (strength > 0 && speed > TAIL_MIN_SPEED) {
-    // 불꽃 끝 한가운데: 단추 중심 기준 자리에 기울기와 배율을 걸고 이동을 더한다. 연기는 몸체 아래 방향으로 나간다
-    const rad = (rotation * Math.PI) / 180;
-    const cos = Math.cos(rad);
-    const sin = Math.sin(rad);
-    const ly = nozzleTip + flame;
+    // 심지 끝 한가운데: 단추 중심 기준 자리에 기울기와 배율을 걸고 이동을 더한다. 연기는 몸체 아래 방향으로 나간다
+    const ly = mouthY + wick;
     tail = {
       gap: TAIL_GAP,
       puffs: [
@@ -239,7 +273,10 @@ export const rocketBeat = (
     y,
     rotation,
     scale,
-    flame,
+    wick,
+    mouths,
+    groundY,
+    column,
     smoke: { ground, tail },
     mark: settle(clamp01((tMs - BEAT.sent) / BASE)),
   };

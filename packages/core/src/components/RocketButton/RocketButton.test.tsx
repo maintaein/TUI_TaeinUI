@@ -10,17 +10,25 @@ import {
 } from 'vitest';
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { RocketButton } from './RocketButton';
 import { gsapDuration, gsapEasing } from '../../tokens/gsapEasing';
 import {
   BEAT,
   BEAT_END,
-  FLAME_MAX,
+  JET_REACH,
+  MOUTH_HEIGHT,
+  MOUTH_WIDTH,
   NOZZLE_HEIGHT,
-  FLAME_REACH,
+  NOZZLE_TUCK,
+  NOZZLE_WIDTH,
+  WICK_LONGEST,
   rocketBeat,
 } from './rocketBeat';
 import { replaceSmokeFactory } from './smokeEngine';
+import { type Jets } from '../../_internal/fluidSmoke';
+import { THRUST } from './RocketButton.css';
 
 // RocketButton.tsx가 바깥 상자에 얹는 손잡이(BurstToggle의 타임라인 손잡이와 같은 모양).
 type RocketHost = HTMLElement & {
@@ -28,11 +36,11 @@ type RocketHost = HTMLElement & {
   __rocketCrouch?: gsap.core.Tween;
 };
 
-// 시험의 단추: 폭 120, 높이 44, 레이어 위에서 200px 아래라 발사 거리는 200 + 44 + FLAME_REACH다
+// 시험의 단추: 폭 120, 높이 44, 레이어 위에서 200px 아래라 발사 거리는 200 + 44 + JET_REACH다
 const GEOMETRY_AT_CLICK = {
   width: 120,
   height: 44,
-  distance: 200 + 44 + FLAME_REACH,
+  distance: 200 + 44 + JET_REACH,
 };
 const button = (name: string | RegExp = '보내기') =>
   screen.getByRole('button', { name });
@@ -260,7 +268,7 @@ describe('RocketButton', () => {
       expect(names.filter((name) => name.startsWith('data-'))).toEqual([]);
     });
 
-    it('발사 거리는 단추 윗면이 레이어 위 가장자리를 넘고 불꽃 끝까지 나가는 거리다', () => {
+    it('발사 거리는 단추 윗면이 레이어 위 가장자리를 넘고 빛무리까지 나가는 거리다', () => {
       // 레이어 안에서 단추 위쪽까지 200px(화면 전체), 단추 높이 44
       const climbed = (boxTop: number | null) => {
         const stage = document.createElement('div');
@@ -283,10 +291,10 @@ describe('RocketButton', () => {
         stage.remove();
         return -y;
       };
-      // 상자 위가 창 위와 같다(0): 단추까지 200, 단추 높이 44, 불꽃 FLAME_REACH
-      expect(climbed(0)).toBeCloseTo(200 + 44 + FLAME_REACH, 0);
+      // 상자 위가 창 위와 같다(0): 단추까지 200, 단추 높이 44, 빛무리 JET_REACH
+      expect(climbed(0)).toBeCloseTo(200 + 44 + JET_REACH, 0);
       // 상자가 100 아래에 있다: 단추까지 100이라 그만큼 짧다
-      expect(climbed(100)).toBeCloseTo(100 + 44 + FLAME_REACH, 0);
+      expect(climbed(100)).toBeCloseTo(100 + 44 + JET_REACH, 0);
     });
 
     it('비행이 끝나면 복제본 레이어를 치운다', () => {
@@ -467,71 +475,146 @@ describe('RocketButton', () => {
       expect(craft.style.transform).toContain('scale(0.85');
     });
 
-    it('분사구는 단추 아래 테두리에서 시작하는 잘림 상자 안에서 내려와 몸체 위로는 나오지 않는다', () => {
+    it('분사구 둘은 단추 폭 중심에서 좌우 30% 자리, 몸체 뒤(쌓임 순서가 아래)에서 아래 테두리로 내려오며 몸체 위로는 나오지 않는다', () => {
       const { craft, at } = launch();
-      const clips = [
+      const nozzles = [
         ...craft.querySelectorAll<HTMLElement>('[data-rocket-nozzle]'),
       ];
-      expect(clips).toHaveLength(2);
+      expect(nozzles).toHaveLength(2);
+      const px = (el: HTMLElement, name: 'left' | 'top' | 'width' | 'height') =>
+        parseFloat(el.style[name]);
+      const w = 44 * NOZZLE_WIDTH;
       const run = 44 * NOZZLE_HEIGHT;
-      for (const clip of clips) {
-        // 잘림 상자는 단추 밑면(top = 높이)에서 시작해 아래로만 있다
-        expect(clip.style.top).toBe('44px');
-        expect(parseFloat(clip.style.height)).toBeCloseTo(run, 5);
+      // 쌓임 순서: 분사구 둘 다 단추 몸체(복제본)보다 문서 순서가 앞이고 z-index를 올리지 않는다(몸체 뒤에 깔림)
+      const clone = craft.querySelector('button')!.parentElement as HTMLElement;
+      for (const nozzle of nozzles) {
+        expect(
+          nozzle.compareDocumentPosition(clone) &
+            Node.DOCUMENT_POSITION_FOLLOWING
+        ).toBeTruthy();
+        expect(nozzle.style.zIndex).toBe('');
+        expect(nozzle.style.overflow).toBe('');
       }
-      const bodies = [
-        ...craft.querySelectorAll<HTMLElement>('[data-rocket-nozzle-body]'),
-      ];
+      // 폭 120 단추: 중심 60에서 좌우 30%(36px)
+      expect(px(nozzles[0], 'left') + w / 2).toBeCloseTo(60 - 120 * 0.3, 5);
+      expect(px(nozzles[1], 'left') + w / 2).toBeCloseTo(60 + 120 * 0.3, 5);
+      // 위 몇 px는 몸체 밑면(top = 44) 안에 가려진 채 아래로 삐져나온다
+      for (const nozzle of nozzles) {
+        expect(px(nozzle, 'top')).toBeCloseTo(44 - 44 * NOZZLE_TUCK, 5);
+        expect(px(nozzle, 'width')).toBeCloseTo(w, 5);
+        expect(px(nozzle, 'height')).toBeCloseTo(run, 5);
+      }
+      // 처음엔 덩이 높이만큼 위(몸체 속)에 숨어 있고(잘림이 아니라 몸체에 가려짐) 서서히 내려와 build에서 제자리다
       const shiftY = (el: HTMLElement) =>
         Number(
           /translate\(0px, (-?[\d.]+)px\)/.exec(el.style.transform)?.[1] ?? 0
         );
-      // 처음엔 상자 높이만큼 위에 숨어 있고(전부 잘려 안 보임) 서서히 내려와 build에서 제자리다
       const shifts = [0, 100, 200, 300, 400, 500, BEAT.build].map((t) => {
         at(t);
-        return shiftY(bodies[0]);
+        return shiftY(nozzles[0]);
       });
       expect(shifts[0]).toBeCloseTo(-run, 5);
       for (let i = 1; i < shifts.length; i++)
         expect(shifts[i]).toBeGreaterThan(shifts[i - 1]);
       expect(shifts.at(-1)).toBeCloseTo(0, 5);
-      // 위로 숨는 쪽만 있다: 아래로 더 나가는 일은 없다
+      // 숨은 동안에도 덩이의 아랫면은 몸체 밑면 안이다: 위로 숨는 쪽만 있고 아래로 더 나가는 일은 없다
       expect(Math.max(...shifts)).toBeLessThanOrEqual(0.0001);
-      expect(shiftY(bodies[1])).toBe(shiftY(bodies[0]));
+      expect(shiftY(nozzles[1])).toBe(shiftY(nozzles[0]));
+      // 입은 덩이 안에 하나씩 있다(7 x 2px)
+      const mouths = [
+        ...craft.querySelectorAll<HTMLElement>('[data-rocket-mouth]'),
+      ];
+      expect(mouths).toHaveLength(2);
+      expect(px(mouths[0], 'width')).toBeCloseTo(w * MOUTH_WIDTH, 5);
+      expect(px(mouths[0], 'height')).toBeCloseTo(44 * MOUTH_HEIGHT, 5);
+      expect(nozzles[0]).toContainElement(mouths[0]);
     });
 
-    it('분사구 둘과 불꽃 둘이 복제본 안에 있고 불꽃은 scaleY로만 길이가 바뀐다', () => {
+    it('분출 세기 하나가 CSS 사용자 속성으로 매 프레임 들어가고 박자 함수의 세기와 같다', () => {
       const { craft, at } = launch();
-      const flames = [
-        ...craft.querySelectorAll<HTMLElement>('[data-rocket-flame]'),
+      const thrust = () => craft.style.getPropertyValue(THRUST);
+      for (const t of [0, BEAT.build, 1000, 1800, BEAT.launch, 3500, 4900]) {
+        at(t);
+        expect(Number(thrust())).toBeCloseTo(
+          rocketBeat(t, GEOMETRY_AT_CLICK).strength,
+          9
+        );
+      }
+      at(100);
+      expect(thrust()).toBe('0');
+      at(BEAT.launch);
+      expect(thrust()).toBe('1');
+    });
+
+    it('입 색, 빛 번짐, 몸체 밑면 빛, DOM 빛이 모두 그 사용자 속성 하나를 읽는다', () => {
+      const css = readFileSync(
+        resolve(__dirname, 'RocketButton.css.ts'),
+        'utf-8'
+      );
+      const block = (name: string) =>
+        css.slice(css.indexOf(`export const ${name} = style(`)).split('});')[0];
+      expect(css).toContain("THRUST = '--rocket-thrust'");
+      expect(css).toContain('const thrust = `var(${THRUST})`');
+      // 입: 색 섞기(backgroundColor)와 번짐(boxShadow) 둘 다
+      expect(block('mouth')).toMatch(
+        /backgroundColor: mix\(jetColor, `calc\(\$\{thrust\}/
+      );
+      expect(block('mouth')).toMatch(/boxShadow: `[^`]*\$\{thrust\}/);
+      expect(block('underglow')).toContain('${thrust}');
+      expect(block('halo')).toContain('opacity: thrust');
+    });
+
+    it('몸체 밑면 빛 층은 몸체 위에 얹히고 장식이다(레이어가 aria-hidden, 포인터 안 받음)', () => {
+      const { craft, layer } = launch();
+      const glow = craft.querySelector<HTMLElement>('[data-rocket-underglow]')!;
+      const clone = craft.querySelector('button')!.parentElement as HTMLElement;
+      expect(
+        clone.compareDocumentPosition(glow) & Node.DOCUMENT_POSITION_FOLLOWING
+      ).toBeTruthy();
+      expect(layer).toHaveAttribute('aria-hidden', 'true');
+      expect(layer).toHaveAttribute('inert');
+      expect(glow.querySelector('button, a, input')).toBeNull();
+      expect(glow.children).toHaveLength(0);
+    });
+
+    it('DOM 심지 둘이 복제본 안에 있고 길이는 scaleY로만 바뀐다(레이아웃 속성은 그대로)', () => {
+      const { craft, at } = launch();
+      const wicks = [
+        ...craft.querySelectorAll<HTMLElement>('[data-rocket-wick]'),
       ];
-      expect(flames).toHaveLength(2);
-      expect(craft.querySelectorAll('[data-rocket-nozzle]')).toHaveLength(2);
-      // 불꽃, 분사구 순으로 단추 앞에 깔린다(문서 순서)
+      expect(wicks).toHaveLength(2);
       const order = [...craft.children].map((node) =>
-        node.hasAttribute('data-rocket-flame')
-          ? 'flame'
+        node.hasAttribute('data-rocket-halo')
+          ? 'halo'
           : node.hasAttribute('data-rocket-nozzle')
             ? 'nozzle'
-            : 'clone'
+            : node.hasAttribute('data-rocket-underglow')
+              ? 'underglow'
+              : 'clone'
       );
-      expect(order).toEqual(['flame', 'flame', 'nozzle', 'nozzle', 'clone']);
+      expect(order).toEqual([
+        'halo',
+        'halo',
+        'nozzle',
+        'nozzle',
+        'clone',
+        'underglow',
+      ]);
       const scaleY = (el: HTMLElement) =>
         Number(/scale\(1, ?([\d.]+)\)/.exec(el.style.transform)?.[1] ?? NaN);
       at(BEAT.build);
-      expect(scaleY(flames[0])).toBe(0);
-      at(BEAT.build + 800);
-      const building = scaleY(flames[0]);
-      expect(building).toBeGreaterThan(0);
-      at(BEAT.launch - 10);
-      const lit = scaleY(flames[0]);
-      expect(lit).toBeGreaterThan(building);
-      at(4800);
-      expect(scaleY(flames[0])).toBeGreaterThan(lit);
-      expect(scaleY(flames[0])).toBeLessThanOrEqual(1);
-      expect(scaleY(flames[1])).toBe(scaleY(flames[0]));
-      // 레이아웃 속성(높이)은 건드리지 않는다
-      expect(flames[0].style.height).toBe(`${FLAME_MAX}px`);
+      expect(scaleY(wicks[0])).toBe(0);
+      for (const t of [BEAT.build + 800, BEAT.launch - 10, 4800]) {
+        at(t);
+        expect(scaleY(wicks[0])).toBeCloseTo(
+          rocketBeat(t, GEOMETRY_AT_CLICK).wick / (44 * WICK_LONGEST),
+          4
+        );
+      }
+      expect(scaleY(wicks[0])).toBeGreaterThan(0.2);
+      expect(scaleY(wicks[0])).toBeLessThanOrEqual(1);
+      expect(scaleY(wicks[1])).toBe(scaleY(wicks[0]));
+      expect(wicks[0].style.height).toBe(`${44 * WICK_LONGEST}px`);
     });
 
     it('눌렀다 뗀 click이면 복제본은 웅크린 자세로 이어받는다', () => {
@@ -692,18 +775,26 @@ describe('RocketButton', () => {
   // 엔진 자리에 emit 호출을 기록하는 손을 끼운다(replaceSmokeFactory).
   describe('연기 내뿜기', () => {
     type Call = { x: number; y: number; vx: number; vy: number; t: number };
-    const record = () => {
+    type JetCall = { jets: Jets | null; t: number };
+    const record = (attach = false) => {
       const calls: Call[] = [];
+      const jetCalls: JetCall[] = [];
       const now = { t: 0 };
-      replaceSmokeFactory(() => ({
-        canvas: document.createElement('canvas'),
-        emit: (x, y, vx, vy) => calls.push({ x, y, vx, vy, t: now.t }),
-        burst: () => {
-          throw new Error('이륙 터짐은 없다');
-        },
-        dispose: () => {},
-      }));
-      return { calls, now };
+      replaceSmokeFactory(() => {
+        const canvas = document.createElement('canvas');
+        // 실제 엔진은 캔버스를 문서에 붙인다. attach면 붙여서 "엔진이 그리고 있다"를 흉내 낸다
+        if (attach) document.body.append(canvas);
+        return {
+          canvas,
+          emit: (x, y, vx, vy) => calls.push({ x, y, vx, vy, t: now.t }),
+          setJets: (jets) => jetCalls.push({ jets, t: now.t }),
+          burst: () => {
+            throw new Error('이륙 터짐은 없다');
+          },
+          dispose: () => canvas.remove(),
+        };
+      });
+      return { calls, jetCalls, now };
     };
     afterEach(() => replaceSmokeFactory());
 
@@ -778,7 +869,7 @@ describe('RocketButton', () => {
       );
     });
 
-    it('발사 중에는 꼬리 연기가 불꽃 끝에서 몸체 아래 방향(진행 반대쪽)으로 한 방울씩 나가고 땅 연기보다 적다', () => {
+    it('발사 중에는 꼬리 연기가 분출구 아래 심지 끝에서 몸체 아래 방향(진행 반대쪽)으로 한 방울씩 나가고 땅 연기보다 적다', () => {
       const calls = fly();
       const { tail, ground } = split(calls);
       expect(tail.length).toBeGreaterThan(0);
@@ -803,11 +894,58 @@ describe('RocketButton', () => {
       );
     });
 
-    it('불꽃 끝이 비행 층 위로 나가면 연기를 내보내지 않는다(아래로 밀려 무대로 쏟아진다)', () => {
+    it('꼬리 연기 자리가 비행 층 위로 나가면 연기를 내보내지 않는다(아래로 밀려 무대로 쏟아진다)', () => {
       const calls = fly();
       expect(calls.every((c) => c.y >= 0)).toBe(true);
       // 나가기 전에는 내보냈다
       expect(calls.some((c) => c.vy > 0 && c.t >= 4000)).toBe(true);
+    });
+
+    it('분출 상태를 매 프레임 엔진에 넘긴다: 입 둘, 세기, 심지 길이(배율 반영), 땅, 기둥이 박자 함수대로다', () => {
+      const { jetCalls, now } = record();
+      const view = render(<RocketButton>보내기</RocketButton>);
+      fireEvent.click(button());
+      const tl = hostOf(view.container).__rocketTimeline as gsap.core.Timeline;
+      for (const ms of [0, 1500, BEAT.launch, 4200, 4900]) {
+        now.t = ms;
+        act(() => void tl.time(ms / 1000));
+      }
+      const last = (ms: number) => jetCalls.filter((c) => c.t === ms).at(-1)!;
+      for (const ms of [0, 1500, BEAT.launch, 4200, 4900]) {
+        const beat = rocketBeat(ms, GEOMETRY_AT_CLICK);
+        const jets = last(ms).jets!;
+        expect(jets.strength).toBeCloseTo(beat.strength, 9);
+        expect(jets.wick).toBeCloseTo(beat.wick * beat.scale, 9);
+        expect(jets.column).toBeCloseTo(beat.column, 9);
+        expect(jets.ground).toBeCloseTo(center.y + beat.groundY, 9);
+        expect(jets.mouths).toHaveLength(2);
+        jets.mouths.forEach((m, i) => {
+          expect(m.x).toBeCloseTo(center.x + beat.mouths[i].x, 9);
+          expect(m.y).toBeCloseTo(center.y + beat.mouths[i].y, 9);
+          expect(m.dx).toBeCloseTo(beat.mouths[i].dx, 9);
+          expect(m.dy).toBeCloseTo(beat.mouths[i].dy, 9);
+        });
+      }
+      // 분출 전에는 세기 0이라 엔진이 아무것도 그리지 않는다
+      expect(last(0).jets!.strength).toBe(0);
+      expect(last(BEAT.launch).jets!.strength).toBe(1);
+      view.unmount();
+    });
+
+    it('엔진이 캔버스를 그리고 있으면 DOM 빛은 숨고(data-engine) 엔진이 접히면 DOM 빛이 이어받는다', () => {
+      const { now } = record(true);
+      const view = render(<RocketButton>보내기</RocketButton>);
+      fireEvent.click(button());
+      const craft = layerOf()?.firstElementChild as HTMLElement;
+      const tl = hostOf(view.container).__rocketTimeline as gsap.core.Timeline;
+      now.t = 1500;
+      act(() => void tl.time(1.5));
+      expect(craft).toHaveAttribute('data-engine');
+      // 엔진이 접혀 캔버스가 문서에서 빠지면 다음 프레임부터 DOM 빛이 보인다
+      document.querySelector('canvas')?.remove();
+      act(() => void tl.time(1.6));
+      expect(craft).not.toHaveAttribute('data-engine');
+      view.unmount();
     });
   });
 
@@ -838,7 +976,7 @@ describe('RocketButton', () => {
       expect(markOf(container)).toHaveStyle({ opacity: '1' });
     });
 
-    it('smoke={false}면 엔진을 만들려 하지 않고 움직임과 불꽃은 그대로다', () => {
+    it('smoke={false}면 엔진을 만들려 하지 않고 움직임과 DOM 분출 빛(심지, 빛무리)은 그대로다', () => {
       const attempts = contextAttempts();
       const { container } = render(
         <RocketButton smoke={false}>보내기</RocketButton>
@@ -850,9 +988,11 @@ describe('RocketButton', () => {
       act(() => void tl.time(4500 / 1000));
       const craft = layerOf()?.firstElementChild as HTMLElement;
       expect(translateOf(craft).y).toBeLessThan(-20);
-      expect(layerOf()?.querySelectorAll('[data-rocket-flame]')).toHaveLength(
-        2
-      );
+      expect(layerOf()?.querySelectorAll('[data-rocket-wick]')).toHaveLength(2);
+      expect(layerOf()?.querySelectorAll('[data-rocket-halo]')).toHaveLength(2);
+      // 엔진이 없으니 DOM 빛이 숨지 않는다
+      expect(craft).not.toHaveAttribute('data-engine');
+      expect(Number(craft.style.getPropertyValue(THRUST))).toBe(1);
     });
 
     it('소비자 onClick이 막으면 엔진을 만들지 않는다', () => {

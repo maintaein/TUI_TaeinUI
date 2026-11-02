@@ -11,11 +11,37 @@ import {
 } from './grid';
 import * as glsl from './shaders';
 
+/** 분출구 하나의 자리(창 px, y 아래로)와 분출 방향(단위 벡터) */
+export interface JetMouth {
+  x: number;
+  y: number;
+  dx: number;
+  dy: number;
+}
+
+/**
+ * 분출(광휘) 상태. 연기와 한 화면에 그려져야 빛이 연기를 물들이므로 엔진의 화면 그리기가 맡는다.
+ * 개수는 둘로 고정이다(ponytail: 로켓의 분사구 둘뿐이라, 셋 이상이 필요해지면 배열 uniform 길이를 키운다).
+ */
+export interface Jets {
+  /** 분출 세기 0에서 1. 0이면 아무것도 그리지 않는다 */
+  strength: number;
+  /** 입 아래 심지 길이(px) */
+  wick: number;
+  /** 가상의 땅의 y(창 px). 입에서 이 높이까지 배기 기둥이 이어진다 */
+  ground: number;
+  /** 배기 기둥의 짙기 0에서 1 */
+  column: number;
+  mouths: readonly [JetMouth, JetMouth];
+}
+
 export interface FluidSmoke {
   /** 한 번 크게 터진다(사방으로). x, y는 창(clientX/Y) 기준 */
   burst(x: number, y: number, amount?: number): void;
   /** 방향 있는 분사(꼬리). vx, vy는 연기가 향하는 속도(CSS px/초) */
   emit(x: number, y: number, vx: number, vy: number): void;
+  /** 분출 상태를 매 프레임 갱신한다. 세기가 0보다 큰 동안은 연기가 없어도 엔진이 접히지 않는다. null이면 끈다 */
+  setJets(jets: Jets | null): void;
   /** 언제든 즉시 정리한다. 여러 번 불러도 된다 */
   dispose(): void;
   readonly canvas: HTMLCanvasElement;
@@ -46,6 +72,8 @@ const PROBE_SIZE = 16;
 // 밀도가 짙어질수록 흰색 토큰으로 옮겨 가 덩어리 속은 희고 테두리만 회색으로 보인다(전체가 한 색 gray[400]이던 때보다 희다)
 const SMOKE_TOKEN = themeContract.palette.gray[400];
 const SMOKE_CORE_TOKEN = themeContract.color.text.inverse;
+// 분출 색은 primary 밝은 단계이고 심지 한가운데는 흰색 토큰(SMOKE_CORE_TOKEN)이다
+const JET_TOKEN = themeContract.palette.primary[300];
 
 interface Target {
   texture: WebGLTexture;
@@ -259,6 +287,7 @@ export function createFluidSmoke(
 
     const color = readSmokeColor(host, SMOKE_TOKEN);
     const core = readSmokeColor(host, SMOKE_CORE_TOKEN);
+    const jetColor = readSmokeColor(host, JET_TOKEN);
     const texel: [number, number] = [1 / sim.width, 1 / sim.height];
 
     const queue: Splat[] = [];
@@ -272,6 +301,9 @@ export function createFluidSmoke(
     let idleMs = 0;
     let injected = false;
     let frame = 0;
+    let jets: Jets | null = null;
+    const jetA = new Float32Array(8);
+    const jetB = new Float32Array(8);
 
     const bindTex = (p: Program, name: string, unit: number, t: Target) => {
       gl.activeTexture(gl.TEXTURE0 + unit);
@@ -376,7 +408,32 @@ export function createFluidSmoke(
       pass(density);
     };
 
-    const render = (fade: number) => {
+    // 분출 uniform(캔버스 CSS px, y 아래로). 꺼져 있으면 세기 0이라 셰이더가 건너뛴다
+    const setJetUniforms = (now: number) => {
+      jetA.fill(0);
+      jetB.fill(0);
+      const lit = jets;
+      if (lit && lit.strength > 0) {
+        const rect = canvas.getBoundingClientRect();
+        lit.mouths.forEach((m, i) => {
+          jetA.set([m.x - rect.left, m.y - rect.top, m.dx, m.dy], i * 4);
+          jetB.set(
+            [lit.strength, lit.wick, lit.ground - rect.top, lit.column],
+            i * 4
+          );
+        });
+      }
+      gl.uniform2f(
+        displayP.loc('uSize'),
+        canvas.clientWidth || 1,
+        canvas.clientHeight || 1
+      );
+      gl.uniform4fv(displayP.loc('uJetA'), jetA);
+      gl.uniform4fv(displayP.loc('uJetB'), jetB);
+      gl.uniform1f(displayP.loc('uTime'), now / 1000);
+    };
+
+    const render = (fade: number, now: number) => {
       gl.bindFramebuffer(gl.FRAMEBUFFER, null);
       gl.viewport(0, 0, canvas.width, canvas.height);
       gl.clearColor(0, 0, 0, 0);
@@ -384,7 +441,14 @@ export function createFluidSmoke(
       gl.useProgram(displayP.program);
       gl.uniform3f(displayP.loc('uColor'), color[0], color[1], color[2]);
       gl.uniform3f(displayP.loc('uCore'), core[0], core[1], core[2]);
+      gl.uniform3f(
+        displayP.loc('uJetColor'),
+        jetColor[0],
+        jetColor[1],
+        jetColor[2]
+      );
       gl.uniform1f(displayP.loc('uFade'), fade);
+      setJetUniforms(now);
       bindTex(displayP, 'uDensity', 0, density.read);
       gl.drawArrays(gl.TRIANGLES, 0, 3);
     };
@@ -416,13 +480,17 @@ export function createFluidSmoke(
       const frameMs = now - lastFrame;
       lastFrame = now;
       idleMs = advanceIdle(idleMs, frameMs);
+      // 분출이 켜져 있는 동안은 주입이 없어도 접지 않는다(분출 자체가 화면이다)
+      const jetOn = jets !== null && jets.strength > 0;
+      if (jetOn) idleMs = 0;
       if (isExpired(idleMs)) return dispose();
       const dt = Math.min(Math.max(0, frameMs), MAX_FRAME_MS) / 1000;
       feedBursts();
       step(dt);
-      render(fadeFactor(idleMs));
+      render(fadeFactor(idleMs), now);
       frame += 1;
       if (
+        !jetOn &&
         injected &&
         frame % FLUID_CONFIG.probeEvery === 0 &&
         queue.length === 0 &&
@@ -490,6 +558,9 @@ export function createFluidSmoke(
     return {
       canvas,
       dispose,
+      setJets(next) {
+        if (!disposed) jets = next;
+      },
       burst(x, y, amount = 1) {
         if (!disposed) bursts.push({ x, y, amount, rounds: BURST.rounds });
       },
