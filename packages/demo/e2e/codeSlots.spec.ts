@@ -206,8 +206,9 @@ test.describe('인증번호 슬롯 상세 (1440px)', () => {
           box: el.getBoundingClientRect().width,
         };
       });
-    // 굵기 전이(fast)가 끝나길 기다린다
+    // 굵기 전이(fast)와 합쳐지며 줄어드는 폭이 끝나길 기다린다(폭이 아직 줄고 있으면 아래 비교가 그 차이를 잰다)
     await expect.poll(async () => (await read()).width).toBe('2px');
+    await expect.poll(async () => (await read()).box).toBeCloseTo(6 * 48, 1);
     const focused = await read();
     expect(focused.color).toBe(SUCCESS_DARK);
     expect(focused.outline).toBe('none');
