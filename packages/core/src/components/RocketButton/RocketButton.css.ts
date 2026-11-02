@@ -74,21 +74,28 @@ globalStyle(`${cloneHost} > *`, {
   flex: 'none',
 });
 
-// 분사구: 단추 밑면에서 아래로 벌어지는 작은 사다리꼴. 자리와 크기(px)는 컴포넌트가 단추 크기에서 구해 인라인으로 준다.
-export const nozzle = style({
+// 분사구 잘림 상자: 단추 아래 테두리에서 시작해 아래로 분사구 높이만큼이다. 위치와 크기(px)는 컴포넌트가 단추 크기에서 구해
+// 인라인으로 준다. overflow를 잘라 분사구가 단추 몸체 위로는 절대 보이지 않고 아래로 나온 만큼만 보인다.
+export const nozzleClip = style({
   position: 'absolute',
-  backgroundColor: palette.primary[900],
-  clipPath: 'polygon(20% 0, 80% 0, 100% 100%, 0 100%)',
+  overflow: 'hidden',
 });
 
-// 불꽃: 분사구 끝에서 아래로 뻗는 길쭉한 물방울. 높이는 가장 긴 길이로 고정하고 길이는 scaleY(원점 위)로만 바꿔
-// 매 프레임 레이아웃을 건드리지 않는다. 바깥은 primary 밝은 단계에서 끝으로 갈수록 투명해지고,
-// 흰 바탕에서도 뿌리가 보이게 400단계에서 시작한다. 장식이라 단추 위로 가리는 것이 없다.
+// 분사구: 아래로 벌어지는 작은 사다리꼴. 잘림 상자 안에서 위로 숨었다가 GSAP이 transform으로 내려보낸다.
+export const nozzle = style({
+  position: 'absolute',
+  inset: 0,
+  backgroundColor: palette.primary[900],
+  clipPath: 'polygon(10% 0, 90% 0, 100% 100%, 0 100%)',
+});
+
+// 불꽃: 연기가 어디서 나오는지 알려 주는 가는 흔적(사용자: 영상처럼 효과를 최소화하고 연기 위주). 높이는 가장 긴 길이로
+// 고정하고 길이는 scaleY(원점 위)로만 바꿔 매 프레임 레이아웃을 건드리지 않는다. primary 300에서 끝으로 갈수록 투명해진다.
 export const flame = style({
   position: 'absolute',
   transformOrigin: '50% 0',
   borderRadius: '0 0 50% 50% / 0 0 100% 100%',
-  backgroundImage: `linear-gradient(to bottom, ${palette.primary[400]} 0%, ${palette.primary[200]} 55%, transparent 100%)`,
+  backgroundImage: `linear-gradient(to bottom, ${palette.primary[300]} 0%, ${palette.primary[100]} 50%, transparent 100%)`,
 });
 
 // 가는 흰 심지. 바깥 가운데에 폭 3분의 1로 앉고 끝으로 갈수록 투명하다

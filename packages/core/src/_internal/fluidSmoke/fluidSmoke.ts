@@ -42,8 +42,10 @@ const EMIT = { radiusPx: 30, density: 0.34, swirl: 0.3 } as const;
 // 한 프레임에 쌓이는 주입 상한. 넘치면 버린다(연기가 이미 충분히 빽빽하다)
 const MAX_QUEUE = 96;
 const PROBE_SIZE = 16;
-// 연기색 토큰. 흰색과 회색의 중간인 밝은 회백색이다(gray[600]은 흰 바탕에서 너무 짙은 회색이었다)
+// 연기색 토큰 둘. 가장자리(옅은 밀도)는 흰 바탕에서 윤곽이 읽히는 gray[400](#BDBDBD)이고(gray[300]은 옅어 덩어리가 안 보였다),
+// 밀도가 짙어질수록 흰색 토큰으로 옮겨 가 덩어리 속은 희고 테두리만 회색으로 보인다(전체가 한 색 gray[400]이던 때보다 희다)
 const SMOKE_TOKEN = themeContract.palette.gray[400];
+const SMOKE_CORE_TOKEN = themeContract.color.text.inverse;
 
 interface Target {
   texture: WebGLTexture;
@@ -73,9 +75,12 @@ interface Splat {
 const rand = (min: number, max: number) => min + Math.random() * (max - min);
 
 /** 토큰 var()를 DOM에 풀어 읽는다. getComputedStyle이 `rgb(r, g, b)`로 돌려준다 */
-function readSmokeColor(parent: HTMLElement): [number, number, number] {
+function readSmokeColor(
+  parent: HTMLElement,
+  token: string
+): [number, number, number] {
   const probe = document.createElement('span');
-  probe.style.color = SMOKE_TOKEN;
+  probe.style.color = token;
   parent.append(probe);
   const channels = getComputedStyle(probe).color.match(/[\d.]+/g) ?? [];
   probe.remove();
@@ -252,7 +257,8 @@ export function createFluidSmoke(
     const vorticity = makeTarget(gl, sim.width, sim.height, true);
     const probe = makeTarget(gl, PROBE_SIZE, PROBE_SIZE, false);
 
-    const color = readSmokeColor(host);
+    const color = readSmokeColor(host, SMOKE_TOKEN);
+    const core = readSmokeColor(host, SMOKE_CORE_TOKEN);
     const texel: [number, number] = [1 / sim.width, 1 / sim.height];
 
     const queue: Splat[] = [];
@@ -377,6 +383,7 @@ export function createFluidSmoke(
       gl.clear(gl.COLOR_BUFFER_BIT);
       gl.useProgram(displayP.program);
       gl.uniform3f(displayP.loc('uColor'), color[0], color[1], color[2]);
+      gl.uniform3f(displayP.loc('uCore'), core[0], core[1], core[2]);
       gl.uniform1f(displayP.loc('uFade'), fade);
       bindTex(displayP, 'uDensity', 0, density.read);
       gl.drawArrays(gl.TRIANGLES, 0, 3);

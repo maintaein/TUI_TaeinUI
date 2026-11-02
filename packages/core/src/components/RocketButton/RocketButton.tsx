@@ -39,6 +39,7 @@ import {
   layer,
   craft,
   cloneHost,
+  nozzleClip,
   nozzle,
   flame,
   flameCore,
@@ -76,8 +77,6 @@ type Host = HTMLElement & {
 
 // 눌림 되감기용 제자리
 const REST = { x: 0, y: 0, scale: 1 } as const;
-// 분사구가 단추 밑면 위로 박히는 깊이(px). 단추 모서리와 틈이 안 생기게 한다
-const NOZZLE_OVERLAP = 2;
 
 interface Flight {
   clone: HTMLElement;
@@ -248,7 +247,7 @@ export const RocketButton = forwardRef<HTMLButtonElement, RocketButtonProps>(
       crouched.current = false;
       gsap.killTweensOf(el);
       gsap.set(el, { clearProps: 'transform' });
-      // 첫 생성이 동기로 최대 약 84ms 걸린다. 웅크림·꼬리날개 박자(첫 연기는 0.45초 점화) 앞에서 치른다.
+      // 첫 생성이 동기로 최대 약 84ms 걸린다. 분사구가 빠져나오는 구간(첫 연기는 그 뒤 build부터) 앞에서 치른다.
       // 엔진이 null(WebGL2 없음, 움직임 줄이기는 엔진이 스스로 거른다)이면 연기만 빠진다
       if (smoke) {
         smokeRef.current = makeSmoke({
@@ -312,9 +311,14 @@ export const RocketButton = forwardRef<HTMLButtonElement, RocketButtonProps>(
           distance: flight.distance,
         };
         const flames = body.querySelectorAll('[data-rocket-flame]');
+        const nozzles = body.querySelectorAll<HTMLElement>(
+          '[data-rocket-nozzle-body]'
+        );
+        // 분사구가 잘림 상자 높이만큼 위(단추 몸체 쪽)에 숨어 있다가 내려온다
+        const nozzleRun = flight.height * NOZZLE_HEIGHT;
         // 박자 하나(rocketBeat)가 단추의 움직임, 불꽃 길이, 연기 내뿜기, 표지를 모두 정한다. 시계는 0에서 끝까지 도는 숫자 하나다
         const clock = { t: 0 };
-        let lastPuff = -Infinity;
+        const lastPuff = { ground: -Infinity, tail: -Infinity };
         const tick = () => {
           const beat = rocketBeat(clock.t, geometry);
           // 눌렀다 뗀 click이면 웅크림이 풀리는 만큼을 얹어 웅크린 자세를 이어받는다
@@ -327,21 +331,26 @@ export const RocketButton = forwardRef<HTMLButtonElement, RocketButtonProps>(
           });
           // 불꽃 길이는 scaleY(원점 위)로만 바꾼다
           gsap.set(flames, { scaleY: beat.flame / FLAME_MAX });
+          gsap.set(nozzles, { y: -(1 - beat.nozzle) * nozzleRun });
           gsap.set(label, { opacity: beat.mark });
           const engine = smokeRef.current;
-          const { gap, puffs } = beat.smoke;
-          if (!engine || puffs.length === 0 || clock.t - lastPuff < gap) return;
-          lastPuff = clock.t;
-          // 자리는 원래 단추 중심 기준이라 창 좌표로 옮겨 내보낸다
-          for (const p of puffs) {
-            // 비행 층 위로 나간 자리의 연기는 아래로 밀려 무대로 쏟아지므로 내보내지 않는다
-            if (flight.center.y + p.y < flight.layerTop) continue;
-            engine.emit(
-              flight.center.x + p.x,
-              flight.center.y + p.y,
-              p.vx,
-              p.vy
-            );
+          if (!engine) return;
+          for (const channel of ['ground', 'tail'] as const) {
+            const { gap, puffs } = beat.smoke[channel];
+            if (puffs.length === 0 || clock.t - lastPuff[channel] < gap)
+              continue;
+            lastPuff[channel] = clock.t;
+            // 자리는 원래 단추 중심 기준이라 창 좌표로 옮겨 내보낸다
+            for (const p of puffs) {
+              // 비행 층 위로 나간 자리의 연기는 아래로 밀려 무대로 쏟아지므로 내보내지 않는다
+              if (flight.center.y + p.y < flight.layerTop) continue;
+              engine.emit(
+                flight.center.x + p.x,
+                flight.center.y + p.y,
+                p.vx,
+                p.vy
+              );
+            }
           }
         };
         tick();
@@ -444,7 +453,7 @@ export const RocketButton = forwardRef<HTMLButtonElement, RocketButtonProps>(
                   height: flight.height,
                 }}
               >
-                {/* 불꽃은 분사구 뒤, 분사구는 단추 뒤에 깔려 윗부분이 단추에 가려진다. 둘 다 몸체와 함께 기울어진다 */}
+                {/* 분사구는 단추 아래 테두리에서 잘린 상자 안에서 내려와 몸체 위로는 보이지 않는다. 불꽃은 그 끝에서 시작한다. 둘 다 몸체와 함께 기울어진다 */}
                 {rig.map(({ key, left }) => (
                   <span
                     key={`flame-${key}`}
@@ -463,15 +472,17 @@ export const RocketButton = forwardRef<HTMLButtonElement, RocketButtonProps>(
                 {rig.map(({ key, left }) => (
                   <span
                     key={`nozzle-${key}`}
-                    className={nozzle}
+                    className={nozzleClip}
                     data-rocket-nozzle=""
                     style={{
                       left: left - nozzleWidth / 2,
-                      top: flight.height - NOZZLE_OVERLAP,
+                      top: flight.height,
                       width: nozzleWidth,
-                      height: nozzleTip - flight.height + NOZZLE_OVERLAP,
+                      height: nozzleTip - flight.height,
                     }}
-                  />
+                  >
+                    <span className={nozzle} data-rocket-nozzle-body="" />
+                  </span>
                 ))}
                 <span ref={cloneHostRef} className={cloneHost} />
               </div>

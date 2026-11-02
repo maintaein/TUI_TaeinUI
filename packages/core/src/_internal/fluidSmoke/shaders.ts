@@ -124,10 +124,13 @@ export const DISPLAY = `${HEAD}
 ${ALPHA}
 uniform sampler2D uDensity;
 uniform vec3 uColor;
+uniform vec3 uCore;
 uniform float uFade;
 void main() {
-  float alpha = smokeAlpha(texture(uDensity, vTexCoord).x) * uFade;
-  fragValue = vec4(uColor * alpha, alpha);
+  float shape = smokeAlpha(texture(uDensity, vTexCoord).x);
+  float alpha = shape * uFade;
+  // 옅은 가장자리는 uColor, 짙은 속은 uCore(흰색)라 흰 연기의 덩어리감이 테두리 음영으로 읽힌다
+  fragValue = vec4(mix(uColor, uCore, shape * shape) * alpha, alpha);
 }`;
 
 // 수명 판정용. 밀도 격자를 16x16으로 줄여(칸당 4x4 표본) 칸의 최대 알파를 CPU가 읽게 한다.
