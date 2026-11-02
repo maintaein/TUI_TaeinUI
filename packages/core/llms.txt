@@ -1,7 +1,7 @@
 # TUI (TaeinUI)
 
 > A React + TypeScript UI component library where each component carries its own motion.
-> GSAP is the motion runtime (21 components today); visibility, legibility and readability
+> GSAP is the motion runtime (23 components today); visibility, legibility and readability
 > are never traded for it. Zero-runtime CSS via Vanilla Extract, tree-shakable, WCAG 2.2 AA.
 > Runtime dependencies: @vanilla-extract/css, @vanilla-extract/recipes, clsx, gsap.
 
@@ -44,8 +44,8 @@ Motion components (HangulAssemble, BrushText, CopyButton, BurstToggle, HoldButto
 
 ### Form & Input
 - **TextField** - Text input with label, validation, helper text. Add `multiline` for a multiline textarea. Props: label, type, size, error, errorMessage, success, successMessage, helperText, fullWidth, multiline, rows, autoResize (rows and autoResize only with multiline; type only without)
-- **Checkbox**: Checkbox with label, indeterminate state. Props: label, size, error, errorMessage, helperText, indeterminate. Keyboard focus recolors the box border (`primary`, darker when checked, `error` wins), no outer ring.
-- **Switch**: Toggle switch. Props: label, size, error, errorMessage, helperText. Keyboard focus recolors the track edge (`primary`, darker when on, `error` wins), no outer ring.
+- **Checkbox**: Checkbox with label, indeterminate state. Props: label, size, error, errorMessage, helperText, indeterminate. Keyboard focus recolors the box border (`primary`; when checked or indeterminate, a `primary[900]` border with a white band just inside it; `error` wins), no outer ring.
+- **Switch**: Toggle switch. Props: label, size, error, errorMessage, helperText. Keyboard focus recolors the track edge (`primary`; when on, a `primary[900]` edge with a white band just inside it; `error` wins), no outer ring.
 - **Slider**: Range slider with marks and value display. Props: label, variant, min, max, step, showValue, showThumbValue, marks, trackColor. Keyboard focus thickens the thumb border (bar: the line border), no outer ring.
 - **NumericSpinner**: Number input with increment/decrement buttons. Props: label, size, min, max, step. Type a number directly (committed on blur/Enter, clamped to min/max) or use ArrowUp/ArrowDown. Focus turns the number box border `primary` (`error` wins), no outer ring.
 

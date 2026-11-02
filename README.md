@@ -86,7 +86,7 @@ function LoginForm() {
 
 ## 모션
 
-GSAP 런타임이 붙어 있는 컴포넌트는 24개입니다. 아래 표는 그중 일부이고, 전체 명단과 각자 쓰는 능력은 `packages/core/llms.txt`의 "Motion (GSAP Runtime)" 절에 있습니다. 명단에 없는 컴포넌트는 GSAP을 쓰지 않습니다(CSS 트랜지션·키프레임, LuminousFlow는 canvas 루프).
+GSAP 런타임이 붙어 있는 컴포넌트는 23개입니다. 아래 표는 그중 일부이고, 전체 명단과 각자 쓰는 능력은 `packages/core/llms.txt`의 "Motion (GSAP Runtime)" 절에 있습니다. 명단에 없는 컴포넌트는 GSAP을 쓰지 않습니다(CSS 트랜지션·키프레임, LuminousFlow는 canvas 루프).
 
 | 컴포넌트                                           | GSAP이 맡는 일                                    |
 | -------------------------------------------------- | ------------------------------------------------- |

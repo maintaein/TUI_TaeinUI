@@ -94,7 +94,7 @@ function LoginForm() {
 
 ## 모션
 
-현재 GSAP 런타임이 붙어 있는 컴포넌트는 24개입니다(소스가 `gsap`을 직접 import하거나
+현재 GSAP 런타임이 붙어 있는 컴포넌트는 23개입니다(소스가 `gsap`을 직접 import하거나
 `useOverlayTransition`을 거치는 컴포넌트). 명단은 `llms.txt`의 "Motion (GSAP Runtime)"
 표에 있습니다. 명단에 없는 컴포넌트는 GSAP을 쓰지 않습니다(CSS 트랜지션·키프레임을 쓰고,
 LuminousFlow는 canvas 그리기 루프를 씁니다). GSAP은 "쓸 수 있으니

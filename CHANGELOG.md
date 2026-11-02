@@ -42,6 +42,7 @@
 
 ### Changed
 
+- 이 `[Unreleased]`에 한때 올랐던 `JellyText`·`StampButton`·`Morph`·`WingButton`은 발행 전에 거뒀습니다. 0.4.0에는 없던 것이라 쓰던 소비자가 없고, 위 Added에 이름이 없는 것은 그 때문입니다. 날개 단추 자리는 날개 없는 `RocketButton`이 이었고 `three`는 의존성에 없습니다. 새로 더한 것은 `BrushText`·`ManuscriptFlip`·`MorphingIcon`이고, `HangulAssemble`은 글자 조각을 오려 모으는 방식으로 다시 만들었습니다. 할 일: 없음.
 - `NumericSpinner`·`GooeySearch`·`Checkbox`·`Switch`·`Slider`·`SegmentedButtons`·`Chip`의 포커스 표시가 바깥 링(outline)에서 컨트롤 자신의 테두리 색으로 바뀌었습니다. 글자를 넣는 `NumericSpinner`의 입력과 `GooeySearch`의 입력은 `:focus`(마우스 클릭도 같음)에서 테두리가 `primary`가 되고, 눌러서 쓰는 나머지는 `:focus-visible`(키보드)에서 바뀝니다. 이미 `primary`로 채워진 체크·켜짐·primary 칩과 색이 채워진 filled 칩은 짙은 `primary[900]` 띠(칩은 안쪽 흰 띠 포함)로, 선택된 칩은 굵은 테두리로 보이고, 오류 색은 포커스 중에도 이기며 안쪽 띠를 더해 굵어집니다. `Checkbox`의 오류 후광(box-shadow)도 걷었습니다. `NumericSpinner`의 +/- 단추와 `Chip`의 삭제 단추는 이번에 그대로이고 outline 링이 남습니다. 할 일은 없습니다.
 - `BottomSheet`·`SideSheet`의 열림과 닫힘 시간을 기존의 1.3배로 늘렸습니다. 내용은 늘어난 진입 1단의 60% 지점에서 나타납니다. 축소 모션은 즉시 표시하며, 할 일은 없습니다.
 - `Modal`이 연 요소의 내용과 배경색을 300ms 동안 비우고, 600ms 동안 창으로 자란 뒤 내용을 300ms 동안 표시합니다. 배경막은 앞의 두 박자에 걸쳐 어두워집니다. 닫으면 내용을 숨기고 요소의 현재 자리로 줄어든 뒤 내용과 색이 돌아오는 역순으로 재생하며, 마지막에 요소와 포커스를 복원합니다. 움직임 줄이기 설정에서는 요소를 숨기지 않고 즉시 표시합니다. API 변경과 할 일은 없습니다.
