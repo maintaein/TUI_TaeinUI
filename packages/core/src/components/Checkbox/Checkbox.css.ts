@@ -1,6 +1,5 @@
 import { style, styleVariants } from '@vanilla-extract/css';
 import { themeContract } from '../../tokens/theme.css';
-import { focusRing } from '../../tokens/focusRing.css';
 
 // 상자 테두리 두께(px). 채움 층의 음수 inset이 같은 값을 쓴다.
 const BORDER_WIDTH = 2;
@@ -57,6 +56,8 @@ export const checkbox = style({
   width: 0,
   height: 0,
   opacity: 0,
+  // 포커스는 옆 상자(checkmark)의 테두리가 알린다. 숨은 입력에는 브라우저 기본 링도 없다.
+  outline: 'none',
   cursor: 'pointer',
   touchAction: 'manipulation',
 
@@ -87,8 +88,32 @@ export const checkmark = style({
       borderColor: themeContract.color.text.primary,
     },
 
+    // 키보드 포커스는 상자 자신의 테두리 색이 primary로 바뀌는 것으로 알린다(바깥 링 없음).
     'input:focus-visible + &': {
-      ...focusRing(),
+      borderColor: themeContract.color.primary.main,
+    },
+
+    // 이미 테두리가 primary인 체크·불확정은 색만으로는 전후가 같다. 테두리를 한 단계
+    // 짙게 하고 안쪽에 1px를 더 둘러(::after) 3px 짙은 틀로 굵어 보이게 한다.
+    'input:checked:focus-visible + &': {
+      borderColor: themeContract.palette.primary[900],
+    },
+    'input:indeterminate:focus-visible + &': {
+      borderColor: themeContract.palette.primary[900],
+    },
+    'input:checked:focus-visible + &::after': {
+      boxShadow: `inset 0 0 0 1px ${themeContract.palette.primary[900]}`,
+    },
+    'input:indeterminate:focus-visible + &::after': {
+      boxShadow: `inset 0 0 0 1px ${themeContract.palette.primary[900]}`,
+    },
+    // 위 안쪽 띠를 그리는 층. 평소에는 아무것도 칠하지 않는다.
+    '&::after': {
+      content: '""',
+      position: 'absolute',
+      inset: 0,
+      borderRadius: 'inherit',
+      pointerEvents: 'none',
     },
 
     // 상자 자신의 배경은 체크로 바뀌지 않는다. 차오르는 건 채움 층(markFill)이다.
@@ -160,10 +185,9 @@ export const error = style({
   borderColor: `${themeContract.color.error.main} !important`,
 
   selectors: {
-    'input:focus + &': {
-      borderColor: `${themeContract.color.error.main} !important`,
-      // 후광 두께 3px은 Switch의 error와 같다. 색은 토큰이다.
-      boxShadow: `0 0 0 3px ${themeContract.color.overlay.errorHalo}`,
+    // 오류+포커스: 테두리는 오류 색 그대로이고 안쪽 2px를 더해 굵어 보이게 한다(바깥 후광 없음).
+    'input:focus-visible + &::after': {
+      boxShadow: `inset 0 0 0 2px ${themeContract.color.error.main} !important`,
     },
   },
 });

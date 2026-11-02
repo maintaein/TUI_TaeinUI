@@ -1,6 +1,5 @@
 import { style, styleVariants } from '@vanilla-extract/css';
 import { themeContract } from '../../tokens/theme.css';
-import { focusRing } from '../../tokens/focusRing.css';
 
 // 표시(파란 알약)가 트랙 바깥 끝에서 떨어진 간격. 위·아래·왼쪽 끝·오른쪽 끝에
 // 모두 이 값 하나를 써서 표시가 트랙의 축소판으로 보인다. 위아래는 표시의 top·height가,
@@ -23,6 +22,23 @@ export const container = style({
   gap: '4px',
   width: 'fit-content',
   position: 'relative',
+
+  selectors: {
+    // 키보드 포커스는 트랙 자신의 테두리가 primary로 둘러지는 것으로 알린다(바깥 링 없음).
+    // 포커스는 늘 선택된 옵션에 오고(방향키가 선택을 옮긴다) 그 칸은 이미 primary 면이라,
+    // 옵션이 아니라 트랙 가장자리에 2px 테두리를 얹는다. 표시(zIndex 2) 위에 그려야 해서 3이다.
+    '&::after': {
+      content: '""',
+      position: 'absolute',
+      inset: 0,
+      borderRadius: 'inherit',
+      pointerEvents: 'none',
+      zIndex: 3,
+    },
+    '&:has(input:focus-visible)::after': {
+      boxShadow: `inset 0 0 0 2px ${themeContract.color.primary.main}`,
+    },
+  },
 });
 
 // 표시의 그림자를 맡는 층. 표시를 clip-path로 자르면 box-shadow도 같이 잘려서,
@@ -118,11 +134,6 @@ export const button = style({
       color: themeContract.color.text.primary,
     },
 
-    // 포커스는 안의 숨은 라디오가 받고, 링은 라벨(옵션) 모양에 그린다.
-    '&:has(input:focus-visible)': {
-      ...focusRing(),
-    },
-
     // sm은 보이는 높이가 36px이고 누르는 영역은 44px(터치 타깃)이다. 보이지 않는 ::after가
     // 옵션 세로 가운데 기준으로 44px 띠를 만든다(Chip.css.ts의 삭제 버튼 히트 영역과 같은
     // 방식). 옵션이 container 높이의 85%라 위아래 4px이 아니라 가운데 기준 44px로 잡는다.
@@ -206,4 +217,6 @@ export const radioInput = style({
   clip: 'rect(0, 0, 0, 0)',
   whiteSpace: 'nowrap',
   border: 0,
+  // 포커스는 트랙(container)의 테두리가 알린다. 브라우저 기본 링을 내보내지 않는다.
+  outline: 'none',
 });

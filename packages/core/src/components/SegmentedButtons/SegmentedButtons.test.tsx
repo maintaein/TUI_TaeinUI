@@ -1446,7 +1446,8 @@ describe('SegmentedButtons sm: 보이는 높이 36px, 누르는 영역 44px (M5 
   });
 
   it('sm 컨테이너 안 옵션에만 ::after 히트 영역이 있다(세로 가운데 44px, 칠하지 않는다)', () => {
-    const after = find(/::after$/);
+    // 컨테이너의 포커스 테두리(::after)와 구별하려고 옵션(button) 쪽만 센다
+    const after = find(/_button__\w+::after$/);
     expect(after).toHaveLength(1);
     const rule = after[0];
     expect(rule.selectorText).toMatch(
@@ -1728,18 +1729,23 @@ describe('SegmentedButtons 로빙 탭 순서·그룹 이름·개발 로그 (M5 �
       expect(radioOf('라')).toHaveFocus();
     });
 
-    it('포커스 링은 라디오가 아니라 라벨 모양에 그려진다', () => {
+    it('포커스 표시는 라벨이 아니라 트랙 테두리(::after, 안쪽 2px)이고 바깥 링이 없다', () => {
       const rules = segmentedRules();
-      const ring = rules.filter(
-        (rule) =>
-          /^\.SegmentedButtons_button__\w+:has\(input:focus-visible\)$/.test(
-            rule.selectorText
-          ) && rule.style.getPropertyValue('outline') !== ''
+      const edge = rules.filter((rule) =>
+        /^\.SegmentedButtons_container__\w+:has\(input:focus-visible\)::after$/.test(
+          rule.selectorText
+        )
       );
-      expect(ring).toHaveLength(1);
+      expect(edge).toHaveLength(1);
+      expect(edge[0].style.getPropertyValue('box-shadow')).toMatch(
+        /^inset 0 0 0 2px var\(--color-primary-main/
+      );
       expect(
-        rules.filter((rule) =>
-          /SegmentedButtons_button__\w+:focus-visible/.test(rule.selectorText)
+        rules.filter(
+          (rule) =>
+            /focus-visible/.test(rule.selectorText) &&
+            (rule.style.getPropertyValue('outline') !== '' ||
+              rule.style.getPropertyValue('outline-offset') !== '')
         )
       ).toHaveLength(0);
     });

@@ -1,6 +1,5 @@
 import { style, styleVariants } from '@vanilla-extract/css';
 import { themeContract } from '../../tokens/theme.css';
-import { focusRing } from '../../tokens/focusRing.css';
 import {
   LINE_BAR_REST,
   LINE_BOX_HEIGHT,
@@ -74,22 +73,19 @@ export const variantStyles = styleVariants({
 });
 
 // Slider Track. 라인은 안에 든 SVG가 그린다. 이 요소는 라인 두께와 같은 높이로
-// 가운데에 서서 bar의 포커스 링을 두를 자리가 된다. 높이는 호버·물결 때 JS가
-// 인라인으로 쓰고(GSAP), 여기 값은 쉬는 두께(첫 렌더·SSR)다.
+// 가운데에 선다. 높이는 호버·물결 때 JS가 인라인으로 쓰고(GSAP), 여기 값은 쉬는
+// 두께(첫 렌더·SSR)다.
 export const sliderTrack = style({
   position: 'absolute',
   top: '50%',
   left: 0,
   right: 0,
   height: `${LINE_REST}px`,
-  // 알약. 포커스 링이 라인 끝을 따라 둥글다.
   borderRadius: '999px',
   transform: 'translateY(-50%)',
   pointerEvents: 'none',
   selectors: {
     [`${variantStyles.bar} &`]: { height: `${LINE_BAR_REST}px` },
-    // 머리가 없으니 키보드 포커스는 트랙 둘레의 링이 알린다.
-    [`${variantStyles.bar}:has(input:focus-visible) &`]: { ...focusRing() },
   },
 });
 
@@ -113,6 +109,15 @@ export const sliderLineTrack = style({
   fill: themeContract.color.background.paper,
   stroke: themeContract.color.border.strong,
   strokeWidth: 1,
+  selectors: {
+    // bar는 머리가 없어 키보드 포커스를 라인 자신의 테두리로 알린다: 선이 굵어지고 짙은
+    // primary로 바뀐다. 채움(primary)이 안쪽 절반을 덮어도 바깥 절반이 채움 둘레에 남아
+    // 채운 만큼도 보이고, 같은 색이면 채움에 묻히므로 한 단계 짙은 primary[900]이다.
+    [`${variantStyles.bar}:has(input:focus-visible) &`]: {
+      stroke: themeContract.palette.primary[900],
+      strokeWidth: 3,
+    },
+  },
 });
 
 // 채운 부분. 같은 모양을 값 위치에서 자르고 안 채운 부분 위에 얹는다(테두리까지 덮는다).
@@ -203,7 +208,7 @@ export const slider = style({
       opacity: 0.5,
     },
 
-    // Focus
+    // Focus. 표시는 머리(sliderHead)와 bar의 라인 테두리가 맡는다.
     '&:focus-visible': {
       outline: 'none',
     },
@@ -240,7 +245,9 @@ export const sliderHead = style({
       // 매칭되므로, 여기서 더 작은 값을 쓰면 "잡고 있는 동안 머리가 줄어든다".
       transform: `scale(${THUMB_HOVER_SCALE})`,
     },
-    [`${sliderWrapper}:has(input:focus-visible) &`]: { ...focusRing() },
+    // 머리가 이미 primary 테두리라 색은 같고, 테두리가 2px에서 4px로 굵어진다(바깥 링 없음).
+    // border-box라 머리 크기는 그대로고 안쪽 면만 줄어든다.
+    [`${sliderWrapper}:has(input:focus-visible) &`]: { borderWidth: '4px' },
     [`${sliderWrapper}:has(input:disabled) &`]: {
       borderColor: themeContract.color.text.disabled,
       opacity: 0.5,

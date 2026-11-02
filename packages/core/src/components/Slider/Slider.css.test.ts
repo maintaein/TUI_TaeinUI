@@ -258,12 +258,12 @@ describe('Slider 생성 CSS', () => {
       expect(active.style.getPropertyValue('transform')).toBe('scale(1.15)');
     });
 
-    it('키보드 포커스(:focus-visible)면 머리 둘레에 포커스 링이 선다', () => {
-      const ring = withState('input:focus-visible) ');
+    it('키보드 포커스(:focus-visible)면 머리 테두리가 2px에서 4px로 굵어지고 바깥 링은 없다', () => {
+      const edge = withState('input:focus-visible) ');
 
-      expect(ring.style.getPropertyValue('outline')).toContain(
-        themeContract.color.border.focus
-      );
+      expect(edge.style.getPropertyValue('border-width')).toBe('4px');
+      expect(edge.style.getPropertyValue('outline')).toBe('');
+      expect(edge.style.getPropertyValue('outline-offset')).toBe('');
     });
 
     it('비활성이면 테두리가 흐려지고 반투명하다 (입력의 opacity 0.5를 대신한다)', () => {
@@ -308,17 +308,24 @@ describe('Slider 생성 CSS', () => {
       expect(hover).toHaveLength(0);
     });
 
-    it('키보드 포커스면 머리가 없으니 트랙 둘레에 포커스 링이 선다', () => {
-      const ring = own(
+    it('키보드 포커스면 머리가 없으니 라인 자신의 테두리가 굵어지고 짙은 primary가 된다', () => {
+      const edge = own(
         new RegExp(
-          `${BAR.source}:has\\(input:focus-visible\\) \\.Slider_sliderTrack__\\w+$`
+          `${BAR.source}:has\\(input:focus-visible\\) \\.Slider_sliderLineTrack__\\w+$`
         )
       );
 
-      expect(ring).toHaveLength(1);
-      expect(ring[0].rule.style.getPropertyValue('outline')).toContain(
-        themeContract.color.border.focus
+      expect(edge).toHaveLength(1);
+      expect(edge[0].rule.style.getPropertyValue('stroke')).toBe(
+        themeContract.palette.primary[900]
       );
+      expect(edge[0].rule.style.getPropertyValue('stroke-width')).toBe('3');
+      // 트랙 요소에는 더는 바깥 링이 없다
+      expect(
+        own(/\.Slider_sliderTrack__\w+/).filter(({ rule }) =>
+          rule.style.getPropertyValue('outline')
+        )
+      ).toHaveLength(0);
     });
   });
 

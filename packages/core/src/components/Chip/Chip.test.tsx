@@ -845,7 +845,7 @@ describe('Chip 모션 잠금', () => {
   });
 
   it('chip 베이스가 --chip-scale을 1로 선언한다(선택 안 된 칩은 hover/active가 그대로 유지)', () => {
-    expect(cssSource).toMatch(/vars:\s*\{\s*'--chip-scale':\s*'1',\s*\}/);
+    expect(cssSource).toMatch(/vars:\s*\{\s*'--chip-scale':\s*'1',/);
   });
 
   it('base에 표식(::before)이 opacity 0으로 숨어 있다가 opacity만 calc(slow*0.65)/exit로 물러난다', () => {
@@ -1434,8 +1434,9 @@ describe('Chip 공개 API 묶음 (clickable 삭제, aria-pressed, 나란한 삭�
       expect(action).toContain('padding: 0');
     });
 
-    it('칩 전체를 누름 영역으로 넓히고 포커스 링을 그 위에 그린다', () => {
-      expect(action).toContain("'&:focus-visible::after': focusRing()");
+    it('칩 전체를 누름 영역으로 넓히고 포커스 테두리를 그 위에 그린다(링이 아니다)', () => {
+      expect(action).toContain("'&:focus-visible::after': focusEdge");
+      expect(action).not.toContain('focusRing');
       // 위치 지정을 하면 ::after의 기준이 칩 루트가 아니라 이 버튼이 된다.
       expect(action).not.toMatch(/\n {2}position:/);
     });
@@ -1547,22 +1548,33 @@ describe('Chip 공개 API 묶음 (clickable 삭제, aria-pressed, 나란한 삭�
       expect(inset).toContain('-1');
     });
 
-    it('포커스 링은 눌리는 칩 루트와 같은 굵기와 간격으로 ::after에 그린다', () => {
+    it('포커스 테두리는 눌리는 칩 루트와 주 동작이 같은 안쪽 2px 띠(굵기 4px는 선택)를 ::after에 그린다', () => {
       render(<Chip label="a" />);
-      const ring = rules().find((rule) =>
-        /^\.Chip_action__\w+:focus-visible::after$/.test(rule.selectorText)
+      const find = (pattern: RegExp) =>
+        rules().find((rule) => pattern.test(rule.selectorText));
+      const ring = find(/^\.Chip_action__\w+:focus-visible::after$/);
+      const root = find(/^\.Chip_clickable\w*__\w+:focus-visible::after$/);
+      const rootSelected = find(
+        /^\.Chip_clickable\w*__\w+\[aria-pressed="true"\]:focus-visible::after$/
       );
-      const root = rules().find((rule) =>
-        /^\.Chip_clickable\w*__\w+:focus-visible$/.test(rule.selectorText)
+      const actionSelected = find(
+        /^\.Chip_action__\w+\[aria-pressed="true"\]:focus-visible::after$/
       );
       expect(ring).toBeDefined();
       expect(root).toBeDefined();
-      expect(ring?.style.getPropertyValue('outline')).toBe(
-        root?.style.getPropertyValue('outline')
-      );
-      expect(ring?.style.getPropertyValue('outline-offset')).toBe(
-        root?.style.getPropertyValue('outline-offset')
-      );
+      for (const rule of [ring, root]) {
+        expect(rule?.style.getPropertyValue('box-shadow')).toBe(
+          'inset 0 0 0 2px var(--chip-focus)'
+        );
+        // 바깥으로 나가는 링이 아니다
+        expect(rule?.style.getPropertyValue('outline')).toBe('');
+        expect(rule?.style.getPropertyValue('outline-offset')).toBe('');
+      }
+      for (const rule of [rootSelected, actionSelected]) {
+        expect(rule?.style.getPropertyValue('box-shadow')).toBe(
+          'inset 0 0 0 4px var(--chip-focus)'
+        );
+      }
     });
   });
 });

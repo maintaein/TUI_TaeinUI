@@ -1,6 +1,5 @@
 import { style, styleVariants } from '@vanilla-extract/css';
 import { themeContract } from '../../tokens/theme.css';
-import { focusRing } from '../../tokens/focusRing.css';
 
 // 트랙 테두리 두께(px). 투명 테두리 밑까지 트랙 배경이 칠해지므로, 켜졌을 때
 // 파란 채움을 자르는 칸(sweepClip)이 같은 값만큼 바깥으로 깔려야 회색 고리가
@@ -54,6 +53,8 @@ export const switchInput = style({
   width: 0,
   height: 0,
   opacity: 0,
+  // 포커스는 트랙의 테두리가 알린다. 숨은 입력에는 브라우저 기본 링도 없다.
+  outline: 'none',
   cursor: 'pointer',
   touchAction: 'manipulation',
 
@@ -96,9 +97,7 @@ export const size = styleVariants(baseSizeContainer, (baseStyle) => [
 
     selectors: {
       // &:has(input:checked) 제거: 트랙 색 전환은 이제 스윕 span(GSAP scaleX)이 담당한다(Ruling 42).
-      [`&:has(input:focus-visible)`]: {
-        ...focusRing(),
-      },
+      // 키보드 포커스의 테두리는 sweepClip의 ::after가 그린다(스윕이 투명 테두리 자리를 덮어서).
 
       // disabled 트랙의 기준은 1.4.11의 3:1이 아니다(disabled는 면제 대상이다).
       // 기준은 "컨트롤이 아예 안 보이면 고친다" 하나다. unchecked+disabled는
@@ -202,12 +201,37 @@ export const sweepClip = style({
   borderRadius: 'inherit',
   overflow: 'hidden',
   pointerEvents: 'none',
+
+  selectors: {
+    // 키보드 포커스의 테두리. 트랙의 투명 테두리 자리(이 칸의 가장자리)에 2px 띠를 깔아
+    // 트랙 자신의 테두리 색이 primary로 바뀐 것처럼 읽히게 한다. 켜진 트랙은 파란 채움과
+    // 같은 색이라 한 단계 짙은 primary[900]로 둔다. 머리(DOM 뒤)가 이 위에 놓인다.
+    '&::after': {
+      content: '""',
+      position: 'absolute',
+      inset: 0,
+      borderRadius: 'inherit',
+    },
+    [`${switchContainer}:has(input:focus-visible) &::after`]: {
+      boxShadow: `inset 0 0 0 ${TRACK_BORDER_WIDTH}px ${themeContract.color.primary.main}`,
+    },
+    [`${switchContainer}:has(input:checked:focus-visible) &::after`]: {
+      boxShadow: `inset 0 0 0 ${TRACK_BORDER_WIDTH}px ${themeContract.palette.primary[900]}`,
+    },
+  },
 });
 
 // 에러일 때의 칸은 테두리 안쪽에만 깔아서 켜진 에러 스위치에도 에러 색
 // 테두리가 고리로 남게 한다(sweepClip 뒤에 선언해 같은 특이도에서 이긴다).
+// 에러+포커스: 테두리는 에러 색 그대로이고 안쪽 1px를 더해 굵어 보이게 한다.
 export const sweepInside = style({
   inset: 0,
+
+  selectors: {
+    [`${switchContainer}:has(input:focus-visible) &::after`]: {
+      boxShadow: `inset 0 0 0 2px ${themeContract.color.error.main} !important`,
+    },
+  },
 });
 
 // Sweep (트랙 색 전환용 채움). GSAP이 scaleX로 왼쪽부터 채운다(Ruling 42).
@@ -230,14 +254,6 @@ export const sweep = style({
 // Error State
 export const error = style({
   borderColor: `${themeContract.color.error.main} !important`,
-
-  selectors: {
-    'input:focus ~ &': {
-      borderColor: `${themeContract.color.error.main} !important`,
-      // 후광 두께 3px은 Checkbox의 error와 같다. 색은 토큰이다.
-      boxShadow: `0 0 0 3px ${themeContract.color.overlay.errorHalo} !important`,
-    },
-  },
 });
 
 // Helper Text
