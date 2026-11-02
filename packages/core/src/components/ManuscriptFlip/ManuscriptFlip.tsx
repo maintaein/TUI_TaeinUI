@@ -118,7 +118,7 @@ const crossfade = (front: HTMLElement, back: HTMLElement, done: () => void) =>
  * ponytail: 넘기는 도중 칸 수가 바뀌는 크기 변화는 그 순간 끝 모양으로 점프한다, 눈에 띄면 진행도를 옮겨 이어 간다
  */
 export const ManuscriptFlip = forwardRef<HTMLDivElement, ManuscriptFlipProps>(
-  ({ front, back, flipped, className, ...rest }, ref) => {
+  ({ front, back, flipped, className, onFocus, onBlur, ...rest }, ref) => {
     const reduced = useReducedMotion();
     const rootRef = useRef<HTMLDivElement>(null);
     const frontRef = useRef<HTMLDivElement>(null);
@@ -150,7 +150,9 @@ export const ManuscriptFlip = forwardRef<HTMLDivElement, ManuscriptFlipProps>(
     // 면 안에 있던 포커스는 그 면이 inert가 될 때 사라진다. 넘김이 끝나면 포커스가 body에 떨어진 경우에만 상자로 옮겨 다음 Tab이 새 면으로 가게 한다.
     // inert 때문에 나는 blur는 면이 이미 inert라 구별되고(그때는 "안에 있었다"를 지키고), 사용자가 직접 다른 곳으로 옮긴 blur만 지운다.
     const focusInside = useRef(false);
+    // 소비자 onFocus·onBlur도 부른다(rest로 덮으면 포커스 되돌리기가 조용히 꺼진다)
     const trackFocus = (inside: boolean) => (e: FocusEvent<HTMLDivElement>) => {
+      (inside ? onFocus : onBlur)?.(e);
       if (!inside && (e.target as Element).closest('[inert]')) return;
       focusInside.current = inside;
     };

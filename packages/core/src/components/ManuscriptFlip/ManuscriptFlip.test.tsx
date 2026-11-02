@@ -662,6 +662,32 @@ describe('ManuscriptFlip', () => {
       expect(document.activeElement).toBe(root(container));
     });
 
+    it('소비자가 onFocus·onBlur를 넘겨도 함께 불리고 포커스 되돌리기는 그대로다', () => {
+      const observer = installObserver();
+      const calls: string[] = [];
+      const Spy = ({ flipped }: { flipped: boolean }) => (
+        <ManuscriptFlip
+          flipped={flipped}
+          front={<button type="button">앞 단추</button>}
+          back={<button type="button">뒤 단추</button>}
+          onFocus={() => calls.push('focus')}
+          onBlur={() => calls.push('blur')}
+        />
+      );
+      const { container, rerender } = render(<Spy flipped={false} />);
+      act(() => observer().resize(320, 200));
+      const front = screen.getByText('앞 단추');
+      front.focus();
+      rerender(<Spy flipped />);
+      seek(0.3);
+      act(() => front.blur());
+      act(() => {
+        lastPlayed().progress(1);
+      });
+      expect(calls.slice(0, 2)).toEqual(['focus', 'blur']);
+      expect(document.activeElement).toBe(root(container));
+    });
+
     it('상자는 포커스 표시를 새로 그리지 않는다', () => {
       const { container } = mountQuiz();
       expect(root(container).className).toMatch(/root/);
