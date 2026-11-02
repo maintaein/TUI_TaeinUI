@@ -38,7 +38,7 @@ interface GateEnforcementException {
 
 /**
  * 게이트 없이 gsap을 쓰는 게 정당한 파일의 목록. 첫 입주자는 M3 T3
- * `Snackbar`, 둘째는 M7 T9 `HoldButton`, 셋째는 M7.1 T7 `rocketBeat`(이징 평가만 하는 순수 함수)이다. 아래 "정확히 이 항목들" 검사가 목록이 몰래 늘지 않는지 잠근다.
+ * `Snackbar`, 둘째는 M7 T9 `HoldButton`, 셋째는 M7.1 T7 `rocketBeat`(이징 평가만 하는 순수 함수), 넷째는 M7.1 T9 `ManuscriptFlip`(축소 모션의 교차 흐림)이다. 아래 "정확히 이 항목들" 검사가 목록이 몰래 늘지 않는지 잠근다.
  */
 const GATE_ENFORCEMENT_EXCEPTIONS: GateEnforcementException[] = [
   {
@@ -69,6 +69,14 @@ const GATE_ENFORCEMENT_EXCEPTIONS: GateEnforcementException[] = [
       '평가할 뿐 트윈도 타임라인도 시계도 만들지 않아 게이트가 확정하거나 죽일 애니메이션이 없다. ' +
       '이 함수를 시계에 얹어 돌리는 RocketButton.tsx가 gateMotion/settleMotion을 거친다(M7.1 T7).',
   },
+  {
+    path: 'components/ManuscriptFlip/ManuscriptFlip.tsx',
+    reason:
+      '움직임 줄이기에서 남길 표현이 두 면의 교차 흐림(opacity 트윈) 자체라, gateMotion이 하는 ' +
+      'progress(1) 확정과 kill을 거치면 교차 흐림이 사라진다. 전역 reduce 규칙이 CSS transition도 ' +
+      '죽여서 JS 트윈이 맡는다. 축소 선호는 `reduced ? 교차 흐림 : 칸 타일 넘김` 분기가 존중하고, ' +
+      '축소에서는 칸 타일 타임라인을 만들지 않는다(M7.1 T9 수정 1).',
+  },
 ];
 
 /** gsap을 import하는 소스가 게이트를 실제로 쓰지 않으면 위반이다. */
@@ -94,11 +102,12 @@ describe('GSAP 진입점은 게이트를 거친다 (T2 강제)', () => {
   it('예외 목록은 정확히 이 항목들이고, 이 개수다', () => {
     // 목록이 저절로 늘어나지 않게 길이와 내용을 같이 잠근다. 새 예외가
     // 필요해지면 여기부터 고쳐야 하고, 그 순간 이유를 적어야 한다.
-    expect(GATE_ENFORCEMENT_EXCEPTIONS).toHaveLength(3);
+    expect(GATE_ENFORCEMENT_EXCEPTIONS).toHaveLength(4);
     expect(GATE_ENFORCEMENT_EXCEPTIONS.map((e) => e.path)).toEqual([
       'components/Snackbar/Snackbar.tsx',
       'components/HoldButton/HoldButton.tsx',
       'components/RocketButton/rocketBeat.ts',
+      'components/ManuscriptFlip/ManuscriptFlip.tsx',
     ]);
     expect(
       GATE_ENFORCEMENT_EXCEPTIONS.every((e) => e.reason.trim().length > 0)

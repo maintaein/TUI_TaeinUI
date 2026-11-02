@@ -4,13 +4,13 @@ import {
   useLayoutEffect,
   useRef,
   useState,
+  type FocusEvent,
   type HTMLAttributes,
   type ReactNode,
 } from 'react';
 import clsx from 'clsx';
 import { gsap } from 'gsap';
 import { useReducedMotion } from '../../hooks/useReducedMotion';
-import { gateMotion } from '../../hooks/gateMotion';
 import { gsapDuration, gsapEasing } from '../../tokens/gsapEasing';
 import { cellStarts, flippedCount, gridFor, maskClips } from './flipSchedule';
 import * as styles from './ManuscriptFlip.css';
@@ -114,6 +114,7 @@ const crossfade = (front: HTMLElement, back: HTMLElement, done: () => void) =>
  * 칸 크기는 상자 크기에서 정하고(한 변 약 48px, 칸 수 상한 48) 크기가 바뀌면 다시 나눈다.
  * 보이지 않는 면과 넘기는 도중의 두 면은 `inert`다. 움직임 줄이기에서는 칸 없이 두 면이 교차해 흐려진다.
  * 클릭·호버로 넘길지는 소비자가 정한다. 상자에는 안쪽 여백을 주지 않는다(칸 격자가 어긋난다).
+ * 넘기는 단추는 상자 밖에 두는 것이 좋다. 면 안에 두면 넘기는 동안 포커스가 사라져 끝날 때 상자로 옮겨진다.
  * ponytail: 넘기는 도중 칸 수가 바뀌는 크기 변화는 그 순간 끝 모양으로 점프한다, 눈에 띄면 진행도를 옮겨 이어 간다
  */
 export const ManuscriptFlip = forwardRef<HTMLDivElement, ManuscriptFlipProps>(
@@ -142,8 +143,17 @@ export const ManuscriptFlip = forwardRef<HTMLDivElement, ManuscriptFlipProps>(
       observer.observe(root);
       return () => observer.disconnect();
     }, []);
-    const cols = layout?.cols ?? 0;
-    const rows = layout?.rows ?? 0;
+    // 움직임 줄이기에서는 격자를 쓰지 않으니 창 크기 변화가 진행 중인 교차 흐림을 끊지 않게 격자 값을 0으로 묶는다
+    const cols = reduced ? 0 : (layout?.cols ?? 0);
+    const rows = reduced ? 0 : (layout?.rows ?? 0);
+
+    // 면 안에 있던 포커스는 그 면이 inert가 될 때 사라진다. 넘김이 끝나면 포커스가 body에 떨어진 경우에만 상자로 옮겨 다음 Tab이 새 면으로 가게 한다.
+    // inert 때문에 나는 blur는 면이 이미 inert라 구별되고(그때는 "안에 있었다"를 지키고), 사용자가 직접 다른 곳으로 옮긴 blur만 지운다.
+    const focusInside = useRef(false);
+    const trackFocus = (inside: boolean) => (e: FocusEvent<HTMLDivElement>) => {
+      if (!inside && (e.target as Element).closest('[inert]')) return;
+      focusInside.current = inside;
+    };
 
     // 넘기는 도중(busy)에는 두 면이 모두 inert이고 보인다. 포커스가 있던 면은 넘김이 시작되는 순간 inert가 되어 포커스를 잃고,
     // 넘김이 끝나면 보이는 면만 살아난다. 상태는 렌더 중에 맞춘다(effect 안 setState는 lint가 막는다).
@@ -164,10 +174,22 @@ export const ManuscriptFlip = forwardRef<HTMLDivElement, ManuscriptFlipProps>(
       const backEl = backRef.current;
       const layer = tilesRef.current;
       if (!frontEl || !backEl || (!reduced && !layer)) return;
-      const done = () => setBusy(false);
-      // 게이트에 false를 넘긴다. 움직임 줄이기에서 남겨야 할 끝 상태가 교차 흐림 자체라 progress(1)로 확정하면 안 되고,
-      // 전역 reduce 규칙이 CSS transition을 죽이므로 JS가 몬다.
-      const tl = gateMotion(false, () =>
+      const done = () => {
+        setBusy(false);
+        const root = rootRef.current;
+        const active = document.activeElement;
+        if (
+          root &&
+          focusInside.current &&
+          (!active || active === document.body)
+        ) {
+          root.focus({ preventScroll: true });
+          focusInside.current = false;
+        }
+      };
+      // 게이트(게이트 검사 예외 목록)를 거치지 않는다. 움직임 줄이기에서 남겨야 할 표현이 교차 흐림 자체라 끝 상태 확정을 하면 안 된다.
+      // 축소 선호는 이 분기가 존중한다: 축소면 교차 흐림만 만들고 칸 타일 타임라인은 만들지 않는다.
+      const tl =
         reduced || !layer
           ? crossfade(frontEl, backEl, done)
           : flipTimeline(
@@ -177,8 +199,7 @@ export const ManuscriptFlip = forwardRef<HTMLDivElement, ManuscriptFlipProps>(
               cols,
               rows,
               done
-            )
-      );
+            );
       timeline.current = tl;
       fresh.current = true;
       return () => {
@@ -215,7 +236,15 @@ export const ManuscriptFlip = forwardRef<HTMLDivElement, ManuscriptFlipProps>(
     const backInert = busy || !flipped;
 
     return (
-      <div ref={rootRef} className={clsx(styles.root, className)} {...rest}>
+      <div
+        ref={rootRef}
+        // 상자는 조작 요소가 아니다. 포커스를 되돌려 받을 때만 쓰고 테두리는 그리지 않는다(css.ts)
+        tabIndex={-1}
+        className={clsx(styles.root, className)}
+        onFocus={trackFocus(true)}
+        onBlur={trackFocus(false)}
+        {...rest}
+      >
         <div
           ref={frontRef}
           className={clsx(styles.face, !busy && flipped && styles.hidden)}

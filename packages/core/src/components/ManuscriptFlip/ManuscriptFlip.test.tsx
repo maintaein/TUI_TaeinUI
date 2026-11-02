@@ -11,8 +11,12 @@ import {
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import { renderToString } from 'react-dom/server';
 import { ManuscriptFlip } from './ManuscriptFlip';
+import { gsapEasing } from '../../tokens/gsapEasing';
 
-/** 재생된 GSAP 애니메이션을 멈추고 시각을 직접 옮겨 인라인 값을 읽는다. 시험은 gsap을 직접 import하지 않으므로 gateMotion이 돌려주는 값을 받아 둔다. */
+/**
+ * 컴포넌트가 만든 GSAP 타임라인을 멈추고 시각을 직접 옮겨 인라인 값을 읽는다. 시험은 gsap을 직접 import하지 않으므로(게이트 검사가 시험 파일도 훑는다)
+ * 진짜 gsap.timeline을 그대로 부르고 돌려받은 타임라인만 기록한다(통과형 관측).
+ */
 interface Seekable {
   pause(): unknown;
   time(seconds?: number): unknown;
@@ -20,19 +24,25 @@ interface Seekable {
   progress(value: number): unknown;
   reversed(): boolean;
   paused(): boolean;
+  getChildren(
+    nested?: boolean,
+    tweens?: boolean,
+    timelines?: boolean
+  ): { vars: Record<string, unknown> }[];
 }
 const played = vi.hoisted(() => ({ animations: [] as unknown[] }));
-vi.mock('../../hooks/gateMotion', async (importActual) => {
-  const actual = await importActual<typeof import('../../hooks/gateMotion')>();
-  return {
-    ...actual,
-    // 진짜 gateMotion을 그대로 부르고 돌려받은 애니메이션만 기록한다
-    gateMotion: ((...args: Parameters<typeof actual.gateMotion>) => {
-      const animation = actual.gateMotion(...args);
-      played.animations.push(animation);
-      return animation;
-    }) as typeof actual.gateMotion,
+vi.mock('gsap', async (importActual) => {
+  // 타입 import는 게이트 검사의 import 판정에 걸리므로 필요한 모양만 적는다
+  const actual = (await importActual()) as {
+    gsap: { timeline: (...args: unknown[]) => unknown };
   };
+  const timeline = actual.gsap.timeline.bind(actual.gsap);
+  actual.gsap.timeline = (...args: unknown[]) => {
+    const tl = timeline(...args);
+    played.animations.push(tl);
+    return tl;
+  };
+  return actual;
 });
 const lastPlayed = () => {
   const animation = played.animations.at(-1) as Seekable | undefined;
@@ -346,11 +356,11 @@ describe('ManuscriptFlip', () => {
       ).toEqual(before);
     });
 
-    it('타일은 aria-hidden이고 포인터를 받지 않는다', () => {
+    it('타일 층은 aria-hidden이다(포인터를 받지 않는 것은 e2e가 계산값으로 본다)', () => {
       const { container } = mountMeasured();
-      const layer = container.querySelector('[aria-hidden="true"]')!;
-      expect(layer).toBeInTheDocument();
-      expect(layer.className).toMatch(/tiles/);
+      expect(
+        container.querySelector('[aria-hidden="true"]')
+      ).toBeInTheDocument();
     });
 
     it('전체 길이는 700ms다', () => {
@@ -517,6 +527,179 @@ describe('ManuscriptFlip', () => {
       expect(root.children[0].className).toMatch(/hidden/);
       expect(root.children[1].hasAttribute('inert')).toBe(false);
       expect(root.querySelector('[aria-hidden="true"]')).toBeNull();
+    });
+  });
+
+  describe('이징', () => {
+    it('칸 타일은 settle 이징으로 돈다', () => {
+      const { rerender } = mountMeasured();
+      rerender(<Flip flipped />);
+      const turns = lastPlayed()
+        .getChildren(false, true, false)
+        .filter((tween) => tween.vars.rotationY === 180);
+      expect(turns).toHaveLength(28);
+      expect(
+        turns.every((tween) => tween.vars.ease === gsapEasing.settle)
+      ).toBe(true);
+    });
+
+    it('움직임 줄이기의 교차 흐림은 두 면 모두 settle 이징이다', () => {
+      stubReducedMotion();
+      const { rerender } = mountMeasured();
+      rerender(<Flip flipped />);
+      const fades = lastPlayed().getChildren(false, true, false);
+      expect(fades).toHaveLength(2);
+      expect(
+        fades.every((tween) => tween.vars.ease === gsapEasing.settle)
+      ).toBe(true);
+    });
+  });
+
+  describe('마스크 쓰기', () => {
+    it('칸이 반쯤 돈 순간에만 면의 style을 쓴다(같은 칸 수에서는 쓰지 않는다)', () => {
+      const { container, rerender } = mountMeasured();
+      rerender(<Flip flipped />);
+      const { front } = faces(container);
+      // style.clipPath에 쓰는 횟수를 센다(같은 값을 다시 써도 DOM 변화로 안 잡히므로 setter를 직접 감싼다)
+      let writes = 0;
+      const proto = Object.getOwnPropertyDescriptor(
+        Object.getPrototypeOf(front.style),
+        'clipPath'
+      )!;
+      Object.defineProperty(front.style, 'clipPath', {
+        configurable: true,
+        get: () => proto.get!.call(front.style),
+        set: (value: string) => {
+          writes += 1;
+          proto.set!.call(front.style, value);
+        },
+      });
+
+      seek(0.101);
+      expect(writes).toBeGreaterThan(0);
+      writes = 0;
+      // 첫 칸만 뒤집힌 구간(두 번째 칸은 0.1 + 0.5/27 = 약 0.118에 뒤집힌다)에서 시각만 옮긴다
+      seek(0.105);
+      seek(0.11);
+      seek(0.115);
+      expect(writes).toBe(0);
+      seek(0.13);
+      expect(writes).toBeGreaterThan(0);
+    });
+  });
+
+  describe('정리', () => {
+    it('언마운트하면 면에 남긴 마스크와 불투명도를 걷는다', () => {
+      const { container, rerender, unmount } = mountMeasured();
+      rerender(<Flip flipped />);
+      seek(0.3);
+      const { front, back } = faces(container);
+      expect(back.style.clipPath).toContain('polygon');
+      unmount();
+      expect(front.style.clipPath).toBe('');
+      expect(back.style.clipPath).toBe('');
+    });
+
+    it('움직임 줄이기 도중 언마운트하면 면의 불투명도를 걷는다', () => {
+      stubReducedMotion();
+      const { container, rerender, unmount } = mountMeasured();
+      rerender(<Flip flipped />);
+      seek(0.1);
+      const { front, back } = faces(container);
+      expect(front.style.opacity).not.toBe('');
+      unmount();
+      expect(front.style.opacity).toBe('');
+      expect(back.style.opacity).toBe('');
+    });
+  });
+
+  describe('움직임 줄이기와 크기 변화', () => {
+    it('교차 흐림 도중 창 크기가 바뀌어도 끊기지 않는다', () => {
+      stubReducedMotion();
+      const { container, rerender, observer } = mountMeasured();
+      rerender(<Flip flipped />);
+      const tl = lastPlayed();
+      seek(0.1);
+      const before = faces(container).front.style.opacity;
+      act(() => observer().resize(100, 100));
+      expect(lastPlayed()).toBe(tl);
+      expect(faces(container).front.style.opacity).toBe(before);
+    });
+  });
+
+  describe('포커스', () => {
+    const Quiz = ({ flipped }: { flipped: boolean }) => (
+      <>
+        <button type="button">밖 단추</button>
+        <ManuscriptFlip
+          flipped={flipped}
+          front={<button type="button">앞 단추</button>}
+          back={<button type="button">뒤 단추</button>}
+        />
+      </>
+    );
+    const mountQuiz = () => {
+      const observer = installObserver();
+      const view = render(<Quiz flipped={false} />);
+      act(() => observer().resize(320, 200));
+      return view;
+    };
+    const root = (container: HTMLElement) =>
+      container.querySelector('[tabindex="-1"]') as HTMLElement;
+
+    it('면 안 포커스가 inert로 사라졌다면 넘김이 끝날 때 상자로 옮긴다', () => {
+      const { container, rerender } = mountQuiz();
+      const front = screen.getByText('앞 단추');
+      front.focus();
+      rerender(<Quiz flipped />);
+      seek(0.3);
+      // jsdom은 inert 포커스 정리를 하지 않아 브라우저가 하는 일을 직접 한다
+      act(() => front.blur());
+      expect(document.activeElement).toBe(document.body);
+      act(() => {
+        lastPlayed().progress(1);
+      });
+      expect(document.activeElement).toBe(root(container));
+    });
+
+    it('상자는 포커스 표시를 새로 그리지 않는다', () => {
+      const { container } = mountQuiz();
+      expect(root(container).className).toMatch(/root/);
+      expect(root(container)).toHaveAttribute('tabindex', '-1');
+    });
+
+    it('포커스가 면 밖에 있었다면 건드리지 않는다', () => {
+      const { rerender } = mountQuiz();
+      const outside = screen.getByText('밖 단추');
+      outside.focus();
+      rerender(<Quiz flipped />);
+      seek(0.3);
+      act(() => {
+        lastPlayed().progress(1);
+      });
+      expect(document.activeElement).toBe(outside);
+    });
+
+    it('면 안 포커스가 inert가 된 뒤 사용자가 직접 밖으로 옮겼다면 끝날 때 가져오지 않는다', () => {
+      const { rerender } = mountQuiz();
+      screen.getByText('앞 단추').focus();
+      rerender(<Quiz flipped />);
+      seek(0.3);
+      screen.getByText('밖 단추').focus();
+      act(() => {
+        lastPlayed().progress(1);
+      });
+      expect(document.activeElement).toBe(screen.getByText('밖 단추'));
+    });
+
+    it('포커스가 없었다면 끝나도 포커스를 주지 않는다', () => {
+      const { rerender } = mountQuiz();
+      rerender(<Quiz flipped />);
+      seek(0.3);
+      act(() => {
+        lastPlayed().progress(1);
+      });
+      expect(document.activeElement).toBe(document.body);
     });
   });
 

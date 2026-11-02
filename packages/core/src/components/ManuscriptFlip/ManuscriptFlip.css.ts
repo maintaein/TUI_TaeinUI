@@ -5,9 +5,11 @@ const { color, shadow } = themeContract;
 
 // 두 면과 타일 층이 한 격자 칸에 겹친다. 높이는 더 큰 면이 정하고, 폭은 부모를 채운다.
 // 상자에 안쪽 여백을 주면 타일 층(칸 격자)과 면의 경계가 어긋나므로 여백은 면 안에 둔다.
+// outline: 상자는 면 안 포커스가 사라졌을 때 포커스를 되돌려 받는 자리일 뿐 조작 요소가 아니라 테두리를 그리지 않는다(바깥 링 금지)
 export const root = style({
   display: 'grid',
   width: '100%',
+  outline: 'none',
 });
 
 export const face = style({
