@@ -93,8 +93,9 @@ export const checkmark = style({
       borderColor: themeContract.color.primary.main,
     },
 
-    // 이미 테두리가 primary인 체크·불확정은 색만으로는 전후가 같다. 테두리를 한 단계
-    // 짙게 하고 안쪽에 1px를 더 둘러(::after) 3px 짙은 틀로 굵어 보이게 한다.
+    // 이미 테두리가 primary인 체크·불확정은 색만으로는 전후가 같고 primary[900]은 primary
+    // 면과 1.88:1이라 모자란다. 테두리를 짙게(바깥 바탕과 8.63:1) 하고 그 안쪽에 흰 2px(::after,
+    // primary 면과 4.60:1)를 한 겹 더해 안쪽 두 겹으로 갈리게 한다.
     'input:checked:focus-visible + &': {
       borderColor: themeContract.palette.primary[900],
     },
@@ -102,10 +103,10 @@ export const checkmark = style({
       borderColor: themeContract.palette.primary[900],
     },
     'input:checked:focus-visible + &::after': {
-      boxShadow: `inset 0 0 0 1px ${themeContract.palette.primary[900]}`,
+      boxShadow: `inset 0 0 0 2px ${themeContract.color.primary.contrast}`,
     },
     'input:indeterminate:focus-visible + &::after': {
-      boxShadow: `inset 0 0 0 1px ${themeContract.palette.primary[900]}`,
+      boxShadow: `inset 0 0 0 2px ${themeContract.color.primary.contrast}`,
     },
     // 위 안쪽 띠를 그리는 층. 평소에는 아무것도 칠하지 않는다.
     '&::after': {
@@ -188,6 +189,13 @@ export const error = style({
     // 오류+포커스: 테두리는 오류 색 그대로이고 안쪽 2px를 더해 굵어 보이게 한다(바깥 후광 없음).
     'input:focus-visible + &::after': {
       boxShadow: `inset 0 0 0 2px ${themeContract.color.error.main} !important`,
+    },
+    // 체크된 오류는 면이 primary라 안쪽 오류색 띠가 면과 안 갈린다. 빨간 테두리 안쪽에 흰 2px.
+    'input:checked:focus-visible + &::after': {
+      boxShadow: `inset 0 0 0 2px ${themeContract.color.primary.contrast} !important`,
+    },
+    'input:indeterminate:focus-visible + &::after': {
+      boxShadow: `inset 0 0 0 2px ${themeContract.color.primary.contrast} !important`,
     },
   },
 });

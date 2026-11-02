@@ -1548,7 +1548,7 @@ describe('Chip 공개 API 묶음 (clickable 삭제, aria-pressed, 나란한 삭�
       expect(inset).toContain('-1');
     });
 
-    it('포커스 테두리는 눌리는 칩 루트와 주 동작이 같은 안쪽 2px 띠(굵기 4px는 선택)를 ::after에 그린다', () => {
+    it('포커스 테두리는 눌리는 칩 루트와 주 동작이 같은 안쪽 2px 띠(채워진 primary·error는 안쪽 흰 2px 한 겹 더, 선택은 4px)를 ::after에 그린다', () => {
       render(<Chip label="a" />);
       const find = (pattern: RegExp) =>
         rules().find((rule) => pattern.test(rule.selectorText));
@@ -1564,7 +1564,7 @@ describe('Chip 공개 API 묶음 (clickable 삭제, aria-pressed, 나란한 삭�
       expect(root).toBeDefined();
       for (const rule of [ring, root]) {
         expect(rule?.style.getPropertyValue('box-shadow')).toBe(
-          'inset 0 0 0 2px var(--chip-focus)'
+          'inset 0 0 0 2px var(--chip-focus), inset 0 0 0 4px var(--chip-focus-inner, transparent)'
         );
         // 바깥으로 나가는 링이 아니다
         expect(rule?.style.getPropertyValue('outline')).toBe('');
@@ -1572,7 +1572,7 @@ describe('Chip 공개 API 묶음 (clickable 삭제, aria-pressed, 나란한 삭�
       }
       for (const rule of [rootSelected, actionSelected]) {
         expect(rule?.style.getPropertyValue('box-shadow')).toBe(
-          'inset 0 0 0 4px var(--chip-focus)'
+          'inset 0 0 0 var(--chip-focus-w, 4px) var(--chip-focus), inset 0 0 0 calc(var(--chip-focus-w, 4px) + 2px) var(--chip-focus-inner, transparent)'
         );
       }
     });

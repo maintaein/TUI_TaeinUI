@@ -126,7 +126,7 @@ import { Checkbox } from '@taein-ui/core';
 | className | string | - | Additional CSS class |
 
 ### Focus
-Keyboard focus (`:focus-visible`) shows on the box's own border, not an outer ring. Unchecked turns the border `primary`. Checked and indeterminate already have a `primary` border, so it turns one step darker (`primary[900]`) with 1px more inside. `error` wins: the border stays red and 2px more is added inside so focus still shows.
+Keyboard focus (`:focus-visible`) shows on the box's own border, not an outer ring. Unchecked turns the border `primary`. Checked and indeterminate already have a `primary` fill and border, so the border turns `primary[900]` (8.63:1 against the page) with a white 2px band just inside it (4.60:1 against the fill). `error` wins: the border stays red and 2px more is added inside (white on a checked box) so focus still shows.
 
 ---
 
@@ -158,7 +158,7 @@ import { Switch } from '@taein-ui/core';
 | className | string | - | Additional CSS class |
 
 ### Focus
-Keyboard focus (`:focus-visible`) shows on the track's own edge, not an outer ring. Off turns the 2px edge `primary`. On has a `primary` fill already, so the edge turns one step darker (`primary[900]`). `error` wins: the edge stays red and 2px more is added inside so focus still shows.
+Keyboard focus (`:focus-visible`) shows on the track's own edge, not an outer ring. Off turns the 2px edge `primary`. On has a `primary` fill already, so the edge becomes two inner bands: `primary[900]` 2px with a white 2px just inside it. `error` wins: the edge stays red and 2px more is added inside (white when on) so focus still shows.
 
 ---
 
@@ -440,7 +440,7 @@ const [tags, setTags] = useState(['React', 'Vite']);
 | className | string | - | Additional CSS class |
 
 ### Focus
-Keyboard focus (`:focus-visible`) draws a 2px border in the chip's own edge (inside it, never an outer ring): `primary`, or one step darker (`primary[900]`) on a filled `primary`/`success`/`error`/`warning` chip. A selected chip already has a ring marker, so its focus border is 4px. The delete button keeps its `:focus-visible` outline ring for now.
+Keyboard focus (`:focus-visible`) draws a 2px border in the chip's own edge (inside it, never an outer ring): `primary`; on a filled `primary`/`success`/`error`/`warning` chip it is `primary[900]` (plus a white 2px band just inside it on `primary` and `error` faces, which the dark band alone does not separate). A selected chip already has a ring marker, so its focus border is 4px. The delete button keeps its `:focus-visible` outline ring for now.
 
 ---
 

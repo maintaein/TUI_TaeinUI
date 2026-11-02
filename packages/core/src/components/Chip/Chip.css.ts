@@ -27,8 +27,10 @@ export const chip = recipe({
     // 1.03→1.0으로 줄었다.
     vars: {
       '--chip-scale': '1',
-      // 키보드 포커스 테두리 색(clickable·action의 ::after). 면이 primary 계열이거나 색이
-      // 있는 filled 칩은 아래 compound가 한 단계 짙은 색으로 바꾼다.
+      // 키보드 포커스 테두리 색(clickable·action의 ::after). 색이 채워진 filled 칩은 아래
+      // compound가 짙은 primary[900] 2px로 바꾸고, primary·error 면은 그 안쪽에 흰 2px
+      // (--chip-focus-inner)를 한 겹 더해 면과 바깥 바탕 양쪽에 3:1 이상으로 갈린다.
+      // success·warning은 짙은 겹만으로 면과 3:1을 넘어(3.11, 4.00) 안쪽 겹이 없다.
       '--chip-focus': themeContract.color.primary.main,
     },
 
@@ -103,7 +105,11 @@ export const chip = recipe({
     {
       variants: { variant: 'filled', color: 'primary' },
       style: {
-        vars: { '--chip-focus': themeContract.palette.primary[900] },
+        vars: {
+          '--chip-focus': themeContract.palette.primary[900],
+          '--chip-focus-inner': themeContract.color.primary.contrast,
+          '--chip-focus-w': '2px',
+        },
         backgroundColor: themeContract.color.primary.main,
         color: themeContract.color.primary.contrast,
       },
@@ -111,7 +117,10 @@ export const chip = recipe({
     {
       variants: { variant: 'filled', color: 'success' },
       style: {
-        vars: { '--chip-focus': themeContract.palette.primary[900] },
+        vars: {
+          '--chip-focus': themeContract.palette.primary[900],
+          '--chip-focus-w': '2px',
+        },
         backgroundColor: themeContract.color.success.main,
         color: themeContract.color.success.contrast,
       },
@@ -119,7 +128,11 @@ export const chip = recipe({
     {
       variants: { variant: 'filled', color: 'error' },
       style: {
-        vars: { '--chip-focus': themeContract.palette.primary[900] },
+        vars: {
+          '--chip-focus': themeContract.palette.primary[900],
+          '--chip-focus-inner': themeContract.color.primary.contrast,
+          '--chip-focus-w': '2px',
+        },
         backgroundColor: themeContract.color.error.main,
         color: themeContract.color.error.contrast,
       },
@@ -127,7 +140,10 @@ export const chip = recipe({
     {
       variants: { variant: 'filled', color: 'warning' },
       style: {
-        vars: { '--chip-focus': themeContract.palette.primary[900] },
+        vars: {
+          '--chip-focus': themeContract.palette.primary[900],
+          '--chip-focus-w': '2px',
+        },
         backgroundColor: themeContract.color.warning.main,
         color: themeContract.color.warning.contrast,
       },
@@ -222,9 +238,11 @@ const tint = (hover: StyleRule, pressed: StyleRule): StyleRule => ({
   },
 });
 
-// 키보드 포커스 테두리(칩 가장자리 안쪽 2px, 색은 --chip-focus). 바깥 링이 아니다.
+// 키보드 포커스 테두리(칩 가장자리 안쪽 2px, 색은 --chip-focus, 있으면 그 안쪽 2px는 --chip-focus-inner).
+// 바깥 링이 아니다.
 // outlined는 ::after가 1px 테두리까지 덮어(inset -1px) 테두리가 2px로 굵어 보인다.
-// 선택된 칩은 ::before 표식 고리(2px)가 이미 가장자리에 있어 4px로 키워 포커스 전후가 갈리게 한다.
+// 선택된 칩은 ::before 표식 고리(2px)가 이미 가장자리에 있어 4px(--chip-focus-w)로 키워 포커스 전후가
+// 갈리게 한다. 채워진 칩은 두 겹(2px + 2px)이 이미 표식 고리를 덮으므로 --chip-focus-w가 2px다.
 // 눌리는 칩 하나(루트가 button)는 clickable의 ::after가, 누르기 + 삭제는 action의 ::after가 그린다.
 // 선택은 눌리는 칩의 button이 갖는 aria-pressed로 읽는다(두 경우 모두 포커스를 받는 button에 있다).
 const focusEdge: StyleRule = {
@@ -232,10 +250,12 @@ const focusEdge: StyleRule = {
   position: 'absolute',
   inset: 'calc(var(--chip-border-width, 0px) * -1)',
   borderRadius: themeContract.borderRadius.full,
-  boxShadow: 'inset 0 0 0 2px var(--chip-focus)',
+  boxShadow:
+    'inset 0 0 0 2px var(--chip-focus), inset 0 0 0 4px var(--chip-focus-inner, transparent)',
 };
 const focusEdgeSelected: StyleRule = {
-  boxShadow: 'inset 0 0 0 4px var(--chip-focus)',
+  boxShadow:
+    'inset 0 0 0 var(--chip-focus-w, 4px) var(--chip-focus), inset 0 0 0 calc(var(--chip-focus-w, 4px) + 2px) var(--chip-focus-inner, transparent)',
 };
 
 // 클릭 가능한 칩(Button의 누름·호버와 같은 규칙). selected 뒤에 선언해야 같은 특정도의

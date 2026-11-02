@@ -44,19 +44,19 @@ Motion components (HangulAssemble, BrushText, CopyButton, BurstToggle, HoldButto
 
 ### Form & Input
 - **TextField** - Text input with label, validation, helper text. Add `multiline` for a multiline textarea. Props: label, type, size, error, errorMessage, success, successMessage, helperText, fullWidth, multiline, rows, autoResize (rows and autoResize only with multiline; type only without)
-- **Checkbox**: Checkbox with label, indeterminate state. Props: label, size, error, errorMessage, helperText, indeterminate Keyboard focus recolors the box border (`primary`, darker when checked, `error` wins), no outer ring.
-- **Switch**: Toggle switch. Props: label, size, error, errorMessage, helperText Keyboard focus recolors the track edge (`primary`, darker when on, `error` wins), no outer ring.
-- **Slider**: Range slider with marks and value display. Props: label, variant, min, max, step, showValue, showThumbValue, marks, trackColor Keyboard focus thickens the thumb border (bar: the line border), no outer ring.
-- **NumericSpinner**: Number input with increment/decrement buttons. Props: label, size, min, max, step. Type a number directly (committed on blur/Enter, clamped to min/max) or use ArrowUp/ArrowDown Focus turns the number box border `primary` (`error` wins), no outer ring.
+- **Checkbox**: Checkbox with label, indeterminate state. Props: label, size, error, errorMessage, helperText, indeterminate. Keyboard focus recolors the box border (`primary`, darker when checked, `error` wins), no outer ring.
+- **Switch**: Toggle switch. Props: label, size, error, errorMessage, helperText. Keyboard focus recolors the track edge (`primary`, darker when on, `error` wins), no outer ring.
+- **Slider**: Range slider with marks and value display. Props: label, variant, min, max, step, showValue, showThumbValue, marks, trackColor. Keyboard focus thickens the thumb border (bar: the line border), no outer ring.
+- **NumericSpinner**: Number input with increment/decrement buttons. Props: label, size, min, max, step. Type a number directly (committed on blur/Enter, clamped to min/max) or use ArrowUp/ArrowDown. Focus turns the number box border `primary` (`error` wins), no outer ring.
 
 ### Button & Action
 - **Button**: Primary action button. Props: variant('primary'|'dark'|'danger'|'light'), buttonStyle('strong'|'weak'), size, loading, leftIcon, rightIcon, fullWidth, customColor
 - **IconButton**: Turns an icon from any icon library (lucide-react, react-icons, etc.) into a button. Pass the icon as children; the button size sets the icon size. Props: variant, buttonStyle('ghost'|'weak'|'strong', default ghost), size, hoverEffect('none'|'jelly', default jelly, on by default and turned off with "none"; the icon spreads and wobbles back when the mouse enters), loading, aria-label (required)
-- **SegmentedButtons**: Button group for single selection. Props: options[{value,label,icon?}], value, onChange, size, aria-label or aria-labelledby (one is required). Roving tab order: Tab enters once, arrow keys, Home and End move Keyboard focus draws a 2px `primary` border on the track, no outer ring.
+- **SegmentedButtons**: Button group for single selection. Props: options[{value,label,icon?}], value, onChange, size, aria-label or aria-labelledby (one is required). Roving tab order: Tab enters once, arrow keys, Home and End move. Keyboard focus draws a 2px `primary` border on the track, no outer ring.
 
 ### Display & Data
 - **Badge**: Status/count indicator. Props: variant('primary'|'secondary'|'success'|'error'|'warning'), size, max, dot. No default role; text is the accessible name, `dot` needs aria-label (role="img") or is hidden
-- **Chip** - Tag/filter chip. Props: label, variant('filled'|'outlined'), color, icon, avatar, onDelete, onClick (makes it a pressable button), selected (with onClick: toggle chip, aria-pressed; without onClick: selected look only) Keyboard focus draws a 2px border inside the chip edge (4px when selected), no outer ring.
+- **Chip** - Tag/filter chip. Props: label, variant('filled'|'outlined'), color, icon, avatar, onDelete, onClick (makes it a pressable button), selected (with onClick: toggle chip, aria-pressed; without onClick: selected look only). Keyboard focus draws a 2px border inside the chip edge (4px when selected), no outer ring.
 - **Avatar** - User avatar with image, fallback, status. Props: src, alt, size, variant('circular'|'rounded'|'square'), status, bouncy(opt-in hover/focus float + press grow, needs onClick or href)
 
 ### Feedback & Status

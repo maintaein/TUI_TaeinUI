@@ -205,7 +205,8 @@ export const sweepClip = style({
   selectors: {
     // 키보드 포커스의 테두리. 트랙의 투명 테두리 자리(이 칸의 가장자리)에 2px 띠를 깔아
     // 트랙 자신의 테두리 색이 primary로 바뀐 것처럼 읽히게 한다. 켜진 트랙은 파란 채움과
-    // 같은 색이라 한 단계 짙은 primary[900]로 둔다. 머리(DOM 뒤)가 이 위에 놓인다.
+    // 같은 색이라 안쪽 두 겹으로 둔다: 가장자리 primary[900] 2px(바깥 바탕과 8.63:1)와 그
+    // 안쪽 흰 2px(primary 채움과 4.60:1). 머리(DOM 뒤)가 이 위에 놓인다.
     '&::after': {
       content: '""',
       position: 'absolute',
@@ -216,7 +217,7 @@ export const sweepClip = style({
       boxShadow: `inset 0 0 0 ${TRACK_BORDER_WIDTH}px ${themeContract.color.primary.main}`,
     },
     [`${switchContainer}:has(input:checked:focus-visible) &::after`]: {
-      boxShadow: `inset 0 0 0 ${TRACK_BORDER_WIDTH}px ${themeContract.palette.primary[900]}`,
+      boxShadow: `inset 0 0 0 ${TRACK_BORDER_WIDTH}px ${themeContract.palette.primary[900]}, inset 0 0 0 ${TRACK_BORDER_WIDTH * 2}px ${themeContract.color.primary.contrast}`,
     },
   },
 });
@@ -230,6 +231,10 @@ export const sweepInside = style({
   selectors: {
     [`${switchContainer}:has(input:focus-visible) &::after`]: {
       boxShadow: `inset 0 0 0 2px ${themeContract.color.error.main} !important`,
+    },
+    // 켜진 오류는 채움이 primary라 안쪽 오류색 띠가 채움과 안 갈린다. 빨간 테두리 안쪽에 흰 2px.
+    [`${switchContainer}:has(input:checked:focus-visible) &::after`]: {
+      boxShadow: `inset 0 0 0 2px ${themeContract.color.primary.contrast} !important`,
     },
   },
 });
