@@ -428,33 +428,53 @@ test.describe('모션 전체 보기 꾹 눌러 확정 미니 (1440px)', () => {
   test.use({ viewport: { width: 1440, height: 900 } });
 
   test('대본이 채워 실행하고 움직임 멈춤이면 서 있다', async ({ page }) => {
+    // 가짜 시계로 보낸다. 실시간에서는 부하가 GSAP 시간(홀드 1.5초)과 누름을 떼는 setTimeout(2.1초)을 어긋나게 해 다 차기 전에 놓아 버린다
+    await page.clock.install();
     await page.goto('/motion');
-    const centre = () =>
-      holdButton(page).evaluate((el) =>
+    await expect(holdButton(page)).toBeVisible();
+    const centre = async () => {
+      await holdButton(page).evaluate((el) =>
         el.closest('[data-stage-mini]')?.scrollIntoView({ block: 'center' })
       );
+      // 미니가 보인다는 관찰자 알림이 Stage에 닿은 뒤에 시계를 보낸다
+      await holdButton(page).evaluate(
+        (el) =>
+          new Promise<void>((done) => {
+            const io = new IntersectionObserver(() => {
+              io.disconnect();
+              done();
+            });
+            io.observe(el);
+          })
+      );
+    };
     await centre();
-    await expect(holdButton(page)).toHaveAttribute('data-state', 'done', {
-      timeout: 15_000,
-    });
-    await expect(holdButton(page)).toHaveAttribute('data-state', 'idle', {
-      timeout: 5_000,
-    });
+    // install만으로는 시계가 실시간으로 흐른다. 여기서 멈춰 runFor로만 흐르게 한다
+    await page.clock.pauseAt((await page.evaluate(() => Date.now())) + 1000);
+
+    // 가상 시간으로 100ms씩 보내며 상태가 want가 될 때까지 본다(최대 limitMs)
+    const state = () => holdButton(page).getAttribute('data-state');
+    const runUntil = async (want: string, limitMs: number) => {
+      for (let t = 0; t < limitMs && (await state()) !== want; t += 100) {
+        await page.clock.runFor(100);
+      }
+      expect(await state()).toBe(want);
+    };
+    await runUntil('done', 15_000);
+    await runUntil('idle', 5_000);
 
     const pause = page.getByRole('button', { name: '움직임 멈춤' });
     await pause.click();
     await expect(pause).toHaveAttribute('aria-pressed', 'true');
     await centre();
-    // 대본 한 바퀴보다 길게 기다려도 누르지 않는다
+    // 대본 한 바퀴보다 길게 보내도 누르지 않는다
     for (let i = 0; i < 100; i++) {
-      await expect(holdButton(page)).toHaveAttribute('data-state', 'idle');
-      await page.waitForTimeout(100);
+      await page.clock.runFor(100);
+      expect(await state()).toBe('idle');
     }
     await pause.click();
     await centre();
-    await expect(holdButton(page)).toHaveAttribute('data-state', 'done', {
-      timeout: 15_000,
-    });
+    await runUntil('done', 15_000);
   });
 });
 
