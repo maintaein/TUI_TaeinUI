@@ -35,3 +35,4 @@ export * from './FanMenu';
 export * from './RocketButton';
 export * from './LuminousFlow';
 export * from './ManuscriptFlip';
+export * from './MorphingIcon';
