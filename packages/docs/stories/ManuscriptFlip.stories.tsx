@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, type ComponentProps } from 'react';
 import type { Meta, StoryObj } from '@storybook/react';
 import { Button, ManuscriptFlip } from '@taein-ui/core';
 
@@ -19,15 +19,19 @@ type Story = StoryObj<typeof meta>;
 
 const face = { padding: 24, minHeight: 180 } as const;
 
-const FlipDemo = () => {
-  const [flipped, setFlipped] = useState(false);
+type FlipProps = ComponentProps<typeof ManuscriptFlip>;
+
+// 컨트롤의 front, back, flipped가 먹는다. flipped가 컨트롤에서 바뀌면 단추 상태도 그 값을 따른다
+const FlipDemo = ({ front, back, flipped: start }: FlipProps) => {
+  const [flipped, setFlipped] = useState(start);
+  const [seen, setSeen] = useState(start);
+  if (seen !== start) {
+    setSeen(start);
+    setFlipped(start);
+  }
   return (
     <div style={{ maxWidth: 360 }}>
-      <ManuscriptFlip
-        flipped={flipped}
-        front={<div style={face}>가볍고 오래 신는 러닝화</div>}
-        back={<div style={face}>밑창이 두껍고 발볼이 넉넉합니다.</div>}
-      />
+      <ManuscriptFlip flipped={flipped} front={front} back={back} />
       <div style={{ marginTop: 12 }}>
         <Button onClick={() => setFlipped((v) => !v)}>
           {flipped ? '앞면 보기' : '뒷면 보기'}
@@ -44,5 +48,5 @@ export const Default: Story = {
     front: <div style={face}>앞면</div>,
     back: <div style={face}>뒷면</div>,
   },
-  render: () => <FlipDemo />,
+  render: (args) => <FlipDemo {...args} />,
 };
