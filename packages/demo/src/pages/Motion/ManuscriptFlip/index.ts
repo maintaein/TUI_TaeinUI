@@ -1,0 +1,1 @@
+export { ManuscriptFlipPage } from './ManuscriptFlipPage';

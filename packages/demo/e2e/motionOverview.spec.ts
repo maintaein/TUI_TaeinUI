@@ -80,23 +80,23 @@ test.describe('모션 전체 보기', () => {
   }) => {
     await page.goto('/motion');
     await expect(
-      page.getByRole('heading', { level: 1, name: '모션 11개' })
+      page.getByRole('heading', { level: 1, name: '모션 12개' })
     ).toBeVisible();
     const sections = page.locator('main section');
-    await expect(sections).toHaveCount(4);
-    await expect(page.locator('main section > div > div')).toHaveCount(11);
+    await expect(sections).toHaveCount(5);
+    await expect(page.locator('main section > div > div')).toHaveCount(12);
     for (const name of [/텍스트 애니메이션/, /컴포넌트/, /마이크로 인터랙션/])
       await expect(
         sections.getByRole('heading', { level: 2, name })
       ).toBeVisible();
-    // 항목이 없는 '애니메이션' 분류는 절이 없다. '텍스트 애니메이션'의 부분 문자열이라 이름 전체로 맞춘다
+    // '텍스트 애니메이션'의 부분 문자열이라 이름 전체로 맞춘다
     await expect(
       sections.getByRole('heading', {
         level: 2,
         name: '애니메이션',
         exact: true,
       })
-    ).toHaveCount(0);
+    ).toBeVisible();
     await expect(
       sections.getByRole('heading', { level: 2, name: '배경', exact: true })
     ).toBeVisible();
@@ -141,7 +141,7 @@ test.describe('모션 전체 보기', () => {
     const filters = page.getByRole('group', { name: '분류로 보기' });
     const chip = filters.getByRole('button', { name: '컴포넌트', exact: true });
     const sections = page.locator('main section');
-    await expect(sections).toHaveCount(4);
+    await expect(sections).toHaveCount(5);
     await chip.click();
     await expect(chip).toHaveAttribute('aria-pressed', 'true');
     await expect(sections).toHaveCount(1);
@@ -151,7 +151,7 @@ test.describe('모션 전체 보기', () => {
     ).toBeVisible();
     await chip.click();
     await expect(chip).toHaveAttribute('aria-pressed', 'false');
-    await expect(sections).toHaveCount(4);
+    await expect(sections).toHaveCount(5);
   });
 
   test('마이크로 인터랙션 칩이 있고 누르면 복사됨 절만 보인다', async ({
@@ -248,6 +248,21 @@ test.describe('모션 전체 보기', () => {
     await expect(card.getByText('메일 보내기, 제출, 전송')).toBeVisible();
     await card.getByRole('link', { name: '로켓 전송' }).click();
     await expect(page).toHaveURL(/\/motion\/rocket-button$/);
+  });
+
+  test('원고지 넘김 카드가 효과 이름과 쓰는 곳을 보이고 누르면 상세로 간다', async ({
+    page,
+  }) => {
+    await page.goto('/motion');
+    const card = cardOf(page, 'ManuscriptFlip');
+    await expect(
+      card.getByText('ManuscriptFlip', { exact: true })
+    ).toBeVisible();
+    await expect(
+      card.getByText('상품 카드의 사진에서 설명으로, 전후 비교, 퀴즈 카드')
+    ).toBeVisible();
+    await card.getByRole('link', { name: '원고지 넘김' }).click();
+    await expect(page).toHaveURL(/\/motion\/manuscript-flip$/);
   });
 
   test('움직임 멈춤을 켜면 완성 글자가 서고 끄면 다시 재생한다', async ({
@@ -636,6 +651,62 @@ test.describe('모션 전체 보기 로켓 전송 미니 (1440px)', () => {
     await expect
       .poll(async () => JSON.stringify(await snapshot()), { timeout: 15_000 })
       .not.toBe(JSON.stringify(frozen));
+  });
+});
+
+// 원고지 넘김 미니: 대본이 카드를 가리켜 넘기고 떼어 되넘긴다. 면의 inert로 어느 면이 살아 있는지 읽는다
+const flipMini = (page: Page) =>
+  page.locator('[data-stage-mini="ManuscriptFlip 미리보기"]');
+const flipFaces = (page: Page) =>
+  flipMini(page).evaluate((el) => {
+    const root = el.querySelector('[data-stage-target="card"]')!
+      .firstElementChild as HTMLElement;
+    const [front, back] = [...root.children] as HTMLElement[];
+    return {
+      front: !front.hasAttribute('inert'),
+      back: !back.hasAttribute('inert'),
+    };
+  });
+
+test.describe('모션 전체 보기 원고지 넘김 미니 (1440px)', () => {
+  test.use({ viewport: { width: 1440, height: 900 } });
+
+  test('대본이 넘기고 되넘기며 움직임 멈춤이면 서 있다', async ({ page }) => {
+    test.setTimeout(90_000);
+    await page.goto('/motion');
+    await flipMini(page).evaluate((el) =>
+      el.scrollIntoView({ block: 'center' })
+    );
+    // 처음엔 앞면이 살아 있다 -> 넘어가 뒷면이 살아난다 -> 되넘어 앞면으로 돌아온다
+    await expect
+      .poll(() => flipFaces(page), { timeout: 20_000 })
+      .toEqual({ front: false, back: true });
+    await expect
+      .poll(() => flipFaces(page), { timeout: 20_000 })
+      .toEqual({ front: true, back: false });
+
+    const pause = page.getByRole('button', { name: '움직임 멈춤' });
+    await pause.click();
+    await expect(pause).toHaveAttribute('aria-pressed', 'true');
+    await flipMini(page).evaluate((el) =>
+      el.scrollIntoView({ block: 'center' })
+    );
+    // 멈추기 직전에 시작한 넘김은 끝까지 가고 새 넘김은 시작하지 않는다. 끝난 면이 한 곳에서 서 있는다
+    await expect
+      .poll(
+        async () => {
+          const a = await flipFaces(page);
+          await page.waitForTimeout(900);
+          return JSON.stringify([a, await flipFaces(page)]);
+        },
+        { timeout: 15_000 }
+      )
+      .toMatch(/^\[(\{.*\}),\1\]$/);
+    const frozen = JSON.stringify(await flipFaces(page));
+    for (let i = 0; i < 20; i++) {
+      expect(JSON.stringify(await flipFaces(page))).toBe(frozen);
+      await page.waitForTimeout(100);
+    }
   });
 });
 

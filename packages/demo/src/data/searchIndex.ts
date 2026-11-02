@@ -522,6 +522,45 @@ export const searchIndex: SearchEntry[] = [
     ],
   },
   {
+    id: 'manuscript-flip',
+    pageTitle: '원고지 넘김',
+    path: '/motion/manuscript-flip',
+    category: '모션',
+    description:
+      'ManuscriptFlip. 앞면이 칸 단위로 글 쓰는 순서대로 하나씩 뒤집히며 뒷면으로 바뀌고, 되넘길 때는 반대 순서로 돌아옵니다.',
+    sections: [
+      {
+        title: '언제 쓰나',
+        content:
+          '상품 카드의 사진에서 설명으로, 전후 비교, 퀴즈 카드에 씁니다. 앞면과 뒷면 두 면을 한 벌씩 그립니다',
+      },
+      {
+        title: '넘기는 법과 박자',
+        content:
+          'flipped를 쥔 쪽이 가리킬 때 넘길지 누를 때 넘길지 정합니다. 칸 하나는 200ms이고 전체는 칸 수와 상관없이 700ms입니다. 넘기는 도중에 바뀌면 지금 상태에서 거꾸로 돌아옵니다',
+      },
+      {
+        title: '칸 나누기',
+        content:
+          '상자 크기에서 칸을 정합니다. 한 변은 약 48px이고 칸은 최대 48개입니다. 큰 상자에서는 칸이 커집니다',
+      },
+      {
+        title: '면 만들기',
+        content:
+          'front와 back은 자유로운 내용입니다. 면의 바탕은 불투명하게 주고 상자에는 안쪽 여백을 주지 않습니다',
+      },
+      {
+        title: '접근성',
+        content:
+          '보이지 않는 면은 inert이고 넘기는 도중에는 두 면이 모두 inert입니다. 가리키기만으로 넘기면 키보드와 터치가 닿지 못하니 단추를 함께 둡니다',
+      },
+      {
+        title: '움직임 줄이기',
+        content: '움직임 줄이기에서는 칸 없이 두 면이 교차해 흐려집니다',
+      },
+    ],
+  },
+  {
     id: 'gooey-search',
     pageTitle: '물방울 검색창',
     path: '/motion/gooey-search',

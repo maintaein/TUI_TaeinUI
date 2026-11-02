@@ -138,6 +138,11 @@ const BrushTextPage = lazy(() =>
     default: m.BrushTextPage,
   }))
 );
+const ManuscriptFlipPage = lazy(() =>
+  import('../pages/Motion/ManuscriptFlip').then((m) => ({
+    default: m.ManuscriptFlipPage,
+  }))
+);
 const HangulAssemblePage = lazy(() =>
   import('../pages/Motion/HangulAssemble').then((m) => ({
     default: m.HangulAssemblePage,
@@ -508,6 +513,14 @@ const router = createBrowserRouter([
             element: (
               <LazyPage>
                 <BrushTextPage />
+              </LazyPage>
+            ),
+          },
+          {
+            path: 'manuscript-flip',
+            element: (
+              <LazyPage>
+                <ManuscriptFlipPage />
               </LazyPage>
             ),
           },

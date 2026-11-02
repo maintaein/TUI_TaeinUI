@@ -9,6 +9,7 @@ import {
   Columns3,
   Hash,
   Heart,
+  FlipHorizontal2,
   Info,
   Languages,
   LayoutPanelTop,
@@ -343,6 +344,17 @@ export const motionData: MotionInfo[] = [
     usage: '첫 화면 소개 문장, 섹션 제목',
     category: 'text',
     icon: Brush,
+  },
+  // Animation (1개)
+  {
+    name: 'ManuscriptFlip',
+    title: '원고지 넘김',
+    path: '/motion/manuscript-flip',
+    description:
+      '앞면이 칸 단위로 글 쓰는 순서대로 하나씩 뒤집히며 뒷면으로 바뀌고, 되넘길 때는 반대 순서로 돌아옵니다.',
+    usage: '상품 카드의 사진에서 설명으로, 전후 비교, 퀴즈 카드',
+    category: 'animation',
+    icon: FlipHorizontal2,
   },
   // Component (1개)
   {

@@ -15,6 +15,7 @@ import { IconButtonDemo } from '../../pages/Components/IconButton/IconButtonPage
 import { ListDemo } from '../../pages/Components/List/ListPage';
 import { HangulAssembleDemo } from '../../pages/Motion/HangulAssemble/HangulAssemblePage';
 import { BrushTextDemo } from '../../pages/Motion/BrushText/BrushTextPage';
+import { ManuscriptFlipDemo } from '../../pages/Motion/ManuscriptFlip/ManuscriptFlipPage';
 import { CopyButtonDemo } from '../../pages/Motion/CopyButton/CopyButtonPage';
 import { BurstToggleDemo } from '../../pages/Motion/BurstToggle/BurstTogglePage';
 import { HoldButtonDemo } from '../../pages/Motion/HoldButton/HoldButtonPage';
@@ -66,6 +67,7 @@ export const DEMOS: Record<string, ComponentType<DemoProps>> = {
   Card: CardDemo,
   HangulAssemble: HangulAssembleDemo,
   BrushText: BrushTextDemo,
+  ManuscriptFlip: ManuscriptFlipDemo,
   GooeySearch: GooeySearchDemo,
   CopyButton: CopyButtonDemo,
   BurstToggle: BurstToggleDemo,
