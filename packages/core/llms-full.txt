@@ -1435,7 +1435,7 @@ Other native button attributes are passed to the `<button>`, except `children`. 
 
 ## LuminousFlow
 
-Background that fills its parent box: light strands (28) flow inside a winding river path and light motes (48) drift along it. It is drawn on a canvas 2D over an SVG atmosphere layer, and the flow speeds up with window scroll (up to 3.3x, calming down when scrolling stops). The palette is fixed (cyan and blue on black) and there is no colour override API.
+Background that fills its parent box: light strands (28) flow inside a winding river path and light motes (in proportion to the length: 48 per 2162 units) drift along it. It is drawn on a canvas 2D over an SVG atmosphere layer, and the flow speeds up with window scroll (up to 3.3x, calming down when scrolling stops). The palette is fixed (cyan and blue on black) and there is no colour override API.
 
 The root is `position: absolute; inset: 0`, so the parent must be a positioned box (`position: relative` or similar). The picture stays inside that box: the canvas is sized from the measured root box, so a small card works as well as a full screen.
 

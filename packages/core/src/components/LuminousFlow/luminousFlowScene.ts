@@ -306,6 +306,7 @@ const buildScene = (units: number) => {
 
 export type Scene = ReturnType<typeof buildScene>;
 
+// ponytail: 긴 장면(n 41 이상)의 첫 생성은 메인 스레드를 약 0.5초 막고 한 장면이 수십 MB다, 긴 상자를 흔히 쓰게 되면 포즈를 Float64Array로 바꾸고 생성을 나눠 한다
 // 굽이 수를 훑으며 크기를 바꾸면 장면이 쌓이므로 최근 몇 개만 둔다(긴 장면 하나가 수십 MB다).
 const CACHE_LIMIT = 4;
 const cache = new Map<number, Scene>();

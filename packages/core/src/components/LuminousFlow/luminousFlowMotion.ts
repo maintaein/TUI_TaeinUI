@@ -20,3 +20,18 @@ export const shouldAnimate = ({
   visible: boolean;
   paused: boolean;
 }) => !reduced && !hidden && visible && !paused;
+
+// 단조 증가 배열에서 값이 target 이상인 첫 인덱스(없으면 -1). findIndex와 같은 결과를 O(log n)에 낸다.
+export const firstIndexAtLeast = (
+  sorted: ArrayLike<number>,
+  target: number
+) => {
+  let low = 0;
+  let high = sorted.length;
+  while (low < high) {
+    const middle = (low + high) >> 1;
+    if (sorted[middle] >= target) high = middle;
+    else low = middle + 1;
+  }
+  return low === sorted.length ? -1 : low;
+};

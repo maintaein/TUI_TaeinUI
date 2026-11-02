@@ -9,7 +9,7 @@ import {
 import clsx from 'clsx';
 import * as styles from './LuminousFlow.css';
 import { palette } from './luminousFlowPalette';
-import { SCROLL_FLOW } from './luminousFlowMotion';
+import { SCROLL_FLOW, firstIndexAtLeast } from './luminousFlowMotion';
 import { bindFlowListeners, createFlowLoop } from './luminousFlowLoop';
 import {
   MIN_BENDS,
@@ -55,6 +55,12 @@ export const LuminousFlow = forwardRef<HTMLDivElement, LuminousFlowProps>(
     // 상자 높이가 굽이 수를 정하고 굽이 수가 장면(길이와 마감 방향)을 정한다. 잰 값이 오기 전에는 가장 짧은 장면이다
     const [bendCount, setBendCount] = useState(MIN_BENDS);
     const scene = createScene(bendCount);
+    // 굽이 수가 바뀌어 효과가 다시 돌아도 흐름 시간이 0으로 튀지 않게 시계를 효과 밖에 쥔다
+    const clockRef = useRef({
+      flowTime: 0,
+      bobTime: 0,
+      flowSpeed: SCROLL_FLOW.idleSpeed,
+    });
     useEffect(() => {
       const root = rootRef.current;
       if (!root || typeof ResizeObserver === 'undefined') return;
@@ -74,8 +80,11 @@ export const LuminousFlow = forwardRef<HTMLDivElement, LuminousFlowProps>(
       const rim = rimCanvas.getContext('2d');
       if (!rim) return;
       const media = window.matchMedia('(prefers-reduced-motion: reduce)');
+      // 효과는 굽이 수(숫자)에 걸리고 장면은 여기서 읽는다. 캐시에서 밀려나 같은 n의 객체가 달라져도 효과가 다시 돌지 않는다
+      const scene = createScene(bendCount);
       const { atoms, bends, strands } = scene;
       const sceneHeight = scene.height;
+      const clock = clockRef.current;
       let visible = true;
       const atmosphere = root.querySelector<SVGSVGElement>('svg');
       // 장면이 바뀌어 효과가 다시 돌 때, 앞 장면의 텍스처가 숨겨 둔 대기층을 다시 보이게 한다(새 텍스처가 오면 또 숨는다)
@@ -159,9 +168,6 @@ export const LuminousFlow = forwardRef<HTMLDivElement, LuminousFlowProps>(
       let previousScrollTime = previousFrame;
       let previousScrollY = window.scrollY;
       let scrollVelocity = 0;
-      let flowSpeed = SCROLL_FLOW.idleSpeed;
-      let flowTime = 0;
-      let bobTime = 0;
 
       // 그림은 루트 상자 안에서 그 상자만 채운다
       const resize = () => {
@@ -211,6 +217,7 @@ export const LuminousFlow = forwardRef<HTMLDivElement, LuminousFlowProps>(
         // 보이는 장면 구간. 비스크롤은 상자 전체가 보이고, scrollScene의 긴 상자는 창에 닿는 구간에
         // 위아래 반 화면 여유(스크롤이 다음 프레임 전에 드러내는 만큼)를 더한다.
         let top = 0;
+        // ponytail: scrollScene을 끈 긴 상자는 상자 전체를 그린다, scrollScene 의미와 함께 T12에서 정한다
         let bottom = Math.min(sceneHeight, height / scale);
         if (scrollScene) {
           const overscan = window.innerHeight / 2;
@@ -353,7 +360,7 @@ export const LuminousFlow = forwardRef<HTMLDivElement, LuminousFlowProps>(
           const progress = (Number(phase) + time / duration) % 1;
           const cumulative = lengths[strand];
           const travel = progress * cumulative[cumulative.length - 1];
-          let sample = cumulative.findIndex((value) => value >= travel);
+          let sample = firstIndexAtLeast(cumulative, travel);
           sample = Math.max(1, sample);
           const mix =
             (travel - cumulative[sample - 1]) /
@@ -363,7 +370,7 @@ export const LuminousFlow = forwardRef<HTMLDivElement, LuminousFlowProps>(
             ? 0
             : (1 -
                 Math.cos(
-                  ((bobTime + index * 0.37) * Math.PI) /
+                  ((clock.bobTime + index * 0.37) * Math.PI) /
                     (1.8 + (index % 5) * 0.45)
                 )) /
               2;
@@ -414,16 +421,16 @@ export const LuminousFlow = forwardRef<HTMLDivElement, LuminousFlowProps>(
             (SCROLL_FLOW.maxSpeed - SCROLL_FLOW.idleSpeed) *
               Math.min(1, scrollVelocity / SCROLL_FLOW.fullSpeedScroll);
           const nextSpeed =
-            flowSpeed +
-            (targetSpeed - flowSpeed) *
+            clock.flowSpeed +
+            (targetSpeed - clock.flowSpeed) *
               (1 - Math.exp(-delta / SCROLL_FLOW.responseTime));
           // 속도를 적분해 속도가 바뀌어도 애니메이션 위상이 튀지 않게 한다.
-          flowTime += (delta * (flowSpeed + nextSpeed)) / 2;
-          flowSpeed = nextSpeed;
-          bobTime += delta;
+          clock.flowTime += (delta * (clock.flowSpeed + nextSpeed)) / 2;
+          clock.flowSpeed = nextSpeed;
+          clock.bobTime += delta;
           scrollVelocity *= Math.exp(-delta / SCROLL_FLOW.decayTime);
         }
-        if (width && height) paintScene(media.matches ? 0 : flowTime);
+        if (width && height) paintScene(media.matches ? 0 : clock.flowTime);
       };
       // sync 때 시계를 새로 잡는다. 이어 그리지 않는 상태면 스크롤 속도와 흐름 속도도 쉬는 값으로 되돌린다
       const syncClocks = (running: boolean) => {
@@ -432,7 +439,7 @@ export const LuminousFlow = forwardRef<HTMLDivElement, LuminousFlowProps>(
         previousScrollY = window.scrollY;
         if (!running) {
           scrollVelocity = 0;
-          flowSpeed = SCROLL_FLOW.idleSpeed;
+          clock.flowSpeed = SCROLL_FLOW.idleSpeed;
         }
       };
       const onScroll = () => {
@@ -490,7 +497,7 @@ export const LuminousFlow = forwardRef<HTMLDivElement, LuminousFlowProps>(
         visibilityObserver.disconnect();
         unbind();
       };
-    }, [scene, scrollScene]);
+    }, [bendCount, scrollScene]);
 
     useEffect(() => {
       pausedRef.current = paused;
