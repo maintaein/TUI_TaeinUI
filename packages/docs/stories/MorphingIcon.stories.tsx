@@ -32,7 +32,7 @@ const ToggleDemo = () => {
   return (
     <IconButton
       aria-label="메뉴"
-      aria-pressed={open}
+      aria-expanded={open}
       onClick={() => setOpen((v) => !v)}
     >
       <MorphingIcon pair="menu-close" active={open} />
@@ -40,7 +40,7 @@ const ToggleDemo = () => {
   );
 };
 
-// 기본 예시: 단추가 active를 쥐고, 누를 때마다 선이 늘어나고 접히며 메뉴와 닫기를 오간다. 상태는 단추의 aria-pressed가 전한다
+// 기본 예시: 단추가 active를 쥐고, 누를 때마다 선이 늘어나고 접히며 메뉴와 닫기를 오간다. 상태는 단추의 aria-expanded가 전한다
 export const Default: Story = {
   args: { pair: 'menu-close', active: false },
   render: () => <ToggleDemo />,

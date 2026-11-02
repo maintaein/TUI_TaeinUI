@@ -1512,14 +1512,14 @@ It also takes the native div attributes except `children`. There is no `size` or
 
 ## MorphingIcon
 
-Icon that moves between two states. Its lines grow and fold into another shape by moving only their endpoints. `pair` picks one of five fixed pairs, `active` picks the state (false: the first icon of the pair, true: the second). It is one SVG sized `1em` and drawn in `currentColor`, so it takes the font size and color of the button around it and goes into `IconButton` as is. The state is told by that button (`aria-pressed` or a changing `aria-label`), not by the icon.
+Icon that moves between two states. Its lines grow and fold into another shape by moving only their endpoints. `pair` picks one of five fixed pairs, `active` picks the state (false: the first icon of the pair, true: the second). It is one SVG sized `1em` and drawn in `currentColor`, so it takes the font size and color of the button around it and goes into `IconButton` as is. The state is told by that button (a fixed accessible name plus one state attribute (`aria-expanded` for menus and disclosures, `aria-pressed` for other toggles)), not by the icon.
 
 ```tsx
 import { IconButton, MorphingIcon } from '@taein-ui/core';
 
 <IconButton
   aria-label="메뉴"
-  aria-pressed={open}
+  aria-expanded={open}
   onClick={() => setOpen((v) => !v)}
 >
   <MorphingIcon pair="menu-close" active={open} />
@@ -1546,7 +1546,7 @@ There is no `size` or `variant`: the size is `1em` and the color is `currentColo
 
 ### Accessibility
 - The SVG is `aria-hidden="true"` and `focusable="false"`; the icon takes no focus.
-- Put the state on the button around it: `aria-pressed` for a toggle (menu open, playing), or an `aria-label` that changes with the state (`메뉴 열기` / `메뉴 닫기`).
+- Put the state on the button around it: keep its accessible name fixed (`메뉴`) and set one state attribute, `aria-expanded` for a menu or disclosure, `aria-pressed` for other toggles (add, play, search). Do not also change the name with the state, or screen readers announce the state twice.
 
 ---
 

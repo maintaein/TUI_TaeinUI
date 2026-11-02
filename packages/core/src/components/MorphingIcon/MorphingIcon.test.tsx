@@ -5,7 +5,7 @@ import { renderToString } from 'react-dom/server';
 import { MorphingIcon } from './MorphingIcon';
 import { IconButton } from '../IconButton';
 import { MORPH_PAIRS, pointsAttr, type MorphingPair } from './morphPairs';
-import { gsapEasing } from '../../tokens/gsapEasing';
+import { gsapDuration, gsapEasing } from '../../tokens/gsapEasing';
 
 /**
  * 컴포넌트가 만든 GSAP 트윈을 멈추고 시각을 직접 옮겨 DOM 값을 읽는다. 시험은 gsap을 직접 import하지 않으므로
@@ -148,7 +148,7 @@ describe('MorphingIcon', () => {
       );
       rerender(<MorphingIcon pair="menu-close" active />);
       const tween = lastPlayed();
-      expect(tween.duration()).toBeCloseTo(0.3, 5);
+      expect(tween.duration()).toBeCloseTo(gsapDuration.slow, 5);
       expect(tween.vars.ease).toBe('power3.out');
       expect(tween.vars.ease).toBe(gsapEasing.settle);
     });
@@ -246,14 +246,14 @@ describe('MorphingIcon', () => {
   });
 
   describe('IconButton 안', () => {
-    it('그대로 넣으면 단추의 aria-pressed가 상태를 전하고 아이콘은 가려진다', () => {
+    it('그대로 넣으면 단추의 aria-expanded가 상태를 전하고 이름은 그대로이며 아이콘은 가려진다', () => {
       const { getByRole, container, rerender } = render(
-        <IconButton aria-label="메뉴 열기" aria-pressed={false}>
+        <IconButton aria-label="메뉴" aria-expanded={false}>
           <MorphingIcon pair="menu-close" active={false} />
         </IconButton>
       );
-      expect(getByRole('button', { name: '메뉴 열기' })).toHaveAttribute(
-        'aria-pressed',
+      expect(getByRole('button', { name: '메뉴' })).toHaveAttribute(
+        'aria-expanded',
         'false'
       );
       expect(container.querySelector('button svg')).toHaveAttribute(
@@ -261,12 +261,12 @@ describe('MorphingIcon', () => {
         'true'
       );
       rerender(
-        <IconButton aria-label="메뉴 닫기" aria-pressed>
+        <IconButton aria-label="메뉴" aria-expanded>
           <MorphingIcon pair="menu-close" active />
         </IconButton>
       );
-      expect(getByRole('button', { name: '메뉴 닫기' })).toHaveAttribute(
-        'aria-pressed',
+      expect(getByRole('button', { name: '메뉴' })).toHaveAttribute(
+        'aria-expanded',
         'true'
       );
     });

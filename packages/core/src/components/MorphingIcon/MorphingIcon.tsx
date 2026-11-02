@@ -94,7 +94,7 @@ const MorphingSvg = forwardRef<SVGSVGElement, MorphingIconProps>(
  * 두 상태를 오가는 아이콘. 선의 끝점만 옮겨 선이 늘어나고 접히며 다른 모양이 된다(300ms, `slow`, `settle`).
  * 짝은 다섯 가지로 정해져 있다(메뉴/닫기, 더하기/체크, 재생/일시정지, 검색/닫기, 펼침/접힘).
  * 크기는 글자 크기(1em), 색은 `currentColor`라 IconButton에 그대로 넣는다. 아이콘은 `aria-hidden`이고
- * 상태는 담는 단추의 `aria-pressed`나 `aria-label`이 전한다. 축소 모션이면 바로 바뀐다.
+ * 상태는 담는 단추가 전한다(이름은 고정하고 `aria-expanded`(메뉴, 펼침)나 `aria-pressed` 중 하나). 축소 모션이면 바로 바뀐다.
  * 도중에 `active`가 바뀌면 지금 모양에서 새 목표로 간다.
  */
 export const MorphingIcon = forwardRef<SVGSVGElement, MorphingIconProps>(

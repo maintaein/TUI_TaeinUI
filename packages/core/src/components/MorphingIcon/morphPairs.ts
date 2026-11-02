@@ -32,12 +32,14 @@ const ring = (cx: number, cy: number, r: number, startDeg: number) =>
     return [round2(cx + r * Math.cos(rad)), round2(cy + r * Math.sin(rad))];
   }).flat();
 
-// 두 점 사이를 같은 간격의 n개 끝점으로 편다(원 근사 선이 한 직선으로 접힐 때의 끝 모양)
-const spread = (x0: number, y0: number, x1: number, y1: number, n: number) =>
-  Array.from({ length: n }, (_, k) => [
-    round2(x0 + ((x1 - x0) * k) / (n - 1)),
-    round2(y0 + ((y1 - y0) * k) / (n - 1)),
-  ]).flat();
+// 닫힌 원 근사 선(시작점 = 끝점)이 직선 하나로 접힐 때의 끝 모양. 시작점과 마지막 점은 한쪽 끝에, 가운데(맞은편) 점은 반대쪽 끝에 두고
+// 그 사이는 왔다가 되돌아온다. 원의 두 반쪽이 각자 선 위로 납작해지므로 중간 프레임에서 선이 자기와 꼬이지 않는다(끝점 수는 그대로).
+const fold = (x0: number, y0: number, x1: number, y1: number, n: number) =>
+  Array.from({ length: n }, (_, k) => {
+    const half = (n - 1) / 2;
+    const f = (k <= half ? k : n - 1 - k) / half;
+    return [round2(x0 + (x1 - x0) * f), round2(y0 + (y1 - y0) * f)];
+  }).flat();
 
 export const MORPH_PAIRS: Record<
   MorphingPair,
@@ -58,10 +60,10 @@ export const MORPH_PAIRS: Record<
     [line([7, 5, 7, 19, 18, 12]), line([7, 5, 12.5, 8.5, 18, 12])],
     [line([8, 5, 8, 19, 8, 19]), line([16, 5, 16, 12, 16, 19])],
   ],
-  // 돋보기(원 근사 + 손잡이) / X. 손잡이는 긴 획으로 자라고 원은 다른 획으로 접힌다
+  // 돋보기(원 근사 + 손잡이) / X. 손잡이는 긴 획으로 자라고 원은 반으로 접혀 다른 획이 된다
   'search-close': [
     [line(ring(10.5, 10.5, 6.5, 315)), line([15.1, 15.1, 20, 20])],
-    [line(spread(18, 6, 6, 18, 17)), line([6, 6, 18, 18])],
+    [line(fold(18, 6, 6, 18, 17)), line([6, 6, 18, 18])],
   ],
   // 아래를 가리키는 셰브론 / 위를 가리키는 셰브론
   'expand-collapse': [

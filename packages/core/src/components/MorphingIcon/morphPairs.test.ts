@@ -68,6 +68,18 @@ describe('morphPairs', () => {
     expect(close.map((l) => l.opacity)).toEqual([1, 0, 1]);
   });
 
+  it('search-close의 원은 반으로 접혀 닫기의 한 획이 된다(왔던 길로 되돌아와 꼬이지 않는다)', () => {
+    const ring = MORPH_PAIRS['search-close'][1][0].points;
+    const pts = Array.from({ length: ring.length / 2 }, (_, i) => [
+      ring[i * 2],
+      ring[i * 2 + 1],
+    ]);
+    const last = pts.length - 1;
+    expect(pts[0]).toEqual(pts[last]);
+    pts.forEach((p, i) => expect(p).toEqual(pts[last - i]));
+    expect(pts[last / 2]).not.toEqual(pts[0]);
+  });
+
   it('pointsAttr은 좌표를 x,y 쌍으로 잇고 군더더기 소수를 자른다', () => {
     expect(pointsAttr([1, 2, 3.5, 4])).toBe('1,2 3.5,4');
     expect(pointsAttr([0.1 + 0.2, 1 / 3])).toBe('0.3,0.333');
