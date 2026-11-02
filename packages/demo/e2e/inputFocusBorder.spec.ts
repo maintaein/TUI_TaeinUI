@@ -13,6 +13,8 @@ import { mountLive } from './livePreview';
 const PRIMARY = 'rgb(25, 118, 210)';
 const PRIMARY_DARK = 'rgb(13, 71, 161)';
 const ERROR = 'rgb(211, 47, 47)';
+const WHITE = 'rgb(255, 255, 255)';
+const NONE = 'rgba(0, 0, 0, 0)';
 
 /** 시트 앞에 탐침 단추를 두고 거기서 Tab을 시작한다. */
 const mountSheet = async (page: Page, jsx: string, ready: string) => {
@@ -76,7 +78,7 @@ test.describe('Checkbox 포커스 테두리', () => {
     expect(await focusedOutline(page)).toBe('none');
   });
 
-  test('체크: 테두리가 짙은 primary가 되고 안쪽 1px가 더해져 굵어 보인다', async ({
+  test('체크: 테두리가 짙은 primary가 되고 안쪽에 흰 2px가 한 겹 더해진다', async ({
     page,
   }) => {
     await tab(page, 2);
@@ -85,20 +87,23 @@ test.describe('Checkbox 포커스 테두리', () => {
       .toEqual({
         border: PRIMARY_DARK,
         width: '2px',
-        ring: `${PRIMARY_DARK} 0px 0px 0px 1px inset`,
+        ring: `${WHITE} 0px 0px 0px 2px inset`,
       });
   });
 
-  test('오류(해제·체크): 테두리는 오류 색이고 안쪽 2px가 더해진다', async ({
+  test('오류(해제·체크): 테두리는 오류 색이고 안쪽 2px(해제는 오류 색, 체크는 면과 갈리도록 흰색)가 더해진다', async ({
     page,
   }) => {
-    for (const stops of [3, 4]) {
+    for (const [stops, inner] of [
+      [3, ERROR],
+      [4, WHITE],
+    ] as const) {
       await page.locator('#probe').focus();
       await tab(page, stops);
       expect(await box(page)).toEqual({
         border: ERROR,
         width: '2px',
-        ring: `${ERROR} 0px 0px 0px 2px inset`,
+        ring: `${inner} 0px 0px 0px 2px inset`,
       });
     }
   });
@@ -134,18 +139,23 @@ test.describe('Switch 포커스 테두리', () => {
     expect(await focusedOutline(page)).toBe('none');
   });
 
-  test('켜짐: 채움과 같은 색을 피해 짙은 primary다', async ({ page }) => {
+  test('켜짐: 가장자리 짙은 primary 2px와 그 안쪽 흰 2px 두 겹이다', async ({
+    page,
+  }) => {
     await tab(page, 2);
     expect((await ring(page)).ring).toBe(
-      `${PRIMARY_DARK} 0px 0px 0px 2px inset`
+      `${PRIMARY_DARK} 0px 0px 0px 2px inset, ${WHITE} 0px 0px 0px 4px inset`
     );
   });
 
   test('오류(꺼짐·켜짐): 오류 색이 이긴다', async ({ page }) => {
-    for (const stops of [3, 4]) {
+    for (const [stops, inner] of [
+      [3, ERROR],
+      [4, WHITE],
+    ] as const) {
       await page.locator('#probe').focus();
       await tab(page, stops);
-      expect((await ring(page)).ring).toBe(`${ERROR} 0px 0px 0px 2px inset`);
+      expect((await ring(page)).ring).toBe(`${inner} 0px 0px 0px 2px inset`);
     }
   });
 });
@@ -221,7 +231,7 @@ test.describe('Chip 포커스 테두리', () => {
   test.beforeEach(async ({ page }) => {
     await mountSheet(
       page,
-      `<Chip label="a" variant="outlined" onClick={()=>{}} /><Chip label="b" color="primary" onClick={()=>{}} /><Chip label="c" variant="outlined" color="primary" selected onClick={()=>{}} /><Chip label="d" color="error" selected onClick={()=>{}} onDelete={()=>{}} />`,
+      `<Chip label="a" variant="outlined" onClick={()=>{}} /><Chip label="b" color="primary" onClick={()=>{}} /><Chip label="c" variant="outlined" color="primary" selected onClick={()=>{}} /><Chip label="d" color="error" selected onClick={()=>{}} onDelete={()=>{}} /><Chip label="e" color="success" onClick={()=>{}} />`,
       '#sheet button'
     );
   });
@@ -239,21 +249,34 @@ test.describe('Chip 포커스 테두리', () => {
   test('테두리형: 안쪽 2px가 primary다', async ({ page }) => {
     await tab(page, 1);
     expect(await edge(page)).toEqual({
-      ring: `${PRIMARY} 0px 0px 0px 2px inset`,
+      ring: `${PRIMARY} 0px 0px 0px 2px inset, ${NONE} 0px 0px 0px 4px inset`,
       outline: 'none',
     });
   });
 
-  test('primary 채움: 면과 같은 색을 피해 짙은 primary다', async ({ page }) => {
+  test('primary 채움: 짙은 primary 2px와 그 안쪽 흰 2px 두 겹이다', async ({
+    page,
+  }) => {
     await tab(page, 2);
     expect((await edge(page)).ring).toBe(
-      `${PRIMARY_DARK} 0px 0px 0px 2px inset`
+      `${PRIMARY_DARK} 0px 0px 0px 2px inset, ${WHITE} 0px 0px 0px 4px inset`
+    );
+  });
+
+  test('success 채움: 짙은 primary 2px만으로 면과 3:1이 넘어 흰 겹이 없다', async ({
+    page,
+  }) => {
+    await tab(page, 6);
+    expect((await edge(page)).ring).toBe(
+      `${PRIMARY_DARK} 0px 0px 0px 2px inset, ${NONE} 0px 0px 0px 4px inset`
     );
   });
 
   test('선택된 칩: 표식 고리가 있어 4px로 굵어진다', async ({ page }) => {
     await tab(page, 3);
-    expect((await edge(page)).ring).toBe(`${PRIMARY} 0px 0px 0px 4px inset`);
+    expect((await edge(page)).ring).toBe(
+      `${PRIMARY} 0px 0px 0px 4px inset, ${NONE} 0px 0px 0px 6px inset`
+    );
   });
 
   test('누르기 + 삭제 칩: 주 동작 단추가 같은 테두리를 칩 전체에 그린다', async ({
@@ -261,7 +284,7 @@ test.describe('Chip 포커스 테두리', () => {
   }) => {
     await tab(page, 4);
     expect(await edge(page)).toEqual({
-      ring: `${PRIMARY_DARK} 0px 0px 0px 4px inset`,
+      ring: `${PRIMARY_DARK} 0px 0px 0px 2px inset, ${WHITE} 0px 0px 0px 4px inset`,
       outline: 'none',
     });
   });
@@ -334,7 +357,7 @@ test.describe('GooeySearch 포커스 테두리', () => {
     await page.keyboard.press('Tab');
     expect(await state(page)).toEqual({
       tag: 'BUTTON',
-      ring: `${PRIMARY} 0px 0px 0px 3px inset, rgb(255, 255, 255) 0px 0px 0px 5px inset`,
+      ring: `${PRIMARY} 0px 0px 0px 3px inset, ${WHITE} 0px 0px 0px 5px inset`,
       outline: 'none',
     });
   });
