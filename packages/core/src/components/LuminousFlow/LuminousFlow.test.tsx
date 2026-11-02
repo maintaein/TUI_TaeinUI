@@ -1,7 +1,16 @@
 import { createRef, StrictMode } from 'react';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { render } from '@testing-library/react';
+import {
+  afterAll,
+  afterEach,
+  beforeAll,
+  describe,
+  expect,
+  it,
+  vi,
+} from 'vitest';
+import { act, render } from '@testing-library/react';
 import { LuminousFlow } from './LuminousFlow';
+import { MIN_BENDS, bendsForBox, createScene } from './luminousFlowScene';
 
 // jsdom의 getContext는 null을 돌려주면서 "Not implemented" 오류를 콘솔에 쏟는다. 값은 같고 소음만 없앤다.
 const original = HTMLCanvasElement.prototype.getContext;
@@ -39,16 +48,11 @@ describe('LuminousFlow (jsdom, canvas 2D 없음)', () => {
     expect(root?.tagName).toBe('DIV');
   });
 
-  it('대기층 SVG의 viewBox 높이는 scrollScene이면 2162, 아니면 318이다', () => {
-    const compact = render(<LuminousFlow />);
-    expect(compact.container.querySelector('svg')).toHaveAttribute(
+  it('잰 크기가 없으면 대기층 SVG는 가장 짧은 장면(굽이 수 최소)의 viewBox를 쓴다', () => {
+    const { container } = render(<LuminousFlow />);
+    expect(container.querySelector('svg')).toHaveAttribute(
       'viewBox',
-      '0 0 492 318'
-    );
-    const scroll = render(<LuminousFlow scrollScene />);
-    expect(scroll.container.querySelector('svg')).toHaveAttribute(
-      'viewBox',
-      '0 0 492 2162'
+      `0 0 492 ${createScene(MIN_BENDS).height}`
     );
   });
 
@@ -81,5 +85,118 @@ describe('LuminousFlow (jsdom, canvas 2D 없음)', () => {
       </StrictMode>
     );
     expect(() => unmount()).not.toThrow();
+  });
+});
+
+// 크기를 직접 알리는 최소 ResizeObserver. jsdom에는 레이아웃이 없어 상자 크기는 clientWidth/Height로 건넨다.
+class FakeResizeObserver {
+  static all: FakeResizeObserver[] = [];
+  disconnected = false;
+  constructor(private readonly callback: ResizeObserverCallback) {
+    FakeResizeObserver.all.push(this);
+  }
+  observe(): void {}
+  unobserve(): void {}
+  disconnect(): void {
+    this.disconnected = true;
+  }
+  fire(): void {
+    this.callback([], this as unknown as ResizeObserver);
+  }
+}
+
+describe('LuminousFlow 크기에 따른 장면 (jsdom)', () => {
+  const box = { width: 492, height: 300 };
+  const sizeOf = (name: 'clientWidth' | 'clientHeight') => ({
+    configurable: true,
+    get: () => box[name === 'clientWidth' ? 'width' : 'height'],
+  });
+  const originalWidth = Object.getOwnPropertyDescriptor(
+    HTMLElement.prototype,
+    'clientWidth'
+  );
+  const originalHeight = Object.getOwnPropertyDescriptor(
+    HTMLElement.prototype,
+    'clientHeight'
+  );
+  beforeAll(() => {
+    Object.defineProperty(
+      HTMLElement.prototype,
+      'clientWidth',
+      sizeOf('clientWidth')
+    );
+    Object.defineProperty(
+      HTMLElement.prototype,
+      'clientHeight',
+      sizeOf('clientHeight')
+    );
+  });
+  afterAll(() => {
+    if (originalWidth)
+      Object.defineProperty(
+        HTMLElement.prototype,
+        'clientWidth',
+        originalWidth
+      );
+    if (originalHeight)
+      Object.defineProperty(
+        HTMLElement.prototype,
+        'clientHeight',
+        originalHeight
+      );
+  });
+  afterEach(() => vi.unstubAllGlobals());
+
+  const mount = (paused = false) => {
+    FakeResizeObserver.all = [];
+    vi.stubGlobal('ResizeObserver', FakeResizeObserver);
+    const view = render(
+      <StrictMode>
+        <LuminousFlow paused={paused} />
+      </StrictMode>
+    );
+    const resizeTo = (width: number, height: number) => {
+      box.width = width;
+      box.height = height;
+      act(() => FakeResizeObserver.all.forEach((observer) => observer.fire()));
+    };
+    const viewBox = () =>
+      view.container.querySelector('svg')!.getAttribute('viewBox');
+    const route = () =>
+      view.container.querySelector('defs path')!.getAttribute('d')!;
+    return { ...view, resizeTo, viewBox, route };
+  };
+
+  it('아주 짧은 상자(40px)와 아주 긴 상자(20000px)에서 예외 없이 상자를 덮는 장면을 쓴다', () => {
+    const { resizeTo, viewBox } = mount();
+    resizeTo(492, 40);
+    expect(viewBox()).toBe(`0 0 492 ${createScene(MIN_BENDS).height}`);
+    resizeTo(492, 20000);
+    const n = bendsForBox(492, 20000);
+    expect(n).toBeGreaterThan(MIN_BENDS);
+    expect(viewBox()).toBe(`0 0 492 ${createScene(n).height}`);
+    expect(createScene(n).height).toBeGreaterThanOrEqual(20000);
+  });
+
+  it('굽이 수의 짝홀을 넘는 크기 변경에서 장면이 바뀌고 마감 방향이 뒤집힌다(paused여도)', () => {
+    const { resizeTo, viewBox, route } = mount(true);
+    // 가장 짧은 장면(굽이 5, 홀수)은 오른쪽 밖으로 끝난다. 520px 더 긴 상자는 굽이 6(짝수)이라 왼쪽 밖이다
+    resizeTo(492, 1000);
+    const shortRoute = route();
+    const shortBox = viewBox();
+    const endsRight = (d: string) => Number(d.trim().split(' ').at(-2)) > 492;
+    expect(endsRight(shortRoute)).toBe(true);
+    resizeTo(492, 1446 + 1);
+    expect(bendsForBox(492, 1447)).toBe(MIN_BENDS + 1);
+    expect(viewBox()).not.toBe(shortBox);
+    expect(endsRight(route())).toBe(false);
+    resizeTo(492, 1446 + 520 + 1);
+    expect(endsRight(route())).toBe(true);
+  });
+
+  it('언마운트하면 크기 관찰을 끊는다', () => {
+    const { unmount } = mount();
+    unmount();
+    expect(FakeResizeObserver.all.every((o) => o.disconnected)).toBe(true);
   });
 });

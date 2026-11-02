@@ -26,12 +26,14 @@ export const sourceHaze = style({
 export const scrollScene = style({});
 globalStyle(`${scrollScene} ${sourceHaze}`, { height: '100svh' });
 
-// 대기층 SVG. canvas가 그 그림을 텍스처로 넘겨받으면 숨겨진다
+// 대기층 SVG. 폭에 맞춰 viewBox 비율대로 펴지고(장면 전체라 상자보다 길 수 있다, 넘침은 루트가 자른다),
+// canvas가 그 그림을 텍스처로 넘겨받으면 숨겨진다
 export const atmosphere = style({
   position: 'absolute',
-  inset: 0,
+  top: 0,
+  left: 0,
   width: '100%',
-  height: '100%',
+  height: 'auto',
 });
 
 export const canvas = style({

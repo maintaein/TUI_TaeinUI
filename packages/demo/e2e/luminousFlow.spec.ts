@@ -72,6 +72,40 @@ test.describe('빛 물줄기 상세 (1440px)', () => {
     expect(flowing.same).toBe(false);
   });
 
+  test('일시정지 중에 상자 길이가 바뀌어 굽이 수가 달라져도 새 장면을 한 장 다시 그린다', async ({
+    page,
+  }) => {
+    await openDetail(page);
+    await stage(page).getByRole('button', { name: '시연 멈춤' }).click();
+    await page.mouse.move(2, 2);
+    const viewBox = () =>
+      page
+        .locator(
+          '[role="region"][aria-label="LuminousFlow 미리보기"] svg[viewBox^="0 0 492"]'
+        )
+        .getAttribute('viewBox');
+    const snapshot = () =>
+      page
+        .locator(DETAIL)
+        .evaluate((el) => (el as HTMLCanvasElement).toDataURL());
+    const setHeight = (px: number) =>
+      stage(page).evaluate((el, height) => {
+        (el as HTMLElement).style.height = `${height}px`;
+      }, px);
+
+    await setHeight(1000);
+    await expect.poll(viewBox).toBe('0 0 492 1445');
+    await page.waitForTimeout(500);
+    const short = await snapshot();
+    // 폭 1080이면 굽이 5의 장면(1445)이 약 3170px를 덮는다. 그보다 긴 상자는 굽이 6(마감이 반대쪽)이다
+    await setHeight(4000);
+    await expect.poll(viewBox).toBe('0 0 492 1965');
+    await expect.poll(snapshot).not.toBe(short);
+    const still = await twoFrames(page, DETAIL);
+    expect(still.blank).toBe(false);
+    expect(still.same).toBe(true);
+  });
+
   test('움직임 줄이기에서는 500ms 간격으로 찍어도 정지 장면이다', async ({
     page,
   }) => {

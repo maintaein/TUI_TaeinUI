@@ -4,6 +4,7 @@ import {
   useId,
   useImperativeHandle,
   useRef,
+  useState,
 } from 'react';
 import clsx from 'clsx';
 import * as styles from './LuminousFlow.css';
@@ -11,22 +12,19 @@ import { palette } from './luminousFlowPalette';
 import { SCROLL_FLOW } from './luminousFlowMotion';
 import { bindFlowListeners, createFlowLoop } from './luminousFlowLoop';
 import {
-  SCENE_HEIGHT,
-  SCENE_HEIGHT_COMPACT,
-  SCENE_WIDTH,
+  MIN_BENDS,
   POSE_COUNT,
-  atoms,
-  bends,
-  centerlinePath,
-  envelopePaths,
-  strands,
+  REFERENCE_HEIGHT,
+  SCENE_WIDTH,
+  bendsForBox,
+  createScene,
 } from './luminousFlowScene';
 
 export interface LuminousFlowProps {
   className?: string;
   /**
-   * 상자 높이를 장면 높이(2162)에 맞춘 긴 물길로 그리고, 창에 보이는 구간(위아래 반 화면 여유)만 그린다.
-   * 끄면 물길의 맨 위 구간(318)만 상자에 꽉 차게 그린다.
+   * 켜면 창에 보이는 구간(위아래 반 화면 여유)만 그린다. 끄면 상자 전체를 그린다.
+   * 물길의 길이는 이 값과 상관없이 상자 높이가 정한다(길수록 굽이가 늘고, 마감 방향은 굽이 수를 따른다).
    * 흐름 속도는 이 값과 상관없이 창 스크롤(휠 포함)에서 읽는다.
    */
   scrollScene?: boolean;
@@ -54,6 +52,19 @@ export const LuminousFlow = forwardRef<HTMLDivElement, LuminousFlowProps>(
     const syncRef = useRef<() => void>(() => {});
     useImperativeHandle(ref, () => rootRef.current as HTMLDivElement);
 
+    // 상자 높이가 굽이 수를 정하고 굽이 수가 장면(길이와 마감 방향)을 정한다. 잰 값이 오기 전에는 가장 짧은 장면이다
+    const [bendCount, setBendCount] = useState(MIN_BENDS);
+    const scene = createScene(bendCount);
+    useEffect(() => {
+      const root = rootRef.current;
+      if (!root || typeof ResizeObserver === 'undefined') return;
+      const observer = new ResizeObserver(() =>
+        setBendCount(bendsForBox(root.clientWidth, root.clientHeight))
+      );
+      observer.observe(root);
+      return () => observer.disconnect();
+    }, []);
+
     useEffect(() => {
       const root = rootRef.current;
       const canvas = canvasRef.current;
@@ -63,9 +74,12 @@ export const LuminousFlow = forwardRef<HTMLDivElement, LuminousFlowProps>(
       const rim = rimCanvas.getContext('2d');
       if (!rim) return;
       const media = window.matchMedia('(prefers-reduced-motion: reduce)');
-      const sceneHeight = scrollScene ? SCENE_HEIGHT : SCENE_HEIGHT_COMPACT;
+      const { atoms, bends, strands } = scene;
+      const sceneHeight = scene.height;
       let visible = true;
       const atmosphere = root.querySelector<SVGSVGElement>('svg');
+      // 장면이 바뀌어 효과가 다시 돌 때, 앞 장면의 텍스처가 숨겨 둔 대기층을 다시 보이게 한다(새 텍스처가 오면 또 숨는다)
+      if (atmosphere) atmosphere.style.visibility = '';
       let atmosphereTexture: HTMLCanvasElement | null = null;
       let textureVersion = 0;
       let textureUrl: string | null = null;
@@ -116,18 +130,19 @@ export const LuminousFlow = forwardRef<HTMLDivElement, LuminousFlowProps>(
         image.src = url;
       };
       // 장면 좌표 패턴은 그리기 변환을 따라가므로 화면 크기 그라디언트를 다시 만들지 않는다.
+      // 기준 높이 한 주기를 세로로 되풀이해 길이와 상관없이 같은 크기의 패턴을 쓰고, 끝색을 첫 색과 같게 해 이음매가 없다.
       const strandPaints = strands.map(({ index, color }) => {
         const texture = document.createElement('canvas');
         texture.width = 1;
-        texture.height = SCENE_HEIGHT;
+        texture.height = REFERENCE_HEIGHT;
         const paint = texture.getContext('2d');
         if (!paint) return color;
-        const gradient = paint.createLinearGradient(0, 0, 0, SCENE_HEIGHT);
+        const gradient = paint.createLinearGradient(0, 0, 0, REFERENCE_HEIGHT);
         gradient.addColorStop(0, `${color}a6`);
         gradient.addColorStop(0.2 + (index % 5) * 0.12, color);
-        gradient.addColorStop(1, `${color}bf`);
+        gradient.addColorStop(1, `${color}a6`);
         paint.fillStyle = gradient;
-        paint.fillRect(0, 0, 1, SCENE_HEIGHT);
+        paint.fillRect(0, 0, 1, REFERENCE_HEIGHT);
         return context.createPattern(texture, 'repeat') ?? color;
       });
       const interpolated = strands.map((strand) =>
@@ -138,7 +153,6 @@ export const LuminousFlow = forwardRef<HTMLDivElement, LuminousFlowProps>(
       );
       let width = 0;
       let height = 0;
-      let wide = false;
       let sizeKey = '';
       let pixelRatio = 1;
       let previousFrame = performance.now();
@@ -153,8 +167,6 @@ export const LuminousFlow = forwardRef<HTMLDivElement, LuminousFlowProps>(
       const resize = () => {
         width = root.clientWidth;
         height = root.clientHeight;
-        // 좁고 긴 상자는 장면을 가로로 3배 펼친 부분만 보여 선이 가로로 뭉개지지 않게 한다
-        wide = !scrollScene && width <= 600 && height > width;
         pixelRatio = Math.min(
           window.devicePixelRatio || 1,
           1,
@@ -164,13 +176,10 @@ export const LuminousFlow = forwardRef<HTMLDivElement, LuminousFlowProps>(
         const nextHeight = Math.ceil(height * pixelRatio);
         if (canvas.width !== nextWidth) canvas.width = nextWidth;
         if (canvas.height !== nextHeight) canvas.height = nextHeight;
-        const key = `${width}x${height}x${wide}`;
-        if (atmosphere && key !== sizeKey) {
-          atmosphere.style.left = wide ? `${-width * 0.8}px` : '';
-          atmosphere.style.right = wide ? 'auto' : '';
-          atmosphere.style.width = wide ? `${width * 3}px` : '';
-          cacheAtmosphere(width * (wide ? 3 : 1), height);
-        }
+        // 대기층은 장면 전체이고 상자 높이는 그 위쪽만 보이게 자른다. 그래서 폭이 바뀔 때만 다시 만든다
+        const key = `${width}`;
+        if (atmosphere && key !== sizeKey)
+          cacheAtmosphere(width, (width * sceneHeight) / SCENE_WIDTH);
         sizeKey = key;
         loop.redrawIfIdle();
       };
@@ -183,34 +192,33 @@ export const LuminousFlow = forwardRef<HTMLDivElement, LuminousFlowProps>(
       visibilityObserver.observe(root);
 
       const paintScene = (time: number) => {
-        const scaleX = (width * (wide ? 3 : 1)) / SCENE_WIDTH;
-        const scaleY = height / sceneHeight;
-        const left = wide ? -width * 0.8 : 0;
+        // 폭에 맞춘 한 배율로 펴서 굽이가 찌그러지지 않는다. 상자는 장면의 위쪽 height / scale만큼을 보인다
+        const scale = width / SCENE_WIDTH;
         const paths: Path2D[] = [];
         const points = interpolated;
         const lengths = cumulativeLengths;
         context.resetTransform();
         context.clearRect(0, 0, canvas.width, canvas.height);
         context.setTransform(
-          pixelRatio * scaleX,
+          pixelRatio * scale,
           0,
           0,
-          pixelRatio * scaleY,
-          pixelRatio * left,
+          pixelRatio * scale,
+          0,
           0
         );
         context.lineCap = 'round';
         // 보이는 장면 구간. 비스크롤은 상자 전체가 보이고, scrollScene의 긴 상자는 창에 닿는 구간에
         // 위아래 반 화면 여유(스크롤이 다음 프레임 전에 드러내는 만큼)를 더한다.
         let top = 0;
-        let bottom = sceneHeight;
+        let bottom = Math.min(sceneHeight, height / scale);
         if (scrollScene) {
           const overscan = window.innerHeight / 2;
           const boxTop = root.getBoundingClientRect().top;
-          top = Math.max(0, (-boxTop - overscan) / scaleY);
+          top = Math.max(0, (-boxTop - overscan) / scale);
           bottom = Math.min(
-            sceneHeight,
-            (window.innerHeight + overscan - boxTop) / scaleY
+            bottom,
+            (window.innerHeight + overscan - boxTop) / scale
           );
           if (bottom <= top) return;
         }
@@ -308,8 +316,8 @@ export const LuminousFlow = forwardRef<HTMLDivElement, LuminousFlowProps>(
         bends
           .filter(([, y]) => y + 38 >= top && y - 38 <= bottom)
           .forEach(([x, y]) => {
-            const rimWidth = Math.ceil(90 * scaleX * pixelRatio);
-            const rimHeight = Math.ceil(76 * scaleY * pixelRatio);
+            const rimWidth = Math.ceil(90 * scale * pixelRatio);
+            const rimHeight = Math.ceil(76 * scale * pixelRatio);
             if (rimCanvas.width !== rimWidth) rimCanvas.width = rimWidth;
             if (rimCanvas.height !== rimHeight) rimCanvas.height = rimHeight;
             rim.resetTransform();
@@ -482,14 +490,15 @@ export const LuminousFlow = forwardRef<HTMLDivElement, LuminousFlowProps>(
         visibilityObserver.disconnect();
         unbind();
       };
-    }, [scrollScene]);
+    }, [scene, scrollScene]);
 
     useEffect(() => {
       pausedRef.current = paused;
       syncRef.current();
     }, [paused]);
 
-    const sceneHeight = scrollScene ? SCENE_HEIGHT : SCENE_HEIGHT_COMPACT;
+    // 줄 간격은 기준 장면의 80칸과 같게 길이에 맞춰 늘린다(굽이 빛의 폭 85보다 훨씬 촘촘하다)
+    const stopCount = Math.ceil((80 * scene.height) / REFERENCE_HEIGHT);
     return (
       <div
         ref={rootRef}
@@ -503,26 +512,26 @@ export const LuminousFlow = forwardRef<HTMLDivElement, LuminousFlowProps>(
         <div className={styles.sourceHaze} />
         <svg
           className={styles.atmosphere}
-          viewBox={`0 0 ${SCENE_WIDTH} ${sceneHeight}`}
+          viewBox={`0 0 ${SCENE_WIDTH} ${scene.height}`}
           preserveAspectRatio="none"
           focusable="false"
         >
           <defs>
-            <path id={`${id}-glow-route`} d={centerlinePath} />
+            <path id={`${id}-glow-route`} d={scene.centerlinePath} />
             <linearGradient
               id={`${id}-envelope`}
               x1="0"
               y1="0"
               x2="0"
-              y2={SCENE_HEIGHT}
+              y2={scene.height}
               gradientUnits="userSpaceOnUse"
             >
-              {Array.from({ length: 81 }, (_, index) => {
-                const y = (index / 80) * SCENE_HEIGHT;
+              {Array.from({ length: stopCount + 1 }, (_, index) => {
+                const y = (index / stopCount) * scene.height;
                 const emission = Math.min(
                   1,
                   0.24 +
-                    bends.reduce(
+                    scene.bends.reduce(
                       (sum, [, bendY]) =>
                         sum + 0.76 * Math.exp(-(((y - bendY) / 85) ** 2)),
                       0
@@ -531,7 +540,7 @@ export const LuminousFlow = forwardRef<HTMLDivElement, LuminousFlowProps>(
                 return (
                   <stop
                     key={index}
-                    offset={index / 80}
+                    offset={index / stopCount}
                     stopColor={palette.glow}
                     stopOpacity={emission.toFixed(4)}
                   />
@@ -540,7 +549,7 @@ export const LuminousFlow = forwardRef<HTMLDivElement, LuminousFlowProps>(
             </linearGradient>
           </defs>
           <g data-flow-envelope="" fill={`url(#${id}-envelope)`} opacity=".45">
-            {envelopePaths.map((path, index) => (
+            {scene.envelopePaths.map((path, index) => (
               <path key={index} d={path} opacity=".025" />
             ))}
           </g>
