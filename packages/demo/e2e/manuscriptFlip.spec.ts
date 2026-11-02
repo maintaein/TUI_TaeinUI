@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { mountLive } from './livePreview';
 
 const stage = (page: Page) =>
   page.getByRole('region', { name: 'ManuscriptFlip 미리보기' });
@@ -27,6 +28,7 @@ const snap = (page: Page, selector = '[data-stage-target="card"]') =>
         ? ([...layer.children] as HTMLElement[]).map((tile) => ({
             turn: turn(tile),
             opacity: Number(view(tile).opacity),
+            pointerEvents: view(tile).pointerEvents,
           }))
         : [],
     };
@@ -63,6 +65,8 @@ test.describe('원고지 넘김 상세', () => {
     expect(rest.backInert).toBe(true);
     expect(rest.backVisibility).toBe('hidden');
     expect(rest.tiles.every((t) => t.turn === 0 && t.opacity === 0)).toBe(true);
+    // 타일은 포인터를 받지 않는다(계산값)
+    expect(rest.tiles.every((t) => t.pointerEvents === 'none')).toBe(true);
 
     await toggle(page).click();
     await page.clock.runFor(150);
@@ -210,5 +214,54 @@ test.describe('원고지 넘김 상세 (움직임 줄이기)', () => {
     expect(end.backInert).toBe(false);
     expect(end.frontInert).toBe(true);
     expect(end.frontVisibility).toBe('hidden');
+  });
+});
+
+test.describe('원고지 넘김 포커스', () => {
+  test('넘기는 단추가 앞면 안에 있어 포커스를 잃으면 끝날 때 상자로 옮겨지고 다음 Tab이 뒷면으로 간다', async ({
+    page,
+  }) => {
+    await mountLive(
+      page,
+      `const [f, setF] = useState(false);
+
+<ManuscriptFlip id="mf" flipped={f} front={<button id="fb" onClick={() => setF(true)}>답 보기</button>} back={<button id="bb">다음 문제</button>} />`,
+      '#mf'
+    );
+    const active = () => page.evaluate(() => document.activeElement?.id ?? '');
+    await page.focus('#fb');
+    await page.keyboard.press('Enter');
+    await expect.poll(active, { timeout: 5000 }).toBe('mf');
+    // 상자는 조작 요소가 아니라 바깥 링을 그리지 않는다
+    expect(
+      await page
+        .locator('#mf')
+        .evaluate((el) => getComputedStyle(el).outlineStyle)
+    ).toBe('none');
+    await page.keyboard.press('Tab');
+    expect(await active()).toBe('bb');
+  });
+
+  test('포커스가 면 밖(넘기는 단추가 상자 밖)에 있으면 끝나도 그대로다', async ({
+    page,
+  }) => {
+    await mountLive(
+      page,
+      `const [f, setF] = useState(false);
+
+<div><button id="out" onClick={() => setF(true)}>넘기기</button><ManuscriptFlip id="mf" flipped={f} front={<button id="fb">앞</button>} back={<button id="bb">뒤</button>} /></div>`,
+      '#mf'
+    );
+    await page.focus('#out');
+    await page.keyboard.press('Enter');
+    await expect
+      .poll(
+        () => page.locator('#bb').evaluate((el) => !el.closest('[inert]')),
+        {
+          timeout: 5000,
+        }
+      )
+      .toBe(true);
+    expect(await page.evaluate(() => document.activeElement?.id)).toBe('out');
   });
 });
