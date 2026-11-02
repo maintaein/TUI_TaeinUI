@@ -56,14 +56,7 @@ describe('LuminousFlow (jsdom, canvas 2D 없음)', () => {
     );
   });
 
-  it('scrollScene 루트에만 안개를 첫 화면 높이로 줄이는 클래스가 붙는다', () => {
-    const compact = render(<LuminousFlow />);
-    const scroll = render(<LuminousFlow scrollScene />);
-    expect(compact.container.firstElementChild?.classList.length).toBe(1);
-    expect(scroll.container.firstElementChild?.classList.length).toBe(2);
-  });
-
-  it('맥락이 없어도 오류 없이 마운트·paused 전환·scrollScene 전환·언마운트한다', () => {
+  it('맥락이 없어도 오류 없이 마운트·paused 전환·언마운트한다', () => {
     const { rerender, unmount } = render(
       <StrictMode>
         <LuminousFlow />
@@ -76,12 +69,7 @@ describe('LuminousFlow (jsdom, canvas 2D 없음)', () => {
     );
     rerender(
       <StrictMode>
-        <LuminousFlow paused scrollScene />
-      </StrictMode>
-    );
-    rerender(
-      <StrictMode>
-        <LuminousFlow scrollScene />
+        <LuminousFlow />
       </StrictMode>
     );
     expect(() => unmount()).not.toThrow();
@@ -192,6 +180,43 @@ describe('LuminousFlow 크기에 따른 장면 (jsdom)', () => {
     expect(endsRight(route())).toBe(false);
     resizeTo(492, 1446 + 520 + 1);
     expect(endsRight(route())).toBe(true);
+  });
+
+  // 그리기 효과가 한 번 돌 때마다 캔버스에서 getContext('2d')를 부른다. jsdom은 null을 돌려줘 효과가 바로 끝나므로
+  // 그 호출 수가 곧 효과가 시작된 횟수다(값은 그대로 null이고 세기만 한다).
+  // 무엇을 되돌리면 빨개지는가: 효과 의존성에 장면 객체를 되돌리면 둘째 단언이, 굽이 수를 빼면 마지막 단언이 빨개진다
+  it('그리기 효과는 굽이 수가 바뀔 때만 다시 돌고, 같은 굽이 수의 장면 객체가 캐시에서 밀려나도 돌지 않는다', () => {
+    const silent = HTMLCanvasElement.prototype.getContext;
+    let runs = 0;
+    HTMLCanvasElement.prototype.getContext = (() => {
+      runs++;
+      return null;
+    }) as typeof original;
+    try {
+      FakeResizeObserver.all = [];
+      vi.stubGlobal('ResizeObserver', FakeResizeObserver);
+      box.width = 492;
+      box.height = 300;
+      const { rerender } = render(<LuminousFlow />);
+      const resizeTo = (height: number) => {
+        box.height = height;
+        act(() =>
+          FakeResizeObserver.all.forEach((observer) => observer.fire())
+        );
+      };
+      resizeTo(300);
+      expect(runs).toBe(1);
+      const before = createScene(MIN_BENDS);
+      // 다른 굽이 수의 장면 넷을 만들어 캐시(최근 4개)에서 밀어낸 뒤 다시 그린다
+      for (let n = MIN_BENDS + 1; n <= MIN_BENDS + 4; n++) createScene(n);
+      rerender(<LuminousFlow className="again" />);
+      expect(createScene(MIN_BENDS)).not.toBe(before);
+      expect(runs).toBe(1);
+      resizeTo(2000);
+      expect(runs).toBe(2);
+    } finally {
+      HTMLCanvasElement.prototype.getContext = silent;
+    }
   });
 
   it('언마운트하면 크기 관찰을 끊는다', () => {

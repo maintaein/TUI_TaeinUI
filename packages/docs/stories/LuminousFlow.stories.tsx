@@ -10,7 +10,6 @@ const meta = {
   },
   tags: ['autodocs'],
   argTypes: {
-    scrollScene: { control: 'boolean' },
     paused: { control: 'boolean' },
   },
 } satisfies Meta<typeof LuminousFlow>;
@@ -37,12 +36,25 @@ export const SmallBox: Story = {
   ),
 };
 
-// 상자 높이를 장면 높이(2162)에 맞춘 긴 물길. 흐름 속도는 창 스크롤을 따른다
-export const ScrollScene: Story = {
-  args: { scrollScene: true },
+// 상자가 길수록 굽이가 늘어난다. 창 스크롤을 따라 보이는 구간만 그리고 흐름 속도도 창 스크롤을 따른다
+export const Tall: Story = {
   render: (args) => (
-    <div style={{ position: 'relative', width: '100vw', height: 2162 }}>
+    <div style={{ position: 'relative', width: '100vw', height: 6000 }}>
       <LuminousFlow {...args} />
+    </div>
+  ),
+};
+
+// 스크롤 상자 안: 가장 가까운 스크롤 조상을 읽는다. 상자 안에서 스크롤하면 물줄기를 따라 맨 아래 마감까지 내려간다
+export const InScrollBox: Story = {
+  parameters: { layout: 'centered' },
+  render: (args) => (
+    // 스크롤 상자는 키보드로 스크롤할 수 있어야 한다
+    // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex
+    <div style={{ width: 480, height: 480, overflowY: 'auto' }} tabIndex={0}>
+      <div style={{ position: 'relative', height: 3600 }}>
+        <LuminousFlow {...args} />
+      </div>
     </div>
   ),
 };

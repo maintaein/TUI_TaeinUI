@@ -170,3 +170,26 @@ describe('bindFlowListeners: 구독 등록과 해제', () => {
     expect(calls).toEqual({ scroll: 0, wheel: 0, sync: 0 });
   });
 });
+
+describe('bindFlowListeners: 스크롤 상자 안의 scroll', () => {
+  // 무엇을 되돌리면 빨개지는가: scroll 구독의 capture를 빼면 스크롤 상자의 scroll(거품이 일지 않는다)이 창에 닿지 않는다
+  it('창 안 스크롤 상자의 scroll도 받고, 해제하면 받지 않는다', () => {
+    let scrolls = 0;
+    const box = document.createElement('div');
+    document.body.append(box);
+    const unbind = bindFlowListeners({
+      win: window,
+      doc: document,
+      media: new EventTarget(),
+      onScroll: () => scrolls++,
+      onWheel: () => {},
+      onSync: () => {},
+    });
+    box.dispatchEvent(new Event('scroll'));
+    expect(scrolls).toBe(1);
+    unbind();
+    box.dispatchEvent(new Event('scroll'));
+    expect(scrolls).toBe(1);
+    box.remove();
+  });
+});

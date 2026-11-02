@@ -223,3 +223,44 @@ describe('상자 크기에서 굽이 수 고르기', () => {
     expect(bendsForBox(500, 0)).toBe(MIN_BENDS);
   });
 });
+
+describe('가닥의 누적 길이와 y 범위(보이는 구간만 그리는 데 쓴다)', () => {
+  const scene = createScene(9);
+
+  // 되돌리면 빨개지는 것: 누적 길이를 첫 포즈가 아닌 값으로 만들거나 합산 식을 바꾸면 점 사이 거리 합과 어긋난다
+  it('lengths는 첫 포즈 점 사이 거리의 누적이다', () => {
+    for (const { poses, lengths } of scene.strands) {
+      expect(lengths).toHaveLength(poses[0].length);
+      expect(lengths[0]).toBe(0);
+      let sum = 0;
+      for (let sample = 1; sample < lengths.length; sample++) {
+        sum += Math.hypot(
+          poses[0][sample][0] - poses[0][sample - 1][0],
+          poses[0][sample][1] - poses[0][sample - 1][1]
+        );
+        expect(lengths[sample]).toBeCloseTo(sum, 6);
+      }
+    }
+  });
+
+  // 되돌리면 빨개지는 것: 단조가 깨지면 이진 탐색이 틀린 점을 가리키고, 포즈 하나라도 빠지면 아래 경계 단언이 깨진다
+  it('preMaxY는 점 앞쪽의 모든 포즈 y 최댓값, sufMinY는 점 뒤쪽 최솟값이고 둘 다 단조다', () => {
+    for (const { poses, preMaxY, sufMinY } of scene.strands) {
+      const count = poses[0].length;
+      for (let sample = 0; sample < count; sample++) {
+        let max = -Infinity;
+        let min = Infinity;
+        for (let before = 0; before <= sample; before++)
+          for (const pose of poses) max = Math.max(max, pose[before][1]);
+        for (let after = sample; after < count; after++)
+          for (const pose of poses) min = Math.min(min, pose[after][1]);
+        expect(preMaxY[sample]).toBe(max);
+        expect(sufMinY[sample]).toBe(min);
+        if (sample) {
+          expect(preMaxY[sample]).toBeGreaterThanOrEqual(preMaxY[sample - 1]);
+          expect(sufMinY[sample]).toBeGreaterThanOrEqual(sufMinY[sample - 1]);
+        }
+      }
+    }
+  });
+});

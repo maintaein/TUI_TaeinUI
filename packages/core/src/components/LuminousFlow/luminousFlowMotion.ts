@@ -35,3 +35,24 @@ export const firstIndexAtLeast = (
   }
   return low === sorted.length ? -1 : low;
 };
+
+/**
+ * 보이는 구간(top~bottom, 빛번짐 반경 margin 포함)에 닿을 수 있는 구간(점 i와 i+1 사이)의 번호 범위.
+ * preMaxY는 점마다 앞쪽 y 최댓값, sufMinY는 뒤쪽 y 최솟값(모든 포즈에 걸쳐, 둘 다 점 번호에 단조)이다. 닿는 구간이 없으면 first가 last보다 크다.
+ * 보수적이라 범위 안에 안 보이는 구간이 섞일 수는 있지만 보이는 구간이 빠지지는 않는다.
+ */
+export const visibleSegments = (
+  preMaxY: ArrayLike<number>,
+  sufMinY: ArrayLike<number>,
+  top: number,
+  bottom: number,
+  margin = 50
+) => {
+  const count = preMaxY.length;
+  const firstPoint = firstIndexAtLeast(preMaxY, top - margin);
+  const afterPoint = firstIndexAtLeast(sufMinY, bottom + margin + 1);
+  return {
+    first: firstPoint === -1 ? count : Math.max(firstPoint - 1, 0),
+    last: Math.min(afterPoint === -1 ? count - 2 : afterPoint - 1, count - 2),
+  };
+};

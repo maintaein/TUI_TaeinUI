@@ -74,12 +74,13 @@ export const bindFlowListeners = ({
   onSync,
 }: FlowListenerTargets) => {
   const wheel = onWheel as EventListener;
-  win.addEventListener('scroll', onScroll, { passive: true });
+  // 캡처: 창 안 모든 스크롤 상자의 scroll도 받는다(scroll은 거품이 일지 않는다)
+  win.addEventListener('scroll', onScroll, { passive: true, capture: true });
   win.addEventListener('wheel', wheel, { passive: true });
   media.addEventListener('change', onSync);
   doc.addEventListener('visibilitychange', onSync);
   return () => {
-    win.removeEventListener('scroll', onScroll);
+    win.removeEventListener('scroll', onScroll, { capture: true });
     win.removeEventListener('wheel', wheel);
     media.removeEventListener('change', onSync);
     doc.removeEventListener('visibilitychange', onSync);

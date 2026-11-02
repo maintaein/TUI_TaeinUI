@@ -1,7 +1,12 @@
 import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { firstIndexAtLeast, shouldAnimate } from './luminousFlowMotion';
+import {
+  firstIndexAtLeast,
+  shouldAnimate,
+  visibleSegments,
+} from './luminousFlowMotion';
+import { POSE_COUNT, createScene } from './luminousFlowScene';
 import { palette, paletteChannels } from './luminousFlowPalette';
 
 const running = { reduced: false, hidden: false, visible: true, paused: false };
@@ -74,5 +79,74 @@ describe('firstIndexAtLeast (알갱이 위치 이진 탐색)', () => {
         lengths.findIndex((value) => value >= target)
       );
     }
+  });
+});
+
+describe('visibleSegments (보이는 구간에 닿는 구간 번호 범위)', () => {
+  it('손으로 만든 단조 배열에서 앞뒤 경계가 맞다', () => {
+    // 점 5개의 y 범위: [0,10] [5,20] [15,30] [25,40] [35,50]
+    const preMaxY = [10, 20, 30, 40, 50];
+    const sufMinY = [0, 5, 15, 25, 35];
+    // 25~27: 최댓값이 25 이상인 첫 점이 2라 구간 1부터, 최솟값이 28 이상인 첫 점이 4라 구간 3까지
+    expect(visibleSegments(preMaxY, sufMinY, 25, 27, 0)).toEqual({
+      first: 1,
+      last: 3,
+    });
+    // 모두 덮으면 점 5개 사이의 구간 4개 전부
+    expect(visibleSegments(preMaxY, sufMinY, -100, 500, 0)).toEqual({
+      first: 0,
+      last: 3,
+    });
+    // 전부 보이는 구간 위쪽 밖이면 first가 점 수라 last보다 크다
+    const above = visibleSegments(preMaxY, sufMinY, 200, 220, 0);
+    expect(above.first).toBe(5);
+    expect(above.last).toBeLessThan(above.first);
+    // 전부 보이는 구간 아래쪽 밖이면 last가 first보다 작다
+    const below = visibleSegments(preMaxY, sufMinY, -100, -60, 0);
+    expect(below.last).toBeLessThan(below.first);
+  });
+
+  // 되돌리면 빨개지는 것: 어느 한쪽 경계를 한 점 앞이나 뒤로 옮기면 직접 훑어 찾은 보이는 구간이 범위 밖으로 빠진다
+  it('실제 장면에서 직접 훑어 찾은 보이는 구간을 하나도 빠뜨리지 않고, 훨씬 좁다', () => {
+    const scene = createScene(12);
+    const margin = 50;
+    let narrowed = 0;
+    let checked = 0;
+    for (const strand of scene.strands) {
+      const count = strand.poses[0].length;
+      const { poses, preMaxY, sufMinY } = strand;
+      for (const top of [-300, 0, 777, 2500, 4000, scene.height - 100]) {
+        for (const span of [120, 900]) {
+          const bottom = top + span;
+          const { first, last } = visibleSegments(
+            preMaxY,
+            sufMinY,
+            top,
+            bottom
+          );
+          for (const fraction of [0, 0.37, 0.99]) {
+            const pose = Math.floor(fraction * POSE_COUNT);
+            const mix = fraction * POSE_COUNT - pose;
+            const y = (sample: number) =>
+              poses[pose][sample][1] +
+              (poses[pose + 1][sample][1] - poses[pose][sample][1]) * mix;
+            for (let sample = 0; sample < count - 1; sample++) {
+              const drawn = !(
+                Math.max(y(sample), y(sample + 1)) < top - margin ||
+                Math.min(y(sample), y(sample + 1)) > bottom + margin
+              );
+              if (drawn) {
+                checked++;
+                expect(sample).toBeGreaterThanOrEqual(first);
+                expect(sample).toBeLessThanOrEqual(last);
+              }
+            }
+          }
+          if (last - first + 1 < count / 4) narrowed++;
+        }
+      }
+    }
+    expect(checked).toBeGreaterThan(1000);
+    expect(narrowed).toBeGreaterThan(100);
   });
 });

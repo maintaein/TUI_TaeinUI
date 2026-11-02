@@ -9,8 +9,13 @@ import {
 import clsx from 'clsx';
 import * as styles from './LuminousFlow.css';
 import { palette } from './luminousFlowPalette';
-import { SCROLL_FLOW, firstIndexAtLeast } from './luminousFlowMotion';
+import {
+  SCROLL_FLOW,
+  firstIndexAtLeast,
+  visibleSegments,
+} from './luminousFlowMotion';
 import { bindFlowListeners, createFlowLoop } from './luminousFlowLoop';
+import { canvasWindow, findScroller, readView } from './luminousFlowScroll';
 import {
   MIN_BENDS,
   POSE_COUNT,
@@ -23,12 +28,6 @@ import {
 export interface LuminousFlowProps {
   className?: string;
   /**
-   * 켜면 창에 보이는 구간(위아래 반 화면 여유)만 그린다. 끄면 상자 전체를 그린다.
-   * 물길의 길이는 이 값과 상관없이 상자 높이가 정한다(길수록 굽이가 늘고, 마감 방향은 굽이 수를 따른다).
-   * 흐름 속도는 이 값과 상관없이 창 스크롤(휠 포함)에서 읽는다.
-   */
-  scrollScene?: boolean;
-  /**
    * true면 흐름을 멈추고 지금 장면을 남긴다(이어 그리는 루프 없음). 크기·스크롤 구간이 바뀌면
    * 그 장면을 한 번 다시 그린다. false로 돌아오면 흐름 시간이 튀지 않고 이어서 흐른다.
    * WCAG 2.2.2의 멈춤 수단이다.
@@ -39,11 +38,13 @@ export interface LuminousFlowProps {
 /**
  * 굽이치는 물길 안을 빛줄기가 흐르고 빛 알갱이가 떠가는 배경(canvas 2D + SVG 대기층).
  * 부모 상자를 채우므로(`position: absolute; inset: 0`) 부모가 position 기준이어야 한다.
+ * 물길의 길이는 상자 높이가 정한다(길수록 굽이가 늘고, 마감 방향은 굽이 수를 따른다).
+ * 가장 가까운 스크롤 조상(없으면 창)의 보이는 구간에 위아래 반 화면 여유를 더한 만큼만 그리고, 흐름 속도도 그 스크롤에서 읽는다.
  * 색 덮어쓰기는 없다(고정 시안 팔레트). 대기층 텍스처를 Blob URL 이미지로 만들므로
  * 엄격한 CSP에서는 `img-src blob:`이 필요하다. 축소 모드면 정지 장면, 화면 밖·탭 숨김이면 그리기를 멈춘다.
  */
 export const LuminousFlow = forwardRef<HTMLDivElement, LuminousFlowProps>(
-  ({ className, scrollScene = false, paused = false }, ref) => {
+  ({ className, paused = false }, ref) => {
     const id = useId().replace(/:/g, '');
     const rootRef = useRef<HTMLDivElement>(null);
     const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -154,32 +155,56 @@ export const LuminousFlow = forwardRef<HTMLDivElement, LuminousFlowProps>(
         paint.fillRect(0, 0, 1, REFERENCE_HEIGHT);
         return context.createPattern(texture, 'repeat') ?? color;
       });
+      // 보이는 구간의 점만 채운다. 나머지 칸은 쓰이지 않는다
       const interpolated = strands.map((strand) =>
         strand.poses[0].map((point) => [...point])
       );
-      const cumulativeLengths = strands.map(
-        (strand) => new Float64Array(strand.poses[0].length)
-      );
+      // 알갱이가 가닥 위치를 읽을 두 포즈의 첫 번호와 섞는 비율(가닥마다 매 프레임 갱신)
+      const mixes = strands.map(() => [0, 0]);
       let width = 0;
       let height = 0;
       let sizeKey = '';
       let pixelRatio = 1;
+      // 캔버스는 상자 전체가 아니라 보이는 구간만 덮는다. 상자 안 어디에 놓였는지(px)를 마지막으로 그린 값으로 둔다
+      let scroller: HTMLElement | null = null;
+      let canvasTop = 0;
+      let canvasHeight = 0;
+      // 스크롤 위치는 조상과 창의 합이다. 둘이 이어서 움직이면(끝에 닿아 창으로 넘어감) 상자가 화면에서 움직인 양이 그 합이다
+      const scrollPosition = () => window.scrollY + (scroller?.scrollTop ?? 0);
       let previousFrame = performance.now();
       let previousScrollTime = previousFrame;
-      let previousScrollY = window.scrollY;
+      let previousScrollY = scrollPosition();
       let scrollVelocity = 0;
+      const geometry = () =>
+        canvasWindow(
+          root.getBoundingClientRect().top,
+          root.clientHeight,
+          readView(scroller)
+        );
 
       // 그림은 루트 상자 안에서 그 상자만 채운다
       const resize = () => {
+        const nextScroller = findScroller(root);
+        if (nextScroller !== scroller) {
+          if (scroller) observer.unobserve(scroller);
+          if (nextScroller) observer.observe(nextScroller);
+          scroller = nextScroller;
+          previousScrollY = scrollPosition();
+        }
         width = root.clientWidth;
         height = root.clientHeight;
+        canvasHeight = geometry().height;
+        // 상자 전체를 덮는 캔버스는 지금 값(18e5). 긴 상자는 보이는 구간 두 배 높이만 덮는데, 그 면적이 이전 긴 상자에서 실제로 칠하던
+        // 면적(저해상도로 줄인 보이는 구간)보다 커지지 않게 4e5로 묶는다(창을 띄운 실측: 18e5에서는 프레임 중앙값이 33ms에서 50~67ms로 늘었다)
+        const budget = canvasHeight < height ? 4e5 : 18e5;
         pixelRatio = Math.min(
           window.devicePixelRatio || 1,
           1,
-          Math.sqrt(18e5 / (width * height || 1))
+          Math.sqrt(budget / (width * canvasHeight || 1))
         );
         const nextWidth = Math.ceil(width * pixelRatio);
-        const nextHeight = Math.ceil(height * pixelRatio);
+        const nextHeight = Math.ceil(canvasHeight * pixelRatio);
+        canvas.style.height = `${canvasHeight}px`;
         if (canvas.width !== nextWidth) canvas.width = nextWidth;
         if (canvas.height !== nextHeight) canvas.height = nextHeight;
         // 대기층은 장면 전체이고 상자 높이는 그 위쪽만 보이게 자른다. 그래서 폭이 바뀔 때만 다시 만든다
@@ -191,6 +216,7 @@ export const LuminousFlow = forwardRef<HTMLDivElement, LuminousFlowProps>(
       };
       const observer = new ResizeObserver(resize);
       observer.observe(root);
+      window.addEventListener('resize', resize);
       const visibilityObserver = new IntersectionObserver((entries) => {
         visible = entries[0].isIntersecting;
         loop.sync();
@@ -201,67 +227,63 @@ export const LuminousFlow = forwardRef<HTMLDivElement, LuminousFlowProps>(
         // 폭에 맞춘 한 배율로 펴서 굽이가 찌그러지지 않는다. 상자는 장면의 위쪽 height / scale만큼을 보인다
         const scale = width / SCENE_WIDTH;
         const paths: Path2D[] = [];
-        const points = interpolated;
-        const lengths = cumulativeLengths;
         context.resetTransform();
         context.clearRect(0, 0, canvas.width, canvas.height);
+        // 캔버스를 보이는 구간 쪽으로 옮기고, 그 구간이 캔버스 맨 위가 되게 장면을 올려 그린다
+        canvasTop = geometry().top;
+        canvas.style.transform = `translateY(${canvasTop}px)`;
         context.setTransform(
           pixelRatio * scale,
           0,
           0,
           pixelRatio * scale,
           0,
-          0
+          -canvasTop * pixelRatio
         );
         context.lineCap = 'round';
-        // 보이는 장면 구간. 비스크롤은 상자 전체가 보이고, scrollScene의 긴 상자는 창에 닿는 구간에
-        // 위아래 반 화면 여유(스크롤이 다음 프레임 전에 드러내는 만큼)를 더한다.
-        let top = 0;
-        // ponytail: scrollScene을 끈 긴 상자는 상자 전체를 그린다, scrollScene 의미와 함께 T12에서 정한다
-        let bottom = Math.min(sceneHeight, height / scale);
-        if (scrollScene) {
-          const overscan = window.innerHeight / 2;
-          const boxTop = root.getBoundingClientRect().top;
-          top = Math.max(0, (-boxTop - overscan) / scale);
-          bottom = Math.min(
-            bottom,
-            (window.innerHeight + overscan - boxTop) / scale
-          );
-          if (bottom <= top) return;
-        }
+        // 캔버스가 덮는 장면 구간(짧은 상자는 상자 전체)
+        const top = canvasTop / scale;
+        const bottom = Math.min(
+          sceneHeight,
+          (canvasTop + canvasHeight) / scale
+        );
 
         if (atmosphereTexture) {
           context.globalAlpha = 1;
           context.drawImage(atmosphereTexture, 0, 0, SCENE_WIDTH, sceneHeight);
         }
 
-        strands.forEach(({ poses, index, blue }) => {
+        strands.forEach(({ poses, lengths, preMaxY, sufMinY, index, blue }) => {
           const pose = ((time / (8 + (index % 5) * 1.5)) % 1) * POSE_COUNT;
           const first = Math.floor(pose),
             fraction = pose - first;
+          mixes[index][0] = first;
+          mixes[index][1] = fraction;
           const current = interpolated[index];
-          for (let sample = 0; sample < current.length; sample++) {
-            for (let axis = 0; axis < 2; axis++)
-              current[sample][axis] =
-                poses[first][sample][axis] +
-                (poses[first + 1][sample][axis] - poses[first][sample][axis]) *
-                  fraction;
-          }
-          let total = 0;
-          const cumulative = cumulativeLengths[index];
-          for (let sample = 0; sample < current.length; sample++) {
-            if (sample)
-              total += Math.hypot(
-                current[sample][0] - current[sample - 1][0],
-                current[sample][1] - current[sample - 1][1]
-              );
-            cumulative[sample] = total;
-          }
+          // 보이는 구간(빛번짐 반경 50 포함)에 닿을 수 있는 구간만 보간한다
+          const { first: firstSegment, last: lastSegment } = visibleSegments(
+            preMaxY,
+            sufMinY,
+            top,
+            bottom
+          );
+          const from = Math.max(firstSegment - 1, 0);
+          const to = Math.min(lastSegment + 2, current.length - 1);
+          if (firstSegment <= lastSegment)
+            for (let sample = from; sample <= to; sample++) {
+              for (let axis = 0; axis < 2; axis++)
+                current[sample][axis] =
+                  poses[first][sample][axis] +
+                  (poses[first + 1][sample][axis] -
+                    poses[first][sample][axis]) *
+                    fraction;
+            }
           let skippedLength = 0;
           const path = new Path2D();
           // 보이는 영역과 빛번짐 반경 밖의 구간은 건너뛴다.
           let connected = false;
-          current.slice(0, -1).forEach((point, sample) => {
+          for (let sample = firstSegment; sample <= lastSegment; sample++) {
+            const point = current[sample];
             const before = current[Math.max(sample - 1, 0)];
             const next = current[sample + 1];
             const after = current[Math.min(sample + 2, current.length - 1)];
@@ -270,11 +292,11 @@ export const LuminousFlow = forwardRef<HTMLDivElement, LuminousFlowProps>(
               Math.min(point[1], next[1]) > bottom + 50
             ) {
               connected = false;
-              return;
+              continue;
             }
             if (!connected) {
               path.moveTo(point[0], point[1]);
-              skippedLength = cumulative[sample];
+              skippedLength = lengths[sample];
             }
             path.bezierCurveTo(
               point[0] + (next[0] - before[0]) / 6,
@@ -285,7 +307,7 @@ export const LuminousFlow = forwardRef<HTMLDivElement, LuminousFlowProps>(
               next[1]
             );
             connected = true;
-          });
+          }
           paths.push(path);
           context.strokeStyle = strandPaints[index];
           const strength = 0.8 + (index % 6) * 0.16;
@@ -358,14 +380,21 @@ export const LuminousFlow = forwardRef<HTMLDivElement, LuminousFlowProps>(
         context.lineDashOffset = 0;
         atoms.forEach(({ index, strand, phase, duration, radius }) => {
           const progress = (Number(phase) + time / duration) % 1;
-          const cumulative = lengths[strand];
-          const travel = progress * cumulative[cumulative.length - 1];
-          let sample = firstIndexAtLeast(cumulative, travel);
-          sample = Math.max(1, sample);
+          const { poses, lengths } = strands[strand];
+          const travel = progress * lengths[lengths.length - 1];
+          const sample = Math.max(1, firstIndexAtLeast(lengths, travel));
           const mix =
-            (travel - cumulative[sample - 1]) /
-            (cumulative[sample] - cumulative[sample - 1]);
-          const path = points[strand];
+            (travel - lengths[sample - 1]) /
+            (lengths[sample] - lengths[sample - 1]);
+          // 보간해 둔 점은 보이는 구간뿐이라 알갱이는 쓰는 두 점만 포즈에서 바로 읽는다
+          const [first, fraction] = mixes[strand];
+          const [a, b] = [sample - 1, sample].map((at) =>
+            [0, 1].map(
+              (axis) =>
+                poses[first][at][axis] +
+                (poses[first + 1][at][axis] - poses[first][at][axis]) * fraction
+            )
+          );
           const bob = media.matches
             ? 0
             : (1 -
@@ -374,14 +403,8 @@ export const LuminousFlow = forwardRef<HTMLDivElement, LuminousFlowProps>(
                     (1.8 + (index % 5) * 0.45)
                 )) /
               2;
-          const x =
-            path[sample - 1][0] +
-            (path[sample][0] - path[sample - 1][0]) * mix +
-            (-4 + (index % 5) * 2) * bob;
-          const y =
-            path[sample - 1][1] +
-            (path[sample][1] - path[sample - 1][1]) * mix +
-            (-5 - (index % 4) * 2) * bob;
+          const x = a[0] + (b[0] - a[0]) * mix + (-4 + (index % 5) * 2) * bob;
+          const y = a[1] + (b[1] - a[1]) * mix + (-5 - (index % 4) * 2) * bob;
           if (y < top - 15 || y > bottom + 15) return;
           context.globalAlpha = 0.4 + (index % 4) * 0.14;
           const glow = context.createRadialGradient(x, y, 0, x, y, radius * 5);
@@ -436,24 +459,28 @@ export const LuminousFlow = forwardRef<HTMLDivElement, LuminousFlowProps>(
       const syncClocks = (running: boolean) => {
         previousFrame = performance.now();
         previousScrollTime = previousFrame;
-        previousScrollY = window.scrollY;
+        previousScrollY = scrollPosition();
         if (!running) {
           scrollVelocity = 0;
           clock.flowSpeed = SCROLL_FLOW.idleSpeed;
         }
       };
+      // 창과 모든 스크롤 상자의 scroll을 캡처로 받는다(scroll은 거품이 일지 않는다). 내 스크롤 위치가 안 변했으면 남의 이벤트다
       const onScroll = () => {
+        const moved = Math.abs(scrollPosition() - previousScrollY);
+        if (!moved) return;
         const now = performance.now();
         const elapsed = Math.max(16, Math.min(100, now - previousScrollTime));
         if (loop.animating())
           scrollVelocity = Math.min(
             SCROLL_FLOW.fullSpeedScroll,
-            (Math.abs(window.scrollY - previousScrollY) / elapsed) * 1000
+            (moved / elapsed) * 1000
           );
-        previousScrollY = window.scrollY;
+        previousScrollY = scrollPosition();
         previousScrollTime = now;
-        // 긴 상자는 스크롤로 보이는 구간이 바뀌므로 정지 장면도 다시 그린다
-        if (scrollScene) loop.redrawIfIdle();
+        // 스크롤로 캔버스가 덮을 구간이 바뀌면 정지 장면도 다시 그린다
+        if (!loop.animating() && geometry().top !== canvasTop)
+          loop.redrawIfIdle();
       };
       let previousWheelTime = 0;
       const onWheel = (event: WheelEvent) => {
@@ -495,9 +522,10 @@ export const LuminousFlow = forwardRef<HTMLDivElement, LuminousFlowProps>(
         loop.stop();
         observer.disconnect();
         visibilityObserver.disconnect();
+        window.removeEventListener('resize', resize);
         unbind();
       };
-    }, [bendCount, scrollScene]);
+    }, [bendCount]);
 
     useEffect(() => {
       pausedRef.current = paused;
@@ -509,11 +537,7 @@ export const LuminousFlow = forwardRef<HTMLDivElement, LuminousFlowProps>(
     return (
       <div
         ref={rootRef}
-        className={clsx(
-          styles.root,
-          scrollScene && styles.scrollScene,
-          className
-        )}
+        className={clsx(styles.root, className)}
         aria-hidden="true"
       >
         <div className={styles.sourceHaze} />

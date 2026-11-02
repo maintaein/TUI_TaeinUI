@@ -251,6 +251,32 @@ const buildScene = (units: number) => {
     );
     // 이음매에서 첫 포즈와 정확히 같게 맞춘다(반올림 포함).
     poses.push(poses[0]);
+    // 알갱이와 점선 위상이 쓰는 누적 길이는 첫 포즈 것으로 한 번만 잰다(포즈마다 길이는 조금 달라도 위치는 점 사이 보간이라 어긋나지 않는다)
+    const lengths = new Float64Array(poses[0].length);
+    for (let sample = 1; sample < lengths.length; sample++)
+      lengths[sample] =
+        lengths[sample - 1] +
+        Math.hypot(
+          poses[0][sample][0] - poses[0][sample - 1][0],
+          poses[0][sample][1] - poses[0][sample - 1][1]
+        );
+    // 점마다 모든 포즈에 걸친 y 범위의 앞쪽 최댓값과 뒤쪽 최솟값. 둘 다 점 번호에 단조라서 보이는 구간의 점 범위를 이진 탐색으로 좁힌다
+    const preMaxY = new Float64Array(lengths.length);
+    const sufMinY = new Float64Array(lengths.length);
+    for (let sample = 0; sample < lengths.length; sample++) {
+      const ys = poses.map((pose) => pose[sample][1]);
+      preMaxY[sample] = Math.max(
+        ...ys,
+        sample ? preMaxY[sample - 1] : -Infinity
+      );
+    }
+    for (let sample = lengths.length - 1; sample >= 0; sample--) {
+      const ys = poses.map((pose) => pose[sample][1]);
+      sufMinY[sample] = Math.min(
+        ...ys,
+        sample < lengths.length - 1 ? sufMinY[sample + 1] : Infinity
+      );
+    }
     const blue = index % 7 === 0;
     const colors = [
       palette.cyan,
@@ -261,6 +287,9 @@ const buildScene = (units: number) => {
     ];
     return {
       poses,
+      lengths,
+      preMaxY,
+      sufMinY,
       blue,
       index,
       color: blue ? palette.blue : colors[index % colors.length],
@@ -306,7 +335,7 @@ const buildScene = (units: number) => {
 
 export type Scene = ReturnType<typeof buildScene>;
 
-// ponytail: 긴 장면(n 41 이상)의 첫 생성은 메인 스레드를 약 0.5초 막고 한 장면이 수십 MB다, 긴 상자를 흔히 쓰게 되면 포즈를 Float64Array로 바꾸고 생성을 나눠 한다
+// ponytail: 첫 생성은 메인 스레드를 막는다(헤드리스 개발 빌드 실측: 굽이 11은 약 0.06초, 41은 장면 0.22초에 마운트 전체 약 0.3초). 장면 생성은 한 덩어리라 유휴 시간으로 미뤄도 같은 시간이 한 번 막히므로 미루지 않는다. 20000px 넘는 상자를 흔히 쓰게 되면 포즈를 Float64Array로 바꾸고 생성을 나눠 한다. 장면 하나는 수십 MB다
 // 굽이 수를 훑으며 크기를 바꾸면 장면이 쌓이므로 최근 몇 개만 둔다(긴 장면 하나가 수십 MB다).
 const CACHE_LIMIT = 4;
 const cache = new Map<number, Scene>();
