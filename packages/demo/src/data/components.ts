@@ -341,7 +341,7 @@ export const motionData: MotionInfo[] = [
     title: '붓글씨 글자',
     path: '/motion/brush-text',
     description:
-      '잉크를 재서 획을 찾고 자모마다 따로 획의 길을 따라 붓이 지나가며 문장이 한 글자씩 쓰이듯 나타납니다.',
+      '붓이 획을 따라 자음과 모음을 따로 쓰며 문장이 한 글자씩 나타납니다.',
     usage: '첫 화면 소개 문장, 섹션 제목',
     category: 'text',
     icon: Brush,
@@ -352,7 +352,7 @@ export const motionData: MotionInfo[] = [
     title: '원고지 넘김',
     path: '/motion/manuscript-flip',
     description:
-      '앞면이 칸 단위로 글 쓰는 순서대로 하나씩 뒤집히며 뒷면으로 바뀌고, 되넘길 때는 반대 순서로 돌아옵니다.',
+      '앞면이 칸마다 글 쓰는 순서로 뒤집히며 뒷면이 드러납니다. 되넘기면 반대 순서입니다.',
     usage: '상품 카드의 사진에서 설명으로, 전후 비교, 퀴즈 카드',
     category: 'animation',
     icon: FlipHorizontal2,
@@ -362,7 +362,7 @@ export const motionData: MotionInfo[] = [
     title: '모양 바뀌는 아이콘',
     path: '/motion/morphing-icon',
     description:
-      '두 상태를 오가는 아이콘입니다. 선의 끝점만 옮겨 선이 늘어나고 접히며 다른 모양이 됩니다.',
+      '선이 늘어나고 접히며 메뉴가 닫기로, 더하기가 체크로 바뀌는 아이콘입니다.',
     usage:
       '메뉴와 닫기, 더하기와 체크, 재생과 일시정지, 검색과 닫기, 펼침과 접힘',
     category: 'animation',
@@ -424,7 +424,7 @@ export const motionData: MotionInfo[] = [
     title: '인증번호 슬롯',
     path: '/motion/code-slots',
     description:
-      '숫자가 슬롯처럼 굴러 들어오고, 틀리면 칸이 물결치고 맞으면 칸 테두리가 흐려진 뒤 칸이 모여 하나의 알약이 됩니다.',
+      '숫자가 슬롯처럼 굴러 들어오고, 틀리면 칸이 물결치며, 맞으면 칸들이 하나의 알약으로 합쳐집니다.',
     usage: '인증번호, PIN 입력',
     category: 'micro',
     icon: KeyRound,
@@ -444,7 +444,7 @@ export const motionData: MotionInfo[] = [
     title: '로켓 전송',
     path: '/motion/rocket-button',
     description:
-      '누르면 분사구가 단추 아래 테두리에서 미끄러져 나오고, 입 아래 짧은 심지와 빛무리(광휘)로 분출하며 빛과 그늘이 진 흰 연기가 땅에 점점 쌓이다가, 무겁게 떠올라 점점 빨라지며 오른쪽 위로 발사됩니다.',
+      '누르면 단추 밑으로 분사구가 나오고, 바닥에 연기가 차오르다가 천천히 떠올라 오른쪽 위로 날아갑니다.',
     usage: '메일 보내기, 제출, 전송',
     category: 'micro',
     icon: Send,

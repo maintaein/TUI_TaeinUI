@@ -14,7 +14,7 @@ import { MiniFrozen, Stage, type DemoProps } from '../../../components/Stage';
 import * as styles from './BrushTextPage.css';
 
 const LEAD =
-  '붓글씨 글자. 문장이 붓으로 한 글자씩 쓰이듯 나타납니다. 잉크를 재서 획을 찾고, 자모마다 따로, 획의 길을 따라 붓이 지나가며 씁니다. 꺾인 획은 꺾인 길대로 그려지고 획 사이에는 붓을 드는 쉼이 있습니다. 화면에 들어올 때 한 번 쓰고 끝나면 평범한 문장으로 남습니다.';
+  '붓글씨 글자. 붓으로 쓰듯 문장이 한 글자씩 나타납니다. 자음과 모음을 따로 쓰고, 획이 꺾이면 꺾인 대로 쓰며, 획 사이에는 붓을 듭니다. 화면에 들어올 때 한 번 쓰고 끝나면 평범한 문장으로 남습니다.';
 
 const CONTROLS: Control[] = [
   { prop: 'text', kind: 'text' },

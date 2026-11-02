@@ -30,7 +30,7 @@ export const searchIndex: SearchEntry[] = [
       {
         title: '빠른 미리보기',
         content:
-          '컴포넌트 패밀리 35개(UI 컴포넌트 25개, 모션 컴포넌트 10개, top-level export 43개), GSAP으로 움직이는 컴포넌트 21개, Zero-runtime CSS, Tree-shakable',
+          '컴포넌트 패밀리 38개(UI 컴포넌트 25개, 모션 컴포넌트 13개, top-level export 46개), GSAP으로 움직이는 컴포넌트 23개, Zero-runtime CSS, Tree-shakable',
       },
     ],
   },
@@ -490,7 +490,7 @@ export const searchIndex: SearchEntry[] = [
     path: '/motion/brush-text',
     category: '모션',
     description:
-      'BrushText. 잉크를 재서 획을 찾고 자모마다 따로 획의 길을 따라 붓이 지나가며 문장이 한 글자씩 쓰이듯 나타납니다.',
+      'BrushText. 붓이 획을 따라 자음과 모음을 따로 쓰며 문장이 한 글자씩 나타납니다.',
     sections: [
       {
         title: '텍스트 애니메이션',
@@ -527,7 +527,7 @@ export const searchIndex: SearchEntry[] = [
     path: '/motion/manuscript-flip',
     category: '모션',
     description:
-      'ManuscriptFlip. 앞면이 칸 단위로 글 쓰는 순서대로 하나씩 뒤집히며 뒷면으로 바뀌고, 되넘길 때는 반대 순서로 돌아옵니다.',
+      'ManuscriptFlip. 앞면이 칸마다 글 쓰는 순서로 뒤집히며 뒷면이 드러납니다. 되넘기면 반대 순서입니다.',
     sections: [
       {
         title: '언제 쓰나',
@@ -566,7 +566,7 @@ export const searchIndex: SearchEntry[] = [
     path: '/motion/morphing-icon',
     category: '모션',
     description:
-      'MorphingIcon. 두 상태를 오가는 아이콘입니다. 선의 끝점만 옮겨 선이 늘어나고 접히며 다른 모양이 됩니다.',
+      'MorphingIcon. 선이 늘어나고 접히며 메뉴가 닫기로, 더하기가 체크로 바뀌는 아이콘입니다.',
     sections: [
       {
         title: '언제 쓰나',
@@ -722,7 +722,7 @@ export const searchIndex: SearchEntry[] = [
       {
         title: '마이크로 인터랙션',
         content:
-          '값을 물방울 그릇 안의 물높이로 보이는 게이지. 값이 바뀌면 물이 목표를 넘었다 돌아오며 출렁이고, 쉬는 동안에도 아주 낮은 잔물결이 남습니다. 스스로 움직이기 때문에 무대의 일시정지 단추로 멈출 수 있습니다',
+          '값을 물방울 그릇 속 물높이로 보여 주는 게이지. 값이 바뀌면 물이 목표를 넘었다 돌아오며 출렁이고, 쉬는 동안에도 아주 낮은 잔물결이 남습니다. 스스로 움직이기 때문에 무대의 일시정지 단추로 멈출 수 있습니다',
       },
       {
         title: '물의 규칙',
@@ -747,7 +747,7 @@ export const searchIndex: SearchEntry[] = [
     path: '/motion/code-slots',
     category: '모션',
     description:
-      'CodeSlots. 숫자가 슬롯처럼 굴러 들어오고, 틀리면 칸이 물결치고 맞으면 칸 테두리가 흐려진 뒤 칸이 모여 하나의 알약이 됩니다. 인증, 번호, OTP, PIN, 슬롯, 비밀번호, 자동 채움.',
+      'CodeSlots. 숫자가 슬롯처럼 굴러 들어오고, 틀리면 칸이 물결치며, 맞으면 칸들이 하나의 알약으로 합쳐집니다. 인증, 번호, OTP, PIN, 슬롯, 비밀번호, 자동 채움.',
     sections: [
       {
         title: '마이크로 인터랙션',
@@ -807,7 +807,7 @@ export const searchIndex: SearchEntry[] = [
     path: '/motion/rocket-button',
     category: '모션',
     description:
-      'RocketButton. 누르면 분사구가 단추 아래 테두리에서 미끄러져 나오고, 입 아래 짧은 심지와 빛무리(광휘)로 분출하며 빛과 그늘이 진 흰 연기가 땅에 점점 쌓이다가, 무겁게 떠올라 점점 빨라지며 오른쪽 위로 발사됩니다. 로켓, 광휘, 분사, 연기, 땅, 추력, 전송, 보내기, 메일, 제출, 비행, send, rocket, launch, fly.',
+      'RocketButton. 누르면 단추 밑으로 분사구가 나오고, 바닥에 연기가 차오르다가 천천히 떠올라 오른쪽 위로 날아갑니다. 로켓, 광휘, 분사, 연기, 땅, 추력, 전송, 보내기, 메일, 제출, 비행, send, rocket, launch, fly.',
     sections: [
       {
         title: '마이크로 인터랙션',
