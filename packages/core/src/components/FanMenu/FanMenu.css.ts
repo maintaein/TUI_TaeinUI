@@ -2,8 +2,16 @@ import { globalStyle, keyframes, style } from '@vanilla-extract/css';
 import { themeContract } from '../../tokens/theme.css';
 import { focusRing } from '../../tokens/focusRing.css';
 
-const { color, font, spacing, animation, shadow, borderRadius, zIndex } =
-  themeContract;
+const {
+  palette,
+  color,
+  font,
+  spacing,
+  animation,
+  shadow,
+  borderRadius,
+  zIndex,
+} = themeContract;
 
 // 허브 56px = 48 + 8, 항목 44px = 48 - 4. 토큰 스케일에 없는 값이라 유도한다.
 const HUB = `calc(${spacing[12]} + ${spacing[2]})`;
@@ -37,7 +45,11 @@ export const hub = style({
   transition: `box-shadow ${animation.duration.base} ${animation.easing.settle}`,
   '@media': { [REDUCE]: NO_MOTION },
   selectors: {
-    '&:focus-visible': focusRing(),
+    // 가장자리 안쪽 두 겹(짙은 primary 2px, 그 안쪽 흰 2px). 평소 그림자(shadow.md)는 그대로 합쳐 둔다.
+    '&:focus-visible': {
+      outline: 'none',
+      boxShadow: `inset 0 0 0 2px ${palette.primary[900]}, inset 0 0 0 4px ${color.primary.contrast}, ${shadow.md}`,
+    },
     '&:disabled': { opacity: 0.5, cursor: 'not-allowed' },
   },
 });

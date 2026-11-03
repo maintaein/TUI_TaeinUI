@@ -1,6 +1,5 @@
 import { globalStyle, style } from '@vanilla-extract/css';
 import { themeContract } from '../../tokens/theme.css';
-import { focusRing } from '../../tokens/focusRing.css';
 
 const { palette, color, font, spacing, borderRadius, zIndex } = themeContract;
 
@@ -34,7 +33,11 @@ export const mark = style({
   padding: `0 ${spacing[2]}`,
   overflow: 'hidden',
   selectors: {
-    '&:focus-visible': focusRing(),
+    // 표지는 옅은 면(primary[50])이 이미 있어 가장자리 안쪽 primary 2px만 더한다(③ 모양)
+    '&:focus-visible': {
+      outline: 'none',
+      boxShadow: `inset 0 0 0 2px ${color.primary.main}`,
+    },
   },
 });
 

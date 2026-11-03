@@ -1,6 +1,5 @@
 import { style } from '@vanilla-extract/css';
 import { themeContract } from '../../tokens/theme.css';
-import { focusRing } from '../../tokens/focusRing.css';
 
 // IconButton md 고스트와 같은 칸(44px)과 색을 쓴다. 켜지면 아이콘이 primary가 된다
 // (점 고리와 같은 색, 흰 배경 대비 3:1 이상이라 아이콘 기준을 넘긴다).
@@ -22,7 +21,7 @@ export const root = style({
   cursor: 'pointer',
   touchAction: 'manipulation',
   userSelect: 'none',
-  transition: `background-color ${themeContract.animation.duration.base} ${themeContract.animation.easing.settle}, color ${themeContract.animation.duration.base} ${themeContract.animation.easing.settle}`,
+  transition: `background-color ${themeContract.animation.duration.base} ${themeContract.animation.easing.settle}, color ${themeContract.animation.duration.base} ${themeContract.animation.easing.settle}, box-shadow ${themeContract.animation.duration.base} ${themeContract.animation.easing.settle}`,
 
   selectors: {
     '&[aria-pressed="true"]': {
@@ -45,8 +44,12 @@ export const root = style({
     opacity: 0.4,
   },
 
+  // 면이 없는 아이콘 단추라 호버와 같은 옅은 면에 가장자리 안쪽 primary 2px(③ 모양, 채운 단추가 아니다).
+  // primary.main은 그 면(gray[100])과 4.2:1, 바깥 흰 바탕과 4.6:1이다.
   ':focus-visible': {
-    ...focusRing(),
+    outline: 'none',
+    backgroundColor: themeContract.palette.gray[100],
+    boxShadow: `inset 0 0 0 2px ${themeContract.color.primary.main}`,
   },
 });
 

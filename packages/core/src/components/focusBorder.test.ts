@@ -49,3 +49,31 @@ describe('입력류 포커스는 바깥 링이 아니라 테두리다', () => {
     }
   );
 });
+
+/**
+ * 색이 채워진 단추의 포커스는 가장자리 안쪽 두 겹(자기 색의 짙은 단계 2px, 그 안쪽 흰 2px)이고
+ * 바깥 링이 아니다(사용자 결정, M7.2 T1). 값은 e2e/buttonFocusSurface.spec.ts가 잰다.
+ */
+const FILLED = ['Button', 'BurstToggle', 'RocketButton'];
+
+describe('채운 단추 포커스는 바깥 링이 아니라 안쪽 겹이다', () => {
+  it.each(FILLED)('%s: focusRing 유틸과 outline 오프셋이 없다', (name) => {
+    const css = source(name);
+    expect(css).not.toContain('focusRing');
+    expect(css).not.toContain('outlineOffset');
+    expect(css).not.toMatch(/outline: `/);
+  });
+
+  it('FanMenu: focusRing은 부채꼴 항목 하나에만 남는다(항목은 M7.2 T3 몫), 허브는 안쪽 두 겹이다', () => {
+    const css = source('FanMenu');
+    expect(css.match(/focusRing\(/g)).toHaveLength(1);
+    expect(css).not.toContain('outlineOffset');
+    expect(css).toContain('inset 0 0 0 4px');
+  });
+
+  it('Button strong 네 색은 포커스에 inset 두 겹을 그린다', () => {
+    const css = source('Button');
+    expect(css).toContain('inset 0 0 0 2px');
+    expect(css).toContain('inset 0 0 0 4px');
+  });
+});

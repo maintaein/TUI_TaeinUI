@@ -1,7 +1,14 @@
-import { style } from '@vanilla-extract/css';
+import { style, type StyleRule } from '@vanilla-extract/css';
 import { recipe } from '@vanilla-extract/recipes';
 import { themeContract } from '../../tokens/theme.css';
-import { focusRing } from '../../tokens/focusRing.css';
+
+// strong 포커스: 가장자리 안쪽 두 겹(자기 색의 짙은 단계 2px, 그 안쪽 흰 2px). 요소 크기는 그대로고 바깥으로
+// 나가지 않는다. 짙은 겹은 바깥 바탕과, 흰 겹은 채운 면과 각각 3:1 이상이다(수치는 M7.2 T1 리포트).
+// 눌림 색(배경)은 box-shadow를 건드리지 않아 겹치지 않는다.
+const focusInset = (dark: string): StyleRule => ({
+  outline: 'none',
+  boxShadow: `inset 0 0 0 2px ${dark}, inset 0 0 0 4px ${themeContract.color.primary.contrast}`,
+});
 
 export const button = recipe({
   base: {
@@ -72,10 +79,6 @@ export const button = recipe({
         },
       },
     },
-
-    ':focus-visible': {
-      ...focusRing(),
-    },
   },
 
   variants: {
@@ -140,6 +143,7 @@ export const button = recipe({
         '@media': {
           '(hover: hover) and (pointer: fine)': {
             selectors: {
+              '&:focus-visible': focusInset(themeContract.palette.primary[900]),
               '&:hover:not(:disabled):not([data-pressed])': {
                 backgroundColor: themeContract.palette.primary[800],
               },
@@ -161,6 +165,7 @@ export const button = recipe({
         '@media': {
           '(hover: hover) and (pointer: fine)': {
             selectors: {
+              '&:focus-visible': focusInset(themeContract.palette.gray[900]),
               '&:hover:not(:disabled):not([data-pressed])': {
                 backgroundColor: themeContract.palette.gray[800],
               },
@@ -182,6 +187,7 @@ export const button = recipe({
         '@media': {
           '(hover: hover) and (pointer: fine)': {
             selectors: {
+              '&:focus-visible': focusInset(themeContract.palette.error[900]),
               '&:hover:not(:disabled):not([data-pressed])': {
                 backgroundColor: themeContract.palette.error[800],
               },
@@ -209,6 +215,13 @@ export const button = recipe({
         '@media': {
           '(hover: hover) and (pointer: fine)': {
             selectors: {
+              // 면이 흰색이라 흰 겹이 안 보인다. 테두리와 안쪽 2px를 같은 primary[900]으로 맞춰 4px 한 틀로 굵어지게 한다
+              // (테두리가 primary.main인 채로면 안쪽 짙은 겹이 바로 옆 테두리와 1.88:1이다).
+              '&:focus-visible': {
+                outline: 'none',
+                borderColor: themeContract.palette.primary[900],
+                boxShadow: `inset 0 0 0 2px ${themeContract.palette.primary[900]}`,
+              },
               '&:hover:not(:disabled):not([data-pressed])': {
                 backgroundColor: themeContract.palette.primary[50],
               },
@@ -354,6 +367,12 @@ export const customVariant = style({
       backgroundColor: 'var(--btn-active-bg, var(--btn-bg))',
       filter: 'var(--btn-active-filter, none)',
     },
+    // 소비자 색은 짙은 단계를 알 수 없어 글자색(면과 대비가 보장된 색) 한 겹이다.
+    // ponytail: 바깥 바탕과의 3:1은 소비자 색에 달렸다, customColor에 짙은 단계 입력이 생기면 두 겹으로
+    '&:focus-visible': {
+      outline: 'none',
+      boxShadow: 'inset 0 0 0 2px var(--btn-color)',
+    },
   },
 });
 
@@ -376,6 +395,12 @@ export const customOutlineVariant = style({
   selectors: {
     '&[data-pressed]:not(:disabled)': {
       backgroundColor: `var(--btn-active-bg, ${themeContract.color.surface.active})`,
+    },
+    // 테두리(--btn-color 2px)와 같은 색을 안쪽에 2px 더해 4px 한 틀로 굵어진다
+    '&:focus-visible': {
+      outline: 'none',
+      borderColor: 'var(--btn-color)',
+      boxShadow: 'inset 0 0 0 2px var(--btn-color)',
     },
   },
 });
