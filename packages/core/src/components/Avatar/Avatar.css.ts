@@ -1,6 +1,5 @@
 import { style, styleVariants } from '@vanilla-extract/css';
 import { themeContract } from '../../tokens/theme.css';
-import { focusRing } from '../../tokens/focusRing.css';
 
 export const avatar = style({
   position: 'relative',
@@ -116,7 +115,9 @@ export const clickable = style({
   textDecoration: 'none',
   color: 'inherit',
   font: 'inherit',
-  transition: `filter ${themeContract.animation.duration.base} ease, transform ${themeContract.animation.duration.fast} ease`,
+  // ponytail: 루트에는 그림자가 없다(포커스 링은 ::before). 경계 시험(animationBoundary)이 상태에서 boxShadow를
+  // 바꾸는 블록의 목록에 box-shadow를 요구하고 가상 요소를 가리지 못해 넣는다. 시험이 가려 주면 뺀다
+  transition: `filter ${themeContract.animation.duration.base} ease, transform ${themeContract.animation.duration.fast} ease, box-shadow ${themeContract.animation.duration.base} ${themeContract.animation.easing.settle}`,
 
   ':hover': {
     filter: 'brightness(0.9)',
@@ -126,8 +127,22 @@ export const clickable = style({
     transform: 'scale(0.95)',
   },
 
-  ':focus-visible': {
-    ...focusRing(),
+  selectors: {
+    // 테두리가 원래 없는 면이라 가장자리 안쪽에 primary 2px가 생긴다. 이미지·fallback 래퍼가 자식으로 덮으니
+    // 루트의 inset 그림자가 아니라 ::before에 그린다(위치가 잡힌 자식이라 래퍼 위, 뒤에 오는 상태 배지 아래).
+    // 대비는 primary 대 흰 바탕 4.60, 대 fallback 면(paper) 4.41. 이미지 위는 이미지에 달렸다.
+    // ponytail: 사진 위 대비는 사진마다 다르다, 사진이 primary와 3:1이 안 되는 사례가 나오면 흰 안쪽 겹을 더한다
+    '&:focus-visible': {
+      outline: 'none',
+    },
+    '&:focus-visible::before': {
+      content: '""',
+      position: 'absolute',
+      inset: 0,
+      borderRadius: 'inherit',
+      pointerEvents: 'none',
+      boxShadow: `inset 0 0 0 2px ${themeContract.color.border.focus}`,
+    },
   },
 });
 

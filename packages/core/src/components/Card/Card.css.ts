@@ -1,6 +1,10 @@
-import { style, styleVariants } from '@vanilla-extract/css';
+import {
+  createVar,
+  fallbackVar,
+  style,
+  styleVariants,
+} from '@vanilla-extract/css';
 import { themeContract } from '../../tokens/theme.css';
-import { focusRing } from '../../tokens/focusRing.css';
 
 export const cardRoot = style({
   position: 'relative',
@@ -15,8 +19,13 @@ export const cardRoot = style({
   width: '100%',
 });
 
+// 포커스 때 가장자리 안쪽에 그리는 테두리 굵기. 기본 2px, 이미 1px 테두리가 있는 outlined는 그 테두리가
+// primary로 바뀌며 1px를 더해 합쳐서 2px가 된다.
+const focusEdgeWidth = createVar();
+
 export const variantStyles = styleVariants({
   outlined: {
+    vars: { [focusEdgeWidth]: '1px' },
     border: `1px solid ${themeContract.color.border.default}`,
     boxShadow: 'none',
   },
@@ -36,8 +45,21 @@ export const clickable = style({
   cursor: 'pointer',
   touchAction: 'manipulation',
 
-  ':focus-visible': {
-    ...focusRing(),
+  selectors: {
+    // 이미지·머리글이 자식으로 덮으니 루트의 inset 그림자가 아니라 맨 위에 얹는 ::after에 그린다. 카드 그림자
+    // (elevated, hoverLift)는 건드리지 않는다. 대비는 primary 대 흰 바탕 4.60, 대 카드 면 4.41(paper)·4.22(filled).
+    '&:focus-visible': {
+      outline: 'none',
+      borderColor: themeContract.color.border.focus,
+    },
+    '&:focus-visible::after': {
+      content: '""',
+      position: 'absolute',
+      inset: 0,
+      borderRadius: 'inherit',
+      pointerEvents: 'none',
+      boxShadow: `inset 0 0 0 ${fallbackVar(focusEdgeWidth, '2px')} ${themeContract.color.border.focus}`,
+    },
   },
 });
 

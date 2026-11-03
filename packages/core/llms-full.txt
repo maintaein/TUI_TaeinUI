@@ -289,6 +289,7 @@ import { Plus } from 'lucide-react';
 - `aria-busy` set when loading
 - `aria-hidden="true"` on decorative icons
 - Keyboard focus (`:focus-visible`) on a filled (`strong`) button is drawn inside its own edge, never as an outer ring: a 2px band of its own darker colour (`primary[900]`, `gray[900]`, `error[900]`) and a white 2px band just inside it. `light` has a white face, so its border and a 2px inner band both turn `primary[900]` (a 4px frame). The size does not change. It shows on touch and coarse-pointer devices too, not only where hover exists. With `customColor` the outer band is your `bg` colour mixed half and half with `gray[900]` (the white band stays); for a `light` custom button the border and the inner band both take your colour mixed the same way. Contrast depends on your colour: a light `bg` such as yellow leaves the white band under 3:1 against the face, so read the dark band as the indicator.
+- Keyboard focus on a `weak` button turns its edge into a 2px inner border (`primary[900]` for `primary`, `dark` and `light`, `error[900]` for `danger`), inside the button, never an outer ring. The size does not change. It stays visible over hover and press and on touch and coarse-pointer devices, and a mouse click does not show it. A `weak` button with `customColor` follows the `customColor` rule above.
 
 ---
 
@@ -462,6 +463,8 @@ import { Avatar, AvatarGroup } from '@taein-ui/core';
   <Avatar src="/d.jpg" alt="D" />
 </AvatarGroup>
 ```
+
+A clickable Avatar (`onClick` or `href`) shows keyboard focus (`:focus-visible`) as a 2px `primary` band just inside its own edge, never an outer ring. The size does not change and the status badge stays on top. A mouse click does not show it.
 
 ### AvatarProps
 | Prop | Type | Default | Description |
@@ -826,6 +829,8 @@ import { Card } from '@taein-ui/core';
   <Card.Body padding="lg">떠오르는 카드</Card.Body>
 </Card>
 ```
+
+A clickable Card shows keyboard focus (`:focus-visible`) on its own border, never an outer ring: `outlined` turns its 1px border `primary` and adds 1px inside it (2px in total), `elevated` and `filled` get a new 2px `primary` inner border. The size and the card shadow do not change, and a mouse click does not show it.
 
 ### CardProps (extends HTMLAttributes<HTMLElement>)
 | Prop | Type | Default | Description |
@@ -1826,7 +1831,7 @@ All components follow WCAG 2.2 AA standards:
 - Semantic HTML elements (button, input, dialog, etc.)
 - ARIA attributes (aria-label, aria-describedby, aria-invalid, aria-busy, aria-modal, aria-expanded)
 - Keyboard navigation (Tab, Shift+Tab, Enter, Space, Escape, Arrow keys)
-- Focus indicators (2px outline, 2px offset, 4.6:1 contrast ratio for cards and the other outlined parts; filled Button (`strong`), the FanMenu hub, BurstToggle and the RocketButton mark show focus inside their own edge, no outer ring: a 2px dark band of their own colour (`primary[900]`, `gray[900]`, `error[900]`) with a white 2px band just inside it, `light` a 4px `primary[900]` frame, BurstToggle and the mark a 2px `primary` inner border; the input controls Checkbox, Switch, Slider, NumericSpinner, GooeySearch, SegmentedButtons and Chip show focus on their own border instead)
+- Focus indicators (2px outline, 2px offset, 4.6:1 contrast ratio for the parts that are not listed here yet (icon-only buttons, close buttons, links, rows); the bordered surfaces show focus on their own border, no outer ring: weak Button gets a 2px `primary[900]` inner border (`error[900]` for `danger`), a clickable Card turns its border `primary` at 2px in total (a 1px border plus 1px for `outlined`, a new 2px inner border for `elevated` and `filled`), a clickable Avatar gets a 2px `primary` inner border; filled Button (`strong`), the FanMenu hub, BurstToggle and the RocketButton mark show focus inside their own edge, no outer ring: a 2px dark band of their own colour (`primary[900]`, `gray[900]`, `error[900]`) with a white 2px band just inside it, `light` a 4px `primary[900]` frame, BurstToggle and the mark a 2px `primary` inner border; the input controls Checkbox, Switch, Slider, NumericSpinner, GooeySearch, SegmentedButtons and Chip show focus on their own border instead)
 - Focus traps in overlays (Modal, BottomSheet, SideSheet)
 - Screen reader announcements via aria-live regions
 

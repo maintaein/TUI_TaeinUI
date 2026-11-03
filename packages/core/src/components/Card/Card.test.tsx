@@ -808,14 +808,15 @@ describe('Card 모션 잠금', () => {
     expect(hoverLiftBlock()).toContain("willChange: 'transform'");
   });
 
-  it('clickable은 커서·touch-action·포커스 링만 갖고 떠오르는 모션은 없다', () => {
+  it('clickable은 커서·touch-action·포커스 표시만 갖고 떠오르는 모션은 없다', () => {
     const block = cssSource.match(
       /export const clickable = style\(\{([\s\S]*?)\n\}\);/
     )?.[1];
     expect(block, 'clickable 블록을 찾지 못했다').toBeDefined();
     expect(block).toContain("cursor: 'pointer'");
     expect(block).toContain("touchAction: 'manipulation'");
-    expect(block).toContain('focusRing');
+    expect(block).toContain(':focus-visible');
+    expect(block).not.toContain('focusRing');
     // 무엇을 뒤집으면 빨개지는가: clickable에 hover/active 모션을 되살리면.
     expect(block).not.toContain('translateY');
     expect(block).not.toContain(':hover');

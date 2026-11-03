@@ -77,3 +77,30 @@ describe('채운 단추 포커스는 바깥 링이 아니라 안쪽 겹이다', 
     expect(css).toContain('inset 0 0 0 4px');
   });
 });
+
+/**
+ * 테두리가 있는 표면(Button weak, Card 누를 수 있는 변형, Avatar 누를 수 있을 때)의 포커스는 자기 가장자리
+ * 안쪽 2px이고 바깥 링이 아니다(사용자 결정, M7.2 T2). 값은 e2e/buttonFocusSurface.spec.ts가 잰다.
+ */
+const BORDERED = ['Button', 'Card', 'Avatar'];
+
+describe('테두리 있는 표면 포커스는 바깥 링이 아니라 안쪽 2px다', () => {
+  it.each(BORDERED)('%s: focusRing 유틸과 outline 오프셋이 없다', (name) => {
+    const css = source(name);
+    expect(css).not.toContain('focusRing');
+    expect(css).not.toContain('outlineOffset');
+    expect(css).not.toMatch(/outline: `/);
+  });
+
+  it('Button weak 네 색은 호버 미디어 밖에서 포커스 테두리를 그린다', () => {
+    const css = source('Button');
+    // focusEdge가 weak compound 넷에 한 번씩 쓰인다
+    expect(css.match(/focusEdge\(/g)).toHaveLength(4);
+    // 사용처는 (hover: hover) 미디어 블록 바깥이어야 터치 기기에서 보인다
+    for (const block of css.match(
+      /\(hover: hover\) and \(pointer: fine\)': \{[\s\S]*?\n {10}\},/g
+    ) ?? []) {
+      expect(block).not.toContain('focusEdge');
+    }
+  });
+});

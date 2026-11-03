@@ -10,6 +10,14 @@ const focusInset = (dark: string): StyleRule => ({
   boxShadow: `inset 0 0 0 2px ${dark}, inset 0 0 0 4px ${themeContract.color.primary.contrast}`,
 });
 
+// weak 포커스: 테두리가 없는 옅은 면이라 그 자리에 가장자리 안쪽 2px 테두리가 생긴다(크기 그대로, 바깥으로 안 나감).
+// primary.main은 눌림 면(primary[200] 2.63, gray[400] 2.45, primary[300] 2.08)과 3:1이 안 돼 짙은 단계를 쓴다.
+// 짙은 단계는 모든 상태의 면과 바깥 흰 바탕 모두 3:1 이상이다(수치는 M7.2 T2 리포트).
+const focusEdge = (color: string): StyleRule => ({
+  outline: 'none',
+  boxShadow: `inset 0 0 0 2px ${color}`,
+});
+
 // customColor의 포커스 가장자리: 소비자 색을 gray[900] 토큰과 반반 섞는다(자기 색의 짙은 단계, 규칙 1).
 const customEdge = (color: string) =>
   `color-mix(in srgb, ${color} 50%, ${themeContract.palette.gray[900]})`;
@@ -257,6 +265,8 @@ export const button = recipe({
           },
         },
         selectors: {
+          // 호버 미디어 밖: 터치·거친 포인터 기기에서도 보여야 한다
+          '&:focus-visible': focusEdge(themeContract.palette.primary[900]),
           '&[data-pressed]:not(:disabled)': {
             backgroundColor: themeContract.palette.primary[200],
           },
@@ -278,6 +288,8 @@ export const button = recipe({
           },
         },
         selectors: {
+          // 호버 미디어 밖: 터치·거친 포인터 기기에서도 보여야 한다
+          '&:focus-visible': focusEdge(themeContract.palette.primary[900]),
           '&[data-pressed]:not(:disabled)': {
             backgroundColor: themeContract.palette.gray[400],
           },
@@ -301,6 +313,8 @@ export const button = recipe({
           },
         },
         selectors: {
+          // 호버 미디어 밖: 터치·거친 포인터 기기에서도 보여야 한다
+          '&:focus-visible': focusEdge(themeContract.palette.error[900]),
           '&[data-pressed]:not(:disabled)': {
             // hover와 배경이 같은 error[100]이라 색 단계로 상태를 가를 수 없다.
             // error에는 200~400이 없고(50, 100, 500, 700, 800, 900) 글자가 이미 가장
@@ -337,6 +351,8 @@ export const button = recipe({
           },
         },
         selectors: {
+          // 호버 미디어 밖: 터치·거친 포인터 기기에서도 보여야 한다
+          '&:focus-visible': focusEdge(themeContract.palette.primary[900]),
           '&[data-pressed]:not(:disabled)': {
             backgroundColor: themeContract.palette.primary[300],
           },
