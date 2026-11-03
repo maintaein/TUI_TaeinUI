@@ -72,7 +72,6 @@ export const themeTokens = {
       // 텍스트 대비에 유리해서 되돌리지 않는다.
       scrim: 'rgba(0, 0, 0, 0.5)',
       // 에러 halo. 대비 1.1~1.2:1이라 포커스·에러 표시가 못 된다. 지금 쓰는 컴포넌트가 없다.
-      // 포커스 halo(focusHalo)는 M7.2에서 지웠다. 포커스는 요소 가장자리 안쪽 테두리가 맡는다.
       errorHalo: 'rgba(211, 47, 47, 0.16)', // error[700] @16%
       // 흰색 반투명 하이라이트. Skeleton shimmer용으로 만들었으나(M2 T3c 사전
       // 스캔 R3) Skeleton이 shimmer를 걷어 지금 쓰는 곳이 없다. 공개 표면이라
