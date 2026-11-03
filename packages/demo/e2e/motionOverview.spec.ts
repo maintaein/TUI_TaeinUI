@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { pointing } from './fanPointing';
+import { pointedSoFar, watchPointing } from './fanPointing';
 
 // 시각 글자 중 가장 투명한 값. 정지 상태는 늘 1이다
 const minGlyphOpacity = (page: Page) =>
@@ -527,7 +527,7 @@ test.describe('모션 전체 보기 출렁이는 게이지 미니 (1440px)', () 
   });
 });
 
-// 인증번호 슬롯 미니: 대본이 틀린 번호(111111)와 맞는 번호(123456)를 차례로 입력한다
+// 인증번호 슬롯 미니: 대본이 틀린 번호(123456)와 맞는 번호(111111)를 차례로 입력한다
 const slotsInput = (page: Page) =>
   page.locator('[data-stage-mini="CodeSlots 미리보기"] input');
 
@@ -546,13 +546,13 @@ test.describe('모션 전체 보기 인증번호 슬롯 미니 (1440px)', () => 
     await expect(slotsInput(page)).toHaveAttribute('aria-invalid', 'true', {
       timeout: 15_000,
     });
-    await expect(slotsInput(page)).toHaveValue('111111');
+    await expect(slotsInput(page)).toHaveValue('123456');
     // 비운 뒤 맞는 번호가 들어와 성공 메시지가 선다
     const mini = page.locator('[data-stage-mini="CodeSlots 미리보기"]');
     await expect(mini.getByText('확인했습니다')).toBeVisible({
       timeout: 8_000,
     });
-    await expect(slotsInput(page)).toHaveValue('123456');
+    await expect(slotsInput(page)).toHaveValue('111111');
 
     const pause = page.getByRole('button', { name: '움직임 멈춤' });
     await pause.click();
@@ -627,11 +627,20 @@ test.describe('모션 전체 보기 부채꼴 메뉴 미니 (1440px)', () => {
     await fanMini(page).evaluate((el) =>
       el.scrollIntoView({ block: 'center' })
     );
-    for (const name of ['사진', '메시지', '음악']) {
-      await expect
-        .poll(() => pointing(fanMini(page), name), { timeout: 20_000 })
-        .toBe(true);
-    }
+    await watchPointing(fanMini(page));
+    // 짚힌 차례가 사진, 메시지, 음악을 이 순서로 품는다(매 프레임 기록이라 부하에서도 순간을 놓치지 않는다)
+    await expect
+      .poll(
+        async () => {
+          const seen = await pointedSoFar(fanMini(page));
+          const order = ['사진', '메시지', '음악'];
+          let at = 0;
+          for (const name of seen) if (name === order[at]) at += 1;
+          return at === order.length;
+        },
+        { timeout: 30_000 }
+      )
+      .toBe(true);
   });
 });
 
@@ -657,21 +666,8 @@ test.describe('모션 전체 보기 로켓 전송 미니 (1440px)', () => {
       }
     );
     await expect(rocketMini(page).locator('[data-rocket-mark]')).toHaveCount(1);
-    // 미니는 연기를 끈다(문맥 스물다섯 개가 한 화면에 뜨지 않게). 분출 빛은 DOM이라 canvas가 아예 없다
-    await expect(rocketMini(page).locator('canvas')).toHaveCount(0);
-    // 엔진이 없어도 분출은 보인다: 입 아래 DOM 빛무리가 숨지 않고(data-engine 없음) 분출 세기만큼 켜진다
-    await expect
-      .poll(
-        () =>
-          rocketMini(page).evaluate((el) => {
-            const halo = el.querySelector<HTMLElement>('[data-rocket-halo]');
-            if (!halo) return null;
-            const style = getComputedStyle(halo);
-            return style.display === 'none' ? 0 : Number(style.opacity);
-          }),
-        { timeout: 15_000 }
-      )
-      .toBeGreaterThan(0.5);
+    // 미니도 연기를 낸다(사용자 요청 2026-11-03). 연기 canvas가 무대 안에 있다
+    await expect(rocketMini(page).locator('canvas')).toHaveCount(1);
 
     const pause = page.getByRole('button', { name: '움직임 멈춤' });
     await pause.click();

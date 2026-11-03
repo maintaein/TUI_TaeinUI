@@ -104,7 +104,7 @@ export function RocketButtonDemo({ values = INITIAL, mini }: DemoProps) {
             key={round}
             data-stage-target="send"
             container={container}
-            smoke={!mini}
+            smoke
             sentLabel={String(values.sentLabel)}
             onClick={() => setSends((n) => n + 1)}
           >
