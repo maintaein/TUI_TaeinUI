@@ -505,6 +505,7 @@ test.describe('Avatar 누를 수 있을 때 포커스', () => {
 // ─── M7.2 T3: 면도 테두리도 없는 단추류 ─────────────────────────────────────────
 // 호버와 같은 옅은 면과 가장자리 안쪽 2px다(채워진 면은 ① 두 겹). gray[50] #FAFAFA.
 const GRAY_50 = 'rgb(250, 250, 250)';
+const GRAY_300 = 'rgb(224, 224, 224)';
 const CLEAR = 'rgba(0, 0, 0, 0)';
 
 /** 포커스를 받은 요소의 윤곽선·면·그림자·불투명도·크기 */
@@ -636,19 +637,45 @@ test.describe('오버레이 닫기 단추 포커스', () => {
   test('BottomSheet: 안쪽 primary 2px이고 바깥 링이 없다', async ({ page }) => {
     const state = await closeOf(
       `<BottomSheet open onClose={()=>{}} title="제목" showClose>본문</BottomSheet>`,
-      GRAY_50
+      GRAY_300
     )(page);
     expect(state.outline).toBe('none');
-    expect(state.shadow).toBe(one(PRIMARY));
+    expect(state.shadow).toBe(one(PRIMARY_DARK));
+    // 포커스 면은 이 단추의 실제 호버 면과 같다(IconButton weak dark 위에 얹힌 단추라 gray[300])
+    await page.locator('body > button').first().focus();
+    await page.locator('button[aria-label="닫기"]').hover({ force: true });
+    await expect
+      .poll(async () =>
+        page.evaluate(
+          () =>
+            getComputedStyle(
+              document.querySelector('button[aria-label="닫기"]')!
+            ).backgroundColor
+        )
+      )
+      .toBe(GRAY_300);
   });
 
   test('SideSheet: 안쪽 primary 2px이고 바깥 링이 없다', async ({ page }) => {
     const state = await closeOf(
       `<SideSheet open onClose={()=>{}} title="제목" showClose>본문</SideSheet>`,
-      GRAY_50
+      GRAY_300
     )(page);
     expect(state.outline).toBe('none');
-    expect(state.shadow).toBe(one(PRIMARY));
+    expect(state.shadow).toBe(one(PRIMARY_DARK));
+    // 포커스 면은 이 단추의 실제 호버 면과 같다(IconButton weak dark 위에 얹힌 단추라 gray[300])
+    await page.locator('body > button').first().focus();
+    await page.locator('button[aria-label="닫기"]').hover({ force: true });
+    await expect
+      .poll(async () =>
+        page.evaluate(
+          () =>
+            getComputedStyle(
+              document.querySelector('button[aria-label="닫기"]')!
+            ).backgroundColor
+        )
+      )
+      .toBe(GRAY_300);
   });
 });
 
