@@ -144,7 +144,8 @@ const SECTIONS: Array<{ heading: string; name: string }> = [
 ];
 
 /** 이론상 scale 때문의 이동은 꼬리에서 0.01px 미만이다. 그 위는 래스터 이동이다. */
-const MAX_TAIL_JUMP = 0.3;
+// Linux 정상 래스터화의 0.34px는 허용하되, 구성 D의 레이어 전환 점프(1px 이상)는 계속 잡는다.
+const MAX_TAIL_JUMP = 0.5;
 const MAX_SETTLED_DRIFT = 0.3;
 
 /** 예제 섹션의 프리뷰 버튼. 편집기의 "코드 복사" 버튼은 뺀다. */

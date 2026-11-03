@@ -631,6 +631,8 @@ test.describe('로켓 전송 상세 로켓 박자 (1440px)', () => {
   test('분출이 서서히 올라 짧은 심지가 자라고(단추 높이의 0.2~0.5배) 빠르게 깜빡이며 그동안에도 단추는 발사대에 머문다', async ({
     page,
   }) => {
+    // 가짜 시계도 WebGL 프레임은 실제로 계산해 CI의 SwiftShader에서 오래 걸린다.
+    test.setTimeout(90_000);
     await freeze(page);
     const rest = (await send(page).boundingBox())!;
     await send(page).evaluate((b) => (b as HTMLButtonElement).click());
