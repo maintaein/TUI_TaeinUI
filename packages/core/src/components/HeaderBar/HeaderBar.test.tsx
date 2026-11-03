@@ -464,12 +464,14 @@ describe('navStyle="text" 항목', () => {
     expect(underline).toHaveLength(0);
   });
 
-  it('항목은 끝이 완전히 둥글고 바탕색을 fast settle로 전이한다', () => {
+  it('항목은 끝이 완전히 둥글고 바탕색과 포커스 테두리(box-shadow)를 fast settle로 전이한다', () => {
     render(<HeaderBar navStyle="text" items={items} />);
     const rest = ruleOf(/\.HeaderBar_textItem__[^\s:]+$/);
     expect(decl(rest, 'border-radius')).toBe(themeContract.borderRadius.full);
+    const { fast } = themeContract.animation.duration;
+    const { settle } = themeContract.animation.easing;
     expect(decl(rest, 'transition')).toBe(
-      `background-color ${themeContract.animation.duration.fast} ${themeContract.animation.easing.settle}`
+      `background-color ${fast} ${settle}, box-shadow ${fast} ${settle}`
     );
   });
 

@@ -246,7 +246,7 @@ import { NumericSpinner } from '@taein-ui/core';
 The input is not read-only. The user can type a number; while typing the field may be empty or out of range, and the value is committed on blur and Enter (clamped to `min`/`max`; an empty or non-numeric field reverts to the previous value; `onChange` is not called when the committed value equals the previous one). ArrowUp/ArrowDown change the value by `step`. For a custom input width use `style={{ width: '60px' }}`.
 
 ### Focus
-Focus (`:focus`, a mouse click too) turns the number box's border `primary`, like TextField, with no outer ring. `error` wins over focus. The `+`/`-` buttons keep their `:focus-visible` outline ring for now.
+Focus (`:focus`, a mouse click too) turns the number box's border `primary`, like TextField, with no outer ring. `error` wins over focus. Keyboard focus (`:focus-visible`) on the `+`/`-` buttons lays down the same pale face as hover (`gray[100]`) and a 2px `primary` border just inside the button's edge, never an outer ring. The size does not change and a mouse click does not show it.
 
 ---
 
@@ -336,6 +336,9 @@ import { Plus, X } from 'lucide-react';
 | children | ReactNode | - | Icon content |
 | aria-label | string | - | Required accessibility label |
 | className | string | - | Additional CSS class |
+
+### Focus
+Keyboard focus (`:focus-visible`) is drawn inside the button's own edge, never as an outer ring, and the size does not change. `ghost` (no face of its own) lays down the same pale face as hover (`gray[100]`) and a 2px `primary` inner border. `strong` is a filled face, so it gets a 2px band of its own darker colour (`primary[900]`, `gray[900]`, `error[900]`) and a white 2px band just inside it; `strong` `light` has a white face, so its border and a 2px inner band both turn `primary[900]` (a 4px frame). `weak` gets a 2px inner border (`primary[900]`, `error[900]` for `danger`). It shows over hover and press and on touch and coarse-pointer devices, and a mouse click does not show it.
 
 ---
 
@@ -442,7 +445,7 @@ const [tags, setTags] = useState(['React', 'Vite']);
 | className | string | - | Additional CSS class |
 
 ### Focus
-Keyboard focus (`:focus-visible`) draws a 2px border in the chip's own edge (inside it, never an outer ring): `primary`; on a filled `primary`/`success`/`error`/`warning` chip it is `primary[900]` (plus a white 2px band just inside it on `primary` and `error` faces, which the dark band alone does not separate). A selected chip already has a ring marker, so its focus border is 4px. The delete button keeps its `:focus-visible` outline ring for now.
+Keyboard focus (`:focus-visible`) draws a 2px border in the chip's own edge (inside it, never an outer ring): `primary`; on a filled `primary`/`success`/`error`/`warning` chip it is `primary[900]` (plus a white 2px band just inside it on `primary` and `error` faces, which the dark band alone does not separate). A selected chip already has a ring marker, so its focus border is 4px. The delete button (16px, round) gets a pale face (the chip's text colour mixed in at 12%) and a 2px inner border: `primary` on a chip that is not painted, the chip's own text colour on a filled `primary`/`success`/`error`/`warning` chip. Its size does not change and a mouse click does not show it.
 
 ---
 
@@ -593,6 +596,8 @@ import { Snackbar, Button } from '@taein-ui/core';
 | action | ReactNode | - | Action content |
 | className | string | - | Additional CSS class |
 
+Keyboard focus (`:focus-visible`) on the close button lays down the same pale face as hover and a 2px inner border in the text colour (white), never an outer ring. The surface is painted by `severity`, so the border keeps the text-on-surface contrast (3.07:1 on `warning`, 4.6:1 or more on the others). A button you pass as `action` follows its own focus style.
+
 ---
 
 ## Tooltip
@@ -683,6 +688,7 @@ import { Modal, Button } from '@taein-ui/core';
 - Focus trap (Tab cycles within modal)
 - ESC key closes modal
 - Focus restoration after the closing animation and trigger visibility restoration
+- Keyboard focus (`:focus-visible`) on the close button (`showClose`) lays down the same pale face as hover (`gray[100]`) and a 2px `primary` border just inside its edge, never an outer ring. The size does not change and a mouse click does not show it.
 
 ---
 
@@ -724,6 +730,8 @@ import { BottomSheet } from '@taein-ui/core';
 - `BottomSheet.Title` / `BottomSheetTitle`: Title heading
 - `BottomSheet.Content` / `BottomSheetContent`: Scrollable content
 
+Keyboard focus (`:focus-visible`) on the close button (`showClose`) is drawn as a 2px `primary` border just inside its edge on the same pale face as hover, never an outer ring. The size does not change and a mouse click does not show it.
+
 ---
 
 ## SideSheet
@@ -762,6 +770,8 @@ import { SideSheet } from '@taein-ui/core';
 - `SideSheet.Header` / `SideSheetHeader`: Header. Props: showClose
 - `SideSheet.Title` / `SideSheetTitle`: Title heading
 - `SideSheet.Content` / `SideSheetContent`: Scrollable content
+
+Keyboard focus (`:focus-visible`) on the close button (`showClose`) is drawn as a 2px `primary` border just inside its edge on the same pale face as hover, never an outer ring. The size does not change and a mouse click does not show it.
 
 ---
 
@@ -922,6 +932,8 @@ import { BoardRow } from '@taein-ui/core';
 | disabled | boolean | false | Disable expansion |
 | className | string | - | Additional CSS class |
 
+Keyboard focus (`:focus-visible`) on the header button lays down the same pale face as hover (`background.paper`) and a 2px `primary` border just inside the row's edge, following the row's rounded corners, never an outer ring. The size does not change and a mouse click does not show it.
+
 ---
 
 ## Divider
@@ -1018,6 +1030,10 @@ import { CircleCheck, Info, Plus } from 'lucide-react';
   ]}
 />
 ```
+
+### Focus
+
+Keyboard focus (`:focus-visible`) is drawn inside the item's own edge, never as an outer ring, and the size does not change. `text` and `dropdown` links (also in the narrow list), the `icon` pills, the hamburger and the links in `cards` lay down the same pale face as hover and a 2px `primary` border just inside it (the `icon` pill's border grows with the pill, up to 2.8px). The `pill` item fills with a `primary` circle on focus, so it is a filled face: a `primary[900]` 2px band at its edge with a white 2px band just inside it, drawn above the circle and the label. A mouse click does not show it.
 
 ### Narrow screens (below 768px)
 
@@ -1376,7 +1392,7 @@ Radial action menu for quick actions and share menus (a menu button). A `primary
 - Close: the reverse order, 30ms apart (`fast` x 0.2).
 - Pointing (fine pointer only: `(hover: hover) and (pointer: fine)`): the icon nearest the angle from the hub centre to the pointer grows to 1.38x, moves 14px outward, fills `primary` and shows a name tag. Tracked only 36 to 230px from the centre; angles below the arc snap to the nearer end. Touch has no direction tracking: the pressed icon is chosen.
 - Choosing an item calls `onSelect` once, flashes (375ms, `settle`) and folds; focus returns to the hub.
-- Keyboard focus on the hub draws a `primary[900]` 2px band inside its edge with a white 2px band inside that, keeping the drop shadow; no outer ring.
+- Keyboard focus on the hub draws a `primary[900]` 2px band inside its edge with a white 2px band inside that, keeping the drop shadow; no outer ring. A keyboard-focused item is filled with `primary` like a pointed one, so it gets the same two bands (and keeps its shadow).
 
 ```tsx
 import { FanMenu } from '@taein-ui/core';
@@ -1831,7 +1847,7 @@ All components follow WCAG 2.2 AA standards:
 - Semantic HTML elements (button, input, dialog, etc.)
 - ARIA attributes (aria-label, aria-describedby, aria-invalid, aria-busy, aria-modal, aria-expanded)
 - Keyboard navigation (Tab, Shift+Tab, Enter, Space, Escape, Arrow keys)
-- Focus indicators (2px outline, 2px offset, 4.6:1 contrast ratio for the parts that are not listed here yet (icon-only buttons, close buttons, links, rows); the bordered surfaces show focus on their own border, no outer ring: weak Button gets a 2px `primary[900]` inner border (`error[900]` for `danger`), a clickable Card turns its border `primary` at 2px in total (a 1px border plus 1px for `outlined`, a new 2px inner border for `elevated` and `filled`), a clickable Avatar gets a 2px `primary` inner border; filled Button (`strong`), the FanMenu hub, BurstToggle and the RocketButton mark show focus inside their own edge, no outer ring: a 2px dark band of their own colour (`primary[900]`, `gray[900]`, `error[900]`) with a white 2px band just inside it, `light` a 4px `primary[900]` frame, BurstToggle and the mark a 2px `primary` inner border; the input controls Checkbox, Switch, Slider, NumericSpinner, GooeySearch, SegmentedButtons and Chip show focus on their own border instead)
+- Focus indicators (no part draws an outer ring any more: the former 2px outline with a 2px offset is gone and focus is drawn inside the part's own edge. The bordered surfaces show it on their own border: weak Button gets a 2px `primary[900]` inner border (`error[900]` for `danger`), a clickable Card turns its border `primary` at 2px in total (a 1px border plus 1px for `outlined`, a new 2px inner border for `elevated` and `filled`), a clickable Avatar gets a 2px `primary` inner border; filled Button (`strong`) and IconButton, the FanMenu hub and items, the HeaderBar `pill` items, BurstToggle and the RocketButton mark show focus inside their own edge: a 2px dark band of their own colour (`primary[900]`, `gray[900]`, `error[900]`) with a white 2px band just inside it, `light` a 4px `primary[900]` frame, BurstToggle and the mark a 2px `primary` inner border; parts with neither a face nor a border (ghost IconButton, the close buttons of Modal, BottomSheet and SideSheet, BoardRow, the NumericSpinner `+`/`-` buttons, HeaderBar links, icon pills and menu button, the Chip delete button) lay down the same pale face as hover and a 2px `primary` inner border, and the Snackbar close button, which sits on a painted surface, a 2px inner border in its text colour; the input controls Checkbox, Switch, Slider, NumericSpinner, GooeySearch, SegmentedButtons and Chip show focus on their own border instead)
 - Focus traps in overlays (Modal, BottomSheet, SideSheet)
 - Screen reader announcements via aria-live regions
 

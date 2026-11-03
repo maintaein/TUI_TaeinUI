@@ -2261,9 +2261,18 @@ describe('NumericSpinner 생성 CSS (숫자 칸 상자, task-29 관문 2)', () =
       );
     });
 
-    it('증감 버튼의 :focus-visible 링은 그대로다', () => {
-      const ring = one('button', ':focus-visible');
-      expect(ring.style.getPropertyValue('outline')).not.toBe('');
+    it('증감 버튼의 :focus-visible은 호버와 같은 면에 안쪽 2px이고 바깥 링이 아니다', () => {
+      const focus = one('button', ':focus-visible');
+      expect(focus.style.getPropertyValue('outline')).toMatch(/^(none|0)/);
+      expect(focus.style.getPropertyValue('outline-offset')).toBe('');
+      expect(focus.style.getPropertyValue('box-shadow')).toMatch(
+        /^inset 0(px)? 0(px)? 0(px)? 2px /
+      );
+      expect(focus.style.getPropertyValue('background-color')).toBe(
+        one('button', ':hover:not\\(:disabled\\)').style.getPropertyValue(
+          'background-color'
+        )
+      );
     });
   });
 

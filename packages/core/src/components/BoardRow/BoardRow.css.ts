@@ -1,6 +1,5 @@
 import { style, styleVariants } from '@vanilla-extract/css';
 import { themeContract } from '../../tokens/theme.css';
-import { focusRing } from '../../tokens/focusRing.css';
 
 // 아코디언 아이템 컨테이너
 export const boardRow = style({
@@ -36,12 +35,14 @@ export const header = style({
   fontWeight: themeContract.font.weight.medium,
   color: themeContract.color.text.primary,
   textAlign: 'left',
+  // 행의 둥근 모서리를 따른다. 안 그러면 모서리에서 안쪽 포커스 테두리가 행의 clip에 잘려 끊긴다.
+  borderRadius: 'inherit',
   cursor: 'pointer',
   touchAction: 'manipulation',
   // transform을 목록에 더한다(리뷰 F3). :active가 배경색 단독 채널이라
   // article 4 위반이었다. 다른 컴포넌트(Button·Card·Chip·IconButton)와 같은
   // 배치 관례로 snap을 얹어 release 오버슛도 같이 받는다.
-  transition: `background-color ${themeContract.animation.duration.base} ${themeContract.animation.easing.settle}, transform ${themeContract.animation.duration.base} ${themeContract.animation.easing.snap}`,
+  transition: `background-color ${themeContract.animation.duration.base} ${themeContract.animation.easing.settle}, box-shadow ${themeContract.animation.duration.base} ${themeContract.animation.easing.settle}, transform ${themeContract.animation.duration.base} ${themeContract.animation.easing.snap}`,
 
   // :not(:disabled)로 막는다(리뷰 F1). 배치 공통 제약 「disabled에는 전이를
   // 주지 않는다」다. 아래 :disabled 블록이 backgroundColor는 되돌리지만,
@@ -67,9 +68,11 @@ export const header = style({
     },
   },
 
+  // 호버와 같은 옅은 면에 행 가장자리 안쪽 primary 2px(크기 그대로). 행 모양을 따른다.
   ':focus-visible': {
-    ...focusRing(),
-    outlineOffset: '-2px',
+    outline: 'none',
+    backgroundColor: themeContract.color.background.paper,
+    boxShadow: `inset 0 0 0 2px ${themeContract.color.primary.main}`,
   },
 
   ':disabled': {

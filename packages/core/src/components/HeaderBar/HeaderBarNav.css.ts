@@ -1,6 +1,5 @@
 import { style } from '@vanilla-extract/css';
 import { themeContract } from '../../tokens/theme.css';
-import { focusRing } from '../../tokens/focusRing.css';
 import { TINT_HOVER, TINT_PRESS } from './HeaderBar.css';
 
 /** GSAP이 프레임마다 쓰는 배율 채널. transform은 이 변수만 읽는다. Ruling 55. */
@@ -40,8 +39,9 @@ export const item = style({
   // 히트 영역은 절대 변형되지 않는다.
 
   selectors: {
+    // 눈에 보이는 면은 안쪽 알약이라 포커스 표시는 거기(아래 pill)가 그린다. 예약 박스(56px 정사각형)에는 그리지 않는다.
     '&:focus-visible': {
-      ...focusRing(),
+      outline: 'none',
     },
   },
 });
@@ -64,8 +64,10 @@ export const pill = style({
     [`${item}:hover &`]: {
       backgroundColor: TINT_HOVER,
     },
+    // 호버와 같은 옅은 바탕에 가장자리 안쪽 primary 2px. 알약이 배율을 따라 커지므로 테두리도 함께 커진다(최대 1.4배, 2.8px).
     [`${item}:focus-visible &`]: {
       backgroundColor: TINT_HOVER,
+      boxShadow: `inset 0 0 0 2px ${themeContract.color.primary.main}`,
     },
     // 지금 보고 있는 페이지는 바탕이 늘 깔려 있다.
     [`${item}[aria-current="page"] &`]: {

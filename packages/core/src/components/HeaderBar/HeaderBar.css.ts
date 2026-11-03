@@ -1,7 +1,6 @@
 import { style, styleVariants } from '@vanilla-extract/css';
 import { themeContract } from '../../tokens/theme.css';
 import { mediaQuery } from '../../tokens/breakpoints.css';
-import { focusRing } from '../../tokens/focusRing.css';
 
 // 떠 있는 바의 기하. 출처는 CardNav(.claude/고도화/ex/CardNav.tsx:161-208)의
 // 높이 60px, 폭 90%(최대 800px)다. 폭은 토큰 여백으로 바꾸고 최대 폭은 960px로 넓혔다.
@@ -165,13 +164,15 @@ export const textItem = style({
   cursor: 'pointer',
   touchAction: 'manipulation',
   borderRadius: themeContract.borderRadius.full,
-  transition: `background-color ${duration.fast} ${settle}`,
+  transition: `background-color ${duration.fast} ${settle}, box-shadow ${duration.fast} ${settle}`,
 
   selectors: {
     // 키보드 포커스는 호버 게이트 밖이다(터치에도 키보드는 있다).
+    // 바는 늘 밝은 면(background.default)이라 안쪽 테두리는 primary다. 면은 호버와 같은 옅은 바탕.
     '&:focus-visible': {
-      ...focusRing('currentColor'),
+      outline: 'none',
       backgroundColor: TINT_HOVER,
+      boxShadow: `inset 0 0 0 2px ${themeContract.color.primary.main}`,
     },
     // 지금 보고 있는 페이지는 바탕이 늘 깔려 있다.
     '&[aria-current="page"]': {
@@ -218,8 +219,11 @@ export const hamburger = style({
   borderRadius: themeContract.borderRadius.sm,
 
   selectors: {
+    // 호버 면이 없어 gray[100](surface.hover)을 깐다. 햄버거 선(24px)은 44px 상자 한가운데라 안쪽 2px가 가리지 않는다.
     '&:focus-visible': {
-      ...focusRing('currentColor'),
+      outline: 'none',
+      backgroundColor: themeContract.color.surface.hover,
+      boxShadow: `inset 0 0 0 2px ${themeContract.color.primary.main}`,
     },
   },
 
@@ -356,8 +360,20 @@ export const pillItem = style({
   touchAction: 'manipulation',
 
   selectors: {
+    // 키보드 포커스에서도 호버처럼 primary 원이 차오른다(HeaderBarPill의 hold('focus')). 그래서 이 알약은 포커스 때
+    // primary로 채워진 면이고 ① 모양이다: 가장자리 안쪽 짙은 primary 2px와 그 안쪽 흰 2px.
+    // 차오른 원(z-index 1)과 글자가 루트의 inset 그림자를 덮으므로 가상 요소를 맨 위(z-index 4)에 그린다(Card·Avatar와 같다).
     '&:focus-visible': {
-      ...focusRing('currentColor'),
+      outline: 'none',
+    },
+    '&:focus-visible::after': {
+      content: '""',
+      position: 'absolute',
+      inset: 0,
+      borderRadius: 'inherit',
+      pointerEvents: 'none',
+      zIndex: 4,
+      boxShadow: `inset 0 0 0 2px ${themeContract.palette.primary[900]}, inset 0 0 0 4px ${themeContract.color.primary.contrast}`,
     },
   },
 });
@@ -609,7 +625,10 @@ export const cardLinks = style({
 const cardPress = {
   // 글자 크기와 링크 사이 2px은 그대로 두고 누르는 높이만 24px로(WCAG 2.5.8, Chip 선례).
   minHeight: '24px',
-  padding: 0,
+  // 가로 4px는 안쪽 포커스 테두리(2px)가 글자 끝을 가리지 않을 여유다. 같은 만큼 음의 여백을 줘 글자 자리는 그대로다.
+  padding: `0 ${themeContract.spacing[1]}`,
+  margin: `0 calc(${themeContract.spacing[1]} * -1)`,
+  borderRadius: themeContract.borderRadius.sm,
   border: 'none',
   background: 'none',
   color: 'inherit',
@@ -618,11 +637,14 @@ const cardPress = {
   textDecoration: 'none',
   cursor: 'pointer',
   touchAction: 'manipulation',
-  transition: `opacity ${duration.base} ${settle}`,
+  transition: `opacity ${duration.base} ${settle}, background-color ${duration.base} ${settle}, box-shadow ${duration.base} ${settle}`,
 
   selectors: {
+    // 호버는 면이 없고 카드 면이 이미 gray[100]이라, 글자색을 옅게 섞은 TINT_HOVER가 보이는 면이다.
     '&:focus-visible': {
-      ...focusRing('currentColor'),
+      outline: 'none',
+      backgroundColor: TINT_HOVER,
+      boxShadow: `inset 0 0 0 2px ${themeContract.color.primary.main}`,
     },
   },
 

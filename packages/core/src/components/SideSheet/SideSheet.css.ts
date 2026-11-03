@@ -1,6 +1,5 @@
 import { style, styleVariants } from '@vanilla-extract/css';
 import { themeContract } from '../../tokens/theme.css';
-import { focusRing } from '../../tokens/focusRing.css';
 
 // 등장·퇴장은 CSS가 아니라 GSAP 타임라인이 소유한다(M3 T2). 키프레임은 진행 중
 // progress를 읽을 수도 되돌릴 수도 없어서 여는 도중 닫으면 시트가 점프했다.
@@ -106,14 +105,17 @@ export const closeButton = style({
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'center',
-  transition: `background-color ${themeContract.animation.duration.fast} ${themeContract.animation.easing.settle}`,
+  transition: `background-color ${themeContract.animation.duration.fast} ${themeContract.animation.easing.settle}, box-shadow ${themeContract.animation.duration.fast} ${themeContract.animation.easing.settle}`,
 
   ':hover': {
     backgroundColor: themeContract.color.background.paper,
   },
 
+  // 호버와 같은 옅은 면(background.paper)에 가장자리 안쪽 primary 2px(크기 그대로).
   ':focus-visible': {
-    ...focusRing(),
+    outline: 'none',
+    backgroundColor: themeContract.color.background.paper,
+    boxShadow: `inset 0 0 0 2px ${themeContract.color.primary.main}`,
   },
 });
 

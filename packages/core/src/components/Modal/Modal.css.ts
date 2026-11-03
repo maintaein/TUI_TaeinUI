@@ -1,6 +1,5 @@
 import { style, styleVariants } from '@vanilla-extract/css';
 import { themeContract } from '../../tokens/theme.css';
-import { focusRing } from '../../tokens/focusRing.css';
 
 // 등장·퇴장은 CSS가 아니라 GSAP 타임라인이 소유한다(M3 T2). 키프레임은 진행 중
 // progress를 읽을 수도 되돌릴 수도 없어서 여는 도중 닫으면 요소가 점프했다.
@@ -103,15 +102,18 @@ export const modalCloseButton = style({
   cursor: 'pointer',
   touchAction: 'manipulation',
   flexShrink: 0,
-  transition: `background-color ${themeContract.animation.duration.fast} ${themeContract.animation.easing.settle}, color ${themeContract.animation.duration.fast} ${themeContract.animation.easing.settle}`,
+  transition: `background-color ${themeContract.animation.duration.fast} ${themeContract.animation.easing.settle}, color ${themeContract.animation.duration.fast} ${themeContract.animation.easing.settle}, box-shadow ${themeContract.animation.duration.fast} ${themeContract.animation.easing.settle}`,
 
   ':hover': {
     backgroundColor: themeContract.color.surface.hover,
     color: themeContract.color.text.primary,
   },
 
+  // 호버와 같은 옅은 면에 가장자리 안쪽 primary 2px(크기 그대로). 눌림 면(surface.active)과도 3:1이다.
   ':focus-visible': {
-    ...focusRing(),
+    outline: 'none',
+    backgroundColor: themeContract.color.surface.hover,
+    boxShadow: `inset 0 0 0 2px ${themeContract.color.primary.main}`,
   },
 
   ':active': {

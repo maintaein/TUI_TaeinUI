@@ -1,6 +1,5 @@
 import { style, styleVariants } from '@vanilla-extract/css';
 import { themeContract } from '../../tokens/theme.css';
-import { focusRing } from '../../tokens/focusRing.css';
 
 // input container 스타일
 export const inputContainer = style({
@@ -62,7 +61,7 @@ export const inputBox = style({
     // 사용자 요구(M5 task-29): 클릭 때 테두리 색에 3px 후광과 2px 바깥 링이 겹쳐
     // 세 겹으로 칠해지던 것을 걷고, TextField와 같이 테두리 색 한 겹으로 둔다.
     // 포커스 표시는 테두리 색 변화와 캐럿이 맡는다(WCAG 2.4.7). 증감 버튼은 캐럿이
-    // 없어 :focus-visible 링을 그대로 둔다.
+    // 없어 옅은 면과 안쪽 primary 2px가 맡는다(M7.2 T3).
     '&:focus-within': {
       borderColor: themeContract.color.primary.main,
     },
@@ -143,7 +142,7 @@ export const button = style({
   touchAction: 'manipulation',
   // scale(눌림 깊이)은 이제 GSAP이 소유한다(M3 T3d, 채널 A). 길게 누르는
   // 동안 더 깊어지고 뗄 때 부푸는 걸 CSS 전이는 표현할 수 없고, 같이 두면 서로 싸운다.
-  transition: `background-color ${themeContract.animation.duration.fast} ease-in-out, color ${themeContract.animation.duration.fast} ease-in-out`,
+  transition: `background-color ${themeContract.animation.duration.fast} ease-in-out, color ${themeContract.animation.duration.fast} ease-in-out, box-shadow ${themeContract.animation.duration.fast} ${themeContract.animation.easing.settle}`,
   flexShrink: 0,
   minWidth: '44px',
   minHeight: '44px',
@@ -163,8 +162,11 @@ export const button = style({
       color: themeContract.color.text.disabled,
       cursor: 'not-allowed',
     },
+    // 호버와 같은 옅은 면에 가장자리 안쪽 primary 2px(크기 그대로). 호버 게이트가 없는 호버 규칙과 같은 결이다.
     '&:focus-visible': {
-      ...focusRing(),
+      outline: 'none',
+      backgroundColor: themeContract.color.surface.hover,
+      boxShadow: `inset 0 0 0 2px ${themeContract.color.primary.main}`,
     },
   },
 });

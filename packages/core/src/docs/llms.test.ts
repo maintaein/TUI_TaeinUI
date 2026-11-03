@@ -578,7 +578,9 @@ describe('컴포넌트가 실제로 합성하는 색 쌍', () => {
         /background: `color-mix\(in srgb, \$\{themeContract\.([\w.[\]]+)\} (\d+)%, transparent\)`/g
       ),
     ].map((m) => ({ ref: m[1], weight: Number(m[2]) / 100 }));
-    expect(mixes, '호버·눌림 두 규칙이 있어야 한다').toEqual([
+    // 호버, 키보드 포커스(M7.2 T3: 호버와 같은 면), 눌림 세 규칙. 포커스 면은 호버 면과 같은 12%다.
+    expect(mixes, '호버·포커스·눌림 세 규칙이 있어야 한다').toEqual([
+      { ref: 'color.text.primary', weight: 0.12 },
       { ref: 'color.text.primary', weight: 0.12 },
       { ref: 'color.text.primary', weight: 0.18 },
     ]);

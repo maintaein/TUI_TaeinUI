@@ -6,14 +6,17 @@ import {
 } from '@vanilla-extract/css';
 import { recipe } from '@vanilla-extract/recipes';
 import { themeContract } from '../../tokens/theme.css';
-import { focusRing } from '../../tokens/focusRing.css';
 
 // 호버·누름의 색 한 쌍(Button·Chip의 규칙과 같다). 호버는 (hover: hover) and
 // (pointer: fine) 안에서만 걸린다(터치는 탭하면 호버가 발생해 색이 들러붙는다).
 // 호버는 배경색(과 글자색)만 바꾼다. 이동을 더하지 않는다(근거는 Button.css.ts의
 // compoundVariants 머리말). :not([data-pressed])는 vanilla-extract가 @media를
 // selectors 뒤에 내보내 특정도가 같은 호버가 누름 색을 덮는 것을 막는다.
-const tint = (hover: StyleRule, pressed: StyleRule): StyleRule => ({
+const tint = (
+  hover: StyleRule,
+  pressed: StyleRule,
+  focus: StyleRule
+): StyleRule => ({
   '@media': {
     '(hover: hover) and (pointer: fine)': {
       selectors: {
@@ -22,8 +25,22 @@ const tint = (hover: StyleRule, pressed: StyleRule): StyleRule => ({
     },
   },
   selectors: {
+    // 호버 미디어 밖: 터치·거친 포인터 기기에서도 보여야 한다
+    '&:focus-visible': focus,
     '&[data-pressed]:not(:disabled)': pressed,
   },
+});
+
+// 포커스는 바깥 링이 아니라 요소 가장자리 안쪽에 그린다(크기 그대로, 바깥으로 안 나감).
+// 채운 단추(strong)는 자기 색의 짙은 단계 2px와 그 안쪽 흰 2px(Button.css.ts의 focusInset과 같다).
+const focusInset = (dark: string): StyleRule => ({
+  outline: 'none',
+  boxShadow: `inset 0 0 0 2px ${dark}, inset 0 0 0 4px ${themeContract.color.primary.contrast}`,
+});
+// 옅은 면(weak)은 안쪽 2px 한 겹. primary.main은 눌림 면과 3:1이 안 돼 짙은 단계를 쓴다(Button weak와 같다).
+const focusEdge = (color: string): StyleRule => ({
+  outline: 'none',
+  boxShadow: `inset 0 0 0 2px ${color}`,
 });
 
 // 모든 모드(ghost·weak·strong)에 같이 붙는 누름 규칙. 모드마다 따로 쓰면 한쪽이
@@ -89,7 +106,7 @@ export const iconButton = recipe({
     border: 'none',
     cursor: 'pointer',
     touchAction: 'manipulation',
-    transition: `background-color ${themeContract.animation.duration.base} ${themeContract.animation.easing.settle}, opacity ${themeContract.animation.duration.base} ${themeContract.animation.easing.settle}, transform ${themeContract.animation.duration.base} ${themeContract.animation.easing.spring}`,
+    transition: `background-color ${themeContract.animation.duration.base} ${themeContract.animation.easing.settle}, box-shadow ${themeContract.animation.duration.base} ${themeContract.animation.easing.settle}, opacity ${themeContract.animation.duration.base} ${themeContract.animation.easing.settle}, transform ${themeContract.animation.duration.base} ${themeContract.animation.easing.spring}`,
     userSelect: 'none',
     position: 'relative',
     overflow: 'hidden',
@@ -98,10 +115,6 @@ export const iconButton = recipe({
     ':disabled': {
       cursor: 'not-allowed',
       opacity: 0.5,
-    },
-
-    ':focus-visible': {
-      ...focusRing(),
     },
   },
 
@@ -155,7 +168,8 @@ export const iconButton = recipe({
         color: themeContract.color.primary.contrast,
         ...tint(
           { backgroundColor: themeContract.palette.primary[800] },
-          { backgroundColor: themeContract.palette.primary[900] }
+          { backgroundColor: themeContract.palette.primary[900] },
+          focusInset(themeContract.palette.primary[900])
         ),
       },
     },
@@ -166,7 +180,8 @@ export const iconButton = recipe({
         color: themeContract.color.text.inverse,
         ...tint(
           { backgroundColor: themeContract.palette.gray[800] },
-          { backgroundColor: themeContract.palette.gray[900] }
+          { backgroundColor: themeContract.palette.gray[900] },
+          focusInset(themeContract.palette.gray[900])
         ),
       },
     },
@@ -179,7 +194,8 @@ export const iconButton = recipe({
         color: themeContract.color.error.contrast,
         ...tint(
           { backgroundColor: themeContract.palette.error[800] },
-          { backgroundColor: themeContract.palette.error[900] }
+          { backgroundColor: themeContract.palette.error[900] },
+          focusInset(themeContract.palette.error[900])
         ),
       },
     },
@@ -193,7 +209,13 @@ export const iconButton = recipe({
         border: `2px solid ${themeContract.color.primary.main}`,
         ...tint(
           { backgroundColor: themeContract.palette.primary[50] },
-          { backgroundColor: themeContract.palette.primary[100] }
+          { backgroundColor: themeContract.palette.primary[100] },
+          // 면이 흰색이라 흰 겹이 안 보인다. 테두리와 안쪽 2px를 같은 primary[900]으로 맞춰 4px 한 틀로 굵어지게 한다(Button strong light와 같다).
+          {
+            outline: 'none',
+            borderColor: themeContract.palette.primary[900],
+            boxShadow: `inset 0 0 0 2px ${themeContract.palette.primary[900]}`,
+          }
         ),
       },
     },
@@ -205,7 +227,8 @@ export const iconButton = recipe({
         color: themeContract.palette.primary[900],
         ...tint(
           { backgroundColor: themeContract.palette.primary[100] },
-          { backgroundColor: themeContract.palette.primary[200] }
+          { backgroundColor: themeContract.palette.primary[200] },
+          focusEdge(themeContract.palette.primary[900])
         ),
       },
     },
@@ -216,7 +239,8 @@ export const iconButton = recipe({
         color: themeContract.palette.gray[800],
         ...tint(
           { backgroundColor: themeContract.palette.gray[300] },
-          { backgroundColor: themeContract.palette.gray[400] }
+          { backgroundColor: themeContract.palette.gray[400] },
+          focusEdge(themeContract.palette.primary[900])
         ),
       },
     },
@@ -232,7 +256,8 @@ export const iconButton = recipe({
           {
             backgroundColor: themeContract.palette.error[100],
             filter: 'brightness(0.96)',
-          }
+          },
+          focusEdge(themeContract.palette.error[900])
         ),
       },
     },
@@ -244,7 +269,8 @@ export const iconButton = recipe({
         color: themeContract.color.text.primary,
         ...tint(
           { backgroundColor: themeContract.palette.primary[200] },
-          { backgroundColor: themeContract.palette.primary[300] }
+          { backgroundColor: themeContract.palette.primary[300] },
+          focusEdge(themeContract.palette.primary[900])
         ),
       },
     },
@@ -273,7 +299,7 @@ export const ghostBase = style({
   border: 'none',
   cursor: 'pointer',
   touchAction: 'manipulation',
-  transition: `background-color ${themeContract.animation.duration.base} ${themeContract.animation.easing.settle}, color ${themeContract.animation.duration.base} ${themeContract.animation.easing.settle}, opacity ${themeContract.animation.duration.base} ${themeContract.animation.easing.settle}, transform ${themeContract.animation.duration.base} ${themeContract.animation.easing.spring}`,
+  transition: `background-color ${themeContract.animation.duration.base} ${themeContract.animation.easing.settle}, box-shadow ${themeContract.animation.duration.base} ${themeContract.animation.easing.settle}, color ${themeContract.animation.duration.base} ${themeContract.animation.easing.settle}, opacity ${themeContract.animation.duration.base} ${themeContract.animation.easing.settle}, transform ${themeContract.animation.duration.base} ${themeContract.animation.easing.spring}`,
   userSelect: 'none',
   borderRadius: themeContract.borderRadius.base,
   color: themeContract.palette.gray[600],
@@ -289,16 +315,18 @@ export const ghostBase = style({
     {
       color: themeContract.palette.gray[900],
       backgroundColor: themeContract.palette.gray[200],
+    },
+    // 면이 없는 아이콘 단추라 호버와 같은 옅은 면에 가장자리 안쪽 primary 2px(BurstToggle과 같은 모양).
+    {
+      outline: 'none',
+      backgroundColor: themeContract.color.surface.hover,
+      boxShadow: `inset 0 0 0 2px ${themeContract.color.primary.main}`,
     }
   ),
 
   ':disabled': {
     cursor: 'not-allowed',
     opacity: 0.4,
-  },
-
-  ':focus-visible': {
-    ...focusRing(),
   },
 });
 

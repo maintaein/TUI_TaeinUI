@@ -1,7 +1,6 @@
 import { style, globalStyle, type StyleRule } from '@vanilla-extract/css';
 import { recipe } from '@vanilla-extract/recipes';
 import { themeContract } from '../../tokens/theme.css';
-import { focusRing } from '../../tokens/focusRing.css';
 
 export const chip = recipe({
   base: {
@@ -32,6 +31,9 @@ export const chip = recipe({
       // (--chip-focus-inner)를 한 겹 더해 면과 바깥 바탕 양쪽에 3:1 이상으로 갈린다.
       // success·warning은 짙은 겹만으로 면과 3:1을 넘어(3.11, 4.00) 안쪽 겹이 없다.
       '--chip-focus': themeContract.color.primary.main,
+      // 삭제 단추의 키보드 포커스 테두리 색. 칠하지 않은 칩(default·outlined)은 primary,
+      // 색이 칠해진 filled 칩은 아래 compound가 칩 글자색(currentColor)으로 바꾼다.
+      '--chip-delete-edge': themeContract.color.primary.main,
     },
 
     // 선택 표식(B2). 항상 존재하되 opacity 0으로 숨어 있다가 .selected에서만
@@ -109,6 +111,7 @@ export const chip = recipe({
           '--chip-focus': themeContract.palette.primary[900],
           '--chip-focus-inner': themeContract.color.primary.contrast,
           '--chip-focus-w': '2px',
+          '--chip-delete-edge': 'currentColor',
         },
         backgroundColor: themeContract.color.primary.main,
         color: themeContract.color.primary.contrast,
@@ -120,6 +123,7 @@ export const chip = recipe({
         vars: {
           '--chip-focus': themeContract.palette.primary[900],
           '--chip-focus-w': '2px',
+          '--chip-delete-edge': 'currentColor',
         },
         backgroundColor: themeContract.color.success.main,
         color: themeContract.color.success.contrast,
@@ -132,6 +136,7 @@ export const chip = recipe({
           '--chip-focus': themeContract.palette.primary[900],
           '--chip-focus-inner': themeContract.color.primary.contrast,
           '--chip-focus-w': '2px',
+          '--chip-delete-edge': 'currentColor',
         },
         backgroundColor: themeContract.color.error.main,
         color: themeContract.color.error.contrast,
@@ -143,6 +148,7 @@ export const chip = recipe({
         vars: {
           '--chip-focus': themeContract.palette.primary[900],
           '--chip-focus-w': '2px',
+          '--chip-delete-edge': 'currentColor',
         },
         backgroundColor: themeContract.color.warning.main,
         color: themeContract.color.warning.contrast,
@@ -483,7 +489,7 @@ export const deleteButton = style({
   touchAction: 'manipulation',
   color: 'inherit',
   opacity: 0.7,
-  transition: `opacity ${themeContract.animation.duration.base} ${themeContract.animation.easing.settle}, transform ${themeContract.animation.duration.base} ${themeContract.animation.easing.settle}`,
+  transition: `opacity ${themeContract.animation.duration.base} ${themeContract.animation.easing.settle}, transform ${themeContract.animation.duration.base} ${themeContract.animation.easing.settle}, background-color ${themeContract.animation.duration.base} ${themeContract.animation.easing.settle}, box-shadow ${themeContract.animation.duration.base} ${themeContract.animation.easing.settle}`,
   flexShrink: 0,
 
   // 미는 방향 저항(article 4: 색 단독 금지, opacity에 이동을 더한다). 칩 호버(tint)와
@@ -501,10 +507,15 @@ export const deleteButton = style({
     },
   },
 
+  // 원형 단추(16px) 가장자리 안쪽 2px 테두리와 칩 글자색을 섞은 옅은 면. 색이 칠해진 칩 위에서는 테두리가
+  // 칩 글자색이라 칩 면과 글자 대비를 그대로 물려받고, 칠하지 않은 칩 위에서는 primary다.
+  // 호버 규칙은 면이 없어(opacity와 이동뿐) 칩 글자색 12%를 면으로 쓴다. opacity 1: 평소 0.7이면 테두리가 흐려진다.
   ':focus-visible': {
-    ...focusRing('currentColor'),
+    outline: 'none',
     borderRadius: '50%',
     opacity: 1,
+    backgroundColor: 'color-mix(in srgb, currentColor 12%, transparent)',
+    boxShadow: 'inset 0 0 0 2px var(--chip-delete-edge)',
   },
 
   selectors: {

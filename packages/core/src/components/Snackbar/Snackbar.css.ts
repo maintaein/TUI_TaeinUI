@@ -1,6 +1,5 @@
 import { style, styleVariants } from '@vanilla-extract/css';
 import { themeContract } from '../../tokens/theme.css';
-import { focusRing } from '../../tokens/focusRing.css';
 
 // 등장 `@keyframes` 4개와 퇴장 `snackbarExit`은 M3 T3에서 GSAP 타임라인으로
 // 옮겼다(`Snackbar.tsx`의 `useOverlayTransition` 호출). progress를 읽고
@@ -133,12 +132,6 @@ export const closeButton = style({
     opacity: 1,
   },
 
-  ':focus-visible': {
-    ...focusRing('currentColor'),
-    borderRadius: themeContract.borderRadius.sm,
-    opacity: 1,
-  },
-
   // 호버·눌림 면. IconButton `weak dark`의 면(gray[300]·gray[400])은 밝은 회색이라
   // 색 면 위 흰 X가 1.3:1로 사라진다. 글자색(흰색)을 섞으면 노란 면이 더 밝아져 X가
   // 약 2.5:1로 떨어진다. 그래서 어두운 `text.primary`를 옅게 섞은 반투명으로 둔다.
@@ -156,6 +149,15 @@ export const closeButton = style({
     },
   },
   selectors: {
+    // 키보드 포커스: 호버와 같은 면에 글자색(currentColor, 흰색) 안쪽 2px. 면이 severity 색으로 칠해져 있어
+    // 테두리는 그 바탕과 글자 대비(4종 모두 3:1 이상)를 그대로 물려받는다. 호버 미디어 밖이라 터치에서도 보인다.
+    // opacity 1: 평소 0.8이면 테두리가 바탕과 섞여 흐려진다.
+    '&&:focus-visible': {
+      outline: 'none',
+      opacity: 1,
+      background: `color-mix(in srgb, ${themeContract.color.text.primary} 12%, transparent)`,
+      boxShadow: 'inset 0 0 0 2px currentColor',
+    },
     '&&[data-pressed]:not(:disabled)': {
       background: `color-mix(in srgb, ${themeContract.color.text.primary} 18%, transparent)`,
     },

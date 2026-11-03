@@ -1,6 +1,5 @@
 import { globalStyle, keyframes, style } from '@vanilla-extract/css';
 import { themeContract } from '../../tokens/theme.css';
-import { focusRing } from '../../tokens/focusRing.css';
 
 const {
   palette,
@@ -137,7 +136,7 @@ export const item = style({
   pointerEvents: 'auto',
   opacity: 0,
   transform: 'translate(-50%, -50%) scale(0.6)',
-  transition: `transform ${animation.duration.slower} ${animation.easing.snap}, opacity ${animation.duration.fast} ${animation.easing.settle}, background-color ${animation.duration.fast} ${animation.easing.settle}, color ${animation.duration.fast} ${animation.easing.settle}, border-color ${animation.duration.fast} ${animation.easing.settle}`,
+  transition: `transform ${animation.duration.slower} ${animation.easing.snap}, opacity ${animation.duration.fast} ${animation.easing.settle}, background-color ${animation.duration.fast} ${animation.easing.settle}, color ${animation.duration.fast} ${animation.easing.settle}, border-color ${animation.duration.fast} ${animation.easing.settle}, box-shadow ${animation.duration.fast} ${animation.easing.settle}`,
   '@media': { [REDUCE]: NO_MOTION },
   selectors: {
     [`${root}[data-open] &`]: {
@@ -153,7 +152,13 @@ export const item = style({
       color: color.primary.contrast,
     },
     [`${root}[data-settling] &`]: { transitionDelay: 'var(--fan-delay)' },
-    '&:focus-visible': focusRing(),
+    // 키보드로 포커스가 오면 항목은 보통 가리킨 상태(data-hot)라 primary로 채워진 원이다. 허브와 같은 ① 모양:
+    // 가장자리 안쪽 짙은 primary 2px와 그 안쪽 흰 2px. 평소 그림자(shadow.md)는 그대로 합쳐 둔다.
+    // 포인터가 다른 항목을 가리키는 중이면 이 항목은 흰 면이고, 짙은 겹이 바깥 바탕과 3:1 이상이다.
+    '&:focus-visible': {
+      outline: 'none',
+      boxShadow: `inset 0 0 0 2px ${palette.primary[900]}, inset 0 0 0 4px ${color.primary.contrast}, ${shadow.md}`,
+    },
   },
 });
 
