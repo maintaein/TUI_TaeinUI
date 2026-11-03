@@ -10,6 +10,10 @@ const focusInset = (dark: string): StyleRule => ({
   boxShadow: `inset 0 0 0 2px ${dark}, inset 0 0 0 4px ${themeContract.color.primary.contrast}`,
 });
 
+// customColor의 포커스 가장자리: 소비자 색을 gray[900] 토큰과 반반 섞는다(자기 색의 짙은 단계, 규칙 1).
+const customEdge = (color: string) =>
+  `color-mix(in srgb, ${color} 50%, ${themeContract.palette.gray[900]})`;
+
 export const button = recipe({
   base: {
     display: 'inline-flex',
@@ -143,7 +147,6 @@ export const button = recipe({
         '@media': {
           '(hover: hover) and (pointer: fine)': {
             selectors: {
-              '&:focus-visible': focusInset(themeContract.palette.primary[900]),
               '&:hover:not(:disabled):not([data-pressed])': {
                 backgroundColor: themeContract.palette.primary[800],
               },
@@ -151,6 +154,8 @@ export const button = recipe({
           },
         },
         selectors: {
+          // 포커스는 호버와 달리 터치·거친 포인터에서도 보여야 해서 호버 미디어 밖에 둔다
+          '&:focus-visible': focusInset(themeContract.palette.primary[900]),
           '&[data-pressed]:not(:disabled)': {
             backgroundColor: themeContract.palette.primary[900],
           },
@@ -165,7 +170,6 @@ export const button = recipe({
         '@media': {
           '(hover: hover) and (pointer: fine)': {
             selectors: {
-              '&:focus-visible': focusInset(themeContract.palette.gray[900]),
               '&:hover:not(:disabled):not([data-pressed])': {
                 backgroundColor: themeContract.palette.gray[800],
               },
@@ -173,6 +177,7 @@ export const button = recipe({
           },
         },
         selectors: {
+          '&:focus-visible': focusInset(themeContract.palette.gray[900]),
           '&[data-pressed]:not(:disabled)': {
             backgroundColor: themeContract.palette.gray[900],
           },
@@ -187,7 +192,6 @@ export const button = recipe({
         '@media': {
           '(hover: hover) and (pointer: fine)': {
             selectors: {
-              '&:focus-visible': focusInset(themeContract.palette.error[900]),
               '&:hover:not(:disabled):not([data-pressed])': {
                 backgroundColor: themeContract.palette.error[800],
               },
@@ -195,6 +199,7 @@ export const button = recipe({
           },
         },
         selectors: {
+          '&:focus-visible': focusInset(themeContract.palette.error[900]),
           '&[data-pressed]:not(:disabled)': {
             backgroundColor: themeContract.palette.error[900],
           },
@@ -215,13 +220,6 @@ export const button = recipe({
         '@media': {
           '(hover: hover) and (pointer: fine)': {
             selectors: {
-              // 면이 흰색이라 흰 겹이 안 보인다. 테두리와 안쪽 2px를 같은 primary[900]으로 맞춰 4px 한 틀로 굵어지게 한다
-              // (테두리가 primary.main인 채로면 안쪽 짙은 겹이 바로 옆 테두리와 1.88:1이다).
-              '&:focus-visible': {
-                outline: 'none',
-                borderColor: themeContract.palette.primary[900],
-                boxShadow: `inset 0 0 0 2px ${themeContract.palette.primary[900]}`,
-              },
               '&:hover:not(:disabled):not([data-pressed])': {
                 backgroundColor: themeContract.palette.primary[50],
               },
@@ -229,6 +227,13 @@ export const button = recipe({
           },
         },
         selectors: {
+          // 면이 흰색이라 흰 겹이 안 보인다. 테두리와 안쪽 2px를 같은 primary[900]으로 맞춰 4px 한 틀로 굵어지게 한다
+          // (테두리가 primary.main인 채로면 안쪽 짙은 겹이 바로 옆 테두리와 1.88:1이다).
+          '&:focus-visible': {
+            outline: 'none',
+            borderColor: themeContract.palette.primary[900],
+            boxShadow: `inset 0 0 0 2px ${themeContract.palette.primary[900]}`,
+          },
           '&[data-pressed]:not(:disabled)': {
             backgroundColor: themeContract.palette.primary[100],
           },
@@ -367,11 +372,14 @@ export const customVariant = style({
       backgroundColor: 'var(--btn-active-bg, var(--btn-bg))',
       filter: 'var(--btn-active-filter, none)',
     },
-    // 소비자 색은 짙은 단계를 알 수 없어 글자색(면과 대비가 보장된 색) 한 겹이다.
-    // ponytail: 바깥 바탕과의 3:1은 소비자 색에 달렸다, customColor에 짙은 단계 입력이 생기면 두 겹으로
+    // 소비자 색(--btn-bg)을 gray[900] 토큰과 반반 섞은 짙은 가장자리 2px와 그 안쪽 흰 2px. 위 compound의
+    // :focus-visible과 특정도가 같아 이 블록이 뒤에 선언돼 이긴다(recipe가 먼저 낸다).
+    // ponytail: 대비는 소비자 색에 달렸다(보라 #8b5cf6 8.45/4.23, 초록 #22c55e 5.84/2.28, 밝은 노랑 #fde047
+    // 3.92/1.32. 앞은 짙은 겹 대 흰 바탕, 뒤는 흰 겹 대 면). 밝은 면에서는 흰 겹이 면과 3:1이 안 되니, 소비자가
+    // 밝은 색을 주면 짙은 겹 하나로 읽힌다. 비율을 입력으로 받을 일이 생기면 그때 연다
     '&:focus-visible': {
       outline: 'none',
-      boxShadow: 'inset 0 0 0 2px var(--btn-color)',
+      boxShadow: `inset 0 0 0 2px ${customEdge('var(--btn-bg)')}, inset 0 0 0 4px ${themeContract.color.primary.contrast}`,
     },
   },
 });
@@ -396,11 +404,13 @@ export const customOutlineVariant = style({
     '&[data-pressed]:not(:disabled)': {
       backgroundColor: `var(--btn-active-bg, ${themeContract.color.surface.active})`,
     },
-    // 테두리(--btn-color 2px)와 같은 색을 안쪽에 2px 더해 4px 한 틀로 굵어진다
+    // 면이 흰색이라 흰 겹이 없다. 테두리와 안쪽 2px를 소비자 색의 짙은 단계로 맞춰 4px 한 틀로 굵어진다.
+    // 이 블록이 compound light의 :focus-visible 뒤에 선언돼 이긴다.
+    // ponytail: 틀 대 흰 바탕은 보라 8.45, 초록 5.84, 밝은 노랑 3.92로 3:1 이상이지만 소비자 색에 달렸다
     '&:focus-visible': {
       outline: 'none',
-      borderColor: 'var(--btn-color)',
-      boxShadow: 'inset 0 0 0 2px var(--btn-color)',
+      borderColor: customEdge('var(--btn-color)'),
+      boxShadow: `inset 0 0 0 2px ${customEdge('var(--btn-color)')}`,
     },
   },
 });

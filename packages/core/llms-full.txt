@@ -288,7 +288,7 @@ import { Plus } from 'lucide-react';
 - `aria-disabled` set when disabled or loading
 - `aria-busy` set when loading
 - `aria-hidden="true"` on decorative icons
-- Keyboard focus (`:focus-visible`) on a filled (`strong`) button is drawn inside its own edge, never as an outer ring: a 2px band of its own darker colour (`primary[900]`, `gray[900]`, `error[900]`) and a white 2px band just inside it. `light` has a white face, so its border and a 2px inner band both turn `primary[900]` (a 4px frame). The size does not change. With `customColor` the inner band is a single 2px line in the `text` colour. Weak buttons keep the 2px outline for now.
+- Keyboard focus (`:focus-visible`) on a filled (`strong`) button is drawn inside its own edge, never as an outer ring: a 2px band of its own darker colour (`primary[900]`, `gray[900]`, `error[900]`) and a white 2px band just inside it. `light` has a white face, so its border and a 2px inner band both turn `primary[900]` (a 4px frame). The size does not change. It shows on touch and coarse-pointer devices too, not only where hover exists. With `customColor` the outer band is your `bg` colour mixed half and half with `gray[900]` (the white band stays); for a `light` custom button the border and the inner band both take your colour mixed the same way. Contrast depends on your colour: a light `bg` such as yellow leaves the white band under 3:1 against the face, so read the dark band as the indicator.
 
 ---
 
@@ -1826,7 +1826,7 @@ All components follow WCAG 2.2 AA standards:
 - Semantic HTML elements (button, input, dialog, etc.)
 - ARIA attributes (aria-label, aria-describedby, aria-invalid, aria-busy, aria-modal, aria-expanded)
 - Keyboard navigation (Tab, Shift+Tab, Enter, Space, Escape, Arrow keys)
-- Focus indicators (2px outline, 2px offset, 4.6:1 contrast ratio for weak buttons, cards and the other outlined parts; filled Button (`strong`), the FanMenu hub, BurstToggle and the RocketButton mark show focus inside their own edge, no outer ring: a 2px dark band of their own colour (`primary[900]`, `gray[900]`, `error[900]`) with a white 2px band just inside it, `light` a 4px `primary[900]` frame, BurstToggle and the mark a 2px `primary` inner border; the input controls Checkbox, Switch, Slider, NumericSpinner, GooeySearch, SegmentedButtons and Chip show focus on their own border instead)
+- Focus indicators (2px outline, 2px offset, 4.6:1 contrast ratio for cards and the other outlined parts; filled Button (`strong`), the FanMenu hub, BurstToggle and the RocketButton mark show focus inside their own edge, no outer ring: a 2px dark band of their own colour (`primary[900]`, `gray[900]`, `error[900]`) with a white 2px band just inside it, `light` a 4px `primary[900]` frame, BurstToggle and the mark a 2px `primary` inner border; the input controls Checkbox, Switch, Slider, NumericSpinner, GooeySearch, SegmentedButtons and Chip show focus on their own border instead)
 - Focus traps in overlays (Modal, BottomSheet, SideSheet)
 - Screen reader announcements via aria-live regions
 

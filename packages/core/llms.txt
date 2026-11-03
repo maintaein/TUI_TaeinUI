@@ -185,7 +185,7 @@ GSAP 런타임(M3에서 시작해 M7까지)이 실제로 붙은 컴포넌트와 
 - Semantic HTML elements (button, input, dialog)
 - ARIA attributes (aria-label, aria-describedby, aria-invalid, aria-busy, aria-modal)
 - Keyboard navigation (Tab, Enter, Space, Escape, Arrow keys)
-- Focus indicators (2px outline, 2px offset, 4.6:1 contrast for weak buttons, cards and the other outlined parts; filled Button (`strong`), the FanMenu hub, BurstToggle and the RocketButton mark show focus inside their own edge, no outer ring: a 2px dark band of their own colour (`primary[900]`, `gray[900]`, `error[900]`) with a white 2px band just inside it, `light` a 4px `primary[900]` frame, BurstToggle and the mark a 2px `primary` inner border; Checkbox, Switch, Slider, NumericSpinner, GooeySearch, SegmentedButtons and Chip show focus on their own border instead)
+- Focus indicators (2px outline, 2px offset, 4.6:1 contrast for cards and the other outlined parts; filled Button (`strong`), the FanMenu hub, BurstToggle and the RocketButton mark show focus inside their own edge, no outer ring: a 2px dark band of their own colour (`primary[900]`, `gray[900]`, `error[900]`) with a white 2px band just inside it, `light` a 4px `primary[900]` frame, BurstToggle and the mark a 2px `primary` inner border; Checkbox, Switch, Slider, NumericSpinner, GooeySearch, SegmentedButtons and Chip show focus on their own border instead)
 - Focus traps in overlays (Modal, BottomSheet, SideSheet)
 - Color contrast 4.5:1 (text), 3:1 (UI elements). 값과 실측 대비비는 Design Tokens 절 참고
 - Target size: WCAG 2.2 AA(2.5.8)의 최소 요구치는 **24x24 CSS px**이고
