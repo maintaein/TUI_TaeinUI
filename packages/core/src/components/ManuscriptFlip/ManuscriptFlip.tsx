@@ -221,6 +221,10 @@ export const ManuscriptFlip = forwardRef<HTMLDivElement, ManuscriptFlipProps>(
         tl.progress(flipped ? 1 : 0, true);
         // 다시 만들어진 것이 넘김 도중이었다면 끝 모양으로 확정했으니 busy를 놓는다
         tl.eventCallback('onComplete')?.();
+      } else if (flipped && tl.time() === tl.duration()) {
+        // 시간 0의 거울: 이미 끝 시각이면 앞으로 갈 구간이 없어 onComplete가 안 불린다. 세워 멈추고 busy를 놓는다.
+        tl.pause(tl.duration());
+        tl.eventCallback('onComplete')?.();
       } else if (flipped) {
         tl.play();
       } else if (tl.time() === 0) {

@@ -439,6 +439,20 @@ describe('ManuscriptFlip', () => {
       expect(back).toHaveAttribute('inert');
     });
 
+    it('끝 시각에서 틱 없이 되넘겼다 다시 넘겨도 busy가 풀려 뒷면이 살아난다', () => {
+      const { container, rerender } = mountMeasured();
+      rerender(<Flip flipped />);
+      act(() => {
+        lastPlayed().progress(1);
+      });
+      // 끝까지 넘긴 뒤 한 틱도 돌지 않은 채 되넘겼다가 다시 넘긴다
+      rerender(<Flip flipped={false} />);
+      rerender(<Flip flipped />);
+      const { front, back } = faces(container);
+      expect(back).not.toHaveAttribute('inert');
+      expect(front).toHaveAttribute('inert');
+    });
+
     it('끝 모양은 늘 마지막 의도와 같다(넘겼다 되넘겼다 다시 넘김)', () => {
       const { container, rerender } = mountMeasured();
       rerender(<Flip flipped />);
