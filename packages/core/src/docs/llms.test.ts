@@ -182,19 +182,14 @@ describe('발행 문서와 소스 일치 검사', () => {
     expect(Number(exportCount?.[1])).toBe(Number(heading?.[2]));
   });
 
-  it('새로 만든 토큰(overlay.focusHalo·errorHalo·text.inverse)이 llms-full.txt에 나타난다', () => {
+  it('새로 만든 토큰(overlay.errorHalo·text.inverse)이 llms-full.txt에 나타난다', () => {
     // S1·S4가 만든 토큰이 발행 문서에 안 나타나던 문제(overlay.scrim)가
     // 여기서 같이 닫힌다. 참조가 생긴 scrim도 함께 확인한다.
     // llms.txt(요약)는 `## Design Tokens` 절에 그룹 이름만 나열해 점 표기
     // 전체 경로를 구조적으로 쓰지 않는다(surface.track·border.strong 같은
     // 기존 토큰도 마찬가지다). 점 표기 경로가 실제로 나타나는 llms-full.txt만
     // 검사한다.
-    const names = [
-      'overlay.scrim',
-      'overlay.focusHalo',
-      'overlay.errorHalo',
-      'text.inverse',
-    ];
+    const names = ['overlay.scrim', 'overlay.errorHalo', 'text.inverse'];
     const fullText = read(FILES.full);
     for (const token of names) {
       expect(fullText, `llms-full.txt에 '${token}'이 없다`).toContain(token);

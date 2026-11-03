@@ -245,14 +245,9 @@ export function renderTokenReference(): string {
       'Modal·BottomSheet·SideSheet 백드롭. 반투명 합성색이라 단일 대비값이 없다'
     ),
     plainLine(
-      'themeContract.color.overlay.focusHalo',
-      color.overlay.focusHalo,
-      '포커스 halo(장식). 지금 쓰는 컴포넌트가 없다. 포커스 표시는 요소 가장자리 안쪽이 맡는다'
-    ),
-    plainLine(
       'themeContract.color.overlay.errorHalo',
       color.overlay.errorHalo,
-      '에러 halo(장식). 위와 같은 이유로 포커스 표시를 겸하지 않는다'
+      '에러 halo(장식). 대비가 낮아 에러 표시를 겸하지 않는다'
     ),
     '',
     '### Color: Semantic',

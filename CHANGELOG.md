@@ -65,6 +65,7 @@
 
 - **BREAKING CHANGE:** `Loader type="inchworm"`을 제거했습니다. 할 일: `type="bar"` 또는 `type="wave"`로 바꾸세요.
 - **BREAKING CHANGE:** `Loader type="fuse"`와 `value`를 제거했습니다. 할 일: fuse를 쓰던 곳은 `type="bar"`로 바꿉니다.
+- **BREAKING CHANGE:** 쓰는 곳이 없어진 `themeContract.color.overlay.focusHalo`를 지웠습니다. 할 일: 이 변수를 직접 쓰던 곳은 자기 색으로 바꾸세요.
 
 ## [0.4.0] - 2026-10-17
 
