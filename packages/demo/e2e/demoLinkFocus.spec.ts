@@ -28,6 +28,21 @@ const read = (page: Page) =>
     };
   });
 
+/** 링크 상자의 x·폭과 첫 글자의 x. 포커스가 자리를 옮기는지 본다. */
+const place = (page: Page, selector: string) =>
+  page
+    .locator(selector)
+    .first()
+    .evaluate((el) => {
+      const r = el.getBoundingClientRect();
+      const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+      const text = walker.nextNode() as Text;
+      const range = document.createRange();
+      range.setStart(text, 0);
+      range.setEnd(text, 1);
+      return { x: r.x, width: r.width, textX: range.getBoundingClientRect().x };
+    });
+
 test.describe('데모 자체 링크 포커스', () => {
   test.use({ viewport: { width: 1280, height: 900 } });
 
@@ -70,6 +85,34 @@ test.describe('데모 자체 링크 포커스', () => {
     expect(Math.abs(seen.cx - before.cx)).toBeLessThan(0.6);
     expect(Math.abs(seen.cy - before.cy)).toBeLessThan(0.6);
     expect(seen.h).toBeCloseTo(before.h, 0);
+  });
+
+  test('사이드바 링크와 건너뛰기 링크: 포커스가 상자와 글자를 옮기지 않는다', async ({
+    page,
+  }) => {
+    await page.goto('/getting-started');
+    const side = '#site-nav a[href="/components/switch"]';
+    await page.locator(side).waitFor();
+    const focusAndMeasure = async (selector: string) => {
+      const link = page.locator(selector).first();
+      let reached = false;
+      for (let i = 0; i < 80 && !reached; i += 1) {
+        await page.keyboard.press('Tab');
+        reached = await link.evaluate((el) => el === document.activeElement);
+      }
+      expect(reached, `Tab으로 ${selector}에 닿지 않았다`).toBe(true);
+      const focused = await place(page, selector);
+      await page.evaluate(() => (document.activeElement as HTMLElement).blur());
+      return { focused, rest: await place(page, selector) };
+    };
+    // 건너뛰기 링크는 첫 Tab이다
+    const skip = await focusAndMeasure('a[href="#main-content"]');
+    expect(skip.focused.x).toBeCloseTo(skip.rest.x, 1);
+    expect(skip.focused.textX).toBeCloseTo(skip.rest.textX, 1);
+    const nav = await focusAndMeasure(side);
+    expect(nav.focused.x).toBeCloseTo(nav.rest.x, 1);
+    expect(nav.focused.width).toBeCloseTo(nav.rest.width, 1);
+    expect(nav.focused.textX).toBeCloseTo(nav.rest.textX, 1);
   });
 });
 
