@@ -38,11 +38,16 @@ globalStyle('::selection', {
   color: color.text.primary,
 });
 
-// 링크처럼 core가 그리지 않는 요소의 기본 포커스 표시를 대신한다(2px, offset 2px, border.focus). core 컴포넌트는 바깥 링을 쓰지 않는다.
-// :where로 특이도를 0으로 둬 core 컴포넌트가 자기 링을 그리는 것을 덮지 않는다
-globalStyle(':where(a):focus-visible', {
-  outline: `2px solid ${color.border.focus}`,
-  outlineOffset: '2px',
+// 링크처럼 core가 그리지 않는 요소의 기본 포커스 표시. 이 저장소는 바깥 링을 쓰지 않으므로 core의 면 없는 단추와 같이
+// 옅은 면과 가장자리 안쪽 2px로 그린다(크기 그대로). 글자 좌우가 테두리에 닿지 않게 가로 4px 여유를 주고 같은 만큼 음의 여백으로 자리는 그대로 둔다.
+// :where로 특이도를 0으로 둬 core 컴포넌트와 자기 포커스를 그리는 링크가 덮이지 않는다
+globalStyle(':where(a:focus-visible)', {
+  outline: 'none',
+  backgroundColor: 'color-mix(in srgb, currentColor 10%, transparent)',
+  boxShadow: `inset 0 0 0 2px ${color.primary.main}`,
+  borderRadius: '0.25rem',
+  paddingInline: '0.25rem',
+  marginInline: '-0.25rem',
 });
 
 globalStyle('#root', {

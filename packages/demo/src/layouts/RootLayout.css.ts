@@ -34,8 +34,9 @@ export const skipToContent = style({
   selectors: {
     '&:focus': {
       top: 0,
-      outline: `2px solid ${color.border.focus}`,
-      outlineOffset: '2px',
+      // 파랑으로 채운 면이라 짙은 단계 2px와 그 안쪽 흰 2px(core 채운 단추와 같다)
+      outline: 'none',
+      boxShadow: `inset 0 0 0 2px ${palette.primary[900]}, inset 0 0 0 4px ${color.primary.contrast}`,
     },
   },
 });
