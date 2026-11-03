@@ -28,7 +28,10 @@ const read = (page: Page) =>
     };
   });
 
-/** 링크 상자의 x·폭과 첫 글자의 x. 포커스가 자리를 옮기는지 본다. */
+/**
+ * 링크 상자의 x·폭, 첫 글자의 x, 안쪽 내용(글자와 그림) 전체의 가로 범위.
+ * 포커스가 자리를 옮기는지, 안쪽 2px 테두리가 내용에 닿는지 본다.
+ */
 const place = (page: Page, selector: string) =>
   page
     .locator(selector)
@@ -40,8 +43,65 @@ const place = (page: Page, selector: string) =>
       const range = document.createRange();
       range.setStart(text, 0);
       range.setEnd(text, 1);
-      return { x: r.x, width: r.width, textX: range.getBoundingClientRect().x };
+      const all = document.createRange();
+      all.selectNodeContents(el);
+      const c = all.getBoundingClientRect();
+      return {
+        x: r.x,
+        y: r.y,
+        width: r.width,
+        height: r.height,
+        textX: range.getBoundingClientRect().x,
+        contentLeft: c.left,
+        contentRight: c.right,
+        contentTop: c.top,
+        contentBottom: c.bottom,
+      };
     });
+
+/** 포커스 표시(안쪽 테두리) 두께 */
+const RING = 2;
+
+// 안쪽 테두리를 받는 링크들. 어느 것이든 포커스가 자리를 옮기지 않고 내용이 테두리에 닿지 않아야 한다
+const LINKS = [
+  { name: '건너뛰기 링크', url: '/', selector: 'a[href="#main-content"]' },
+  {
+    name: '사이드바',
+    url: '/components/switch',
+    selector: '#site-nav a[href="/components/switch"]',
+  },
+  { name: '헤더 brand', url: '/', selector: 'header a[href="/"]' },
+  {
+    name: '헤더 nav 시작하기',
+    url: '/',
+    selector: 'header nav a[href="/getting-started"]',
+  },
+  {
+    name: '헤더 nav GitHub',
+    url: '/',
+    selector: 'header nav a[href^="https://github.com"]',
+  },
+  {
+    name: 'FrameCard 링크(전체 컴포넌트)',
+    url: '/components/overview',
+    selector: 'main a[href="/components/switch"]',
+  },
+  {
+    name: 'FrameCard 링크(모션)',
+    url: '/motion',
+    selector: 'main a[href^="/motion/"]',
+  },
+  {
+    name: '랜딩 moreLink',
+    url: '/',
+    selector: 'main a[href="/components/overview"]',
+  },
+  {
+    name: '본문 글 링크',
+    url: '/getting-started',
+    selector: 'main p a[href="/components/overview"]',
+  },
+];
 
 test.describe('데모 자체 링크 포커스', () => {
   test.use({ viewport: { width: 1280, height: 900 } });
@@ -87,33 +147,37 @@ test.describe('데모 자체 링크 포커스', () => {
     expect(seen.h).toBeCloseTo(before.h, 0);
   });
 
-  test('사이드바 링크와 건너뛰기 링크: 포커스가 상자와 글자를 옮기지 않는다', async ({
-    page,
-  }) => {
-    await page.goto('/getting-started');
-    const side = '#site-nav a[href="/components/switch"]';
-    await page.locator(side).waitFor();
-    const focusAndMeasure = async (selector: string) => {
+  for (const { name, url, selector } of LINKS) {
+    test(`${name}: 포커스가 상자와 글자를 옮기지 않고 내용이 테두리에 닿지 않는다`, async ({
+      page,
+    }) => {
+      await page.goto(url);
       const link = page.locator(selector).first();
+      await link.waitFor();
       let reached = false;
-      for (let i = 0; i < 80 && !reached; i += 1) {
+      for (let i = 0; i < 300 && !reached; i += 1) {
         await page.keyboard.press('Tab');
         reached = await link.evaluate((el) => el === document.activeElement);
       }
       expect(reached, `Tab으로 ${selector}에 닿지 않았다`).toBe(true);
       const focused = await place(page, selector);
       await page.evaluate(() => (document.activeElement as HTMLElement).blur());
-      return { focused, rest: await place(page, selector) };
-    };
-    // 건너뛰기 링크는 첫 Tab이다
-    const skip = await focusAndMeasure('a[href="#main-content"]');
-    expect(skip.focused.x).toBeCloseTo(skip.rest.x, 1);
-    expect(skip.focused.textX).toBeCloseTo(skip.rest.textX, 1);
-    const nav = await focusAndMeasure(side);
-    expect(nav.focused.x).toBeCloseTo(nav.rest.x, 1);
-    expect(nav.focused.width).toBeCloseTo(nav.rest.width, 1);
-    expect(nav.focused.textX).toBeCloseTo(nav.rest.textX, 1);
-  });
+      const rest = await place(page, selector);
+      // (1) 자리 그대로
+      expect(focused.x).toBeCloseTo(rest.x, 1);
+      expect(focused.width).toBeCloseTo(rest.width, 1);
+      expect(focused.textX).toBeCloseTo(rest.textX, 1);
+      // (2) 안쪽 RING px 테두리 띠 안쪽에 내용이 든다
+      expect(focused.contentLeft).toBeGreaterThanOrEqual(focused.x + RING);
+      expect(focused.contentRight).toBeLessThanOrEqual(
+        focused.x + focused.width - RING
+      );
+      expect(focused.contentTop).toBeGreaterThanOrEqual(focused.y + RING);
+      expect(focused.contentBottom).toBeLessThanOrEqual(
+        focused.y + focused.height - RING
+      );
+    });
+  }
 });
 
 test('데모 소스에 바깥 링(outlineOffset, none 아닌 outline)이 없다', () => {

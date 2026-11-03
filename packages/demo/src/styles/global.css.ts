@@ -48,12 +48,15 @@ globalStyle(':where(a:focus-visible)', {
   borderRadius: '0.25rem',
 });
 
-// 글 속 링크(문단 안 링크, 클래스 없는 링크)만: 글자 좌우가 테두리에 닿지 않게 가로 4px 여유를 주고 같은 만큼 음의 여백으로 자리는 그대로 둔다.
-// 사이드바·건너뛰기처럼 자기 여백을 가진 링크는 그 여백을 지켜야 해서 이 여유를 주지 않는다
-globalStyle(':where(a:not([class]):focus-visible, p a:focus-visible)', {
-  paddingInline: '0.25rem',
-  marginInline: '-0.25rem',
-});
+// 글자가 안쪽 2px 테두리에 닿지 않게 포커스와 무관하게 늘 사방 4px 여유를 주고 같은 만큼 음의 여백으로 글자 자리와 둘레 배치는 그대로 둔다.
+// 포커스 때만 주면 그 순간 레이아웃이 움직인다. 이 여유가 없는 링크 클래스(brand, nav, 카드 제목 등)는 이 값을 펼쳐 쓴다
+export const linkRoom = {
+  padding: '0.25rem',
+  margin: '-0.25rem',
+} as const;
+
+// 클래스 없는 링크와 문단 안 링크. 사이드바·건너뛰기처럼 자기 여백을 가진 링크는 클래스 값이 이긴다(:where라 특이도 0)
+globalStyle(':where(a:not([class]), p a)', linkRoom);
 
 globalStyle('#root', {
   width: '100%',

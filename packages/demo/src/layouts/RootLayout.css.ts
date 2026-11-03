@@ -1,5 +1,6 @@
 import { themeContract } from '@taein-ui/core';
 import { globalStyle, style } from '@vanilla-extract/css';
+import { linkRoom } from '../styles/global.css';
 
 const { color, palette, spacing, borderRadius, animation, zIndex } =
   themeContract;
@@ -99,6 +100,7 @@ export const brand = style({
   gap: spacing[2],
   fontWeight: 800,
   color: INK,
+  ...linkRoom,
 });
 
 export const brandLogo = style({ height: '24px', width: 'auto' });
@@ -114,6 +116,7 @@ export const pillLinks = style({
 export const link = style({
   fontSize: '0.875rem',
   color: MUTED,
+  ...linkRoom,
   selectors: {
     '&:hover': { color: INK },
     '&[aria-current="page"]': { color: INK, fontWeight: 600 },

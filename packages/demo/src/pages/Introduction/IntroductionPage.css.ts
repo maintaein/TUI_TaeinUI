@@ -1,6 +1,7 @@
 import { themeContract } from '@taein-ui/core';
 import { globalStyle, style } from '@vanilla-extract/css';
 import { FRAME, INK, MONO, MUTED } from '../../components/DocText';
+import { linkRoom } from '../../styles/global.css';
 
 const { spacing, borderRadius } = themeContract;
 
@@ -89,5 +90,6 @@ export const more = style({
 export const moreLink = style({
   fontSize: '0.875rem',
   color: MUTED,
+  ...linkRoom,
   selectors: { '&:hover': { color: INK } },
 });
