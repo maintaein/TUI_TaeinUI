@@ -155,6 +155,10 @@ function A11y() {
         이름은 <code>aria-label</code>로 고정되어 켜고 꺼도 바뀌지 않습니다.
       </li>
       <li>
+        키보드로 포커스하면 호버와 같은 옅은 면이 깔리고 단추 가장자리 안쪽에
+        primary 띠 2px가 생깁니다. 바깥 링은 없습니다.
+      </li>
+      <li>
         터지는 점은 <code>aria-hidden</code> 장식이고, 끝나면 화면 구조에서
         사라집니다.
       </li>

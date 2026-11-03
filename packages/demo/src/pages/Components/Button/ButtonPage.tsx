@@ -194,6 +194,12 @@ function A11y() {
         Enter와 Space로 누릅니다. 따로 붙일 것이 없습니다.
       </li>
       <li>
+        채워진 버튼(<code>strong</code>)은 키보드로 포커스하면 가장자리 안쪽에
+        자기 색의 짙은 띠 2px와 그 안쪽 흰 띠 2px가 생깁니다(<code>light</code>
+        는 면이 흰색이라 테두리가 짙어지며 4px로 굵어집니다). 바깥으로 나가지
+        않고 버튼 크기도 그대로입니다. 마우스로 누를 때는 생기지 않습니다.
+      </li>
+      <li>
         <code>loading</code> 중에는 <code>aria-busy</code>가 <code>true</code>가
         되고 안에서 도는 Loader는 &quot;로딩 중&quot;으로 읽힙니다.
       </li>
