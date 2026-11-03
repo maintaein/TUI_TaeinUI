@@ -200,6 +200,11 @@ function A11y() {
         않고 버튼 크기도 그대로입니다. 마우스로 누를 때는 생기지 않습니다.
       </li>
       <li>
+        옅은 버튼(<code>weak</code>)은 키보드로 포커스하면 가장자리 안쪽에 짙은
+        파란 테두리 2px가 생깁니다(<code>danger</code>는 자기 색인 짙은 빨강).
+        호버나 눌림과 겹쳐도 보이고 터치 기기에서도 같습니다.
+      </li>
+      <li>
         <code>loading</code> 중에는 <code>aria-busy</code>가 <code>true</code>가
         되고 안에서 도는 Loader는 &quot;로딩 중&quot;으로 읽힙니다.
       </li>

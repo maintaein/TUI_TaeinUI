@@ -261,7 +261,13 @@ function A11y() {
         <code>disabled</code>인 눌리는 카드는 <code>aria-disabled</code>가{' '}
         <code>true</code>가 되고 누를 수 없습니다.
       </li>
-      <li>눌리는 카드는 키보드로 포커스하면 2px 포커스 링이 생깁니다.</li>
+      <li>
+        눌리는 카드는 키보드로 포커스하면 카드 자신의 테두리가 파랗게 바뀌며
+        2px가 됩니다(<code>outlined</code>는 1px 테두리가 바뀌고 안쪽 1px가
+        더해지며, <code>elevated</code>와 <code>filled</code>는 안쪽 2px
+        테두리가 새로 생깁니다). 바깥으로 나가지 않고 카드 크기와 그림자도
+        그대로입니다. 마우스로 누를 때는 생기지 않습니다.
+      </li>
     </ul>
   );
 }

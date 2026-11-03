@@ -274,7 +274,11 @@ function A11y() {
         <code>aria-expanded</code> 같은 <code>aria-*</code> 속성은 이미지가
         아니라 이 button이나 a에 붙습니다.
       </li>
-      <li>누를 수 있는 아바타는 키보드로 포커스하면 포커스 링이 생깁니다.</li>
+      <li>
+        누를 수 있는 아바타는 키보드로 포커스하면 가장자리 안쪽에 파란 띠 2px가
+        생깁니다. 바깥으로 나가지 않고 아바타 크기도 그대로이며, 상태 배지는 그
+        띠 위에 남습니다. 마우스로 누를 때는 생기지 않습니다.
+      </li>
       <li>
         <code>AvatarGroup</code>의 <code>+N</code> 칸은{' '}
         <code>role=&quot;img&quot;</code>에 &quot;N명 더 보기&quot;라는 이름이
