@@ -52,7 +52,7 @@
 
 ### Fixed
 
-- 키보드 포커스 표시를 바깥 링에서 요소 가장자리 안쪽으로 바꿨습니다(M7.2). 색이 채워진 단추(`Button` `strong`, `IconButton` `strong`, `FanMenu`, `RocketButton`, `HeaderBar` `pill`)는 자기 색의 짙은 테두리 2px와 그 안쪽 흰 띠, 테두리가 있는 표면(`Button` `weak`, 누를 수 있는 `Card`·`Avatar`)은 자기 테두리가 2px로 굵어지고, 면도 테두리도 없는 단추(`IconButton`, 닫기 단추, `BoardRow`, `HeaderBar` 링크, `NumericSpinner`, `Chip` 삭제)는 호버와 같은 옅은 면과 안쪽 테두리가 생깁니다. 크기는 그대로고 마우스로 누를 때는 보이지 않습니다. `Snackbar`의 `action`에 넣은 단추는 그 단추 자신의 포커스를 따릅니다. 컴포넌트별 모양은 `llms-full.txt`의 Focus indicators에 있습니다. 소비자가 할 일은 없습니다.
+- 키보드 포커스 표시를 바깥 링에서 요소 가장자리 안쪽으로 바꿨습니다(M7.2). 색이 채워진 단추는 짙은 테두리와 안쪽 흰 띠, 테두리가 있는 표면은 자기 테두리가 2px로, 면이 없는 단추는 옅은 면과 안쪽 테두리가 생깁니다. 크기는 그대로고 마우스로 누를 때는 보이지 않습니다. `Snackbar`의 `action`에 넣은 단추는 그 단추 자신의 포커스를 따릅니다. 컴포넌트별 모양은 `llms-full.txt`의 각 컴포넌트 Focus 절에 있습니다. 소비자가 할 일은 없습니다.
 - `Divider`에 글자(`children`)가 있으면 `variant`(`dashed`·`dotted`)가 적용되지 않고 선이 늘 실선이던 것을 고쳤습니다. 이제 글자 양옆의 두 선이 `variant`를 따릅니다(가로·세로 모두). 색과 두께는 그대로이고 `variant`를 안 쓰면 이전과 같습니다. 할 일은 없습니다.
 - `List`의 `<ul>`에 `role="list"`를 명시했습니다. 점을 지운(`list-style: none`) `ul`은 Safari와 VoiceOver에서 목록 의미가 사라지는 것으로 알려져 있어, 이제 목록과 항목 수를 읽습니다. `role`을 직접 주면 그 값이 이깁니다. `ListItem`은 `<li>` 그대로입니다. 할 일은 없습니다.
 - `Modal`·`BottomSheet`·`SideSheet`의 포커스 가두기가 다이얼로그 밖에 포커스가 있을 때도 Tab을 막아 페이지 전체의 Tab이 멈추던 것을 고쳤습니다. 이제 포커스가 다이얼로그 안에 있을 때만 가두고, 밖에 있으면 안으로 되돌립니다(`container`로 받은 상자가 `inert`여서 되돌릴 수 없으면 Tab을 막지 않습니다). 열린 뒤 안에 생긴 요소도 Tab 순서에 들어옵니다. 할 일은 없습니다.
