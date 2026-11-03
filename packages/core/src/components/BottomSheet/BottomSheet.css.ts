@@ -128,11 +128,15 @@ export const closeButton = style({
     backgroundColor: themeContract.color.background.paper,
   },
 
-  // 호버와 같은 옅은 면(background.paper)에 가장자리 안쪽 primary 2px(크기 그대로).
-  ':focus-visible': {
-    outline: 'none',
-    backgroundColor: themeContract.color.background.paper,
-    boxShadow: `inset 0 0 0 2px ${themeContract.color.primary.main}`,
+  // 이 단추는 IconButton weak dark 위에 얹혀 실제 호버 면이 gray[300](눌림 gray[400])이다. 그 면에 가장자리 안쪽
+  // 2px(크기 그대로). primary.main은 눌림 면과 2.45:1이라 짙은 단계 primary[900]을 쓴다(면 6.54/4.59, 흰 바탕 8.63).
+  // `&&`는 IconButton의 같은 `:focus-visible` 규칙(특정도 동률)보다 번들 순서와 무관하게 이기게 한다(Snackbar와 같다).
+  selectors: {
+    '&&:focus-visible': {
+      outline: 'none',
+      backgroundColor: themeContract.palette.gray[300],
+      boxShadow: `inset 0 0 0 2px ${themeContract.palette.primary[900]}`,
+    },
   },
 });
 

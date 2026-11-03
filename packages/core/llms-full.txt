@@ -730,7 +730,7 @@ import { BottomSheet } from '@taein-ui/core';
 - `BottomSheet.Title` / `BottomSheetTitle`: Title heading
 - `BottomSheet.Content` / `BottomSheetContent`: Scrollable content
 
-Keyboard focus (`:focus-visible`) on the close button (`showClose`) is drawn as a 2px `primary` border just inside its edge on the same pale face as hover, never an outer ring. The size does not change and a mouse click does not show it.
+Keyboard focus (`:focus-visible`) on the close button (`showClose`) is drawn as a 2px `primary[900]` border just inside its edge on the button's hover face (`gray[300]`, the close button sits on a `weak` `dark` IconButton), never an outer ring. The size does not change and a mouse click does not show it.
 
 ---
 
@@ -771,7 +771,7 @@ import { SideSheet } from '@taein-ui/core';
 - `SideSheet.Title` / `SideSheetTitle`: Title heading
 - `SideSheet.Content` / `SideSheetContent`: Scrollable content
 
-Keyboard focus (`:focus-visible`) on the close button (`showClose`) is drawn as a 2px `primary` border just inside its edge on the same pale face as hover, never an outer ring. The size does not change and a mouse click does not show it.
+Keyboard focus (`:focus-visible`) on the close button (`showClose`) is drawn as a 2px `primary[900]` border just inside its edge on the button's hover face (`gray[300]`, the close button sits on a `weak` `dark` IconButton), never an outer ring. The size does not change and a mouse click does not show it.
 
 ---
 
@@ -1847,7 +1847,7 @@ All components follow WCAG 2.2 AA standards:
 - Semantic HTML elements (button, input, dialog, etc.)
 - ARIA attributes (aria-label, aria-describedby, aria-invalid, aria-busy, aria-modal, aria-expanded)
 - Keyboard navigation (Tab, Shift+Tab, Enter, Space, Escape, Arrow keys)
-- Focus indicators (no part draws an outer ring any more: the former 2px outline with a 2px offset is gone and focus is drawn inside the part's own edge. The bordered surfaces show it on their own border: weak Button gets a 2px `primary[900]` inner border (`error[900]` for `danger`), a clickable Card turns its border `primary` at 2px in total (a 1px border plus 1px for `outlined`, a new 2px inner border for `elevated` and `filled`), a clickable Avatar gets a 2px `primary` inner border; filled Button (`strong`) and IconButton, the FanMenu hub and items, the HeaderBar `pill` items, BurstToggle and the RocketButton mark show focus inside their own edge: a 2px dark band of their own colour (`primary[900]`, `gray[900]`, `error[900]`) with a white 2px band just inside it, `light` a 4px `primary[900]` frame, BurstToggle and the mark a 2px `primary` inner border; parts with neither a face nor a border (ghost IconButton, the close buttons of Modal, BottomSheet and SideSheet, BoardRow, the NumericSpinner `+`/`-` buttons, HeaderBar links, icon pills and menu button, the Chip delete button) lay down the same pale face as hover and a 2px `primary` inner border, and the Snackbar close button, which sits on a painted surface, a 2px inner border in its text colour; the input controls Checkbox, Switch, Slider, NumericSpinner, GooeySearch, SegmentedButtons and Chip show focus on their own border instead)
+- Focus indicators (no part draws an outer ring any more: the former 2px outline with a 2px offset is gone and focus is drawn inside the part's own edge. The bordered surfaces show it on their own border: weak Button gets a 2px `primary[900]` inner border (`error[900]` for `danger`), a clickable Card turns its border `primary` at 2px in total (a 1px border plus 1px for `outlined`, a new 2px inner border for `elevated` and `filled`), a clickable Avatar gets a 2px `primary` inner border; filled Button (`strong`) and IconButton, the FanMenu hub and items, the HeaderBar `pill` items, BurstToggle and the RocketButton mark show focus inside their own edge: a 2px dark band of their own colour (`primary[900]`, `gray[900]`, `error[900]`) with a white 2px band just inside it, `light` a 4px `primary[900]` frame, BurstToggle and the mark a 2px `primary` inner border; parts with neither a face nor a border (ghost IconButton, the Modal close button, BoardRow, the NumericSpinner `+`/`-` buttons, HeaderBar links, icon pills and menu button, the Chip delete button) lay down the same pale face as hover and a 2px `primary` inner border, the BottomSheet and SideSheet close buttons (their own hover face `gray[300]` with a `primary[900]` border), and the Snackbar close button, which sits on a painted surface, a 2px inner border in its text colour; the input controls Checkbox, Switch, Slider, NumericSpinner, GooeySearch, SegmentedButtons and Chip show focus on their own border instead)
 - Focus traps in overlays (Modal, BottomSheet, SideSheet)
 - Screen reader announcements via aria-live regions
 
