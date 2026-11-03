@@ -124,6 +124,26 @@ const takeFrames = (page: Page) =>
 test.describe('인증번호 슬롯 상세 (1440px)', () => {
   test.use({ viewport: { width: 1440, height: 900 } });
 
+  // 사람이 하듯 마우스로 칸을 눌러 포커스를 얻고 키를 친다(프로그램 focus()는 칸 그림이 입력을 덮어도 통과해 버린다)
+  test('마우스로 칸을 누르고 무대에 적힌 맞는 번호를 치면 성공한다', async ({
+    page,
+  }) => {
+    await page.goto('/motion/code-slots');
+    await expect(input(page)).toBeVisible();
+    await expect(
+      stage(page).getByText('맞는 번호는 111111입니다')
+    ).toBeVisible();
+    // 칸 그림은 포인터를 받지 않으니 칸이 보이는 자리를 좌표로 누른다
+    const cell = (await slots(page).nth(2).boundingBox())!;
+    await page.mouse.click(cell.x + cell.width / 2, cell.y + cell.height / 2);
+    await expect(input(page)).toBeFocused();
+    await page.keyboard.press('Control+A');
+    await page.keyboard.press('Backspace');
+    await page.keyboard.type('111111');
+    await expect(input(page)).toHaveValue('111111');
+    await expect(stage(page).getByText('확인했습니다')).toBeVisible();
+  });
+
   test('이름과 줄이기 글과 Props가 있다', async ({ page }) => {
     await page.goto('/motion/code-slots');
     await expect(
@@ -164,6 +184,14 @@ test.describe('인증번호 슬롯 상세 (1440px)', () => {
     expect(ring.radius).toBeGreaterThan(20);
     expect(ring.cells).toEqual(Array(6).fill('none'));
     // 합쳐진 알약: 칸의 테두리와 바탕은 투명하고 칸 뒤 묶음이 success 테두리와 알약 모서리를 가진다
+    // 간격이 0.5px 안에 들어와도 폭은 아직 줄고 있을 수 있다. 폭이 멎은 뒤에 읽는다
+    await expect
+      .poll(() =>
+        stage(page)
+          .locator('input + div > div')
+          .evaluate((el) => el.getBoundingClientRect().width)
+      )
+      .toBeCloseTo(6 * 48, 0);
     const end = await stage(page)
       .locator('input + div')
       .evaluate((el) => {
