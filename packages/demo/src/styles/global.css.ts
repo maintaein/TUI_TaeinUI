@@ -48,15 +48,19 @@ globalStyle(':where(a:focus-visible)', {
   borderRadius: '0.25rem',
 });
 
-// 글자가 안쪽 2px 테두리에 닿지 않게 포커스와 무관하게 늘 사방 4px 여유를 주고 같은 만큼 음의 여백으로 글자 자리와 둘레 배치는 그대로 둔다.
-// 포커스 때만 주면 그 순간 레이아웃이 움직인다. 이 여유가 없는 링크 클래스(brand, nav, 카드 제목 등)는 이 값을 펼쳐 쓴다
+// 안쪽 2px 테두리가 글자에 닿지 않게 포커스와 무관하게 늘 여유를 주고 같은 만큼 음의 여백으로 글자 자리와 둘레 배치는 그대로 둔다.
+// 포커스 때만 주면 그 순간 레이아웃이 움직인다. 링크마다 이웃에 닿지 않는 방향만 쓴다:
+// 둘레에 여백이 있는 flex 항목(brand, nav, moreLink)은 사방, 아랫줄과 틈이 없는 FrameCard 제목은 가로만.
+// 글 흐름 속 링크(본문 글 링크)는 쓰지 않는다. 가로 여유는 글자 흐름을 벌리고, 음의 여백으로 상쇄하면 뒤따르는 글자가 테두리에 들어온다
 export const linkRoom = {
   padding: '0.25rem',
   margin: '-0.25rem',
 } as const;
 
-// 클래스 없는 링크와 문단 안 링크. 사이드바·건너뛰기처럼 자기 여백을 가진 링크는 클래스 값이 이긴다(:where라 특이도 0)
-globalStyle(':where(a:not([class]), p a)', linkRoom);
+export const linkRoomInline = {
+  paddingInline: '0.25rem',
+  marginInline: '-0.25rem',
+} as const;
 
 globalStyle('#root', {
   width: '100%',

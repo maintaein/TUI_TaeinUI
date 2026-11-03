@@ -56,50 +56,88 @@ const place = (page: Page, selector: string) =>
         contentRight: c.right,
         contentTop: c.top,
         contentBottom: c.bottom,
+        // 바로 뒤 이웃(아랫줄 글, 뒤따르는 글자, 옆 링크)의 글자 상자
+        next: (() => {
+          const n = el.nextSibling;
+          if (!n) return null;
+          const rg = document.createRange();
+          if (n.nodeType === Node.TEXT_NODE) {
+            if (!n.textContent?.trim()) return null;
+            rg.setStart(n, 0);
+            rg.setEnd(n, 1);
+          } else {
+            rg.selectNodeContents(n);
+          }
+          const q = rg.getBoundingClientRect();
+          return { left: q.left, right: q.right, top: q.top, bottom: q.bottom };
+        })(),
       };
     });
 
 /** 포커스 표시(안쪽 테두리) 두께 */
 const RING = 2;
 
-// 안쪽 테두리를 받는 링크들. 어느 것이든 포커스가 자리를 옮기지 않고 내용이 테두리에 닿지 않아야 한다
-const LINKS = [
-  { name: '건너뛰기 링크', url: '/', selector: 'a[href="#main-content"]' },
+/**
+ * 안쪽 테두리를 받는 링크들. 어느 것이든 포커스가 자리를 옮기지 않고, 이웃 글자가 테두리 상자에 들지 않는다.
+ * room은 링크가 스스로 둔 여유 방향이다(all 사방, inline 가로, none 없음). 있는 방향은 내용이 테두리에 닿지 않아야 한다.
+ * 아랫줄과 틈이 없는 FrameCard 제목은 가로만, 글 흐름 속 본문 링크는 이웃 글자를 위해 없다.
+ */
+type Room = 'all' | 'inline' | 'none';
+const LINKS: { name: string; url: string; selector: string; room: Room }[] = [
+  {
+    name: '건너뛰기 링크',
+    url: '/',
+    selector: 'a[href="#main-content"]',
+    room: 'all',
+  },
   {
     name: '사이드바',
     url: '/components/switch',
     selector: '#site-nav a[href="/components/switch"]',
+    room: 'all',
   },
-  { name: '헤더 brand', url: '/', selector: 'header a[href="/"]' },
+  { name: '헤더 brand', url: '/', selector: 'header a[href="/"]', room: 'all' },
   {
     name: '헤더 nav 시작하기',
     url: '/',
     selector: 'header nav a[href="/getting-started"]',
+    room: 'all',
   },
   {
     name: '헤더 nav GitHub',
     url: '/',
     selector: 'header nav a[href^="https://github.com"]',
+    room: 'all',
   },
   {
     name: 'FrameCard 링크(전체 컴포넌트)',
     url: '/components/overview',
     selector: 'main a[href="/components/switch"]',
+    room: 'inline',
   },
   {
     name: 'FrameCard 링크(모션)',
     url: '/motion',
     selector: 'main a[href^="/motion/"]',
+    room: 'inline',
   },
   {
     name: '랜딩 moreLink',
     url: '/',
     selector: 'main a[href="/components/overview"]',
+    room: 'all',
   },
   {
-    name: '본문 글 링크',
+    name: '본문 글 링크(뒤에 에서)',
     url: '/getting-started',
     selector: 'main p a[href="/components/overview"]',
+    room: 'none',
+  },
+  {
+    name: '본문 글 링크(뒤에 에 남겨)',
+    url: '/getting-started',
+    selector: 'main p a[href^="https://github.com"]',
+    room: 'none',
   },
 ];
 
@@ -147,8 +185,8 @@ test.describe('데모 자체 링크 포커스', () => {
     expect(seen.h).toBeCloseTo(before.h, 0);
   });
 
-  for (const { name, url, selector } of LINKS) {
-    test(`${name}: 포커스가 상자와 글자를 옮기지 않고 내용이 테두리에 닿지 않는다`, async ({
+  for (const { name, url, selector, room } of LINKS) {
+    test(`${name}: 포커스가 상자와 글자를 옮기지 않고 테두리가 글자에 닿지 않는다`, async ({
       page,
     }) => {
       await page.goto(url);
@@ -167,15 +205,33 @@ test.describe('데모 자체 링크 포커스', () => {
       expect(focused.x).toBeCloseTo(rest.x, 1);
       expect(focused.width).toBeCloseTo(rest.width, 1);
       expect(focused.textX).toBeCloseTo(rest.textX, 1);
-      // (2) 안쪽 RING px 테두리 띠 안쪽에 내용이 든다
-      expect(focused.contentLeft).toBeGreaterThanOrEqual(focused.x + RING);
-      expect(focused.contentRight).toBeLessThanOrEqual(
-        focused.x + focused.width - RING
-      );
-      expect(focused.contentTop).toBeGreaterThanOrEqual(focused.y + RING);
-      expect(focused.contentBottom).toBeLessThanOrEqual(
-        focused.y + focused.height - RING
-      );
+      // (2) 스스로 둔 여유 방향은 내용이 안쪽 RING px 테두리 띠 밖에 있다
+      if (room !== 'none') {
+        expect(focused.contentLeft).toBeGreaterThanOrEqual(focused.x + RING);
+        expect(focused.contentRight).toBeLessThanOrEqual(
+          focused.x + focused.width - RING
+        );
+      }
+      if (room === 'all') {
+        expect(focused.contentTop).toBeGreaterThanOrEqual(focused.y + RING);
+        expect(focused.contentBottom).toBeLessThanOrEqual(
+          focused.y + focused.height - RING
+        );
+      }
+      // (3) 이웃 글자(아랫줄, 뒤따르는 글자)가 링크 상자 안에 들지 않는다: 테두리 띠와 겹치지 않는다
+      const n = focused.next;
+      if (n) {
+        const overlapX =
+          Math.min(n.right, focused.x + focused.width) -
+          Math.max(n.left, focused.x);
+        const overlapY =
+          Math.min(n.bottom, focused.y + focused.height) -
+          Math.max(n.top, focused.y);
+        expect(
+          overlapX > 0.01 && overlapY > 0.01,
+          `이웃 글자가 링크 상자와 겹친다(가로 ${overlapX}, 세로 ${overlapY})`
+        ).toBe(false);
+      }
     });
   }
 });

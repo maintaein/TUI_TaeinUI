@@ -1,7 +1,7 @@
 import { themeContract } from '@taein-ui/core';
 import { style } from '@vanilla-extract/css';
 import { BLUE, FRAME, INK, MONO, MUTED } from '../DocText';
-import { linkRoom } from '../../styles/global.css';
+import { linkRoomInline } from '../../styles/global.css';
 
 const { color, spacing, borderRadius, font } = themeContract;
 
@@ -46,7 +46,7 @@ export const frameTitle = style({
   fontSize: '1rem',
   fontWeight: 600,
   color: INK,
-  ...linkRoom,
+  ...linkRoomInline,
   selectors: { '&:hover': { color: BLUE } },
 });
 
