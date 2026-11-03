@@ -478,4 +478,26 @@ test.describe('Avatar 누를 수 있을 때 포커스', () => {
     await page.mouse.move(2, 2);
     expect((await focusedPseudo(page, '::before')).shadow).toBe('none');
   });
+
+  test('AvatarGroup에서 포커스된 아바타가 겹친 뒤 형제 위로 올라와 테두리가 가려지지 않는다', async ({
+    page,
+  }) => {
+    await mountSheet(
+      page,
+      `<AvatarGroup><Avatar alt="Kim Lee" onClick={()=>{}} /><Avatar alt="Park" onClick={()=>{}} /><Avatar alt="Choi" onClick={()=>{}} /></AvatarGroup>`,
+      '#sheet button'
+    );
+    await tab(page, 1);
+    await expect
+      .poll(async () => (await focusedPseudo(page, '::before')).shadow)
+      .toBe(one(PRIMARY));
+    // 포커스된 아바타의 오른쪽 가장자리 안쪽 점이 그 아바타 자신(또는 그 가상 요소)에 닿는다
+    const top = await page.evaluate(() => {
+      const el = document.activeElement as HTMLElement;
+      const r = el.getBoundingClientRect();
+      const hit = document.elementFromPoint(r.right - 1, r.top + r.height / 2);
+      return hit === el || el.contains(hit);
+    });
+    expect(top).toBe(true);
+  });
 });
