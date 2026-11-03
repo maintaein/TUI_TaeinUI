@@ -80,9 +80,9 @@ const RING = 2;
 /**
  * 안쪽 테두리를 받는 링크들. 어느 것이든 포커스가 자리를 옮기지 않고, 이웃 글자가 테두리 상자에 들지 않는다.
  * room은 링크가 스스로 둔 여유 방향이다(all 사방, inline 가로, none 없음). 있는 방향은 내용이 테두리에 닿지 않아야 한다.
- * 아랫줄과 틈이 없는 FrameCard 제목은 가로만, 글 흐름 속 본문 링크는 이웃 글자를 위해 없다.
+ * 아랫줄과 틈이 없는 FrameCard 제목은 가로만, 글 흐름 속 본문 링크는 이웃 글자를 위해 세로만.
  */
-type Room = 'all' | 'inline' | 'none';
+type Room = 'all' | 'inline' | 'block' | 'none';
 const LINKS: { name: string; url: string; selector: string; room: Room }[] = [
   {
     name: '건너뛰기 링크',
@@ -131,13 +131,13 @@ const LINKS: { name: string; url: string; selector: string; room: Room }[] = [
     name: '본문 글 링크(뒤에 에서)',
     url: '/getting-started',
     selector: 'main p a[href="/components/overview"]',
-    room: 'none',
+    room: 'block',
   },
   {
     name: '본문 글 링크(뒤에 에 남겨)',
     url: '/getting-started',
     selector: 'main p a[href^="https://github.com"]',
-    room: 'none',
+    room: 'block',
   },
 ];
 
@@ -206,13 +206,13 @@ test.describe('데모 자체 링크 포커스', () => {
       expect(focused.width).toBeCloseTo(rest.width, 1);
       expect(focused.textX).toBeCloseTo(rest.textX, 1);
       // (2) 스스로 둔 여유 방향은 내용이 안쪽 RING px 테두리 띠 밖에 있다
-      if (room !== 'none') {
+      if (room === 'all' || room === 'inline') {
         expect(focused.contentLeft).toBeGreaterThanOrEqual(focused.x + RING);
         expect(focused.contentRight).toBeLessThanOrEqual(
           focused.x + focused.width - RING
         );
       }
-      if (room === 'all') {
+      if (room === 'all' || room === 'block') {
         expect(focused.contentTop).toBeGreaterThanOrEqual(focused.y + RING);
         expect(focused.contentBottom).toBeLessThanOrEqual(
           focused.y + focused.height - RING
