@@ -39,6 +39,8 @@ export const group = style({
 export const cells = style({
   vars: { [fade]: '1', [merge]: '0' },
   position: 'relative',
+  // 묶음의 기준 상자라 relative인데, 그러면 DOM에서 뒤에 오는 이 그림이 투명한 input 위에 쌓여 클릭을 가로챈다. 그림은 장식이니 포인터를 input으로 흘린다
+  pointerEvents: 'none',
   display: 'flex',
   // gap: 합쳐질 때 간격이 0으로 줄어드는 레이아웃 속성이다. 칸이 고정 크기라 다른 요소를 밀지 않는다.
   gap: `calc(${spacing[2]} * (1 - ${merge}))`,
