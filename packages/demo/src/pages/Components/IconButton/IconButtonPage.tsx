@@ -250,7 +250,14 @@ function A11y() {
         <code>loading</code>이면 <code>aria-busy</code>도 <code>true</code>이고
         안의 Loader는 &quot;로딩 중&quot;으로 읽힙니다.
       </li>
-      <li>키보드로 포커스하면 2px 포커스 링이 생깁니다.</li>
+      <li>
+        키보드로 포커스하면 가장자리 안쪽에 2px 테두리가 생깁니다. 배경이 없는
+        기본(<code>ghost</code>)은 호버 때와 같은 옅은 면에 파란 테두리, 채운
+        단추(<code>strong</code>)는 자기 색의 짙은 단계와 그 안쪽 흰 띠 두 겹,
+        옅은 단추(<code>weak</code>)는 짙은 파란(<code>danger</code>는 짙은
+        빨강) 테두리입니다. 바깥으로 나가지 않고 크기도 그대로이며 터치
+        기기에서도 같고, 마우스로 누를 때는 생기지 않습니다.
+      </li>
       <li>
         <code>size=&quot;sm&quot;</code>는 보이는 크기가 36px이고 눈에 보이지
         않는 띠로 누르는 영역을 44px로 유지합니다. 이웃과 4px 안쪽으로 붙이면

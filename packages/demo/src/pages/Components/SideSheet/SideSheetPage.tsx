@@ -230,6 +230,11 @@ function A11y() {
         잠깁니다.
       </li>
       <li>
+        닫기 단추(<code>showClose</code>)는 키보드로 포커스하면 가장자리 안쪽에
+        파란 테두리 2px가 생깁니다. 바깥으로 나가지 않고 단추 크기도 그대로이며,
+        마우스로 누를 때는 생기지 않습니다.
+      </li>
+      <li>
         개발자가 직접 해야 합니다. <code>title</code>이나{' '}
         <code>SideSheet.Title</code>이 없으면 <code>aria-labelledby</code>로
         이름을 줍니다. 닫을 길(닫기 단추, Esc, 배경 클릭) 가운데 하나는 항상
