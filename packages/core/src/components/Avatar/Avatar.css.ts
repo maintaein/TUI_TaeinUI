@@ -132,8 +132,10 @@ export const clickable = style({
     // 루트의 inset 그림자가 아니라 ::before에 그린다(위치가 잡힌 자식이라 래퍼 위, 뒤에 오는 상태 배지 아래).
     // 대비는 primary 대 흰 바탕 4.60, 대 fallback 면(paper) 4.41. 이미지 위는 이미지에 달렸다.
     // ponytail: 사진 위 대비는 사진마다 다르다, 사진이 primary와 3:1이 안 되는 사례가 나오면 흰 안쪽 겹을 더한다
+    // AvatarGroup에서 뒤 형제가 겹친 쪽의 테두리를 가리지 않게 포커스된 아바타를 위로 올린다
     '&:focus-visible': {
       outline: 'none',
+      zIndex: 1,
     },
     '&:focus-visible::before': {
       content: '""',
