@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import { Button, CodeSlots } from '@taein-ui/core';
+import { Button, CodeSlots, themeContract } from '@taein-ui/core';
 import { CodeBlock } from '../../../components/CodeBlock';
 import {
   Customize,
@@ -102,19 +102,19 @@ const PROPS: PropDefinition[] = [
   },
 ];
 
-// 정답은 123456(칸이 4개면 1234)이다. 이 번호를 넣으면 성공, 다른 번호로 칸이 차면 오류다.
-const answerOf = (length: number) => '123456'.slice(0, length);
+// 정답은 111111(칸이 4개면 1111)이다. 무대에 적어 두어 직접 넣어 볼 수 있게 한다. 다른 번호로 칸이 차면 오류다.
+const answerOf = (length: number) => '1'.repeat(length);
 
-// 대본: 틀린 번호를 넣어 칸이 물결치게 하고, 비운 뒤 맞는 번호를 넣어 칸이 합쳐지게 한다
+// 대본: 틀린 번호(123456)를 넣어 칸이 물결치게 하고, 비운 뒤 맞는 번호를 넣어 칸이 합쳐지게 한다
 // 카드 속 미니는 커서가 그려지지 않으니 오가는 시간과 읽을 시간만 줄인다(act.pace). 누름과 효과가 끝나는 시간은 그대로다
 const SCRIPT = (act: Act) => {
   act.focus('code');
   act.wait(act.pace(0.4, 0.2));
-  act.type('code', '111111');
+  act.type('code', '123456');
   act.wait(act.pace(1.8, 1));
   act.clear('code');
   act.wait(act.pace(0.6, 0.3));
-  act.type('code', '123456');
+  act.type('code', '111111');
   act.wait(act.pace(2.6, 1.4));
   act.clear('code');
   act.blur('code');
@@ -156,9 +156,20 @@ export function CodeSlotsDemo({ values, mini }: DemoProps) {
           successMessage="확인했습니다"
         />
         {!mini && (
-          <Button variant="light" size="sm" onClick={reset}>
-            다시
-          </Button>
+          <>
+            <span
+              style={{
+                fontSize: themeContract.font.size.sm,
+                color: themeContract.color.text.secondary,
+              }}
+            >
+              맞는 번호는 {answerOf(length)}입니다. 마우스를 올리고 직접 넣어
+              보세요.
+            </span>
+            <Button variant="light" size="sm" onClick={reset}>
+              다시
+            </Button>
+          </>
         )}
       </div>
     </Stage>

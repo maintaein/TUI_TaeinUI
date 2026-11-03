@@ -143,8 +143,8 @@ test.describe('인증번호 슬롯 상세 (1440px)', () => {
     await expect(slots(page)).toHaveCount(6);
     expect(await gapBetween(page, 0, 1)).toBeCloseTo(8, 0);
 
-    await page.keyboard.type('123456');
-    await expect(input(page)).toHaveValue('123456');
+    await page.keyboard.type('111111');
+    await expect(input(page)).toHaveValue('111111');
     await expect(stage(page).getByText('확인했습니다')).toBeVisible();
     await expect(input(page)).toHaveAttribute('aria-invalid', 'false');
     // 합쳐짐 전이(slower)가 끝나면 모든 칸 사이 간격이 0이다
@@ -193,7 +193,7 @@ test.describe('인증번호 슬롯 상세 (1440px)', () => {
     page,
   }) => {
     await open(page);
-    await page.keyboard.type('123456');
+    await page.keyboard.type('111111');
     await expect.poll(() => gapBetween(page, 4, 5)).toBeCloseTo(0, 0);
     const bundle = stage(page).locator('input + div > div');
     const read = () =>
@@ -226,7 +226,7 @@ test.describe('인증번호 슬롯 상세 (1440px)', () => {
   }) => {
     await open(page);
     await recordFrames(page);
-    await page.keyboard.type('123456');
+    await page.keyboard.type('111111');
     await expect(stage(page).getByText('확인했습니다')).toBeVisible();
     await page.waitForTimeout(1000);
     const frames = await takeFrames(page);
@@ -280,11 +280,11 @@ test.describe('인증번호 슬롯 상세 (1440px)', () => {
 
   test('성공이 풀리면 같은 길을 거꾸로 간다(② 뒤 ①)', async ({ page }) => {
     await open(page);
-    await page.keyboard.type('123456');
+    await page.keyboard.type('111111');
     await expect.poll(() => gapBetween(page, 0, 1)).toBeCloseTo(0, 0);
     await recordFrames(page);
     await page.keyboard.press('Backspace');
-    await expect(input(page)).toHaveValue('12345');
+    await expect(input(page)).toHaveValue('11111');
     await page.waitForTimeout(1000);
     const frames = await takeFrames(page);
     for (const f of frames) {
@@ -321,7 +321,7 @@ test.describe('인증번호 슬롯 상세 (1440px)', () => {
       };
       requestAnimationFrame(tick);
     });
-    await page.keyboard.type('111111');
+    await page.keyboard.type('123456');
     await expect(input(page)).toHaveAttribute('aria-invalid', 'true');
     await expect(stage(page).getByText('번호가 맞지 않습니다')).toBeVisible();
     await page.waitForTimeout(900);
@@ -392,9 +392,9 @@ test.describe('인증번호 슬롯 상세 (1440px)', () => {
   test('붙여넣기로 한 번에 채워진다', async ({ page, context }) => {
     await context.grantPermissions(['clipboard-read', 'clipboard-write']);
     await open(page);
-    await page.evaluate(() => navigator.clipboard.writeText('123456'));
+    await page.evaluate(() => navigator.clipboard.writeText('111111'));
     await page.keyboard.press('Control+V');
-    await expect(input(page)).toHaveValue('123456');
+    await expect(input(page)).toHaveValue('111111');
     await expect(stage(page).getByText('확인했습니다')).toBeVisible();
   });
 
@@ -404,9 +404,9 @@ test.describe('인증번호 슬롯 상세 (1440px)', () => {
   }) => {
     await context.grantPermissions(['clipboard-read', 'clipboard-write']);
     await open(page);
-    await page.evaluate(() => navigator.clipboard.writeText('123 456'));
+    await page.evaluate(() => navigator.clipboard.writeText('111 111'));
     await page.keyboard.press('Control+V');
-    await expect(input(page)).toHaveValue('123456');
+    await expect(input(page)).toHaveValue('111111');
     await expect(stage(page).getByText('확인했습니다')).toBeVisible();
   });
 
@@ -430,7 +430,7 @@ test.describe('인증번호 슬롯 상세 (1440px)', () => {
     page,
   }) => {
     await open(page);
-    await page.keyboard.type('111111');
+    await page.keyboard.type('123456');
     await expect(input(page)).toHaveAttribute('aria-invalid', 'true');
     await expect(input(page)).toBeFocused();
     // 다 찼으면 마지막 칸이 지금 칸이다
@@ -446,7 +446,7 @@ test.describe('인증번호 슬롯 상세 (1440px)', () => {
 
   test('다시 단추가 칸을 비운다', async ({ page }) => {
     await open(page);
-    await page.keyboard.type('123456');
+    await page.keyboard.type('111111');
     await expect(stage(page).getByText('확인했습니다')).toBeVisible();
     await stage(page)
       .getByRole('button', { name: '다시', exact: true })
@@ -464,7 +464,7 @@ test.describe('인증번호 슬롯 상세 (1440px)', () => {
     await page.goto('/motion/code-slots');
     await expect(input(page)).toBeVisible();
     await input(page).focus();
-    await page.keyboard.type('111111');
+    await page.keyboard.type('123456');
     await expect(input(page)).toHaveAttribute('aria-invalid', 'true');
     // 칸과 그 안의 숫자에 도는 키프레임이 없다(전이는 뺀다)
     const running = await slots(page).evaluateAll((els) =>
@@ -491,7 +491,7 @@ test.describe('인증번호 슬롯 상세 (1440px)', () => {
     expect(offsets).toEqual(Array(6).fill(0));
 
     for (let i = 0; i < 6; i++) await page.keyboard.press('Backspace');
-    await page.keyboard.type('123456');
+    await page.keyboard.type('111111');
     await expect(stage(page).getByText('확인했습니다')).toBeVisible();
     await expect.poll(() => gapBetween(page, 0, 1)).toBeCloseTo(0, 0);
   });
