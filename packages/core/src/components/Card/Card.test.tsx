@@ -816,7 +816,6 @@ describe('Card 모션 잠금', () => {
     expect(block).toContain("cursor: 'pointer'");
     expect(block).toContain("touchAction: 'manipulation'");
     expect(block).toContain(':focus-visible');
-    expect(block).not.toContain('focusRing');
     // 무엇을 뒤집으면 빨개지는가: clickable에 hover/active 모션을 되살리면.
     expect(block).not.toContain('translateY');
     expect(block).not.toContain(':hover');

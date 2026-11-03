@@ -1623,9 +1623,9 @@ TUI uses `themeContract` for type-safe, theme-aware styling. 테마는 라이트
 - `themeContract.color.surface.track`: #878787, 흰 배경 대비 3.59:1, 1.4.11의 3:1을 넘긴다. 컨트롤을 식별시키는 면(Switch·Slider의 트랙과 Loader `color="white"`의 트랙)에 쓴다. `border.strong`과 값은 같지만 경계선이 아니라 면이라 따로 둔다
 - `themeContract.color.border.default`: #E0E0E0, 흰 배경 대비 1.32:1, UI 요소 기준 3:1 미달이므로 구분선·비활성 테두리처럼 정보를 전달하지 않는 자리에만 쓴다. 경계가 정보를 전달하면 `border.strong`
 - `themeContract.color.border.strong`: #878787, 흰 배경 대비 3.59:1, 1.4.11의 3:1을 넘긴다. 폼 컨트롤·카드 경계처럼 있고 없고가 의미를 바꾸는 자리에 쓴다
-- `themeContract.color.border.focus`: #1976D2, 포커스 링 색
+- `themeContract.color.border.focus`: #1976D2, 포커스 테두리 색(바깥 링이 아니라 Card·Avatar 같은 표면 안쪽 2px에 쓴다)
 - `themeContract.color.overlay.scrim`: rgba(0, 0, 0, 0.5), Modal·BottomSheet·SideSheet 백드롭. 반투명 합성색이라 단일 대비값이 없다
-- `themeContract.color.overlay.focusHalo`: rgba(25, 118, 210, 0.16), 포커스 halo(장식). 실제 포커스 표시는 focusRing 유틸의 outline이 맡는다(TextField는 예외로 outline 없이 테두리 색이 맡는다)
+- `themeContract.color.overlay.focusHalo`: rgba(25, 118, 210, 0.16), 포커스 halo(장식). 지금 쓰는 컴포넌트가 없다. 포커스 표시는 요소 가장자리 안쪽이 맡는다
 - `themeContract.color.overlay.errorHalo`: rgba(211, 47, 47, 0.16), 에러 halo(장식). 위와 같은 이유로 포커스 표시를 겸하지 않는다
 
 ### Color: Semantic
@@ -1847,7 +1847,7 @@ All components follow WCAG 2.2 AA standards:
 - Semantic HTML elements (button, input, dialog, etc.)
 - ARIA attributes (aria-label, aria-describedby, aria-invalid, aria-busy, aria-modal, aria-expanded)
 - Keyboard navigation (Tab, Shift+Tab, Enter, Space, Escape, Arrow keys)
-- Focus indicators (no part draws an outer ring any more: the former 2px outline with a 2px offset is gone and focus is drawn inside the part's own edge. The bordered surfaces show it on their own border: weak Button gets a 2px `primary[900]` inner border (`error[900]` for `danger`), a clickable Card turns its border `primary` at 2px in total (a 1px border plus 1px for `outlined`, a new 2px inner border for `elevated` and `filled`), a clickable Avatar gets a 2px `primary` inner border; filled Button (`strong`) and IconButton, the FanMenu hub and items, the HeaderBar `pill` items, BurstToggle and the RocketButton mark show focus inside their own edge: a 2px dark band of their own colour (`primary[900]`, `gray[900]`, `error[900]`) with a white 2px band just inside it, `light` a 4px `primary[900]` frame, BurstToggle and the mark a 2px `primary` inner border; parts with neither a face nor a border (ghost IconButton, the Modal close button, BoardRow, the NumericSpinner `+`/`-` buttons, HeaderBar links, icon pills and menu button, the Chip delete button) lay down the same pale face as hover and a 2px `primary` inner border, the BottomSheet and SideSheet close buttons (their own hover face `gray[300]` with a `primary[900]` border), and the Snackbar close button, which sits on a painted surface, a 2px inner border in its text colour; the input controls Checkbox, Switch, Slider, NumericSpinner, GooeySearch, SegmentedButtons and Chip show focus on their own border instead)
+- Focus indicators (no part draws an outer ring: focus is drawn inside the part's own edge, only for keyboard focus (`:focus-visible`), and the size never changes. Filled parts (`strong` Button and IconButton, FanMenu hub and items, HeaderBar `pill` items) get a 2px dark band of their own colour (`primary[900]`, `gray[900]`, `error[900]`) with a white 2px band just inside it; `light` gets a 4px `primary[900]` frame, BurstToggle and the RocketButton mark a 2px `primary` inner border. Bordered surfaces (`weak` Button, clickable Card and Avatar) turn their own border to 2px (`primary`, or `primary[900]`/`error[900]` for Button). Parts with neither a face nor a border (ghost IconButton, close buttons, BoardRow, HeaderBar links, NumericSpinner `+`/`-`, Chip delete) lay down the same pale face as hover plus a 2px `primary` inner border; on a painted surface (Snackbar close button) the border takes the text colour. Checkbox, Switch, Slider, NumericSpinner, GooeySearch, SegmentedButtons and Chip show focus on their own border instead)
 - Focus traps in overlays (Modal, BottomSheet, SideSheet)
 - Screen reader announcements via aria-live regions
 

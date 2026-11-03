@@ -31,6 +31,6 @@ import { themeContract } from './theme.css';
  * 내보내면 `Loader`가 `Skeleton`을 `import`하게 되어 계열 리듬이라는
  * 횡단 관심사가 컴포넌트 간 결합으로 바뀐다. `tokens/index.ts`에는
  * 올리지 않는다. 공개 API가 아니라 상태계 컴포넌트(`Loader`·`Skeleton`)만 상대 경로로
- * 가져다 쓰는 내부 공유 자산이다(`focusRing.css.ts`와 같은 가시성).
+ * 가져다 쓰는 내부 공유 자산이다.
  */
 export const loopRhythmEasing = themeContract.animation.easing.drift;

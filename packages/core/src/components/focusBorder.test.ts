@@ -3,17 +3,17 @@ import { join } from 'node:path';
 import { describe, it, expect } from 'vitest';
 
 /**
- * 입력류의 키보드 포커스는 컨트롤 자신의 테두리로 알리고 바깥 링(outline·outline-offset·
- * focusRing 유틸)을 쓰지 않는다(사용자 결정, M7.1 T12a).
+ * 입력류의 키보드 포커스는 컨트롤 자신의 테두리로 알리고 바깥 링(outline·outline-offset)을
+ * 쓰지 않는다(사용자 결정, M7.1 T12a).
  *
  * vanilla-extract가 낸 클래스는 jsdom에서 계산값을 못 읽으므로 .css.ts 소스를 읽는다.
  * 한계: 소스 문자열이라 값이 맞는지는 못 본다(값은 e2e/inputFocusBorder.spec.ts가 잰다).
- * 단추류(Button·Card 등)는 사용자가 따로 정하므로 이 목록에 없다.
+ * 바깥 링 전체를 막는 경계는 components/outerRingBoundary.test.ts가 맡는다.
  */
 const source = (name: string) =>
   readFileSync(join(__dirname, name, `${name}.css.ts`), 'utf-8');
 
-// focusRing()을 아예 쓰지 않는 컨트롤
+// 바깥 링을 아예 쓰지 않는 컨트롤
 const RING_FREE = [
   'Chip',
   'NumericSpinner',
@@ -25,19 +25,15 @@ const RING_FREE = [
 ];
 
 describe('입력류 포커스는 바깥 링이 아니라 테두리다', () => {
-  it.each(RING_FREE)(
-    '%s: focusRing 유틸과 포커스 outline 규칙이 없다',
-    (name) => {
-      const css = source(name);
-      expect(css).not.toContain('focusRing');
-      expect(css).not.toContain('outlineOffset');
-      // outline은 'none'(브라우저 기본 링 끄기)만 허용한다
-      const outlines = css.match(/outline: [^,\n]*/g) ?? [];
-      for (const declaration of outlines) {
-        expect(declaration, `${name} ${declaration}`).toBe("outline: 'none'");
-      }
+  it.each(RING_FREE)('%s: 포커스 outline 규칙이 없다', (name) => {
+    const css = source(name);
+    expect(css).not.toContain('outlineOffset');
+    // outline은 'none'(브라우저 기본 링 끄기)만 허용한다
+    const outlines = css.match(/outline: [^,\n]*/g) ?? [];
+    for (const declaration of outlines) {
+      expect(declaration, `${name} ${declaration}`).toBe("outline: 'none'");
     }
-  );
+  });
 });
 
 /**
@@ -47,16 +43,14 @@ describe('입력류 포커스는 바깥 링이 아니라 테두리다', () => {
 const FILLED = ['Button', 'BurstToggle', 'RocketButton'];
 
 describe('채운 단추 포커스는 바깥 링이 아니라 안쪽 겹이다', () => {
-  it.each(FILLED)('%s: focusRing 유틸과 outline 오프셋이 없다', (name) => {
+  it.each(FILLED)('%s: outline 오프셋이 없다', (name) => {
     const css = source(name);
-    expect(css).not.toContain('focusRing');
     expect(css).not.toContain('outlineOffset');
     expect(css).not.toMatch(/outline: `/);
   });
 
   it('FanMenu: 허브와 부채꼴 항목 모두 안쪽 두 겹이고 바깥 링이 없다', () => {
     const css = source('FanMenu');
-    expect(css).not.toContain('focusRing');
     expect(css).not.toContain('outlineOffset');
     // 허브 하나, 항목 하나
     expect(css.match(/inset 0 0 0 4px/g)).toHaveLength(2);
@@ -76,9 +70,8 @@ describe('채운 단추 포커스는 바깥 링이 아니라 안쪽 겹이다', 
 const BORDERED = ['Button', 'Card', 'Avatar'];
 
 describe('테두리 있는 표면 포커스는 바깥 링이 아니라 안쪽 2px다', () => {
-  it.each(BORDERED)('%s: focusRing 유틸과 outline 오프셋이 없다', (name) => {
+  it.each(BORDERED)('%s: outline 오프셋이 없다', (name) => {
     const css = source(name);
-    expect(css).not.toContain('focusRing');
     expect(css).not.toContain('outlineOffset');
     expect(css).not.toMatch(/outline: `/);
   });
@@ -135,7 +128,7 @@ const hoverBlocks = (css: string): string[] => {
 
 describe('면도 테두리도 없는 단추류 포커스는 바깥 링이 아니라 안쪽 2px다', () => {
   it.each([...SURFACELESS, 'HeaderBarNav'])(
-    '%s: focusRing 유틸과 outline 오프셋이 없다',
+    '%s: outline 오프셋이 없다',
     (name) => {
       const css = readFileSync(
         join(
@@ -145,7 +138,6 @@ describe('면도 테두리도 없는 단추류 포커스는 바깥 링이 아니
         ),
         'utf-8'
       );
-      expect(css).not.toContain('focusRing');
       expect(css).not.toContain('outlineOffset');
       expect(css).not.toMatch(/outline: `/);
     }

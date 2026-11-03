@@ -1436,7 +1436,6 @@ describe('Chip 공개 API 묶음 (clickable 삭제, aria-pressed, 나란한 삭�
 
     it('칩 전체를 누름 영역으로 넓히고 포커스 테두리를 그 위에 그린다(링이 아니다)', () => {
       expect(action).toContain("'&:focus-visible::after': focusEdge");
-      expect(action).not.toContain('focusRing');
       // 위치 지정을 하면 ::after의 기준이 칩 루트가 아니라 이 버튼이 된다.
       expect(action).not.toMatch(/\n {2}position:/);
     });

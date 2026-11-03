@@ -38,7 +38,7 @@ globalStyle('::selection', {
   color: color.text.primary,
 });
 
-// core의 focusRing(2px, offset 2px, border.focus)과 같다. 링크처럼 core가 그리지 않는 요소의 기본 링을 대신한다.
+// 링크처럼 core가 그리지 않는 요소의 기본 포커스 표시를 대신한다(2px, offset 2px, border.focus). core 컴포넌트는 바깥 링을 쓰지 않는다.
 // :where로 특이도를 0으로 둬 core 컴포넌트가 자기 링을 그리는 것을 덮지 않는다
 globalStyle(':where(a):focus-visible', {
   outline: `2px solid ${color.border.focus}`,

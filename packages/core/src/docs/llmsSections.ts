@@ -237,7 +237,7 @@ export function renderTokenReference(): string {
     plainLine(
       'themeContract.color.border.focus',
       color.border.focus,
-      '포커스 링 색'
+      '포커스 테두리 색(바깥 링이 아니라 Card·Avatar 같은 표면 안쪽 2px에 쓴다)'
     ),
     plainLine(
       'themeContract.color.overlay.scrim',
@@ -247,7 +247,7 @@ export function renderTokenReference(): string {
     plainLine(
       'themeContract.color.overlay.focusHalo',
       color.overlay.focusHalo,
-      '포커스 halo(장식). 실제 포커스 표시는 focusRing 유틸의 outline이 맡는다(TextField는 예외로 outline 없이 테두리 색이 맡는다)'
+      '포커스 halo(장식). 지금 쓰는 컴포넌트가 없다. 포커스 표시는 요소 가장자리 안쪽이 맡는다'
     ),
     plainLine(
       'themeContract.color.overlay.errorHalo',

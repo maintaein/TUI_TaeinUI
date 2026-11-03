@@ -72,7 +72,7 @@ export const themeTokens = {
       // 텍스트 대비에 유리해서 되돌리지 않는다.
       scrim: 'rgba(0, 0, 0, 0.5)',
       // 포커스·에러 halo. 대비 1.1~1.2:1이라 이것만으로는 포커스 표시가 못 된다.
-      // 실제 표시는 focusRing 유틸의 outline이 맡는다(S6). 이건 장식이다.
+      // 실제 표시는 요소 가장자리 안쪽 테두리가 맡는다(M7.2). 이건 장식이고 지금 쓰는 컴포넌트가 없다.
       focusHalo: 'rgba(25, 118, 210, 0.16)', // primary[700] @16%
       errorHalo: 'rgba(211, 47, 47, 0.16)', // error[700] @16%
       // 흰색 반투명 하이라이트. Skeleton shimmer용으로 만들었으나(M2 T3c 사전
