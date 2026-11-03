@@ -110,6 +110,88 @@ test.describe('Button strong 포커스', () => {
   });
 });
 
+/** 브라우저가 color-mix를 계산한 값(rgb 또는 color())을 그대로 읽어 기대값으로 쓴다. */
+const resolveColor = (page: Page, css: string) =>
+  page.evaluate((value) => {
+    const probe = document.createElement('i');
+    probe.style.color = value;
+    document.body.append(probe);
+    const resolved = getComputedStyle(probe).color;
+    probe.remove();
+    return resolved;
+  }, css);
+
+// 호버 없는 터치·거친 포인터 기기(키보드를 붙인 경우 포함)에서도 포커스가 같아야 한다.
+// 포커스 규칙을 호버 미디어쿼리 안에 두면 이 기기에서는 두 겹도 outline: none도 없다.
+test.describe('Button strong 포커스(터치 기기)', () => {
+  test.use({ hasTouch: true, isMobile: true });
+
+  test('호버 미디어가 꺼져 있어도 네 색의 두 겹이 보인다', async ({ page }) => {
+    await mountSheet(
+      page,
+      `<Button>a</Button><Button variant="dark">b</Button><Button variant="danger">c</Button><Button variant="light">d</Button>`,
+      '#sheet button'
+    );
+    expect(
+      await page.evaluate(
+        () => matchMedia('(hover: hover) and (pointer: fine)').matches
+      )
+    ).toBe(false);
+    for (const [index, shadow] of [
+      [1, two(PRIMARY_DARK)],
+      [2, two(GRAY_DARK)],
+      [3, two(ERROR_DARK)],
+      [4, `${PRIMARY_DARK} 0px 0px 0px 2px inset`],
+    ] as const) {
+      await page.locator('#probe').focus();
+      await tab(page, index);
+      await expect.poll(async () => (await focused(page)).shadow).toBe(shadow);
+      expect((await focused(page)).outline).toBe('none');
+    }
+  });
+});
+
+test.describe('Button customColor 포커스', () => {
+  test('채운 색은 소비자 색의 짙은 단계 + 흰 겹이고 primary[900]가 아니다', async ({
+    page,
+  }) => {
+    await mountSheet(
+      page,
+      `<Button customColor={{ bg: '#8b5cf6', text: '#ffffff' }}>a</Button>`,
+      '#sheet button'
+    );
+    const edge = await resolveColor(
+      page,
+      'color-mix(in srgb, #8b5cf6 50%, #212121)'
+    );
+    await tab(page, 1);
+    await expect
+      .poll(async () => (await focused(page)).shadow)
+      .toBe(`${edge} 0px 0px 0px 2px inset, ${WHITE} 0px 0px 0px 4px inset`);
+    expect(edge).not.toBe(PRIMARY_DARK);
+    expect((await focused(page)).outline).toBe('none');
+  });
+
+  test('테두리형(light)은 테두리와 안쪽 2px가 소비자 색의 짙은 단계다', async ({
+    page,
+  }) => {
+    await mountSheet(
+      page,
+      `<Button variant="light" customColor={{ bg: '#22c55e', text: '#ffffff' }}>a</Button>`,
+      '#sheet button'
+    );
+    const edge = await resolveColor(
+      page,
+      'color-mix(in srgb, #22c55e 50%, #212121)'
+    );
+    await tab(page, 1);
+    await expect
+      .poll(async () => (await focused(page)).shadow)
+      .toBe(`${edge} 0px 0px 0px 2px inset`);
+    expect((await focused(page)).border).toBe(edge);
+  });
+});
+
 test.describe('FanMenu 허브 포커스', () => {
   test('안쪽 두 겹에 평소 그림자가 합쳐져 있고 마우스로는 없다', async ({
     page,
