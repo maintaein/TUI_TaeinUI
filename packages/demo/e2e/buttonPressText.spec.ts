@@ -59,7 +59,7 @@ interface Result extends ButtonInfo {
   frames: number;
   /** 측정이 유효하지 않은 이유(전이 이벤트가 둘씩 안 찍힘). 비면 유효하다. */
   invalid: string;
-  /** 점프를 가릴 수 있는 회차인가(MIN_DECISIVE_RATIO 설명) */
+  /** 점프를 가릴 수 있는 회차인가: 해제 시작 TAIL_FROM 뒤부터 전이 끝 앞까지 레이어가 있는 동안의 프레임이 있다 */
   decisive: boolean;
   /** 해제 구간 프레임별 잉크 중심 x (진단용) */
   seq: string;
@@ -169,14 +169,17 @@ const MAX_SETTLED_DRIFT = 0.3;
  */
 const TAIL_FROM = 0.1;
 /**
- * 점프를 가릴 수 있는("결정적") 측정은 해제 시작 TAIL_FROM 뒤부터 전이 끝 앞까지 레이어가 있는 동안의
- * screencast 프레임이 하나 이상 있는 것이다. 레이어는 전이 끝 이벤트 뒤에 사라지므로(관찰),
- * 이 프레임과 끝 뒤 정착 모습 사이에서만 회귀의 점프가 보인다. screencast는 화면이 바뀔 때만
- * 프레임을 주고 spring 꼬리는 거의 안 바뀌어서, 부하가 아니어도 이 프레임이 없는 회차가 있다
- * (기본 작업자 부하에서 약 4분의 1). 한 회차가 비결정적이어도 회귀는 모든 버튼에서 같이 나므로,
- * 회차마다 빨갛게 하지 않고 재측정 뒤에도 전체의 절반 미만이 결정적일 때만 측정 불가로 빨갛게 한다.
+ * screencast는 화면이 바뀔 때만 프레임을 준다. 해제 전이의 spring 꼬리는 화면이 거의 안 바뀌어서
+ * 전이 끝 앞 프레임이 없는 회차가 생기고(작업자 아홉 개 부하에서 약 5분의 1), 그 회차는 점프를 못 본다.
+ * 그래서 측정하는 동안 버튼 크롭 밖 구석에서 계속 깜빡이는 작은 요소를 두어 프레임을 계속 받는다.
+ * 요소는 버튼과 떨어진 고정 위치에서 pointer-events 없이 opacity만 바꾼다. 버튼의 레이어에는
+ * 닿지 않는다(구성 D가 이 요소가 있어도 튄다). 부하가 심하면 프레임이 수백 ms씩 끊겨 이것으로도
+ * 빈 회차가 남으므로, 재측정 뒤에도 비면 그 버튼 이름으로 빨갛게 한다.
  */
-const MIN_DECISIVE_RATIO = 0.5;
+const PULSE = `
+@keyframes e2e-pulse { from { opacity: 0.2 } to { opacity: 1 } }
+#e2e-pulse { position: fixed; right: 0; bottom: 0; width: 8px; height: 8px; background: #f00;
+  pointer-events: none; will-change: opacity; animation: e2e-pulse 16ms linear infinite alternate; }`;
 
 /** 예제 섹션의 프리뷰 버튼. 편집기의 "코드 복사" 버튼은 뺀다. */
 const sectionButtons = (page: Page, heading: string) =>
@@ -284,7 +287,10 @@ const measureOnce = async (
   const frames: Frame[] = [];
   cdp.on('Page.screencastFrame', (e) => {
     frames.push({ t: e.metadata.timestamp ?? 0, data: e.data });
-    void cdp.send('Page.screencastFrameAck', { sessionId: e.sessionId });
+    // 프레임이 계속 오므로 중단, 분리 뒤 도착한 프레임의 ack는 실패해도 된다.
+    cdp
+      .send('Page.screencastFrameAck', { sessionId: e.sessionId })
+      .catch(() => undefined);
   });
 
   // 휴지(호버 상태). 정지 프레임을 하나 얻는다.
@@ -320,12 +326,21 @@ const measureOnce = async (
   await page.mouse.down();
   await page.waitForTimeout(450);
   await page.mouse.up();
-  await page.waitForTimeout(800);
+  // 정착 스크린샷은 해제 끝 이벤트가 찍힌 뒤여야 한다. 이벤트가 둘 찍히기를 기다리되 상한은 기존
+  // 대기 시간(800ms)이고, 남은 시간은 그대로 기다려 총 대기는 늘지 않는다(안 찍히면 아래 complete가 거른다).
+  const waitedFrom = Date.now();
+  await page
+    .waitForFunction(
+      (el) => ((el as Stamped).ends?.length ?? 0) >= 2,
+      await button.elementHandle(),
+      { timeout: 800, polling: 10 }
+    )
+    .catch(() => undefined);
+  await page.waitForTimeout(Math.max(0, 800 - (Date.now() - waitedFrom)));
   await cdp.send('Page.stopScreencast');
   await cdp.detach();
-  // 해제 전이가 끝난 뒤의 정착 모습. screencast는 화면이 바뀔 때만 프레임을 주므로 전이가 끝난 뒤
-  // 프레임이 없을 수 있다. 레이어가 전이 끝에 사라지며 글자가 튀는 회귀는 마지막 애니메이션 프레임과
-  // 이 모습 사이의 점프라서, 프레임이 성겨도 끝 뒤 프레임을 보장하려고 하나 더 찍어 꼬리에 붙인다.
+  // 해제 전이가 끝난 뒤의 정착 모습. 레이어가 전이 끝에 사라지며 글자가 튀는 회귀는 마지막 애니메이션
+  // 프레임과 이 모습 사이의 점프라서, 끝 뒤 프레임이 screencast에 없어도 되도록 하나 더 찍어 꼬리에 붙인다.
   const settledShot = (await page.screenshot()).toString('base64');
 
   const stamps = await button.evaluate((el) => ({
@@ -339,17 +354,22 @@ const measureOnce = async (
   // 앞선 눌린 모습이 놓은 뒤 프레임 사이에 끼면 없던 되튐이 꼬리에 점프로 잡혔다).
   // 캡처 시각(metadata.timestamp)으로 줄 세운다. 브라우저 시계라 위 시각과 같은 기준이다.
   frames.sort((a, b) => a.t - b.t);
-  // 부하로 전이가 시작도 끝도 못 찍힌 회차는 해제 구간이 빈다. 아래 꼬리 프레임 수가 거른다.
+  // 부하로 전이가 시작도 끝도 못 찍힌 회차는 해제 구간이 빈다. 아래 invalid가 거른다.
   const releasedAt = releaseStart
     ? frames.findIndex((f) => f.t >= releaseStart)
     : -1;
 
   const [rest] = await inkOf(page, [{ t: 0, data: restShot }], crop);
-  const ink = await inkOf(page, frames, crop);
+  // 해제 전 프레임은 쓰지 않으니 디코드하지 않는다(프레임이 계속 와서 많다).
+  const ink = await inkOf(
+    page,
+    releasedAt < 0 ? frames : frames.slice(releasedAt),
+    crop
+  );
   const restCx = rest.cx;
   const restCy = rest.cy;
 
-  const release = releasedAt < 0 ? [] : ink.slice(releasedAt);
+  const release = releasedAt < 0 ? [] : ink;
   const [settled] = await inkOf(
     page,
     [{ t: Number.MAX_SAFE_INTEGER, data: settledShot }],
@@ -386,7 +406,10 @@ const measureOnce = async (
   };
 };
 
-/** 이벤트가 불완전하거나 결정적이지 않은 회차는 버리고 다시 잰다(점프 값은 재측정 조건에 안 들어간다). */
+/**
+ * 이벤트가 불완전하거나 결정적이지 않은 회차는 버리고 다시 잰다(점프 값은 재측정 조건에 안 들어간다).
+ * 재측정 뒤에도 결정적이지 않으면 그 버튼 이름으로 빨갛게 한다. 점프를 못 본 채 통과시키지 않는다.
+ */
 const measureButton = async (
   page: Page,
   section: string,
@@ -398,6 +421,10 @@ const measureButton = async (
     if (!next.invalid && (r.invalid || next.decisive)) r = next;
   }
   expect(r.invalid, `${section}#${index} 측정 불가`).toBe('');
+  expect(
+    r.decisive,
+    `${section}#${index} ${r.label} 결정적 측정 불가(전이 끝 앞 프레임이 재측정 뒤에도 없다)`
+  ).toBe(true);
   return r;
 };
 
@@ -407,6 +434,12 @@ const measureAll = async (
   only?: Set<string>
 ): Promise<Result[]> => {
   await mountLive(page, CODE, 'h3:has-text("Custom Color")');
+  await page.addStyleTag({ content: PULSE });
+  await page.evaluate(() => {
+    const el = document.createElement('div');
+    el.id = 'e2e-pulse';
+    document.body.append(el);
+  });
   if (css) await page.addStyleTag({ content: css });
   const results: Result[] = [];
   for (const { heading, name } of SECTIONS) {
@@ -419,11 +452,6 @@ const measureAll = async (
     }
   }
   if (only) expect(results).toHaveLength(only.size);
-  const decisive = results.filter((r) => r.decisive).length;
-  expect(
-    decisive / results.length,
-    `결정적 측정 ${decisive}/${results.length}(screencast가 성겨 회귀를 가릴 수 없는 회차가 많다)`
-  ).toBeGreaterThanOrEqual(MIN_DECISIVE_RATIO);
   return results;
 };
 
@@ -434,7 +462,7 @@ const table = (rs: Result[]): string =>
         `${r.section.padEnd(13)}${String(r.index)} ${r.label.slice(0, 10).padEnd(10)} ` +
         `bg=${r.bg.padEnd(18)} fg=${r.color.padEnd(18)} filter=${r.filter.padEnd(5)} ` +
         `${r.width.toFixed(2)}x${r.height} chars=${r.chars} | settled(${r.settledDx},${r.settledDy}) ` +
-        `tailJump=${r.tailJump} maxJump=${r.maxJump} frames=${r.frames}
+        `tailJump=${r.tailJump} maxJump=${r.maxJump} frames=${r.frames} decisive=${r.decisive} invalid=${r.invalid || '-'}
       cx,cy: ${r.seq}`
     )
     .join('\n');
