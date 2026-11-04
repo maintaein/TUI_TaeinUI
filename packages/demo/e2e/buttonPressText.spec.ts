@@ -57,6 +57,8 @@ interface Result extends ButtonInfo {
    */
   maxJump: number;
   frames: number;
+  /** 꼬리 구간에 든 프레임 수 */
+  tailFrames: number;
   /** 해제 구간 프레임별 잉크 중심 x (진단용) */
   seq: string;
 }
@@ -154,6 +156,16 @@ const SECTIONS: Array<{ heading: string; name: string }> = [
  */
 const MAX_TAIL_JUMP = 0.3;
 const MAX_SETTLED_DRIFT = 0.3;
+/**
+ * 꼬리는 해제 전이가 끝나기 이만큼(초) 전부터의 프레임이다(전이 200ms의 후반 절반과 그 뒤).
+ * 레이어가 사라지는 회귀는 전이 끝에 생기므로 끝 앞뒤 프레임이 들어야 한다.
+ * 프레임 개수로 자르면 안 된다. 부하에서 screencast가 프레임을 덜 만들면 마지막 몇 개가
+ * 전이 앞쪽까지 닿는데, 거기는 scale이 1을 지나는 순간(해제 후 40~80ms)이라 글자 중심이
+ * 세로로 한 번 뛰는 정상 구간이다(레이어가 있어도 그렇다. 눌린 쪽 21.49, 지난 쪽 21.98).
+ */
+const TAIL_SPAN = 0.1;
+/** 꼬리 프레임이 이보다 적으면 점프를 잴 수 없다. 다시 잰다(문턱은 그대로). */
+const MIN_TAIL_FRAMES = 3;
 
 /** 예제 섹션의 프리뷰 버튼. 편집기의 "코드 복사" 버튼은 뺀다. */
 const sectionButtons = (page: Page, heading: string) =>
@@ -227,7 +239,7 @@ const inkOf = (
     { frames, crop }
   );
 
-const measureButton = async (
+const measureOnce = async (
   page: Page,
   section: string,
   index: number
@@ -259,7 +271,6 @@ const measureButton = async (
   const crop = { x: box.x, y: box.y, w: box.width, h: box.height };
   const cdp = await page.context().newCDPSession(page);
   const frames: Frame[] = [];
-  let releasedAt = Infinity;
   cdp.on('Page.screencastFrame', (e) => {
     frames.push({ t: e.metadata.timestamp ?? 0, data: e.data });
     void cdp.send('Page.screencastFrameAck', { sessionId: e.sessionId });
@@ -275,23 +286,59 @@ const measureButton = async (
   await page.waitForTimeout(150);
   const restShot = (await page.screenshot()).toString('base64');
 
+  // 누름과 해제 전이의 시작과 끝을 페이지 시계로 적는다. 마우스를 놓는 호출이 끝난 시각이나
+  // 프레임이 도착한 개수는 부하에서 어긋난다(위 TAIL_SPAN 설명). 이벤트는 부하에서 늦게 찍힐 뿐
+  // 일찍 찍히지 않으므로, 이것으로 자른 꼬리는 늦게 잘릴지언정 앞쪽을 포함하지 않는다.
+  // 누름 이벤트가 부하로 해제 뒤에 도착할 수 있어 늦게 단 리스너로는 둘을 못 가린다.
+  // 누르기 전에 달고 누름, 해제 순서로 정확히 둘씩 찍힌 회차만 쓴다.
+  type Stamped = HTMLElement & { starts?: number[]; ends?: number[] };
+  await button.evaluate((el) => {
+    const t = el as Stamped;
+    const first = !t.starts;
+    t.starts = [];
+    t.ends = [];
+    if (!first) return; // 다시 재는 회차: 리스너는 처음 단 것을 쓴다
+    const now = () => (performance.timeOrigin + performance.now()) / 1000;
+    el.addEventListener('transitionstart', (e) => {
+      if (e.propertyName === 'transform') t.starts?.push(now());
+    });
+    el.addEventListener('transitionend', (e) => {
+      if (e.propertyName === 'transform') t.ends?.push(now());
+    });
+  });
   await page.mouse.down();
   await page.waitForTimeout(450);
-  const pressedFrames = frames.length;
   await page.mouse.up();
-  releasedAt = frames.length;
   await page.waitForTimeout(800);
   await cdp.send('Page.stopScreencast');
   await cdp.detach();
+
+  const stamps = await button.evaluate((el) => ({
+    starts: (el as Stamped).starts ?? [],
+    ends: (el as Stamped).ends ?? [],
+  }));
+  const complete = stamps.starts.length === 2 && stamps.ends.length === 2;
+  const releaseStart = complete ? stamps.starts[1] : 0;
+  const releaseEnd = complete ? stamps.ends[1] : 0;
+
+  // screencast 프레임은 부하에서 늦게 도착해 도착 순서가 캡처 시각 순서와 다르다(캡처 시각이
+  // 앞선 눌린 모습이 놓은 뒤 프레임 사이에 끼면 없던 되튐이 꼬리에 점프로 잡혔다).
+  // 캡처 시각(metadata.timestamp)으로 줄 세운다. 브라우저 시계라 위 시각과 같은 기준이다.
+  frames.sort((a, b) => a.t - b.t);
+  // 부하로 전이가 시작도 끝도 못 찍힌 회차는 해제 구간이 빈다. 아래 꼬리 프레임 수가 거른다.
+  const releasedAt = releaseStart
+    ? frames.findIndex((f) => f.t >= releaseStart)
+    : -1;
 
   const [rest] = await inkOf(page, [{ t: 0, data: restShot }], crop);
   const ink = await inkOf(page, frames, crop);
   const restCx = rest.cx;
   const restCy = rest.cy;
-  void pressedFrames;
 
-  const release = ink.slice(releasedAt);
-  const tail = release.slice(-Math.max(4, Math.floor(release.length * 0.5)));
+  const release = releasedAt < 0 ? [] : ink.slice(releasedAt);
+  const tail = releaseEnd
+    ? release.filter((p) => p.t >= releaseEnd - TAIL_SPAN)
+    : [];
   const jumps = (pts: InkPoint[]) =>
     pts.slice(1).map((p, i) => Math.hypot(p.cx - pts[i].cx, p.cy - pts[i].cy));
   const jumpsY = (pts: InkPoint[]) =>
@@ -307,8 +354,25 @@ const measureButton = async (
     tailJump: +Math.max(0, ...jumpsY(tail)).toFixed(3),
     maxJump: +Math.max(0, ...jumps(release)).toFixed(3),
     frames: release.length,
+    tailFrames: tail.length,
     seq: ink.map((p) => `${p.cx.toFixed(2)},${p.cy.toFixed(2)}`).join(' '),
   };
+};
+
+/** 프레임이 모자란 회차(부하로 screencast가 덜 찍힌 경우)는 버리고 다시 잰다. */
+const measureButton = async (
+  page: Page,
+  section: string,
+  index: number
+): Promise<Result> => {
+  let r = await measureOnce(page, section, index);
+  for (let retry = 0; retry < 2 && r.tailFrames < MIN_TAIL_FRAMES; retry++)
+    r = await measureOnce(page, section, index);
+  expect(
+    r.tailFrames,
+    `${section}#${index} 꼬리 프레임 수`
+  ).toBeGreaterThanOrEqual(MIN_TAIL_FRAMES);
+  return r;
 };
 
 const measureAll = async (
