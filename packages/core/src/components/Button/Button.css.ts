@@ -327,7 +327,8 @@ export const button = recipe({
             // 3.90%, 호버 단계 9.80%의 40%, 안 보이던 그림자 0.06의 15배).
             // 0.95는 4.513:1(+0.013)로 여유가 얇아 쓰지 않는다. 0.93부터 AA 미달
             // (4.471:1). 눌림에 filter를 거는 것이 글자를 튀게 하지 않는지는
-            // e2e/buttonPressText.spec.ts(Weak Danger)가 잰다.
+            // 실측했고(M5 task-3 라운드 6, Weak Danger) 레이어가 영구라 안 튄다.
+            // e2e/buttonPressText.spec.ts가 그 레이어 유지를 지킨다.
             backgroundColor: themeContract.palette.error[100],
             filter: 'brightness(0.96)',
           },
