@@ -49,7 +49,7 @@ interface Result extends ButtonInfo {
   /** 휴지 대비 정착 후(해제 후) 잉크 중심 차이 */
   settledDx: number;
   settledDy: number;
-  /** 꼬리 구간(해제 후 마지막 프레임들) 프레임 사이 최대 점프 */
+  /** 꼬리 구간(해제 후 마지막 프레임들) 프레임 사이 잉크 중심의 최대 세로 점프 */
   tailJump: number;
   /**
    * 해제 전체 구간 프레임 사이 최대 점프 (참고). 눌린 동안은 버튼이 줄어 둥근 모서리
@@ -143,9 +143,16 @@ const SECTIONS: Array<{ heading: string; name: string }> = [
   { heading: 'Custom Color', name: 'CustomColor' },
 ];
 
-/** 이론상 scale 때문의 이동은 꼬리에서 0.01px 미만이다. 그 위는 래스터 이동이다. */
-// Linux 정상 래스터화의 0.34px는 허용하되, 구성 D의 레이어 전환 점프(1px 이상)는 계속 잡는다.
-const MAX_TAIL_JUMP = 0.5;
+/**
+ * 꼬리의 세로 점프 문턱. 이론상 scale 때문의 이동은 꼬리에서 0.01px 미만이다.
+ * 레이어 전환은 글자를 세로로 한 픽셀 통째로 옮긴다(구성 D 실측 1.00~1.06).
+ * 레이어가 유지될 때의 세로 흔들림은 0.04px 이내다(Windows, Linux 실측). 문턱은 그 사이다.
+ * 가로는 재지 않는다. 글자 가로 위치는 소수 픽셀로 어림되어, scale이 1에서 벗어나는 순간
+ * 레이어를 유지해도 중심이 가로로 0.1~0.6px 움직인다(Linux 정적 실측: scale 1에서 1.0001로 바꾸기만 해도).
+ * 꼬리는 scale이 1 근처에서 정착하는 구간이라 이 가로 흔들림이 점프로 잡힌다(CI 0.33~0.34).
+ * 세로는 정수 픽셀로 그려져 이런 흔들림이 없고, 가로만 보면 회귀가 없어도 환경마다 값이 다르다.
+ */
+const MAX_TAIL_JUMP = 0.3;
 const MAX_SETTLED_DRIFT = 0.3;
 
 /** 예제 섹션의 프리뷰 버튼. 편집기의 "코드 복사" 버튼은 뺀다. */
@@ -287,6 +294,8 @@ const measureButton = async (
   const tail = release.slice(-Math.max(4, Math.floor(release.length * 0.5)));
   const jumps = (pts: InkPoint[]) =>
     pts.slice(1).map((p, i) => Math.hypot(p.cx - pts[i].cx, p.cy - pts[i].cy));
+  const jumpsY = (pts: InkPoint[]) =>
+    pts.slice(1).map((p, i) => Math.abs(p.cy - pts[i].cy));
   const last = release[release.length - 1] ?? ink[ink.length - 1];
 
   return {
@@ -295,7 +304,7 @@ const measureButton = async (
     ...info,
     settledDx: +(last.cx - restCx).toFixed(3),
     settledDy: +(last.cy - restCy).toFixed(3),
-    tailJump: +Math.max(0, ...jumps(tail)).toFixed(3),
+    tailJump: +Math.max(0, ...jumpsY(tail)).toFixed(3),
     maxJump: +Math.max(0, ...jumps(release)).toFixed(3),
     frames: release.length,
     seq: ink.map((p) => `${p.cx.toFixed(2)},${p.cy.toFixed(2)}`).join(' '),

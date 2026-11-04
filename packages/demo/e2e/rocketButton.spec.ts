@@ -471,6 +471,16 @@ test.describe('로켓 전송 상세 움직임 줄이기 (1440px)', () => {
   });
 });
 
+// WebGL2가 없는 환경으로 만든다. 엔진이 null이 되어 연기와 빛무리만 빠지고(심지, 분사구, 단추 움직임은 그대로) 셰이더 프레임을 안 돈다.
+// 가짜 시계 한 걸음(50ms)마다 연기 셰이더가 프레임을 실제로 계산해, CI의 SwiftShader(소프트웨어 WebGL)에서는 한 걸음이 약 0.5초라 이 시험이 30초를 넘겼다.
+// 연기를 보는 시험(빛·그늘, 땅 연기 등)에는 쓰지 않는다. freeze보다 먼저 부른다(페이지를 열기 전에 심어야 한다)
+const withoutSmoke = (page: Page) =>
+  page.addInitScript(() => {
+    Object.defineProperty(window, 'WebGL2RenderingContext', {
+      value: undefined,
+    });
+  });
+
 // 가짜 시계로 시각을 보내 단추 위치를 표집한다. 실시간 rAF는 부하에서 프레임이 늘어져 박자를 놓친다
 const freeze = async (page: Page) => {
   await page.clock.install();
@@ -631,8 +641,8 @@ test.describe('로켓 전송 상세 로켓 박자 (1440px)', () => {
   test('분출이 서서히 올라 짧은 심지가 자라고(단추 높이의 0.2~0.5배) 빠르게 깜빡이며 그동안에도 단추는 발사대에 머문다', async ({
     page,
   }) => {
-    // 가짜 시계도 WebGL 프레임은 실제로 계산해 CI의 SwiftShader에서 오래 걸린다.
-    test.setTimeout(90_000);
+    // 이 시험은 심지, 깜빡임, 단추 자리(DOM)만 잰다. 연기 엔진은 필요 없다
+    await withoutSmoke(page);
     await freeze(page);
     const rest = (await send(page).boundingBox())!;
     await send(page).evaluate((b) => (b as HTMLButtonElement).click());
