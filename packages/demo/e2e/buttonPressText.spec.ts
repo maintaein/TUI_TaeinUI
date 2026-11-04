@@ -57,8 +57,10 @@ interface Result extends ButtonInfo {
    */
   maxJump: number;
   frames: number;
-  /** 꼬리 구간에 든 프레임 수 */
-  tailFrames: number;
+  /** 측정이 유효하지 않은 이유(전이 이벤트가 둘씩 안 찍힘). 비면 유효하다. */
+  invalid: string;
+  /** 점프를 가릴 수 있는 회차인가(MIN_DECISIVE_RATIO 설명) */
+  decisive: boolean;
   /** 해제 구간 프레임별 잉크 중심 x (진단용) */
   seq: string;
 }
@@ -157,15 +159,24 @@ const SECTIONS: Array<{ heading: string; name: string }> = [
 const MAX_TAIL_JUMP = 0.3;
 const MAX_SETTLED_DRIFT = 0.3;
 /**
- * 꼬리는 해제 전이가 끝나기 이만큼(초) 전부터의 프레임이다(전이 200ms의 후반 절반과 그 뒤).
- * 레이어가 사라지는 회귀는 전이 끝에 생기므로 끝 앞뒤 프레임이 들어야 한다.
+ * 꼬리는 해제 전이가 시작하고 이만큼(초) 지난 뒤의 프레임이다.
  * 프레임 개수로 자르면 안 된다. 부하에서 screencast가 프레임을 덜 만들면 마지막 몇 개가
- * 전이 앞쪽까지 닿는데, 거기는 scale이 1을 지나는 순간(해제 후 40~80ms)이라 글자 중심이
- * 세로로 한 번 뛰는 정상 구간이다(레이어가 있어도 그렇다. 눌린 쪽 21.49, 지난 쪽 21.98).
+ * 전이 앞쪽까지 닿는데, 거기에는 scale이 1을 처음 지나는 순간(해제 후 25ms 안팎)이 있고
+ * 글자 중심이 세로로 한 번 뛰는 정상 구간이다(레이어가 있어도 그렇다. 눌린 쪽 21.49, 지난 쪽 21.98).
+ * 시작 이벤트는 부하에서 늦게 찍힐 뿐 일찍 찍히지 않으므로 이 경계는 첫 교차를 넘긴다.
+ * spring은 그 뒤 75ms, 125ms, 175ms 부근에서도 1을 오르내리는데(진폭 scale 0.0005 안팎)
+ * 이 구간은 꼬리에 든다. 점프로 잡히지 않는 것은 계산이 아니라 관찰이다(Windows, Linux 실측).
  */
-const TAIL_SPAN = 0.1;
-/** 꼬리 프레임이 이보다 적으면 점프를 잴 수 없다. 다시 잰다(문턱은 그대로). */
-const MIN_TAIL_FRAMES = 3;
+const TAIL_FROM = 0.1;
+/**
+ * 점프를 가릴 수 있는("결정적") 측정은 해제 시작 TAIL_FROM 뒤부터 전이 끝 앞까지 레이어가 있는 동안의
+ * screencast 프레임이 하나 이상 있는 것이다. 레이어는 전이 끝 이벤트 뒤에 사라지므로(관찰),
+ * 이 프레임과 끝 뒤 정착 모습 사이에서만 회귀의 점프가 보인다. screencast는 화면이 바뀔 때만
+ * 프레임을 주고 spring 꼬리는 거의 안 바뀌어서, 부하가 아니어도 이 프레임이 없는 회차가 있다
+ * (기본 작업자 부하에서 약 4분의 1). 한 회차가 비결정적이어도 회귀는 모든 버튼에서 같이 나므로,
+ * 회차마다 빨갛게 하지 않고 재측정 뒤에도 전체의 절반 미만이 결정적일 때만 측정 불가로 빨갛게 한다.
+ */
+const MIN_DECISIVE_RATIO = 0.5;
 
 /** 예제 섹션의 프리뷰 버튼. 편집기의 "코드 복사" 버튼은 뺀다. */
 const sectionButtons = (page: Page, heading: string) =>
@@ -286,11 +297,11 @@ const measureOnce = async (
   await page.waitForTimeout(150);
   const restShot = (await page.screenshot()).toString('base64');
 
-  // 누름과 해제 전이의 시작과 끝을 페이지 시계로 적는다. 마우스를 놓는 호출이 끝난 시각이나
-  // 프레임이 도착한 개수는 부하에서 어긋난다(위 TAIL_SPAN 설명). 이벤트는 부하에서 늦게 찍힐 뿐
+  // 누름과 해제 전이의 시작을 페이지 시계로 적는다. 마우스를 놓는 호출이 끝난 시각이나 프레임이
+  // 도착한 개수는 부하에서 어긋난다(위 TAIL_FROM 설명). 이벤트는 부하에서 늦게 찍힐 뿐
   // 일찍 찍히지 않으므로, 이것으로 자른 꼬리는 늦게 잘릴지언정 앞쪽을 포함하지 않는다.
   // 누름 이벤트가 부하로 해제 뒤에 도착할 수 있어 늦게 단 리스너로는 둘을 못 가린다.
-  // 누르기 전에 달고 누름, 해제 순서로 정확히 둘씩 찍힌 회차만 쓴다.
+  // 누르기 전에 달고 누름, 해제 순서로 정확히 둘 찍힌 회차만 쓴다.
   type Stamped = HTMLElement & { starts?: number[]; ends?: number[] };
   await button.evaluate((el) => {
     const t = el as Stamped;
@@ -312,6 +323,10 @@ const measureOnce = async (
   await page.waitForTimeout(800);
   await cdp.send('Page.stopScreencast');
   await cdp.detach();
+  // 해제 전이가 끝난 뒤의 정착 모습. screencast는 화면이 바뀔 때만 프레임을 주므로 전이가 끝난 뒤
+  // 프레임이 없을 수 있다. 레이어가 전이 끝에 사라지며 글자가 튀는 회귀는 마지막 애니메이션 프레임과
+  // 이 모습 사이의 점프라서, 프레임이 성겨도 끝 뒤 프레임을 보장하려고 하나 더 찍어 꼬리에 붙인다.
+  const settledShot = (await page.screenshot()).toString('base64');
 
   const stamps = await button.evaluate((el) => ({
     starts: (el as Stamped).starts ?? [],
@@ -320,7 +335,6 @@ const measureOnce = async (
   const complete = stamps.starts.length === 2 && stamps.ends.length === 2;
   const releaseStart = complete ? stamps.starts[1] : 0;
   const releaseEnd = complete ? stamps.ends[1] : 0;
-
   // screencast 프레임은 부하에서 늦게 도착해 도착 순서가 캡처 시각 순서와 다르다(캡처 시각이
   // 앞선 눌린 모습이 놓은 뒤 프레임 사이에 끼면 없던 되튐이 꼬리에 점프로 잡혔다).
   // 캡처 시각(metadata.timestamp)으로 줄 세운다. 브라우저 시계라 위 시각과 같은 기준이다.
@@ -336,9 +350,21 @@ const measureOnce = async (
   const restCy = rest.cy;
 
   const release = releasedAt < 0 ? [] : ink.slice(releasedAt);
-  const tail = releaseEnd
-    ? release.filter((p) => p.t >= releaseEnd - TAIL_SPAN)
+  const [settled] = await inkOf(
+    page,
+    [{ t: Number.MAX_SAFE_INTEGER, data: settledShot }],
+    crop
+  );
+  const animated = complete
+    ? release.filter((p) => p.t >= releaseStart + TAIL_FROM)
     : [];
+  const preEnd = animated.filter((p) => p.t < releaseEnd);
+  const tail = [...animated, settled];
+  const invalid = complete
+    ? ''
+    : '전이 시작, 끝 이벤트가 누름, 해제 둘씩 찍히지 않았다';
+  const decisive = preEnd.length > 0;
+
   const jumps = (pts: InkPoint[]) =>
     pts.slice(1).map((p, i) => Math.hypot(p.cx - pts[i].cx, p.cy - pts[i].cy));
   const jumpsY = (pts: InkPoint[]) =>
@@ -354,24 +380,24 @@ const measureOnce = async (
     tailJump: +Math.max(0, ...jumpsY(tail)).toFixed(3),
     maxJump: +Math.max(0, ...jumps(release)).toFixed(3),
     frames: release.length,
-    tailFrames: tail.length,
+    invalid,
+    decisive,
     seq: ink.map((p) => `${p.cx.toFixed(2)},${p.cy.toFixed(2)}`).join(' '),
   };
 };
 
-/** 프레임이 모자란 회차(부하로 screencast가 덜 찍힌 경우)는 버리고 다시 잰다. */
+/** 이벤트가 불완전하거나 결정적이지 않은 회차는 버리고 다시 잰다(점프 값은 재측정 조건에 안 들어간다). */
 const measureButton = async (
   page: Page,
   section: string,
   index: number
 ): Promise<Result> => {
   let r = await measureOnce(page, section, index);
-  for (let retry = 0; retry < 2 && r.tailFrames < MIN_TAIL_FRAMES; retry++)
-    r = await measureOnce(page, section, index);
-  expect(
-    r.tailFrames,
-    `${section}#${index} 꼬리 프레임 수`
-  ).toBeGreaterThanOrEqual(MIN_TAIL_FRAMES);
+  for (let retry = 0; retry < 2 && (r.invalid || !r.decisive); retry++) {
+    const next = await measureOnce(page, section, index);
+    if (!next.invalid && (r.invalid || next.decisive)) r = next;
+  }
+  expect(r.invalid, `${section}#${index} 측정 불가`).toBe('');
   return r;
 };
 
@@ -393,6 +419,11 @@ const measureAll = async (
     }
   }
   if (only) expect(results).toHaveLength(only.size);
+  const decisive = results.filter((r) => r.decisive).length;
+  expect(
+    decisive / results.length,
+    `결정적 측정 ${decisive}/${results.length}(screencast가 성겨 회귀를 가릴 수 없는 회차가 많다)`
+  ).toBeGreaterThanOrEqual(MIN_DECISIVE_RATIO);
   return results;
 };
 
