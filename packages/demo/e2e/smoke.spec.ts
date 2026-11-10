@@ -73,19 +73,16 @@ test.describe('유체 연기 엔진', () => {
 
   test('흩어지면 캔버스를 DOM에서 떼고 문맥을 놓는다', async ({ page }) => {
     test.setTimeout(90_000);
+    // 프레임 비용은 캔버스 크기에 비례하고(1440x900은 4코어 두 작업자에서 프레임당 약 0.57초) 수명은 프레임 수(최소 90)로 정해진다.
+    // 이 시험은 접힘 뒤 정리(캔버스 떼기, 문맥 놓기)만 보고 크기에 의존하는 단언이 없어, 제품 기본 경로(container 없음, body)는 두고 창만 줄인다
+    await page.setViewportSize({ width: 480, height: 320 });
     await open(page);
-    // 수명은 프레임 수(최소 90)로 정해지고 프레임 비용은 캔버스 크기에 비례한다. 창 전체 대신 작은 시험 상자(480x320)에서 돌려
-    // 소프트웨어 GL의 병렬 부하에서도 프레임 수를 줄이지 않고 끝나게 한다(창 전체는 4코어 두 작업자에서 프레임당 약 0.57초라 52초, 상자는 약 0.2초)
-    const stageBox = (await page.getByTestId('stage').boundingBox())!;
     // 만든 순간에는 붙어 있다. 부하로 느려도 접히기 전에 확인하도록 같은 evaluate에서 본다
-    const attachedAtStart = await page.evaluate(
-      ([x, y]) => {
-        window.__smoke!.create({ stage: true, preserve: true });
-        window.__smoke!.burst(x, y);
-        return window.__smoke!.attached();
-      },
-      [stageBox.x + stageBox.width / 2, stageBox.y + stageBox.height / 2]
-    );
+    const attachedAtStart = await page.evaluate(() => {
+      window.__smoke!.create({ preserve: true });
+      window.__smoke!.burst(240, 160);
+      return window.__smoke!.attached();
+    });
     expect(attachedAtStart).toBe(true);
     // 수명은 시뮬레이션 시간 3초(프레임당 최대 1/30초)라 최소 90프레임이다. 느린 소프트웨어 GL의
     // 병렬 부하에서 프레임당 수백 ms여도 끝나도록 넉넉히 기다린다
