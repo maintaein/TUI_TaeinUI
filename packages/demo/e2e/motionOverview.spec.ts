@@ -646,8 +646,11 @@ test.describe('모션 전체 보기 부채꼴 메뉴 미니 (1440px)', () => {
       });
     const snapshot = () => fanMini(page).evaluate(fanState);
     const frozen = await snapshot();
-    // 닫힌 채 대본이 쉬는 틈이 4초에 가까워(멈춤을 무시해도 4초 뒤에야 열린다) 창은 그보다 길게 잡는다
-    expect(await readsDuring(fanMini(page), fanState, 6000)).toEqual([frozen]);
+    // 창은 미니 대본(FanMenuPage의 scriptFor, act.pace 짧은 값) 한 바퀴 합 7.8초다: 0.3+0.1+0.9+4*(0.5+0.8)+0.1+0.8+0.3+0.1(누름 시간 별도).
+    // 한 바퀴 안에 열림과 접힘으로 expanded가 반드시 두 번 바뀌므로 멈춤을 무시하는 구현은 이 창 안에서 걸린다. 멈춤을 무시하도록 Stage를 고친 변이에서
+    // 창 시작 뒤 첫 변화까지를 4코어 두 작업자에서 재니 대본 시간(GSAP이 긴 틈을 33ms로 줄인 시간) 2.4~4.8초, 벽시계 1.7~9.7초였다.
+    // 4초 창에서는 이 변이가 한 번 초록이었고 7.8초 창에서는 4개 미니 모두 3회 연속 빨강이다
+    expect(await readsDuring(fanMini(page), fanState, 7800)).toEqual([frozen]);
     await pause.click();
     await centre();
     await expect.poll(snapshot, { timeout: 15_000 }).not.toBe(frozen);
@@ -684,9 +687,23 @@ const rocketMini = (page: Page) =>
 test.describe('모션 전체 보기 로켓 전송 미니 (1440px)', () => {
   test.use({ viewport: { width: 1440, height: 900 } });
 
+  // 연기를 내는 것과 멈춤을 지키는 것을 나눈다. 둘을 한 시험에 두면 미니의 소프트웨어 GL 연기가 이웃 연기 시험과 겹쳐 프레임이 수 초씩 멈추고
+  // (4코어에서 한 프레임 최대 약 4초) 한 시험이 30초를 넘는다. 아래 멈춤 시험은 DOM 상태(비행 층, 표지)만 보므로 연기 엔진을 뺀다
+  test('미니도 연기 canvas를 무대 안에 낸다', async ({ page }) => {
+    await page.goto('/motion');
+    await rocketMini(page).evaluate((el) =>
+      el.scrollIntoView({ block: 'center' })
+    );
+    // 미니도 연기를 낸다(사용자 요청 2026-11-03). 연기 canvas가 무대 안에 있다
+    await expect(rocketMini(page).locator('canvas')).toHaveCount(1, {
+      timeout: 15_000,
+    });
+  });
+
   test('대본이 눌러 로켓 단추를 날리고 움직임 멈춤이면 서 있다', async ({
     page,
   }) => {
+    await withoutSmoke(page);
     await page.goto('/motion');
     const centre = () =>
       rocketMini(page).evaluate((el) => el.scrollIntoView({ block: 'center' }));
@@ -699,9 +716,6 @@ test.describe('모션 전체 보기 로켓 전송 미니 (1440px)', () => {
       }
     );
     await expect(rocketMini(page).locator('[data-rocket-mark]')).toHaveCount(1);
-    // 미니도 연기를 낸다(사용자 요청 2026-11-03). 연기 canvas가 무대 안에 있다
-    await expect(rocketMini(page).locator('canvas')).toHaveCount(1);
-
     const pause = page.getByRole('button', { name: '움직임 멈춤' });
     await pause.click();
     await expect(pause).toHaveAttribute('aria-pressed', 'true');
