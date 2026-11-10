@@ -126,7 +126,8 @@ jobs:
 
   e2e:
     name: E2E Tests
-    runs-on: ubuntu-latest
+    # Playwright 1.58은 ubuntu 26.04(현재 ubuntu-latest)에 브라우저를 설치하지 못한다. Playwright를 올리면 풀어도 된다
+    runs-on: ubuntu-24.04
     needs: [build]
     steps:
       - name: Checkout 코드
