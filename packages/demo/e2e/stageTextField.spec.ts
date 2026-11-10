@@ -141,18 +141,18 @@ test('축소 모션: 오류에 흔들림 없이 색만 바뀐다', async ({ page
     .getByRole('region', { name: 'TextField 시연' })
     .locator('input');
   await expect(input).toHaveAttribute('aria-invalid', 'true');
+  // 테두리 색은 전이로 바뀌므로 aria-invalid 직후 한 번 읽으면 부하에서 전이 중간 색(회색 113)을 본다. 도착 색을 조건으로 기다린다
+  await expect(input).toHaveCSS('border-top-color', 'rgb(211, 47, 47)');
   const m = await input.evaluate((el) => {
     const cs = getComputedStyle(el);
     return {
       duration: parseFloat(cs.animationDuration),
       iterations: cs.animationIterationCount,
       transform: cs.transform,
-      color: cs.borderTopColor,
     };
   });
   // 흔들림은 0.01ms 1회로 끝나 제자리다
   expect(m.duration).toBeLessThan(0.001);
   expect(m.iterations).toBe('1');
   expect(m.transform).toBe('none');
-  expect(m.color).toBe('rgb(211, 47, 47)');
 });
