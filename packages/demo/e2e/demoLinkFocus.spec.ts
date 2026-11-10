@@ -148,6 +148,10 @@ test.describe('데모 자체 링크 포커스', () => {
     page,
   }) => {
     await page.goto('/');
+    // load 직후에는 React가 아직 링크를 그리지 않았을 수 있다. 그리기 전의 Tab은 body에서 허공으로 간다
+    await page
+      .locator('a[href="#main-content"]')
+      .waitFor({ state: 'attached' });
     await page.keyboard.press('Tab');
     const skip = await read(page);
     expect(skip.href).toBe('#main-content');
