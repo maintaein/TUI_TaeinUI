@@ -1,5 +1,6 @@
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Locator, type Page } from '@playwright/test';
 import { pointedSoFar, watchPointing } from './fanPointing';
+import { withoutSmoke } from './withoutSmoke';
 
 // 시각 글자 중 가장 투명한 값. 정지 상태는 늘 1이다
 const minGlyphOpacity = (page: Page) =>
@@ -19,6 +20,29 @@ const shownPieces = (page: Page) =>
     );
 
 const nav = (page: Page) => page.getByRole('navigation', { name: '사이트' });
+
+// 멈춘 동안 읽은 값을 ms 동안 100ms마다 페이지 안에서 모아 서로 다른 값만 돌려준다. 반복문에 Playwright 왕복을 끼우면
+// 부하에서 왕복 한 번이 수백 ms라 4초짜리 관찰이 17초가 되어 시험 시간(30초)을 먹는다. read는 문자열로 옮겨 가므로 바깥 값을 쓰지 않는다
+const readsDuring = (
+  scope: Locator,
+  read: (el: Element) => string,
+  ms: number
+) =>
+  scope.evaluate(
+    async (el, { source, span }) => {
+      const readNow = new Function(`return (${source})`)() as (
+        el: Element
+      ) => string;
+      const seen = new Set([readNow(el)]);
+      const end = performance.now() + span;
+      while (performance.now() < end) {
+        await new Promise((done) => setTimeout(done, 100));
+        seen.add(readNow(el));
+      }
+      return [...seen];
+    },
+    { source: read.toString(), span: ms }
+  );
 
 test.describe('헤더 내비 모션 (1440px)', () => {
   test.use({ viewport: { width: 1440, height: 900 } });
@@ -486,6 +510,8 @@ test.describe('모션 전체 보기 출렁이는 게이지 미니 (1440px)', () 
   test.use({ viewport: { width: 1440, height: 900 } });
 
   test('대본이 값을 바꾸고 움직임 멈춤이면 서 있다', async ({ page }) => {
+    // 이 시험은 연기를 보지 않는다. 이웃 로켓 미니의 연기 셰이더가 프레임을 느리게 해 대본이 늘어지므로 연기 엔진을 뺀다
+    await withoutSmoke(page);
     await page.goto('/motion');
     const centre = () =>
       sloshMeter(page).evaluate((el) =>
@@ -512,10 +538,13 @@ test.describe('모션 전체 보기 출렁이는 게이지 미니 (1440px)', () 
     await page.waitForTimeout(500);
     expect(await rim()).toBe(stillRim);
     // 대본 한 바퀴보다 길게 기다려도 값이 바뀌지 않는다
-    for (let i = 0; i < 80; i++) {
-      await expect(sloshMeter(page)).toHaveAttribute('aria-valuenow', frozen!);
-      await page.waitForTimeout(100);
-    }
+    expect(
+      await readsDuring(
+        sloshMeter(page),
+        (el) => el.getAttribute('aria-valuenow') ?? '',
+        8000
+      )
+    ).toEqual([frozen]);
     await pause.click();
     await centre();
     await expect.poll(rim).not.toBe(stillRim);
@@ -537,6 +566,8 @@ test.describe('모션 전체 보기 인증번호 슬롯 미니 (1440px)', () => 
   test('대본이 틀린 번호와 맞는 번호를 넣고 움직임 멈춤이면 서 있다', async ({
     page,
   }) => {
+    // 이 시험은 연기를 보지 않는다. 이웃 로켓 미니의 연기 셰이더가 프레임을 느리게 해 대본이 늘어지므로 연기 엔진을 뺀다
+    await withoutSmoke(page);
     await page.goto('/motion');
     const centre = () =>
       slotsInput(page).evaluate((el) =>
@@ -560,10 +591,13 @@ test.describe('모션 전체 보기 인증번호 슬롯 미니 (1440px)', () => 
     await centre();
     const frozen = await slotsInput(page).inputValue();
     // 대본 한 바퀴보다 길게 기다려도 값이 바뀌지 않는다
-    for (let i = 0; i < 80; i++) {
-      await expect(slotsInput(page)).toHaveValue(frozen);
-      await page.waitForTimeout(100);
-    }
+    expect(
+      await readsDuring(
+        slotsInput(page),
+        (el) => (el as HTMLInputElement).value,
+        8000
+      )
+    ).toEqual([frozen]);
     await pause.click();
     await centre();
     await expect(slotsInput(page)).not.toHaveValue(frozen, {
@@ -583,6 +617,8 @@ test.describe('모션 전체 보기 부채꼴 메뉴 미니 (1440px)', () => {
   test('대본이 열고 호를 훑어 가리킴이 옮겨 가며 움직임 멈춤이면 서 있다', async ({
     page,
   }) => {
+    // 이 시험은 연기를 보지 않는다. 이웃 로켓 미니의 연기 셰이더가 프레임을 느리게 해 대본이 늘어지므로 연기 엔진을 뺀다
+    await withoutSmoke(page);
     await page.goto('/motion');
     const centre = () =>
       fanMini(page).evaluate((el) => el.scrollIntoView({ block: 'center' }));
@@ -601,23 +637,20 @@ test.describe('모션 전체 보기 부채꼴 메뉴 미니 (1440px)', () => {
     await centre();
     // 멈추기 직전에 예약된 누름이 끝나길 기다린 뒤의 자세가 그대로 서 있다
     await page.waitForTimeout(600);
-    const snapshot = () =>
-      fanMini(page).evaluate((el) => ({
+    const fanState = (el: Element) =>
+      JSON.stringify({
         expanded: el
           .querySelector('[aria-haspopup="menu"]')
           ?.getAttribute('aria-expanded'),
         hot: el.querySelector('[data-hot]')?.getAttribute('aria-label') ?? '',
-      }));
+      });
+    const snapshot = () => fanMini(page).evaluate(fanState);
     const frozen = await snapshot();
-    for (let i = 0; i < 40; i++) {
-      expect(await snapshot()).toEqual(frozen);
-      await page.waitForTimeout(100);
-    }
+    // 닫힌 채 대본이 쉬는 틈이 4초에 가까워(멈춤을 무시해도 4초 뒤에야 열린다) 창은 그보다 길게 잡는다
+    expect(await readsDuring(fanMini(page), fanState, 6000)).toEqual([frozen]);
     await pause.click();
     await centre();
-    await expect
-      .poll(async () => JSON.stringify(await snapshot()), { timeout: 15_000 })
-      .not.toBe(JSON.stringify(frozen));
+    await expect.poll(snapshot, { timeout: 15_000 }).not.toBe(frozen);
   });
 
   test('대본이 열고 아이콘을 차례로 짚어 짚을 때마다 그 이름표가 보인다', async ({
@@ -681,22 +714,20 @@ test.describe('모션 전체 보기 로켓 전송 미니 (1440px)', () => {
         timeout: 10_000,
       }
     );
-    const snapshot = () =>
-      rocketMini(page).evaluate((el) => ({
+    const rocketState = (el: Element) =>
+      JSON.stringify({
         layer: el.querySelectorAll('[data-rocket-layer]').length,
         mark: el.querySelectorAll('[data-rocket-mark]').length,
-      }));
+      });
+    const snapshot = () => rocketMini(page).evaluate(rocketState);
     const frozen = await snapshot();
-    expect(frozen.layer).toBe(0);
-    for (let i = 0; i < 30; i++) {
-      expect(await snapshot()).toEqual(frozen);
-      await page.waitForTimeout(100);
-    }
+    expect(JSON.parse(frozen).layer).toBe(0);
+    expect(await readsDuring(rocketMini(page), rocketState, 3000)).toEqual([
+      frozen,
+    ]);
     await pause.click();
     await centre();
-    await expect
-      .poll(async () => JSON.stringify(await snapshot()), { timeout: 15_000 })
-      .not.toBe(JSON.stringify(frozen));
+    await expect.poll(snapshot, { timeout: 15_000 }).not.toBe(frozen);
   });
 });
 
