@@ -322,80 +322,94 @@ test.describe('로켓 전송 상세 유체 연기 (1440px)', () => {
       if (m.type() === 'error' && /shader|glsl|compile|link/i.test(m.text()))
         shaderErrors.push(m.text());
     });
+    // core `grid.ts`의 수명 maxLifeMs(3000)와 프레임 dt 상한(1000 / 30)을 값으로 적는다. import하지 않아야 수명이 늘 때 이 시험이 빨개진다.
+    // 상한은 maxLifeMs에 프레임 하나를 더한 값이다(시험의 rAF가 엔진의 접힘과 같은 프레임의 앞뒤 어디서 불리는지에 따른 한 프레임 차).
+    // 잰 값은 Windows와 4코어 Docker 모두 2966.7(89프레임)이다. 엔진이 수명 전에 스스로 접을 수 있어 위 방향의 상한만 단언한다
+    const MAX_FRAME_MS = 1000 / 30;
+    const SIM_LIMIT = 3000 + MAX_FRAME_MS;
     await open(page);
     // 관찰은 모두 한 evaluate 안에서 한다(병렬 부하에서 왕복이 수 초 걸린다).
     // 연기 canvas는 preserveDrawingBuffer 없이 만들어지므로 엔진이 그린 같은 프레임의 rAF에서 읽어야 한다
-    const result = await send(page).evaluate(async (button) => {
-      const region = button.closest('[role="region"]') as HTMLElement;
-      const copy = document.createElement('canvas');
-      const alphaOf = (canvas: HTMLCanvasElement) => {
-        copy.width = canvas.width;
-        copy.height = canvas.height;
-        const ctx = copy.getContext('2d')!;
-        ctx.drawImage(canvas, 0, 0);
-        const { data } = ctx.getImageData(0, 0, copy.width, copy.height);
+    const result = await send(page).evaluate(
+      async (button, limits) => {
+        const { SIM_LIMIT, MAX_FRAME_MS } = limits;
+        const region = button.closest('[role="region"]') as HTMLElement;
+        const copy = document.createElement('canvas');
+        const alphaOf = (canvas: HTMLCanvasElement) => {
+          copy.width = canvas.width;
+          copy.height = canvas.height;
+          const ctx = copy.getContext('2d')!;
+          ctx.drawImage(canvas, 0, 0);
+          const { data } = ctx.getImageData(0, 0, copy.width, copy.height);
+          let n = 0;
+          for (let i = 3; i < data.length; i += 4) if (data[i] > 0) n += 1;
+          return n;
+        };
+        const frame = () =>
+          new Promise<number>((r) => requestAnimationFrame(r));
+        (button as HTMLButtonElement).click();
+        const found = {
+          canvasInRegion: false,
+          insideStage: false,
+          behindClone: false,
+          alphaWhileFlying: 0,
+          alphaAfterLayerGone: 0,
+          canvasAfterMark: false,
+          simAfterLayer: 0,
+          vanished: false,
+          onBody: false,
+        };
+        let layerWasUp = false;
         let n = 0;
-        for (let i = 3; i < data.length; i += 4) if (data[i] > 0) n += 1;
-        return n;
-      };
-      const frame = () =>
-        new Promise((r) => requestAnimationFrame(() => r(null)));
-      const t0 = performance.now();
-      (button as HTMLButtonElement).click();
-      const found = {
-        canvasInRegion: false,
-        insideStage: false,
-        behindClone: false,
-        alphaWhileFlying: 0,
-        alphaAfterLayerGone: 0,
-        canvasAfterMark: false,
-        goneAt: 0,
-        onBody: false,
-      };
-      let layerWasUp = false;
-      let n = 0;
-      // 연기가 흩어지는 데는 프레임 수(최소 90)가 든다. 4코어 소프트웨어 GL은 프레임당 0.2~0.6초라 20~55초가 걸리므로
-      // 흩어짐을 기다리는 이 반복은 시간 예산이 아니라 멈춘 엔진을 거르는 안전장치다(시험 시간 90초 안)
-      while (performance.now() - t0 < 60_000) {
-        await frame();
-        n += 1;
-        // 연기 canvas만 본다(분출은 DOM이라 비행 층 안에 canvas가 없다)
-        const canvas =
-          [...region.querySelectorAll('canvas')].find(
-            (c) => !c.closest('[data-rocket-layer]')
-          ) ?? null;
-        const layer = document.querySelector('[data-rocket-layer]');
-        found.onBody ||= !!document.body.querySelector(':scope > canvas');
-        if (layer) layerWasUp = true;
-        if (canvas) {
-          found.canvasInRegion = true;
-          const c = canvas.getBoundingClientRect();
-          const r = region.getBoundingClientRect();
-          found.insideStage ||=
-            c.left >= r.left - 1 &&
-            c.right <= r.right + 1 &&
-            c.top >= r.top - 1 &&
-            c.bottom <= r.bottom + 1;
-          if (layer) {
-            found.behindClone ||=
-              Number(getComputedStyle(canvas).zIndex) <
-              Number(getComputedStyle(layer).zIndex);
+        // 엔진 수명은 벽시계가 아니라 프레임마다 dt를 상한(1/30초)으로 잘라 더한 모의 시간이다. 시험도 같은 규칙으로 비행 층이 걷힌
+        // 뒤의 모의 시간을 쌓는다. 느린 러너는 프레임이 늘어질 뿐 모의 시간은 같아서 기계 속도와 무관하고, 벽시계 상한은 두지 않는다
+        // (끝 조건은 canvas가 사라짐이고, 멈춘 엔진은 시험 시간 90초가 거른다). 모의 시간이 상한을 넘으면 더 기다릴 이유가 없어 끝낸다
+        let last = await frame();
+        while (found.simAfterLayer <= SIM_LIMIT) {
+          const now = await frame();
+          if (layerWasUp && !document.querySelector('[data-rocket-layer]'))
+            found.simAfterLayer += Math.min(now - last, MAX_FRAME_MS);
+          last = now;
+          n += 1;
+          // 연기 canvas만 본다(분출은 DOM이라 비행 층 안에 canvas가 없다)
+          const canvas =
+            [...region.querySelectorAll('canvas')].find(
+              (c) => !c.closest('[data-rocket-layer]')
+            ) ?? null;
+          const layer = document.querySelector('[data-rocket-layer]');
+          found.onBody ||= !!document.body.querySelector(':scope > canvas');
+          if (layer) layerWasUp = true;
+          if (canvas) {
+            found.canvasInRegion = true;
+            const c = canvas.getBoundingClientRect();
+            const r = region.getBoundingClientRect();
+            found.insideStage ||=
+              c.left >= r.left - 1 &&
+              c.right <= r.right + 1 &&
+              c.top >= r.top - 1 &&
+              c.bottom <= r.bottom + 1;
+            if (layer) {
+              found.behindClone ||=
+                Number(getComputedStyle(canvas).zIndex) <
+                Number(getComputedStyle(layer).zIndex);
+            }
+            // 알파 읽기는 GPU 읽기라 프레임을 늘린다. 두 구간 모두 한 번 보이면 더 읽지 않는다
+            if (n % 3 === 0) {
+              if (layer && found.alphaWhileFlying === 0)
+                found.alphaWhileFlying = alphaOf(canvas);
+              else if (!layer && layerWasUp && found.alphaAfterLayerGone === 0)
+                found.alphaAfterLayerGone = alphaOf(canvas);
+            }
+            if (layerWasUp && !layer) found.canvasAfterMark = true;
+          } else if (layerWasUp && !layer) {
+            found.vanished = true;
+            break;
           }
-          // 알파 읽기는 GPU 읽기라 프레임을 늘린다. 두 구간 모두 한 번 보이면 더 읽지 않는다
-          if (n % 3 === 0) {
-            if (layer && found.alphaWhileFlying === 0)
-              found.alphaWhileFlying = alphaOf(canvas);
-            else if (!layer && layerWasUp && found.alphaAfterLayerGone === 0)
-              found.alphaAfterLayerGone = alphaOf(canvas);
-          }
-          if (layerWasUp && !layer) found.canvasAfterMark = true;
-        } else if (layerWasUp && !layer) {
-          found.goneAt = performance.now() - t0;
-          break;
         }
-      }
-      return found;
-    });
+        return found;
+      },
+      { SIM_LIMIT, MAX_FRAME_MS }
+    );
     expect(result.canvasInRegion).toBe(true);
     expect(shaderErrors).toEqual([]);
     // 창 전체(body)가 아니라 무대 안에 갇힌다
@@ -406,7 +420,9 @@ test.describe('로켓 전송 상세 유체 연기 (1440px)', () => {
     // 레이어가 걷히고 표지가 뜬 뒤에도 연기는 남아 흩어지다 사라진다
     expect(result.canvasAfterMark).toBe(true);
     expect(result.alphaAfterLayerGone).toBeGreaterThan(0);
-    expect(result.goneAt).toBeGreaterThan(0);
+    // 비행 층이 걷힌 뒤 연기가 스스로 접히기까지의 모의 시간이 엔진 수명 안이다(수명이 늘어난 회귀를 잡는다)
+    expect(result.vanished).toBe(true);
+    expect(result.simAfterLayer).toBeLessThanOrEqual(SIM_LIMIT);
     await expect(mark(page)).toHaveCSS('opacity', '1');
     await expect(stage(page).locator('canvas')).toHaveCount(0);
   });
@@ -728,6 +744,8 @@ test.describe('로켓 전송 상세 로켓 박자 (1440px)', () => {
     page,
   }) => {
     test.setTimeout(90_000);
+    // 분사구, 입, 밑면 빛(DOM)만 읽는다. 연기 엔진은 필요 없다
+    await withoutSmoke(page);
     await freeze(page);
     const width = (await send(page).boundingBox())!.width;
     await send(page).evaluate((b) => (b as HTMLButtonElement).click());
