@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { withoutSmoke } from './withoutSmoke';
 
 const stage = (page: Page) =>
   page.getByRole('region', { name: 'RocketButton 미리보기' });
@@ -73,6 +74,9 @@ const fly = (page: Page) =>
 
 test.describe('로켓 전송 상세 (1440px)', () => {
   test.use({ viewport: { width: 1440, height: 900 } });
+
+  // 이 묶음은 복제본, 표지, 자리(DOM)만 본다. 연기 셰이더가 프레임을 느리게 해 실시간 표집이 비행의 끝을 놓치므로 연기 엔진을 뺀다
+  test.beforeEach(({ page }) => withoutSmoke(page));
 
   test('이름과 줄이기 글과 Props가 있다', async ({ page }) => {
     await page.goto('/motion/rocket-button');
@@ -350,7 +354,9 @@ test.describe('로켓 전송 상세 유체 연기 (1440px)', () => {
       };
       let layerWasUp = false;
       let n = 0;
-      while (performance.now() - t0 < 25_000) {
+      // 연기가 흩어지는 데는 프레임 수(최소 90)가 든다. 4코어 소프트웨어 GL은 프레임당 0.2~0.6초라 20~55초가 걸리므로
+      // 흩어짐을 기다리는 이 반복은 시간 예산이 아니라 멈춘 엔진을 거르는 안전장치다(시험 시간 90초 안)
+      while (performance.now() - t0 < 60_000) {
         await frame();
         n += 1;
         // 연기 canvas만 본다(분출은 DOM이라 비행 층 안에 canvas가 없다)
@@ -375,15 +381,12 @@ test.describe('로켓 전송 상세 유체 연기 (1440px)', () => {
               Number(getComputedStyle(canvas).zIndex) <
               Number(getComputedStyle(layer).zIndex);
           }
+          // 알파 읽기는 GPU 읽기라 프레임을 늘린다. 두 구간 모두 한 번 보이면 더 읽지 않는다
           if (n % 3 === 0) {
-            const a = alphaOf(canvas);
-            if (layer)
-              found.alphaWhileFlying = Math.max(found.alphaWhileFlying, a);
-            else if (layerWasUp)
-              found.alphaAfterLayerGone = Math.max(
-                found.alphaAfterLayerGone,
-                a
-              );
+            if (layer && found.alphaWhileFlying === 0)
+              found.alphaWhileFlying = alphaOf(canvas);
+            else if (!layer && layerWasUp && found.alphaAfterLayerGone === 0)
+              found.alphaAfterLayerGone = alphaOf(canvas);
           }
           if (layerWasUp && !layer) found.canvasAfterMark = true;
         } else if (layerWasUp && !layer) {
@@ -470,16 +473,6 @@ test.describe('로켓 전송 상세 움직임 줄이기 (1440px)', () => {
     await expect(original(page)).toHaveCSS('visibility', 'hidden');
   });
 });
-
-// WebGL2가 없는 환경으로 만든다. 엔진이 null이 되어 연기와 빛무리만 빠지고(심지, 분사구, 단추 움직임은 그대로) 셰이더 프레임을 안 돈다.
-// 가짜 시계 한 걸음(50ms)마다 연기 셰이더가 프레임을 실제로 계산해, CI의 SwiftShader(소프트웨어 WebGL)에서는 한 걸음이 약 0.5초라 이 시험이 30초를 넘겼다.
-// 연기를 보는 시험(빛·그늘, 땅 연기 등)에는 쓰지 않는다. freeze보다 먼저 부른다(페이지를 열기 전에 심어야 한다)
-const withoutSmoke = (page: Page) =>
-  page.addInitScript(() => {
-    Object.defineProperty(window, 'WebGL2RenderingContext', {
-      value: undefined,
-    });
-  });
 
 // 가짜 시계로 시각을 보내 단추 위치를 표집한다. 실시간 rAF는 부하에서 프레임이 늘어져 박자를 놓친다
 const freeze = async (page: Page) => {
@@ -675,6 +668,8 @@ test.describe('로켓 전송 상세 로켓 박자 (1440px)', () => {
     page,
   }) => {
     test.setTimeout(90_000);
+    // 복제본의 자리와 기울기(DOM)만 잰다. 연기 엔진은 필요 없다
+    await withoutSmoke(page);
     await freeze(page);
     const rest = (await send(page).boundingBox())!;
     await send(page).evaluate((b) => (b as HTMLButtonElement).click());
@@ -949,6 +944,8 @@ test.describe('로켓 전송 상세 로켓 박자 (1440px)', () => {
     page,
   }) => {
     test.setTimeout(90_000);
+    // 비행 층과 표지의 개수(DOM)만 본다. 연기 엔진은 필요 없다
+    await withoutSmoke(page);
     await freeze(page);
     await send(page).evaluate((b) => (b as HTMLButtonElement).click());
     const to = clockTo(page);
