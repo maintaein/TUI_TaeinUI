@@ -146,7 +146,8 @@ const measureFrameBudget = async (
   return { intervals, median, overBudgetCount };
 };
 
-test.describe('조밀한 그리드 프레임 예산 (Ruling 65)', () => {
+// @frame-budget: CI가 이 꼬리표만 작업자 1개로 따로 돌린다. 옆 작업자의 소프트웨어 WebGL 부하가 프레임 간격에 섞이지 않게
+test.describe('조밀한 그리드 프레임 예산 (Ruling 65) @frame-budget', () => {
   test('Checkbox 24개 그리드를 일괄 토글해도 프레임 중앙값이 20ms 이하다', async ({
     page,
   }) => {

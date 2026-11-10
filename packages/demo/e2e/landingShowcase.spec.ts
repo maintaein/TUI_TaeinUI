@@ -64,7 +64,10 @@ test.describe('랜딩 쇼케이스 (M5.5)', () => {
     await expect(caption).not.toHaveText('Button', { timeout: 10_000 });
   });
 
-  test('자동 재생 중 프레임 간격이 기준 안이다', async ({ page }) => {
+  // @frame-budget: CI가 작업자 1개로 따로 돌린다(frameBudget.spec.ts 참고)
+  test('자동 재생 중 프레임 간격이 기준 안이다 @frame-budget', async ({
+    page,
+  }) => {
     const { caption } = await openLanding(page);
     const before = await caption.textContent();
 

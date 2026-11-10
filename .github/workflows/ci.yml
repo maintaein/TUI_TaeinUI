@@ -154,7 +154,12 @@ jobs:
         run: pnpm build:all
 
       - name: E2E 테스트
-        run: pnpm --filter @taein-ui/demo test:e2e
+        run: pnpm --filter @taein-ui/demo test:e2e --grep-invert @frame-budget
+
+      # 프레임 간격을 재는 시험은 옆 작업자의 부하가 섞이지 않게 작업자 1개로 따로 돈다. 앞 단계가 실패해도 돈다
+      - name: E2E 프레임 예산 테스트
+        if: ${{ !cancelled() }}
+        run: pnpm --filter @taein-ui/demo test:e2e --grep @frame-budget --workers=1
 
       - name: E2E 리포트 업로드
         if: failure()
