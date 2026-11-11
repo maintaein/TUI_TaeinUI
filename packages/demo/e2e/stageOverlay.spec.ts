@@ -174,6 +174,14 @@ for (const { name, url, trap } of PAGES) {
         stage.locator(':scope > svg[aria-hidden="true"]')
       ).toBeHidden();
       const scrollBefore = await page.evaluate(() => window.scrollY);
+      // 포커스가 옮겨 가는 순간과 스크롤 이벤트마다 위치를 적는다. 최종 위치만 보면 무대의 되돌림이 가린 순간 이동을 놓치고, 그 되돌림이 늦으면 거짓 빨강이 난다
+      await page.evaluate(() => {
+        const w = window as unknown as { __ys: number[] };
+        w.__ys = [];
+        const note = () => w.__ys.push(window.scrollY);
+        document.addEventListener('focusin', note);
+        window.addEventListener('scroll', note);
+      });
       await trigger.click();
       const dialog = page.locator(DIALOG);
       await expect(dialog).toBeVisible();
@@ -185,8 +193,14 @@ for (const { name, url, trap } of PAGES) {
           )
         )
         .toBe(true);
-      // 포커스가 들어와도 페이지는 스크롤되지 않는다(시트가 무대 밖에서 들어오는 중이어도)
+      // 포커스가 들어와도 페이지는 한 순간도 스크롤되지 않는다(시트가 무대 밖에서 들어오는 중이어도)
       expect(await page.evaluate(() => window.scrollY)).toBe(scrollBefore);
+      const seenY = await page.evaluate(
+        () => (window as unknown as { __ys: number[] }).__ys
+      );
+      expect(new Set(seenY), `스크롤 위치 기록: ${seenY.join(', ')}`).toEqual(
+        new Set([scrollBefore])
+      );
       // 가둔다: Tab을 여러 번 눌러도 다이얼로그 안(가두지 않는 Popover는 건너뛴다)
       if (trap) {
         for (let i = 0; i < 6; i++) {

@@ -59,11 +59,12 @@ export const useFocusTrap = ({
 
     const firstFocusable = getFocusableElements(container)[0];
 
+    // 열리는 순간 상자는 아직 들어오는 중(container 안이면 화면 밖일 수 있다)이다. 브라우저가 그 자리로 페이지를 스크롤하지 않게 한다
     if (firstFocusable) {
-      firstFocusable.focus();
+      firstFocusable.focus({ preventScroll: true });
     } else {
       container.setAttribute('tabindex', '-1');
-      container.focus();
+      container.focus({ preventScroll: true });
     }
 
     // 포커스를 안으로 옮기지 못했으면(상자가 inert 등) 닫을 때 되돌릴 포커스도 없다.
